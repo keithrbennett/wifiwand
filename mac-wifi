@@ -60,6 +60,7 @@ end
 
 
 def connect(network_name, password = '')
+  wifi_on
   `networksetup -setairportnetwork #{wifi_hardware_port} #{Shellwords.shellescape(network_name)} #{Shellwords.shellescape(password)} 2>&1`
 end
 
@@ -96,14 +97,15 @@ def print_help
   puts "
 Available commands are:
 
-co[nnect]
-cy[cle]
-d[isconnect]
-i[nfo]
-l[s]
-on
-of[f]
-r[m]
+co[nnect] network-name - turns wifi on, connects to network-name
+cy[cle]                - turns wifi off, then on
+d[isconnect]           - disconnects from current network, does not turn off wifi
+h[elp]                 - prints this help
+i[nfo]                 - prints wifi-related information
+l[s]                   - lists preferred (not necessarily available) networks
+on                     - turns wifi on
+of[f]                  - turns wifi off
+r[m] network-name      - removes network-name from the preferred networks list
 "
 end
 
@@ -151,6 +153,8 @@ def process_command_line
       disconnect
     when /^co/
       connect(options.first)
+    when /^h/
+      print_help
     when /^l/
       puts preferred_networks
     when /^of/
