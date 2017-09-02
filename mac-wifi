@@ -4,6 +4,7 @@ require 'shellwords'
 
 AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
+# Identifies the (first) wireless network hardware port in the system, e.g. en0 or en1
 def wifi_hardware_port
   @wifi_hardware_port ||= begin
     lines = `networksetup -listallhardwareports`.split("\n")
@@ -27,10 +28,13 @@ def wifi_hardware_port
 end
 
 
+# Shows available wireless network, as you would see by clicking the wifi toolbar icon.
 def available_networks
   `airport -s`
 end
 
+
+# Shows "preferred" networks, many/most of which will probably not be available.
 def preferred_networks
   lines = `networksetup -listpreferredwirelessnetworks #{wifi_hardware_port}`.split("\n")
   # Produces something like this, unsorted, and with leading tabs:
@@ -45,6 +49,7 @@ def preferred_networks
 end
 
 
+# Turns wifi off and then on, reconnecting to the originally connecting network.
 def cycle_network
   network_name = current_network
   wifi_off
@@ -53,38 +58,46 @@ def cycle_network
 end
 
 
+# Turns wifi on.
 def wifi_on
   `networksetup -setairportpower #{wifi_hardware_port} on`
 end
 
 
+# Turns wifi off.
 def wifi_off
   `networksetup -setairportpower #{wifi_hardware_port} off`
 end
 
 
+# Connects to the passed network name, optionally with password.
+# Turns wifi on first, in case it was turned off.
 def connect(network_name, password = '')
   wifi_on
   `networksetup -setairportnetwork #{wifi_hardware_port} #{Shellwords.shellescape(network_name)} #{Shellwords.shellescape(password)} 2>&1`
 end
 
 
+# Returns the IP address assigned to the wifi port, or nil if none.
 def ip_address
   `ipconfig getifaddr #{wifi_hardware_port}`
 end
 
 
+# Removes the specified network from the preferred network list.
 def remove_preferred_network(network_name)
   `sudo networksetup -removepreferredwirelessnetwork #{wifi_hardware_port} #{Shellwords.shellescape(network_name)}`
 end
 
 
+# Returns true if wifi is on, else false.
 def wifi_on?
   lines = `#{AIRPORT_CMD} -I`.split("\n")
   ! lines.grep("AirPort: Off").any?
 end
 
 
+# Returns the network currently connected to, or nil if none.
 def current_network
   lines = `#{AIRPORT_CMD} -I`.split("\n")
   ssid_lines = lines.grep(/ SSID:/)
@@ -92,11 +105,13 @@ def current_network
 end
 
 
+# Disconnects from the currently connected network. Does not turn off wifi.
 def disconnect
   `sudo #{AIRPORT_CMD} -z`
 end
 
 
+# Output help when requested by 'h' command, or in case of unrecognized or nonexistent command.
 def print_help
   puts "
 Available commands are:
@@ -115,6 +130,9 @@ r[m] network-name      - removes network-name from the preferred networks list
 end
 
 
+# We'd like to use awesome_print if it is available, but not require it.
+# So, we try to require it, but if that fails, we fall back to using pp (pretty print).
+# Returns true if awesome_print is available (after requiring it), else false after requiring 'pp'.
 def awesome_print_available?
   begin
     require 'awesome_print'
@@ -126,6 +144,7 @@ def awesome_print_available?
 end
 
 
+# Outputs some useful wifi-related information.
 def output_info
   info = {
       wifi_on: wifi_on?,
@@ -137,6 +156,7 @@ def output_info
 end
 
 
+# Asserts that a command has been passed on the command line.
 def validate_command_line
   if ARGV.empty?
     print_help
@@ -145,6 +165,7 @@ def validate_command_line
 end
 
 
+# Processes the command (ARGV[0]) and any relevant options (ARGV[1..-1]).
 def process_command_line
   validate_command_line
 
@@ -152,14 +173,16 @@ def process_command_line
   options = ARGV[1..-1]
 
   case command
+    when /^co/
+      connect(options.first)
     when /^cy/
       cycle_network
     when /^d/
       disconnect
-    when /^co/
-      connect(options.first)
     when /^h/
       print_help
+    when /^i/
+      output_info
     when /^lsa/
       puts available_networks
     when /^lsp/
@@ -170,8 +193,6 @@ def process_command_line
       wifi_on
     when /^r/
       remove_preferred_network(options.first)
-    when /^i/
-      output_info
     else
       puts "Unrecognized command. Command and options were:\n#{ARGV.join('  ')}"
       exit(-1)
