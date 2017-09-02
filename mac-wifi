@@ -42,8 +42,20 @@ end
 
 
 def cycle_network
-  `networksetup -setairportpower #{wifi_hardware_port} off`
+  network_name = current_network
+  wifi_off
+  wifi_on
+  connect(network_name) if network_name
+end
+
+
+def wifi_on
   `networksetup -setairportpower #{wifi_hardware_port} on`
+end
+
+
+def wifi_off
+  `networksetup -setairportpower #{wifi_hardware_port} off`
 end
 
 
@@ -62,9 +74,16 @@ def remove_preferred_network(network_name)
 end
 
 
+def wifi_on?
+  lines = `#{AIRPORT_CMD} -I`.split("\n")
+  ! lines.grep("AirPort: Off").any?
+end
+
+
 def current_network
   lines = `#{AIRPORT_CMD} -I`.split("\n")
-  lines.grep(/ SSID:/).first.split('SSID: ').last
+  ssid_lines = lines.grep(/ SSID:/)
+  ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last
 end
 
 
@@ -73,15 +92,84 @@ def disconnect
 end
 
 
+def print_help
+  puts "
+Available commands are:
+
+co[nnect]
+cy[cle]
+d[isconnect]
+i[nfo]
+l[s]
+on
+of[f]
+r[m]
+"
+end
+
+
+def awesome_print_available?
+  begin
+    require 'awesome_print'
+    true
+  rescue LoadError
+    require 'pp'
+    false
+  end
+end
+
+
+def output_info
+  info = {
+      wifi_on: wifi_on?,
+      port: wifi_hardware_port,
+      network: current_network,
+      ip_address: ip_address,
+  }
+  awesome_print_available? ? ap(info) : pp(info)
+end
+
+
+def validate_command_line
+  if ARGV.empty?
+    print_help
+    exit(-1)
+  end
+end
+
+
+def process_command_line
+  validate_command_line
+
+  command = ARGV[0]
+  options = ARGV[1..-1]
+
+  case command
+    when /^cy/
+      cycle_network
+    when /^d/
+      disconnect
+    when /^co/
+      connect(options.first)
+    when /^l/
+      puts preferred_networks
+    when /^of/
+      wifi_off
+    when /^on/
+      wifi_on
+    when /^r/
+      remove_preferred_network(options.first)
+    when /^i/
+      output_info
+    else
+      puts "Unrecognized command. Command and options were:\n#{ARGV.join('  ')}"
+      exit(-1)
+  end
+end
 
 
 def main
-  # puts get_wifi_hardware_port
-  # puts preferred_networks
-  # cycle_network
-  puts ip_address
-  puts current_network
-  puts(connect('.@ AIS SUPER WiFi'))
+  process_command_line
 end
 
 
