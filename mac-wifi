@@ -27,6 +27,10 @@ def wifi_hardware_port
 end
 
 
+def available_networks
+  `airport -s`
+end
+
 def preferred_networks
   lines = `networksetup -listpreferredwirelessnetworks #{wifi_hardware_port}`.split("\n")
   # Produces something like this, unsorted, and with leading tabs:
@@ -102,7 +106,8 @@ cy[cle]                - turns wifi off, then on
 d[isconnect]           - disconnects from current network, does not turn off wifi
 h[elp]                 - prints this help
 i[nfo]                 - prints wifi-related information
-l[s]                   - lists preferred (not necessarily available) networks
+lsp[referred]          - lists preferred (not necessarily available) networks
+lsa[vailable]          - lists available networks
 on                     - turns wifi on
 of[f]                  - turns wifi off
 r[m] network-name      - removes network-name from the preferred networks list
@@ -155,7 +160,9 @@ def process_command_line
       connect(options.first)
     when /^h/
       print_help
-    when /^l/
+    when /^lsa/
+      puts available_networks
+    when /^lsp/
       puts preferred_networks
     when /^of/
       wifi_off
