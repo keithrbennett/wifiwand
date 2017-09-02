@@ -1,0 +1,88 @@
+#!/usr/bin/env ruby
+
+require 'shellwords'
+
+AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
+
+def wifi_hardware_port
+  @wifi_hardware_port ||= begin
+    lines = `networksetup -listallhardwareports`.split("\n")
+    # Produces something like this:
+    # Hardware Port: Wi-Fi
+    # Device: en0
+    # Ethernet Address: ac:bc:32:b9:a9:9d
+    #
+    # Hardware Port: Bluetooth PAN
+    # Device: en3
+    # Ethernet Address: ac:bc:32:b9:a9:9e
+    wifi_port_line_num = (0...lines.size).detect do |index|
+      /: Wi-Fi$/ === lines[index]
+    end
+    if wifi_port_line_num.nil?
+      :not_found
+    else
+      lines[wifi_port_line_num + 1].split(': ').last
+    end
+  end
+end
+
+
+def preferred_networks
+  lines = `networksetup -listpreferredwirelessnetworks #{wifi_hardware_port}`.split("\n")
+  # Produces something like this, unsorted, and with leading tabs:
+  # Preferred networks on en0:
+  #         LibraryWiFi
+  #         @thePAD/Magma
+
+  lines.delete_at(0)                         # remove title line
+  lines.map! { |line| line.gsub("\t", '') }  # remove leading tabs
+  lines.sort! { |s1, s2| s1.casecmp(s2) }    # sort alphabetically, case insensitively
+  lines
+end
+
+
+def cycle_network
+  `networksetup -setairportpower #{wifi_hardware_port} off`
+  `networksetup -setairportpower #{wifi_hardware_port} on`
+end
+
+
+def connect(network_name, password = '')
+  `networksetup -setairportnetwork #{wifi_hardware_port} #{Shellwords.shellescape(network_name)} #{Shellwords.shellescape(password)} 2>&1`
+end
+
+
+def ip_address
+  `ipconfig getifaddr #{wifi_hardware_port}`
+end
+
+
+def remove_preferred_network(network_name)
+  `sudo networksetup -removepreferredwirelessnetwork #{wifi_hardware_port} #{Shellwords.shellescape(network_name)}`
+end
+
+
+def current_network
+  lines = `#{AIRPORT_CMD} -I`.split("\n")
+  lines.grep(/ SSID:/).first.split('SSID: ').last
+end
+
+
+def disconnect
+  `sudo #{AIRPORT_CMD} -z`
+end
+
+
+
+
+def main
+  # puts get_wifi_hardware_port
+  # puts preferred_networks
+  # cycle_network
+  puts ip_address
+  puts current_network
+  puts(connect('.@ AIS SUPER WiFi'))
+end
+
+
+main
