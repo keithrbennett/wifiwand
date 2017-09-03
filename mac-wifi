@@ -19,6 +19,11 @@ class MacWifi
 
   AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
+  def initialize
+    @interactive_mode = false
+  end
+
+
   # Identifies the (first) wireless network hardware port in the system, e.g. en0 or en1
   def wifi_hardware_port
     @wifi_hardware_port ||= begin
@@ -140,10 +145,10 @@ class MacWifi
   lsa[vailable]          - lists available networks
   on                     - turns wifi on
   of[f]                  - turns wifi off
-  q[uit]                 - exits this program (interactive shell mode)
+  q[uit]                 - exits this program (interactive shell mode only)
   r[m] network-name      - removes network-name from the preferred networks list
   s[hell]                - opens an interactive (IRB) shell session; requires pry gem
-  x[it]                  - exits this program (interactive shell mode)
+  x[it]                  - exits this program (interactive shell mode only)
 "
   end
 
@@ -186,8 +191,21 @@ class MacWifi
   # Runs a pry session in the context of this object.
   # Commands and options specified on the command line can also be specified in the shell.
   def run_shell
+    if @interactive_mode
+      puts "Cannot run shell within shell."
+      return
+    end
+
+    @interactive_mode = true
+
+    begin
+      require 'pry'
+    rescue LoadError
+      puts "The 'pry' gem, required for running the shell, was not found. Please `gem install pry`."
+      exit(-1)
+    end
+
     print_help
-    require 'pry'
     binding.pry
   end
 
@@ -200,6 +218,15 @@ class MacWifi
 
   # Processes the command (ARGV[0]) and any relevant options (ARGV[1..-1]).
   def process_command_line(command, options)
+
+    quit = -> do
+      if @interactive_mode
+        exit(0)
+      else
+        puts "This command can only be run in shell mode."
+      end
+    end
+
     case command
       when /^co/
         connect(options.first)
@@ -220,15 +247,15 @@ class MacWifi
       when /^on/
         wifi_on
       when /^q/
-        exit(0)
+        quit.()
       when /^r/
         remove_preferred_network(options.first)
       when /^s/
         run_shell
       when /^x/
-        exit(0)
+        quit.()
       else
-        puts "Unrecognized command. Command and options were:\n#{ARGV.join('  ')}"
+        puts "Unrecognized command. Command was #{command} and options were #{options.join(', ')}."
         print_help
         exit(-1)
     end
