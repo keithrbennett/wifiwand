@@ -134,21 +134,21 @@ class MacWifi
   # Output help when requested by 'h' command, or in case of unrecognized or nonexistent command.
   def print_help
     puts "
-  Available commands are:
+Available commands are:
 
-  co[nnect] network-name - turns wifi on, connects to network-name
-  cy[cle]                - turns wifi off, then on
-  d[isconnect]           - disconnects from current network, does not turn off wifi
-  h[elp]                 - prints this help
-  i[nfo]                 - prints wifi-related information
-  lsp[referred]          - lists preferred (not necessarily available) networks
-  lsa[vailable]          - lists available networks
-  on                     - turns wifi on
-  of[f]                  - turns wifi off
-  q[uit]                 - exits this program (interactive shell mode only)
-  r[m] network-name      - removes network-name from the preferred networks list
-  s[hell]                - opens an interactive pry shell (command line only)
-  x[it]                  - exits this program (interactive shell mode only)
+co[nnect] network-name - turns wifi on, connects to network-name
+cy[cle]                - turns wifi off, then on
+d[isconnect]           - disconnects from current network, does not turn off wifi
+h[elp]                 - prints this help
+i[nfo]                 - prints wifi-related information
+lsp[referred]          - lists preferred (not necessarily available) networks
+lsa[vailable]          - lists available networks
+on                     - turns wifi on
+of[f]                  - turns wifi off
+q[uit]                 - exits this program (interactive shell mode only)
+r[m] network-name      - removes network-name from the preferred networks list
+s[hell]                - opens an interactive pry shell (command line only)
+x[it]                  - exits this program (interactive shell mode only)
 
 "
   end
@@ -208,7 +208,17 @@ class MacWifi
     end
 
     print_help
-    Pry.config.command_prefix = "%"
+
+    # Enable the line below if you have any problems with pry configuration being loaded
+    # that is messing up this runtime use of pry:
+    # Pry.config.should_load_rc = false
+
+    # Strangely, this is the only thing I have found that successfully suppresses the
+    # code context output, which is not useful here. Anyway, this will differentiate
+    # a pry command from a DSL command, which _is_ useful here.
+    Pry.config.command_prefix = '%'
+
+    puts "For pry commands, please use prefix '%'.\n\n"
     run_pry
   end
 
