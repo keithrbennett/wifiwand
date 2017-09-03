@@ -113,7 +113,7 @@ class MacWifi
       command << ' ' + Shellwords.shellescape(password)
     end
 
-    run_command(command)
+    run_os_command(command)
   end
 
 
@@ -142,6 +142,7 @@ class MacWifi
 
     missing_names = network_names.reject { |n| preferred_networks.include?(n) }
     if missing_names.any?
+      raise 'x'
       puts "The following networks were not in the preferred networks list and do not need to be removed:"
       puts missing_names
       return if missing_names == network_names
@@ -295,6 +296,7 @@ x[it]                   - exits this program (interactive shell mode only)
 
   # For use by the shell; when typing a command and options, it is passed to process_command_line
   def method_missing(method_name, *options)
+    puts "name: #{method_name}, options: #{options.join(', ')}"
     process_command_line(method_name, options)
   end
 
