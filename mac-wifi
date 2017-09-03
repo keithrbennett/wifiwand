@@ -87,6 +87,21 @@ x[it]                   - exits this program (interactive shell mode only)
   def run_pry
     binding.pry
   end
+
+
+  # Parses output like the text below into a hash:
+  # SSID: Pattara211
+  # MCS: 5
+  # channel: 7
+  def colon_output_to_hash(output)
+    lines = output.split("\n")
+    lines.each_with_object({}) do |line, new_hash|
+      key, value = line.split(': ')
+      key = key.strip
+      value.strip!
+      new_hash[key] = value
+    end
+  end
 end
 
 
@@ -213,7 +228,6 @@ class MacWifi
 
     missing_names = network_names.reject { |n| preferred_networks.include?(n) }
     if missing_names.any?
-      raise 'x'
       puts "The following networks were not in the preferred networks list and do not need to be removed:"
       puts missing_names
       return if missing_names == network_names
@@ -263,6 +277,13 @@ class MacWifi
         network:     current_network,
         ip_address:  ip_address,
     }
+
+    more_output = run_os_command(AIRPORT_CMD + " -I")
+    more_info   = colon_output_to_hash(more_output)
+    p more_info; sleep 5
+    # require 'pry'; binding.pry
+    info.merge!(more_info)
+
     awesome_print_available? ? ap(info) : pp(info)
   end
 
