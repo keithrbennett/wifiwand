@@ -13,8 +13,11 @@
 #
 # Mac OS commands currently used are: networksetup, airport, and ipconfig.
 #
-# Author: keithrbennett
+# Author: keithrbennett (on Github, GMail, Twitter)
+# I am available for Ruby development, troubleshooting, training, tutoring, etc.
+#
 # License: MIT License
+
 
 require 'shellwords'
 
@@ -25,7 +28,7 @@ class MacWifi
   SUDO_MESSAGE = "This operation requires root access. You may be asked by sudo for your system password."
 
   def initialize
-    @interactive_mode = false
+    @interactive_mode = false # will be true if/when user selects shell option on command line
   end
 
 
@@ -206,10 +209,10 @@ x[it]                  - exits this program (interactive shell mode only)
   # Outputs some useful wifi-related information.
   def output_info
     info = {
-        wifi_on: wifi_on?,
-        port: wifi_hardware_port,
-        network: current_network,
-        ip_address: ip_address,
+        wifi_on:     wifi_on?,
+        port:        wifi_hardware_port,
+        network:     current_network,
+        ip_address:  ip_address,
     }
     awesome_print_available? ? ap(info) : pp(info)
   end
@@ -238,7 +241,7 @@ x[it]                  - exits this program (interactive shell mode only)
   # Commands and options specified on the command line can also be specified in the shell.
   def run_shell
     if @interactive_mode
-      puts "Cannot run shell within shell."
+      puts "Already in shell."
       return
     end
 
