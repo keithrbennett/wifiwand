@@ -122,6 +122,14 @@ class MacWifi
 
   # Removes the specified network from the preferred network list.
   def remove_preferred_network(*network_names)
+
+    missing_names = network_names.reject { |n| preferred_networks.include?(n) }
+    if missing_names.any?
+      puts "The following networks were not in the preferred networks list and do not need to be removed:"
+      puts missing_names
+      return if missing_names == network_names
+    end
+
     puts SUDO_MESSAGE
 
     if network_names.empty?
@@ -218,7 +226,6 @@ x[it]                  - exits this program (interactive shell mode only)
 
 
   def run_os_command(command)
-    puts command
     output = `#{command} 2>&1` # join stderr with stdout
     if $?.exitstatus != 0
       raise "Error #{$?.exitstatus} on command: #{command}\nOutput was:\n#{output}"
