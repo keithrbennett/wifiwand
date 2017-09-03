@@ -15,207 +15,232 @@
 
 require 'shellwords'
 
-AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
+class MacWifi
 
-# Identifies the (first) wireless network hardware port in the system, e.g. en0 or en1
-def wifi_hardware_port
-  @wifi_hardware_port ||= begin
-    lines = `networksetup -listallhardwareports`.split("\n")
-    # Produces something like this:
-    # Hardware Port: Wi-Fi
-    # Device: en0
-    # Ethernet Address: ac:bc:32:b9:a9:9d
-    #
-    # Hardware Port: Bluetooth PAN
-    # Device: en3
-    # Ethernet Address: ac:bc:32:b9:a9:9e
-    wifi_port_line_num = (0...lines.size).detect do |index|
-      /: Wi-Fi$/ === lines[index]
-    end
-    if wifi_port_line_num.nil?
-      :not_found
-    else
-      lines[wifi_port_line_num + 1].split(': ').last
+  AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
+
+  # Identifies the (first) wireless network hardware port in the system, e.g. en0 or en1
+  def wifi_hardware_port
+    @wifi_hardware_port ||= begin
+      lines = `networksetup -listallhardwareports`.split("\n")
+      # Produces something like this:
+      # Hardware Port: Wi-Fi
+      # Device: en0
+      # Ethernet Address: ac:bc:32:b9:a9:9d
+      #
+      # Hardware Port: Bluetooth PAN
+      # Device: en3
+      # Ethernet Address: ac:bc:32:b9:a9:9e
+      wifi_port_line_num = (0...lines.size).detect do |index|
+        /: Wi-Fi$/ === lines[index]
+      end
+      if wifi_port_line_num.nil?
+        :not_found
+      else
+        lines[wifi_port_line_num + 1].split(': ').last
+      end
     end
   end
-end
 
 
-# Shows available wireless network, as you would see by clicking the wifi toolbar icon.
-def available_networks
-  `airport -s`
-end
+  # Shows available wireless network, as you would see by clicking the wifi toolbar icon.
+  def available_networks
+    `airport -s`
+  end
 
 
-# Shows "preferred" networks, many/most of which will probably not be available.
-def preferred_networks
-  lines = `networksetup -listpreferredwirelessnetworks #{wifi_hardware_port}`.split("\n")
-  # Produces something like this, unsorted, and with leading tabs:
-  # Preferred networks on en0:
-  #         LibraryWiFi
-  #         @thePAD/Magma
+  # Shows "preferred" networks, many/most of which will probably not be available.
+  def preferred_networks
+    lines = `networksetup -listpreferredwirelessnetworks #{wifi_hardware_port}`.split("\n")
+    # Produces something like this, unsorted, and with leading tabs:
+    # Preferred networks on en0:
+    #         LibraryWiFi
+    #         @thePAD/Magma
 
-  lines.delete_at(0)                         # remove title line
-  lines.map! { |line| line.gsub("\t", '') }  # remove leading tabs
-  lines.sort! { |s1, s2| s1.casecmp(s2) }    # sort alphabetically, case insensitively
-  lines
-end
-
-
-# Turns wifi off and then on, reconnecting to the originally connecting network.
-def cycle_network
-  network_name = current_network
-  wifi_off
-  wifi_on
-  connect(network_name) if network_name
-end
+    lines.delete_at(0)                         # remove title line
+    lines.map! { |line| line.gsub("\t", '') }  # remove leading tabs
+    lines.sort! { |s1, s2| s1.casecmp(s2) }    # sort alphabetically, case insensitively
+    lines
+  end
 
 
-# Turns wifi on.
-def wifi_on
-  `networksetup -setairportpower #{wifi_hardware_port} on`
-end
+  # Turns wifi off and then on, reconnecting to the originally connecting network.
+  def cycle_network
+    network_name = current_network
+    wifi_off
+    wifi_on
+    connect(network_name) if network_name
+  end
 
 
-# Turns wifi off.
-def wifi_off
-  `networksetup -setairportpower #{wifi_hardware_port} off`
-end
+  # Turns wifi on.
+  def wifi_on
+    `networksetup -setairportpower #{wifi_hardware_port} on`
+  end
 
 
-# Connects to the passed network name, optionally with password.
-# Turns wifi on first, in case it was turned off.
-def connect(network_name, password = '')
-  wifi_on
-  `networksetup -setairportnetwork #{wifi_hardware_port} #{Shellwords.shellescape(network_name)} #{Shellwords.shellescape(password)} 2>&1`
-end
+  # Turns wifi off.
+  def wifi_off
+    `networksetup -setairportpower #{wifi_hardware_port} off`
+  end
 
 
-# Returns the IP address assigned to the wifi port, or nil if none.
-def ip_address
-  `ipconfig getifaddr #{wifi_hardware_port}`
-end
+  # Connects to the passed network name, optionally with password.
+  # Turns wifi on first, in case it was turned off.
+  def connect(network_name, password = '')
+    wifi_on
+    `networksetup -setairportnetwork #{wifi_hardware_port} #{Shellwords.shellescape(network_name)} #{Shellwords.shellescape(password)} 2>&1`
+  end
 
 
-# Removes the specified network from the preferred network list.
-def remove_preferred_network(network_name)
-  `sudo networksetup -removepreferredwirelessnetwork #{wifi_hardware_port} #{Shellwords.shellescape(network_name)}`
-end
+  # Returns the IP address assigned to the wifi port, or nil if none.
+  def ip_address
+    `ipconfig getifaddr #{wifi_hardware_port}`
+  end
 
 
-# Returns true if wifi is on, else false.
-def wifi_on?
-  lines = `#{AIRPORT_CMD} -I`.split("\n")
-  ! lines.grep("AirPort: Off").any?
-end
+  # Removes the specified network from the preferred network list.
+  def remove_preferred_network(network_name)
+    `sudo networksetup -removepreferredwirelessnetwork #{wifi_hardware_port} #{Shellwords.shellescape(network_name)}`
+  end
 
 
-# Returns the network currently connected to, or nil if none.
-def current_network
-  lines = `#{AIRPORT_CMD} -I`.split("\n")
-  ssid_lines = lines.grep(/ SSID:/)
-  ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last
-end
+  # Returns true if wifi is on, else false.
+  def wifi_on?
+    lines = `#{AIRPORT_CMD} -I`.split("\n")
+    ! lines.grep("AirPort: Off").any?
+  end
 
 
-# Disconnects from the currently connected network. Does not turn off wifi.
-def disconnect
-  `sudo #{AIRPORT_CMD} -z`
-end
+  # Returns the network currently connected to, or nil if none.
+  def current_network
+    lines = `#{AIRPORT_CMD} -I`.split("\n")
+    ssid_lines = lines.grep(/ SSID:/)
+    ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last
+  end
 
 
-# Output help when requested by 'h' command, or in case of unrecognized or nonexistent command.
-def print_help
-  puts "
-Available commands are:
+  # Disconnects from the currently connected network. Does not turn off wifi.
+  def disconnect
+    `sudo #{AIRPORT_CMD} -z`
+  end
 
-co[nnect] network-name - turns wifi on, connects to network-name
-cy[cle]                - turns wifi off, then on
-d[isconnect]           - disconnects from current network, does not turn off wifi
-h[elp]                 - prints this help
-i[nfo]                 - prints wifi-related information
-lsp[referred]          - lists preferred (not necessarily available) networks
-lsa[vailable]          - lists available networks
-on                     - turns wifi on
-of[f]                  - turns wifi off
-r[m] network-name      - removes network-name from the preferred networks list
+
+  # Output help when requested by 'h' command, or in case of unrecognized or nonexistent command.
+  def print_help
+    puts "
+  Available commands are:
+
+  co[nnect] network-name - turns wifi on, connects to network-name
+  cy[cle]                - turns wifi off, then on
+  d[isconnect]           - disconnects from current network, does not turn off wifi
+  h[elp]                 - prints this help
+  i[nfo]                 - prints wifi-related information
+  lsp[referred]          - lists preferred (not necessarily available) networks
+  lsa[vailable]          - lists available networks
+  on                     - turns wifi on
+  of[f]                  - turns wifi off
+  q[uit]                 - exits this program (interactive shell mode)
+  r[m] network-name      - removes network-name from the preferred networks list
+  s[hell]                - opens an interactive (IRB) shell session; requires pry gem
+  x[it]                  - exits this program (interactive shell mode)
 "
-end
-
-
-# We'd like to use awesome_print if it is available, but not require it.
-# So, we try to require it, but if that fails, we fall back to using pp (pretty print).
-# Returns true if awesome_print is available (after requiring it), else false after requiring 'pp'.
-def awesome_print_available?
-  begin
-    require 'awesome_print'
-    true
-  rescue LoadError
-    require 'pp'
-    false
   end
-end
 
 
-# Outputs some useful wifi-related information.
-def output_info
-  info = {
-      wifi_on: wifi_on?,
-      port: wifi_hardware_port,
-      network: current_network,
-      ip_address: ip_address,
-  }
-  awesome_print_available? ? ap(info) : pp(info)
-end
-
-
-# Asserts that a command has been passed on the command line.
-def validate_command_line
-  if ARGV.empty?
-    print_help
-    exit(-1)
+  # We'd like to use awesome_print if it is available, but not require it.
+  # So, we try to require it, but if that fails, we fall back to using pp (pretty print).
+  # Returns true if awesome_print is available (after requiring it), else false after requiring 'pp'.
+  def awesome_print_available?
+    begin
+      require 'awesome_print'
+      true
+    rescue LoadError
+      require 'pp'
+      false
+    end
   end
-end
 
 
-# Processes the command (ARGV[0]) and any relevant options (ARGV[1..-1]).
-def process_command_line
-  validate_command_line
+  # Outputs some useful wifi-related information.
+  def output_info
+    info = {
+        wifi_on: wifi_on?,
+        port: wifi_hardware_port,
+        network: current_network,
+        ip_address: ip_address,
+    }
+    awesome_print_available? ? ap(info) : pp(info)
+  end
 
-  command = ARGV[0]
-  options = ARGV[1..-1]
 
-  case command
-    when /^co/
-      connect(options.first)
-    when /^cy/
-      cycle_network
-    when /^d/
-      disconnect
-    when /^h/
+  # Asserts that a command has been passed on the command line.
+  def validate_command_line
+    if ARGV.empty?
       print_help
-    when /^i/
-      output_info
-    when /^lsa/
-      puts available_networks
-    when /^lsp/
-      puts preferred_networks
-    when /^of/
-      wifi_off
-    when /^on/
-      wifi_on
-    when /^r/
-      remove_preferred_network(options.first)
-    else
-      puts "Unrecognized command. Command and options were:\n#{ARGV.join('  ')}"
       exit(-1)
+    end
   end
+
+
+  # Runs a pry session in the context of this object.
+  # Commands and options specified on the command line can also be specified in the shell.
+  def run_shell
+    print_help
+    require 'pry'
+    binding.pry
+  end
+
+
+  # For use by the shell; when typing a command and options, it is passed to process_command_line
+  def method_missing(method_name, *options)
+    process_command_line(method_name, options)
+  end
+
+
+  # Processes the command (ARGV[0]) and any relevant options (ARGV[1..-1]).
+  def process_command_line(command, options)
+    case command
+      when /^co/
+        connect(options.first)
+      when /^cy/
+        cycle_network
+      when /^d/
+        disconnect
+      when /^h/
+        print_help
+      when /^i/
+        output_info
+      when /^lsa/
+        puts available_networks
+      when /^lsp/
+        puts preferred_networks
+      when /^of/
+        wifi_off
+      when /^on/
+        wifi_on
+      when /^q/
+        exit(0)
+      when /^r/
+        remove_preferred_network(options.first)
+      when /^s/
+        run_shell
+      when /^x/
+        exit(0)
+      else
+        puts "Unrecognized command. Command and options were:\n#{ARGV.join('  ')}"
+        print_help
+        exit(-1)
+    end
+  end
+
+
+  def main
+    validate_command_line
+    process_command_line(ARGV[0], ARGV[1..-1])
+  end
+
 end
 
 
-def main
-  process_command_line
-end
-
-
-main
+MacWifi.new.main
