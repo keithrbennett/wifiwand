@@ -329,7 +329,7 @@ x[it]                  - exits this program (interactive shell mode only)
   end
 
 
-  def main
+  def call
     validate_command_line
     process_command_line(ARGV[0], ARGV[1..-1])
   end
@@ -337,4 +337,6 @@ x[it]                  - exits this program (interactive shell mode only)
 end
 
 
-MacWifi.new.main
+MacWifi.new.call
+# or MacWifi.new.()
+
