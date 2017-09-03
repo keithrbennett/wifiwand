@@ -11,7 +11,7 @@
 # system commands to optionally output JSON and/or YAML. Some offer XML, but that
 # is not convenient to use.
 #
-# Mac OS commands currently used are: networksetup, airport, and ipconfig.
+# Mac OS commands currently used are: airport, ipconfig, networksetup, security.
 #
 # Author: keithrbennett (on Github, GMail, Twitter)
 # I am available for Ruby development, troubleshooting, training, tutoring, etc.
@@ -25,7 +25,7 @@ class MacWifi
 
   AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
-  SUDO_MESSAGE = "This operation requires root access. You may be asked by sudo for your system password."
+  SUDO_MESSAGE = "This operation may require root access. You may be asked for system login credentials."
 
   def initialize
     @interactive_mode = false # will be true if/when user selects shell option on command line
@@ -103,7 +103,7 @@ class MacWifi
   def connect(network_name, password = nil)
 
     if network_name.nil? || network_name.empty?
-      raise "Must provide a network name but none was provided."
+      raise "A network name is required but was not provided."
     end
 
     wifi_on
@@ -115,6 +115,20 @@ class MacWifi
 
     run_command(command)
   end
+
+
+  def preferred_network_password(preferred_network_name)
+    if preferred_networks.include?(preferred_network_name)
+      command = %Q{security find-generic-password -D "AirPort network password" -a #{preferred_network_name} -w 2>&1}
+      puts SUDO_MESSAGE
+      output = `#{command}`.chomp
+      network_has_no_password = ($?.exitstatus == 44)
+      network_has_no_password ? nil : output
+    else
+      raise "Network #{preferred_network_name} not in preferred networks list."
+    end
+  end
+
 
 
   # Returns the IP address assigned to the wifi port, or nil if none.
@@ -174,19 +188,20 @@ class MacWifi
     puts "
 Available commands are:
 
-co[nnect] network-name - turns wifi on, connects to network-name
-cy[cle]                - turns wifi off, then on
-d[isconnect]           - disconnects from current network, does not turn off wifi
-h[elp]                 - prints this help
-i[nfo]                 - prints wifi-related information
-lsp[referred]          - lists preferred (not necessarily available) networks
-lsa[vailable]          - lists available networks
-on                     - turns wifi on
-of[f]                  - turns wifi off
-q[uit]                 - exits this program (interactive shell mode only)
-r[m] network-name      - removes network-name from the preferred networks list
-s[hell]                - opens an interactive pry shell (command line only)
-x[it]                  - exits this program (interactive shell mode only)
+co[nnect] network-name  - turns wifi on, connects to network-name
+cy[cle]                 - turns wifi off, then on
+d[isconnect]            - disconnects from current network, does not turn off wifi
+h[elp]                  - prints this help
+i[nfo]                  - prints wifi-related information
+lsp[referred]           - lists preferred (not necessarily available) networks
+lsa[vailable]           - lists available networks
+on                      - turns wifi on
+of[f]                   - turns wifi off
+p[assword] network-name - shows password for preferred network-name
+q[uit]                  - exits this program (interactive shell mode only)
+r[m] network-name       - removes network-name from the preferred networks list
+s[hell]                 - opens an interactive pry shell (command line only)
+x[it]                   - exits this program (interactive shell mode only)
 
 "
   end
@@ -314,6 +329,10 @@ x[it]                  - exits this program (interactive shell mode only)
         wifi_off
       when /^on/
         wifi_on
+      when /^p/
+        password = preferred_network_password(options.first)
+        password = password ? %Q{"#{password}"} : '[nil]'
+        puts %Q{Preferred network "#{options.first}" password is: #{password}}
       when /^q/
         quit.()
       when /^r/

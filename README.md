@@ -11,23 +11,24 @@ Available commands can be seen by using the `h` (or `help`) option. Here is its
 output at the time of this writing:
 
 ```
-➜  mac-wifi git:(master)   ./mac-wifi h
+➜  mac-wifi git:(master) ✗   ./mac-wifi h
 
 Available commands are:
 
-co[nnect] network-name - turns wifi on, connects to network-name
-cy[cle]                - turns wifi off, then on
-d[isconnect]           - disconnects from current network, does not turn off wifi
-h[elp]                 - prints this help
-i[nfo]                 - prints wifi-related information
-lsp[referred]          - lists preferred (not necessarily available) networks
-lsa[vailable]          - lists available networks
-on                     - turns wifi on
-of[f]                  - turns wifi off
-q[uit]                 - exits this program (interactive shell mode only)
-r[m] network-name      - removes network-name from the preferred networks list
-s[hell]                - opens an interactive pry shell (command line only)
-x[it]                  - exits this program (interactive shell mode only)
+co[nnect] network-name  - turns wifi on, connects to network-name
+cy[cle]                 - turns wifi off, then on
+d[isconnect]            - disconnects from current network, does not turn off wifi
+h[elp]                  - prints this help
+i[nfo]                  - prints wifi-related information
+lsp[referred]           - lists preferred (not necessarily available) networks
+lsa[vailable]           - lists available networks
+on                      - turns wifi on
+of[f]                   - turns wifi off
+p[assword] network-name - shows password for preferred network-name
+q[uit]                  - exits this program (interactive shell mode only)
+r[m] network-name       - removes network-name from the preferred networks list
+s[hell]                 - opens an interactive pry shell (command line only)
+x[it]                   - exits this program (interactive shell mode only)
 ```
 
 Internally, it uses several Mac command line utilities. This is not ideal,
