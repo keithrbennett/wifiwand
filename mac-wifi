@@ -21,7 +21,78 @@
 
 require 'shellwords'
 
+# Helper methods unrelated to the high level logic of the program.
+module LowLevelHelpers
+
+  # Output help when requested by 'h' command, or in case of unrecognized or nonexistent command.
+  def print_help
+    puts "
+Available commands are:
+
+co[nnect] network-name  - turns wifi on, connects to network-name
+cy[cle]                 - turns wifi off, then on
+d[isconnect]            - disconnects from current network, does not turn off wifi
+h[elp]                  - prints this help
+i[nfo]                  - prints wifi-related information
+lsp[referred]           - lists preferred (not necessarily available) networks
+lsa[vailable]           - lists available networks
+on                      - turns wifi on
+of[f]                   - turns wifi off
+p[assword] network-name - shows password for preferred network-name
+q[uit]                  - exits this program (interactive shell mode only)
+r[m] network-name       - removes network-name from the preferred networks list
+s[hell]                 - opens an interactive pry shell (command line only)
+x[it]                   - exits this program (interactive shell mode only)
+
+"
+  end
+
+
+  # We'd like to use awesome_print if it is available, but not require it.
+  # So, we try to require it, but if that fails, we fall back to using pp (pretty print).
+  # Returns true if awesome_print is available (after requiring it), else false after requiring 'pp'.
+  def awesome_print_available?
+    begin
+      require 'awesome_print'
+      true
+    rescue LoadError
+      require 'pp'
+      false
+    end
+  end
+
+
+  # Asserts that a command has been passed on the command line.
+  def validate_command_line
+    if ARGV.empty?
+      puts "Syntax is: #{__FILE__} command [options]"
+      print_help
+      exit(-1)
+    end
+  end
+
+
+  def run_os_command(command)
+    output = `#{command} 2>&1` # join stderr with stdout
+    if $?.exitstatus != 0
+      raise "Error #{$?.exitstatus} on command: #{command}\nOutput was:\n#{output}"
+    end
+    output
+  end
+
+
+  # Pry will output the content of the method from which it was called.
+  # This small method exists solely to reduce the amount of pry's output
+  # that is not needed here.
+  def run_pry
+    binding.pry
+  end
+end
+
+
 class MacWifi
+
+  include LowLevelHelpers
 
   AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
@@ -110,7 +181,7 @@ class MacWifi
 
     command = "networksetup -setairportnetwork #{wifi_hardware_port} " + "#{Shellwords.shellescape(network_name)}"
     if password
-      command << ' ' + Shellwords.shellescape(password)
+      command << ' ' << Shellwords.shellescape(password)
     end
 
     run_os_command(command)
@@ -184,44 +255,6 @@ class MacWifi
   end
 
 
-  # Output help when requested by 'h' command, or in case of unrecognized or nonexistent command.
-  def print_help
-    puts "
-Available commands are:
-
-co[nnect] network-name  - turns wifi on, connects to network-name
-cy[cle]                 - turns wifi off, then on
-d[isconnect]            - disconnects from current network, does not turn off wifi
-h[elp]                  - prints this help
-i[nfo]                  - prints wifi-related information
-lsp[referred]           - lists preferred (not necessarily available) networks
-lsa[vailable]           - lists available networks
-on                      - turns wifi on
-of[f]                   - turns wifi off
-p[assword] network-name - shows password for preferred network-name
-q[uit]                  - exits this program (interactive shell mode only)
-r[m] network-name       - removes network-name from the preferred networks list
-s[hell]                 - opens an interactive pry shell (command line only)
-x[it]                   - exits this program (interactive shell mode only)
-
-"
-  end
-
-
-  # We'd like to use awesome_print if it is available, but not require it.
-  # So, we try to require it, but if that fails, we fall back to using pp (pretty print).
-  # Returns true if awesome_print is available (after requiring it), else false after requiring 'pp'.
-  def awesome_print_available?
-    begin
-      require 'awesome_print'
-      true
-    rescue LoadError
-      require 'pp'
-      false
-    end
-  end
-
-
   # Outputs some useful wifi-related information.
   def output_info
     info = {
@@ -231,25 +264,6 @@ x[it]                   - exits this program (interactive shell mode only)
         ip_address:  ip_address,
     }
     awesome_print_available? ? ap(info) : pp(info)
-  end
-
-
-  # Asserts that a command has been passed on the command line.
-  def validate_command_line
-    if ARGV.empty?
-      puts "Syntax is: #{__FILE__} command [options]"
-      print_help
-      exit(-1)
-    end
-  end
-
-
-  def run_os_command(command)
-    output = `#{command} 2>&1` # join stderr with stdout
-    if $?.exitstatus != 0
-      raise "Error #{$?.exitstatus} on command: #{command}\nOutput was:\n#{output}"
-    end
-    output
   end
 
 
@@ -286,17 +300,9 @@ x[it]                   - exits this program (interactive shell mode only)
   end
 
 
-  # Pry will output the content of the method from which it was called.
-  # This small method exists solely to reduce the amount of pry's output
-  # that is not needed here.
-  def run_pry
-    binding.pry
-  end
-
-
   # For use by the shell; when typing a command and options, it is passed to process_command_line
   def method_missing(method_name, *options)
-    puts "name: #{method_name}, options: #{options.join(', ')}"
+    # puts "name: #{method_name}, options: #{options.join(', ')}"
     process_command_line(method_name, options)
   end
 
@@ -356,6 +362,13 @@ x[it]                   - exits this program (interactive shell mode only)
   end
 
 end
+
+
+# puts "\nLowLevelHelpers methods:\n\n"
+# puts LowLevelHelpers.instance_methods(false).sort
+#
+# puts "\nMacWifi methods:\n\n"
+# puts MacWifi.instance_methods(false).sort
 
 
 MacWifi.new.call
