@@ -147,7 +147,7 @@ class MacWifi
   of[f]                  - turns wifi off
   q[uit]                 - exits this program (interactive shell mode only)
   r[m] network-name      - removes network-name from the preferred networks list
-  s[hell]                - opens an interactive (IRB) shell session; requires pry gem
+  s[hell]                - opens an interactive pry shell (command line only)
   x[it]                  - exits this program (interactive shell mode only)
 
 "
