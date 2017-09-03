@@ -12,6 +12,9 @@
 # is not convenient to use.
 #
 # Mac OS commands currently used are: networksetup, airport, and ipconfig.
+#
+# Author: keithrbennett
+# License: MIT License
 
 require 'shellwords'
 
@@ -40,7 +43,7 @@ class MacWifi
         /: Wi-Fi$/ === lines[index]
       end
       if wifi_port_line_num.nil?
-        :not_found
+        raise %Q{Wifi port (e.g. "en0") not found in output of: networksetup -listallhardwareports}
       else
         lines[wifi_port_line_num + 1].split(': ').last
       end
