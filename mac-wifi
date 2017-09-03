@@ -22,6 +22,8 @@ class MacWifi
 
   AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
+  SUDO_MESSAGE = "This operation requires root access. You may be asked by sudo for your system password."
+
   def initialize
     @interactive_mode = false
   end
@@ -30,7 +32,7 @@ class MacWifi
   # Identifies the (first) wireless network hardware port in the system, e.g. en0 or en1
   def wifi_hardware_port
     @wifi_hardware_port ||= begin
-      lines = `networksetup -listallhardwareports`.split("\n")
+      lines = run_os_command("networksetup -listallhardwareports").split("\n")
       # Produces something like this:
       # Hardware Port: Wi-Fi
       # Device: en0
@@ -53,13 +55,13 @@ class MacWifi
 
   # Shows available wireless network, as you would see by clicking the wifi toolbar icon.
   def available_networks
-    `airport -s`
+    run_os_command("#{AIRPORT_CMD} -s")
   end
 
 
   # Shows "preferred" networks, many/most of which will probably not be available.
   def preferred_networks
-    lines = `networksetup -listpreferredwirelessnetworks #{wifi_hardware_port}`.split("\n")
+    lines = run_os_command("networksetup -listpreferredwirelessnetworks #{wifi_hardware_port}").split("\n")
     # Produces something like this, unsorted, and with leading tabs:
     # Preferred networks on en0:
     #         LibraryWiFi
@@ -83,52 +85,67 @@ class MacWifi
 
   # Turns wifi on.
   def wifi_on
-    `networksetup -setairportpower #{wifi_hardware_port} on`
+    run_os_command("networksetup -setairportpower #{wifi_hardware_port} on")
   end
 
 
   # Turns wifi off.
   def wifi_off
-    `networksetup -setairportpower #{wifi_hardware_port} off`
+    run_os_command("networksetup -setairportpower #{wifi_hardware_port} off")
   end
 
 
   # Connects to the passed network name, optionally with password.
   # Turns wifi on first, in case it was turned off.
-  def connect(network_name, password = '')
+  def connect(network_name, password = nil)
+
+    if network_name.nil? || network_name.empty?
+      raise "Must provide a network name but none was provided."
+    end
+
     wifi_on
-    `networksetup -setairportnetwork #{wifi_hardware_port} #{Shellwords.shellescape(network_name)} #{Shellwords.shellescape(password)} 2>&1`
+
+    command = "networksetup -setairportnetwork #{wifi_hardware_port} " + "#{Shellwords.shellescape(network_name)}"
+    if password
+      command << ' ' + Shellwords.shellescape(password)
+    end
+
+    run_command(command)
   end
 
 
   # Returns the IP address assigned to the wifi port, or nil if none.
   def ip_address
-    `ipconfig getifaddr #{wifi_hardware_port}`.chomp
+    run_os_command("ipconfig getifaddr #{wifi_hardware_port}").chomp
   end
 
 
   # Removes the specified network from the preferred network list.
   def remove_preferred_network(*network_names)
+    puts SUDO_MESSAGE
+
     if network_names.empty?
+      puts "No names provided."
       raise "Must provide 1 or more network names to remove."
     end
 
     network_names.each do |name|
-      `sudo networksetup -removepreferredwirelessnetwork #{wifi_hardware_port} #{Shellwords.shellescape(name)}`
+      run_os_command("sudo networksetup -removepreferredwirelessnetwork " +
+          "#{wifi_hardware_port} #{Shellwords.shellescape(name)}")
     end
   end
 
 
   # Returns true if wifi is on, else false.
   def wifi_on?
-    lines = `#{AIRPORT_CMD} -I`.split("\n")
+    lines = run_os_command("#{AIRPORT_CMD} -I").split("\n")
     ! lines.grep("AirPort: Off").any?
   end
 
 
   # Returns the network currently connected to, or nil if none.
   def current_network
-    lines = `#{AIRPORT_CMD} -I`.split("\n")
+    lines = run_os_command("#{AIRPORT_CMD} -I").split("\n")
     ssid_lines = lines.grep(/ SSID:/)
     ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last
   end
@@ -136,7 +153,8 @@ class MacWifi
 
   # Disconnects from the currently connected network. Does not turn off wifi.
   def disconnect
-    `sudo #{AIRPORT_CMD} -z`
+    puts SUDO_MESSAGE
+    run_os_command("sudo #{AIRPORT_CMD} -z")
   end
 
 
@@ -196,6 +214,16 @@ x[it]                  - exits this program (interactive shell mode only)
       print_help
       exit(-1)
     end
+  end
+
+
+  def run_os_command(command)
+    puts command
+    output = `#{command} 2>&1` # join stderr with stdout
+    if $?.exitstatus != 0
+      raise "Error #{$?.exitstatus} on command: #{command}\nOutput was:\n#{output}"
+    end
+    output
   end
 
 
@@ -285,9 +313,8 @@ x[it]                  - exits this program (interactive shell mode only)
       when /^x/
         quit.()
       else
-        puts "Unrecognized command. Command was #{command} and options were #{options.join(', ')}."
         print_help
-        exit(-1)
+        raise "Unrecognized command. Command was #{command} and options were #{options.inspect}."
     end
   end
 
