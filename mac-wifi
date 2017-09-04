@@ -217,9 +217,16 @@ class MacWifi
     if preferred_networks.include?(preferred_network_name)
       command = %Q{security find-generic-password -D "AirPort network password" -a #{preferred_network_name} -w 2>&1}
       puts SUDO_MESSAGE
-      output = `#{command}`.chomp
-      network_has_no_password = ($?.exitstatus == 44)
-      network_has_no_password ? nil : output
+      output = nil
+      begin
+        output = run_os_command(command).chomp
+      rescue OsCommandError => error
+        if error.exitcode == 44 # network has no password stored
+          nil
+        else
+          output
+        end
+      end
     else
       raise "Network #{preferred_network_name} not in preferred networks list."
     end
@@ -345,6 +352,15 @@ class MacWifi
   end
 
 
+  def output_network_password(network_name, password)
+    if password
+      puts %Q{Preferred network "#{network_name}" stored password is: #{%Q{"#{password}"}}}
+    else
+      puts %Q{Preferred network "#{network_name}" has no stored password.}
+    end
+  end
+
+
   # Processes the command (ARGV[0]) and any relevant options (ARGV[1..-1]).
   def process_command_line(command, options)
 
@@ -376,9 +392,7 @@ class MacWifi
       when /^on/
         wifi_on
       when /^p/
-        password = preferred_network_password(options.first)
-        password = password ? %Q{"#{password}"} : '[nil]'
-        puts %Q{Preferred network "#{options.first}" password is: #{password}}
+        output_network_password(options.first, preferred_network_password(options.first))
       when /^q/
         quit.()
       when /^r/
