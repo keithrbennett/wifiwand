@@ -23,6 +23,7 @@ h[elp]                  - prints this help
 i[nfo]                  - prints wifi-related information
 lsp[referred]           - lists preferred (not necessarily available) networks
 lsa[vailable]           - lists available networks
+n[etwork_name]          - name (SSID) of currently connected network
 on                      - turns wifi on
 of[f]                   - turns wifi off
 p[assword] network-name - shows password for preferred network-name
