@@ -389,7 +389,6 @@ class MacWifi
 
   # For use by the shell; when typing a command and options, it is passed to process_command_line
   def method_missing(method_name, *options)
-    puts "name: #{method_name}, options: #{options.join(', ')}"
     process_command_line(method_name, options)
   end
 
