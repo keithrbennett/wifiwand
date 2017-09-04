@@ -108,7 +108,7 @@ x[it]                   - exits this program (interactive shell mode only)
     lines.each_with_object({}) do |line, new_hash|
       key, value = line.split(': ')
       key = key.strip
-      value.strip!
+      value.strip! if value
       new_hash[key] = value
     end
   end
@@ -184,32 +184,53 @@ class MacWifi
 
   # Turns wifi on.
   def wifi_on
-    run_os_command("networksetup -setairportpower #{wifi_hardware_port} on")
+    return if wifi_on?
+    output = run_os_command("networksetup -setairportpower #{wifi_hardware_port} on")
+    raise "Wifi could not be enabled." unless wifi_on?
+    output
   end
 
 
   # Turns wifi off.
   def wifi_off
-    run_os_command("networksetup -setairportpower #{wifi_hardware_port} off")
+    return unless wifi_on?
+    output = run_os_command("networksetup -setairportpower #{wifi_hardware_port} off")
+    raise "Wifi could not be enabled." if wifi_on?
+    output
+  end
+
+
+  def connected_network_name
+    wifi_info['SSID']
+  end
+
+
+  def connected_to?(network_name)
+    raise "Wifi not enabled." unless wifi_on?
+    network_name == connected_network_name
   end
 
 
   # Connects to the passed network name, optionally with password.
   # Turns wifi on first, in case it was turned off.
   def connect(network_name, password = nil)
-
     if network_name.nil? || network_name.empty?
       raise "A network name is required but was not provided."
     end
-
     wifi_on
-
     command = "networksetup -setairportnetwork #{wifi_hardware_port} " + "#{Shellwords.shellescape(network_name)}"
     if password
       command << ' ' << Shellwords.shellescape(password)
     end
-
     run_os_command(command)
+    # Verify that the network is now connected:
+    unless connected_network_name == network_name
+      connected_network_name; exit(0)
+      message = "Expected to connect to #{network_name} but connected to #{connected_network_name} instead. "
+      message << (password ? "Did you provide the correct password?" : "Did you need to provide a password?")
+      raise message
+    end
+    nil
   end
 
 
@@ -295,7 +316,7 @@ class MacWifi
 
 
   # Outputs some useful wifi-related information.
-  def output_info
+  def wifi_info
 
     info = {
         wifi_on:     wifi_on?,
@@ -303,12 +324,11 @@ class MacWifi
         network:     current_network,
         ip_address:  ip_address,
     }
-
     more_output = run_os_command(AIRPORT_CMD + " -I")
     more_info   = colon_output_to_hash(more_output)
     info.merge!(more_info)
     info.delete('AirPort') # will be here if off, but info is already in wifi_on key
-    awesome_print_available? ? ap(info) : pp(info)
+    info
   end
 
 
@@ -374,31 +394,32 @@ class MacWifi
 
     case command
       when /^co/
-        connect(options.first)
+        connect(options[0], options[1]); nil
       when /^cy/
-        cycle_network
+        cycle_network; nil
       when /^d/
-        disconnect
+        disconnect; nil
       when /^h/
-        print_help
+        print_help; nil
       when /^i/
-        output_info
+        awesome_print_available? ? ap(wifi_info) : pp(wifi_info)
+        nil
       when /^lsa/
         puts available_networks
       when /^lsp/
         puts preferred_networks
       when /^of/
-        wifi_off
+        wifi_off; nil
       when /^on/
-        wifi_on
+        wifi_on; nil
       when /^p/
-        output_network_password(options.first, preferred_network_password(options.first))
+        output_network_password(options.first, preferred_network_password(options.first)); nil
       when /^q/
-        quit.()
+        quit.(); nil
       when /^r/
-        remove_preferred_network(*options)
+        remove_preferred_network(*options); nil
       when /^s/
-        run_shell
+        run_shell; nil
       when /^x/
         quit.()
       else
