@@ -26,12 +26,16 @@ lsa[vailable]           - lists available networks
 n[etwork_name]          - name (SSID) of currently connected network
 on                      - turns wifi on
 of[f]                   - turns wifi off
-p[assword] network-name - shows password for preferred network-name
+pa[ssword] network-name - shows password for preferred network-name
 q[uit]                  - exits this program (interactive shell mode only)
 r[m] network-name       - removes network-name from the preferred networks list
 s[hell]                 - opens an interactive pry shell (command line only)
 w[ifion]                - is the wifi on?
 x[it]                   - exits this program (interactive shell mode only)
+
+When in interactive shell mode:
+    * use quotes for string parameters such as method names.
+    * for pry commands, use prefix `%`.
 ```
 
 Internally, it uses several Mac command line utilities. This is not ideal,

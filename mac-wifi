@@ -40,12 +40,17 @@ lsa[vailable]           - lists available networks
 n[etwork_name]          - name (SSID) of currently connected network
 on                      - turns wifi on
 of[f]                   - turns wifi off
-p[assword] network-name - shows password for preferred network-name
+pa[ssword] network-name - shows password for preferred network-name
 q[uit]                  - exits this program (interactive shell mode only)
 r[m] network-name       - removes network-name from the preferred networks list
 s[hell]                 - opens an interactive pry shell (command line only)
 w[ifion]                - is the wifi on?
 x[it]                   - exits this program (interactive shell mode only)
+
+When in interactive shell mode:
+    * use quotes for string parameters such as method names.
+    * for pry commands, use prefix `%`.
+
 
 "
   end
@@ -378,14 +383,13 @@ class MacWifi
     # a pry command from a DSL command, which _is_ useful here.
     Pry.config.command_prefix = '%'
 
-    puts "For pry commands, please use prefix '%'.\n\n"
     run_pry
   end
 
 
   # For use by the shell; when typing a command and options, it is passed to process_command_line
   def method_missing(method_name, *options)
-    # puts "name: #{method_name}, options: #{options.join(', ')}"
+    puts "name: #{method_name}, options: #{options.join(', ')}"
     process_command_line(method_name, options)
   end
 
@@ -400,6 +404,11 @@ class MacWifi
 
 
   # Processes the command (ARGV[0]) and any relevant options (ARGV[1..-1]).
+  #
+  # CAUTION! In interactive mode, any strings entered (e.g. a network name) MUST
+  # be in a form that Ruby will recognize as a string, i.e. single or double quotes,
+  # %q, %Q, etc. Otherwise Ruby will assume it's a method name and pass it to
+  # method_missing!
   def process_command_line(command, options)
 
     quit = -> do
@@ -434,7 +443,7 @@ class MacWifi
         wifi_off; nil
       when /^on/
         wifi_on; nil
-      when /^p/
+      when /^pa/
         output_network_password(options.first, preferred_network_password(options.first)); nil
       when /^q/
         quit.(); nil
