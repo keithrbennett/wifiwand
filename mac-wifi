@@ -29,6 +29,7 @@ module LowLevelHelpers
     puts "
 Available commands are:
 
+ci                      = connected to Internet (not just wifi on)?
 co[nnect] network-name  - turns wifi on, connects to network-name
 cy[cle]                 - turns wifi off, then on
 d[isconnect]            - disconnects from current network, does not turn off wifi
@@ -42,6 +43,7 @@ p[assword] network-name - shows password for preferred network-name
 q[uit]                  - exits this program (interactive shell mode only)
 r[m] network-name       - removes network-name from the preferred networks list
 s[hell]                 - opens an interactive pry shell (command line only)
+w[ifion]                - is the wifi on?
 x[it]                   - exits this program (interactive shell mode only)
 
 "
@@ -149,6 +151,19 @@ class MacWifi
         lines[wifi_port_line_num + 1].split(': ').last
       end
     end
+  end
+
+
+  def connected_to_internet?
+    require 'open-uri'
+    connected = false
+    begin
+      open('http://www.google.com')
+      connected = true
+    rescue
+      # swallow exception; connected will remain false
+    end
+    connected
   end
 
 
@@ -393,6 +408,8 @@ class MacWifi
     end
 
     case command
+      when /^ci/
+        puts "Connected to Internet: #{connected_to_internet?}"
       when /^co/
         connect(options[0], options[1]); nil
       when /^cy/
@@ -420,6 +437,8 @@ class MacWifi
         remove_preferred_network(*options); nil
       when /^s/
         run_shell; nil
+      when /^w/
+        puts "Wifi on?: #{wifi_on?}"
       when /^x/
         quit.()
       else

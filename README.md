@@ -15,6 +15,7 @@ output at the time of this writing:
 
 Available commands are:
 
+ci                      = connected to Internet (not just wifi on)?
 co[nnect] network-name  - turns wifi on, connects to network-name
 cy[cle]                 - turns wifi off, then on
 d[isconnect]            - disconnects from current network, does not turn off wifi
@@ -28,6 +29,7 @@ p[assword] network-name - shows password for preferred network-name
 q[uit]                  - exits this program (interactive shell mode only)
 r[m] network-name       - removes network-name from the preferred networks list
 s[hell]                 - opens an interactive pry shell (command line only)
+w[ifion]                - is the wifi on?
 x[it]                   - exits this program (interactive shell mode only)
 ```
 
