@@ -397,7 +397,9 @@ class MacWifi
     if method_valid
       process_command_line(method_name, options)
     else
-      raise NoMethodError.new(%Q{"#{method_name}" is not a valid command.}, method_name)
+      raise NoMethodError.new(
+          %Q{"#{method_name}" is not a valid command. If you intend for this to be a string literal, use quotes.},
+          method_name)
     end
   end
 
@@ -417,7 +419,7 @@ class MacWifi
   # be in a form that Ruby will recognize as a string, i.e. single or double quotes,
   # %q, %Q, etc. Otherwise Ruby will assume it's a method name and pass it to
   # method_missing!
-  def process_command_line(command, *options)
+  def process_command_line(command, options)
     action = find_command_action(command)
     if action
       action.(*options)
@@ -442,18 +444,18 @@ class MacWifi
         Command.new(/^ci/,  -> (*_options) { puts "Connected to Internet: #{connected_to_internet?}" }),
         Command.new(/^co/,  -> (*options)  { connect(options[0], options[1]); nil }),
         Command.new(/^cy/,  -> (*_options) { cycle_network; nil }),
-        Command.new(/^d/,   -> (*_options) { disconnect }),
-        Command.new(/^h/,   -> (*_options) { print_help }),
-        Command.new(/^i/,   -> (*_options) { awesome_print_available? ? ap(wifi_info) : pp(wifi_info)}),
+        Command.new(/^d/,   -> (*_options) { disconnect; nil }),
+        Command.new(/^h/,   -> (*_options) { print_help; nil }),
+        Command.new(/^i/,   -> (*_options) { (awesome_print_available? ? ap(wifi_info) : pp(wifi_info)); nil }),
         Command.new(/^lsa/, -> (*_options) { puts available_networks }),
         Command.new(/^lsp/, -> (*_options) { puts preferred_networks }),
         Command.new(/^n/,   -> (*_options) { puts connected_network_name }),
-        Command.new(/^of/,  -> (*_options) { wifi_off }),
-        Command.new(/^on/,  -> (*_options) { wifi_on }),
-        Command.new(/^pa/,  -> (*options)  { output_network_password(options.first, preferred_network_password(options.first))}),
+        Command.new(/^of/,  -> (*_options) { wifi_off; nil }),
+        Command.new(/^on/,  -> (*_options) { wifi_on; nil }),
+        Command.new(/^pa/,  -> (*options)  { puts; puts "options is a #{options.class} of size #{options.size}; first is #{options.first.class}"; p options; puts; network = options.first; output_network_password(network, preferred_network_password(network)); nil }),
         Command.new(/^q/,   -> (*_options) { quit() }),
-        Command.new(/^r/,   -> (*options)  { remove_preferred_network(*options) }),
-        Command.new(/^s/,   -> (*_options) { run_shell }),
+        Command.new(/^r/,   -> (*options)  { remove_preferred_network(*options); nil }),
+        Command.new(/^s/,   -> (*_options) { run_shell; nil }),
         Command.new(/^w/,   -> (*_options) { puts "Wifi on?: #{wifi_on?}" }),
         Command.new(/^x/,   -> (*_options) { quit() })
     ]
