@@ -319,7 +319,8 @@ class MacWifi
   def current_network
     lines = run_os_command("#{AIRPORT_CMD} -I").split("\n")
     ssid_lines = lines.grep(/ SSID:/)
-    ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last
+    ssid = ssid_lines.first.split('SSID: ').last.strip
+    ssid.empty? ? nil : ssid
   end
 
 
@@ -335,6 +336,7 @@ class MacWifi
 
     info = {
         wifi_on:     wifi_on?,
+        internet_on: connected_to_internet?,
         port:        wifi_hardware_port,
         network:     current_network,
         ip_address:  ip_address,
