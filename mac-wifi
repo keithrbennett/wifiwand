@@ -21,6 +21,10 @@
 
 require 'shellwords'
 
+class Command < Struct.new(:regex, :action)
+end
+
+
 # Helper methods unrelated to the high level logic of the program.
 module LowLevelHelpers
 
@@ -388,9 +392,9 @@ class MacWifi
 
 
   # For use by the shell; when typing a command and options, it is passed to process_command_line
-  def method_missing(method_name, *options)
-    process_command_line(method_name, options)
-  end
+  # def method_missing(method_name, *options)
+  #   process_command_line(method_name, options)
+  # end
 
 
   def output_network_password(network_name, password)
@@ -408,56 +412,52 @@ class MacWifi
   # be in a form that Ruby will recognize as a string, i.e. single or double quotes,
   # %q, %Q, etc. Otherwise Ruby will assume it's a method name and pass it to
   # method_missing!
-  def process_command_line(command, options)
-
-    quit = -> do
-      if @interactive_mode
-        exit(0)
-      else
-        puts "This command can only be run in shell mode."
-      end
+  def process_command_line(command, *options)
+    action = find_command_action(command)
+    if action
+      action.(*options)
+    else
+      print_help
+      raise "Unrecognized command. Command was #{action} and options were #{options.inspect}."
     end
+  end
 
-    case command
-      when /^ci/
-        puts "Connected to Internet: #{connected_to_internet?}"
-      when /^co/
-        connect(options[0], options[1]); nil
-      when /^cy/
-        cycle_network; nil
-      when /^d/
-        disconnect; nil
-      when /^h/
-        print_help; nil
-      when /^i/
-        awesome_print_available? ? ap(wifi_info) : pp(wifi_info)
-        nil
-      when /^lsa/
-        puts available_networks
-      when /^lsp/
-        puts preferred_networks
-      when /^n/
-        puts connected_network_name
-      when /^of/
-        wifi_off; nil
-      when /^on/
-        wifi_on; nil
-      when /^pa/
-        output_network_password(options.first, preferred_network_password(options.first)); nil
-      when /^q/
-        quit.(); nil
-      when /^r/
-        remove_preferred_network(*options); nil
-      when /^s/
-        run_shell; nil
-      when /^w/
-        puts "Wifi on?: #{wifi_on?}"
-      when /^x/
-        quit.()
-      else
-        print_help
-        raise "Unrecognized command. Command was #{command} and options were #{options.inspect}."
+
+  def quit
+    if @interactive_mode
+      exit(0)
+    else
+      puts "This command can only be run in shell mode."
     end
+  end
+
+
+  def commands
+    @commands_ ||= [
+        Command.new(/^ci/,  -> (*_options) { puts "Connected to Internet: #{connected_to_internet?}" }),
+        Command.new(/^co/,  -> (*options)  { connect(options[0], options[1]); nil }),
+        Command.new(/^cy/,  -> (*_options) { cycle_network; nil }),
+        Command.new(/^d/,   -> (*_options) { disconnect }),
+        Command.new(/^h/,   -> (*_options) { print_help }),
+        Command.new(/^i/,   -> (*_options) { awesome_print_available? ? ap(wifi_info) : pp(wifi_info)}),
+        Command.new(/^lsa/, -> (*_options) { puts available_networks }),
+        Command.new(/^lsp/, -> (*_options) { puts preferred_networks }),
+        Command.new(/^n/,   -> (*_options) { puts connected_network_name }),
+        Command.new(/^of/,  -> (*_options) { wifi_off }),
+        Command.new(/^on/,  -> (*_options) { wifi_on }),
+        Command.new(/^pa/,  -> (*options)  { output_network_password(options.first, preferred_network_password(options.first))}),
+        Command.new(/^q/,   -> (*_options) { quit() }),
+        Command.new(/^r/,   -> (*options)  { remove_preferred_network(*options) }),
+        Command.new(/^s/,   -> (*_options) { run_shell }),
+        Command.new(/^w/,   -> (*_options) { puts "Wifi on?: #{wifi_on?}" }),
+        Command.new(/^x/,   -> (*_options) { quit() })
+    ]
+  end
+
+
+  def find_command_action(command_string)
+    result = commands.detect { |cmd| cmd.regex === command_string }
+    result ? result.action : nil
   end
 
 
