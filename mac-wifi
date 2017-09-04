@@ -392,9 +392,14 @@ class MacWifi
 
 
   # For use by the shell; when typing a command and options, it is passed to process_command_line
-  # def method_missing(method_name, *options)
-  #   process_command_line(method_name, options)
-  # end
+  def method_missing(method_name, *options)
+    method_valid = !! find_command_action(method_name)
+    if method_valid
+      process_command_line(method_name, options)
+    else
+      raise NoMethodError.new(%Q{"#{method_name}" is not a valid command.}, method_name)
+    end
+  end
 
 
   def output_network_password(network_name, password)
