@@ -17,7 +17,7 @@ Available commands are:
 
 ci                      = connected to Internet (not just wifi on)?
 co[nnect] network-name  - turns wifi on, connects to network-name
-cy[cle]                 - turns wifi off, then on
+cy[cle]                 - turns wifi off, then on, preserving network selection
 d[isconnect]            - disconnects from current network, does not turn off wifi
 h[elp]                  - prints this help
 i[nfo]                  - prints wifi-related information
