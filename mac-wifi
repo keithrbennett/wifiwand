@@ -78,8 +78,8 @@ When in interactive shell mode:
   end
 
 
-  def fancy_puts(string)
-    awesome_print_available? ? ap(string) : pp(string)
+  def fancy_puts(object)
+    awesome_print_available? ? ap(object) : pp(object)
   end
 
 
@@ -107,6 +107,9 @@ When in interactive shell mode:
     output = `#{command} 2>&1` # join stderr with stdout
     if $?.exitstatus != 0
       raise OsCommandError.new($?.exitstatus, command, output)
+    end
+    if ENV['MAC_WIFI_OPTS'] && (/-v/.match(ENV['MAC_WIFI_OPTS']))
+      puts "\n\n#{'-' * 79}\nCommand: #{command}\n\nOutput:\n#{output}#{'-' * 79}\n\n"
     end
     output
   end

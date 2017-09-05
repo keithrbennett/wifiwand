@@ -50,6 +50,26 @@ This is accomplished by the following command:
 
 `gem install awesome_print`
 
+
+### Seeing the Underlying OS Commands and Output
+
+If you would like to see the Mac OS commands and their output, you can do so by setting the
+environment variable MAC_WIFI_OPTS to include `-v`. This can be done in the following ways:
+
+```
+export MAC_WIFI_OPTS=-v
+./mac-wifi i
+```
+
+```
+MAC_WIFI_OPTS=-v  ./mac-wifi i
+```
+
+You may notice that some commands are executed more than once. This is to simplify the application logic
+and eliminate the need for the complexity of balancing the speed that a cache offers and the risk
+of stale data.
+
+
 ### License
 
 MIT License (see LICENSE.txt)
