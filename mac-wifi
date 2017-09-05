@@ -108,7 +108,7 @@ When in interactive shell mode:
     if $?.exitstatus != 0
       raise OsCommandError.new($?.exitstatus, command, output)
     end
-    if ENV['MAC_WIFI_OPTS'] && (/-v/.match(ENV['MAC_WIFI_OPTS']))
+    if /-v/.match(ENV['MAC_WIFI_OPTS'])
       puts "\n\n#{'-' * 79}\nCommand: #{command}\n\nOutput:\n#{output}#{'-' * 79}\n\n"
     end
     output
