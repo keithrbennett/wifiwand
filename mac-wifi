@@ -64,13 +64,22 @@ When in interactive shell mode:
   # So, we try to require it, but if that fails, we fall back to using pp (pretty print).
   # Returns true if awesome_print is available (after requiring it), else false after requiring 'pp'.
   def awesome_print_available?
-    begin
-      require 'awesome_print'
-      true
-    rescue LoadError
-      require 'pp'
-      false
+    if @awesome_print_available.nil?  # first time here
+      begin
+        require 'awesome_print'
+        @awesome_print_available = true
+      rescue LoadError
+        require 'pp'
+        @awesome_print_available = false
+      end
     end
+
+    @awesome_print_available
+  end
+
+
+  def fancy_puts(string)
+    awesome_print_available? ? ap(string) : pp(string)
   end
 
 
@@ -446,7 +455,7 @@ class MacWifi
         Command.new(/^cy/,  -> (*_options) { cycle_network; nil }),
         Command.new(/^d/,   -> (*_options) { disconnect; nil }),
         Command.new(/^h/,   -> (*_options) { print_help; nil }),
-        Command.new(/^i/,   -> (*_options) { (awesome_print_available? ? ap(wifi_info) : pp(wifi_info)); nil }),
+        Command.new(/^i/,   -> (*_options) { fancy_puts(wifi_info); nil }),
         Command.new(/^lsa/, -> (*_options) { puts available_networks }),
         Command.new(/^lsp/, -> (*_options) { puts preferred_networks }),
         Command.new(/^n/,   -> (*_options) { puts connected_network_name }),
