@@ -165,7 +165,7 @@ class MacWifi
       # Device: en3
       # Ethernet Address: ac:bc:32:b9:a9:9e
       wifi_port_line_num = (0...lines.size).detect do |index|
-        /: Wi-Fi$/ === lines[index]
+        /: Wi-Fi$/.match(lines[index])
       end
       if wifi_port_line_num.nil?
         raise %Q{Wifi port (e.g. "en0") not found in output of: networksetup -listallhardwareports}
@@ -475,7 +475,7 @@ class MacWifi
 
 
   def find_command_action(command_string)
-    result = commands.detect { |cmd| cmd.regex === command_string }
+    result = commands.detect { |cmd| cmd.regex.match(command_string) }
     result ? result.action : nil
   end
 
