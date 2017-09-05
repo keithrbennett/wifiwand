@@ -108,7 +108,7 @@ When in interactive shell mode:
     if $?.exitstatus != 0
       raise OsCommandError.new($?.exitstatus, command, output)
     end
-    if /-v/.match(ENV['MAC_WIFI_OPTS'])
+    if verbose_mode
       puts "\n\n#{'-' * 79}\nCommand: #{command}\n\nOutput:\n#{output}#{'-' * 79}\n\n"
     end
     output
@@ -135,6 +135,11 @@ When in interactive shell mode:
       value.strip! if value
       new_hash[key] = value
     end
+  end
+
+
+  def verbose_mode
+    /-v/.match(ENV['MAC_WIFI_OPTS'])
   end
 end
 
