@@ -42,6 +42,14 @@ Internally, it uses several Mac command line utilities. This is not ideal,
 I would have preferred OS system calls, but it enabled me to develop
 this script quickly and simply.
 
+### Pretty Output
+
+For nicely formatted output of the `info` command, the `awesome_print` gem is used if it is installed;
+otherwise, pretty print (`pp`) is used.  So installation of the `awesome_print` gem is recommended. 
+This is accomplished by the following command:
+
+`gem install awesome_print`
+
 ### License
 
 MIT License (see LICENSE.txt)
