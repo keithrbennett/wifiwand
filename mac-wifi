@@ -267,10 +267,15 @@ class MacWifi
     end
     run_os_command(command)
     # Verify that the network is now connected:
-    unless connected_network_name == network_name
-      connected_network_name; exit(0)
-      message = "Expected to connect to #{network_name} but connected to #{connected_network_name} instead. "
-      message << (password ? "Did you provide the correct password?" : "Did you need to provide a password?")
+    actual_network_name = connected_network_name
+    unless actual_network_name == network_name
+      message = %Q{Expected to connect to "#{network_name}" but }
+      if actual_network_name
+        message << %Q{connected to "#{connected_network_name}" instead.}
+      else
+        message << "unable to connect to any network."
+      end
+      message << (password ? " Did you provide the correct password?" : " Did you need to provide a password?")
       raise message
     end
     nil
@@ -459,22 +464,22 @@ class MacWifi
 
   def commands
     @commands_ ||= [
-        Command.new(/^ci/,  -> (*_options) { puts "Connected to Internet: #{connected_to_internet?}" }),
+        Command.new(/^ci/,  -> (*_options) { b = connected_to_internet?; puts "Connected to Internet: #{connected_to_internet?}"; b  }),
         Command.new(/^co/,  -> (*options)  { connect(options[0], options[1]); nil }),
         Command.new(/^cy/,  -> (*_options) { cycle_network; nil }),
         Command.new(/^d/,   -> (*_options) { disconnect; nil }),
         Command.new(/^h/,   -> (*_options) { print_help; nil }),
-        Command.new(/^i/,   -> (*_options) { fancy_puts(wifi_info); nil }),
+        Command.new(/^i/,   -> (*_options) { info = wifi_info; fancy_puts(info); info }),
         Command.new(/^lsa/, -> (*_options) { puts available_networks }),
         Command.new(/^lsp/, -> (*_options) { puts preferred_networks }),
-        Command.new(/^n/,   -> (*_options) { puts connected_network_name }),
+        Command.new(/^n/,   -> (*_options) { name = connected_network_name; puts name; name }),
         Command.new(/^of/,  -> (*_options) { wifi_off; nil }),
         Command.new(/^on/,  -> (*_options) { wifi_on; nil }),
-        Command.new(/^pa/,  -> (*options)  { puts; puts "options is a #{options.class} of size #{options.size}; first is #{options.first.class}"; p options; puts; network = options.first; output_network_password(network, preferred_network_password(network)); nil }),
+        Command.new(/^pa/,  -> (*options)  { network = options.first; pw = preferred_network_password(network); output_network_password(network, pw); pw }),
         Command.new(/^q/,   -> (*_options) { quit() }),
         Command.new(/^r/,   -> (*options)  { remove_preferred_network(*options); nil }),
         Command.new(/^s/,   -> (*_options) { run_shell; nil }),
-        Command.new(/^w/,   -> (*_options) { puts "Wifi on?: #{wifi_on?}" }),
+        Command.new(/^w/,   -> (*_options) { on = wifi_on?; puts "Wifi on?: #{on?}"; on }),
         Command.new(/^x/,   -> (*_options) { quit() })
     ]
   end
