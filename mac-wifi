@@ -5,7 +5,7 @@
 # It is a bit of a kludge in that it calls Mac OS commands and uses
 # the text output for its data. At some point I would like to replace
 # that with system calls. Currently this script can break if Apple
-# decides to modify the format of its output.
+# decides to modify the name, options, behavior, and/or format of its utilities.
 #
 # What would be *really* nice, would be for Apple to retrofit all
 # system commands to optionally output JSON and/or YAML. Some offer XML, but that
@@ -20,6 +20,7 @@
 
 
 require 'shellwords'
+
 
 class Command < Struct.new(:regex, :action)
 end
@@ -141,6 +142,19 @@ When in interactive shell mode:
   def verbose_mode
     /-v/.match(ENV['MAC_WIFI_OPTS'])
   end
+
+
+  def connected_to_internet?
+    require 'open-uri'
+    connected = false
+    begin
+      open('http://www.google.com')
+      connected = true
+    rescue
+      # swallow exception; connected will remain false
+    end
+    connected
+  end
 end
 
 
@@ -178,19 +192,6 @@ class MacWifi
         lines[wifi_port_line_num + 1].split(': ').last
       end
     end
-  end
-
-
-  def connected_to_internet?
-    require 'open-uri'
-    connected = false
-    begin
-      open('http://www.google.com')
-      connected = true
-    rescue
-      # swallow exception; connected will remain false
-    end
-    connected
   end
 
 
@@ -493,13 +494,5 @@ class MacWifi
 end
 
 
-# puts "\nLowLevelHelpers methods:\n\n"
-# puts LowLevelHelpers.instance_methods(false).sort
-#
-# puts "\nMacWifi methods:\n\n"
-# puts MacWifi.instance_methods(false).sort
-
-
 MacWifi.new.call
-# or MacWifi.new.()
 
