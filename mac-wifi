@@ -19,22 +19,279 @@
 # License: MIT License
 
 
+
 require 'shellwords'
 
 
-class Command < Struct.new(:regex, :action)
+class MacWifiModel
+
+  AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
+
+
+  def initialize(verbose = false)
+    @verbose_mode = verbose
+  end
+
+
+  def connected_to_internet?
+    require 'open-uri'
+    connected = false
+    begin
+      open('http://www.google.com')
+      connected = true
+    rescue
+      # swallow exception; connected will remain false
+    end
+    connected
+  end
+
+
+  # Identifies the (first) wireless network hardware port in the system, e.g. en0 or en1
+  def wifi_hardware_port
+    @wifi_hardware_port ||= begin
+      lines = run_os_command("networksetup -listallhardwareports").split("\n")
+      # Produces something like this:
+      # Hardware Port: Wi-Fi
+      # Device: en0
+      # Ethernet Address: ac:bc:32:b9:a9:9d
+      #
+      # Hardware Port: Bluetooth PAN
+      # Device: en3
+      # Ethernet Address: ac:bc:32:b9:a9:9e
+      wifi_port_line_num = (0...lines.size).detect do |index|
+        /: Wi-Fi$/.match(lines[index])
+      end
+      if wifi_port_line_num.nil?
+        raise %Q{Wifi port (e.g. "en0") not found in output of: networksetup -listallhardwareports}
+      else
+        lines[wifi_port_line_num + 1].split(': ').last
+      end
+    end
+  end
+
+
+  # Returns data pertaining to available wireless networks.
+  def available_network_info
+    run_os_command("#{AIRPORT_CMD} -s").split("\n")
+  end
+
+
+  # Returns data pertaining to "preferred" networks, many/most of which will probably not be available.
+  def preferred_networks
+    lines = run_os_command("networksetup -listpreferredwirelessnetworks #{wifi_hardware_port}").split("\n")
+    # Produces something like this, unsorted, and with leading tabs:
+    # Preferred networks on en0:
+    #         LibraryWiFi
+    #         @thePAD/Magma
+
+    lines.delete_at(0)                         # remove title line
+    lines.map! { |line| line.gsub("\t", '') }  # remove leading tabs
+    lines.sort! { |s1, s2| s1.casecmp(s2) }    # sort alphabetically, case insensitively
+    lines
+  end
+
+
+  # Returns true if wifi is on, else false.
+  def wifi_on?
+    lines = run_os_command("#{AIRPORT_CMD} -I").split("\n")
+    ! lines.grep("AirPort: Off").any?
+  end
+
+
+  # Turns wifi on.
+  def wifi_on
+    return if wifi_on?
+    run_os_command("networksetup -setairportpower #{wifi_hardware_port} on")
+    wifi_on? ? nil : raise("Wifi could not be enabled.")
+  end
+
+
+  # Turns wifi off.
+  def wifi_off
+    return unless wifi_on?
+    run_os_command("networksetup -setairportpower #{wifi_hardware_port} off")
+    wifi_on? ? raise("Wifi could not be disabled.") : nil
+  end
+
+
+  # Turns wifi off and then on, reconnecting to the originally connecting network.
+  def cycle_network
+    # TODO: Make this network name saving and restoring conditional on it not having a password.
+    # Currently an error will be raised if a password is required, even though it is stored.
+    # network_name = current_network
+    wifi_off
+    wifi_on
+    # connect(network_name) if network_name
+  end
+
+
+  def connected_network_name
+    wifi_info['SSID']
+  end
+
+
+  def connected_to?(network_name)
+    network_name == connected_network_name
+  end
+
+
+  # Connects to the passed network name, optionally with password.
+  # Turns wifi on first, in case it was turned off.
+  def connect(network_name, password = nil)
+    if network_name.nil? || network_name.empty?
+      raise "A network name is required but was not provided."
+    end
+    wifi_on
+    command = "networksetup -setairportnetwork #{wifi_hardware_port} " + "#{Shellwords.shellescape(network_name)}"
+    if password
+      command << ' ' << Shellwords.shellescape(password)
+    end
+    run_os_command(command)
+
+    # Verify that the network is now connected:
+    actual_network_name = connected_network_name
+    unless actual_network_name == network_name
+      message = %Q{Expected to connect to "#{network_name}" but }
+      if actual_network_name
+        message << %Q{connected to "#{connected_network_name}" instead.}
+      else
+        message << "unable to connect to any network. Did you "
+      end
+      message << (password ? "provide the correct password?" : "need to provide a password?")
+      raise message
+    end
+    nil
+  end
+
+
+  def preferred_network_password(preferred_network_name)
+    if preferred_networks.include?(preferred_network_name)
+      command = %Q{security find-generic-password -D "AirPort network password" -a #{preferred_network_name} -w 2>&1}
+      begin
+        return run_os_command(command).chomp
+      rescue OsCommandError => error
+        if error.exitcode == 44 # network has no password stored
+          nil
+        else
+          raise
+        end
+      end
+    else
+      raise "Network #{preferred_network_name} not in preferred networks list."
+    end
+  end
+
+
+  # Returns the IP address assigned to the wifi port, or nil if none.
+  def ip_address
+    begin
+      run_os_command("ipconfig getifaddr #{wifi_hardware_port}").chomp
+    rescue OsCommandError => error
+      if error.exitcode == 1
+        nil
+      else
+        raise
+      end
+    end
+  end
+
+
+  # Removes the specified network(s) from the preferred network list.
+  # @param network_names names of networks to remove; may be empty or contain nonexistent networks
+  # @return names of the networks that were removed (excludes non-preexisting networks)
+  def remove_preferred_networks(*network_names)
+    networks_to_remove = network_names & preferred_networks # exclude any nonexistent networks
+    networks_to_remove.each do |name|
+      run_os_command("sudo networksetup -removepreferredwirelessnetwork " +
+                         "#{wifi_hardware_port} #{Shellwords.shellescape(name)}")
+    end
+    networks_to_remove
+  end
+
+
+  # Returns the network currently connected to, or nil if none.
+  def current_network
+    lines = run_os_command("#{AIRPORT_CMD} -I").split("\n")
+    ssid_lines = lines.grep(/ SSID:/)
+    ssid = ssid_lines.first.split('SSID: ').last.strip
+    ssid.empty? ? nil : ssid
+  end
+
+
+  # Disconnects from the currently connected network. Does not turn off wifi.
+  def disconnect
+    run_os_command("sudo #{AIRPORT_CMD} -z")
+    nil
+  end
+
+
+  # Returns some useful wifi-related information.
+  def wifi_info
+
+    info = {
+        wifi_on:     wifi_on?,
+        internet_on: connected_to_internet?,
+        port:        wifi_hardware_port,
+        network:     current_network,
+        ip_address:  ip_address,
+    }
+    more_output = run_os_command(AIRPORT_CMD + " -I")
+    more_info   = colon_output_to_hash(more_output)
+    info.merge!(more_info)
+    info.delete('AirPort') # will be here if off, but info is already in wifi_on key
+    info
+  end
+
+
+  private class OsCommandError < RuntimeError
+            attr_reader :exitcode, :command, :text
+
+            def initialize(exitcode, command, text)
+              @exitcode = exitcode
+              @command = command
+              @text = text
+            end
+          end
+
+
+  private def run_os_command(command)
+    output = `#{command} 2>&1` # join stderr with stdout
+    if $?.exitstatus != 0
+      raise OsCommandError.new($?.exitstatus, command, output)
+    end
+    if @verbose_mode
+      puts "\n\n#{'-' * 79}\nCommand: #{command}\n\nOutput:\n#{output}#{'-' * 79}\n\n"
+    end
+    output
+  end
+
+
+
+  # Parses output like the text below into a hash:
+  # SSID: Pattara211
+  # MCS: 5
+  # channel: 7
+  private def colon_output_to_hash(output)
+    lines = output.split("\n")
+    lines.each_with_object({}) do |line, new_hash|
+      key, value = line.split(': ')
+      key = key.strip
+      value.strip! if value
+      new_hash[key] = value
+    end
+  end
 end
 
 
-# Helper methods unrelated to the high level logic of the program.
-module LowLevelHelpers
+class MacWifiView
 
-  # Output help when requested by 'h' command, or in case of unrecognized or nonexistent command.
-  def print_help
-    puts "
+  attr_reader :model
+
+  # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.
+  HELP_TEXT = "
 Available commands are:
 
-ci                      = connected to Internet (not just wifi on)?
+ci                      - connected to Internet (not just wifi on)?
 co[nnect] network-name  - turns wifi on, connects to network-name
 cy[cle]                 - turns wifi off, then on, preserving network selection
 d[isconnect]            - disconnects from current network, does not turn off wifi
@@ -56,8 +313,26 @@ When in interactive shell mode:
     * use quotes for string parameters such as method names.
     * for pry commands, use prefix `%`.
 
-
 "
+
+
+  def initialize(model)
+    @model = model
+    @interactive_mode = false # will be true if/when user selects shell option on command line
+  end
+
+
+  class Command < Struct.new(:regex, :action)
+  end
+
+
+  def verbose_mode
+    /-v/.match(ENV['MAC_WIFI_OPTS'])
+  end
+
+
+  def print_help
+    puts HELP_TEXT
   end
 
 
@@ -93,292 +368,12 @@ When in interactive shell mode:
     end
   end
 
-  class OsCommandError < RuntimeError
-    attr_reader :exitcode, :command, :text
-
-    def initialize(exitcode, command, text)
-      @exitcode = exitcode
-      @command = command
-      @text = text
-    end
-  end
-
-
-  def run_os_command(command)
-    output = `#{command} 2>&1` # join stderr with stdout
-    if $?.exitstatus != 0
-      raise OsCommandError.new($?.exitstatus, command, output)
-    end
-    if verbose_mode
-      puts "\n\n#{'-' * 79}\nCommand: #{command}\n\nOutput:\n#{output}#{'-' * 79}\n\n"
-    end
-    output
-  end
-
 
   # Pry will output the content of the method from which it was called.
   # This small method exists solely to reduce the amount of pry's output
   # that is not needed here.
   def run_pry
     binding.pry
-  end
-
-
-  # Parses output like the text below into a hash:
-  # SSID: Pattara211
-  # MCS: 5
-  # channel: 7
-  def colon_output_to_hash(output)
-    lines = output.split("\n")
-    lines.each_with_object({}) do |line, new_hash|
-      key, value = line.split(': ')
-      key = key.strip
-      value.strip! if value
-      new_hash[key] = value
-    end
-  end
-
-
-  def verbose_mode
-    /-v/.match(ENV['MAC_WIFI_OPTS'])
-  end
-
-
-  def connected_to_internet?
-    require 'open-uri'
-    connected = false
-    begin
-      open('http://www.google.com')
-      connected = true
-    rescue
-      # swallow exception; connected will remain false
-    end
-    connected
-  end
-end
-
-
-class MacWifi
-
-  include LowLevelHelpers
-
-  AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
-
-  SUDO_MESSAGE = "This operation may require root access. You may be asked for system login credentials."
-
-  def initialize
-    @interactive_mode = false # will be true if/when user selects shell option on command line
-  end
-
-
-  # Identifies the (first) wireless network hardware port in the system, e.g. en0 or en1
-  def wifi_hardware_port
-    @wifi_hardware_port ||= begin
-      lines = run_os_command("networksetup -listallhardwareports").split("\n")
-      # Produces something like this:
-      # Hardware Port: Wi-Fi
-      # Device: en0
-      # Ethernet Address: ac:bc:32:b9:a9:9d
-      #
-      # Hardware Port: Bluetooth PAN
-      # Device: en3
-      # Ethernet Address: ac:bc:32:b9:a9:9e
-      wifi_port_line_num = (0...lines.size).detect do |index|
-        /: Wi-Fi$/.match(lines[index])
-      end
-      if wifi_port_line_num.nil?
-        raise %Q{Wifi port (e.g. "en0") not found in output of: networksetup -listallhardwareports}
-      else
-        lines[wifi_port_line_num + 1].split(': ').last
-      end
-    end
-  end
-
-
-  # Shows available wireless network, as you would see by clicking the wifi toolbar icon.
-  def available_networks
-    run_os_command("#{AIRPORT_CMD} -s")
-  end
-
-
-  # Shows "preferred" networks, many/most of which will probably not be available.
-  def preferred_networks
-    lines = run_os_command("networksetup -listpreferredwirelessnetworks #{wifi_hardware_port}").split("\n")
-    # Produces something like this, unsorted, and with leading tabs:
-    # Preferred networks on en0:
-    #         LibraryWiFi
-    #         @thePAD/Magma
-
-    lines.delete_at(0)                         # remove title line
-    lines.map! { |line| line.gsub("\t", '') }  # remove leading tabs
-    lines.sort! { |s1, s2| s1.casecmp(s2) }    # sort alphabetically, case insensitively
-    lines
-  end
-
-
-  # Turns wifi off and then on, reconnecting to the originally connecting network.
-  def cycle_network
-    network_name = current_network
-    wifi_off
-    wifi_on
-    connect(network_name) if network_name
-  end
-
-
-  # Turns wifi on.
-  def wifi_on
-    return if wifi_on?
-    output = run_os_command("networksetup -setairportpower #{wifi_hardware_port} on")
-    raise "Wifi could not be enabled." unless wifi_on?
-    output
-  end
-
-
-  # Turns wifi off.
-  def wifi_off
-    return unless wifi_on?
-    output = run_os_command("networksetup -setairportpower #{wifi_hardware_port} off")
-    raise "Wifi could not be enabled." if wifi_on?
-    output
-  end
-
-
-  def connected_network_name
-    wifi_info['SSID']
-  end
-
-
-  def connected_to?(network_name)
-    raise "Wifi not enabled." unless wifi_on?
-    network_name == connected_network_name
-  end
-
-
-  # Connects to the passed network name, optionally with password.
-  # Turns wifi on first, in case it was turned off.
-  def connect(network_name, password = nil)
-    if network_name.nil? || network_name.empty?
-      raise "A network name is required but was not provided."
-    end
-    wifi_on
-    command = "networksetup -setairportnetwork #{wifi_hardware_port} " + "#{Shellwords.shellescape(network_name)}"
-    if password
-      command << ' ' << Shellwords.shellescape(password)
-    end
-    run_os_command(command)
-    # Verify that the network is now connected:
-    actual_network_name = connected_network_name
-    unless actual_network_name == network_name
-      message = %Q{Expected to connect to "#{network_name}" but }
-      if actual_network_name
-        message << %Q{connected to "#{connected_network_name}" instead.}
-      else
-        message << "unable to connect to any network."
-      end
-      message << (password ? " Did you provide the correct password?" : " Did you need to provide a password?")
-      raise message
-    end
-    nil
-  end
-
-
-  def preferred_network_password(preferred_network_name)
-    if preferred_networks.include?(preferred_network_name)
-      command = %Q{security find-generic-password -D "AirPort network password" -a #{preferred_network_name} -w 2>&1}
-      puts SUDO_MESSAGE
-      output = nil
-      begin
-        output = run_os_command(command).chomp
-      rescue OsCommandError => error
-        if error.exitcode == 44 # network has no password stored
-          nil
-        else
-          output
-        end
-      end
-    else
-      raise "Network #{preferred_network_name} not in preferred networks list."
-    end
-  end
-
-
-
-  # Returns the IP address assigned to the wifi port, or nil if none.
-  def ip_address
-    begin
-      run_os_command("ipconfig getifaddr #{wifi_hardware_port}").chomp
-    rescue OsCommandError => error
-      if error.exitcode == 1
-        nil
-      else
-        raise
-      end
-    end
-  end
-
-
-  # Removes the specified network from the preferred network list.
-  def remove_preferred_network(*network_names)
-
-    missing_names = network_names.reject { |n| preferred_networks.include?(n) }
-    if missing_names.any?
-      puts "The following networks were not in the preferred networks list and do not need to be removed:"
-      puts missing_names
-      return if missing_names == network_names
-    end
-
-    puts SUDO_MESSAGE
-
-    if network_names.empty?
-      puts "No names provided."
-      raise "Must provide 1 or more network names to remove."
-    end
-
-    network_names.each do |name|
-      run_os_command("sudo networksetup -removepreferredwirelessnetwork " +
-          "#{wifi_hardware_port} #{Shellwords.shellescape(name)}")
-    end
-  end
-
-
-  # Returns true if wifi is on, else false.
-  def wifi_on?
-    lines = run_os_command("#{AIRPORT_CMD} -I").split("\n")
-    ! lines.grep("AirPort: Off").any?
-  end
-
-
-  # Returns the network currently connected to, or nil if none.
-  def current_network
-    lines = run_os_command("#{AIRPORT_CMD} -I").split("\n")
-    ssid_lines = lines.grep(/ SSID:/)
-    ssid = ssid_lines.first.split('SSID: ').last.strip
-    ssid.empty? ? nil : ssid
-  end
-
-
-  # Disconnects from the currently connected network. Does not turn off wifi.
-  def disconnect
-    puts SUDO_MESSAGE
-    run_os_command("sudo #{AIRPORT_CMD} -z")
-  end
-
-
-  # Outputs some useful wifi-related information.
-  def wifi_info
-
-    info = {
-        wifi_on:     wifi_on?,
-        internet_on: connected_to_internet?,
-        port:        wifi_hardware_port,
-        network:     current_network,
-        ip_address:  ip_address,
-    }
-    more_output = run_os_command(AIRPORT_CMD + " -I")
-    more_info   = colon_output_to_hash(more_output)
-    info.merge!(more_info)
-    info.delete('AirPort') # will be here if off, but info is already in wifi_on key
-    info
   end
 
 
@@ -414,24 +409,24 @@ class MacWifi
   end
 
 
+  def output_network_password(network_name)
+    password = model.preferred_network_password(network_name)
+    output =  %Q{Preferred network "#{network_name}" }
+    output << password ? %Q{stored password is: "#{password}".} : "has no stored password."
+    puts output
+    password
+  end
+
+
   # For use by the shell; when typing a command and options, it is passed to process_command_line
   def method_missing(method_name, *options)
-    method_valid = !! find_command_action(method_name)
+    method_valid = !! find_command_action(method_name.to_s)
     if method_valid
       process_command_line(method_name, options)
     else
       raise NoMethodError.new(
           %Q{"#{method_name}" is not a valid command. If you intend for this to be a string literal, use quotes.},
           method_name)
-    end
-  end
-
-
-  def output_network_password(network_name, password)
-    if password
-      puts %Q{Preferred network "#{network_name}" stored password is: #{%Q{"#{password}"}}}
-    else
-      puts %Q{Preferred network "#{network_name}" has no stored password.}
     end
   end
 
@@ -462,25 +457,116 @@ class MacWifi
   end
 
 
+  def cmd_ci
+    puts "Connected to Internet: #{model.connected_to_internet?}"
+  end
+
+
+  def cmd_co(network, password = nil)
+    model.connect(network, password)
+  end
+
+
+  def cmd_cy
+    model.cycle_network
+  end
+
+
+  def cmd_d
+    model.disconnect
+  end
+
+
+  def cmd_h
+    print_help
+  end
+
+
+  def cmd_i
+    info = model.wifi_info
+    fancy_puts(info)
+    info
+  end
+
+
+  def cmd_lsa
+    puts model.available_network_info
+  end
+
+
+  def cmd_lsp
+    puts model.preferred_networks
+  end
+
+
+  def cmd_n
+    name = model.connected_network_name
+    puts name
+    name
+  end
+
+
+  def cmd_of
+    model.wifi_off
+  end
+
+
+  def cmd_on
+    model.wifi_on
+  end
+
+
+  def cmd_pa(network)
+    output_network_password(network)
+  end
+
+
+  def cmd_q
+    quit
+  end
+
+
+  def cmd_r(*options)
+    remove_preferred_networks(*options)
+  end
+
+
+  def cmd_s
+    run_shell
+  end
+
+
+  def cmd_w
+    on = model.wifi_on?
+    puts "Wifi on?: #{on}"
+    on
+  end
+
+
+  def cmd_x
+    quit
+  end
+
+
   def commands
     @commands_ ||= [
-        Command.new(/^ci/,  -> (*_options) { b = connected_to_internet?; puts "Connected to Internet: #{connected_to_internet?}"; b  }),
-        Command.new(/^co/,  -> (*options)  { connect(options[0], options[1]); nil }),
-        Command.new(/^cy/,  -> (*_options) { cycle_network; nil }),
-        Command.new(/^d/,   -> (*_options) { disconnect; nil }),
-        Command.new(/^h/,   -> (*_options) { print_help; nil }),
-        Command.new(/^i/,   -> (*_options) { info = wifi_info; fancy_puts(info); info }),
-        Command.new(/^lsa/, -> (*_options) { puts available_networks }),
-        Command.new(/^lsp/, -> (*_options) { puts preferred_networks }),
-        Command.new(/^n/,   -> (*_options) { name = connected_network_name; puts name; name }),
-        Command.new(/^of/,  -> (*_options) { wifi_off; nil }),
-        Command.new(/^on/,  -> (*_options) { wifi_on; nil }),
-        Command.new(/^pa/,  -> (*options)  { network = options.first; pw = preferred_network_password(network); output_network_password(network, pw); pw }),
-        Command.new(/^q/,   -> (*_options) { quit() }),
-        Command.new(/^r/,   -> (*options)  { remove_preferred_network(*options); nil }),
-        Command.new(/^s/,   -> (*_options) { run_shell; nil }),
-        Command.new(/^w/,   -> (*_options) { on = wifi_on?; puts "Wifi on?: #{on?}"; on }),
-        Command.new(/^x/,   -> (*_options) { quit() })
+        Command.new(/^ci/,  -> (*_options) { cmd_ci            }),
+        Command.new(/^co/,  -> (*options)  { cmd_co(*options)  }),
+        Command.new(/^cy/,  -> (*_options) { cmd_cy            }),
+        Command.new(/^d/,   -> (*_options) { cmd_d             }),
+        Command.new(/^h/,   -> (*_options) { cmd_h             }),
+        Command.new(/^i/,   -> (*_options) { cmd_i             }),
+        Command.new(/^lsa/, -> (*_options) { cmd_lsa           }),
+        Command.new(/^lsp/, -> (*_options) { cmd_lsp           }),
+        Command.new(/^n/,   -> (*_options) { cmd_n             }),
+        Command.new(/^of/,  -> (*_options) { cmd_of            }),
+        Command.new(/^on/,  -> (*_options) { cmd_on            }),
+        Command.new(/^pa/,  -> (*options)  { cmd_pa(*options)  }),
+        Command.new(/^q/,   -> (*_options) { cmd_q             }),
+        Command.new(/^r/,   -> (*options)  { cmd_rm(*options)   }),
+        Command.new(/^s/,   -> (*_options) { cmd_s             }),
+        Command.new(/^w/,   -> (*_options) { cmd_w             }),
+        Command.new(/^x/,   -> (*_options) { cmd_q             })
     ]
   end
 
@@ -499,5 +585,4 @@ class MacWifi
 end
 
 
-MacWifi.new.call
-
+MacWifiView.new(MacWifiModel.new).call
