@@ -30,6 +30,10 @@ class MacWifiModel
 
   def initialize(verbose = false)
     @verbose_mode = verbose
+    if verbose
+      puts "Running in verbose mode; commands and their output will be output to stdout."
+    end
+
   end
 
 
@@ -117,7 +121,8 @@ class MacWifiModel
   # Turns wifi off and then on, reconnecting to the originally connecting network.
   def cycle_network
     # TODO: Make this network name saving and restoring conditional on it not having a password.
-    # Currently an error will be raised if a password is required, even though it is stored.
+    # If the disabled code below is enabled, an error will be raised if a password is required,
+    # even though it is stored.
     # network_name = current_network
     wifi_off
     wifi_on
@@ -213,8 +218,7 @@ class MacWifiModel
   def current_network
     lines = run_os_command("#{AIRPORT_CMD} -I").split("\n")
     ssid_lines = lines.grep(/ SSID:/)
-    ssid = ssid_lines.first.split('SSID: ').last.strip
-    ssid.empty? ? nil : ssid
+    ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last.strip
   end
 
 
@@ -316,8 +320,8 @@ When in interactive shell mode:
 "
 
 
-  def initialize(model)
-    @model = model
+  def initialize
+    @model = MacWifiModel.new(verbose_mode)
     @interactive_mode = false # will be true if/when user selects shell option on command line
   end
 
@@ -501,7 +505,7 @@ When in interactive shell mode:
 
   def cmd_n
     name = model.connected_network_name
-    puts name
+    puts "Network (SSID) name: #{name ? name : '[none]'}"
     name
   end
 
@@ -585,4 +589,4 @@ When in interactive shell mode:
 end
 
 
-MacWifiView.new(MacWifiModel.new).call
+MacWifiView.new.call
