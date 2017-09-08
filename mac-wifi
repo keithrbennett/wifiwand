@@ -30,10 +30,6 @@ class MacWifiModel
 
   def initialize(verbose = false)
     @verbose_mode = verbose
-    if verbose
-      puts "Running in verbose mode; commands and their output will be output to stdout."
-    end
-
   end
 
 
