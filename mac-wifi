@@ -588,5 +588,9 @@ When in interactive shell mode:
 
 end
 
+# If this file is being called as a script, run it.
+# Else, it may be loaded to use the model in a different way.
+if __FILE__ == $0
+  MacWifiView.new.call
+end
 
-MacWifiView.new.call
