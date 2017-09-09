@@ -165,9 +165,15 @@ class MacWifiModel
   end
 
 
+  # @return:
+  #   If the network is in the preferred networks list
+  #     If a password is associated w/this network, return the password
+  #     If not, return nil
+  #   else
+  #     raise an error
   def preferred_network_password(preferred_network_name)
     if preferred_networks.include?(preferred_network_name)
-      command = %Q{security find-generic-password -D "AirPort network password" -a #{preferred_network_name} -w 2>&1}
+      command = %Q{security find-generic-password -D "AirPort network password" -a "#{preferred_network_name}" -w 2>&1}
       begin
         return run_os_command(command).chomp
       rescue OsCommandError => error
@@ -409,10 +415,9 @@ When in interactive shell mode:
   end
 
 
-  def output_network_password(network_name)
-    password = model.preferred_network_password(network_name)
+  def output_network_password(network_name, password)
     output =  %Q{Preferred network "#{network_name}" }
-    output << password ? %Q{stored password is: "#{password}".} : "has no stored password."
+    output << (password ? %Q{stored password is: "#{password}".} : "has no stored password.")
     puts output
     password
   end
@@ -458,7 +463,9 @@ When in interactive shell mode:
 
 
   def cmd_ci
-    puts "Connected to Internet: #{model.connected_to_internet?}"
+    connected = model.connected_to_internet?
+    puts "Connected to Internet: #{connected}" unless @interactive_mode
+    connected
   end
 
 
@@ -484,24 +491,30 @@ When in interactive shell mode:
 
   def cmd_i
     info = model.wifi_info
-    fancy_puts(info)
+    fancy_puts(info) unless @interactive_mode
     info
   end
 
 
   def cmd_lsa
-    puts model.available_network_info
+    info = model.available_network_info
+    puts info unless @interactive_mode
+    info
   end
 
 
   def cmd_lsp
-    puts model.preferred_networks
+    networks = model.preferred_networks
+    puts networks unless @interactive_mode
+    networks
   end
 
 
   def cmd_n
     name = model.connected_network_name
-    puts "Network (SSID) name: #{name ? name : '[none]'}"
+    unless @interactive_mode
+      puts "Network (SSID) name: #{name ? name : '[none]'}"
+    end
     name
   end
 
@@ -517,7 +530,9 @@ When in interactive shell mode:
 
 
   def cmd_pa(network)
-    output_network_password(network)
+    password = model.preferred_network_password(network_name)
+    output_network_password(network, password) unless @interactive_mode
+    password
   end
 
 
@@ -538,7 +553,7 @@ When in interactive shell mode:
 
   def cmd_w
     on = model.wifi_on?
-    puts "Wifi on?: #{on}"
+    puts "Wifi on?: #{on}" unless @interactive_mode
     on
   end
 
