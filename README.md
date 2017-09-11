@@ -45,7 +45,8 @@ this script quickly and simply.
 ### Pretty Output
 
 For nicely formatted output of the `info` command, the `awesome_print` gem is used if it is installed;
-otherwise, pretty print (`pp`) is used.  So installation of the `awesome_print` gem is recommended. 
+otherwise, the somewhat less awesome pretty print (`pp`) is used.  
+So installation of the `awesome_print` gem is recommended. 
 This is accomplished by the following command:
 
 `gem install awesome_print`

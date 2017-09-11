@@ -530,7 +530,7 @@ When in interactive shell mode:
 
 
   def cmd_pa(network)
-    password = model.preferred_network_password(network_name)
+    password = model.preferred_network_password(network)
     output_network_password(network, password) unless @interactive_mode
     password
   end
