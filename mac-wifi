@@ -579,10 +579,10 @@ When in interactive shell mode:
         Command.new(/^on/,  -> (*_options) { cmd_on            }),
         Command.new(/^pa/,  -> (*options)  { cmd_pa(*options)  }),
         Command.new(/^q/,   -> (*_options) { cmd_q             }),
-        Command.new(/^r/,   -> (*options)  { cmd_rm(*options)   }),
+        Command.new(/^r/,   -> (*options)  { cmd_rm(*options)  }),
         Command.new(/^s/,   -> (*_options) { cmd_s             }),
         Command.new(/^w/,   -> (*_options) { cmd_w             }),
-        Command.new(/^x/,   -> (*_options) { cmd_q             })
+        Command.new(/^x/,   -> (*_options) { cmd_x             })
     ]
   end
 
