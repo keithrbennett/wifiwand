@@ -249,7 +249,7 @@ class MacWifiModel
   end
 
 
-  private class OsCommandError < RuntimeError
+  class OsCommandError < RuntimeError
             attr_reader :exitcode, :command, :text
 
             def initialize(exitcode, command, text)
@@ -260,7 +260,7 @@ class MacWifiModel
           end
 
 
-  private def run_os_command(command)
+  def run_os_command(command)
     output = `#{command} 2>&1` # join stderr with stdout
     if $?.exitstatus != 0
       raise OsCommandError.new($?.exitstatus, command, output)
@@ -270,14 +270,14 @@ class MacWifiModel
     end
     output
   end
-
+  private :run_os_command
 
 
   # Parses output like the text below into a hash:
   # SSID: Pattara211
   # MCS: 5
   # channel: 7
-  private def colon_output_to_hash(output)
+  def colon_output_to_hash(output)
     lines = output.split("\n")
     lines.each_with_object({}) do |line, new_hash|
       key, value = line.split(': ')
@@ -286,6 +286,7 @@ class MacWifiModel
       new_hash[key] = value
     end
   end
+  private :colon_output_to_hash
 end
 
 

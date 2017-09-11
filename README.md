@@ -5,6 +5,8 @@ This script enables the query and management of wifi configuration and environme
 It can be run in single-command or interactive mode. Interactive mode uses the `pry` gem,
 providing an interface familiar to Rubyists and other REPL users.
 
+It is not necessary to download this repo; this script file is all you need to run the application.
+
 ### Usage
 
 Available commands can be seen by using the `h` (or `help`) option. Here is its
