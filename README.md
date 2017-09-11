@@ -73,6 +73,12 @@ and eliminate the need for the complexity of balancing the speed that a cache of
 of stale data.
 
 
+### Troubleshooting
+
+If you try to run the shell, the script will require the `pry` gem. If this results in an error relating
+to finding a `readline` library, this can be fixed by installing the `pry-coolline` gem: `gem install pry-coolline`.
+
+
 ### License
 
 MIT License (see LICENSE.txt)
