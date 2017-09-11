@@ -75,9 +75,16 @@ of stale data.
 
 ### Troubleshooting
 
-If you try to run the shell, the script will require the `pry` gem. If this results in an error relating
-to finding a `readline` library, this can be fixed by installing the `pry-coolline` gem: `gem install pry-coolline`.
+If you try to run the shell, the script will require the `pry` gem, so that will need to be installed.
+`pry` in turn requires access to a `readline` library. If you encounter an error relating to finding a
+`readline` library, this can be fixed by installing the `pry-coolline` gem: `gem install pry-coolline`.
+If you are using the Ruby packaged with Mac OS, or for some other reasonn require root access to install
+gems, you will need to precede those commands with `sudo`:
 
+```
+sudo gem install pry
+sudo gem install pry-coolline
+```
 
 ### License
 
