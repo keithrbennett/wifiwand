@@ -153,6 +153,18 @@ the exit method was called, exiting the program.
 Bottom line is, be careful to quote your strings, and you're probably better off using 
 constants or instance variables if you want to create variables in your shell. 
 
+### Password Lookup Oddity
+
+You may find it odd (I did, anyway) that even if you issue the password command 
+(`mac_wifi pa a-network-name`) using sudo, you will be prompted for both 
+a user id and password with a graphical dialog. This is no doubt
+for better security, but it's unfortunate in that it makes it impossible to automate this task.
+
+In particular, it would be nice for the `cycle` command to be able to reconnect to the original
+network after turning the network on. This is not possible where that network required a password.
+If you don't mind storing the network password in plain text somewhere, then you could easily
+automate it (e.g. `mac-wifi cycle && mac-wifi connect a-network a-password`).
+
 ### License
 
 MIT License (see LICENSE.txt)

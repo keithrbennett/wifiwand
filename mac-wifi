@@ -329,7 +329,13 @@ When in interactive shell mode:
   end
 
 
-  class Command < Struct.new(:regex, :action)
+  class Command < Struct.new(:regex, :action); end
+
+
+  class BadCommandError < RuntimeError
+    def initialize(error_message)
+      super
+    end
   end
 
 
@@ -430,9 +436,7 @@ When in interactive shell mode:
     if method_valid
       process_command_line(method_name, options)
     else
-      raise NoMethodError.new(
-          %Q{"#{method_name}" is not a valid command. If you intend for this to be a string literal, use quotes.},
-          method_name)
+      puts(%Q{"#{method_name}" is not a valid command or option. If you intend for this to be a string literal, use quotes.})
     end
   end
 
@@ -449,7 +453,8 @@ When in interactive shell mode:
       action.(*options)
     else
       print_help
-      raise "Unrecognized command. Command was #{action} and options were #{options.inspect}."
+      raise BadCommandError.new(
+          "Unrecognized command. Command was #{action} and options were #{options.inspect}.")
     end
   end
 
@@ -595,7 +600,13 @@ When in interactive shell mode:
 
   def call
     validate_command_line
-    process_command_line(ARGV[0], ARGV[1..-1])
+    begin
+      process_command_line(ARGV[0], ARGV[1..-1])
+    rescue BadCommandError => error
+      separator_line = "#{'!' * 79}\n"
+      puts separator_line + "Bad command: #{ARGV[0]}\n" + separator_line + "\n"
+      exit(-1)
+    end
   end
 
 end
