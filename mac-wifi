@@ -249,6 +249,31 @@ class MacWifiModel
   end
 
 
+  # Waits for the Internet connection to be in the desired state.
+  # @param off_or_on must be :off or :on; waits for that state
+  # @param wait_interval_in_secs sleeps this interval between retries
+  #
+  # NOTE!: This is experimental and sometimes hangs.
+  def till(off_or_on, wait_interval_in_secs = nil)
+
+    wait_interval_in_secs ||= 0.5
+
+    case off_or_on
+      when :on
+        exit_when = -> { connected_to_internet? }
+      when :off
+        exit_when = -> { ! connected_to_internet? }
+      else
+        raise ArgumentError.new("Option must be :on or :off. Was: #{off_or_on.inspect}")
+    end
+
+    loop do
+      return if exit_when.()
+      sleep(wait_interval_in_secs)
+    end
+  end
+
+
   class OsCommandError < RuntimeError
             attr_reader :exitcode, :command, :text
 
@@ -313,6 +338,9 @@ pa[ssword] network-name - shows password for preferred network-name
 q[uit]                  - exits this program (interactive shell mode only)
 r[m] network-name       - removes network-name from the preferred networks list
 s[hell]                 - opens an interactive pry shell (command line only)
+t[ill]                  - (experimental!) returns when the desired Internet connection state is true. Options:
+                          'on'/:on or 'off'/:off
+                          wait interval, in seconds (optional, defaults to 0.5 seconds)
 w[ifion]                - is the wifi on?
 x[it]                   - exits this program (interactive shell mode only)
 
@@ -557,6 +585,13 @@ When in interactive shell mode:
   end
 
 
+  def cmd_t(*options)
+    off_or_on = options[0].to_sym
+    wait_interval_in_secs = (options[1] ? Float(options[1]) : nil)
+    model.till(off_or_on, wait_interval_in_secs)
+  end
+
+
   def cmd_w
     on = model.wifi_on?
     puts "Wifi on?: #{on}" unless @interactive_mode
@@ -586,6 +621,7 @@ When in interactive shell mode:
         Command.new(/^q/,   -> (*_options) { cmd_q             }),
         Command.new(/^r/,   -> (*options)  { cmd_r(*options)   }),
         Command.new(/^s/,   -> (*_options) { cmd_s             }),
+        Command.new(/^t/,   -> (*options)  { cmd_t(*options)   }),
         Command.new(/^w/,   -> (*_options) { cmd_w             }),
         Command.new(/^x/,   -> (*_options) { cmd_x             })
     ]

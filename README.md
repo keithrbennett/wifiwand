@@ -18,7 +18,7 @@ output at the time of this writing:
 
 Available commands are:
 
-ci                      = connected to Internet (not just wifi on)?
+ci                      - connected to Internet (not just wifi on)?
 co[nnect] network-name  - turns wifi on, connects to network-name
 cy[cle]                 - turns wifi off, then on, preserving network selection
 d[isconnect]            - disconnects from current network, does not turn off wifi
@@ -33,6 +33,9 @@ pa[ssword] network-name - shows password for preferred network-name
 q[uit]                  - exits this program (interactive shell mode only)
 r[m] network-name       - removes network-name from the preferred networks list
 s[hell]                 - opens an interactive pry shell (command line only)
+t[ill]                  - (experimental!) returns when the desired Internet connection state is true. Options:
+                          'on'/:on or 'off'/:off
+                          wait interval, in seconds (optional, defaults to 0.5 seconds)
 w[ifion]                - is the wifi on?
 x[it]                   - exits this program (interactive shell mode only)
 
@@ -187,10 +190,13 @@ constants or instance variables if you want to create variables in your shell.
 #### Single Command Invocations
 
 ```
-mac-wifi i  # prints out wifi info
-mac-wifi cy # cycles the wifi off and on
+mac-wifi i            # prints out wifi info
+mac-wifi lsa          # prints available networks
+mac-wifi lsp          # prints preferred networks
+mac-wifi cy           # cycles the wifi off and on
 mac-wifi co a-network a-password # connects to a network requiring a password
-mac-wifi co a-network  # connects to a network _not_ requiring a password
+mac-wifi co a-network            # connects to a network _not_ requiring a password
+mac-wifi t on && say "Internet connected" # Play audible message when Internet becomes connected
 ```
 
 #### Interactive Shell Commands
@@ -221,19 +227,17 @@ There are 341 preferred networks.
 > lsp.grep(/^TOTTGUEST/).each { |n| puts "Deleting preferred network #{n}."; rm(n) }
 
 # Define a method to wait for the Internet connection to be active.
+# (This functionality is included in the `till` command.)
 # Call it, then output celebration message:
 [17] pry(#<MacWifiView>)> def wait_for_internet; loop do; break if ci; sleep 0.5; end; end
-=> :wait_for_internet
 [18] pry(#<MacWifiView>)> wait_for_internet; puts "Connected!"
 Connected!
-=> nil
 
 # Same, but using a lambda instead of a method so we can use a variable name
 # and not need to worry about method name collision:
 @wait_for_internet = -> { loop do; break if ci; sleep 0.5; end }
 @wait_for_internet.() ; puts "Connected!"
-
-
+Connected!
 ```
 
 ### License
