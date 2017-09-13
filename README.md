@@ -3,7 +3,8 @@
 This script enables the query and management of wifi configuration and environment on a Mac.
 
 It can be run in single-command or interactive mode. Interactive mode uses the `pry` gem,
-providing an interface familiar to Rubyists and other REPL users.
+providing an interface familiar to Rubyists and other 
+[REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) users.
 
 It is not necessary to download this repo; this script file is all you need to run the application.
 
@@ -41,14 +42,15 @@ When in interactive shell mode:
 ```
 
 Internally, it uses several Mac command line utilities. This is not ideal,
-I would have preferred OS system calls, but it enabled me to develop
+I would have preferred OS system calls, but the current approach enabled me to develop
 this script quickly and simply.
 
 ### Pretty Output
 
-For nicely formatted output of the `info` command, the `awesome_print` gem is used if it is installed;
-otherwise, the somewhat less awesome pretty print (`pp`) is used.  
-So installation of the `awesome_print` gem is recommended. 
+For nicely formatted output of the `info` command in non-interactive mode,
+the `awesome_print` gem is used if it is installed;
+otherwise, the somewhat less awesome pretty print (`pp`) is used.  Therefore,
+installation of the `awesome_print` gem is recommended. 
 This is accomplished by the following command:
 
 `gem install awesome_print`
@@ -57,7 +59,8 @@ This is accomplished by the following command:
 ### Seeing the Underlying OS Commands and Output
 
 If you would like to see the Mac OS commands and their output, you can do so by setting the
-environment variable MAC_WIFI_OPTS to include `-v`. This can be done in the following ways:
+environment variable MAC_WIFI_OPTS to include `-v` (for _verbose_).
+This can be done in the following ways:
 
 ```
 export MAC_WIFI_OPTS=-v
@@ -78,7 +81,7 @@ of stale data.
 If you try to run the shell, the script will require the `pry` gem, so that will need to be installed.
 `pry` in turn requires access to a `readline` library. If you encounter an error relating to finding a
 `readline` library, this can be fixed by installing the `pry-coolline` gem: `gem install pry-coolline`.
-If you are using the Ruby packaged with Mac OS, or for some other reasonn require root access to install
+If you are using the Ruby packaged with Mac OS, or for some other reason require root access to install
 gems, you will need to precede those commands with `sudo`:
 
 ```
@@ -86,6 +89,31 @@ sudo gem install pry
 sudo gem install pry-coolline
 ```
 
+
+### Password Lookup Oddity
+
+You may find it odd (I did, anyway) that even if you issue the password command 
+(`mac_wifi pa a-network-name`) using sudo, you will still be prompted 
+with a graphical dialog for both a user id and password. This is no doubt
+for better security, but it's unfortunate in that it makes it impossible to fully automate this task.
+
+In particular, it would be nice for the `cycle` command to be able to reconnect to the original
+network after turning the network on. This is not possible where that network required a password.
+If you don't mind storing the network password in plain text somewhere, then you could easily
+automate it (e.g. `mac-wifi cycle && mac-wifi connect a-network a-password`).
+
+
+### Using the Shell
+
+The shell, invoked with the `s` command on the command line, provides an interactive
+session. It can be useful when:
+
+* you want to issue multiple commands
+* you want to combine commands
+* you want the data in a format not provided by this application
+* you want to incorporate these commands into other Ruby code interactively
+* you want to combine the results of commands with other OS commands 
+  (you can shell out to run other command line programs by preceding the command with a period (`.`).
 
 ### Using Variables in the Shell
 
@@ -117,11 +145,10 @@ If you don't want to deal with this, you could use global variables, instance va
 or constants, which will _not_ hide the methods:
 
 ```
-[1] pry(#<MacWifiView>)> n
-[2] pry(#<MacWifiView>)> $n = 123
-[3] pry(#<MacWifiView>)> @n = 456
-[4] pry(#<MacWifiView>)> N = 789
-[5] pry(#<MacWifiView>)> puts n; puts $n; puts @n; puts N
+[7] pry(#<MacWifiView>)> N = 123
+[8] pry(#<MacWifiView>)> @n = 456
+[9] pry(#<MacWifiView>)> $n = 789
+[10] pry(#<MacWifiView>)> puts n, N, @n, $n
 .@ AIS SUPER WiFi
 123
 456
@@ -153,17 +180,61 @@ the exit method was called, exiting the program.
 Bottom line is, be careful to quote your strings, and you're probably better off using 
 constants or instance variables if you want to create variables in your shell. 
 
-### Password Lookup Oddity
 
-You may find it odd (I did, anyway) that even if you issue the password command 
-(`mac_wifi pa a-network-name`) using sudo, you will be prompted for both 
-a user id and password with a graphical dialog. This is no doubt
-for better security, but it's unfortunate in that it makes it impossible to automate this task.
 
-In particular, it would be nice for the `cycle` command to be able to reconnect to the original
-network after turning the network on. This is not possible where that network required a password.
-If you don't mind storing the network password in plain text somewhere, then you could easily
-automate it (e.g. `mac-wifi cycle && mac-wifi connect a-network a-password`).
+### Examples
+
+#### Single Command Invocations
+
+```
+mac-wifi i  # prints out wifi info
+mac-wifi cy # cycles the wifi off and on
+mac-wifi co a-network a-password # connects to a network requiring a password
+mac-wifi co a-network  # connects to a network _not_ requiring a password
+```
+
+#### Interactive Shell Commands
+
+(For brevity, semicolons are used here to put multiple commands on one line, 
+but these commands could also each be specified on a line of its own.)
+
+```
+# Print out wifi info:
+i
+
+# Cycle (off/on) the network then connect to the specified network not requiring a password
+> cycle; connect 'my-network'
+
+# Cycle (off/on) the network, then connect to the same network not requiring a password
+> @name = network_name; cycle; connect @name
+
+# Cycle (off/on) the network then connect to the specified network using the specified password
+> cycle; connect 'my-network', 'my-password'
+
+> @i = i; puts "You are connected on port #{@i[:port]} to #{@i[:network]} on IP address #{@i[:ip_address]}."
+You are connected on port en0 to .@ AIS SUPER WiFi on IP address 172.27.145.225.
+
+> puts "There are #{lsp.size} preferred networks."
+There are 341 preferred networks.
+
+# Delete all preferred networks whose names begin with "TOTTGUEST":
+> lsp.grep(/^TOTTGUEST/).each { |n| puts "Deleting preferred network #{n}."; rm(n) }
+
+# Define a method to wait for the Internet connection to be active.
+# Call it, then output celebration message:
+[17] pry(#<MacWifiView>)> def wait_for_internet; loop do; break if ci; sleep 0.5; end; end
+=> :wait_for_internet
+[18] pry(#<MacWifiView>)> wait_for_internet; puts "Connected!"
+Connected!
+=> nil
+
+# Same, but using a lambda instead of a method so we can use a variable name
+# and not need to worry about method name collision:
+@wait_for_internet = -> { loop do; break if ci; sleep 0.5; end }
+@wait_for_internet.() ; puts "Connected!"
+
+
+```
 
 ### License
 
