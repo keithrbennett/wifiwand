@@ -93,19 +93,6 @@ sudo gem install pry-coolline
 ```
 
 
-### Password Lookup Oddity
-
-You may find it odd (I did, anyway) that even if you issue the password command 
-(`mac_wifi pa a-network-name`) using sudo, you will still be prompted 
-with a graphical dialog for both a user id and password. This is no doubt
-for better security, but it's unfortunate in that it makes it impossible to fully automate this task.
-
-In particular, it would be nice for the `cycle` command to be able to reconnect to the original
-network after turning the network on. This is not possible where that network required a password.
-If you don't mind storing the network password in plain text somewhere, then you could easily
-automate it (e.g. `mac-wifi cycle && mac-wifi connect a-network a-password`).
-
-
 ### Using the Shell
 
 The shell, invoked with the `s` command on the command line, provides an interactive
@@ -239,6 +226,19 @@ Connected!
 @wait_for_internet.() ; puts "Connected!"
 Connected!
 ```
+
+### Password Lookup Oddity
+
+You may find it odd (I did, anyway) that even if you issue the password command 
+(`mac_wifi pa a-network-name`) using sudo, you will still be prompted 
+with a graphical dialog for both a user id and password. This is no doubt
+for better security, but it's unfortunate in that it makes it impossible to fully automate this task.
+
+In particular, it would be nice for the `cycle` command to be able to reconnect to the original
+network after turning the network on. This is not possible where that network required a password.
+If you don't mind storing the network password in plain text somewhere, then you could easily
+automate it (e.g. `mac-wifi cycle && mac-wifi connect a-network a-password`).
+
 
 ### License
 
