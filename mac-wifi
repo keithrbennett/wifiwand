@@ -248,6 +248,7 @@ class MacWifiModel
         port:        wifi_hardware_port,
         network:     current_network,
         ip_address:  ip_address,
+        time:        Time.now,
     }
     more_output = run_os_command(AIRPORT_CMD + " -I")
     more_info   = colon_output_to_hash(more_output)
