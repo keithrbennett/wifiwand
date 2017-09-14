@@ -22,8 +22,9 @@
 
 require 'shellwords'
 
+module MacWifi
 
-class MacWifiModel
+class Model
 
   AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
@@ -266,7 +267,7 @@ class MacWifiModel
         port:        wifi_hardware_port,
         network:     current_network,
         ip_address:  ip_address,
-        time:        Time.now,
+        timestamp:   Time.now,
     }
     more_output = run_os_command(AIRPORT_CMD + " -I")
     more_info   = colon_output_to_hash(more_output)
@@ -342,7 +343,7 @@ class MacWifiModel
 end
 
 
-class MacWifiCommandLineInterface
+class CommandLineInterface
 
   attr_reader :model
 
@@ -379,7 +380,7 @@ When in interactive shell mode:
 
 
   def initialize
-    @model = MacWifiModel.new(verbose_mode)
+    @model = Model.new(verbose_mode)
     @interactive_mode = false # will be true if/when user selects shell option on command line
   end
 
@@ -674,9 +675,12 @@ When in interactive shell mode:
 
 end
 
+end
+
+
 # If this file is being called as a script, run it.
 # Else, it may be loaded to use the model in a different way.
 if __FILE__ == $0
-  MacWifiCommandLineInterface.new.call
+  MacWifi::CommandLineInterface.new.call
 end
 

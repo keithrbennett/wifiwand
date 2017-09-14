@@ -7,10 +7,12 @@
 
 load File.join(File.dirname(__FILE__), 'mac-wifi')
 
-describe MacWifiModel do
+module MacWifi
+
+describe Model do
 
 
-  subject { MacWifiModel.new }
+  subject { Model.new }
 
   context 'turning wifi on and off' do
     it 'can turn wifi on' do
@@ -106,4 +108,6 @@ describe MacWifiModel do
   context 'wifi starts off' do # without a context block the way that rspec expands the examples causes the parameters to overwrite each other
     include_examples 'testing to see commands complete without error', false
   end
+end
+
 end
