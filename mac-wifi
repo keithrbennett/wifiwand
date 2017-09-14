@@ -57,70 +57,55 @@ class Model
   # off during its lifetime, we give it only 5 seconds per try,
   # and limit the number of tries to 3.
   def connected_to_internet?
-    require 'open-uri'
 
-    result = nil
-
-    get_status_script_pid = -> do
-      # Process.spawn("(curl --silent --head http://www.google.com/ > /dev/null && echo $? > connected.out) &")
-      Process.spawn("true")
+    start_status_script = -> do
+      script = "(curl --silent --head http://www.google.com/ > /dev/null ; echo $? > connected.out) &"
+      pid = Process.spawn(script)
+      Process.detach(pid)
+      pid
     end
 
-
-    get_process_is_running = ->(pid) do
-      script_get_process_is_running = %Q{ps -p #{pid} > /dev/null; echo $?}
-      output = `#{script_get_process_is_running}`
-      puts output
-      output.chomp == "0"
+    process_is_running = ->(pid) do
+      script = %Q{ps -p #{pid} > /dev/null; echo $?}
+      output = `#{script}`.chomp
+      output == "0"
     end
 
-    subpid = get_status_script_pid.()
-    Process.detach(subpid)
-    still_running = get_process_is_running.(subpid)
-
-    if still_running
-      `kill -9 #{subpid}`
-      result = :hung
-    else
-      result = File.read('connected.out')
+    get_connected_state_from_curl = -> do
+      File.read('connected.out').chomp == '0'
     end
 
-    # test_connection = -> do
-    #   connected = false
-    #   begin
-    #     fd = open('http://www.google.com')
-    #     fd.close
-    #     connected = true
-    #   rescue SocketError
-    #     # swallow exception; connected will remain false
-    #   end
-    #   connected
-    # end
-    #
-    # # puts "Test: #{test_connection.()}."
-    #
-    # # Try up to 3 times starting a thread and giving it 5 seconds to return a value.
-    # 2.times do
-    #   end_time = Time.now + 2
-    #   test_thread = Thread.start { test_connection.() }
-    #   test_thread.join
-    #   while Time.now < end_time
-    #     # The thread status should be false when completed, but pry does something
-    #     # weird with threads, and it's sleeping instead.
-    #     if [false, 'sleeping'].include?(test_thread.status)
-    #       return test_thread.value
-    #     else
-    #       puts "Thread status was #{test_thread.status}"
-    #       sleep 0.5
-    #     end
-    #   end
-    #   test_thread.kill
-    # end
-    # raise "Could not determine Internet status."
+    # Do one run, iterating during the timeout period to see if the command has completed
+    do_one_run = -> do
+      end_time = Time.now + 3
+      pid = start_status_script.()
+      while Time.now < end_time
+        if process_is_running.(pid)
+          sleep 0.5
+        else
+          return get_connected_state_from_curl.()
+          # close temp file?
+        end
+      end
+      Process.kill('KILL', pid)
+      :hung
+    end
 
-    puts "result == #{result}"
-    result
+    3.times do
+      connected = do_one_run.()
+      return connected if connected != :hung
+    end
+
+    raise "Could not determine Internet status."
   end
+
+  # This implementation often hangs when wifi is turned off while curl is active
+  # def connected_to_internet?
+  #   script = "curl --silent --head http://www.google.com/ > /dev/null ; echo $?"
+  #   result = `#{script}`.chomp
+  #   puts result
+  #   result == '0'
+  # end
 
 
   # This is determined by whether or not a line like the following appears in the output of `netstat -nr`:
