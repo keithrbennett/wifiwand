@@ -324,7 +324,7 @@ class MacWifiModel
 end
 
 
-class MacWifiView
+class MacWifiCommandLineInterface
 
   attr_reader :model
 
@@ -659,6 +659,6 @@ end
 # If this file is being called as a script, run it.
 # Else, it may be loaded to use the model in a different way.
 if __FILE__ == $0
-  MacWifiView.new.call
+  MacWifiCommandLineInterface.new.call
 end
 
