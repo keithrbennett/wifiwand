@@ -33,6 +33,25 @@ class MacWifiModel
   end
 
 
+  def connected_to_internet_curl_unused?
+
+    connected = false
+
+    begin
+      run_os_command('curl --silent --head http://www.google.com/')
+      connected = true
+    rescue OsCommandError => e
+      if e.exitstatus == 6
+        connected = false
+      else
+        raise
+      end
+    end
+    connected
+  end
+
+
+
   def connected_to_internet?
     require 'open-uri'
     connected = false
@@ -184,7 +203,7 @@ class MacWifiModel
       begin
         return run_os_command(command).chomp
       rescue OsCommandError => error
-        if error.exitcode == 44 # network has no password stored
+        if error.exitstatus == 44 # network has no password stored
           nil
         else
           raise
@@ -201,7 +220,7 @@ class MacWifiModel
     begin
       run_os_command("ipconfig getifaddr #{wifi_hardware_port}").chomp
     rescue OsCommandError => error
-      if error.exitcode == 1
+      if error.exitstatus == 1
         nil
       else
         raise
@@ -284,10 +303,10 @@ class MacWifiModel
 
 
   class OsCommandError < RuntimeError
-            attr_reader :exitcode, :command, :text
+            attr_reader :exitstatus, :command, :text
 
-            def initialize(exitcode, command, text)
-              @exitcode = exitcode
+            def initialize(exitstatus, command, text)
+              @exitstatus = exitstatus
               @command = command
               @text = text
             end
