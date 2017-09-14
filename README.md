@@ -227,6 +227,16 @@ Connected!
 Connected!
 ```
 
+### Cautions
+
+If the wifi networking changes from on to off while `till(:off)` is waiting,
+the program will hang indefinitely. I am currently looking into this problem.
+It also happens outside of this program; you can reproduce it by running `curl`,
+preferably on a longer running request, then turning off your wifi. This is pretty
+serious, and I'm considering removing the `:off` option from the `till` command.
+
+
+
 ### Password Lookup Oddity
 
 You may find it odd (I did, anyway) that even if you issue the password command 

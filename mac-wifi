@@ -51,7 +51,6 @@ class MacWifiModel
   end
 
 
-
   def connected_to_internet?
     require 'open-uri'
     connected = false
