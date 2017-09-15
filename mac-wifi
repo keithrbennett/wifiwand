@@ -21,6 +21,7 @@
 
 
 require 'shellwords'
+require 'tempfile'
 
 module MacWifi
 
@@ -58,45 +59,53 @@ class Model
   # and limit the number of tries to 3.
   def connected_to_internet?
 
-    start_status_script = -> do
-      script = "(curl --silent --head http://www.google.com/ > /dev/null ; echo $? > connected.out) &"
-      pid = Process.spawn(script)
-      Process.detach(pid)
-      pid
-    end
+    tempfile = Tempfile.open('mac-wifi-')
 
-    process_is_running = ->(pid) do
-      script = %Q{ps -p #{pid} > /dev/null; echo $?}
-      output = `#{script}`.chomp
-      output == "0"
-    end
-
-    get_connected_state_from_curl = -> do
-      File.read('connected.out').chomp == '0'
-    end
-
-    # Do one run, iterating during the timeout period to see if the command has completed
-    do_one_run = -> do
-      end_time = Time.now + 3
-      pid = start_status_script.()
-      while Time.now < end_time
-        if process_is_running.(pid)
-          sleep 0.5
-        else
-          return get_connected_state_from_curl.()
-          # close temp file?
-        end
+    begin
+      start_status_script = -> do
+        script = "curl --silent --head http://www.google.com/ > /dev/null ; echo $? > #{tempfile.path} &"
+        pid = Process.spawn(script)
+        Process.detach(pid)
+        pid
       end
-      Process.kill('KILL', pid)
-      :hung
+
+      process_is_running = ->(pid) do
+        script = %Q{ps -p #{pid} > /dev/null; echo $?}
+        output = `#{script}`.chomp
+        output == "0"
+      end
+
+      get_connected_state_from_curl = -> do
+        tempfile.close
+        File.read(tempfile.path).chomp == '0'
+      end
+
+      # Do one run, iterating during the timeout period to see if the command has completed
+      do_one_run = -> do
+        end_time = Time.now + 3
+        pid = start_status_script.()
+        while Time.now < end_time
+          if process_is_running.(pid)
+            sleep 0.5
+          else
+            return get_connected_state_from_curl.()
+          end
+        end
+        Process.kill('KILL', pid)
+        :hung
+      end
+
+      3.times do
+        connected = do_one_run.()
+        return connected if connected != :hung
+      end
+
+      raise "Could not determine Internet status."
+
+    ensure
+      tempfile.unlink
     end
 
-    3.times do
-      connected = do_one_run.()
-      return connected if connected != :hung
-    end
-
-    raise "Could not determine Internet status."
   end
 
   # This implementation often hangs when wifi is turned off while curl is active
