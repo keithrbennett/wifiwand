@@ -330,21 +330,25 @@ class Model
 
 
   # Waits for the Internet connection to be in the desired state.
-  # @param off_or_on must be :off or :on; waits for that state
+  # @param status must be in [:conn, :disc, :off, :on]; waits for that state
   # @param wait_interval_in_secs sleeps this interval between retries
   #
   # NOTE!: This is experimental and sometimes hangs.
-  def till(off_or_on, wait_interval_in_secs = nil)
+  def till(status, wait_interval_in_secs = nil)
 
     wait_interval_in_secs ||= 0.5
 
-    case off_or_on
+    exit_when = case status
+      when :conn
+        -> { connected_to_internet? }
+      when :disc
+        -> { ! connected_to_internet? }
       when :on
-        exit_when = -> { connected_to_internet? }
+        -> { wifi_on? }
       when :off
-        exit_when = -> { ! connected_to_internet? }
+        -> { ! wifi_on? }
       else
-        raise ArgumentError.new("Option must be :on or :off. Was: #{off_or_on.inspect}")
+        raise ArgumentError.new("Option must be one of [:conn, :disc, :off, :on]. Was: #{status.inspect}")
     end
 
     loop do
@@ -666,9 +670,9 @@ When in interactive shell mode:
 
 
   def cmd_t(*options)
-    off_or_on = options[0].to_sym
+    target_status = options[0].to_sym
     wait_interval_in_secs = (options[1] ? Float(options[1]) : nil)
-    model.till(off_or_on, wait_interval_in_secs)
+    model.till(target_status, wait_interval_in_secs)
   end
 
 
