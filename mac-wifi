@@ -149,8 +149,15 @@ class Model
 
 
   # Returns data pertaining to available wireless networks.
+  # For some reason, this often returns no results, so I've put the operation in a loop.
   def available_network_info
-    run_os_command("#{AIRPORT_CMD} -s").split("\n")
+    command = "#{AIRPORT_CMD} -s"
+    50.times do
+      output = run_os_command(command)
+      if output.size > 0
+        return output.split("\n")
+      end
+    end
   end
 
 
