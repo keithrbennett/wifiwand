@@ -743,9 +743,25 @@ end
 end
 
 
+# @return true if this file is being run as a script, else false
+#
+# This file could be called as a script in either of these two ways:
+#
+# 1) by loading this file directly, or
+# 2) by running as a gem executable's binstub, in (relatively) '../../../bin'
+
+def running_as_script
+  return true if __FILE__ == $0
+  return false if File.basename(__FILE__) != File.basename($0)
+
+  binstub_spec = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', '..', 'bin', File.basename(__FILE__)))
+  $0 == binstub_spec
+end
+
+
 # If this file is being called as a script, run it.
 # Else, it may be loaded to use the model in a different way.
-if __FILE__ == $0
+if running_as_script
   MacWifi::CommandLineInterface.new.call
 end
 

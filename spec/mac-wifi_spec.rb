@@ -5,7 +5,7 @@
 # Many of them are run once with the wifi on, and once when it's off.
 
 
-load File.join(File.dirname(__FILE__), 'mac-wifi')
+load File.join(File.dirname(__FILE__), '..', 'bin', 'mac-wifi')
 
 module MacWifi
 
@@ -34,7 +34,13 @@ describe Model do
       subject.cycle_network
       expect(subject.wifi_on?).to eq(true)
     end
+
+    it 'can list available networks' do
+      subject.wifi_on
+      subject.available_network_info
+    end
   end
+
 
   shared_examples_for 'testing to see commands complete without error' do |wifi_starts_on|
 
@@ -53,11 +59,6 @@ describe Model do
     it 'can list info' do
       wifi_starts_on ? subject.wifi_on : subject.wifi_off
       subject.wifi_info
-    end
-
-    it 'can list available networks' do
-      wifi_starts_on ? subject.wifi_on : subject.wifi_off
-      subject.available_network_info
     end
 
     it 'can list preferred networks' do
