@@ -152,12 +152,14 @@ class Model
   # For some reason, this often returns no results, so I've put the operation in a loop.
   def available_network_info
     command = "#{AIRPORT_CMD} -s"
-    50.times do
+    max_attempts = 50
+    max_attempts.times do
       output = run_os_command(command)
       if output.size > 0
         return output.split("\n")
       end
     end
+    raise "Unable to get available network information after #{max_attempts} attempts."
   end
 
 
