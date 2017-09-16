@@ -2,7 +2,7 @@
 VERSION = '0.0.1'
 
 Gem::Specification.new do |spec|
-  spec.name          = "mac-wifi-utility"
+  spec.name          = "mac-wifi"
   spec.version       = VERSION
   spec.authors       = ["Keith Bennett"]
   spec.email         = ["keithrbennett@gmail.com"]

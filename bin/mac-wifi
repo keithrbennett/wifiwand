@@ -151,6 +151,7 @@ class Model
   # Returns data pertaining to available wireless networks.
   # For some reason, this often returns no results, so I've put the operation in a loop.
   def available_network_info
+    return nil unless wifi_on? # no need to try
     command = "#{AIRPORT_CMD} -s"
     max_attempts = 50
     max_attempts.times do
@@ -750,7 +751,7 @@ end
 # 1) by loading this file directly, or
 # 2) by running as a gem executable's binstub, in (relatively) '../../../bin'
 
-def running_as_script
+def running_as_script?
   return true if __FILE__ == $0
   return false if File.basename(__FILE__) != File.basename($0)
 
@@ -761,7 +762,7 @@ end
 
 # If this file is being called as a script, run it.
 # Else, it may be loaded to use the model in a different way.
-if running_as_script
+if running_as_script?
   MacWifi::CommandLineInterface.new.call
 end
 
