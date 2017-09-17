@@ -418,7 +418,7 @@ class CommandLineInterface
 
   # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.
   HELP_TEXT = "
-mac-wifi version #{VERSION}: Available commands are:
+mac-wifi version #{VERSION} -- Available commands are:
 
 ci                      - connected to Internet (not just wifi on)?
 co[nnect] network-name  - turns wifi on, connects to network-name
