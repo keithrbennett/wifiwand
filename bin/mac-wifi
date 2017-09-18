@@ -454,7 +454,7 @@ When in interactive shell mode:
   end
 
 
-  class Command < Struct.new(:regex, :action); end
+  class Command < Struct.new(:min_string, :max_string, :action); end
 
 
   class BadCommandError < RuntimeError
@@ -557,7 +557,8 @@ When in interactive shell mode:
 
   # For use by the shell; when typing a command and options, it is passed to process_command_line
   def method_missing(method_name, *options)
-    method_valid = !! find_command_action(method_name.to_s)
+    method_name = method_name.to_s
+    method_valid = !! find_command_action(method_name)
     if method_valid
       process_command_line(method_name, options)
     else
@@ -703,30 +704,30 @@ When in interactive shell mode:
 
   def commands
     @commands_ ||= [
-        Command.new(/^ci/,  -> (*_options) { cmd_ci            }),
-        Command.new(/^co/,  -> (*options)  { cmd_co(*options)  }),
-        Command.new(/^cy/,  -> (*_options) { cmd_cy            }),
-        Command.new(/^d/,   -> (*_options) { cmd_d             }),
-        Command.new(/^h/,   -> (*_options) { cmd_h             }),
-        Command.new(/^i/,   -> (*_options) { cmd_i             }),
-        Command.new(/^lsa/, -> (*_options) { cmd_lsa           }),
-        Command.new(/^lsp/, -> (*_options) { cmd_lsp           }),
-        Command.new(/^n/,   -> (*_options) { cmd_n             }),
-        Command.new(/^of/,  -> (*_options) { cmd_of            }),
-        Command.new(/^on/,  -> (*_options) { cmd_on            }),
-        Command.new(/^pa/,  -> (*options)  { cmd_pa(*options)  }),
-        Command.new(/^q/,   -> (*_options) { cmd_q             }),
-        Command.new(/^r/,   -> (*options)  { cmd_r(*options)   }),
-        Command.new(/^s/,   -> (*_options) { cmd_s             }),
-        Command.new(/^t/,   -> (*options)  { cmd_t(*options)   }),
-        Command.new(/^w/,   -> (*_options) { cmd_w             }),
-        Command.new(/^x/,   -> (*_options) { cmd_x             })
+        Command.new('ci',  'ci',           -> (*_options) { cmd_ci            }),
+        Command.new('co',  'connect',      -> (*options)  { cmd_co(*options)  }),
+        Command.new('cy',  'cycle',        -> (*_options) { cmd_cy            }),
+        Command.new('d',   'disconnect',   -> (*_options) { cmd_d             }),
+        Command.new('h',   'help',         -> (*_options) { cmd_h             }),
+        Command.new('i',   'info',         -> (*_options) { cmd_i             }),
+        Command.new('lsa', 'lsavailable',  -> (*_options) { cmd_lsa           }),
+        Command.new('lsp', 'lspreferred',  -> (*_options) { cmd_lsp           }),
+        Command.new('n',   'network_name', -> (*_options) { cmd_n             }),
+        Command.new('of',  'off',          -> (*_options) { cmd_of            }),
+        Command.new('on',  'on',           -> (*_options) { cmd_on            }),
+        Command.new('pa',  'password',     -> (*options)  { cmd_pa(*options)  }),
+        Command.new('q',   'quit',         -> (*_options) { cmd_q             }),
+        Command.new('r',   'rm',           -> (*options)  { cmd_r(*options)   }),
+        Command.new('s',   'shell',        -> (*_options) { cmd_s             }),
+        Command.new('t',   'till',         -> (*options)  { cmd_t(*options)   }),
+        Command.new('w',   'wifion',       -> (*_options) { cmd_w             }),
+        Command.new('x',   'xit',          -> (*_options) { cmd_x             })
     ]
   end
 
 
   def find_command_action(command_string)
-    result = commands.detect { |cmd| cmd.regex.match(command_string) }
+    result = commands.detect { |cmd| cmd.max_string.start_with?(command_string) }
     result ? result.action : nil
   end
 
