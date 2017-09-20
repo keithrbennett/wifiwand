@@ -328,7 +328,6 @@ class Model
   # @param status must be in [:conn, :disc, :off, :on]; waits for that state
   # @param wait_interval_in_secs sleeps this interval between retries
   #
-  # NOTE!: This is experimental and sometimes hangs.
   def till(status, wait_interval_in_secs = nil)
 
     wait_interval_in_secs ||= 0.5
@@ -417,7 +416,7 @@ pa[ssword] network-name - shows password for preferred network-name
 q[uit]                  - exits this program (interactive shell mode only)
 r[m] network-name       - removes network-name from the preferred networks list
 s[hell]                 - opens an interactive pry shell (command line only)
-t[ill]                  - (experimental!) returns when the desired Internet connection state is true. Options:
+t[ill]                  - returns when the desired Internet connection state is true. Options:
                           'on'/:on or 'off'/:off
                           wait interval, in seconds (optional, defaults to 0.5 seconds)
 w[ifion]                - is the wifi on?
