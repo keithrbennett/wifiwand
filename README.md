@@ -8,6 +8,7 @@ providing an interface familiar to Rubyists and other
 
 It is not necessary to download this repo; this script file is all you need to run the application.
 
+
 ### Usage
 
 Available commands can be seen by using the `h` (or `help`) option. Here is its
@@ -48,6 +49,7 @@ Internally, it uses several Mac command line utilities. This is not ideal,
 I would have preferred OS system calls, but the current approach enabled me to develop
 this script quickly and simply.
 
+
 ### Pretty Output
 
 For nicely formatted output of the `info` command in non-interactive mode,
@@ -83,7 +85,7 @@ of stale data.
 
 If you try to run the shell, the script will require the `pry` gem, so that will need to be installed.
 `pry` in turn requires access to a `readline` library. If you encounter an error relating to finding a
-`readline` library, this can be fixed by installing the `pry-coolline` gem: `gem install pry-coolline`.
+`readline` library, this can probably be fixed by installing the `pry-coolline` gem: `gem install pry-coolline`.
 If you are using the Ruby packaged with Mac OS, or for some other reason require root access to install
 gems, you will need to precede those commands with `sudo`:
 
@@ -104,6 +106,7 @@ session. It can be useful when:
 * you want to incorporate these commands into other Ruby code interactively
 * you want to combine the results of commands with other OS commands 
   (you can shell out to run other command line programs by preceding the command with a period (`.`).
+
 
 ### Using Variables in the Shell
 
@@ -149,7 +152,6 @@ or constants, which will _not_ hide the methods:
 2) If you accidentally refer to a nonexistent variable or method name,
 the result may be mysterious.  For example, if I were write the wifi information
 to a file, this would work:
-
 
 ```
 [1] pry(#<MacWifiView>)> File.write('x.txt', info)
@@ -230,6 +232,35 @@ Connected!
 @wait_for_internet.() ; puts "Connected!"
 Connected!
 ```
+
+
+### Distribution, or Why All The Code is in One Humongous File
+
+This code would be neater and easier to read if each class were in a file of its own.
+The reason everything is in one file is to simplify distribution for some users.
+Although installation as a gem is simple, being able to download a single file may work better when:
+
+* the user wants to install the script once, rather than once per Ruby version and/or gemset.
+* the user needs or wants to specify the exact location of the script (e.g. `~/bin`),
+and/or does not want it buried in the gem directory tree (e.g. `/Users/kbennett/.rvm/gems/ruby-2.4.0/bin/mac-wifi`).
+* the user is not familiar with Ruby and does not want to use the `gem` command
+* the user is concerned about security and would prefer to install a single file to a known location
+rather than run the gem installation
+* installing gems is controlled by the user's organization, and getting authorization is not practical
+* installing gems requires root access, and the user does not have root access
+
+That said, installation as a gem is highly recommended, since:
+
+* this will greatly simplify acquiring future fixes and enhancements
+* if the user wants to use the shell mode, they will need to `gem install pry` anyway
+
+Currently, the only gems used by the program are:
+
+* `pry`, to provide the interactive shell
+* `awesome_print` (optional), to more nicely format output in non-interactive mode
+
+So the user can avoid installing gems altogether as long as they don't need to use the interactive shell,
+and as long as they are comfortable with the less pretty output.
 
 ### Password Lookup Oddity
 
