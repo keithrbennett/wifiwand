@@ -158,6 +158,43 @@ class BaseModel
     networks_to_remove
   end
 
+
+  def preferred_network_password(preferred_network_name)
+    if preferred_networks.include?(preferred_network_name)
+      simple_preferred_network_password(preferred_network_name)
+    else
+      raise "Network #{preferred_network_name} not in preferred networks list."
+    end
+  end
+
+
+  # Waits for the Internet connection to be in the desired state.
+  # @param status must be in [:conn, :disc, :off, :on]; waits for that state
+  # @param wait_interval_in_secs sleeps this interval between retries
+  #
+  def till(status, wait_interval_in_secs = nil)
+
+    wait_interval_in_secs ||= 0.5
+
+    exit_when = case status
+      when :conn
+        -> { connected_to_internet? }
+      when :disc
+        -> { ! connected_to_internet? }
+      when :on
+        -> { wifi_on? }
+      when :off
+        -> { ! wifi_on? }
+    else
+        raise ArgumentError.new("Option must be one of [:conn, :disc, :off, :on]. Was: #{status.inspect}")
+    end
+
+    loop do
+      return if exit_when.()
+      sleep(wait_interval_in_secs)
+    end
+  end
+
 end
 
 
@@ -276,20 +313,16 @@ class MacOsModel < BaseModel
   #     If not, return nil
   #   else
   #     raise an error
-  def preferred_network_password(preferred_network_name)
-    if preferred_networks.include?(preferred_network_name)
-      command = %Q{security find-generic-password -D "AirPort network password" -a "#{preferred_network_name}" -w 2>&1}
-      begin
-        return run_os_command(command).chomp
-      rescue OsCommandError => error
-        if error.exitstatus == 44 # network has no password stored
-          nil
-        else
-          raise
-        end
+  def simple_preferred_network_password(preferred_network_name)
+    command = %Q{security find-generic-password -D "AirPort network password" -a "#{preferred_network_name}" -w 2>&1}
+    begin
+      return run_os_command(command).chomp
+    rescue OsCommandError => error
+      if error.exitstatus == 44 # network has no password stored
+        nil
+      else
+        raise
       end
-    else
-      raise "Network #{preferred_network_name} not in preferred networks list."
     end
   end
 
@@ -349,43 +382,15 @@ class MacOsModel < BaseModel
   end
 
 
-  # Waits for the Internet connection to be in the desired state.
-  # @param status must be in [:conn, :disc, :off, :on]; waits for that state
-  # @param wait_interval_in_secs sleeps this interval between retries
-  #
-  def till(status, wait_interval_in_secs = nil)
+  class OsCommandError < RuntimeError
+    attr_reader :exitstatus, :command, :text
 
-    wait_interval_in_secs ||= 0.5
-
-    exit_when = case status
-      when :conn
-        -> { connected_to_internet? }
-      when :disc
-        -> { ! connected_to_internet? }
-      when :on
-        -> { wifi_on? }
-      when :off
-        -> { ! wifi_on? }
-      else
-        raise ArgumentError.new("Option must be one of [:conn, :disc, :off, :on]. Was: #{status.inspect}")
-    end
-
-    loop do
-      return if exit_when.()
-      sleep(wait_interval_in_secs)
+    def initialize(exitstatus, command, text)
+      @exitstatus = exitstatus
+      @command = command
+      @text = text
     end
   end
-
-
-  class OsCommandError < RuntimeError
-            attr_reader :exitstatus, :command, :text
-
-            def initialize(exitstatus, command, text)
-              @exitstatus = exitstatus
-              @command = command
-              @text = text
-            end
-          end
 
 
   def run_os_command(command)
@@ -748,10 +753,9 @@ When in interactive shell mode:
       exit(-1)
     end
   end
-
+end
 end
 
-end
 
 
 # @return true if this file is being run as a script, else false
