@@ -40,6 +40,17 @@ class BaseModel
   # Because of a Mac issue which causes a request to hang if the network is turned
   # off during its lifetime, we give it only 5 seconds per try,
   # and limit the number of tries to 3.
+  #
+  # This implementation will probably strike you as overly complex. The following
+  # code looks like it is all that should be necessary, but unfortunately
+  # this implementation often hangs when wifi is turned off while curl is active
+  #
+  # def connected_to_internet?
+  #   script = "curl --silent --head http://www.google.com/ > /dev/null ; echo $?"
+  #   result = `#{script}`.chomp
+  #   puts result
+  #   result == '0'
+  # end
   def connected_to_internet?
 
     tempfile = Tempfile.open('mac-wifi-')
@@ -92,15 +103,6 @@ class BaseModel
   end
 
 
-  # This implementation often hangs when wifi is turned off while curl is active
-  # def connected_to_internet?
-  #   script = "curl --silent --head http://www.google.com/ > /dev/null ; echo $?"
-  #   result = `#{script}`.chomp
-  #   puts result
-  #   result == '0'
-  # end
-
-
   # Turns wifi off and then on, reconnecting to the originally connecting network.
   def cycle_network
     # TODO: Make this network name saving and restoring conditional on it not having a password.
@@ -141,6 +143,19 @@ class BaseModel
       raise message
     end
     nil
+  end
+
+
+  # Removes the specified network(s) from the preferred network list.
+  # @param network_names names of networks to remove; may be empty or contain nonexistent networks
+  # @return names of the networks that were removed (excludes non-preexisting networks)
+  def remove_preferred_networks(*network_names)
+    networks_to_remove = network_names & preferred_networks # exclude any nonexistent networks
+    networks_to_remove.each do |name|
+      run_os_command("sudo networksetup -removepreferredwirelessnetwork " +
+                         "#{wifi_hardware_port} #{Shellwords.shellescape(name)}")
+    end
+    networks_to_remove
   end
 
 end
@@ -255,35 +270,6 @@ class MacOsModel < BaseModel
   end
 
 
-  # Connects to the passed network name, optionally with password.
-  # Turns wifi on first, in case it was turned off.
-  def connect(network_name, password = nil)
-    if network_name.nil? || network_name.empty?
-      raise "A network name is required but was not provided."
-    end
-    wifi_on
-    command = "networksetup -setairportnetwork #{wifi_hardware_port} " + "#{Shellwords.shellescape(network_name)}"
-    if password
-      command << ' ' << Shellwords.shellescape(password)
-    end
-    run_os_command(command)
-
-    # Verify that the network is now connected:
-    actual_network_name = connected_network_name
-    unless actual_network_name == network_name
-      message = %Q{Expected to connect to "#{network_name}" but }
-      if actual_network_name
-        message << %Q{connected to "#{connected_network_name}" instead.}
-      else
-        message << "unable to connect to any network. Did you "
-      end
-      message << (password ? "provide the correct password?" : "need to provide a password?")
-      raise message
-    end
-    nil
-  end
-
-
   # @return:
   #   If the network is in the preferred networks list
   #     If a password is associated w/this network, return the password
@@ -322,16 +308,9 @@ class MacOsModel < BaseModel
   end
 
 
-  # Removes the specified network(s) from the preferred network list.
-  # @param network_names names of networks to remove; may be empty or contain nonexistent networks
-  # @return names of the networks that were removed (excludes non-preexisting networks)
-  def remove_preferred_networks(*network_names)
-    networks_to_remove = network_names & preferred_networks # exclude any nonexistent networks
-    networks_to_remove.each do |name|
-      run_os_command("sudo networksetup -removepreferredwirelessnetwork " +
-                         "#{wifi_hardware_port} #{Shellwords.shellescape(name)}")
-    end
-    networks_to_remove
+  def remove_preferred_network(network_name)
+    run_os_command("sudo networksetup -removepreferredwirelessnetwork " +
+        "#{wifi_hardware_port} #{Shellwords.shellescape(network_name)}")
   end
 
 
