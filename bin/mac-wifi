@@ -774,6 +774,15 @@ def running_as_script?
 end
 
 
+def assert_os_is_mac_os
+  uname = `uname`.chomp
+  unless uname == 'Darwin'
+    raise "This program currently works only on Mac OS. Platform is '#{uname}'."
+  end
+end
+
+assert_os_is_mac_os
+
 # If this file is being called as a script, run it.
 # Else, it may be loaded to use the model in a different way.
 if running_as_script?
