@@ -123,12 +123,12 @@ may override this app's commands.  For example:
 => 123
 [3] pry(#<MacWifiView>)> n  # 'n' no longer calls the method
 => 123
-[4] pry(#<MacWifiView>)> ne  # but any other name starting with 'ne' will still call the method
+[4] pry(#<MacWifiView>)> ne  # but any other name that `network_name starts with will still call the method
 => ".@ AIS SUPER WiFi"
 [5] pry(#<MacWifiView>)> network_name
 => ".@ AIS SUPER WiFi"
 [6] pry(#<MacWifiView>)> ne_xzy123
-=> ".@ AIS SUPER WiFi"
+"ne_xyz123" is not a valid command or option. If you intend for this to be a string literal, use quotes.
 ``` 
 
 If you don't want to deal with this, you could use global variables, instance variables,
@@ -210,8 +210,12 @@ You are connected on port en0 to .@ AIS SUPER WiFi on IP address 172.27.145.225.
 > puts "There are #{lsp.size} preferred networks."
 There are 341 preferred networks.
 
-# Delete all preferred networks whose names begin with "TOTTGUEST":
-> lsp.grep(/^TOTTGUEST/).each { |n| puts "Deleting preferred network #{n}."; rm(n) }
+# Delete all preferred networks whose names begin with "TOTTGUEST", the hard way:
+> lsp.grep(/^TOTTGUEST/).each { |n| rm(n) }
+
+# Delete all preferred networks whose names begin with "TOTTGUEST", the easy way.
+# rm can take multiple network names, but they must be specified as separate parameters; thus the '*'.
+> rm(*lsp.grep(/^TOTTGUEST/))
 
 # Define a method to wait for the Internet connection to be active.
 # (This functionality is included in the `till` command.)
@@ -227,16 +231,6 @@ Connected!
 Connected!
 ```
 
-### Cautions
-
-If the wifi networking changes from on to off while `till(:off)` is waiting,
-the program will hang indefinitely. I am currently looking into this problem.
-It also happens outside of this program; you can reproduce it by running `curl`,
-preferably on a longer running request, then turning off your wifi. This is pretty
-serious, and I'm considering removing the `:off` option from the `till` command.
-
-
-
 ### Password Lookup Oddity
 
 You may find it odd (I did, anyway) that even if you issue the password command 
@@ -244,10 +238,17 @@ You may find it odd (I did, anyway) that even if you issue the password command
 with a graphical dialog for both a user id and password. This is no doubt
 for better security, but it's unfortunate in that it makes it impossible to fully automate this task.
 
-In particular, it would be nice for the `cycle` command to be able to reconnect to the original
-network after turning the network on. This is not possible where that network required a password.
+In particular, it would be nice for the `cycle` command to be able to fetch the current network's
+password, cycle the network, and then reconnect to the original network with it after turning the network on.
+However, since fetching the password without user intervention is not possible, this cannot be automated.
+
 If you don't mind storing the network password in plain text somewhere, then you could easily
-automate it (e.g. `mac-wifi cycle && mac-wifi connect a-network a-password`).
+automate it (e.g. `mac-wifi cycle && mac-wifi connect a-network a-password`). Also, you might find it handy
+to create a script for your most commonly used networks containing something like this:
+
+```
+mac-wifi  connect  my-usual-network  its-password
+```
 
 
 ### License
