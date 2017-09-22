@@ -28,10 +28,8 @@ module MacWifi
 # This version must be kept in sync with the version in the gemspec file.
 VERSION = '0.0.1'
 
-class Model
 
-  AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
-
+class BaseModel
 
   def initialize(verbose = false)
     @verbose_mode = verbose
@@ -93,6 +91,7 @@ class Model
 
   end
 
+
   # This implementation often hangs when wifi is turned off while curl is active
   # def connected_to_internet?
   #   script = "curl --silent --head http://www.google.com/ > /dev/null ; echo $?"
@@ -100,6 +99,35 @@ class Model
   #   puts result
   #   result == '0'
   # end
+
+
+  # Turns wifi off and then on, reconnecting to the originally connecting network.
+  def cycle_network
+    # TODO: Make this network name saving and restoring conditional on it not having a password.
+    # If the disabled code below is enabled, an error will be raised if a password is required,
+    # even though it is stored.
+    # network_name = current_network
+    wifi_off
+    wifi_on
+    # connect(network_name) if network_name
+  end
+
+
+  def connected_to?(network_name)
+    network_name == connected_network_name
+  end
+
+
+end
+
+
+class MacOsModel < BaseModel
+
+  AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
+
+  def initialize
+    super
+  end
 
 
   # This is determined by whether or not a line like the following appears in the output of `netstat -nr`:
@@ -187,25 +215,8 @@ class Model
   end
 
 
-  # Turns wifi off and then on, reconnecting to the originally connecting network.
-  def cycle_network
-    # TODO: Make this network name saving and restoring conditional on it not having a password.
-    # If the disabled code below is enabled, an error will be raised if a password is required,
-    # even though it is stored.
-    # network_name = current_network
-    wifi_off
-    wifi_on
-    # connect(network_name) if network_name
-  end
-
-
   def connected_network_name
     wifi_info['SSID']
-  end
-
-
-  def connected_to?(network_name)
-    network_name == connected_network_name
   end
 
 
@@ -430,7 +441,7 @@ When in interactive shell mode:
 
 
   def initialize
-    @model = Model.new(verbose_mode)
+    @model = MacOsModel.new(verbose_mode)
     @interactive_mode = false # will be true if/when user selects shell option on command line
   end
 
