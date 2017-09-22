@@ -74,7 +74,7 @@ class BaseModel
             return get_connected_state_from_curl.()
           end
         end
-        Process.kill('KILL', pid)
+        Process.kill('KILL', pid) if process_is_running.(pid)
         :hung
       end
 
@@ -118,6 +118,31 @@ class BaseModel
   end
 
 
+  # Connects to the passed network name, optionally with password.
+  # Turns wifi on first, in case it was turned off.
+  # Relies on subclass implementation of simple_connect().
+  def connect(network_name, password = nil)
+    if network_name.nil? || network_name.empty?
+      raise "A network name is required but was not provided."
+    end
+    wifi_on
+    simple_connect(network_name)
+
+    # Verify that the network is now connected:
+    actual_network_name = connected_network_name
+    unless actual_network_name == network_name
+      message = %Q{Expected to connect to "#{network_name}" but }
+      if actual_network_name
+        message << %Q{connected to "#{connected_network_name}" instead.}
+      else
+        message << "unable to connect to any network. Did you "
+      end
+      message << (password ? "provide the correct password?" : "need to provide a password?")
+      raise message
+    end
+    nil
+  end
+
 end
 
 
@@ -125,7 +150,7 @@ class MacOsModel < BaseModel
 
   AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
-  def initialize
+  def initialize(verbose)
     super
   end
 
@@ -217,6 +242,16 @@ class MacOsModel < BaseModel
 
   def connected_network_name
     wifi_info['SSID']
+  end
+
+
+  # This method is called by BaseModel#connect to do the OS-specific connection logic.
+  def simple_connect(network_name)
+    command = "networksetup -setairportnetwork #{wifi_hardware_port} " + "#{Shellwords.shellescape(network_name)}"
+    if password
+      command << ' ' << Shellwords.shellescape(password)
+    end
+    run_os_command(command)
   end
 
 
