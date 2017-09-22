@@ -128,7 +128,7 @@ class BaseModel
       raise "A network name is required but was not provided."
     end
     wifi_on
-    simple_connect(network_name)
+    simple_connect(network_name, password)
 
     # Verify that the network is now connected:
     actual_network_name = connected_network_name
@@ -298,7 +298,7 @@ class MacOsModel < BaseModel
 
 
   # This method is called by BaseModel#connect to do the OS-specific connection logic.
-  def simple_connect(network_name)
+  def simple_connect(network_name, password = nil)
     command = "networksetup -setairportnetwork #{wifi_hardware_port} " + "#{Shellwords.shellescape(network_name)}"
     if password
       command << ' ' << Shellwords.shellescape(password)
