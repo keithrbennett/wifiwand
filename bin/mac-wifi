@@ -51,6 +51,9 @@ class BaseModel
   #   puts result
   #   result == '0'
   # end
+
+  # TODO Investigate using Curl options: --connect-timeout 1 --max-time 2 --retry 0
+  # to greatly simplify this method.
   def connected_to_internet?
 
     tempfile = Tempfile.open('mac-wifi-')
