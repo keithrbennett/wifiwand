@@ -1,12 +1,14 @@
 # mac-wifi
 
-This script enables the query and management of wifi configuration and environment on a Mac.
+The script installed by this gem (or otherwise copied) enables the query and management of wifi configuration and environment on a Mac.
+The code encapsulates the Mac OS specific logic in a minimal class to more easily add support for other operating systems,
+but as of now, only Mac OS is supported. (Feel free to add an OS!)
 
 It can be run in single-command or interactive mode. Interactive mode uses the `pry` gem,
 providing an interface familiar to Rubyists and other 
 [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) users.
 
-It is not necessary to download this repo; this script file is all you need to run the application.
+It is not necessary to download this repo or even install this gem; the `bin/mac-wifi` script file is all you need to run the application.
 
 
 ### Usage
