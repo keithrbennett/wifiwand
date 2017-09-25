@@ -243,6 +243,8 @@ class MacOsModel < BaseModel
 
   # Returns data pertaining to available wireless networks.
   # For some reason, this often returns no results, so I've put the operation in a loop.
+  # I was unable to detect a sort strategy in the airport utility's output, so I sort
+  # the lines alphabetically, to show duplicates and for easier lookup.
   def available_network_info
     return nil unless wifi_on? # no need to try
     command = "#{AIRPORT_CMD} -s"
@@ -250,7 +252,11 @@ class MacOsModel < BaseModel
     max_attempts.times do
       output = run_os_command(command)
       if output.size > 0
-        return output.split("\n")
+        return output.split("\n").map do |line|
+          # Reformat the line so that the name is left instead of right justified
+          ssid = line[0..31].strip
+          "%-32.32s%s" % [ssid, line[32..-1]]
+        end.sort
       end
     end
     raise "Unable to get available network information after #{max_attempts} attempts."

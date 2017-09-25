@@ -1,6 +1,6 @@
 # mac-wifi
 
-The script installed by this gem (or otherwise copied) enables the query and management of wifi configuration and environment on a Mac.
+The `mac-wifi` script installed by this gem (or otherwise copied) enables the query and management of wifi configuration and environment on a Mac.
 The code encapsulates the Mac OS specific logic in a minimal class to more easily add support for other operating systems,
 but as of now, only Mac OS is supported. (Feel free to add an OS!)
 
