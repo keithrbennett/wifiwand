@@ -179,17 +179,17 @@ class BaseModel
 
     wait_interval_in_secs ||= 0.5
 
-    exit_when = case status
-      when :conn
-        -> { connected_to_internet? }
-      when :disc
-        -> { ! connected_to_internet? }
-      when :on
-        -> { wifi_on? }
-      when :off
-        -> { ! wifi_on? }
-    else
-        raise ArgumentError.new("Option must be one of [:conn, :disc, :off, :on]. Was: #{status.inspect}")
+    actions = {
+        conn: -> { connected_to_internet? },
+        disc: -> { ! connected_to_internet? },
+        on:   -> { wifi_on? },
+        off:  -> { ! wifi_on? }
+    }
+
+    exit_when = actions[status]
+
+    if exit_when.nil?
+      raise ArgumentError.new("Option must be one of [#{actions.keys.map(&:inspect).join(', ')}]. Was: #{status.inspect}")
     end
 
     loop do
@@ -197,7 +197,6 @@ class BaseModel
       sleep(wait_interval_in_secs)
     end
   end
-
 end
 
 
