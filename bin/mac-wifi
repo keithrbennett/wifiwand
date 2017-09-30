@@ -248,14 +248,24 @@ class MacOsModel < BaseModel
     return nil unless wifi_on? # no need to try
     command = "#{AIRPORT_CMD} -s"
     max_attempts = 50
+
+    reformat_line = ->(line) do
+      ssid = line[0..31].strip
+      "%-32.32s%s" % [ssid, line[32..-1]]
+    end
+
     max_attempts.times do
       output = run_os_command(command)
       if output.size > 0
-        return output.split("\n").map do |line|
+        lines = output.split("\n")
+        header_line = lines[0]
+        data_lines = lines[1..-1]
+        data_lines.map! do |line|
           # Reformat the line so that the name is left instead of right justified
-          ssid = line[0..31].strip
-          "%-32.32s%s" % [ssid, line[32..-1]]
-        end.sort
+          reformat_line.(line)
+        end
+        data_lines.sort!
+        return [reformat_line.(header_line)] + data_lines
       end
     end
     raise "Unable to get available network information after #{max_attempts} attempts."
