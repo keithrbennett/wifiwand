@@ -782,13 +782,23 @@ end
 #
 # 1) by loading this file directly, or
 # 2) by running as a gem executable's binstub, in (relatively) '../../../bin'
+#
+# For example, I get this when running this file as a gem:
+# __FILE__ = /Users/kbennett/.rvm/gems/ruby-2.4.0/gems/mac-wifi-1.0.0/bin/mac-wifi
+# $0 =       /Users/kbennett/.rvm/gems/ruby-2.4.0/bin/mac-wifi
+# GEM_PATH = /Users/kbennett/.rvm/gems/ruby-2.4.0:/Users/kbennett/.rvm/gems/ruby-2.4.0@global
 
 def running_as_script?
   return true if __FILE__ == $0
   return false if File.basename(__FILE__) != File.basename($0)
 
-  binstub_spec = File.expand_path(File.join(File.dirname(__FILE__), '..', '..', '..', 'bin', File.basename(__FILE__)))
-  $0 == binstub_spec
+  # If here, then filespecs are different but have the same basename.
+  gem_paths = ENV['GEM_PATH'].split(File::PATH_SEPARATOR)
+  basename = File.basename($0)
+  gem_paths.any? do |path|
+    ($0 == File.join(path, 'bin', basename)) \
+        && (path == File.join(__file__, '..', '..', '..', '..'))
+  end
 end
 
 
