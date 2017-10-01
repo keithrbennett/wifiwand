@@ -26,7 +26,7 @@ require 'tempfile'
 module MacWifi
 
 # This version must be kept in sync with the version in the gemspec file.
-VERSION = '1.0.0'
+VERSION = '1.1.0'
 
 
 class BaseModel
@@ -795,6 +795,12 @@ end
 # GEM_PATH = /Users/kbennett/.rvm/gems/ruby-2.4.0:/Users/kbennett/.rvm/gems/ruby-2.4.0@global
 
 def running_as_script?
+
+  # Please enable this code and report its output if you report any issues with this method:
+  # puts "__FILE__ = #{__FILE__}"
+  # puts "$0 =       #{$0}"
+  # puts "GEM_PATH = #{ENV['GEM_PATH']}"
+
   return true if __FILE__ == $0
   return false if File.basename(__FILE__) != File.basename($0)
 
@@ -802,8 +808,9 @@ def running_as_script?
   gem_paths = ENV['GEM_PATH'].split(File::PATH_SEPARATOR)
   basename = File.basename($0)
   gem_paths.any? do |path|
-    ($0 == File.join(path, 'bin', basename)) \
-        && (path == File.join(__file__, '..', '..', '..', '..'))
+    path_plus_bin_basename = File.join(path, 'bin', basename)
+    __file__up_4 = File.expand_path(File.join(__FILE__, '..', '..', '..', '..'))
+    ($0 == path_plus_bin_basename) && (path == __file__up_4)
   end
 end
 

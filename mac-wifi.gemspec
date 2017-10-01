@@ -1,5 +1,6 @@
 # coding: utf-8
-VERSION = '1.0.0'
+# This version must be kept in sync with the version in the mac-wifi file.
+VERSION = '1.1.0'
 
 Gem::Specification.new do |spec|
   spec.name          = "mac-wifi"
