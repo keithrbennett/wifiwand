@@ -127,6 +127,10 @@ class BaseModel
   # Turns wifi on first, in case it was turned off.
   # Relies on subclass implementation of simple_connect().
   def connect(network_name, password = nil)
+    # Allow symbols and anything responding to to_s for user convenience
+    network_name = network_name.to_s if network_name
+    password     = password.to_s     if password
+
     if network_name.nil? || network_name.empty?
       raise "A network name is required but was not provided."
     end
@@ -163,6 +167,7 @@ class BaseModel
 
 
   def preferred_network_password(preferred_network_name)
+    preferred_network_name = preferred_network_name.to_s
     if preferred_networks.include?(preferred_network_name)
       simple_preferred_network_password(preferred_network_name)
     else
@@ -360,6 +365,7 @@ class MacOsModel < BaseModel
 
 
   def remove_preferred_network(network_name)
+    network_name = network_name.to_s
     run_os_command("sudo networksetup -removepreferredwirelessnetwork " +
         "#{wifi_hardware_port} #{Shellwords.shellescape(network_name)}")
   end
