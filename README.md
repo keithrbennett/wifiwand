@@ -99,6 +99,9 @@ sudo gem install pry-coolline
 
 ### Using the Shell
 
+**If the program immediately exits when you try to run the shell, try upgrading `pry` and `pry-byebug`.
+This can be done by running `gem install pry; gem install pry-byebug`.**
+
 The shell, invoked with the `s` command on the command line, provides an interactive
 session. It can be useful when:
 

@@ -786,7 +786,7 @@ end
 #
 # This file could be called as a script in either of these two ways:
 #
-# 1) by loading this file directly, or
+# 1) by loading this file directly from the OS (not from other Ruby code), or
 # 2) by running as a gem executable's binstub, in (relatively) '../../../bin'
 #
 # For example, I get this when running this file as a gem:
@@ -796,21 +796,26 @@ end
 
 def running_as_script?
 
+  this_file = File.expand_path(__FILE__)
+  main_file = File.expand_path($0)
+
+  this_file_basename = File.basename(this_file)
+  main_file_basename = File.basename(main_file)
+
   # Please enable this code and report its output if you report any issues with this method:
-  # puts "__FILE__ = #{__FILE__}"
-  # puts "$0 =       #{$0}"
+  # puts "__FILE__ = #{this_file}"
+  # puts "$0 =       #{main_file}"
   # puts "GEM_PATH = #{ENV['GEM_PATH']}"
 
-  return true if __FILE__ == $0
-  return false if File.basename(__FILE__) != File.basename($0)
+  return true if main_file == this_file
+  return false if main_file_basename != this_file_basename
 
   # If here, then filespecs are different but have the same basename.
   gem_paths = ENV['GEM_PATH'].split(File::PATH_SEPARATOR)
-  basename = File.basename($0)
   gem_paths.any? do |path|
-    path_plus_bin_basename = File.join(path, 'bin', basename)
-    __file__up_4 = File.expand_path(File.join(__FILE__, '..', '..', '..', '..'))
-    ($0 == path_plus_bin_basename) && (path == __file__up_4)
+    path_plus_basename = File.join(path, 'bin', main_file_basename)
+    __file__up_4 = File.expand_path(File.join(this_file, '..', '..', '..', '..'))
+    ($0 == path_plus_basename) && (path == __file__up_4)
   end
 end
 
