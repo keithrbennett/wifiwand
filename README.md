@@ -19,7 +19,7 @@ output at the time of this writing:
 ```
 ➜  mac-wifi git:(master) ✗   ./mac-wifi h
 
-Available commands are:
+mac-wifi version 1.1.0 -- Available commands are:
 
 ci                      - connected to Internet (not just wifi on)?
 co[nnect] network-name  - turns wifi on, connects to network-name
@@ -36,7 +36,7 @@ pa[ssword] network-name - shows password for preferred network-name
 q[uit]                  - exits this program (interactive shell mode only)
 r[m] network-name       - removes network-name from the preferred networks list
 s[hell]                 - opens an interactive pry shell (command line only)
-t[ill]                  - (experimental!) returns when the desired Internet connection state is true. Options:
+t[ill]                  - returns when the desired Internet connection state is true. Options:
                           'on'/:on or 'off'/:off
                           wait interval, in seconds (optional, defaults to 0.5 seconds)
 w[ifion]                - is the wifi on?
@@ -73,6 +73,8 @@ This can be done in the following ways:
 export MAC_WIFI_OPTS=-v
 ./mac-wifi i
 ```
+
+...or...
 
 ```
 MAC_WIFI_OPTS=-v  ./mac-wifi i
