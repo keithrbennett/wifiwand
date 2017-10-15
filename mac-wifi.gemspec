@@ -1,5 +1,5 @@
 # coding: utf-8
-# This version must be kept in sync with the version in the mac-wifi file.
+# When changing the version, also change the version and the help text in the README.
 VERSION = '1.1.0'
 
 Gem::Specification.new do |spec|

@@ -25,7 +25,8 @@ require 'tempfile'
 
 module MacWifi
 
-# This version must be kept in sync with the version in the gemspec file.
+# When changing the version, also change the version in the gemspec file
+# and update the help text in the README.
 VERSION = '1.1.0'
 
 
