@@ -25,8 +25,7 @@ require 'tempfile'
 
 module MacWifi
 
-# When changing the version, also change the version in the gemspec file
-# and update the help text in the README.
+# This version must be kept in sync with the version in the gemspec file.
 VERSION = '1.1.0'
 
 
@@ -616,7 +615,7 @@ When in interactive shell mode:
     else
       print_help
       raise BadCommandError.new(
-          "Unrecognized command. Command was #{action} and options were #{options.inspect}.")
+          %Q{Unrecognized command. Command was "#{command}" and options were #{options.inspect}.})
     end
   end
 
@@ -728,7 +727,7 @@ When in interactive shell mode:
 
   def cmd_w
     on = model.wifi_on?
-    puts "Wifi on?: #{on}" unless @interactive_mode
+    puts "Wifi on: #{on}" unless @interactive_mode
     on
   end
 
@@ -774,7 +773,7 @@ When in interactive shell mode:
       process_command_line(ARGV[0], ARGV[1..-1])
     rescue BadCommandError => error
       separator_line = "#{'!' * 79}\n"
-      puts separator_line + "Bad command: #{ARGV[0]}\n" + separator_line + "\n"
+      puts '' << separator_line << error.to_s << "\n" << separator_line
       exit(-1)
     end
   end
@@ -787,7 +786,7 @@ end
 #
 # This file could be called as a script in either of these two ways:
 #
-# 1) by loading this file directly from the OS (not from other Ruby code), or
+# 1) by loading this file directly, or
 # 2) by running as a gem executable's binstub, in (relatively) '../../../bin'
 #
 # For example, I get this when running this file as a gem:
@@ -822,9 +821,8 @@ end
 
 
 def assert_os_is_mac_os
-  uname = `uname`.chomp
-  unless uname == 'Darwin'
-    raise "This program currently works only on Mac OS. Platform is '#{uname}'."
+  unless /darwin/ === RbConfig::CONFIG["host_os"]  # e.g. "darwin16.4.0"
+    raise "This program currently works only on Mac OS. Platform is '#{RbConfig::CONFIG["host_os"]}'."
   end
 end
 
