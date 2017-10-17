@@ -67,7 +67,7 @@ This is accomplished by the following command:
 
 If you would like to see the Mac OS commands and their output, you can do so by setting the
 environment variable MAC_WIFI_OPTS to include `-v` (for _verbose_).
-This can be done in the following ways:
+This can be done in the following ways (using the `info` command as an example):
 
 ```
 export MAC_WIFI_OPTS=-v
