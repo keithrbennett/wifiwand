@@ -184,21 +184,22 @@ class BaseModel
 
     wait_interval_in_secs ||= 0.5
 
-    actions = {
+    finished_predicates = {
         conn: -> { connected_to_internet? },
         disc: -> { ! connected_to_internet? },
         on:   -> { wifi_on? },
         off:  -> { ! wifi_on? }
     }
 
-    exit_when = actions[status]
+    finished_predicate = finished_predicates[status]
 
-    if exit_when.nil?
-      raise ArgumentError.new("Option must be one of [#{actions.keys.map(&:inspect).join(', ')}]. Was: #{status.inspect}")
+    if finished_predicate.nil?
+      raise ArgumentError.new("Option must be one of #{finished_predicates.keys.inspect}. Was: #{status.inspect}")
     end
 
     loop do
-      return if exit_when.()
+      return if finished_predicate.()
+      puts wait_interval_in_secs
       sleep(wait_interval_in_secs)
     end
   end
@@ -295,7 +296,7 @@ class MacOsModel < BaseModel
   # Returns true if wifi is on, else false.
   def wifi_on?
     lines = run_os_command("#{AIRPORT_CMD} -I").split("\n")
-    ! lines.grep("AirPort: Off").any?
+    lines.grep("AirPort: Off").none?
   end
 
 
@@ -485,7 +486,7 @@ When in interactive shell mode:
 
   def initialize
     @model = MacOsModel.new(verbose_mode)
-    @interactive_mode = false # will be true if/when user selects shell option on command line
+    @interactive_mode = false # will be changed to true if/when user selects shell option on command line
   end
 
 
@@ -563,7 +564,8 @@ When in interactive shell mode:
     begin
       require 'pry'
     rescue LoadError
-      puts "The 'pry' gem, required for running the shell, was not found. Please `gem install pry`."
+      puts "The 'pry' gem and/or one of its prerequisites, required for running the shell, was not found." +
+               " Please `gem install pry`."
       exit(-1)
     end
 
