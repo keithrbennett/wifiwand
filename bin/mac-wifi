@@ -31,6 +31,17 @@ VERSION = '1.1.0'
 
 class BaseModel
 
+  class OsCommandError < RuntimeError
+    attr_reader :exitstatus, :command, :text
+
+    def initialize(exitstatus, command, text)
+      @exitstatus = exitstatus
+      @command = command
+      @text = text
+    end
+  end
+
+
   def initialize(verbose = false)
     @verbose_mode = verbose
   end
@@ -199,7 +210,6 @@ class BaseModel
 
     loop do
       return if finished_predicate.()
-      puts wait_interval_in_secs
       sleep(wait_interval_in_secs)
     end
   end
@@ -404,17 +414,6 @@ class MacOsModel < BaseModel
     info.merge!(more_info)
     info.delete('AirPort') # will be here if off, but info is already in wifi_on key
     info
-  end
-
-
-  class OsCommandError < RuntimeError
-    attr_reader :exitstatus, :command, :text
-
-    def initialize(exitstatus, command, text)
-      @exitstatus = exitstatus
-      @command = command
-      @text = text
-    end
   end
 
 
