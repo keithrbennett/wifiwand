@@ -452,6 +452,16 @@ class CommandLineInterface
 
   attr_reader :model
 
+  class Command < Struct.new(:min_string, :max_string, :action); end
+
+
+  class BadCommandError < RuntimeError
+    def initialize(error_message)
+      super
+    end
+  end
+
+
   # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.
   HELP_TEXT = "
 mac-wifi version #{VERSION} -- Available commands are:
@@ -487,16 +497,6 @@ When in interactive shell mode:
   def initialize
     @model = MacOsModel.new(verbose_mode)
     @interactive_mode = false # will be changed to true if/when user selects shell option on command line
-  end
-
-
-  class Command < Struct.new(:min_string, :max_string, :action); end
-
-
-  class BadCommandError < RuntimeError
-    def initialize(error_message)
-      super
-    end
   end
 
 
