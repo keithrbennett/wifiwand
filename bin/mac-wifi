@@ -169,11 +169,7 @@ class BaseModel
   # @return names of the networks that were removed (excludes non-preexisting networks)
   def remove_preferred_networks(*network_names)
     networks_to_remove = network_names & preferred_networks # exclude any nonexistent networks
-    networks_to_remove.each do |name|
-      run_os_command("sudo networksetup -removepreferredwirelessnetwork " +
-                         "#{wifi_hardware_port} #{Shellwords.shellescape(name)}")
-    end
-    networks_to_remove
+    networks_to_remove.each { |name| remove_preferred_network(name) }
   end
 
 
