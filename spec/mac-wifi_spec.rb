@@ -9,10 +9,10 @@ load File.join(File.dirname(__FILE__), '..', 'bin', 'mac-wifi')
 
 module MacWifi
 
-describe Model do
+describe MacOsModel do
 
 
-  subject { Model.new }
+  subject { MacOsModel.new }
 
   context 'turning wifi on and off' do
     it 'can turn wifi on' do
