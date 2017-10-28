@@ -26,7 +26,7 @@ require 'tempfile'
 module MacWifi
 
 # This version must be kept in sync with the version in the gemspec file.
-VERSION = '1.1.0'
+VERSION = '1.2.0'
 
 
 class BaseModel
