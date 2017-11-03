@@ -586,7 +586,7 @@ When in interactive shell mode:
     if method_valid
       process_command_line(method_name, options)
     else
-      puts(%Q{"#{method_name}" is not a valid command or option. If you intend for this to be a string literal, use quotes.})
+      puts(%Q{"#{method_name}" is not a valid command or option. If you intend for this to be a string literal, use quotes or %q/Q{}.})
     end
   end
 
