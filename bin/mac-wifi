@@ -579,14 +579,6 @@ When in interactive shell mode:
   end
 
 
-  def output_network_password(network_name, password)
-    output =  %Q{Preferred network "#{network_name}" }
-    output << (password ? %Q{stored password is: "#{password}".} : "has no stored password.")
-    puts output
-    password
-  end
-
-
   # For use by the shell; when typing a command and options, it is passed to process_command_line
   def method_missing(method_name, *options)
     method_name = method_name.to_s
@@ -695,7 +687,13 @@ When in interactive shell mode:
 
   def cmd_pa(network)
     password = model.preferred_network_password(network)
-    output_network_password(network, password) unless @interactive_mode
+
+    unless @interactive_mode
+      output =  %Q{Preferred network "#{network_name}" }
+      output << (password ? %Q{stored password is: "#{password}".} : "has no stored password.")
+      puts output
+    end
+
     password
   end
 
