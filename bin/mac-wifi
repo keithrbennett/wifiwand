@@ -780,8 +780,6 @@ When in interactive shell mode:
     end
   end
 end
-end
-
 
 
 class Main
@@ -837,10 +835,10 @@ class Main
     # If this file is being called as a script, run it.
     # Else, it may be loaded to use the model in a different way.
     if running_as_script?
-      MacWifi::CommandLineInterface.new.call
+      CommandLineInterface.new.call
     end
   end
 end
+end
 
-˚
-Main.new.call
+MacWifi::Main.new.call
