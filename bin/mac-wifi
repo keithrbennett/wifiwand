@@ -772,7 +772,7 @@ When in interactive shell mode:
     begin
       process_command_line(ARGV[0], ARGV[1..-1])
     rescue BadCommandError => error
-      separator_line = "#{'!' * 79}\n"
+      separator_line = "! #{'-' * 75} !\n"
       puts '' << separator_line << error.to_s << "\n" << separator_line
       exit(-1)
     end
@@ -833,7 +833,15 @@ class Main
     # If this file is being called as a script, run it.
     # Else, it may be loaded to use the model in a different way.
     if running_as_script?
-      CommandLineInterface.new.call
+      begin
+        MacWifi::CommandLineInterface.new.call
+      rescue => error
+        puts error
+        stack_trace_filename = './mac-wifi-error-stack-trace.txt'
+        File.write(stack_trace_filename, caller.join("\n"))
+        puts "Exiting. Stack trace written to '#{stack_trace_filename}'."
+        exit(-1)
+      end
     end
   end
 end
