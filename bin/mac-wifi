@@ -784,55 +784,63 @@ end
 
 
 
-# @return true if this file is being run as a script, else false
-#
-# This file could be called as a script in either of these two ways:
-#
-# 1) by loading this file directly, or
-# 2) by running as a gem executable's binstub, in (relatively) '../../../bin'
-#
-# For example, I get this when running this file as a gem:
-# __FILE__ = /Users/kbennett/.rvm/gems/ruby-2.4.0/gems/mac-wifi-1.0.0/bin/mac-wifi
-# $0 =       /Users/kbennett/.rvm/gems/ruby-2.4.0/bin/mac-wifi
-# GEM_PATH = /Users/kbennett/.rvm/gems/ruby-2.4.0:/Users/kbennett/.rvm/gems/ruby-2.4.0@global
+class Main
 
-def running_as_script?
+  # @return true if this file is being run as a script, else false
+  #
+  # This file could be called as a script in either of these two ways:
+  #
+  # 1) by loading this file directly, or
+  # 2) by running as a gem executable's binstub, in (relatively) '../../../bin'
+  #
+  # For example, I get this when running this file as a gem:
+  # __FILE__ = /Users/kbennett/.rvm/gems/ruby-2.4.0/gems/mac-wifi-1.0.0/bin/mac-wifi
+  # $0 =       /Users/kbennett/.rvm/gems/ruby-2.4.0/bin/mac-wifi
+  # GEM_PATH = /Users/kbennett/.rvm/gems/ruby-2.4.0:/Users/kbennett/.rvm/gems/ruby-2.4.0@global
 
-  this_file = File.expand_path(__FILE__)
-  main_file = File.expand_path($0)
+  def running_as_script?
 
-  this_file_basename = File.basename(this_file)
-  main_file_basename = File.basename(main_file)
+    this_file = File.expand_path(__FILE__)
+    main_file = File.expand_path($0)
 
-  # Please enable this code and report its output if you report any issues with this method:
-  # puts "__FILE__ = #{this_file}"
-  # puts "$0 =       #{main_file}"
-  # puts "GEM_PATH = #{ENV['GEM_PATH']}"
+    this_file_basename = File.basename(this_file)
+    main_file_basename = File.basename(main_file)
 
-  return true if main_file == this_file
-  return false if main_file_basename != this_file_basename
+    # Please enable this code and report its output if you report any issues with this method:
+    # puts "__FILE__ = #{this_file}"
+    # puts "$0 =       #{main_file}"
+    # puts "GEM_PATH = #{ENV['GEM_PATH']}"
 
-  # If here, then filespecs are different but have the same basename.
-  gem_paths = ENV['GEM_PATH'].split(File::PATH_SEPARATOR)
-  gem_paths.any? do |path|
-    path_plus_basename = File.join(path, 'bin', main_file_basename)
-    __file__up_4 = File.expand_path(File.join(this_file, '..', '..', '..', '..'))
-    ($0 == path_plus_basename) && (path == __file__up_4)
+    return true if main_file == this_file
+    return false if main_file_basename != this_file_basename
+
+    # If here, then filespecs are different but have the same basename.
+    gem_paths = ENV['GEM_PATH'].split(File::PATH_SEPARATOR)
+    gem_paths.any? do |path|
+      path_plus_basename = File.join(path, 'bin', main_file_basename)
+      __file__up_4 = File.expand_path(File.join(this_file, '..', '..', '..', '..'))
+      ($0 == path_plus_basename) && (path == __file__up_4)
+    end
+  end
+
+
+  def assert_os_is_mac_os
+    unless /darwin/ === RbConfig::CONFIG["host_os"]  # e.g. "darwin16.4.0"
+      raise "This program currently works only on Mac OS. Platform is '#{RbConfig::CONFIG["host_os"]}'."
+    end
+  end
+
+
+  def call
+    assert_os_is_mac_os
+
+    # If this file is being called as a script, run it.
+    # Else, it may be loaded to use the model in a different way.
+    if running_as_script?
+      MacWifi::CommandLineInterface.new.call
+    end
   end
 end
 
-
-def assert_os_is_mac_os
-  unless /darwin/ === RbConfig::CONFIG["host_os"]  # e.g. "darwin16.4.0"
-    raise "This program currently works only on Mac OS. Platform is '#{RbConfig::CONFIG["host_os"]}'."
-  end
-end
-
-assert_os_is_mac_os
-
-# If this file is being called as a script, run it.
-# Else, it may be loaded to use the model in a different way.
-if running_as_script?
-  MacWifi::CommandLineInterface.new.call
-end
-
+˚
+Main.new.call
