@@ -19,7 +19,6 @@
 # License: MIT License
 
 
-
 require 'shellwords'
 require 'tempfile'
 
@@ -184,11 +183,16 @@ class BaseModel
 
 
   # Waits for the Internet connection to be in the desired state.
-  # @param status must be in [:conn, :disc, :off, :on]; waits for that state
-  # @param wait_interval_in_secs sleeps this interval between retries
+  # @param target_status must be in [:conn, :disc, :off, :on]; waits for that state
+  # @param wait_interval_in_secs sleeps this interval between retries; if nil or absent,
+  #        a default will be provided
   #
-  def till(status, wait_interval_in_secs = nil)
+  def till(target_status, wait_interval_in_secs = nil)
 
+    # One might ask, why not just put the 0.5 up there as the default argument.
+    # We could do that, but we'd still need the line below in case nil
+    # was explicitly specified. The default argument of nil above emphasizes that
+    # the absence of an argument and a specification of nil will behave identically.
     wait_interval_in_secs ||= 0.5
 
     finished_predicates = {
@@ -198,10 +202,11 @@ class BaseModel
         off:  -> { ! wifi_on? }
     }
 
-    finished_predicate = finished_predicates[status]
+    finished_predicate = finished_predicates[target_status]
 
     if finished_predicate.nil?
-      raise ArgumentError.new("Option must be one of #{finished_predicates.keys.inspect}. Was: #{status.inspect}")
+      raise ArgumentError.new(
+          "Option must be one of #{finished_predicates.keys.inspect}. Was: #{target_status.inspect}")
     end
 
     loop do
@@ -787,36 +792,39 @@ class Main
   # This file could be called as a script in either of these two ways:
   #
   # 1) by loading this file directly, or
-  # 2) by running as a gem executable's binstub, in (relatively) '../../../bin'
+  # 2) by running as a gem executable's binstub, in (relatively) '../../../exe'
   #
-  # For example, I get this when running this file as a gem:
-  # __FILE__ = /Users/kbennett/.rvm/gems/ruby-2.4.0/gems/mac-wifi-1.0.0/bin/mac-wifi
-  # $0 =       /Users/kbennett/.rvm/gems/ruby-2.4.0/bin/mac-wifi
-  # GEM_PATH = /Users/kbennett/.rvm/gems/ruby-2.4.0:/Users/kbennett/.rvm/gems/ruby-2.4.0@global
+  # For example, I get this when running this file as a gem and running:
+  #
+  # puts "$0: #{$0}"
+  # puts "__FILE__: #{__FILE__}"
+  # puts "GEM_PATH: #{ENV['GEM_PATH']}"
+  #
+  # $0: /Users/kbennett/.rvm/gems/ruby-2.4.1/bin/mac-wifi
+  # __FILE__: /Users/kbennett/.rvm/gems/ruby-2.4.1/gems/mac-wifi-1.2.0/exe/mac-wifi
+  # GEM_PATH: /Users/kbennett/.rvm/gems/ruby-2.4.1:/Users/kbennett/.rvm/gems/ruby-2.4.1@global
+``
 
   def running_as_script?
 
-    this_file = File.expand_path(__FILE__)
-    main_file = File.expand_path($0)
+    this_source_file = File.expand_path(__FILE__)
+    called_file      = File.expand_path($0)
+    return true if called_file == this_source_file
 
-    this_file_basename = File.basename(this_file)
-    main_file_basename = File.basename(main_file)
-
-    # Please enable this code and report its output if you report any issues with this method:
-    # puts "__FILE__ = #{this_file}"
-    # puts "$0 =       #{main_file}"
-    # puts "GEM_PATH = #{ENV['GEM_PATH']}"
-
-    return true if main_file == this_file
-    return false if main_file_basename != this_file_basename
+    this_source_file_basename = File.basename(this_source_file)
+    called_file_basename      = File.basename(called_file)
+    return false if called_file_basename != this_source_file_basename
 
     # If here, then filespecs are different but have the same basename.
-    gem_paths = ENV['GEM_PATH'].split(File::PATH_SEPARATOR)
-    gem_paths.any? do |path|
-      path_plus_basename = File.join(path, 'bin', main_file_basename)
-      __file__up_4 = File.expand_path(File.join(this_file, '..', '..', '..', '..'))
-      ($0 == path_plus_basename) && (path == __file__up_4)
+    gem_roots = ENV['GEM_PATH'].split(File::PATH_SEPARATOR)
+    as_script = gem_roots.any? do |gem_root|
+      binstub_candidate_name = File.join(gem_root, 'bin', called_file_basename)
+      up_4_from_this_source_file = File.expand_path(File.join(this_source_file, '..', '..', '..', '..'))
+      found = ($0 == binstub_candidate_name) && (gem_root == up_4_from_this_source_file)
+      found
     end
+
+    as_script
   end
 
 
