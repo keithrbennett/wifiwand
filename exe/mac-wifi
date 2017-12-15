@@ -450,7 +450,7 @@ end
 
 class CommandLineInterface
 
-  attr_reader :model
+  attr_reader :model, :interactive_mode
 
   class Command < Struct.new(:min_string, :max_string, :action); end
 
@@ -500,6 +500,8 @@ When in interactive shell mode:
   end
 
 
+  # Until command line option parsing is added, the only way to specify
+  # verbose mode is in the environment variable MAC_WIFI_OPTS.
   def verbose_mode
     /-v/.match(ENV['MAC_WIFI_OPTS'])
   end
@@ -510,9 +512,10 @@ When in interactive shell mode:
   end
 
 
+  # @return true if awesome_print is available (after requiring it), else false after requiring 'pp'.
   # We'd like to use awesome_print if it is available, but not require it.
-  # So, we try to require it, but if that fails, we fall back to using pp (pretty print).
-  # Returns true if awesome_print is available (after requiring it), else false after requiring 'pp'.
+  # So, we try to require it, but if that fails, we fall back to using pp (pretty print),
+  # which is included in Ruby distributions without the need to install a gem.
   def awesome_print_available?
     if @awesome_print_available.nil?  # first time here
       begin
@@ -528,8 +531,19 @@ When in interactive shell mode:
   end
 
 
+  def fancy_string(object)
+    awesome_print_available? ? object.ai : object.pretty_inspect
+  end
+
+
   def fancy_puts(object)
-    awesome_print_available? ? ap(object) : pp(object)
+    puts fancy_string(object)
+  end
+  alias_method :fp, :fancy_puts
+
+
+  def puts_unless_interactive(string)
+    puts(string) unless interactive_mode
   end
 
 
@@ -554,7 +568,7 @@ When in interactive shell mode:
   # Runs a pry session in the context of this object.
   # Commands and options specified on the command line can also be specified in the shell.
   def run_shell
-    if @interactive_mode
+    if interactive_mode
       puts "Already in shell."
       return
     end
@@ -587,8 +601,8 @@ When in interactive shell mode:
   # For use by the shell; when typing a command and options, it is passed to process_command_line
   def method_missing(method_name, *options)
     method_name = method_name.to_s
-    method_valid = !! find_command_action(method_name)
-    if method_valid
+    method_exists = !! find_command_action(method_name)
+    if method_exists
       process_command_line(method_name, options)
     else
       puts(%Q{"#{method_name}" is not a valid command or option. If you intend for this to be a string literal, use quotes or %q/Q{}.})
@@ -599,9 +613,9 @@ When in interactive shell mode:
   # Processes the command (ARGV[0]) and any relevant options (ARGV[1..-1]).
   #
   # CAUTION! In interactive mode, any strings entered (e.g. a network name) MUST
-  # be in a form that Ruby will recognize as a string, i.e. single or double quotes,
-  # %q, %Q, etc. Otherwise Ruby will assume it's a method name and pass it to
-  # method_missing!
+  # be in a form that the Ruby interpreter will recognize as a string,
+  # i.e. single or double quotes, %q, %Q, etc.
+  # Otherwise it will assume it's a method name and pass it to method_missing!
   def process_command_line(command, options)
     action = find_command_action(command)
     if action
@@ -615,7 +629,7 @@ When in interactive shell mode:
 
 
   def quit
-    if @interactive_mode
+    if interactive_mode
       exit(0)
     else
       puts "This command can only be run in shell mode."
@@ -625,7 +639,7 @@ When in interactive shell mode:
 
   def cmd_ci
     connected = model.connected_to_internet?
-    puts "Connected to Internet: #{connected}" unless @interactive_mode
+    puts_unless_interactive("Connected to Internet: #{connected}")
     connected
   end
 
@@ -652,30 +666,28 @@ When in interactive shell mode:
 
   def cmd_i
     info = model.wifi_info
-    fancy_puts(info) unless @interactive_mode
+    puts_unless_interactive(fancy_string(info))
     info
   end
 
 
   def cmd_lsa
     info = model.available_network_info
-    puts info unless @interactive_mode
+    puts_unless_interactive(fancy_string(info))
     info
   end
 
 
   def cmd_lsp
     networks = model.preferred_networks
-    puts networks unless @interactive_mode
+    puts_unless_interactive(fancy_string(networks))
     networks
   end
 
 
   def cmd_n
     name = model.connected_network_name
-    unless @interactive_mode
-      puts "Network (SSID) name: #{name ? name : '[none]'}"
-    end
+    puts_unless_interactive("Network (SSID) name: #{name ? name : '[none]'}")
     name
   end
 
@@ -693,7 +705,7 @@ When in interactive shell mode:
   def cmd_pa(network)
     password = model.preferred_network_password(network)
 
-    unless @interactive_mode
+    unless interactive_mode
       output =  %Q{Preferred network "#{network_name}" }
       output << (password ? %Q{stored password is: "#{password}".} : "has no stored password.")
       puts output
@@ -727,7 +739,7 @@ When in interactive shell mode:
 
   def cmd_w
     on = model.wifi_on?
-    puts "Wifi on: #{on}" unless @interactive_mode
+    puts_unless_interactive("Wifi on: #{on}")
     on
   end
 
