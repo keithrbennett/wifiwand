@@ -803,7 +803,7 @@ class Main
   # $0: /Users/kbennett/.rvm/gems/ruby-2.4.1/bin/mac-wifi
   # __FILE__: /Users/kbennett/.rvm/gems/ruby-2.4.1/gems/mac-wifi-1.2.0/exe/mac-wifi
   # GEM_PATH: /Users/kbennett/.rvm/gems/ruby-2.4.1:/Users/kbennett/.rvm/gems/ruby-2.4.1@global
-``
+
 
   def running_as_script?
 
