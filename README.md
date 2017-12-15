@@ -119,7 +119,7 @@ session. It can be useful when:
 
 There are a couple of things (that may be surprising) to keep in mind
 when using the shell. They relate to the fact that local variables
-and method calls use the same notation in Ruby (use of parentheses
+and method calls use the same notation in Ruby (since use of parentheses
 in a method call is optional):
 
 1) In Ruby, when both a method and a local variable have the same name,
@@ -196,6 +196,36 @@ mac-wifi t on && say "Internet connected" # Play audible message when Internet b
 ```
 
 #### Interactive Shell Commands
+
+When in shell mode, commands generally return the target object (e.g. the array of
+available networks) rather than outputting a nicely formatted string. This may result
+in the shell outputting that returned value in an ugly way.
+
+If you don't need the return value but just want to display the value nicely,
+you can use the `fancy_puts` method to output it nicely. An alias `fp` has been
+provided for your convenience. You're welcome!  For example:
+
+```
+[5] pry(#<MacWifi::CommandLineInterface>)> fp lsp.first(3)
+[
+    [0] "  AIS SMART Login",
+    [1] " BubblesLive",
+    [2] "#HKAirport Free WiFi"
+]
+```
+
+If you want to surpress output altogether (e.g. if you are using the value in an
+expression and don't need to print it out, you can simply append `;nil` to the expression
+and that will be value output to the console. For example:
+
+```
+[10] pry(#<MacWifi::CommandLineInterface>)> available_networks = lsa; nil
+=> nil
+[11] pry(#<MacWifi::CommandLineInterface>)> available_networks.size
+=> 32
+```
+
+**More Examples**
 
 (For brevity, semicolons are used here to put multiple commands on one line, 
 but these commands could also each be specified on a line of its own.)
