@@ -829,8 +829,9 @@ class Main
 
 
   def assert_os_is_mac_os
-    unless /darwin/ === RbConfig::CONFIG["host_os"]  # e.g. "darwin16.4.0"
-      raise "This program currently works only on Mac OS. Platform is '#{RbConfig::CONFIG["host_os"]}'."
+    host_os = RbConfig::CONFIG["host_os"]
+    unless /darwin/.match(host_os)  # e.g. "darwin16.4.0"
+      raise "This program currently works only on Mac OS. Platform is '#{host_os}'."
     end
   end
 
@@ -847,7 +848,7 @@ class Main
         puts error
         stack_trace_filename = './mac-wifi-error-stack-trace.txt'
         File.write(stack_trace_filename, caller.join("\n"))
-        puts "Exiting. Stack trace written to '#{stack_trace_filename}'."
+        puts "Exiting. Stack trace written to '#{File.expand_path(stack_trace_filename)}'."
         exit(-1)
       end
     end
