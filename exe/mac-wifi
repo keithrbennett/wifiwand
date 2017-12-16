@@ -25,7 +25,7 @@ require 'tempfile'
 module MacWifi
 
 # This version must be kept in sync with the version in the gemspec file.
-VERSION = '1.2.0'
+VERSION = '1.3.0'
 
 
 class BaseModel
@@ -492,6 +492,7 @@ pa[ssword] network-name   - password for preferred network-name
 pr[efnets]                - preferred (not necessarily available) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
 r[mprefnets] network-name - removes network-name from the preferred networks list
+                            (can provide multiple names separated by spaces)
 s[hell]                   - opens an interactive pry shell (command line only)
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                             1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc

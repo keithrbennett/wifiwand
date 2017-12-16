@@ -17,9 +17,10 @@ Available commands can be seen by using the `h` (or `help`) option. Here is its
 output at the time of this writing:
 
 ```
-➜  mac-wifi git:(master) ✗   ./mac-wifi h
+$ mac-wifi h
 
-mac-wifi version 1.2.0 -- Available commands are:
+
+mac-wifi version 1.3.0 -- Available commands are:
 
 a[vailnets]               - array of names of the available networks
 ci                        - connected to Internet (not just wifi on)?
@@ -28,7 +29,7 @@ cy[cle]                   - turns wifi off, then on, preserving network selectio
 d[isconnect]              - disconnects from current network, does not turn off wifi
 h[elp]                    - prints this help
 i[nfo]                    - a hash of wifi-related information
-lsa[vailnets]             - details about available networks
+l[savailnets]             - details about available networks
 n[etwork_name]            - name (SSID) of currently connected network
 on                        - turns wifi on
 of[f]                     - turns wifi off
@@ -36,6 +37,7 @@ pa[ssword] network-name   - password for preferred network-name
 pr[efnets]                - preferred (not necessarily available) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
 r[mprefnets] network-name - removes network-name from the preferred networks list
+                            (can provide multiple names separated by spaces)
 s[hell]                   - opens an interactive pry shell (command line only)
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                             1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
