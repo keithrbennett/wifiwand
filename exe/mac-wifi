@@ -293,7 +293,10 @@ class MacOsModel < BaseModel
 
   # @return an array of unique available network names only, sorted alphabetically
   def available_network_names
-    available_network_info[1..-1].map { |line| line[0..32].rstrip }.sort.uniq
+    available_network_info[1..-1] \
+        .map { |line| line[0..32].rstrip } \
+        .uniq \
+        .sort { |s1, s2| s1.casecmp(s2) }
   end
 
 
@@ -481,7 +484,7 @@ cy[cle]                   - turns wifi off, then on, preserving network selectio
 d[isconnect]              - disconnects from current network, does not turn off wifi
 h[elp]                    - prints this help
 i[nfo]                    - a hash of wifi-related information
-lsa[vailnets]             - details about available networks
+l[savailnets]             - details about available networks
 n[etwork_name]            - name (SSID) of currently connected network
 on                        - turns wifi on
 of[f]                     - turns wifi off
@@ -774,7 +777,7 @@ When in interactive shell mode:
         Command.new('d',   'disconnect',   -> (*_options) { cmd_d             }),
         Command.new('h',   'help',         -> (*_options) { cmd_h             }),
         Command.new('i',   'info',         -> (*_options) { cmd_i             }),
-        Command.new('lsa', 'lsavailable',  -> (*_options) { cmd_lsa           }),
+        Command.new('l',   'lsavailnets',  -> (*_options) { cmd_lsa           }),
         Command.new('n',   'network_name', -> (*_options) { cmd_n             }),
         Command.new('of',  'off',          -> (*_options) { cmd_of            }),
         Command.new('on',  'on',           -> (*_options) { cmd_on            }),
