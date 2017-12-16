@@ -587,6 +587,10 @@ When in interactive shell mode:
 
     @interactive_mode = true
 
+    # For conveniently calling to_json or to_yaml on an object:
+    require 'json'
+    require 'yaml'
+
     begin
       require 'pry'
     rescue LoadError

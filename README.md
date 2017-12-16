@@ -65,6 +65,25 @@ This is accomplished by the following command:
 `gem install awesome_print`
 
 
+### JSON and YAML Output
+
+For now, JSON and YAML processing are only available in the interactive mode shell, in the way
+you would usually use them in Ruby code. Their respective libraries are automatically
+`require`d for your convenience. If you want them in non-interactive mode,
+you can work around this limitation by redirecting the shell's input, e.g.:
+
+```
+echo "File.write('available_networks.json', availnets.pretty_inspect)" | mac-wifi s
+```
+
+This will create a file `available_networks.json` with content looking something like this:
+
+```bash
+["....MMobile 2.4G",
+ ".@  3BB_WiFi",
+ ".@ AIS SUPER WiFi"]
+```
+
 ### Seeing the Underlying OS Commands and Output
 
 If you would like to see the Mac OS commands and their output, you can do so by setting the
@@ -189,7 +208,8 @@ constants or instance variables if you want to create variables in your shell.
 
 ```
 mac-wifi i            # prints out wifi info
-mac-wifi lsa          # prints available networks
+mac-wifi a            # prints out names of available networks
+mac-wifi lsa          # prints available networks detailed information
 mac-wifi pr           # prints preferred networks
 mac-wifi cy           # cycles the wifi off and on
 mac-wifi co a-network a-password # connects to a network requiring a password
@@ -221,9 +241,9 @@ expression and don't need to print it out, you can simply append `;nil` to the e
 and that will be value output to the console. For example:
 
 ```
-[10] pry(#<MacWifi::CommandLineInterface>)> available_networks = lsa; nil
+[10] pry(#<MacWifi::CommandLineInterface>)> available_networks = availnets; nil
 => nil
-[11] pry(#<MacWifi::CommandLineInterface>)> available_networks.size
+[11] pry(#<MacWifi::CommandLineInterface>)> availnets.size
 => 32
 ```
 
