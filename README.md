@@ -19,28 +19,28 @@ output at the time of this writing:
 ```
 ➜  mac-wifi git:(master) ✗   ./mac-wifi h
 
-mac-wifi version 1.1.0 -- Available commands are:
+mac-wifi version 1.2.0 -- Available commands are:
 
-ci                      - connected to Internet (not just wifi on)?
-co[nnect] network-name  - turns wifi on, connects to network-name
-cy[cle]                 - turns wifi off, then on, preserving network selection
-d[isconnect]            - disconnects from current network, does not turn off wifi
-h[elp]                  - prints this help
-i[nfo]                  - prints wifi-related information
-lsp[referred]           - lists preferred (not necessarily available) networks
-lsa[vailable]           - lists available networks
-n[etwork_name]          - name (SSID) of currently connected network
-on                      - turns wifi on
-of[f]                   - turns wifi off
-pa[ssword] network-name - shows password for preferred network-name
-q[uit]                  - exits this program (interactive shell mode only)
-r[m] network-name       - removes network-name from the preferred networks list
-s[hell]                 - opens an interactive pry shell (command line only)
-t[ill]                  - returns when the desired Internet connection state is true. Options:
-                          'on'/:on or 'off'/:off
-                          wait interval, in seconds (optional, defaults to 0.5 seconds)
-w[ifion]                - is the wifi on?
-x[it]                   - exits this program (interactive shell mode only)
+ci                        - connected to Internet (not just wifi on)?
+co[nnect] network-name    - turns wifi on, connects to network-name
+cy[cle]                   - turns wifi off, then on, preserving network selection
+d[isconnect]              - disconnects from current network, does not turn off wifi
+h[elp]                    - prints this help
+i[nfo]                    - prints wifi-related information
+lsa[vailable]             - lists available networks
+n[etwork_name]            - name (SSID) of currently connected network
+on                        - turns wifi on
+of[f]                     - turns wifi off
+pa[ssword] network-name   - shows password for preferred network-name
+pr[efnets]                - lists preferred (not necessarily available) networks
+q[uit]                    - exits this program (interactive shell mode only)
+r[mprefnets] network-name - removes network-name from the preferred networks list
+s[hell]                   - opens an interactive pry shell (command line only)
+t[ill]                    - returns when the desired Internet connection state is true. Options:
+                            1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
+                            2) wait interval, in seconds (optional, defaults to 0.5 seconds)
+w[ifion]                  - is the wifi on?
+x[it]                     - exits this program (interactive shell mode only)
 
 When in interactive shell mode:
     * use quotes for string parameters such as method names.
@@ -246,11 +246,11 @@ i
 > @i = i; puts "You are connected on port #{@i[:port]} to #{@i[:network]} on IP address #{@i[:ip_address]}."
 You are connected on port en0 to .@ AIS SUPER WiFi on IP address 172.27.145.225.
 
-> puts "There are #{lsp.size} preferred networks."
+> puts "There are #{pr.size} preferred networks."
 There are 341 preferred networks.
 
 # Delete all preferred networks whose names begin with "TOTTGUEST", the hard way:
-> lsp.grep(/^TOTTGUEST/).each { |n| rm(n) }
+> pr.grep(/^TOTTGUEST/).each { |n| rm(n) }
 
 # Delete all preferred networks whose names begin with "TOTTGUEST", the easy way.
 # rm can take multiple network names, but they must be specified as separate parameters; thus the '*'.

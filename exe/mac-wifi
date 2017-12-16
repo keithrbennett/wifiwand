@@ -466,26 +466,26 @@ class CommandLineInterface
   HELP_TEXT = "
 mac-wifi version #{VERSION} -- Available commands are:
 
-ci                      - connected to Internet (not just wifi on)?
-co[nnect] network-name  - turns wifi on, connects to network-name
-cy[cle]                 - turns wifi off, then on, preserving network selection
-d[isconnect]            - disconnects from current network, does not turn off wifi
-h[elp]                  - prints this help
-i[nfo]                  - prints wifi-related information
-lsp[referred]           - lists preferred (not necessarily available) networks
-lsa[vailable]           - lists available networks
-n[etwork_name]          - name (SSID) of currently connected network
-on                      - turns wifi on
-of[f]                   - turns wifi off
-pa[ssword] network-name - shows password for preferred network-name
-q[uit]                  - exits this program (interactive shell mode only)
-r[m] network-name       - removes network-name from the preferred networks list
-s[hell]                 - opens an interactive pry shell (command line only)
-t[ill]                  - returns when the desired Internet connection state is true. Options:
-                          1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
-                          2) wait interval, in seconds (optional, defaults to 0.5 seconds)
-w[ifion]                - is the wifi on?
-x[it]                   - exits this program (interactive shell mode only)
+ci                        - connected to Internet (not just wifi on)?
+co[nnect] network-name    - turns wifi on, connects to network-name
+cy[cle]                   - turns wifi off, then on, preserving network selection
+d[isconnect]              - disconnects from current network, does not turn off wifi
+h[elp]                    - prints this help
+i[nfo]                    - prints wifi-related information
+lsa[vailable]             - lists available networks
+n[etwork_name]            - name (SSID) of currently connected network
+on                        - turns wifi on
+of[f]                     - turns wifi off
+pa[ssword] network-name   - shows password for preferred network-name
+pr[efnets]                - lists preferred (not necessarily available) networks
+q[uit]                    - exits this program (interactive shell mode only)
+r[mprefnets] network-name - removes network-name from the preferred networks list
+s[hell]                   - opens an interactive pry shell (command line only)
+t[ill]                    - returns when the desired Internet connection state is true. Options:
+                            1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
+                            2) wait interval, in seconds (optional, defaults to 0.5 seconds)
+w[ifion]                  - is the wifi on?
+x[it]                     - exits this program (interactive shell mode only)
 
 When in interactive shell mode:
     * use quotes for string parameters such as method names.
@@ -678,7 +678,7 @@ When in interactive shell mode:
   end
 
 
-  def cmd_lsp
+  def cmd_pr
     networks = model.preferred_networks
     puts_unless_interactive(fancy_string(networks))
     networks
@@ -758,13 +758,13 @@ When in interactive shell mode:
         Command.new('h',   'help',         -> (*_options) { cmd_h             }),
         Command.new('i',   'info',         -> (*_options) { cmd_i             }),
         Command.new('lsa', 'lsavailable',  -> (*_options) { cmd_lsa           }),
-        Command.new('lsp', 'lspreferred',  -> (*_options) { cmd_lsp           }),
         Command.new('n',   'network_name', -> (*_options) { cmd_n             }),
         Command.new('of',  'off',          -> (*_options) { cmd_of            }),
         Command.new('on',  'on',           -> (*_options) { cmd_on            }),
         Command.new('pa',  'password',     -> (*options)  { cmd_pa(*options)  }),
+        Command.new('pr',  'prefnets',     -> (*_options) { cmd_pr            }),
         Command.new('q',   'quit',         -> (*_options) { cmd_q             }),
-        Command.new('r',   'rm',           -> (*options)  { cmd_r(*options)   }),
+        Command.new('r',   'rmprefnets',   -> (*options)  { cmd_r(*options)   }),
         Command.new('s',   'shell',        -> (*_options) { cmd_s             }),
         Command.new('t',   'till',         -> (*options)  { cmd_t(*options)   }),
         Command.new('w',   'wifion',       -> (*_options) { cmd_w             }),
