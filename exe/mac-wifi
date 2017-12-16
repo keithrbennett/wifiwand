@@ -866,6 +866,9 @@ class Main
     end
   end
 end
-end
+
+
+end # module MacWifi
+
 
 MacWifi::Main.new.call
