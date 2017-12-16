@@ -188,7 +188,7 @@ constants or instance variables if you want to create variables in your shell.
 ```
 mac-wifi i            # prints out wifi info
 mac-wifi lsa          # prints available networks
-mac-wifi lsp          # prints preferred networks
+mac-wifi pr           # prints preferred networks
 mac-wifi cy           # cycles the wifi off and on
 mac-wifi co a-network a-password # connects to a network requiring a password
 mac-wifi co a-network            # connects to a network _not_ requiring a password
@@ -206,7 +206,7 @@ you can use the `fancy_puts` method to output it nicely. An alias `fp` has been
 provided for your convenience. You're welcome!  For example:
 
 ```
-[5] pry(#<MacWifi::CommandLineInterface>)> fp lsp.first(3)
+[5] pry(#<MacWifi::CommandLineInterface>)> fp pr.first(3)
 [
     [0] "  AIS SMART Login",
     [1] " BubblesLive",
@@ -254,7 +254,7 @@ There are 341 preferred networks.
 
 # Delete all preferred networks whose names begin with "TOTTGUEST", the easy way.
 # rm can take multiple network names, but they must be specified as separate parameters; thus the '*'.
-> rm(*lsp.grep(/^TOTTGUEST/))
+> rm(*pr.grep(/^TOTTGUEST/))
 
 # Define a method to wait for the Internet connection to be active.
 # (This functionality is included in the `till` command.)
