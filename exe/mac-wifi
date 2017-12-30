@@ -135,7 +135,7 @@ class BaseModel
 
   # Connects to the passed network name, optionally with password.
   # Turns wifi on first, in case it was turned off.
-  # Relies on subclass implementation of simple_connect().
+  # Relies on subclass implementation of os_level_connect().
   def connect(network_name, password = nil)
     # Allow symbols and anything responding to to_s for user convenience
     network_name = network_name.to_s if network_name
@@ -145,7 +145,7 @@ class BaseModel
       raise "A network name is required but was not provided."
     end
     wifi_on
-    simple_connect(network_name, password)
+    os_level_connect(network_name, password)
 
     # Verify that the network is now connected:
     actual_network_name = connected_network_name
@@ -175,7 +175,7 @@ class BaseModel
   def preferred_network_password(preferred_network_name)
     preferred_network_name = preferred_network_name.to_s
     if preferred_networks.include?(preferred_network_name)
-      simple_preferred_network_password(preferred_network_name)
+      os_level_preferred_network_password(preferred_network_name)
     else
       raise "Network #{preferred_network_name} not in preferred networks list."
     end
@@ -293,10 +293,15 @@ class MacOsModel < BaseModel
 
   # @return an array of unique available network names only, sorted alphabetically
   def available_network_names
-    available_network_info[1..-1] \
+    info = available_network_info
+    if info.nil?
+      nil
+    else
+      info[1..-1] \
         .map { |line| line[0..32].rstrip } \
         .uniq \
         .sort { |s1, s2| s1.casecmp(s2) }
+    end
   end
 
 
@@ -344,7 +349,7 @@ class MacOsModel < BaseModel
 
 
   # This method is called by BaseModel#connect to do the OS-specific connection logic.
-  def simple_connect(network_name, password = nil)
+  def os_level_connect(network_name, password = nil)
     command = "networksetup -setairportnetwork #{wifi_hardware_port} " + "#{Shellwords.shellescape(network_name)}"
     if password
       command << ' ' << Shellwords.shellescape(password)
@@ -359,7 +364,7 @@ class MacOsModel < BaseModel
   #     If not, return nil
   #   else
   #     raise an error
-  def simple_preferred_network_password(preferred_network_name)
+  def os_level_preferred_network_password(preferred_network_name)
     command = %Q{security find-generic-password -D "AirPort network password" -a "#{preferred_network_name}" -w 2>&1}
     begin
       return run_os_command(command).chomp
@@ -656,7 +661,10 @@ When in interactive shell mode:
 
   def cmd_a
     info = model.available_network_names
-    puts_unless_interactive(fancy_string(info))
+    unless interactive_mode
+      message = model.wifi_on? ? fancy_string(info) : "Wifi is off, cannot see available networks."
+      puts(message)
+    end
     info
   end
 
@@ -697,7 +705,10 @@ When in interactive shell mode:
 
   def cmd_lsa
     info = model.available_network_info
-    puts_unless_interactive(fancy_string(info))
+    unless interactive_mode
+      message = model.wifi_on? ? fancy_string(info) : "Wifi is off, cannot see available networks."
+      puts(message)
+    end
     info
   end
 
