@@ -46,6 +46,19 @@ class BaseModel
   end
 
 
+  def run_os_command(command)
+    output = `#{command} 2>&1` # join stderr with stdout
+    if $?.exitstatus != 0
+      raise OsCommandError.new($?.exitstatus, command, output)
+    end
+    if @verbose_mode
+      puts "\n\n#{'-' * 79}\nCommand: #{command}\n\nOutput:\n#{output}#{'-' * 79}\n\n"
+    end
+    output
+  end
+  private :run_os_command
+
+
   # This method returns whether or not there is a working Internet connection.
   # Because of a Mac issue which causes a request to hang if the network is turned
   # off during its lifetime, we give it only 5 seconds per try,
@@ -214,6 +227,21 @@ class BaseModel
       sleep(wait_interval_in_secs)
     end
   end
+
+
+  # Tries an OS command until the stop condition is true.
+  # @command the command to run in the OS
+  # @stop_condition a lambda taking the commands stdout as its sole parameter
+  # @return the stdout produced by the command
+  def try_os_command_until(command, stop_condition, max_tries = 50)
+    max_tries.times do
+      stdout = run_os_command(command)
+      if stop_condition.(stdout)
+        return stdout
+      end
+    end
+    nil
+  end
 end
 
 
@@ -266,34 +294,39 @@ class MacOsModel < BaseModel
     command = "#{AIRPORT_CMD} -s"
     max_attempts = 50
 
+
     reformat_line = ->(line) do
       ssid = line[0..31].strip
       "%-32.32s%s" % [ssid, line[32..-1]]
     end
 
-    max_attempts.times do
-      output = run_os_command(command)
-      if output.size > 0
-        lines = output.split("\n")
-        header_line = lines[0]
-        data_lines = lines[1..-1]
-        data_lines.map! do |line|
-          # Reformat the line so that the name is left instead of right justified
-          reformat_line.(line)
-        end
-        data_lines.sort!
-        return [reformat_line.(header_line)] + data_lines
+
+    process_tabular_data = ->(output) do
+      lines = output.split("\n")
+      header_line = lines[0]
+      data_lines = lines[1..-1]
+      data_lines.map! do |line|
+        # Reformat the line so that the name is left instead of right justified
+        reformat_line.(line)
       end
+      data_lines.sort!
+      [reformat_line.(header_line)] + data_lines
     end
 
 
-    raise "Unable to get available network information after #{max_attempts} attempts."
+    output = try_os_command_until(command, ->(output) do
+      ! ([nil, ''].include?(output))
+    end)
+
+    if output
+      process_tabular_data.(output)
+    else
+      raise "Unable to get available network information after #{max_attempts} attempts."
+    end
   end
 
 
-  # @return an array of unique available network names only, sorted alphabetically
-  def available_network_names
-    info = available_network_info
+  def parse_network_names(info)
     if info.nil?
       nil
     else
@@ -302,6 +335,58 @@ class MacOsModel < BaseModel
         .uniq \
         .sort { |s1, s2| s1.casecmp(s2) }
     end
+  end
+
+  # @return an array of unique available network names only, sorted alphabetically
+  # Kludge alert: the tabular data does not differentiate between strings with and without leading whitespace
+  # Therefore, we get the data once in tabular format, and another time in XML format.
+  # The XML element will include any leading whitespace. However, it includes all <string> elements,
+  # many of which are not network names.
+  # As an improved approximation of the correct result, for each network name found in tabular mode,
+  # we look to see if there is a corresponding string element with leading whitespace, and, if so,
+  # replace it.
+  #
+  # This will not behave correctly if a given name has occurrences with different amounts of whitespace,
+  # e.g. ' x' and '     x'.
+  #
+  # The reason we don't use an XML parser to get the exactly correct result is that we don't want
+  # users to need to install any external dependencies in order to run this script.
+  def available_network_names
+
+    # Parses the XML text (using grep, not XML parsing) to find
+    # <string> elements, and extracts the network name candidates
+    # containing leading spaces from it.
+    get_leading_space_names = ->(text) do
+      text.split("\n") \
+          .grep(%r{<string>}) \
+          .sort \
+          .uniq \
+          .map { |line| line.gsub("<string>", '').gsub('</string>', '').gsub("\t", '') } \
+          .select { |s| s[0] == ' ' }
+    end
+
+
+    output_is_valid = ->(output) { ! ([nil, ''].include?(output)) }
+    tabular_data = try_os_command_until("#{AIRPORT_CMD} -s", output_is_valid)
+    xml_data     = try_os_command_until("#{AIRPORT_CMD} -s -x", output_is_valid)
+
+    tabular_data_lines = tabular_data[1..-1] # omit header line
+    names_no_spaces    = parse_network_names(tabular_data_lines.split("\n")).map(&:strip)
+    names_maybe_spaces =  get_leading_space_names.(xml_data)
+
+    # puts 'names_no_spaces:'; p names_no_spaces
+    # puts "*" * 80
+    # puts 'names_maybe_spaces:'; p names_maybe_spaces
+
+    names = names_no_spaces.map do |name_no_spaces|
+      match = names_maybe_spaces.detect do |name_maybe_spaces|
+        %r{[ \t]?#{name_no_spaces}$}.match(name_maybe_spaces)
+      end
+
+      match ? match : name_no_spaces
+    end
+
+    names.sort { |s1, s2| s1.casecmp(s2) }    # sort alphabetically, case insensitively
   end
 
 
@@ -432,19 +517,6 @@ class MacOsModel < BaseModel
     info.delete('AirPort') # will be here if off, but info is already in wifi_on key
     info
   end
-
-
-  def run_os_command(command)
-    output = `#{command} 2>&1` # join stderr with stdout
-    if $?.exitstatus != 0
-      raise OsCommandError.new($?.exitstatus, command, output)
-    end
-    if @verbose_mode
-      puts "\n\n#{'-' * 79}\nCommand: #{command}\n\nOutput:\n#{output}#{'-' * 79}\n\n"
-    end
-    output
-  end
-  private :run_os_command
 
 
   # Parses output like the text below into a hash:
@@ -662,7 +734,11 @@ When in interactive shell mode:
   def cmd_a
     info = model.available_network_names
     unless interactive_mode
-      message = model.wifi_on? ? fancy_string(info) : "Wifi is off, cannot see available networks."
+      message = if model.wifi_on?
+        "Available networks are:\n\n#{fancy_string(info)}"
+      else
+        "Wifi is off, cannot see available networks."
+      end
       puts(message)
     end
     info
@@ -892,12 +968,15 @@ class Main
     if running_as_script?
       begin
         MacWifi::CommandLineInterface.new.call
-      rescue => error
-        puts error
-        stack_trace_filename = './mac-wifi-error-stack-trace.txt'
-        File.write(stack_trace_filename, caller.join("\n"))
-        puts "Exiting. Stack trace written to '#{File.expand_path(stack_trace_filename)}'."
-        exit(-1)
+      # rescue => error
+      #   puts error
+      #   stack_trace_filename = './mac-wifi-error-stack-trace.txt'
+      #   File.open(stack_trace_filename, 'w') do |f|
+      #     f << error
+      #     f << caller.join("\n")
+      #   end
+      #   puts "Exiting. Stack trace written to '#{File.expand_path(stack_trace_filename)}'."
+      #   exit(-1)
       end
     end
   end
