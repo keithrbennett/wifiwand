@@ -538,7 +538,7 @@ end
 
 class CommandLineInterface
 
-  attr_reader :model, :interactive_mode
+  attr_reader :model, :interactive_mode, :options
 
   class Command < Struct.new(:min_string, :max_string, :action); end
 
@@ -584,7 +584,8 @@ When in interactive shell mode:
 "
 
 
-  def initialize
+  def initialize(options)
+    @options = options
     @model = MacOsModel.new(verbose_mode)
     @interactive_mode = false # will be changed to true if/when user selects shell option on command line
   end
@@ -593,7 +594,7 @@ When in interactive shell mode:
   # Until command line option parsing is added, the only way to specify
   # verbose mode is in the environment variable MAC_WIFI_OPTS.
   def verbose_mode
-    /-v/.match(ENV['MAC_WIFI_OPTS'])
+    options.verbose
   end
 
 
@@ -909,6 +910,9 @@ When in interactive shell mode:
 end
 
 
+require 'optparse'
+require 'ostruct'
+
 class Main
 
   # @return true if this file is being run as a script, else false
@@ -960,14 +964,33 @@ class Main
   end
 
 
+  # Parses the command line with Ruby's internal 'optparse'.
+  # Looks for "-v" flag to set verbosity to true.
+  # optparse removes what it processes from ARGV, which simplifies our command parsing.
+  def parse_command_line
+    options = OpenStruct.new
+    OptionParser.new do |parser|
+      parser.on("-v", "--[no-]verbose", "Run verbosely") do |v|
+        options.verbose = v
+      end
+      parser.on("-h", "--help", "Show help") do |_help_requested|
+        ARGV << 'h' # pass on the request to the command processor
+      end
+    end.parse!
+    options
+  end
+
+
   def call
     assert_os_is_mac_os
+
+    options = parse_command_line
 
     # If this file is being called as a script, run it.
     # Else, it may be loaded to use the model in a different way.
     if running_as_script?
       begin
-        MacWifi::CommandLineInterface.new.call
+        MacWifi::CommandLineInterface.new(options).call
       # rescue => error
       #   puts error
       #   stack_trace_filename = './mac-wifi-error-stack-trace.txt'
