@@ -88,20 +88,8 @@ This will create a file `available_networks.json` with content looking something
 
 ### Seeing the Underlying OS Commands and Output
 
-If you would like to see the Mac OS commands and their output, you can do so by setting the
-environment variable MAC_WIFI_OPTS to include `-v` (for _verbose_).
-This can be done in the following ways (using the `info` command as an example):
-
-```
-export MAC_WIFI_OPTS=-v
-./mac-wifi i
-```
-
-...or...
-
-```
-MAC_WIFI_OPTS=-v  ./mac-wifi i
-```
+If you would like to see the Mac OS commands and their output, 
+you can do so by specifying "-v" on the command line.
 
 You may notice that some commands are executed more than once. This is to simplify the application logic
 and eliminate the need for the complexity of balancing the speed that a cache offers and the risk
