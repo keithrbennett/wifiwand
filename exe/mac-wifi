@@ -233,7 +233,7 @@ class BaseModel
   # @command the command to run in the OS
   # @stop_condition a lambda taking the commands stdout as its sole parameter
   # @return the stdout produced by the command
-  def try_os_command_until(command, stop_condition, max_tries = 50)
+  def try_os_command_until(command, stop_condition, max_tries = 100)
     max_tries.times do
       stdout = run_os_command(command)
       if stop_condition.(stdout)
@@ -370,13 +370,13 @@ class MacOsModel < BaseModel
     tabular_data = try_os_command_until("#{AIRPORT_CMD} -s", output_is_valid)
     xml_data     = try_os_command_until("#{AIRPORT_CMD} -s -x", output_is_valid)
 
+    if tabular_data.nil? || xml_data.nil?
+      raise "Unable to get available network information; please try again."
+    end
+
     tabular_data_lines = tabular_data[1..-1] # omit header line
     names_no_spaces    = parse_network_names(tabular_data_lines.split("\n")).map(&:strip)
     names_maybe_spaces =  get_leading_space_names.(xml_data)
-
-    # puts 'names_no_spaces:'; p names_no_spaces
-    # puts "*" * 80
-    # puts 'names_maybe_spaces:'; p names_maybe_spaces
 
     names = names_no_spaces.map do |name_no_spaces|
       match = names_maybe_spaces.detect do |name_maybe_spaces|
