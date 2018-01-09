@@ -653,6 +653,10 @@ When in interactive shell mode:
   # that is not needed here.
   def run_pry
     binding.pry
+
+    # the seemingly useless line below is needed to avoid pry's exiting
+    # (see https://github.com/deivid-rodriguez/pry-byebug/issues/45)
+    _a = nil
   end
 
 
@@ -663,9 +667,7 @@ When in interactive shell mode:
       puts "Already in shell."
       return
     end
-
     @interactive_mode = true
-
     # For conveniently calling to_json or to_yaml on an object:
     require 'json'
     require 'yaml'
@@ -991,15 +993,6 @@ class Main
     if running_as_script?
       begin
         MacWifi::CommandLineInterface.new(options).call
-      # rescue => error
-      #   puts error
-      #   stack_trace_filename = './mac-wifi-error-stack-trace.txt'
-      #   File.open(stack_trace_filename, 'w') do |f|
-      #     f << error
-      #     f << caller.join("\n")
-      #   end
-      #   puts "Exiting. Stack trace written to '#{File.expand_path(stack_trace_filename)}'."
-      #   exit(-1)
       end
     end
   end
