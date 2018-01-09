@@ -1,3 +1,14 @@
+## v1.4.0
+
+* Support for "MAC-WIFI-OPTS" environment variable for configuration dropped.
+* Support for "-v" verbosity command line option added.
+* Work around pry bug whereby shell was not always starting when requested.
+* 99% fix for reporting of available network names containing leading spaces
+  (this will not correctly handle the case of network names that are identical
+  except for numbers of leading spaces).
+* Improved handling of attempting to list available networks when wifi is off.
+
+
 ## v1.3.0
 
 * Add partial JSON and YAML support.
