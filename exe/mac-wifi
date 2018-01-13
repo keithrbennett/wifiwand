@@ -590,7 +590,8 @@ When in interactive shell mode:
   def initialize(options)
     @options = options
     @model = MacOsModel.new(verbose_mode)
-    @interactive_mode = false # will be changed to true if/when user selects shell option on command line
+    @interactive_mode = !!(options.interactive_mode)
+    run_shell if @interactive_mode
   end
 
 
@@ -666,12 +667,6 @@ When in interactive shell mode:
   # Runs a pry session in the context of this object.
   # Commands and options specified on the command line can also be specified in the shell.
   def run_shell
-    if interactive_mode
-      puts "Already in shell."
-      return
-    end
-    @interactive_mode = true
-
     begin
       require 'pry'
     rescue LoadError
@@ -875,11 +870,6 @@ When in interactive shell mode:
   end
 
 
-  def cmd_s
-    run_shell
-  end
-
-
   def cmd_t(*options)
     target_status = options[0].to_sym
     wait_interval_in_secs = (options[1] ? Float(options[1]) : nil)
@@ -919,7 +909,6 @@ When in interactive shell mode:
         Command.new('pr',  'pref_nets',     -> (*_options) { cmd_pr            }),
         Command.new('q',   'quit',          -> (*_options) { cmd_q             }),
         Command.new('r',   'rm_pref_nets',  -> (*options)  { cmd_r(*options)   }),
-        Command.new('s',   'shell',         -> (*_options) { cmd_s             }),
         Command.new('t',   'till',          -> (*options)  { cmd_t(*options)   }),
         Command.new('w',   'wifion',        -> (*_options) { cmd_w             }),
         Command.new('x',   'xit',           -> (*_options) { cmd_x             })
@@ -1025,6 +1014,10 @@ class Main
     OptionParser.new do |parser|
       parser.on("-v", "--[no-]verbose", "Run verbosely") do |v|
         options.verbose = v
+      end
+
+      parser.on("-s", "--shell", "Start interactive shell") do |v|
+        options.interactive_mode = true
       end
 
       parser.on("-j", "--json", "Output data in JSON format") do |v|

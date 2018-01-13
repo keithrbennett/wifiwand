@@ -52,8 +52,7 @@ x[it]                     - exits this program (interactive shell mode only) (se
 
 When in interactive shell mode:
     * use quotes for string parameters such as method names.
-    * for pry commands, use prefix `%`.
-    
+    * for pry commands, use prefix `%`.    
 ```
 
 Internally, it uses several Mac command line utilities. This is not ideal,
