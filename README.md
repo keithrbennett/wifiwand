@@ -4,11 +4,16 @@ The `mac-wifi` script installed by this gem (or otherwise copied) enables the qu
 The code encapsulates the Mac OS specific logic in a minimal class to more easily add support for other operating systems,
 but as of now, only Mac OS is supported. (Feel free to add an OS!)
 
-It can be run in single-command or interactive mode. Interactive mode uses the `pry` gem,
+It can be run in single-command or interactive mode. Interactive mode uses the [pry](https://github.com/pry/pry) gem,
 providing an interface familiar to Rubyists and other 
 [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) users.
 
-It is not necessary to download this repo or even install this gem; the `bin/mac-wifi` script file is all you need to run the application.
+It is not necessary to download this repo or even install this gem; the `bin/mac-wifi` 
+script file is all you need to run the application. There are many ways to install it
+in this way; one way is by changing into the directory
+where you would like to save the script, and running:
+
+`curl -o mac-wifi https://raw.githubusercontent.com/keithrbennett/macwifi/master/exe/mac-wifi && chmod +x mac-wifi`
 
 
 ### Usage
@@ -20,7 +25,7 @@ output at the time of this writing:
 $ mac-wifi h
 
 
-mac-wifi version 1.3.0 -- Available commands are:
+mac-wifi version 1.4.0 -- Available commands are:
 
 a[vailnets]               - array of names of the available networks
 ci                        - connected to Internet (not just wifi on)?
@@ -66,6 +71,9 @@ This is accomplished by the following command:
 
 `gem install awesome_print`
 
+You may need to precede this command with `sudo `, especially if you are using the 
+version of Ruby that comes packaged with MacOS.
+
 
 ### JSON and YAML Output
 
@@ -109,6 +117,20 @@ sudo gem install pry
 sudo gem install pry-coolline
 ```
 
+
+### Using It in Scripts
+
+Sometimes calling `mac-wifi` from a script is handy. I have this script that
+connects to a commonly used wifi network, and then speaks a message when it's done:
+
+```
+mac-wifi connect my_network_name my_password  && \
+mac-wifi till conn && \
+say -v Kyoko "Connected to my network."
+```
+
+(The `say` command supports all kinds of accents that are fun to play around with.
+You can get a list of all of them by running `say -v "?"`)
 
 ### Using the Shell
 
