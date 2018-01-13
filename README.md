@@ -24,8 +24,13 @@ output at the time of this writing:
 ```
 $ mac-wifi h
 
+Command Line Switches:                    [mac-wifi version 1.4.0]
 
-mac-wifi version 1.4.0 -- Available commands are:
+-o[i,j,s,y]               - outputs data in inspect, JSON, to_s, or YAML format when not in shell mode
+-s                        - run in shell mode
+-v                        - verbose mode (prints OS commands and their outputs)
+
+Commands:
 
 a[vail_nets]              - array of names of the available networks
 ci                        - connected to Internet (not just wifi on)?
@@ -52,7 +57,7 @@ x[it]                     - exits this program (interactive shell mode only) (se
 
 When in interactive shell mode:
     * use quotes for string parameters such as method names.
-    * for pry commands, use prefix `%`.    
+    * for pry commands, use prefix `%`.
 ```
 
 Internally, it uses several Mac command line utilities. This is not ideal,

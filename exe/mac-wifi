@@ -555,7 +555,13 @@ class CommandLineInterface
 
   # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.
   HELP_TEXT = "
-mac-wifi version #{VERSION} -- Available commands are:
+Command Line Switches:                    [mac-wifi version #{VERSION}]
+
+-o[i,j,s,y]               - outputs data in inspect, JSON, to_s, or YAML format when not in shell mode
+-s                        - run in shell mode
+-v                        - verbose mode (prints OS commands and their outputs)
+
+Commands:
 
 a[vail_nets]              - array of names of the available networks
 ci                        - connected to Internet (not just wifi on)?
@@ -645,7 +651,7 @@ When in interactive shell mode:
   # Asserts that a command has been passed on the command line.
   def validate_command_line
     if ARGV.empty?
-      puts "Syntax is: #{__FILE__} command [options]"
+      puts "Syntax is: #{__FILE__} [options] command [command_options]"
       print_help
       exit(-1)
     end
@@ -1020,12 +1026,17 @@ class Main
         options.interactive_mode = true
       end
 
-      parser.on("-j", "--json", "Output data in JSON format") do |v|
-        options.post_processor = ->(object) { JSON.pretty_generate(object) }
-      end
-
-      parser.on("-y", "--yaml", "Output data in JSON format") do |v|
-        options.post_processor = ->(object) { object.to_yaml }
+      parser.on("-o", "--output_format FORMAT", "Format output data") do |v|
+        options.post_processor = case v[0].downcase
+          when 'i'
+            ->(object) { object.inspect }
+          when 'j'
+           ->(object) { JSON.pretty_generate(object) }
+          when 's'
+           ->(object) { sio = StringIO.new; sio.puts(object); sio.string }
+          when 'y'
+           ->(object) { object.to_yaml }
+        end
       end
 
       parser.on("-h", "--help", "Show help") do |_help_requested|
