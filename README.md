@@ -27,21 +27,21 @@ $ mac-wifi h
 
 mac-wifi version 1.4.0 -- Available commands are:
 
-a[vailnets]               - array of names of the available networks
+a[vail_nets]              - array of names of the available networks
 ci                        - connected to Internet (not just wifi on)?
 co[nnect] network-name    - turns wifi on, connects to network-name
 cy[cle]                   - turns wifi off, then on, preserving network selection
 d[isconnect]              - disconnects from current network, does not turn off wifi
 h[elp]                    - prints this help
 i[nfo]                    - a hash of wifi-related information
-l[savailnets]             - details about available networks
+l[s_avail_nets]           - details about available networks
 n[etwork_name]            - name (SSID) of currently connected network
 on                        - turns wifi on
 of[f]                     - turns wifi off
 pa[ssword] network-name   - password for preferred network-name
-pr[efnets]                - preferred (not necessarily available) networks
+pr[ef_nets]               - preferred (not necessarily available) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
-r[mprefnets] network-name - removes network-name from the preferred networks list
+r[m_pref_nets] network-name - removes network-name from the preferred networks list
                             (can provide multiple names separated by spaces)
 s[hell]                   - opens an interactive pry shell (command line only)
 t[ill]                    - returns when the desired Internet connection state is true. Options:
@@ -53,7 +53,7 @@ x[it]                     - exits this program (interactive shell mode only) (se
 When in interactive shell mode:
     * use quotes for string parameters such as method names.
     * for pry commands, use prefix `%`.
-
+    
 ```
 
 Internally, it uses several Mac command line utilities. This is not ideal,
@@ -83,7 +83,7 @@ you would usually use them in Ruby code. Their respective libraries are automati
 you can work around this limitation by redirecting the shell's input, e.g.:
 
 ```
-echo "File.write('available_networks.json', availnets.pretty_inspect)" | mac-wifi s
+echo "File.write('available_networks.json', avail_nets.pretty_inspect)" | mac-wifi s
 ```
 
 This will create a file `available_networks.json` with content looking something like this:
@@ -253,9 +253,9 @@ expression and don't need to print it out, you can simply append `;nil` to the e
 and that will be value output to the console. For example:
 
 ```
-[10] pry(#<MacWifi::CommandLineInterface>)> available_networks = availnets; nil
+[10] pry(#<MacWifi::CommandLineInterface>)> available_networks = avail_nets; nil
 => nil
-[11] pry(#<MacWifi::CommandLineInterface>)> availnets.size
+[11] pry(#<MacWifi::CommandLineInterface>)> avail_nets.size
 => 32
 ```
 
