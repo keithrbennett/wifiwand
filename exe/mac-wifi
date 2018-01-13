@@ -19,6 +19,9 @@
 # License: MIT License
 
 
+require 'json'
+require 'yaml'
+
 require 'shellwords'
 require 'tempfile'
 
@@ -668,9 +671,6 @@ When in interactive shell mode:
       return
     end
     @interactive_mode = true
-    # For conveniently calling to_json or to_yaml on an object:
-    require 'json'
-    require 'yaml'
 
     begin
       require 'pry'
@@ -736,22 +736,30 @@ When in interactive shell mode:
 
   def cmd_a
     info = model.available_network_names
-    unless interactive_mode
-      message = if model.wifi_on?
-        "Available networks are:\n\n#{fancy_string(info)}"
+    if interactive_mode
+      info
+    else
+      if post_processor
+        puts post_processor.(info)
       else
-        "Wifi is off, cannot see available networks."
+        message = if model.wifi_on?
+          "Available networks are:\n\n#{fancy_string(info)}"
+        else
+          "Wifi is off, cannot see available networks."
+        end
+        puts(message)
       end
-      puts(message)
     end
-    info
   end
 
 
   def cmd_ci
     connected = model.connected_to_internet?
-    puts_unless_interactive("Connected to Internet: #{connected}")
-    connected
+    if interactive_mode
+      connected
+    else
+      puts (post_processor ? post_processor.(connected) : "Connected to Internet: #{connected}")
+    end
   end
 
 
@@ -777,25 +785,41 @@ When in interactive shell mode:
 
   def cmd_i
     info = model.wifi_info
-    puts_unless_interactive(fancy_string(info))
-    info
+    if interactive_mode
+      info
+    else
+      if post_processor
+        puts post_processor.(info)
+      else
+        puts fancy_string(info)
+      end
+    end
   end
 
 
   def cmd_lsa
     info = model.available_network_info
-    unless interactive_mode
-      message = model.wifi_on? ? fancy_string(info) : "Wifi is off, cannot see available networks."
-      puts(message)
+    if interactive_mode
+      info
+    else
+      if post_processor
+        puts post_processor.(info)
+      else
+        message = model.wifi_on? ? fancy_string(info) : "Wifi is off, cannot see available networks."
+        puts(message)
+      end
     end
-    info
   end
 
 
   def cmd_n
     name = model.connected_network_name
-    puts_unless_interactive("Network (SSID) name: #{name ? name : '[none]'}")
-    name
+    if interactive_mode
+      name
+    else
+      display_name = name ? name : '[none]'
+      puts (post_processor ? post_processor.(name) : %Q{Network (SSID) name: "#{display_name}"})
+    end
   end
 
 
@@ -812,20 +836,27 @@ When in interactive shell mode:
   def cmd_pa(network)
     password = model.preferred_network_password(network)
 
-    unless interactive_mode
-      output =  %Q{Preferred network "#{network_name}" }
-      output << (password ? %Q{stored password is: "#{password}".} : "has no stored password.")
-      puts output
+    if interactive_mode
+      password
+    else
+      if post_processor
+        puts post_processor.(password)
+        else
+          output =  %Q{Preferred network "#{model.connected_network_name}" }
+          output << (password ? %Q{stored password is "#{password}".} : "has no stored password.")
+          puts output
+      end
     end
-
-    password
   end
 
 
   def cmd_pr
     networks = model.preferred_networks
-    puts_unless_interactive(fancy_string(networks))
-    networks
+    if interactive_mode
+      networks
+    else
+      puts (post_processor ? post_processor.(networks) : fancy_string(networks))
+    end
   end
 
 
@@ -835,7 +866,12 @@ When in interactive shell mode:
 
 
   def cmd_r(*options)
-    model.remove_preferred_networks(*options)
+    removed_networks = model.remove_preferred_networks(*options)
+    if interactive_mode
+      removed_networks
+    else
+      puts (post_processor ? post_processor.(removed_networks) : "Removed networks: #{removed_networks.inspect}")
+    end
   end
 
 
@@ -853,8 +889,11 @@ When in interactive shell mode:
 
   def cmd_w
     on = model.wifi_on?
-    puts_unless_interactive("Wifi on: #{on}")
-    on
+    if interactive_mode
+      on
+    else
+      puts (post_processor ? post_processor.(on) : "Wifi on: #{on}")
+    end
   end
 
 
@@ -896,6 +935,18 @@ When in interactive shell mode:
     end
 
     result ? result.action : nil
+  end
+
+
+  # If a post-processor has been configured (e.g. YAML or JSON), use it.
+  def post_process(object)
+    post_processor ? post_processor.(object) : object
+  end
+
+
+
+  def post_processor
+    options.post_processor
   end
 
 
@@ -975,6 +1026,15 @@ class Main
       parser.on("-v", "--[no-]verbose", "Run verbosely") do |v|
         options.verbose = v
       end
+
+      parser.on("-j", "--json", "Output data in JSON format") do |v|
+        options.post_processor = ->(object) { JSON.pretty_generate(object) }
+      end
+
+      parser.on("-y", "--yaml", "Output data in JSON format") do |v|
+        options.post_processor = ->(object) { object.to_yaml }
+      end
+
       parser.on("-h", "--help", "Show help") do |_help_requested|
         ARGV << 'h' # pass on the request to the command processor
       end

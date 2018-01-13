@@ -77,22 +77,9 @@ version of Ruby that comes packaged with MacOS.
 
 ### JSON and YAML Output
 
-For now, JSON and YAML processing are only available in the interactive mode shell, in the way
-you would usually use them in Ruby code. Their respective libraries are automatically
-`require`d for your convenience. If you want them in non-interactive mode,
-you can work around this limitation by redirecting the shell's input, e.g.:
+You can specify that output in _noninteractive_ mode be in JSON or YAML formats
+by specifying `-j` or `-y` on the command line, respectively.
 
-```
-echo "File.write('available_networks.json', avail_nets.pretty_inspect)" | mac-wifi s
-```
-
-This will create a file `available_networks.json` with content looking something like this:
-
-```bash
-["....MMobile 2.4G",
- ".@  3BB_WiFi",
- ".@ AIS SUPER WiFi"]
-```
 
 ### Seeing the Underlying OS Commands and Output
 
