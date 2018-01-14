@@ -28,7 +28,7 @@ require 'tempfile'
 module MacWifi
 
 # This version must be kept in sync with the version in the gemspec file.
-VERSION = '1.4.0'
+VERSION = '2.0.0'
 
 
 class BaseModel
@@ -557,7 +557,7 @@ class CommandLineInterface
   HELP_TEXT = "
 Command Line Switches:                    [mac-wifi version #{VERSION}]
 
--o[i,j,s,y]               - outputs data in inspect, JSON, to_s, or YAML format when not in shell mode
+-o[i,j,p,y]               - outputs data in inspect, JSON, puts, or YAML format when not in shell mode
 -s                        - run in shell mode
 -v                        - verbose mode (prints OS commands and their outputs)
 
@@ -1027,16 +1027,22 @@ class Main
       end
 
       parser.on("-o", "--output_format FORMAT", "Format output data") do |v|
-        options.post_processor = case v[0].downcase
-          when 'i'
-            ->(object) { object.inspect }
-          when 'j'
-           ->(object) { JSON.pretty_generate(object) }
-          when 's'
-           ->(object) { sio = StringIO.new; sio.puts(object); sio.string }
-          when 'y'
-           ->(object) { object.to_yaml }
+
+        transformers = {
+            'i' => ->(object) { object.inspect },
+            'j' => ->(object) { JSON.pretty_generate(object) },
+            'p' => ->(object) { sio = StringIO.new; sio.puts(object); sio.string },
+            'y' => ->(object) { object.to_yaml }
+        }
+
+        choice = v[0].downcase
+
+        unless transformers.keys.include?(choice)
+          raise %Q{Output format "#{choice}" not in list of available formats} +
+              " (#{transformers.keys.inspect})."
         end
+
+        options.post_processor = transformers[choice]
       end
 
       parser.on("-h", "--help", "Show help") do |_help_requested|

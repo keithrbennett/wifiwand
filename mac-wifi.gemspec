@@ -1,6 +1,6 @@
 # coding: utf-8
 # When changing the version, also change the version and the help text in the README.
-VERSION = '1.4.0'
+VERSION = '2.0.0'
 
 Gem::Specification.new do |spec|
   spec.name          = "mac-wifi"

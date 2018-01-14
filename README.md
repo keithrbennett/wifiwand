@@ -24,9 +24,9 @@ output at the time of this writing:
 ```
 $ mac-wifi h
 
-Command Line Switches:                    [mac-wifi version 1.4.0]
+Command Line Switches:                    [mac-wifi version 2.0.0]
 
--o[i,j,s,y]               - outputs data in inspect, JSON, to_s, or YAML format when not in shell mode
+-o[i,j,p,y]               - outputs data in inspect, JSON, puts, or YAML format when not in shell mode
 -s                        - run in shell mode
 -v                        - verbose mode (prints OS commands and their outputs)
 

@@ -1,3 +1,10 @@
+## v2.0.0
+
+* Support output formats in batch mode: JSON, YAML, puts, and inspect modes.
+* Change some command names to include underscores.
+* Shell mode is now (only) a command line switch (-s).
+
+
 ## v1.4.0
 
 * Support for "MAC-WIFI-OPTS" environment variable for configuration dropped.
