@@ -8,9 +8,9 @@ It can be run in single-command or interactive mode. Interactive mode uses the [
 providing an interface familiar to Rubyists and other 
 [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) users.
 
-It is not necessary to download this repo or even install this gem; the `bin/mac-wifi` 
+It is not necessary to download this repo or even install this gem; the `exe/mac-wifi` 
 script file is all you need to run the application. There are many ways to install it
-in this way; one way is by changing into the directory
+as a single file; one way is by changing into the directory
 where you would like to save the script, and running:
 
 `curl -o mac-wifi https://raw.githubusercontent.com/keithrbennett/macwifi/master/exe/mac-wifi && chmod +x mac-wifi`
@@ -45,7 +45,7 @@ on                        - turns wifi on
 of[f]                     - turns wifi off
 pa[ssword] network-name   - password for preferred network-name
 pr[ef_nets]               - preferred (not necessarily available) networks
-q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
+q[uit]                    - exits this program (interactive shell mode only) (see also '`x')
 r[m_pref_nets] network-name - removes network-name from the preferred networks list
                             (can provide multiple names separated by spaces)
 s[hell]                   - opens an interactive pry shell (command line only)
@@ -79,10 +79,11 @@ You may need to precede this command with `sudo `, especially if you are using t
 version of Ruby that comes packaged with MacOS.
 
 
-### JSON and YAML Output
+### JSON, YAML, and Other Output Formats
 
-You can specify that output in _noninteractive_ mode be in JSON or YAML formats
-by specifying `-j` or `-y` on the command line, respectively.
+You can specify that output in _noninteractive_ mode be in a certain format.
+Currently, JSON, YAML, inspect, and puts formats are supported.
+See the help for which command line switches to use.
 
 
 ### Seeing the Underlying OS Commands and Output
@@ -128,7 +129,7 @@ You can get a list of all of them by running `say -v "?"`)
 **If the program immediately exits when you try to run the shell, try upgrading `pry` and `pry-byebug`.
 This can be done by running `gem install pry; gem install pry-byebug`.**
 
-The shell, invoked with the `s` command on the command line, provides an interactive
+The shell, invoked with the `-s` switch on the command line, provides an interactive
 session. It can be useful when:
 
 * you want to issue multiple commands
@@ -185,20 +186,20 @@ the result may be mysterious.  For example, if I were write the wifi information
 to a file, this would work:
 
 ```
-[1] pry(#<MacWifiView>)> File.write('x.txt', info)
+[1] pry(#<MacWifiView>)> File.write('x', info)
 => 431
 ```
 
 However, if I forget to quote the filename:
 
 ```
-[2] pry(#<MacWifiView>)> File.write(x.txt, info)
+[2] pry(#<MacWifiView>)> File.write(x, info)
 ➜  mac-wifi git:(master) ✗  
 ```
 
-What happened? `x.txt` was assumed by Ruby to be a method name.
-`method_missing` was called, and since `x.txt` starts with `x`,
-the exit method was called, exiting the program.
+What happened? `x` was assumed by Ruby to be a method name.
+`method_missing` was called, and since `x` is the exit
+command, the program exited.
 
 Bottom line is, be careful to quote your strings, and you're probably better off using 
 constants or instance variables if you want to create variables in your shell. 
@@ -304,7 +305,8 @@ Although installation as a gem is simple, being able to download a single file m
 
 * the user wants to install the script once, rather than once per Ruby version and/or gemset.
 * the user needs or wants to specify the exact location of the script (e.g. `~/bin`),
-and/or does not want it buried in the gem directory tree (e.g. `/Users/kbennett/.rvm/gems/ruby-2.4.0/bin/mac-wifi`).
+and/or does not want it buried in the gem directory tree (e.g. 
+`/Users/kbennett/.rvm/gems/ruby-2.5.0/gems/mac-wifi-2.0.0/exe/mac-wifi`).
 * the user is not familiar with Ruby and does not want to use the `gem` command
 * the user is concerned about security and would prefer to install a single file to a known location
 rather than run the gem installation
