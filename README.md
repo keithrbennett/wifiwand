@@ -1,19 +1,23 @@
 # mac-wifi
 
-The `mac-wifi` script installed by this gem (or otherwise copied) enables the query and management of wifi configuration and environment on a Mac.
-The code encapsulates the Mac OS specific logic in a minimal class to more easily add support for other operating systems,
+To install this software, run:
+
+`gem install mac-wifi`
+
+or, you may need to precede that command with `sudo`:
+
+`sudo gem install mac-wifi`
+
+The `mac-wifi` script installed by this gem enables the query and management 
+of wifi configuration and environment on a Mac.
+The code encapsulates the Mac OS specific logic in a minimal class 
+to more easily add support for other operating systems,
 but as of now, only Mac OS is supported. (Feel free to add an OS!)
 
-It can be run in single-command or interactive mode. Interactive mode uses the [pry](https://github.com/pry/pry) gem,
+It can be run in single-command or interactive mode. 
+Interactive mode uses the [pry](https://github.com/pry/pry) gem,
 providing an interface familiar to Rubyists and other 
 [REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) users.
-
-It is not necessary to download this repo or even install this gem; the `exe/mac-wifi` 
-script file is all you need to run the application. There are many ways to install it
-as a single file; one way is by changing into the directory
-where you would like to save the script, and running:
-
-`curl -o mac-wifi https://raw.githubusercontent.com/keithrbennett/macwifi/master/exe/mac-wifi && chmod +x mac-wifi`
 
 
 ### Usage
@@ -121,8 +125,9 @@ mac-wifi till conn && \
 say -v Kyoko "Connected to my network."
 ```
 
-(The `say` command supports all kinds of accents that are fun to play around with.
+(The Mac OS `say` command supports all kinds of accents that are fun to play around with.
 You can get a list of all of them by running `say -v "?"`)
+
 
 ### Using the Shell
 
@@ -297,34 +302,16 @@ Connected!
 ```
 
 
-### Distribution, or Why All The Code is in One Humongous File
+### Dependent Gems
 
-This code would be neater and easier to read if each class were in a file of its own.
-The reason everything is in one file is to simplify distribution for some users.
-Although installation as a gem is simple, being able to download a single file may work better when:
-
-* the user wants to install the script once, rather than once per Ruby version and/or gemset.
-* the user needs or wants to specify the exact location of the script (e.g. `~/bin`),
-and/or does not want it buried in the gem directory tree (e.g. 
-`/Users/kbennett/.rvm/gems/ruby-2.5.0/gems/mac-wifi-2.0.0/exe/mac-wifi`).
-* the user is not familiar with Ruby and does not want to use the `gem` command
-* the user is concerned about security and would prefer to install a single file to a known location
-rather than run the gem installation
-* installing gems is controlled by the user's organization, and getting authorization is not practical
-* installing gems requires root access, and the user does not have root access
-
-That said, installation as a gem is highly recommended, since:
-
-* this will greatly simplify acquiring future fixes and enhancements
-* if the user wants to use the shell mode, they will need to `gem install pry` anyway
-
-Currently, the only gems used by the program are:
+Currently, the only gems used directly by the program are:
 
 * `pry`, to provide the interactive shell
 * `awesome_print` (optional), to more nicely format output in non-interactive mode
 
 So the user can avoid installing gems altogether as long as they don't need to use the interactive shell,
 and as long as they are comfortable with the less pretty output.
+
 
 ### Password Lookup Oddity
 

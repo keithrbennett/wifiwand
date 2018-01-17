@@ -63,13 +63,7 @@ module MacWifi
 
       options = parse_command_line
 
-      # If this file is being called as a script, run it.
-      # Else, it may be loaded to use the model in a different way.
-      if running_as_script?
-        begin
-          MacWifi::CommandLineInterface.new(options).call
-        end
-      end
+      MacWifi::CommandLineInterface.new(options).call
     end
   end
 end

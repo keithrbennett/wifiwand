@@ -96,6 +96,7 @@ class MacOsModel < BaseModel
     end
   end
 
+
   # @return an array of unique available network names only, sorted alphabetically
   # Kludge alert: the tabular data does not differentiate between strings with and without leading whitespace
   # Therefore, we get the data once in tabular format, and another time in XML format.

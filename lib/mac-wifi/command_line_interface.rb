@@ -106,11 +106,6 @@ When in interactive shell mode:
   alias_method :fp, :fancy_puts
 
 
-  def puts_unless_interactive(string)
-    puts(string) unless interactive_mode
-  end
-
-
   # Asserts that a command has been passed on the command line.
   def validate_command_line
     if ARGV.empty?
