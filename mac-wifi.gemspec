@@ -1,6 +1,8 @@
 # coding: utf-8
 
-require 'mac-wifi/version'
+require_relative 'lib/mac-wifi/version'
+
+puts  MacWifi::VERSION
 
 Gem::Specification.new do |spec|
   spec.name          = "mac-wifi"
