@@ -28,7 +28,7 @@ output at the time of this writing:
 ```
 $ mac-wifi h
 
-Command Line Switches:                    [mac-wifi version 2.0.0]
+Command Line Switches:                    [mac-wifi version 2.1.0]
 
 -o[i,j,p,y]               - outputs data in inspect, JSON, puts, or YAML format when not in shell mode
 -s                        - run in shell mode
@@ -49,19 +49,19 @@ on                        - turns wifi on
 of[f]                     - turns wifi off
 pa[ssword] network-name   - password for preferred network-name
 pr[ef_nets]               - preferred (not necessarily available) networks
-q[uit]                    - exits this program (interactive shell mode only) (see also '`x')
+q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
 r[m_pref_nets] network-name - removes network-name from the preferred networks list
-                            (can provide multiple names separated by spaces)
+                          (can provide multiple names separated by spaces)
 s[hell]                   - opens an interactive pry shell (command line only)
 t[ill]                    - returns when the desired Internet connection state is true. Options:
-                            1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
-                            2) wait interval, in seconds (optional, defaults to 0.5 seconds)
+                          1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
+                          2) wait interval, in seconds (optional, defaults to 0.5 seconds)
 w[ifion]                  - is the wifi on?
 x[it]                     - exits this program (interactive shell mode only) (see also 'q')
 
 When in interactive shell mode:
-    * use quotes for string parameters such as method names.
-    * for pry commands, use prefix `%`.
+  * use quotes for string parameters such as method names.
+  * for pry commands, use prefix `%`.
 ```
 
 Internally, it uses several Mac command line utilities. This is not ideal,
@@ -93,7 +93,7 @@ See the help for which command line switches to use.
 ### Seeing the Underlying OS Commands and Output
 
 If you would like to see the Mac OS commands and their output, 
-you can do so by specifying "-v" on the command line.
+you can do so by specifying "-v" (for _verbose) on the command line.
 
 You may notice that some commands are executed more than once. This is to simplify the application logic
 and eliminate the need for the complexity of balancing the speed that a cache offers and the risk
@@ -131,8 +131,8 @@ You can get a list of all of them by running `say -v "?"`)
 
 ### Using the Shell
 
-**If the program immediately exits when you try to run the shell, try upgrading `pry` and `pry-byebug`.
-This can be done by running `gem install pry; gem install pry-byebug`.**
+_If the program immediately exits when you try to run the shell, try upgrading `pry` and `pry-byebug`.
+This can be done by running `gem install pry; gem install pry-byebug`._
 
 The shell, invoked with the `-s` switch on the command line, provides an interactive
 session. It can be useful when:
@@ -142,7 +142,7 @@ session. It can be useful when:
 * you want the data in a format not provided by this application
 * you want to incorporate these commands into other Ruby code interactively
 * you want to combine the results of commands with other OS commands 
-  (you can shell out to run other command line programs by preceding the command with a period (`.`).
+  (you can shell out to run other command line programs by preceding the command with a period (`.`))   .
 
 
 ### Using Variables in the Shell
@@ -195,7 +195,7 @@ to a file, this would work:
 => 431
 ```
 
-However, if I forget to quote the filename:
+However, if I forget to quote the filename, the program exits:
 
 ```
 [2] pry(#<MacWifiView>)> File.write(x, info)
@@ -229,8 +229,10 @@ mac-wifi t on && say "Internet connected" # Play audible message when Internet b
 #### Interactive Shell Commands
 
 When in shell mode, commands generally return the target object (e.g. the array of
-available networks) rather than outputting a nicely formatted string. This may result
-in the shell outputting that returned value in an ugly way.
+available networks) rather than outputting a nicely formatted string. 
+This is intentional, so that you can compose expressions and in general
+have maximum flexibility. The result may be that `pry` displays 
+that returned value in an ugly way.
 
 If you don't need the return value but just want to display the value nicely,
 you can use the `fancy_puts` method to output it nicely. An alias `fp` has been
@@ -245,16 +247,33 @@ provided for your convenience. You're welcome!  For example:
 ]
 ```
 
-If you want to surpress output altogether (e.g. if you are using the value in an
-expression and don't need to print it out, you can simply append `;nil` to the expression
-and that will be value output to the console. For example:
+For best display results, be sure `awesome_print` is `gem install`ed.
+The program will silently use a not-as-nice formatter without it.
+(This silence is intentional, so that users who don't want to install
+`awesome-print` will not be bothered.)
+
+If you want to suppress output altogether (e.g. if you are using the value in an
+expression and don't need to see it displayed,
+you can simply append `;nil` to the expression
+and `nil` will be value output to the console. For example:
 
 ```
 [10] pry(#<MacWifi::CommandLineInterface>)> available_networks = avail_nets; nil
 => nil
-[11] pry(#<MacWifi::CommandLineInterface>)> avail_nets.size
-=> 32
 ```
+
+#### Using the Models Without the Command Line Interface
+
+The code has been structured so that you can call the models
+from your own Ruby code, bypassing the command line interface.
+Here is an example of how to do that:
+
+```ruby
+require 'mac-wifi'
+model = MacWifi::MacOsModel.new
+puts model.available_network_names.to_yaml # etc...
+```
+
 
 **More Examples**
 
@@ -341,4 +360,4 @@ MIT License (see LICENSE.txt)
 
 I am available for consulting, development, tutoring, training, troubleshooting, etc.
 
-You can contact me via GMail, Twitter, and Github as _keithrbennett_.
+You can contact me via GMail, Twitter, Github, and LinkedIn, as _keithrbennett_.

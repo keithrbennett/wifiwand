@@ -1,3 +1,11 @@
+## v2.1.0
+
+* Support for the single script file install has been dropped. It was requiring too much complexity,
+and was problematic with Ruby implementations lacking GEM_HOME / GEM_PATH environment variables.
+* Code was broken out of the single script file into class files, plus a `version.rb`
+and `mac-wifi.rb` file.
+
+
 ## v2.0.0
 
 * Support output formats in batch mode: JSON, YAML, puts, and inspect modes.
