@@ -13,13 +13,6 @@ class MacOsModel < BaseModel
   end
 
 
-  # This is determined by whether or not a line like the following appears in the output of `netstat -nr`:
-  # 0/1                10.137.0.41        UGSc           15        0   utun1
-  def vpn_running?
-    run_os_command('netstat -nr').split("\n").grep(/^0\/1.*utun1/).any?
-  end
-
-
   # Identifies the (first) wireless network hardware port in the system, e.g. en0 or en1
   def wifi_hardware_port
     @wifi_hardware_port ||= begin
@@ -265,7 +258,6 @@ class MacOsModel < BaseModel
     info = {
         wifi_on:     wifi_on?,
         internet_on: connected_to_internet?,
-        vpn_on:      vpn_running?,
         port:        wifi_hardware_port,
         network:     current_network,
         ip_address:  ip_address,
