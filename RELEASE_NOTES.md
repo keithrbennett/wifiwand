@@ -1,3 +1,9 @@
+## v2.2.0
+
+* Add pu[blic-wifi-show] command to open https://www.whatismyip.com/ to show public IP address info.
+* Removed 'vpn on' info from info hash; it was often inaccurate.
+
+
 ## v2.1.0
 
 * Support for the single script file install has been dropped. It was requiring too much complexity,
