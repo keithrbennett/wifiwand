@@ -38,11 +38,11 @@ n[etwork_name]            - name (SSID) of currently connected network
 on                        - turns wifi on
 of[f]                     - turns wifi off
 pa[ssword] network-name   - password for preferred network-name
+pu[blic-ip-show]          - opens https://www.whatismyip.com/ in a browser window to show public address info
 pr[ef_nets]               - preferred (not necessarily available) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
 r[m_pref_nets] network-name - removes network-name from the preferred networks list
                           (can provide multiple names separated by spaces)
-s[hell]                   - opens an interactive pry shell (command line only)
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                           1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
                           2) wait interval, in seconds (optional, defaults to 0.5 seconds)
@@ -135,7 +135,7 @@ When in interactive shell mode:
       require 'pry'
     rescue LoadError
       puts "The 'pry' gem and/or one of its prerequisites, required for running the shell, was not found." +
-               " Please `gem install pry`."
+               " Please `gem install pry` or, if necessary, `sudo gem install pry`."
       exit(-1)
     end
 
@@ -201,12 +201,9 @@ When in interactive shell mode:
       if post_processor
         puts post_processor.(info)
       else
-        message = if model.wifi_on?
-                    "Available networks are:\n\n#{fancy_string(info)}"
-                  else
-                    "Wifi is off, cannot see available networks."
-                  end
-        puts(message)
+        puts model.wifi_on? \
+            ? "Available networks are:\n\n#{fancy_string(info)}" \
+            : "Wifi is off, cannot see available networks."
       end
     end
   end
@@ -319,6 +316,11 @@ When in interactive shell mode:
   end
 
 
+  def cmd_pu
+    `open https://www.whatismyip.com/`
+  end
+
+
   def cmd_q
     quit
   end
@@ -371,6 +373,7 @@ When in interactive shell mode:
         Command.new('on',  'on',            -> (*_options) { cmd_on            }),
         Command.new('pa',  'password',      -> (*options)  { cmd_pa(*options)  }),
         Command.new('pr',  'pref_nets',     -> (*_options) { cmd_pr            }),
+        Command.new('pu',  'public_ip_show',-> (*_options) { cmd_pu            }),
         Command.new('q',   'quit',          -> (*_options) { cmd_q             }),
         Command.new('r',   'rm_pref_nets',  -> (*options)  { cmd_r(*options)   }),
         Command.new('t',   'till',          -> (*options)  { cmd_t(*options)   }),
