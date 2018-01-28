@@ -1,3 +1,4 @@
+require 'json'
 require 'tempfile'
 require_relative '../mac-wifi'
 
@@ -216,6 +217,14 @@ class BaseModel
       end
     end
     nil
+  end
+
+
+  # Reaches out to ipinfo.io to get public IP address information
+  # in the form of a hash.
+  # You may need to enclose this call in a begin/rescue.
+  def public_ip_address_info
+    JSON.parse(`curl -s ipinfo.io`)
   end
 end
 end

@@ -267,6 +267,15 @@ class MacOsModel < BaseModel
     more_info   = colon_output_to_hash(more_output)
     info.merge!(more_info)
     info.delete('AirPort') # will be here if off, but info is already in wifi_on key
+
+    if info[:wifi_on]
+      begin
+        info[:public_ip] = public_ip_address_info
+      rescue => e
+        puts "Error obtaining public IP address info, proceeding with everything else:"
+        puts e.to_s
+      end
+    end
     info
   end
 
