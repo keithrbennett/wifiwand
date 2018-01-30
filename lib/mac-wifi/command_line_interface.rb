@@ -39,9 +39,10 @@ class CommandLineInterface
   end
 
   OPEN_TARGETS = OpenTargets.new([
-      OpenTarget.new('ipc', 'https://ipchicken.com/',     'IP Chicken'),
-      OpenTarget.new('ipw', 'https://www.whatismyip.com', 'What is My IP'),
-      OpenTarget.new('spe', 'http://speedtest.net/',      'Speed Test'),
+      OpenTarget.new('ipc',  'https://ipchicken.com/',     'IP Chicken'),
+      OpenTarget.new('ipw',  'https://www.whatismyip.com', 'What is My IP'),
+      OpenTarget.new('spe',  'http://speedtest.net/',      'Speed Test'),
+      OpenTarget.new('this', 'https://github.com/keithrbennett/macwifi', 'mac-wifi Home Page'),
   ])
 
 

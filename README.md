@@ -47,7 +47,7 @@ l[s_avail_nets]           - details about available networks
 n[etwork_name]            - name (SSID) of currently connected network
 on                        - turns wifi on
 of[f]                     - turns wifi off
-op[en]                    - open target ('ipc' (IP Chicken), 'ipw' (What is My IP), 'spe' (Speed Test))
+op[en]                    - open target ('ipc' (IP Chicken), 'ipw' (What is My IP), 'spe' (Speed Test), 'this' (mac-wifi Home Page))
 pa[ssword] network-name   - password for preferred network-name
 pr[ef_nets]               - preferred (not necessarily available) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
