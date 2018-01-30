@@ -181,11 +181,6 @@ class MacOsModel < BaseModel
   end
 
 
-  def connected_network_name
-    wifi_info['SSID']
-  end
-
-
   # This method is called by BaseModel#connect to do the OS-specific connection logic.
   def os_level_connect(network_name, password = nil)
     command = "networksetup -setairportnetwork #{wifi_hardware_port} " + "#{Shellwords.shellescape(network_name)}"

@@ -299,7 +299,7 @@ When in interactive shell mode:
 
 
   def cmd_n
-    name = model.connected_network_name
+    name = model.current_network
     if interactive_mode
       name
     else
