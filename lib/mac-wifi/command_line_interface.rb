@@ -4,13 +4,13 @@ module MacWifi
 
 class CommandLineInterface
 
-  attr_reader :interactive_mode, :model, :open_targets, :options
+  attr_reader :interactive_mode, :model, :open_resources, :options
 
 
   class Command < Struct.new(:min_string, :max_string, :action); end
 
 
-  class OpenTarget < Struct.new(:code, :resource, :description)
+  class OpenResource < Struct.new(:code, :resource, :description)
 
     # Ex: "'ipw' (What is My IP)"
     def help_string
@@ -19,10 +19,10 @@ class CommandLineInterface
   end
 
 
-  class OpenTargets < Array
+  class OpenResources < Array
 
-    def find(code)
-      detect { |target| target.code == code }
+    def find_by_code(code)
+      detect { |resource| resource.code == code }
     end
 
     # Ex: "('ipc' (IP Chicken), 'ipw' (What is My IP), 'spe' (Speed Test))"
@@ -38,11 +38,11 @@ class CommandLineInterface
     end
   end
 
-  OPEN_TARGETS = OpenTargets.new([
-      OpenTarget.new('ipc',  'https://ipchicken.com/',     'IP Chicken'),
-      OpenTarget.new('ipw',  'https://www.whatismyip.com', 'What is My IP'),
-      OpenTarget.new('spe',  'http://speedtest.net/',      'Speed Test'),
-      OpenTarget.new('this', 'https://github.com/keithrbennett/macwifi', 'mac-wifi Home Page'),
+  OPEN_RESOURCES = OpenResources.new([
+      OpenResource.new('ipc',  'https://ipchicken.com/',     'IP Chicken'),
+      OpenResource.new('ipw',  'https://www.whatismyip.com', 'What is My IP'),
+      OpenResource.new('spe',  'http://speedtest.net/',      'Speed Test'),
+      OpenResource.new('this', 'https://github.com/keithrbennett/macwifi', 'mac-wifi Home Page'),
   ])
 
 
@@ -67,12 +67,12 @@ l[s_avail_nets]           - details about available networks
 n[etwork_name]            - name (SSID) of currently connected network
 on                        - turns wifi on
 of[f]                     - turns wifi off
-op[en]                    - open target (#{OPEN_TARGETS.help_string})
 pa[ssword] network-name   - password for preferred network-name
 pr[ef_nets]               - preferred (not necessarily available) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
 r[m_pref_nets] network-name - removes network-name from the preferred networks list
                           (can provide multiple names separated by spaces)
+ro[pen]                   - open resource (#{OPEN_RESOURCES.help_string})
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                           1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
                           2) wait interval, in seconds (optional, defaults to 0.5 seconds)
@@ -320,11 +320,11 @@ When in interactive shell mode:
 
 
   # Use Mac OS 'open' command line utility
-  def cmd_op(*target_codes)
-    target_codes.each do |code|
-      target = OPEN_TARGETS.find(code)
-      if target
-        model.run_os_command("open #{target.resource}")
+  def cmd_ro(*resource_codes)
+    resource_codes.each do |code|
+      resource = OPEN_RESOURCES.find_by_code(code)
+      if resource
+        model.run_os_command("open #{resource.resource}")
       end
     end
   end
@@ -411,7 +411,7 @@ When in interactive shell mode:
         Command.new('n',   'network_name',  -> (*_options) { cmd_n             }),
         Command.new('of',  'off',           -> (*_options) { cmd_of            }),
         Command.new('on',  'on',            -> (*_options) { cmd_on            }),
-        Command.new('op',  'open',          -> (*options)  { cmd_op(*options)  }),
+        Command.new('ro',  'ropen',         -> (*options)  { cmd_ro(*options)  }),
         Command.new('pa',  'password',      -> (*options)  { cmd_pa(*options)  }),
         Command.new('pr',  'pref_nets',     -> (*_options) { cmd_pr            }),
         Command.new('q',   'quit',          -> (*_options) { cmd_q             }),
