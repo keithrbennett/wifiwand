@@ -28,7 +28,6 @@ output at the time of this writing:
 ```
 $ mac-wifi h
 
-
 Command Line Switches:                    [mac-wifi version 2.2.0]
 
 -o[i,j,p,y]               - outputs data in inspect, JSON, puts, or YAML format when not in shell mode
@@ -48,8 +47,8 @@ l[s_avail_nets]           - details about available networks
 n[etwork_name]            - name (SSID) of currently connected network
 on                        - turns wifi on
 of[f]                     - turns wifi off
+op[en]                    - open target ('ipc' (IP Chicken), 'ipw' (What is My IP), 'spe' (Speed Test))
 pa[ssword] network-name   - password for preferred network-name
-pu[blic-ip-show]          - opens https://www.whatismyip.com/ in a browser window to show public address info
 pr[ef_nets]               - preferred (not necessarily available) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
 r[m_pref_nets] network-name - removes network-name from the preferred networks list

@@ -4,9 +4,32 @@ module MacWifi
 
 class CommandLineInterface
 
-  attr_reader :model, :interactive_mode, :options
+  attr_reader :interactive_mode, :model, :open_targets, :options
+
 
   class Command < Struct.new(:min_string, :max_string, :action); end
+
+
+  class OpenTarget < Struct.new(:code, :resource, :description)
+
+    # Ex: "'ipw' (What is My IP)"
+    def help_string
+      "'#{code}' (#{description})"
+    end
+  end
+
+
+  class OpenTargets < Array
+
+    def find(code)
+      detect { |target| target.code == code }
+    end
+
+    # Ex: "('ipc' (IP Chicken), 'ipw' (What is My IP), 'spe' (Speed Test))"
+    def help_string
+      map(&:help_string).join(', ')
+    end
+  end
 
 
   class BadCommandError < RuntimeError
@@ -14,6 +37,12 @@ class CommandLineInterface
       super
     end
   end
+
+  OPEN_TARGETS = OpenTargets.new([
+      OpenTarget.new('ipc', 'https://ipchicken.com/',     'IP Chicken'),
+      OpenTarget.new('ipw', 'https://www.whatismyip.com', 'What is My IP'),
+      OpenTarget.new('spe', 'http://speedtest.net/',      'Speed Test'),
+  ])
 
 
   # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.
@@ -37,8 +66,8 @@ l[s_avail_nets]           - details about available networks
 n[etwork_name]            - name (SSID) of currently connected network
 on                        - turns wifi on
 of[f]                     - turns wifi off
+op[en]                    - open target (#{OPEN_TARGETS.help_string})
 pa[ssword] network-name   - password for preferred network-name
-pu[blic-ip-show]          - opens https://www.whatismyip.com/ in a browser window to show public address info
 pr[ef_nets]               - preferred (not necessarily available) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
 r[m_pref_nets] network-name - removes network-name from the preferred networks list
@@ -289,6 +318,16 @@ When in interactive shell mode:
   end
 
 
+  # Use Mac OS 'open' command line utility
+  def cmd_op(*target_codes)
+    target_codes.each do |code|
+      target = OPEN_TARGETS.find(code)
+      if target
+        model.run_os_command("open #{target.resource}")
+      end
+    end
+  end
+
   def cmd_pa(network)
     password = model.preferred_network_password(network)
 
@@ -371,9 +410,9 @@ When in interactive shell mode:
         Command.new('n',   'network_name',  -> (*_options) { cmd_n             }),
         Command.new('of',  'off',           -> (*_options) { cmd_of            }),
         Command.new('on',  'on',            -> (*_options) { cmd_on            }),
+        Command.new('op',  'open',          -> (*options)  { cmd_op(*options)  }),
         Command.new('pa',  'password',      -> (*options)  { cmd_pa(*options)  }),
         Command.new('pr',  'pref_nets',     -> (*_options) { cmd_pr            }),
-        Command.new('pu',  'public_ip_show',-> (*_options) { cmd_pu            }),
         Command.new('q',   'quit',          -> (*_options) { cmd_q             }),
         Command.new('r',   'rm_pref_nets',  -> (*options)  { cmd_r(*options)   }),
         Command.new('t',   'till',          -> (*options)  { cmd_t(*options)   }),
