@@ -226,5 +226,13 @@ class BaseModel
   def public_ip_address_info
     JSON.parse(`curl -s ipinfo.io`)
   end
+
+
+  # @return array of nameserver IP addresses from /etc/resolv.conf.
+  # Though this is strictly *not* OS-agnostic, it will be used by most OS's,
+  # and can be overridden by subclasses (e.g. Windows).
+  def nameservers
+    File.readlines('/etc/resolv.conf').grep(/^nameserver /).map { |line| line.split.last }
+  end
 end
 end

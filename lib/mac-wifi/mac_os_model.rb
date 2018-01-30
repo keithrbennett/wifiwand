@@ -261,6 +261,7 @@ class MacOsModel < BaseModel
         port:        wifi_hardware_port,
         network:     current_network,
         ip_address:  ip_address,
+        nameservers: nameservers,
         timestamp:   Time.now,
     }
     more_output = run_os_command(AIRPORT_CMD + " -I")
