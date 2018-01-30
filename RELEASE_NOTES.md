@@ -1,3 +1,14 @@
+## v2.3.0
+
+* Add public IP address info to info hash (https://github.com/keithrbennett/macwifi/issues/3).
+* Add nameserver information to info hash (issue at https://github.com/keithrbennett/macwifi/issues/5).
+* Made all info hash keys same data type to be less confusing; made them all String's.
+* Replace 'public-ip-show' with 'ropen', and provide additional targets ipchicken.com,
+ speedtest.net, and the Github page for this project
+* Speed up retrieval of network name
+* Remove BaseModel#run_os_command private restriction.
+
+
 ## v2.2.0
 
 * Add pu[blic-wifi-show] command to open https://www.whatismyip.com/ to show public IP address info.
