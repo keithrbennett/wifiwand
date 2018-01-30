@@ -32,7 +32,6 @@ class BaseModel
     end
     output
   end
-  private :run_os_command
 
 
   # This method returns whether or not there is a working Internet connection.
@@ -228,11 +227,15 @@ class BaseModel
   end
 
 
-  # @return array of nameserver IP addresses from /etc/resolv.conf.
+  # @return array of nameserver IP addresses from /etc/resolv.conf, or nil if not found
   # Though this is strictly *not* OS-agnostic, it will be used by most OS's,
   # and can be overridden by subclasses (e.g. Windows).
   def nameservers
-    File.readlines('/etc/resolv.conf').grep(/^nameserver /).map { |line| line.split.last }
+    begin
+      File.readlines('/etc/resolv.conf').grep(/^nameserver /).map { |line| line.split.last }
+    rescue Errno::ENOENT
+      nil
+    end
   end
 end
 end
