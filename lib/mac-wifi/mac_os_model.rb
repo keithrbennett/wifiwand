@@ -256,22 +256,22 @@ class MacOsModel < BaseModel
   def wifi_info
 
     info = {
-        wifi_on:     wifi_on?,
-        internet_on: connected_to_internet?,
-        port:        wifi_hardware_port,
-        network:     current_network,
-        ip_address:  ip_address,
-        nameservers: nameservers,
-        timestamp:   Time.now,
+        'wifi_on'     =>    wifi_on?,
+        'internet_on' => connected_to_internet?,
+        'port'        => wifi_hardware_port,
+        'network'     => current_network,
+        'ip_address'  => ip_address,
+        'nameservers' => nameservers,
+        'timestamp'   => Time.now,
     }
     more_output = run_os_command(AIRPORT_CMD + " -I")
     more_info   = colon_output_to_hash(more_output)
     info.merge!(more_info)
     info.delete('AirPort') # will be here if off, but info is already in wifi_on key
 
-    if info[:wifi_on]
+    if info['wifi_on']
       begin
-        info[:public_ip] = public_ip_address_info
+        info['public_ip'] = public_ip_address_info
       rescue => e
         puts "Error obtaining public IP address info, proceeding with everything else:"
         puts e.to_s
