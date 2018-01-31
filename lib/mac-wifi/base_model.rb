@@ -230,12 +230,21 @@ class BaseModel
   # @return array of nameserver IP addresses from /etc/resolv.conf, or nil if not found
   # Though this is strictly *not* OS-agnostic, it will be used by most OS's,
   # and can be overridden by subclasses (e.g. Windows).
-  def nameservers
+  def nameservers_using_resolv_conf
     begin
       File.readlines('/etc/resolv.conf').grep(/^nameserver /).map { |line| line.split.last }
     rescue Errno::ENOENT
       nil
     end
+  end
+
+
+  def nameservers_using_scutil
+    output = run_os_command('scutil --dns')
+    nameserver_lines_scoped_and_unscoped = output.split("\n").grep(/^\s*nameserver\[/)
+    unique_nameserver_lines = nameserver_lines_scoped_and_unscoped.uniq # take the union
+    nameservers = unique_nameserver_lines.map { |line| line.split(' : ').last.strip }
+    nameservers
   end
 end
 end
