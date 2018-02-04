@@ -1,4 +1,5 @@
-require_relative 'mac_os_model'
+require_relative 'version'
+require_relative 'operating_systems'
 
 module MacWifi
 
@@ -87,7 +88,9 @@ When in interactive shell mode:
 
   def initialize(options)
     @options = options
-    @model = MacOsModel.new(verbose_mode)
+    current_os = OperatingSystems.new.current_os
+    raise "Could not determine operating system" if current_os.nil?
+    @model = current_os.create_model(verbose_mode)
     @interactive_mode = !!(options.interactive_mode)
     run_shell if @interactive_mode
   end
