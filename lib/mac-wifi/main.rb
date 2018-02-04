@@ -1,4 +1,6 @@
 require_relative 'command_line_interface'
+require_relative 'operating_systems'
+
 
 module MacWifi
 
@@ -8,14 +10,6 @@ module MacWifi
   require 'yaml'
 
   class Main
-
-    def assert_os_is_mac_os
-      host_os = RbConfig::CONFIG["host_os"]
-      unless /darwin/.match(host_os)  # e.g. "darwin16.4.0"
-        raise "This program currently works only on Mac OS. Platform is '#{host_os}'."
-      end
-    end
-
 
     # Parses the command line with Ruby's internal 'optparse'.
     # Looks for "-v" flag to set verbosity to true.
@@ -59,7 +53,10 @@ module MacWifi
 
 
     def call
-      assert_os_is_mac_os
+      operating_systems = OperatingSystems.new
+      unless operating_systems.current_id == :mac
+        raise "OS not in supported list of #{operating_systems.supported_os_names.inspect}"
+      end
 
       options = parse_command_line
 

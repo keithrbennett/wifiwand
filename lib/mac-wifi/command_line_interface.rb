@@ -85,7 +85,6 @@ When in interactive shell mode:
 
 "
 
-
   def initialize(options)
     @options = options
     @model = MacOsModel.new(verbose_mode)
