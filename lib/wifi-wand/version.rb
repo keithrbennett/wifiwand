@@ -1,4 +1,4 @@
-module MacWifi
+module WifiWand
 
   VERSION = '2.3.0'
 

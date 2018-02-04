@@ -5,9 +5,9 @@
 # Many of them are run once with the wifi on, and once when it's off.
 
 
-load File.join(File.dirname(__FILE__), '..', 'bin', 'mac-wifi')
+load File.join(File.dirname(__FILE__), '..', 'bin', 'wifi-wand')
 
-module MacWifi
+module WifiWand
 
 describe MacOsModel do
 

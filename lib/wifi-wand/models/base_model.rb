@@ -1,8 +1,8 @@
 require 'json'
 require 'tempfile'
-require_relative '../../mac-wifi'
+require_relative '../../wifi-wand'
 
-module MacWifi
+module WifiWand
 
 class BaseModel
 
@@ -54,7 +54,7 @@ class BaseModel
   # to greatly simplify this method.
   def connected_to_internet?
 
-    tempfile = Tempfile.open('mac-wifi-')
+    tempfile = Tempfile.open('wifi-wand-')
 
     begin
       start_status_script = -> do

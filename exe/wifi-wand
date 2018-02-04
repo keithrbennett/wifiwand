@@ -19,6 +19,6 @@
 # License: MIT License
 
 
-require_relative '../lib/mac-wifi/main'
+require_relative '../lib/wifi-wand/main'
 
-MacWifi::Main.new.call
+WifiWand::Main.new.call

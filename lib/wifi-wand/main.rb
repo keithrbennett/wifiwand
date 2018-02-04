@@ -2,7 +2,7 @@ require_relative 'command_line_interface'
 require_relative 'operating_systems'
 
 
-module MacWifi
+module WifiWand
 
   require 'json'
   require 'optparse'
@@ -60,7 +60,7 @@ module MacWifi
 
       options = parse_command_line
 
-      MacWifi::CommandLineInterface.new(options).call
+      WifiWand::CommandLineInterface.new(options).call
     end
   end
 end

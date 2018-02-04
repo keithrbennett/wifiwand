@@ -1,6 +1,6 @@
 # Base class for classes identifying a supported operating system.
 
-module MacWifi
+module WifiWand
 
 class BaseOs < Struct.new(:id, :display_name); end
 

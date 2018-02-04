@@ -1,6 +1,6 @@
 require_relative 'base_os'
 
-module MacWifi
+module WifiWand
 
 class ImaginaryOs < BaseOs
 

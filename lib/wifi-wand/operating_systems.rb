@@ -2,7 +2,7 @@ require_relative 'os/base_os'
 require_relative 'os/imaginary_os'
 require_relative 'os/mac_os'
 
-module MacWifi
+module WifiWand
 
 # This class will be helpful in adding support for other OS's.
 # To add an OS, see how each BaseOs subclass is implemented, implement it, and

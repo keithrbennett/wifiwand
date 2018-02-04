@@ -2,7 +2,7 @@ require 'shellwords'
 
 require_relative 'base_model'
 
-module MacWifi
+module WifiWand
 
 class MacOsModel < BaseModel
 

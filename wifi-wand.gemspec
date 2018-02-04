@@ -1,17 +1,15 @@
 # coding: utf-8
 
-require_relative 'lib/mac-wifi/version'
-
-puts  MacWifi::VERSION
+require_relative 'lib/wifi-wand/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "mac-wifi"
-  spec.version       = MacWifi::VERSION
+  spec.name          = "wifi-wand"
+  spec.version       = WifiWand::VERSION
   spec.authors       = ["Keith Bennett"]
   spec.email         = ["keithrbennett@gmail.com"]
   spec.description   = %q{A command line interface for managing wifi on a Mac.}
   spec.summary       = %q{Mac wifi utility}
-  spec.homepage      = "https://github.com/keithrbennett/mac-wifi"
+  spec.homepage      = "https://github.com/keithrbennett/wifi-wand"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files`.split($/)

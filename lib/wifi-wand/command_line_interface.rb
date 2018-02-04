@@ -1,7 +1,7 @@
 require_relative 'version'
 require_relative 'operating_systems'
 
-module MacWifi
+module WifiWand
 
 class CommandLineInterface
 
@@ -43,13 +43,13 @@ class CommandLineInterface
       OpenResource.new('ipc',  'https://ipchicken.com/',     'IP Chicken'),
       OpenResource.new('ipw',  'https://www.whatismyip.com', 'What is My IP'),
       OpenResource.new('spe',  'http://speedtest.net/',      'Speed Test'),
-      OpenResource.new('this', 'https://github.com/keithrbennett/macwifi', 'mac-wifi Home Page'),
+      OpenResource.new('this', 'https://github.com/keithrbennett/wifiwand', 'wifi-wand Home Page'),
   ])
 
 
   # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.
   HELP_TEXT = "
-Command Line Switches:                    [mac-wifi version #{MacWifi::VERSION}]
+Command Line Switches:                    [wifi-wand version #{WifiWand::VERSION}]
 
 -o[i,j,p,y]               - outputs data in inspect, JSON, puts, or YAML format when not in shell mode
 -s                        - run in shell mode
