@@ -13,7 +13,7 @@ class MacOs < BaseOs
   end
 
   def create_model(want_verbose)
-    require_relative '../mac_os_model'
+    require_relative '../models/mac_os_model'
     MacOsModel.new(want_verbose)
   end
 end

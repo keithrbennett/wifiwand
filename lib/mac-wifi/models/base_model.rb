@@ -1,6 +1,6 @@
 require 'json'
 require 'tempfile'
-require_relative '../mac-wifi'
+require_relative '../../mac-wifi'
 
 module MacWifi
 
