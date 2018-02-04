@@ -326,7 +326,7 @@ When in interactive shell mode:
     resource_codes.each do |code|
       resource = OPEN_RESOURCES.find_by_code(code)
       if resource
-        model.run_os_command("open #{resource.resource}")
+        model.open_resource(resource.resource)
       end
     end
   end

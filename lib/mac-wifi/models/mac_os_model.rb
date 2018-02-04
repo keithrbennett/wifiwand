@@ -276,6 +276,11 @@ class MacOsModel < BaseModel
   end
 
 
+  def open_resource(resource_url)
+    run_os_command('open ' + resource_url)
+  end
+
+
   # Parses output like the text below into a hash:
   # SSID: Pattara211
   # MCS: 5
