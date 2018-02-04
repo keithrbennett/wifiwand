@@ -1,14 +1,14 @@
-# mac-wifi
+# wifi-wand
 
 To install this software, run:
 
-`gem install mac-wifi`
+`gem install wifi-wand`
 
 or, you may need to precede that command with `sudo`:
 
-`sudo gem install mac-wifi`
+`sudo gem install wifi-wand`
 
-The `mac-wifi` script installed by this gem enables the query and management 
+The `wifi-wand` gem enables the query and management 
 of wifi configuration and environment on a Mac.
 The code encapsulates the Mac OS specific logic in a minimal class 
 to more easily add support for other operating systems,
@@ -26,9 +26,9 @@ Available commands can be seen by using the `h` (or `help`) option. Here is its
 output at the time of this writing:
 
 ```
-$ mac-wifi h
+$ wifi-wand -h
 
-Command Line Switches:                    [mac-wifi version 2.3.0]
+Command Line Switches:                    [wifi-wand version 2.4.0]
 
 -o[i,j,p,y]               - outputs data in inspect, JSON, puts, or YAML format when not in shell mode
 -s                        - run in shell mode
@@ -52,7 +52,7 @@ pr[ef_nets]               - preferred (not necessarily available) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
 r[m_pref_nets] network-name - removes network-name from the preferred networks list
                           (can provide multiple names separated by spaces)
-ro[pen]                   - open resource ('ipc' (IP Chicken), 'ipw' (What is My IP), 'spe' (Speed Test), 'this' (mac-wifi Home Page))
+ro[pen]                   - open resource ('ipc' (IP Chicken), 'ipw' (What is My IP), 'spe' (Speed Test), 'this' (wifi-wand Home Page))
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                           1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
                           2) wait interval, in seconds (optional, defaults to 0.5 seconds)
@@ -116,12 +116,12 @@ sudo gem install pry-coolline
 
 ### Using It in Scripts
 
-Sometimes calling `mac-wifi` from a script is handy. I have this script that
+Sometimes calling `wifi-wand` from a script is handy. I have this script that
 connects to a commonly used wifi network, and then speaks a message when it's done:
 
 ```
-mac-wifi connect my_network_name my_password  && \
-mac-wifi till conn && \
+wifi-wand connect my_network_name my_password  && \
+wifi-wand till conn && \
 say -v Kyoko "Connected to my network."
 ```
 
@@ -157,17 +157,17 @@ the local variable will override the method name. Therefore, local variables
 may override this app's commands.  For example:
 
 ```
-[1] pry(#<MacWifiView>)> n  # network_name command
+[1] pry(#<WifiWandView>)> n  # network_name command
 => ".@ AIS SUPER WiFi"
-[2] pry(#<MacWifiView>)> n = 123  # override it with a local variable
+[2] pry(#<WifiWandView>)> n = 123  # override it with a local variable
 => 123
-[3] pry(#<MacWifiView>)> n  # 'n' no longer calls the method
+[3] pry(#<WifiWandView>)> n  # 'n' no longer calls the method
 => 123
-[4] pry(#<MacWifiView>)> ne  # but any other name that `network_name starts with will still call the method
+[4] pry(#<WifiWandView>)> ne  # but any other name that `network_name starts with will still call the method
 => ".@ AIS SUPER WiFi"
-[5] pry(#<MacWifiView>)> network_name
+[5] pry(#<WifiWandView>)> network_name
 => ".@ AIS SUPER WiFi"
-[6] pry(#<MacWifiView>)> ne_xzy123
+[6] pry(#<WifiWandView>)> ne_xzy123
 "ne_xyz123" is not a valid command or option. If you intend for this to be a string literal, use quotes.
 ``` 
 
@@ -175,10 +175,10 @@ If you don't want to deal with this, you could use global variables, instance va
 or constants, which will _not_ hide the methods:
 
 ```
-[7] pry(#<MacWifiView>)> N = 123
-[8] pry(#<MacWifiView>)> @n = 456
-[9] pry(#<MacWifiView>)> $n = 789
-[10] pry(#<MacWifiView>)> puts n, N, @n, $n
+[7] pry(#<WifiWandView>)> N = 123
+[8] pry(#<WifiWandView>)> @n = 456
+[9] pry(#<WifiWandView>)> $n = 789
+[10] pry(#<WifiWandView>)> puts n, N, @n, $n
 .@ AIS SUPER WiFi
 123
 456
@@ -191,15 +191,15 @@ the result may be mysterious.  For example, if I were write the wifi information
 to a file, this would work:
 
 ```
-[1] pry(#<MacWifiView>)> File.write('x', info)
+[1] pry(#<WifiWandView>)> File.write('x', info)
 => 431
 ```
 
 However, if I forget to quote the filename, the program exits:
 
 ```
-[2] pry(#<MacWifiView>)> File.write(x, info)
-➜  mac-wifi git:(master) ✗  
+[2] pry(#<WifiWandView>)> File.write(x, info)
+➜  wifi-wand git:(master) ✗  
 ```
 
 What happened? `x` was assumed by Ruby to be a method name.
@@ -216,14 +216,14 @@ constants or instance variables if you want to create variables in your shell.
 #### Single Command Invocations
 
 ```
-mac-wifi i            # prints out wifi info
-mac-wifi a            # prints out names of available networks
-mac-wifi lsa          # prints available networks detailed information
-mac-wifi pr           # prints preferred networks
-mac-wifi cy           # cycles the wifi off and on
-mac-wifi co a-network a-password # connects to a network requiring a password
-mac-wifi co a-network            # connects to a network _not_ requiring a password
-mac-wifi t on && say "Internet connected" # Play audible message when Internet becomes connected
+wifi-wand i            # prints out wifi info
+wifi-wand a            # prints out names of available networks
+wifi-wand lsa          # prints available networks detailed information
+wifi-wand pr           # prints preferred networks
+wifi-wand cy           # cycles the wifi off and on
+wifi-wand co a-network a-password # connects to a network requiring a password
+wifi-wand co a-network            # connects to a network _not_ requiring a password
+wifi-wand t on && say "Internet connected" # Play audible message when Internet becomes connected
 ```
 
 #### Interactive Shell Commands
@@ -239,7 +239,7 @@ you can use the `fancy_puts` method to output it nicely. An alias `fp` has been
 provided for your convenience. You're welcome!  For example:
 
 ```
-[5] pry(#<MacWifi::CommandLineInterface>)> fp pr.first(3)
+[5] pry(#<WifiWand::CommandLineInterface>)> fp pr.first(3)
 [
     [0] "  AIS SMART Login",
     [1] " BubblesLive",
@@ -258,7 +258,7 @@ you can simply append `;nil` to the expression
 and `nil` will be value output to the console. For example:
 
 ```
-[10] pry(#<MacWifi::CommandLineInterface>)> available_networks = avail_nets; nil
+[10] pry(#<WifiWand::CommandLineInterface>)> available_networks = avail_nets; nil
 => nil
 ```
 
@@ -269,8 +269,8 @@ from your own Ruby code, bypassing the command line interface.
 Here is an example of how to do that:
 
 ```ruby
-require 'mac-wifi'
-model = MacWifi::MacOsModel.new
+require 'wifi-wand'
+model = WifiWand::MacOsModel.new
 puts model.available_network_names.to_yaml # etc...
 ```
 
@@ -309,8 +309,8 @@ There are 341 preferred networks.
 # Define a method to wait for the Internet connection to be active.
 # (This functionality is included in the `till` command.)
 # Call it, then output celebration message:
-[17] pry(#<MacWifiView>)> def wait_for_internet; loop do; break if ci; sleep 0.5; end; end
-[18] pry(#<MacWifiView>)> wait_for_internet; puts "Connected!"
+[17] pry(#<WifiWandView>)> def wait_for_internet; loop do; break if ci; sleep 0.5; end; end
+[18] pry(#<WifiWandView>)> wait_for_internet; puts "Connected!"
 Connected!
 
 # Same, but using a lambda instead of a method so we can use a variable name
@@ -344,11 +344,11 @@ password, cycle the network, and then reconnect to the original network with it 
 However, since fetching the password without user intervention is not possible, this cannot be automated.
 
 If you don't mind storing the network password in plain text somewhere, then you could easily
-automate it (e.g. `mac-wifi cycle && mac-wifi connect a-network a-password`). Also, you might find it handy
+automate it (e.g. `wifi-wand cycle && wifi-wand connect a-network a-password`). Also, you might find it handy
 to create a script for your most commonly used networks containing something like this:
 
 ```
-mac-wifi  connect  my-usual-network  its-password
+wifi-wand  connect  my-usual-network  its-password
 ```
 
 

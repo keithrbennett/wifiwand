@@ -1,3 +1,13 @@
+## v2.4.0
+
+* Project has been renamed from 'mac-wifi' to 'wifi-wand'.
+* Further preparation for addition of support of other OS's.
+* Make resource opening OS-dependent as it should be.
+* Move models to models directory.
+* Refactored OS determination and model creation.
+* Use scutil --dns to get nameserver info, using the union of the scoped and unscoped nameservers.
+
+
 ## v2.3.0
 
 * Add public IP address info to info hash (https://github.com/keithrbennett/macwifi/issues/3).
