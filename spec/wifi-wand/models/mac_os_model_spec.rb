@@ -5,7 +5,7 @@
 # Many of them are run once with the wifi on, and once when it's off.
 
 
-load File.join(File.dirname(__FILE__), '..', 'bin', 'wifi-wand')
+require_relative '../../../lib/wifi-wand/models/mac_os_model'
 
 module WifiWand
 

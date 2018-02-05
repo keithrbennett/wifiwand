@@ -28,7 +28,7 @@ output at the time of this writing:
 ```
 $ wifi-wand -h
 
-Command Line Switches:                    [wifi-wand version 2.4.1]
+Command Line Switches:                    [wifi-wand version 2.4.2]
 
 -o[i,j,p,y]               - outputs data in inspect, JSON, puts, or YAML format when not in shell mode
 -s                        - run in shell mode

@@ -1,3 +1,8 @@
+## v2.4.2
+
+* Fix test.
+
+
 ## v2.4.1
 
 * Fix bug: undefined local variable or method `connected_network_name'
