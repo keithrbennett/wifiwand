@@ -109,7 +109,7 @@ class BaseModel
     # TODO: Make this network name saving and restoring conditional on it not having a password.
     # If the disabled code below is enabled, an error will be raised if a password is required,
     # even though it is stored.
-    # network_name = current_network
+    # network_name = connected_network_name
     wifi_off
     wifi_on
     # connect(network_name) if network_name

@@ -89,7 +89,7 @@ describe MacOsModel do
 
     it 'can determine the current network' do
       wifi_starts_on ? subject.wifi_on : subject.wifi_off
-      network = subject.current_network
+      network = subject.connected_network_name
       unless subject.wifi_on?
         expect(network).to eq(nil)
       end

@@ -233,7 +233,7 @@ class MacOsModel < BaseModel
 
 
   # Returns the network currently connected to, or nil if none.
-  def current_network
+  def connected_network_name
     lines = run_os_command("#{AIRPORT_CMD} -I").split("\n")
     ssid_lines = lines.grep(/ SSID:/)
     ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last.strip
@@ -254,7 +254,7 @@ class MacOsModel < BaseModel
         'wifi_on'     =>    wifi_on?,
         'internet_on' => connected_to_internet?,
         'port'        => wifi_hardware_port,
-        'network'     => current_network,
+        'network'     => connected_network_name,
         'ip_address'  => ip_address,
         'nameservers' => nameservers_using_scutil,
         'timestamp'   => Time.now,
