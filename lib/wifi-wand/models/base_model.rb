@@ -14,6 +14,10 @@ class BaseModel
       @command = command
       @text = text
     end
+
+    def to_s
+      "#{self.class.name}: Error code #{exitstatus}, command = #{command}, text = #{text}"
+    end
   end
 
 

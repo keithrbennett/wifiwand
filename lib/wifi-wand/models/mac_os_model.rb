@@ -264,7 +264,7 @@ class MacOsModel < BaseModel
     info.merge!(more_info)
     info.delete('AirPort') # will be here if off, but info is already in wifi_on key
 
-    if info['wifi_on']
+    if info['internet_on']
       begin
         info['public_ip'] = public_ip_address_info
       rescue => e
