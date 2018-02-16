@@ -41,6 +41,14 @@ class MacOsModel < BaseModel
   # For some reason, this often returns no results, so I've put the operation in a loop.
   # I was unable to detect a sort strategy in the airport utility's output, so I sort
   # the lines alphabetically, to show duplicates and for easier lookup.
+  #
+  # Sample Output:
+  #
+  # => ["SSID                             BSSID             RSSI CHANNEL HT CC SECURITY (auth/unicast/group)",
+  #     "ByCO-U00tRzUzMEg                 64:6c:b2:db:f3:0c -56  6       Y  -- NONE",
+  #     "Chancery                         0a:18:d6:0b:b9:c3 -82  11      Y  -- NONE",
+  #     "Chancery                         2a:a4:3c:03:33:99 -59  60,+1   Y  -- NONE",
+  #     "DIRECT-sq-BRAVIA                 02:71:cc:87:4a:8c -76  6       Y  -- WPA2(PSK/AES/AES) ",  #
   def available_network_info
     return nil unless wifi_on? # no need to try
     command = "#{AIRPORT_CMD} -s"
@@ -61,6 +69,7 @@ class MacOsModel < BaseModel
         # Reformat the line so that the name is left instead of right justified
         reformat_line.(line)
       end
+      # TODO: Need to sort case insensitively?:
       data_lines.sort!
       [reformat_line.(header_line)] + data_lines
     end
@@ -251,7 +260,7 @@ class MacOsModel < BaseModel
   def wifi_info
 
     info = {
-        'wifi_on'     =>    wifi_on?,
+        'wifi_on'     => wifi_on?,
         'internet_on' => connected_to_internet?,
         'port'        => wifi_hardware_port,
         'network'     => connected_network_name,
