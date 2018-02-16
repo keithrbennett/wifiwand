@@ -27,21 +27,22 @@ module WifiWand
 
         parser.on("-o", "--output_format FORMAT", "Format output data") do |v|
 
-          transformers = {
+          formatters = {
               'i' => ->(object) { object.inspect },
-              'j' => ->(object) { JSON.pretty_generate(object) },
+              'j' => ->(object) { object.to_json },
+              'k' => ->(object) { JSON.pretty_generate(object) },
               'p' => ->(object) { sio = StringIO.new; sio.puts(object); sio.string },
               'y' => ->(object) { object.to_yaml }
           }
 
           choice = v[0].downcase
 
-          unless transformers.keys.include?(choice)
+          unless formatters.keys.include?(choice)
             raise %Q{Output format "#{choice}" not in list of available formats} +
-                      " (#{transformers.keys.inspect})."
+                      " (#{formatters.keys.inspect})."
           end
 
-          options.post_processor = transformers[choice]
+          options.post_processor = formatters[choice]
         end
 
         parser.on("-h", "--help", "Show help") do |_help_requested|
