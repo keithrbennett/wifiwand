@@ -17,7 +17,7 @@ class BaseOs
     raise MethodNotImplementedError.new
   end
 
-  def create_model(want_verbose)
+  def create_model(options)
     raise MethodNotImplementedError.new
   end
 

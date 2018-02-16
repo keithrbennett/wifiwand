@@ -16,6 +16,7 @@ module WifiWand
     # optparse removes what it processes from ARGV, which simplifies our command parsing.
     def parse_command_line
       options = OpenStruct.new
+
       OptionParser.new do |parser|
         parser.on("-v", "--[no-]verbose", "Run verbosely") do |v|
           options.verbose = v
@@ -45,6 +46,10 @@ module WifiWand
           options.post_processor = formatters[choice]
         end
 
+        parser.on("-p", "--wifi-port PORT", "WiFi port name") do |v|
+          options.wifi_port = v
+        end
+
         parser.on("-h", "--help", "Show help") do |_help_requested|
           ARGV << 'h' # pass on the request to the command processor
         end
@@ -61,7 +66,11 @@ module WifiWand
 
       options = parse_command_line
 
-      WifiWand::CommandLineInterface.new(options).call
+      begin
+        WifiWand::CommandLineInterface.new(options).call
+      rescue => e
+        puts "Error: #{e.text}"
+      end
     end
   end
 end

@@ -12,9 +12,9 @@ class MacOs < BaseOs
     !! /darwin/.match(RbConfig::CONFIG["host_os"])
   end
 
-  def create_model(want_verbose)
+  def create_model(options)
     require_relative '../models/mac_os_model'
-    MacOsModel.new(want_verbose)
+    MacOsModel.new(options)
   end
 end
 end

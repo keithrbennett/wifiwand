@@ -12,7 +12,7 @@ class ImaginaryOs < BaseOs
     false
   end
 
-  def create_model(want_verbose)
+  def create_model(options)
     raise "I was only kidding. This class is imaginary."
   end
 end

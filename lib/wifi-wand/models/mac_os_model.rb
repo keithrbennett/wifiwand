@@ -1,3 +1,4 @@
+require 'ostruct'
 require 'shellwords'
 
 require_relative 'base_model'
@@ -8,31 +9,30 @@ class MacOsModel < BaseModel
 
   AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
-  def initialize(verbose = false)
+  # Takes an OpenStruct containing options such as verbose mode and port name.
+  def initialize(options = OpenStruct.new)
     super
   end
 
 
   # Identifies the (first) wireless network hardware port in the system, e.g. en0 or en1
-  def wifi_hardware_port
-    @wifi_hardware_port ||= begin
-      lines = run_os_command("networksetup -listallhardwareports").split("\n")
-      # Produces something like this:
-      # Hardware Port: Wi-Fi
-      # Device: en0
-      # Ethernet Address: ac:bc:32:b9:a9:9d
-      #
-      # Hardware Port: Bluetooth PAN
-      # Device: en3
-      # Ethernet Address: ac:bc:32:b9:a9:9e
-      wifi_port_line_num = (0...lines.size).detect do |index|
-        /: Wi-Fi$/.match(lines[index])
-      end
-      if wifi_port_line_num.nil?
-        raise %Q{Wifi port (e.g. "en0") not found in output of: networksetup -listallhardwareports}
-      else
-        lines[wifi_port_line_num + 1].split(': ').last
-      end
+  def detect_wifi_port
+    lines = run_os_command("networksetup -listallhardwareports").split("\n")
+    # Produces something like this:
+    # Hardware Port: Wi-Fi
+    # Device: en0
+    # Ethernet Address: ac:bc:32:b9:a9:9d
+    #
+    # Hardware Port: Bluetooth PAN
+    # Device: en3
+    # Ethernet Address: ac:bc:32:b9:a9:9e
+    wifi_port_line_num = (0...lines.size).detect do |index|
+      /: Wi-Fi$/.match(lines[index])
+    end
+    if wifi_port_line_num.nil?
+      raise %Q{Wifi port (e.g. "en0") not found in output of: networksetup -listallhardwareports}
+    else
+      lines[wifi_port_line_num + 1].split(': ').last
     end
   end
 
@@ -154,7 +154,7 @@ class MacOsModel < BaseModel
 
   # Returns data pertaining to "preferred" networks, many/most of which will probably not be available.
   def preferred_networks
-    lines = run_os_command("networksetup -listpreferredwirelessnetworks #{wifi_hardware_port}").split("\n")
+    lines = run_os_command("networksetup -listpreferredwirelessnetworks #{wifi_port}").split("\n")
     # Produces something like this, unsorted, and with leading tabs:
     # Preferred networks on en0:
     #         LibraryWiFi
@@ -164,6 +164,14 @@ class MacOsModel < BaseModel
     lines.map! { |line| line.gsub("\t", '') }  # remove leading tabs
     lines.sort! { |s1, s2| s1.casecmp(s2) }    # sort alphabetically, case insensitively
     lines
+  end
+
+
+  # Returns whether or not the specified interface is a WiFi interfae.
+  def is_wifi_port?(port)
+    run_os_command("networksetup -listpreferredwirelessnetworks #{port} 2>/dev/null")
+    exit_status = $?.exitstatus
+    exit_status != 10
   end
 
 
@@ -177,7 +185,7 @@ class MacOsModel < BaseModel
   # Turns wifi on.
   def wifi_on
     return if wifi_on?
-    run_os_command("networksetup -setairportpower #{wifi_hardware_port} on")
+    run_os_command("networksetup -setairportpower #{wifi_port} on")
     wifi_on? ? nil : raise("Wifi could not be enabled.")
   end
 
@@ -185,14 +193,14 @@ class MacOsModel < BaseModel
   # Turns wifi off.
   def wifi_off
     return unless wifi_on?
-    run_os_command("networksetup -setairportpower #{wifi_hardware_port} off")
+    run_os_command("networksetup -setairportpower #{wifi_port} off")
     wifi_on? ? raise("Wifi could not be disabled.") : nil
   end
 
 
   # This method is called by BaseModel#connect to do the OS-specific connection logic.
   def os_level_connect(network_name, password = nil)
-    command = "networksetup -setairportnetwork #{wifi_hardware_port} " + "#{Shellwords.shellescape(network_name)}"
+    command = "networksetup -setairportnetwork #{wifi_port} " + "#{Shellwords.shellescape(network_name)}"
     if password
       command << ' ' << Shellwords.shellescape(password)
     end
@@ -223,7 +231,7 @@ class MacOsModel < BaseModel
   # Returns the IP address assigned to the wifi port, or nil if none.
   def ip_address
     begin
-      run_os_command("ipconfig getifaddr #{wifi_hardware_port}").chomp
+      run_os_command("ipconfig getifaddr #{wifi_port}").chomp
     rescue OsCommandError => error
       if error.exitstatus == 1
         nil
@@ -237,7 +245,7 @@ class MacOsModel < BaseModel
   def remove_preferred_network(network_name)
     network_name = network_name.to_s
     run_os_command("sudo networksetup -removepreferredwirelessnetwork " +
-                       "#{wifi_hardware_port} #{Shellwords.shellescape(network_name)}")
+                       "#{wifi_port} #{Shellwords.shellescape(network_name)}")
   end
 
 
@@ -262,7 +270,7 @@ class MacOsModel < BaseModel
     info = {
         'wifi_on'     => wifi_on?,
         'internet_on' => connected_to_internet?,
-        'port'        => wifi_hardware_port,
+        'port'        => wifi_port,
         'network'     => connected_network_name,
         'ip_address'  => ip_address,
         'nameservers' => nameservers_using_scutil,

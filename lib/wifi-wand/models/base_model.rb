@@ -6,6 +6,8 @@ module WifiWand
 
 class BaseModel
 
+  attr_accessor :wifi_port, :verbose_mode
+
   class OsCommandError < RuntimeError
     attr_reader :exitstatus, :command, :text
 
@@ -18,17 +20,25 @@ class BaseModel
     def to_s
       "#{self.class.name}: Error code #{exitstatus}, command = #{command}, text = #{text}"
     end
+
+    def to_h
+      { exitstatus: exitstatus, command: command, text: text }
+    end
   end
 
 
-  def initialize(verbose = false)
-    @verbose_mode = verbose
+  def initialize(options)
+    @verbose_mode = options.verbose
+    if options.wifi_port && (! is_wifi_port?(options.wifi_port))
+      raise "#{options.wifi_port} is not a Wi-Fi interface."
+    end
+    @wifi_port = options.wifi_port
   end
 
 
-  def run_os_command(command)
+  def run_os_command(command, raise_on_error = true)
     output = `#{command} 2>&1` # join stderr with stdout
-    if $?.exitstatus != 0
+    if $?.exitstatus != 0 && raise_on_error
       raise OsCommandError.new($?.exitstatus, command, output)
     end
     if @verbose_mode
@@ -249,6 +259,11 @@ class BaseModel
     unique_nameserver_lines = nameserver_lines_scoped_and_unscoped.uniq # take the union
     nameservers = unique_nameserver_lines.map { |line| line.split(' : ').last.strip }
     nameservers
+  end
+
+
+  def wifi_port
+    @wifi_port ||= detect_wifi_port
   end
 end
 end

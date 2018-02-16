@@ -1,5 +1,6 @@
-require_relative 'version'
 require_relative 'operating_systems'
+require 'ostruct'
+require_relative 'version'
 
 module WifiWand
 
@@ -51,7 +52,8 @@ class CommandLineInterface
   HELP_TEXT = "
 Command Line Switches:                    [wifi-wand version #{WifiWand::VERSION}]
 
--o[i,j,p,y]               - outputs data in inspect, JSON, puts, or YAML format when not in shell mode
+-o {i,j,p,y}              - outputs data in inspect, JSON, puts, or YAML format when not in shell mode
+-p wifi_port_name         - override automatic detection of port name with this name
 -s                        - run in shell mode
 -v                        - verbose mode (prints OS commands and their outputs)
 
@@ -90,7 +92,11 @@ When in interactive shell mode:
     @options = options
     current_os = OperatingSystems.new.current_os
     raise "Could not determine operating system" if current_os.nil?
-    @model = current_os.create_model(verbose_mode)
+    model_options = OpenStruct.new({
+        verbose:   options.verbose,
+        wifi_port: options.wifi_port
+    })
+    @model = current_os.create_model(model_options)
     @interactive_mode = !!(options.interactive_mode)
     run_shell if @interactive_mode
   end

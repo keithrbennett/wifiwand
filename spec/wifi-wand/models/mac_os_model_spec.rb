@@ -53,7 +53,7 @@ describe MacOsModel do
 
     it 'can get wifi port' do
       wifi_starts_on ? subject.wifi_on : subject.wifi_off
-      subject.wifi_hardware_port
+      subject.wifi_port
     end
 
     it 'can list info' do

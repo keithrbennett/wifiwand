@@ -28,9 +28,12 @@ output at the time of this writing:
 ```
 $ wifi-wand -h
 
+
+
 Command Line Switches:                    [wifi-wand version 2.4.2]
 
--o[i,j,p,y]               - outputs data in inspect, JSON, puts, or YAML format when not in shell mode
+-o {i,j,p,y}              - outputs data in inspect, JSON, puts, or YAML format when not in shell mode
+-p wifi_port_name         - override automatic detection of port name with this name
 -s                        - run in shell mode
 -v                        - verbose mode (prints OS commands and their outputs)
 
