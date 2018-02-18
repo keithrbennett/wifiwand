@@ -291,7 +291,7 @@ When in interactive shell mode:
   end
 
 
-  def cmd_lsa
+  def cmd_l
     info = model.available_network_info
     if interactive_mode
       info
@@ -415,7 +415,7 @@ When in interactive shell mode:
         Command.new('d',   'disconnect',    -> (*_options) { cmd_d             }),
         Command.new('h',   'help',          -> (*_options) { cmd_h             }),
         Command.new('i',   'info',          -> (*_options) { cmd_i             }),
-        Command.new('l',   'ls_avail_nets', -> (*_options) { cmd_lsa           }),
+        Command.new('l',   'ls_avail_nets', -> (*_options) { cmd_l             }),
         Command.new('n',   'network_name',  -> (*_options) { cmd_n             }),
         Command.new('of',  'off',           -> (*_options) { cmd_of            }),
         Command.new('on',  'on',            -> (*_options) { cmd_on            }),

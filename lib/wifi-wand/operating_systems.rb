@@ -39,11 +39,6 @@ class OperatingSystems
   end
 
 
-  def supported_os_names
-    supported_operating_systems.map(&:display_name)
-  end
-
-
   def current_id;            current_os&.id;            end
   def current_display_name;  current_os&.display_name;  end
 
