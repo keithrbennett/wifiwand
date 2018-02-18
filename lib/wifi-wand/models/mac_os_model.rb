@@ -16,6 +16,7 @@ class MacOsModel < BaseModel
 
 
   # Identifies the (first) wireless network hardware port in the system, e.g. en0 or en1
+  # This may not detect wifi ports with nonstandard names, such as USB wifi devices.
   def detect_wifi_port
     lines = run_os_command("networksetup -listallhardwareports").split("\n")
     # Produces something like this:

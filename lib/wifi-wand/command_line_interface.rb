@@ -147,7 +147,7 @@ When in interactive shell mode:
   # Asserts that a command has been passed on the command line.
   def validate_command_line
     if ARGV.empty?
-      puts "Syntax is: #{__FILE__} [options] command [command_options]"
+      puts "Syntax is: #{$0} [options] command [command_options]"
       print_help
       exit(-1)
     end
