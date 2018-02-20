@@ -268,9 +268,15 @@ class MacOsModel < BaseModel
   # Returns some useful wifi-related information.
   def wifi_info
 
+    connected = begin
+      connected_to_internet?
+    rescue
+      false
+    end
+
     info = {
         'wifi_on'     => wifi_on?,
-        'internet_on' => connected_to_internet?,
+        'internet_on' => connected,
         'port'        => wifi_port,
         'network'     => connected_network_name,
         'ip_address'  => ip_address,
