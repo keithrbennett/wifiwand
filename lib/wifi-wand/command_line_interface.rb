@@ -52,7 +52,7 @@ class CommandLineInterface
   HELP_TEXT = "
 Command Line Switches:                    [wifi-wand version #{WifiWand::VERSION}]
 
--o {i,j,p,y}              - outputs data in inspect, JSON, puts, or YAML format when not in shell mode
+-o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
 -p wifi_port_name         - override automatic detection of port name with this name
 -s                        - run in shell mode
 -v                        - verbose mode (prints OS commands and their outputs)
