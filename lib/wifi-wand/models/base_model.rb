@@ -42,7 +42,8 @@ class BaseModel
       raise OsCommandError.new($?.exitstatus, command, output)
     end
     if @verbose_mode
-      puts "\n\n#{'-' * 79}\nCommand: #{command}\n\nOutput:\n#{output}#{'-' * 79}\n\n"
+      puts "\n\n#{'-' * 79}\nCommand: #{command}\n\n"
+      puts "#{output}#{'-' * 79}\n\n"
     end
     output
   end
