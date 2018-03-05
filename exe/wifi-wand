@@ -1,24 +1,3 @@
-#!/usr/bin/env ruby
-
-# This script brings together several useful wifi-related functions.
-#
-# It is a bit of a kludge in that it calls Mac OS commands and uses
-# the text output for its data. At some point I would like to replace
-# that with system calls. Currently this script can break if Apple
-# decides to modify the name, options, behavior, and/or format of its utilities.
-#
-# What would be *really* nice, would be for Apple to retrofit all
-# system commands to optionally output JSON and/or YAML. Some offer XML, but that
-# is not convenient to use.
-#
-# Mac OS commands currently used are: airport, ipconfig, networksetup, security.
-#
-# Author: keithrbennett (on Github, GMail, Twitter)
-# I am available for Ruby development, troubleshooting, training, tutoring, etc.
-#
-# License: MIT License
-
-
 require_relative '../lib/wifi-wand/main'
 
 WifiWand::Main.new.call
