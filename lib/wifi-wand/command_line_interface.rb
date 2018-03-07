@@ -195,8 +195,7 @@ When in interactive shell mode:
   # For use by the shell; when typing a command and options, it is passed to process_command_line
   def method_missing(method_name, *options)
     method_name = method_name.to_s
-    method_exists = !! find_command_action(method_name)
-    if method_exists
+    if find_command_action(method_name)
       process_command_line(method_name, options)
     else
       puts(%Q{"#{method_name}" is not a valid command or option. If you intend for this to be a string literal, use quotes or %q/Q{}.})

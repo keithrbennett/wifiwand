@@ -77,7 +77,7 @@ class BaseModel
 
     begin
       start_status_script = -> do
-        script = "curl --silent --head http://www.google.com/ > /dev/null ; echo $? > #{tempfile.path} &"
+        script = "curl --silent --head https://www.google.com/ > /dev/null ; echo $? > #{tempfile.path} &"
         pid = Process.spawn(script)
         Process.detach(pid)
         pid
