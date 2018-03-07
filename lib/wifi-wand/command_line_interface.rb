@@ -67,7 +67,8 @@ d[isconnect]              - disconnects from current network, does not turn off 
 h[elp]                    - prints this help
 i[nfo]                    - a hash of wifi-related information
 l[s_avail_nets]           - details about available networks
-n[etwork_name]            - name (SSID) of currently connected network
+na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear, or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
+ne[twork_name]            - name (SSID) of currently connected network
 on                        - turns wifi on
 of[f]                     - turns wifi off
 pa[ssword] network-name   - password for preferred network-name
@@ -193,10 +194,10 @@ When in interactive shell mode:
 
 
   # For use by the shell; when typing a command and options, it is passed to process_command_line
-  def method_missing(method_name, *options)
+  def method_missing(method_name, *method_args)
     method_name = method_name.to_s
     if find_command_action(method_name)
-      process_command_line(method_name, options)
+      process_command_line(method_name, method_args)
     else
       puts(%Q{"#{method_name}" is not a valid command or option. If you intend for this to be a string literal, use quotes or %q/Q{}.})
     end
@@ -209,14 +210,15 @@ When in interactive shell mode:
   # be in a form that the Ruby interpreter will recognize as a string,
   # i.e. single or double quotes, %q, %Q, etc.
   # Otherwise it will assume it's a method name and pass it to method_missing!
-  def process_command_line(command, options)
+  def process_command_line(command, args)
+    puts "Command: #{command}"; puts "Options: #{args}"
     action = find_command_action(command)
     if action
-      action.(*options)
+      action.(*args)
     else
       print_help
       raise BadCommandError.new(
-          %Q{Unrecognized command. Command was "#{command}" and options were #{options.inspect}.})
+          %Q{Unrecognized command. Command was "#{command}" and options were #{args.inspect}.})
     end
   end
 
@@ -305,7 +307,36 @@ When in interactive shell mode:
   end
 
 
-  def cmd_n
+  # Performs nameserver functionality.
+  # @param subcommand 'show' or no arg to show, 'clear' to clear, and an array of IP addresses to set
+  def cmd_na(*args)
+    puts "args = #{args}"
+    get   = [[], ['get']].include?(args)
+    clear = args == ['clear']
+    put = !(get || clear)
+
+    if get
+      current_nameservers = model.nameservers_using_networksetup
+      if interactive_mode
+        current_nameservers
+      else
+        if post_processor
+          puts post_processor.(current_nameservers)
+        else
+          current_nameservers_as_string = current_nameservers.empty? ? "[None]" : current_nameservers.join(', ')
+          puts "Nameservers: #{current_nameservers_as_string}"
+        end
+      end
+    elsif clear
+      model.set_nameservers(:clear)
+    else
+      new_nameservers = args
+      model.set_nameservers(new_nameservers)
+    end
+  end
+
+
+  def cmd_ne
     name = model.connected_network_name
     if interactive_mode
       name
@@ -415,7 +446,8 @@ When in interactive shell mode:
         Command.new('h',   'help',          -> (*_options) { cmd_h             }),
         Command.new('i',   'info',          -> (*_options) { cmd_i             }),
         Command.new('l',   'ls_avail_nets', -> (*_options) { cmd_l             }),
-        Command.new('n',   'network_name',  -> (*_options) { cmd_n             }),
+        Command.new('na',  'nameservers',   -> (*options)  { cmd_na(*options)  }),
+        Command.new('ne',  'network_name',  -> (*_options) { cmd_ne            }),
         Command.new('of',  'off',           -> (*_options) { cmd_of            }),
         Command.new('on',  'on',            -> (*_options) { cmd_on            }),
         Command.new('ro',  'ropen',         -> (*options)  { cmd_ro(*options)  }),
@@ -456,6 +488,8 @@ When in interactive shell mode:
   def call
     validate_command_line
     begin
+      # By this time, the Main class has removed the command line options, and all that is left
+      # in ARGV is the commands and their options.
       process_command_line(ARGV[0], ARGV[1..-1])
     rescue BadCommandError => error
       separator_line = "! #{'-' * 75} !\n"
