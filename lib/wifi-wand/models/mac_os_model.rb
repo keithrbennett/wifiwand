@@ -1,3 +1,4 @@
+require 'ipaddr'
 require 'ostruct'
 require 'shellwords'
 
@@ -301,7 +302,24 @@ class MacOsModel < BaseModel
 
 
   def set_nameservers(nameservers)
-    arg = nameservers == :clear ? 'empty' : nameservers.join(' ')
+    arg = if nameservers == :clear
+      'empty'
+    else
+      bad_addresses = nameservers.reject do |ns|
+        begin
+          IPAddr.new(ns).ipv4?
+          true
+        rescue => e
+          puts e
+          false
+        end
+      end
+
+      unless bad_addresses.empty?
+        raise "Bad IP addresses provided: #{bad_addresses.join(', ')}"
+      end
+      nameservers.join(' ')
+    end
     run_os_command("networksetup -setdnsservers Wi-Fi #{arg}")
   end
 
@@ -351,8 +369,5 @@ class MacOsModel < BaseModel
     output = run_os_command("networksetup -getdnsservers Wi-Fi")
     output.split("\n")
   end
-
-
-
 end
 end

@@ -1,9 +1,12 @@
 # The functionality of this software is very difficult to test,
-# sinece it relies on external conditions that cannot be faked.
+# since it relies on external conditions that cannot be faked.
 # These tests merely run the commands and assert that no
 # error has occurred; they don't make any attempt to verify the data.
 # Many of them are run once with the wifi on, and once when it's off.
-
+#
+# This test is in no way pretending to be thorough or accurate.
+# Furthermore, since it modifies machine-global state and can interfere with
+# other processes running on the host, it should be used with utmost care.
 
 require_relative '../../../lib/wifi-wand/models/mac_os_model'
 

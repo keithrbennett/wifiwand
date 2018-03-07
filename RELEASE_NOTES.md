@@ -1,3 +1,9 @@
+## v2.6.0
+
+* Add support for getting and setting DNS nameservers with 'na'/'nameservers' command.
+* Improve error output readability for top level error catching.
+
+
 ## v2.5.0
 
 * Add limited support for nonstandard wifi devices (https://github.com/keithrbennett/wifiwand/issues/6).

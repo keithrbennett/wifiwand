@@ -28,11 +28,9 @@ output at the time of this writing:
 ```
 $ wifi-wand -h
 
+Command Line Switches:                    [wifi-wand version 2.6.0]
 
-
-Command Line Switches:                    [wifi-wand version 2.4.2]
-
--o {i,j,p,y}              - outputs data in inspect, JSON, puts, or YAML format when not in shell mode
+-o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
 -p wifi_port_name         - override automatic detection of port name with this name
 -s                        - run in shell mode
 -v                        - verbose mode (prints OS commands and their outputs)
@@ -47,7 +45,8 @@ d[isconnect]              - disconnects from current network, does not turn off 
 h[elp]                    - prints this help
 i[nfo]                    - a hash of wifi-related information
 l[s_avail_nets]           - details about available networks
-n[etwork_name]            - name (SSID) of currently connected network
+na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear, or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
+ne[twork_name]            - name (SSID) of currently connected network
 on                        - turns wifi on
 of[f]                     - turns wifi off
 pa[ssword] network-name   - password for preferred network-name

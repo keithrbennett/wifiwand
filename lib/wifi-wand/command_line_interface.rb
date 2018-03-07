@@ -211,7 +211,6 @@ When in interactive shell mode:
   # i.e. single or double quotes, %q, %Q, etc.
   # Otherwise it will assume it's a method name and pass it to method_missing!
   def process_command_line(command, args)
-    puts "Command: #{command}"; puts "Options: #{args}"
     action = find_command_action(command)
     if action
       action.(*args)
@@ -308,30 +307,35 @@ When in interactive shell mode:
 
 
   # Performs nameserver functionality.
-  # @param subcommand 'show' or no arg to show, 'clear' to clear, and an array of IP addresses to set
+  # @param subcommand 'get' or no arg to get, 'clear' to clear, and an array of IP addresses to set
   def cmd_na(*args)
-    puts "args = #{args}"
-    get   = [[], ['get']].include?(args)
-    clear = args == ['clear']
-    put = !(get || clear)
 
-    if get
-      current_nameservers = model.nameservers_using_networksetup
-      if interactive_mode
-        current_nameservers
-      else
-        if post_processor
-          puts post_processor.(current_nameservers)
-        else
-          current_nameservers_as_string = current_nameservers.empty? ? "[None]" : current_nameservers.join(', ')
-          puts "Nameservers: #{current_nameservers_as_string}"
-        end
-      end
-    elsif clear
-      model.set_nameservers(:clear)
+    subcommand = if [[], ['get']].include?(args)
+      :get
+    elsif args == ['clear']
+      :clear
     else
-      new_nameservers = args
-      model.set_nameservers(new_nameservers)
+      :put
+    end
+
+    case(subcommand)
+      when :get
+        current_nameservers = model.nameservers_using_networksetup
+        if interactive_mode
+          current_nameservers
+        else
+          if post_processor
+            puts post_processor.(current_nameservers)
+          else
+            current_nameservers_as_string = current_nameservers.empty? ? "[None]" : current_nameservers.join(', ')
+            puts "Nameservers: #{current_nameservers_as_string}"
+          end
+        end
+      when :clear
+        model.set_nameservers(:clear)
+      when :put
+        new_nameservers = args
+        model.set_nameservers(new_nameservers)
     end
   end
 
