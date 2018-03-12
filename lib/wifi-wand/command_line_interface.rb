@@ -98,7 +98,6 @@ When in interactive shell mode:
         wifi_port: options.wifi_port
     })
 
-    puts "\n\nin initialize\n\n\n"
     unless awesome_print_available?
       HELP_TEXT << "For nicer output, `gem install awesome_print`.\n\n"
     end
