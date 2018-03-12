@@ -50,7 +50,7 @@ class CommandLineInterface
 
   # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.
   HELP_TEXT = "
-Command Line Switches:                    [wifi-wand version #{WifiWand::VERSION}]
+Command Line Switches:                    [wifi-wand version #{WifiWand::VERSION} at https://github.com/keithrbennett/wifiwand]
 
 -o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
 -p wifi_port_name         - override automatic detection of port name with this name
