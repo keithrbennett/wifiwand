@@ -97,6 +97,12 @@ When in interactive shell mode:
         verbose:   options.verbose,
         wifi_port: options.wifi_port
     })
+
+    puts "\n\nin initialize\n\n\n"
+    unless awesome_print_available?
+      HELP_TEXT << "For nicer output, `gem install awesome_print`.\n\n"
+    end
+
     @model = current_os.create_model(model_options)
     @interactive_mode = !!(options.interactive_mode)
     run_shell if @interactive_mode
