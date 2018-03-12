@@ -460,7 +460,7 @@ When in interactive shell mode:
         Command.new('q',   'quit',          -> (*_options) { cmd_q             }),
         Command.new('r',   'rm_pref_nets',  -> (*options)  { cmd_r(*options)   }),
         Command.new('t',   'till',          -> (*options)  { cmd_t(*options)   }),
-        Command.new('w',   'wifion',        -> (*_options) { cmd_w             }),
+        Command.new('w',   'wifi_on',       -> (*_options) { cmd_w             }),
         Command.new('x',   'xit',           -> (*_options) { cmd_x             })
     ]
   end

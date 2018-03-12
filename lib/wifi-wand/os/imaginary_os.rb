@@ -1,3 +1,6 @@
+# This class is intended as a placeholder class to test multiple OS support
+# until we have a real Os class for an additional OS.
+
 require_relative 'base_os'
 
 module WifiWand
