@@ -1,3 +1,12 @@
+## v2.7.0
+
+* Fix models not being loadable after requiring the gem.
+* Add message suggesting to gem install awesome_print to help text if not installed.
+* Add Github project page URL to help text.
+* Rename 'wifion' to 'wifi_on'.
+* Change order of verbose output and error raising in run_os_commmand.
+
+
 ## v2.6.0
 
 * Add support for getting and setting DNS nameservers with 'na'/'nameservers' command.

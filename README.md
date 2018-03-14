@@ -28,7 +28,7 @@ output at the time of this writing:
 ```
 $ wifi-wand -h
 
-Command Line Switches:                    [wifi-wand version 2.6.0]
+Command Line Switches:                    [wifi-wand version 2.7.0 at https://github.com/keithrbennett/wifiwand]
 
 -o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
 -p wifi_port_name         - override automatic detection of port name with this name
