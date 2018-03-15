@@ -29,6 +29,7 @@ class BaseModel
 
   def initialize(options)
     @verbose_mode = options.verbose
+
     if options.wifi_port && (! is_wifi_port?(options.wifi_port))
       raise "#{options.wifi_port} is not a Wi-Fi interface."
     end
@@ -225,7 +226,7 @@ class BaseModel
 
   # Tries an OS command until the stop condition is true.
   # @command the command to run in the OS
-  # @stop_condition a lambda taking the commands stdout as its sole parameter
+  # @stop_condition a lambda taking the command's stdout as its sole parameter
   # @return the stdout produced by the command
   def try_os_command_until(command, stop_condition, max_tries = 100)
     max_tries.times do

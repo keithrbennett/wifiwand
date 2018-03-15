@@ -89,18 +89,6 @@ class MacOsModel < BaseModel
   end
 
 
-  def parse_network_names(info)
-    if info.nil?
-      nil
-    else
-      info[1..-1] \
-      .map { |line| line[0..32].rstrip } \
-      .uniq \
-      .sort { |s1, s2| s1.casecmp(s2) }
-    end
-  end
-
-
   # @return an array of unique available network names only, sorted alphabetically
   # Kludge alert: the tabular data does not differentiate between strings with and without leading whitespace
   # Therefore, we get the data once in tabular format, and another time in XML format.
@@ -117,6 +105,7 @@ class MacOsModel < BaseModel
   # users to need to install any external dependencies in order to run this script.
   def available_network_names
 
+
     # Parses the XML text (using grep, not XML parsing) to find
     # <string> elements, and extracts the network name candidates
     # containing leading spaces from it.
@@ -130,6 +119,18 @@ class MacOsModel < BaseModel
     end
 
 
+    parse_network_names = ->(info) do
+      if info.nil?
+        nil
+      else
+        info[1..-1] \
+      .map { |line| line[0..32].rstrip } \
+      .uniq \
+      .sort { |s1, s2| s1.casecmp(s2) }
+      end
+    end
+
+
     output_is_valid = ->(output) { ! ([nil, ''].include?(output)) }
     tabular_data = try_os_command_until("#{AIRPORT_CMD} -s", output_is_valid)
     xml_data     = try_os_command_until("#{AIRPORT_CMD} -s -x", output_is_valid)
@@ -139,7 +140,7 @@ class MacOsModel < BaseModel
     end
 
     tabular_data_lines = tabular_data[1..-1] # omit header line
-    names_no_spaces    = parse_network_names(tabular_data_lines.split("\n")).map(&:strip)
+    names_no_spaces    = parse_network_names.(tabular_data_lines.split("\n")).map(&:strip)
     names_maybe_spaces =  get_leading_space_names.(xml_data)
 
     names = names_no_spaces.map do |name_no_spaces|

@@ -376,6 +376,7 @@ When in interactive shell mode:
     end
   end
 
+
   def cmd_pa(network)
     password = model.preferred_network_password(network)
 
@@ -486,7 +487,6 @@ When in interactive shell mode:
   def post_process(object)
     post_processor ? post_processor.(object) : object
   end
-
 
 
   def post_processor
