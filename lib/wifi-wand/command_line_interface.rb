@@ -374,6 +374,7 @@ When in interactive shell mode:
         model.open_resource(resource.resource)
       end
     end
+    nil
   end
 
 
