@@ -1,5 +1,7 @@
 require 'json'
+require 'net/http'
 require 'tempfile'
+require 'uri'
 require_relative '../../wifi-wand'
 
 module WifiWand
@@ -54,73 +56,22 @@ class BaseModel
   end
 
 
-  # This method returns whether or not there is a working Internet connection.
-  # Because of a Mac issue which causes a request to hang if the network is turned
-  # off during its lifetime, we give it only 5 seconds per try,
-  # and limit the number of tries to 3.
-  #
-  # This implementation will probably strike you as overly complex. The following
-  # code looks like it is all that should be necessary, but unfortunately
-  # this implementation often hangs when wifi is turned off while curl is active
-  #
-  # def connected_to_internet?
-  #   script = "curl --silent --head http://www.google.com/ > /dev/null ; echo $?"
-  #   result = `#{script}`.chomp
-  #   puts result
-  #   result == '0'
-  # end
-
-  # TODO Investigate using Curl options: --connect-timeout 1 --max-time 2 --retry 0
-  # to greatly simplify this method.
+  # This method returns whether or not there is a working Internet connection,
+  # which is defined as being able to get a successful response
+  # from google.com within 3 seconds..
   def connected_to_internet?
-
-    tempfile = Tempfile.open('wifi-wand-')
+    url = URI.parse('https://www.google.com')
+    success = true
 
     begin
-      start_status_script = -> do
-        script = "curl --silent --head https://www.google.com/ > /dev/null ; echo $? > #{tempfile.path} &"
-        pid = Process.spawn(script)
-        Process.detach(pid)
-        pid
+      Net::HTTP.start(url.host) do |http|
+        http.read_timeout = 3 # seconds
+        http.get('.')
       end
-
-      process_is_running = ->(pid) do
-        script = %Q{ps -p #{pid} > /dev/null; echo $?}
-        output = `#{script}`.chomp
-        output == "0"
-      end
-
-      get_connected_state_from_curl = -> do
-        tempfile.close
-        File.read(tempfile.path).chomp == '0'
-      end
-
-      # Do one run, iterating during the timeout period to see if the command has completed
-      do_one_run = -> do
-        end_time = Time.now + 3
-        pid = start_status_script.()
-        while Time.now < end_time
-          if process_is_running.(pid)
-            sleep 0.5
-          else
-            return get_connected_state_from_curl.()
-          end
-        end
-        Process.kill('KILL', pid) if process_is_running.(pid)
-        :hung
-      end
-
-      3.times do
-        connected = do_one_run.()
-        return connected if connected != :hung
-      end
-
-      raise "Could not determine Internet status."
-
-    ensure
-      tempfile.unlink
+    rescue
+      success = false
     end
-
+    success
   end
 
 
