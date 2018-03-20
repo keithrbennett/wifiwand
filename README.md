@@ -325,13 +325,29 @@ Connected!
 
 ### Dependent Gems
 
-Currently, the only gems used directly by the program are:
+Currently, no dependent gems are installed when this gem is installed.
+However, the program _will_ use other gems as follows:
 
-* `pry`, to provide the interactive shell
-* `awesome_print` (optional), to more nicely format output in non-interactive mode
+* `pry`, when the interactive shell is requested with the `-s` option
+* `awesome_print`, if it is found, to more nicely format output in non-interactive mode
 
-So the user can avoid installing gems altogether as long as they don't need to use the interactive shell,
+So the user can avoid installing gems other than this one altogether
+as long as they don't need to use the interactive shell,
 and as long as they are comfortable with the less pretty output.
+
+
+### Public IP Information
+
+The information hash will normally include information about the public IP address.
+However, the command that provides this information, `curl -s ipinfo.io`, will sometimes
+return this:
+
+`Rate limit exceeded. Subscribe to a paid plan to increase your usage limits` 
+
+If this happens, the public IP information will be silently omitted from the
+information hash. In this case, the web site 'https://www.whatismyip.com' is
+recommended, and `-ro ipw` on the command line or `ro 'ipw'` in the shell will
+open that page in your browser for you.
 
 
 ### Password Lookup Oddity
