@@ -41,10 +41,13 @@ class BaseModel
 
   def run_os_command(command, raise_on_error = true)
 
+    if @verbose_mode
+      puts "\n\n#{'-' * 79}\nCommand: #{command}\n\n"
+    end
+
     output = `#{command} 2>&1` # join stderr with stdout
 
     if @verbose_mode
-      puts "\n\n#{'-' * 79}\nCommand: #{command}\n\n"
       puts "#{output}#{'-' * 79}\n\n"
     end
 
