@@ -405,11 +405,6 @@ When in interactive shell mode:
   end
 
 
-  def cmd_pu
-    `open https://www.whatismyip.com/`
-  end
-
-
   def cmd_q
     quit
   end
