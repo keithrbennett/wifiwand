@@ -127,7 +127,7 @@ class MacOsModel < BaseModel
         nil
       else
         info[1..-1] \
-      .map { |line| line[0..32].rstrip } \
+      .map { |line| line[0..32] } \
       .uniq \
       .sort { |s1, s2| s1.casecmp(s2) }
       end
@@ -143,7 +143,7 @@ class MacOsModel < BaseModel
     end
 
     tabular_data_lines = tabular_data[1..-1] # omit header line
-    names_no_spaces    = parse_network_names.(tabular_data_lines.split("\n")).map(&:strip)
+    names_no_spaces    = parse_network_names.(tabular_data_lines.split("\n")).map(&:lstrip)
     names_maybe_spaces =  get_leading_space_names.(xml_data)
 
     names = names_no_spaces.map do |name_no_spaces|
@@ -259,7 +259,7 @@ class MacOsModel < BaseModel
   def connected_network_name
     lines = run_os_command("#{AIRPORT_CMD} -I").split("\n")
     ssid_lines = lines.grep(/ SSID:/)
-    ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last.strip
+    ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last.lstrip
   end
 
 
