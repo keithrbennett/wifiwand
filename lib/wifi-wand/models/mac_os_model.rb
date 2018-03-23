@@ -127,7 +127,7 @@ class MacOsModel < BaseModel
         nil
       else
         info[1..-1] \
-      .map { |line| line[0..32] } \
+      .map { |line| line[0..31] } \
       .uniq \
       .sort { |s1, s2| s1.casecmp(s2) }
       end
