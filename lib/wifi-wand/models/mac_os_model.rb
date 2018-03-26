@@ -93,68 +93,20 @@ class MacOsModel < BaseModel
 
 
   # @return an array of unique available network names only, sorted alphabetically
-  # Kludge alert: the tabular data does not differentiate between strings with and without leading whitespace
-  # Therefore, we get the data once in tabular format, and another time in XML format.
-  # The XML element will include any leading whitespace. However, it includes all <string> elements,
-  # many of which are not network names.
-  # As an improved approximation of the correct result, for each network name found in tabular mode,
-  # we look to see if there is a corresponding string element with leading whitespace, and, if so,
-  # replace it.
-  #
-  # This will not behave correctly if a given name has occurrences with different amounts of whitespace,
-  # e.g. ' x' and '     x'.
-  #
   # The reason we don't use an XML parser to get the exactly correct result is that we don't want
   # users to need to install any external dependencies in order to run this script.
   def available_network_names
 
+    # awk command below kindly provided by @nohillside at https://apple.stackexchange.com/questions/320323/how-to-programmatically-get-available-wifi-networks-without-airport-utility.
+    command = %q{airport -s -x | awk '{ if (catch == 1) { print; catch=0 } } /SSID_STR/ { catch=1 }'}
+    stop_condition = ->(response) { ! [nil, ''].include?(response) }
 
-    # Parses the XML text (using grep, not XML parsing) to find
-    # <string> elements, and extracts the network name candidates
-    # containing leading spaces from it.
-    get_leading_space_names = ->(text) do
-      text.split("\n") \
-        .grep(%r{<string>}) \
-        .sort \
-        .uniq \
-        .map { |line| line.gsub("<string>", '').gsub('</string>', '').gsub("\t", '') } \
-        .select { |s| s[0] == ' ' }
-    end
-
-
-    parse_network_names = ->(info) do
-      if info.nil?
-        nil
-      else
-        info[1..-1] \
-      .map { |line| line[0..31] } \
-      .uniq \
-      .sort { |s1, s2| s1.casecmp(s2) }
-      end
-    end
-
-
-    output_is_valid = ->(output) { ! ([nil, ''].include?(output)) }
-    tabular_data = try_os_command_until("#{AIRPORT_CMD} -s", output_is_valid)
-    xml_data     = try_os_command_until("#{AIRPORT_CMD} -s -x", output_is_valid)
-
-    if tabular_data.nil? || xml_data.nil?
-      raise "Unable to get available network information; please try again."
-    end
-
-    tabular_data_lines = tabular_data[1..-1] # omit header line
-    names_no_spaces    = parse_network_names.(tabular_data_lines.split("\n")).map(&:lstrip)
-    names_maybe_spaces =  get_leading_space_names.(xml_data)
-
-    names = names_no_spaces.map do |name_no_spaces|
-      match = names_maybe_spaces.detect do |name_maybe_spaces|
-        %r{[ \t]?#{name_no_spaces}$}.match(name_maybe_spaces)
-      end
-
-      match ? match : name_no_spaces
-    end
-
-    names.sort { |s1, s2| s1.casecmp(s2) }    # sort alphabetically, case insensitively
+    output = try_os_command_until(command, stop_condition)
+    output = output.split("\n")
+    output.map!(&:strip)
+    output.map! { |s| s.gsub(/<\/?string>/, '') }
+    output.sort! { |s1, s2| s1.casecmp(s2) }    # sort alphabetically, case insensitively
+    output.uniq!
   end
 
 
