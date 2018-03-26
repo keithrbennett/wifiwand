@@ -1,3 +1,10 @@
+## v2.8.0
+
+* Substantial simplifications of model implementations of connected_to_internet?, available_network_names.
+* Fixed network name reporting problems regarding leading/trailing spaces.
+* Improve verbose output by printing command when issued, not after completed.
+
+
 ## v2.7.0
 
 * Fix models not being loadable after requiring the gem.

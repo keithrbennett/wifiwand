@@ -28,7 +28,7 @@ output at the time of this writing:
 ```
 $ wifi-wand -h
 
-Command Line Switches:                    [wifi-wand version 2.7.0 at https://github.com/keithrbennett/wifiwand]
+Command Line Switches:                    [wifi-wand version 2.8.0 at https://github.com/keithrbennett/wifiwand]
 
 -o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
 -p wifi_port_name         - override automatic detection of port name with this name
@@ -88,14 +88,14 @@ version of Ruby that comes packaged with MacOS.
 ### JSON, YAML, and Other Output Formats
 
 You can specify that output in _noninteractive_ mode be in a certain format.
-Currently, JSON, YAML, inspect, and puts formats are supported.
+Currently, JSON, "Pretty" JSON, YAML, inspect, and puts formats are supported.
 See the help for which command line switches to use.
 
 
 ### Seeing the Underlying OS Commands and Output
 
 If you would like to see the Mac OS commands and their output, 
-you can do so by specifying "-v" (for _verbose) on the command line.
+you can do so by specifying "-v" (for _verbose_) on the command line.
 
 You may notice that some commands are executed more than once. This is to simplify the application logic
 and eliminate the need for the complexity of balancing the speed that a cache offers and the risk
@@ -346,7 +346,7 @@ return this:
 
 If this happens, the public IP information will be silently omitted from the
 information hash. In this case, the web site 'https://www.whatismyip.com' is
-recommended, and `-ro ipw` on the command line or `ro 'ipw'` in the shell will
+recommended, and `ro ipw` on the command line or `ro 'ipw'` in the shell will
 open that page in your browser for you.
 
 
