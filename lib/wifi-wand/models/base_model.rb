@@ -59,9 +59,11 @@ class BaseModel
       puts command_attempt_as_string(command)
     end
 
+    start_time = Time.now
     output = `#{command} 2>&1` # join stderr with stdout
 
     if @verbose_mode
+      puts "Duration: #{'%.4f' % [Time.now - start_time]} seconds"
       puts command_result_as_string(output)
     end
 
@@ -85,6 +87,8 @@ class BaseModel
       puts command_attempt_as_string("[Calling Net:HTTP.start(#{url.host})]")
     end
 
+    start_time = Time.now
+
     begin
       Net::HTTP.start(url.host) do |http|
         http.read_timeout = 3 # seconds
@@ -95,6 +99,7 @@ class BaseModel
     end
 
     if @verbose_mode
+      puts "Duration: #{'%.4f' % [Time.now - start_time]} seconds"
       puts command_result_as_string("#{success}\n")
     end
 
