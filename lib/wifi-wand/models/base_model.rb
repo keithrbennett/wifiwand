@@ -79,31 +79,44 @@ class BaseModel
   # which is defined as being able to get a successful response
   # from google.com within 3 seconds..
   def connected_to_internet?
-    test_site = 'https://www.google.com'
-    url = URI.parse(test_site)
-    success = true
 
-    if @verbose_mode
-      puts command_attempt_as_string("[Calling Net:HTTP.start(#{url.host})]")
+    # We test using ping first because that will allow us to fail faster
+    # if there is no network connection.
+    test_using_ping = -> do
+      run_os_command('ping -c 1 google.com', false)
+      $?.exitstatus == 0
     end
 
-    start_time = Time.now
 
-    begin
-      Net::HTTP.start(url.host) do |http|
-        http.read_timeout = 3 # seconds
-        http.get('.')
+    test_using_http_get = -> do
+      test_site = 'https://www.google.com'
+      url = URI.parse(test_site)
+      success = true
+
+      if @verbose_mode
+        puts command_attempt_as_string("[Calling Net:HTTP.start(#{url.host})]")
       end
-    rescue
-      success = false
+
+      start_time = Time.now
+
+      begin
+        Net::HTTP.start(url.host) do |http|
+          http.read_timeout = 3 # seconds
+          http.get('.')
+        end
+      rescue
+        success = false
+      end
+
+      if @verbose_mode
+        puts "Duration: #{'%.4f' % [Time.now - start_time]} seconds"
+        puts command_result_as_string("#{success}\n")
+      end
+
+      success
     end
 
-    if @verbose_mode
-      puts "Duration: #{'%.4f' % [Time.now - start_time]} seconds"
-      puts command_result_as_string("#{success}\n")
-    end
-
-    success
+    test_using_ping.() && test_using_http_get.()
   end
 
 
