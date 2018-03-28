@@ -100,13 +100,14 @@ class MacOsModel < BaseModel
     # awk command below kindly provided by @nohillside at https://apple.stackexchange.com/questions/320323/how-to-programmatically-get-available-wifi-networks-without-airport-utility.
     command = %q{airport -s -x | awk '{ if (catch == 1) { print; catch=0 } } /SSID_STR/ { catch=1 }'}
     stop_condition = ->(response) { ! [nil, ''].include?(response) }
-
+# require 'pry'; binding.pry
     output = try_os_command_until(command, stop_condition)
     output = output.split("\n")
     output.map!(&:strip)
     output.map! { |s| s.gsub(/<\/?string>/, '') }
     output.sort! { |s1, s2| s1.casecmp(s2) }    # sort alphabetically, case insensitively
     output.uniq!
+    output
   end
 
 
