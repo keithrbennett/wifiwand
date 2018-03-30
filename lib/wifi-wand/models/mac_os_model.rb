@@ -100,7 +100,7 @@ class MacOsModel < BaseModel
     # awk command below kindly provided by @nohillside at https://apple.stackexchange.com/questions/320323/how-to-programmatically-get-available-wifi-networks-without-airport-utility.
     command = %q{airport -s -x | awk '{ if (catch == 1) { print; catch=0 } } /SSID_STR/ { catch=1 }'}
     stop_condition = ->(response) { ! [nil, ''].include?(response) }
-# require 'pry'; binding.pry
+
     output = try_os_command_until(command, stop_condition)
     output = output.split("\n")
     output.map!(&:strip)
@@ -223,6 +223,11 @@ class MacOsModel < BaseModel
   end
 
 
+  def mac_address
+    run_os_command("ifconfig #{wifi_port} | awk '/ether/{print $2}'")
+  end
+
+
   # Returns some useful wifi-related information.
   def wifi_info
 
@@ -238,6 +243,7 @@ class MacOsModel < BaseModel
         'port'        => wifi_port,
         'network'     => connected_network_name,
         'ip_address'  => ip_address,
+        'mac_address' => mac_address,
         'nameservers' => nameservers_using_scutil,
         'timestamp'   => Time.now,
     }
