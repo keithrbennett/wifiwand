@@ -223,6 +223,12 @@ class MacOsModel < BaseModel
   end
 
 
+  # TODO: Add capability to change the MAC address using a command in the form of:
+  #     sudo ifconfig en0 ether aa:bb:cc:dd:ee:ff
+  # However, the MAC address will be set to the real hardware address on restart.
+  # One way to implement this is to have an optional address argument,
+  # then this method returns the current address if none is provided,
+  # but sets to the specified address if it is.
   def mac_address
     run_os_command("ifconfig #{wifi_port} | awk '/ether/{print $2}'")
   end
