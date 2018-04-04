@@ -53,8 +53,8 @@ pa[ssword] network-name   - password for preferred network-name
 pr[ef_nets]               - preferred (not necessarily available) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
 r[m_pref_nets] network-name - removes network-name from the preferred networks list
-                          (can provide multiple names separated by spaces)
-ro[pen]                   - open resource ('ipc' (IP Chicken), 'ipw' (What is My IP), 'spe' (Speed Test), 'this' (wifi-wand Home Page))
+                              (can provide multiple names separated by spaces)
+ro[pen]                   - open resource ('ipl' (IP Location), 'ipw' (What is My IP), 'spe' (Speed Test), 'this' (wifi-wand home page))
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                           1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
                           2) wait interval, in seconds (optional, defaults to 0.5 seconds)
@@ -345,8 +345,8 @@ return this:
 `Rate limit exceeded. Subscribe to a paid plan to increase your usage limits` 
 
 If this happens, the public IP information will be silently omitted from the
-information hash. In this case, the web site 'https://www.whatismyip.com' is
-recommended, and `ro ipw` on the command line or `ro 'ipw'` in the shell will
+information hash. In this case, the web site 'https://www.iplocation.net/' is
+recommended, and `ro ipl` on the command line or `ro 'ipl'` in the shell will
 open that page in your browser for you.
 
 

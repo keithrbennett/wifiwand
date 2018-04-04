@@ -41,10 +41,10 @@ class CommandLineInterface
   end
 
   OPEN_RESOURCES = OpenResources.new([
-      OpenResource.new('ipc',  'https://ipchicken.com/',     'IP Chicken'),
-      OpenResource.new('ipw',  'https://www.whatismyip.com', 'What is My IP'),
-      OpenResource.new('spe',  'http://speedtest.net/',      'Speed Test'),
-      OpenResource.new('this', 'https://github.com/keithrbennett/wifiwand', 'wifi-wand Home Page'),
+      OpenResource.new('ipl',  'https://www.iplocation.net/',               'IP Location'),
+      OpenResource.new('ipw',  'https://www.whatismyip.com',                'What is My IP'),
+      OpenResource.new('spe',  'http://speedtest.net/',                     'Speed Test'),
+      OpenResource.new('this', 'https://github.com/keithrbennett/wifiwand', 'wifi-wand home page'),
   ])
 
 
