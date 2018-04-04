@@ -83,7 +83,7 @@ class BaseModel
     # We test using ping first because that will allow us to fail faster
     # if there is no network connection.
     test_using_ping = -> do
-      run_os_command('ping -c 1 google.com', false)
+      run_os_command('ping -c 1 -t 3 google.com', false)
       $?.exitstatus == 0
     end
 
@@ -240,6 +240,13 @@ class BaseModel
   # You may need to enclose this call in a begin/rescue.
   def public_ip_address_info
     JSON.parse(`curl -s ipinfo.io`)
+  end
+
+
+  def random_mac_address
+    bytes = Array.new(6) { rand(256) }
+    chars = bytes.map { |b| "%02x" % b }
+    chars.join(':')
   end
 
 
