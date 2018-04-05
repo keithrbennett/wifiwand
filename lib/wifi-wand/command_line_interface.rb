@@ -74,12 +74,11 @@ of[f]                     - turns wifi off
 pa[ssword] network-name   - password for preferred network-name
 pr[ef_nets]               - preferred (not necessarily available) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
-r[m_pref_nets] network-name - removes network-name from the preferred networks list
-                          (can provide multiple names separated by spaces)
+r[m_pref_nets] network-name - removes network-name(s) from the preferred networks list
 ro[pen]                   - open resource (#{OPEN_RESOURCES.help_string})
 t[ill]                    - returns when the desired Internet connection state is true. Options:
-                          1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
-                          2) wait interval, in seconds (optional, defaults to 0.5 seconds)
+                            1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
+                            2) wait interval, in seconds (optional, defaults to 0.5 seconds)
 w[ifion]                  - is the wifi on?
 x[it]                     - exits this program (interactive shell mode only) (see also 'q')
 

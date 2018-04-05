@@ -1,3 +1,12 @@
+## v2.9.0
+
+* Add duration of command to verbose output.
+* Add MAC address to info hash.
+* Reduce ping timeout to 3 seconds for faster return for `info`, `ci` commands.
+* Replace ipchicken.com link with iplocation.net link for 'ropen'; iplocation aggregates several info sources.
+* Fix bug where if there were no duplicate network names, result was nil, because uniq! returns nil if no changes!!!
+* Suppress error throw on ping error when not connected; it was printing useless output.
+
 ## v2.8.0
 
 * Substantial simplifications of model implementations of connected_to_internet?, available_network_names.
