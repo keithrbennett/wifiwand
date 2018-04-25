@@ -64,6 +64,7 @@ ci                        - connected to Internet (not just wifi on)?
 co[nnect] network-name    - turns wifi on, connects to network-name
 cy[cle]                   - turns wifi off, then on, preserving network selection
 d[isconnect]              - disconnects from current network, does not turn off wifi
+f[orget] name1 [..name_n] - removes network-name(s) from the preferred networks list
 h[elp]                    - prints this help
 i[nfo]                    - a hash of wifi-related information
 l[s_avail_nets]           - details about available networks
@@ -74,7 +75,6 @@ of[f]                     - turns wifi off
 pa[ssword] network-name   - password for preferred network-name
 pr[ef_nets]               - preferred (not necessarily available) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
-r[m_pref_nets] network-name - removes network-name(s) from the preferred networks list
 ro[pen]                   - open resource (#{OPEN_RESOURCES.help_string})
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                             1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
@@ -409,7 +409,7 @@ When in interactive shell mode:
   end
 
 
-  def cmd_r(*options)
+  def cmd_f(*options)
     removed_networks = model.remove_preferred_networks(*options)
     if interactive_mode
       removed_networks
@@ -448,6 +448,7 @@ When in interactive shell mode:
         Command.new('co',  'connect',       -> (*options)  { cmd_co(*options)  }),
         Command.new('cy',  'cycle',         -> (*_options) { cmd_cy            }),
         Command.new('d',   'disconnect',    -> (*_options) { cmd_d             }),
+        Command.new('f',   'forget',        -> (*options)  { cmd_f(*options)   }),
         Command.new('h',   'help',          -> (*_options) { cmd_h             }),
         Command.new('i',   'info',          -> (*_options) { cmd_i             }),
         Command.new('l',   'ls_avail_nets', -> (*_options) { cmd_l             }),
@@ -459,7 +460,6 @@ When in interactive shell mode:
         Command.new('pa',  'password',      -> (*options)  { cmd_pa(*options)  }),
         Command.new('pr',  'pref_nets',     -> (*_options) { cmd_pr            }),
         Command.new('q',   'quit',          -> (*_options) { cmd_q             }),
-        Command.new('r',   'rm_pref_nets',  -> (*options)  { cmd_r(*options)   }),
         Command.new('t',   'till',          -> (*options)  { cmd_t(*options)   }),
         Command.new('w',   'wifi_on',       -> (*_options) { cmd_w             }),
         Command.new('x',   'xit',           -> (*_options) { cmd_x             })

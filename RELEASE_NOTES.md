@@ -1,3 +1,8 @@
+## v2.10.0
+
+Rename rm[_pref_nets] command to f[orget].
+ 
+
 ## v2.9.0
 
 * Add duration of command to verbose output.

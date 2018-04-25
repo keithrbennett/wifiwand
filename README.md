@@ -28,7 +28,9 @@ output at the time of this writing:
 ```
 $ wifi-wand -h
 
-Command Line Switches:                    [wifi-wand version 2.9.0 at https://github.com/keithrbennett/wifiwand]
+Syntax is: exe/wifi-wand [options] command [command_options]
+
+Command Line Switches:                    [wifi-wand version 2.10.0 at https://github.com/keithrbennett/wifiwand]
 
 -o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
 -p wifi_port_name         - override automatic detection of port name with this name
@@ -42,6 +44,7 @@ ci                        - connected to Internet (not just wifi on)?
 co[nnect] network-name    - turns wifi on, connects to network-name
 cy[cle]                   - turns wifi off, then on, preserving network selection
 d[isconnect]              - disconnects from current network, does not turn off wifi
+f[orget] network-name     - removes network-name(s) from the preferred networks list
 h[elp]                    - prints this help
 i[nfo]                    - a hash of wifi-related information
 l[s_avail_nets]           - details about available networks
@@ -52,7 +55,6 @@ of[f]                     - turns wifi off
 pa[ssword] network-name   - password for preferred network-name
 pr[ef_nets]               - preferred (not necessarily available) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
-r[m_pref_nets] network-name - removes network-name(s) from the preferred networks list
 ro[pen]                   - open resource ('ipl' (IP Location), 'ipw' (What is My IP), 'spe' (Speed Test), 'this' (wifi-wand home page))
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                             1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc

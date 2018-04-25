@@ -155,12 +155,12 @@ class BaseModel
     actual_network_name = connected_network_name
     unless actual_network_name == network_name
       message = %Q{Expected to connect to "#{network_name}" but }
-      if actual_network_name
-        message << %Q{connected to "#{connected_network_name}" instead.}
+      if actual_network_name.nil? || actual_network_name.empty?
+        message << "unable to connect to any network."
       else
-        message << "unable to connect to any network. Did you "
+        message << %Q{connected to "#{connected_network_name}" instead.}
       end
-      message << (password ? "provide the correct password?" : "need to provide a password?")
+      message << ' Did you ' << (password ? "provide the correct password?" : "need to provide a password?")
       raise message
     end
     nil
