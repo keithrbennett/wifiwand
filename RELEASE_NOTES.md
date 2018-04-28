@@ -1,6 +1,10 @@
+## v2.10.1
+
+* Fix egregious bug; the 'a' command did not work if `airport` was not in the path; I should have been using the AIRPORT_CMD constant but hard coded `airport` instead.
+
 ## v2.10.0
 
-Rename rm[_pref_nets] command to f[orget].
+* Rename rm[_pref_nets] command to f[orget].
  
 
 ## v2.9.0

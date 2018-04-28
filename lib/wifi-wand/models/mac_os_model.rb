@@ -98,7 +98,7 @@ class MacOsModel < BaseModel
   def available_network_names
 
     # awk command below kindly provided by @nohillside at https://apple.stackexchange.com/questions/320323/how-to-programmatically-get-available-wifi-networks-without-airport-utility.
-    command = %q{airport -s -x | awk '{ if (catch == 1) { print; catch=0 } } /SSID_STR/ { catch=1 }'}
+    command = %Q{#{AIRPORT_CMD} -s -x | awk '{ if (catch == 1) { print; catch=0 } } /SSID_STR/ { catch=1 }'}
     stop_condition = ->(response) { ! [nil, ''].include?(response) }
 
     output = try_os_command_until(command, stop_condition)
