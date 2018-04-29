@@ -3,6 +3,7 @@ require 'ostruct'
 require 'shellwords'
 
 require_relative 'base_model'
+require_relative '../error'
 
 module WifiWand
 
@@ -15,6 +16,20 @@ class MacOsModel < BaseModel
     super
   end
 
+
+  # Although at this time the airport command utility is predictable,
+  # allow putting it elsewhere in the path for overriding and easier fix
+  # if that location should change.
+  def airport_command
+    airport_in_path = `which airport`.chomp
+    if ! airport_in_path.empty?
+      airport_in_path
+    elsif File.exist?(AIRPORT_CMD)
+      AIRPORT_CMD
+    else
+      raise Error.new("Airport command not found.")
+    end
+  end
 
   # Identifies the (first) wireless network hardware port in the system, e.g. en0 or en1
   # This may not detect wifi ports with nonstandard names, such as USB wifi devices.
@@ -56,7 +71,7 @@ class MacOsModel < BaseModel
   #     "DIRECT-sq-BRAVIA                 02:71:cc:87:4a:8c -76  6       Y  -- WPA2(PSK/AES/AES) ",  #
   def available_network_info
     return nil unless wifi_on? # no need to try
-    command = "#{AIRPORT_CMD} -s"
+    command = "#{airport_command} -s"
     max_attempts = 50
 
 
@@ -98,7 +113,7 @@ class MacOsModel < BaseModel
   def available_network_names
 
     # awk command below kindly provided by @nohillside at https://apple.stackexchange.com/questions/320323/how-to-programmatically-get-available-wifi-networks-without-airport-utility.
-    command = %Q{#{AIRPORT_CMD} -s -x | awk '{ if (catch == 1) { print; catch=0 } } /SSID_STR/ { catch=1 }'}
+    command = %Q{#{airport_command} -s -x | awk '{ if (catch == 1) { print; catch=0 } } /SSID_STR/ { catch=1 }'}
     stop_condition = ->(response) { ! [nil, ''].include?(response) }
 
     output = try_os_command_until(command, stop_condition)
@@ -136,7 +151,7 @@ class MacOsModel < BaseModel
 
   # Returns true if wifi is on, else false.
   def wifi_on?
-    lines = run_os_command("#{AIRPORT_CMD} -I").split("\n")
+    lines = run_os_command("#{airport_command} -I").split("\n")
     lines.grep("AirPort: Off").none?
   end
 
@@ -210,7 +225,7 @@ class MacOsModel < BaseModel
 
   # Returns the network currently connected to, or nil if none.
   def connected_network_name
-    lines = run_os_command("#{AIRPORT_CMD} -I").split("\n")
+    lines = run_os_command("#{airport_command} -I").split("\n")
     ssid_lines = lines.grep(/ SSID:/)
     ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last.lstrip
   end
@@ -218,7 +233,7 @@ class MacOsModel < BaseModel
 
   # Disconnects from the currently connected network. Does not turn off wifi.
   def disconnect
-    run_os_command("sudo #{AIRPORT_CMD} -z")
+    run_os_command("sudo #{airport_command} -z")
     nil
   end
 
@@ -253,7 +268,7 @@ class MacOsModel < BaseModel
         'nameservers' => nameservers_using_scutil,
         'timestamp'   => Time.now,
     }
-    more_output = run_os_command(AIRPORT_CMD + " -I")
+    more_output = run_os_command(airport_command + " -I")
     more_info   = colon_output_to_hash(more_output)
     info.merge!(more_info)
     info.delete('AirPort') # will be here if off, but info is already in wifi_on key
