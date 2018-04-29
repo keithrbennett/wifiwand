@@ -2,7 +2,7 @@ require 'json'
 require 'net/http'
 require 'tempfile'
 require 'uri'
-require_relative 'error'
+require_relative '../error'
 require_relative '../../wifi-wand'
 
 module WifiWand
