@@ -1,5 +1,6 @@
 require_relative 'operating_systems'
 require 'ostruct'
+require_relative 'error'
 require_relative 'version'
 
 module WifiWand
@@ -91,7 +92,7 @@ When in interactive shell mode:
   def initialize(options)
     @options = options
     current_os = OperatingSystems.new.current_os
-    raise "Could not determine operating system" if current_os.nil?
+    raise Error.new("Could not determine operating system") if current_os.nil?
     model_options = OpenStruct.new({
         verbose:   options.verbose,
         wifi_port: options.wifi_port

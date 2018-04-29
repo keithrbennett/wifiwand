@@ -2,6 +2,7 @@ require 'json'
 require 'net/http'
 require 'tempfile'
 require 'uri'
+require_relative 'error'
 require_relative '../../wifi-wand'
 
 module WifiWand
@@ -33,7 +34,7 @@ class BaseModel
     @verbose_mode = options.verbose
 
     if options.wifi_port && (! is_wifi_port?(options.wifi_port))
-      raise "#{options.wifi_port} is not a Wi-Fi interface."
+      raise Error.new("#{options.wifi_port} is not a Wi-Fi interface.")
     end
     @wifi_port = options.wifi_port
   end
@@ -146,7 +147,7 @@ class BaseModel
     password     = password.to_s     if password
 
     if network_name.nil? || network_name.empty?
-      raise "A network name is required but was not provided."
+      raise Error.new("A network name is required but was not provided.")
     end
     wifi_on
     os_level_connect(network_name, password)
@@ -161,7 +162,7 @@ class BaseModel
         message << %Q{connected to "#{connected_network_name}" instead.}
       end
       message << ' Did you ' << (password ? "provide the correct password?" : "need to provide a password?")
-      raise message
+      raise Error.new(message)
     end
     nil
   end
@@ -181,7 +182,7 @@ class BaseModel
     if preferred_networks.include?(preferred_network_name)
       os_level_preferred_network_password(preferred_network_name)
     else
-      raise "Network #{preferred_network_name} not in preferred networks list."
+      raise Error.new("Network #{preferred_network_name} not in preferred networks list.")
     end
   end
 

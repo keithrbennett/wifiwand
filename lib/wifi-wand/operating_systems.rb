@@ -1,3 +1,4 @@
+require_relative 'error'
 require_relative 'os/base_os'
 require_relative 'os/imaginary_os'
 require_relative 'os/mac_os'
@@ -31,7 +32,7 @@ class OperatingSystems
       matches = supported_operating_systems.select { |os| os.current_os_is_this_os? }
       if matches.size > 1
         matching_names = matches.map(&:display_name)
-        raise "There should only be 1 matching OS, but there were multiple: #{matching_names.inspect}"
+        raise Error.new("There should only be 1 matching OS, but there were multiple: #{matching_names.inspect}")
       end
       @current_os = matches.first
     end
@@ -39,8 +40,8 @@ class OperatingSystems
   end
 
 
-  def current_id;            current_os&.id;            end
-  def current_display_name;  current_os&.display_name;  end
+  def current_id;            current_os ? current_os.id : nil;            end
+  def current_display_name;  current_os ? current_os.display_name : nil;  end
 
 end
 end

@@ -50,7 +50,7 @@ class MacOsModel < BaseModel
     end
 
     if wifi_port_line_num.nil?
-      raise %Q{Wifi port (e.g. "en0") not found in output of: networksetup -listallhardwareports}
+      raise Error.new(%Q{Wifi port (e.g. "en0") not found in output of: networksetup -listallhardwareports})
     else
       lines[wifi_port_line_num + 1].split(': ').last
     end
@@ -102,7 +102,7 @@ class MacOsModel < BaseModel
     if output
       process_tabular_data.(output)
     else
-      raise "Unable to get available network information after #{max_attempts} attempts."
+      raise Error.new("Unable to get available network information after #{max_attempts} attempts.")
     end
   end
 
@@ -160,7 +160,7 @@ class MacOsModel < BaseModel
   def wifi_on
     return if wifi_on?
     run_os_command("networksetup -setairportpower #{wifi_port} on")
-    wifi_on? ? nil : raise("Wifi could not be enabled.")
+    wifi_on? ? nil : Error.new(raise("Wifi could not be enabled."))
   end
 
 
@@ -168,7 +168,7 @@ class MacOsModel < BaseModel
   def wifi_off
     return unless wifi_on?
     run_os_command("networksetup -setairportpower #{wifi_port} off")
-    wifi_on? ? raise("Wifi could not be disabled.") : nil
+    wifi_on? ? Error.new(raise("Wifi could not be disabled.")) : nil
   end
 
 
@@ -300,7 +300,7 @@ class MacOsModel < BaseModel
       end
 
       unless bad_addresses.empty?
-        raise "Bad IP addresses provided: #{bad_addresses.join(', ')}"
+        raise Error.new("Bad IP addresses provided: #{bad_addresses.join(', ')}")
       end
       nameservers.join(' ')
     end

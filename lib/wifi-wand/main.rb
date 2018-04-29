@@ -37,8 +37,8 @@ class Main
         choice = v[0].downcase
 
         unless formatters.keys.include?(choice)
-          raise %Q{Output format "#{choice}" not in list of available formats} +
-                    " (#{formatters.keys.inspect})."
+          raise Error.new(%Q{Output format "#{choice}" not in list of available formats} +
+                    " (#{formatters.keys}).")
         end
 
         options.post_processor = formatters[choice]
