@@ -2,6 +2,7 @@ require 'json'
 require 'net/http'
 require 'tempfile'
 require 'uri'
+require_relative '../command_output_formatter'
 require_relative '../error'
 require_relative '../../wifi-wand'
 
@@ -40,24 +41,12 @@ class BaseModel
   end
 
 
-  def banner_line
-    @banner_line ||= '-' * 79
-  end
-
-  def command_attempt_as_string(command)
-    "\n\n#{banner_line}\nCommand: #{command}\n"
-  end
-
-  def command_result_as_string(output)
-    "#{output}#{banner_line}\n\n"
-  end
-
 
 
   def run_os_command(command, raise_on_error = true)
 
     if @verbose_mode
-      puts command_attempt_as_string(command)
+      puts CommandOutputFormatter.command_attempt_as_string(command)
     end
 
     start_time = Time.now
@@ -65,7 +54,7 @@ class BaseModel
 
     if @verbose_mode
       puts "Duration: #{'%.4f' % [Time.now - start_time]} seconds"
-      puts command_result_as_string(output)
+      puts CommandOutputFormatter.command_result_as_string(output)
     end
 
     if $?.exitstatus != 0 && raise_on_error
@@ -95,7 +84,7 @@ class BaseModel
       success = true
 
       if @verbose_mode
-        puts command_attempt_as_string("[Calling Net:HTTP.start(#{url.host})]")
+        puts CommandOutputFormatter.command_attempt_as_string("[Calling Net:HTTP.start(#{url.host})]")
       end
 
       start_time = Time.now
@@ -111,7 +100,7 @@ class BaseModel
 
       if @verbose_mode
         puts "Duration: #{'%.4f' % [Time.now - start_time]} seconds"
-        puts command_result_as_string("#{success}\n")
+        puts CommandOutputFormatter.command_result_as_string("#{success}\n")
       end
 
       success
