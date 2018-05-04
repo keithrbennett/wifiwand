@@ -1,6 +1,8 @@
 module WifiWand
   module CommandOutputFormatter
 
+    module_function
+
     def banner_line
       @banner_line ||= '-' * 79
     end
