@@ -198,13 +198,25 @@ When in interactive shell mode:
   end
 
 
+  # Look up the command name and, if found, run it. If not, execute the passed block.
+  def attempt_command_action(command, *args, &error_handler_block)
+    action = find_command_action(command)
+
+    if action
+      action.(*args)
+    else
+      error_handler_block.call
+      nil
+    end
+  end
+
+
   # For use by the shell; when typing a command and options, it is passed to process_command_line
   def method_missing(method_name, *method_args)
-    method_name = method_name.to_s
-    if find_command_action(method_name)
-      process_command_line(method_name, method_args)
-    else
-      puts(%Q{"#{method_name}" is not a valid command or option. If you intend for this to be a string literal, use quotes or %q/Q{}.})
+    attempt_command_action(method_name.to_s, *method_args) do
+      puts(%Q{"#{method_name}" is not a valid command or option. } \
+          << 'If you intend for this to be a string literal, ' \
+          << 'use quotes or %q{}/%Q{}.')
     end
   end
 
@@ -215,16 +227,14 @@ When in interactive shell mode:
   # be in a form that the Ruby interpreter will recognize as a string,
   # i.e. single or double quotes, %q, %Q, etc.
   # Otherwise it will assume it's a method name and pass it to method_missing!
-  def process_command_line(command, args)
-    action = find_command_action(command)
-    if action
-      action.(*args)
-    else
+  def process_command_line
+    attempt_command_action(ARGV[0], *ARGV[1..-1]) do
       print_help
       raise BadCommandError.new(
-          %Q{Unrecognized command. Command was "#{command}" and options were #{args.inspect}.})
+          %Q{! Unrecognized command. Command was "#{ARGV.first.inspect}" and options were #{ARGV[1..-1].inspect}.})
     end
   end
+
 
 
   def quit
@@ -314,7 +324,6 @@ When in interactive shell mode:
   # Performs nameserver functionality.
   # @param subcommand 'get' or no arg to get, 'clear' to clear, and an array of IP addresses to set
   def cmd_na(*args)
-
     subcommand = if [[], ['get']].include?(args)
       :get
     elsif args == ['clear']
@@ -474,7 +483,6 @@ When in interactive shell mode:
       && \
       command_string.length >= cmd.min_string.length  # e.g. 'c' by itself should not work
     end
-
     result ? result.action : nil
   end
 
@@ -495,7 +503,7 @@ When in interactive shell mode:
     begin
       # By this time, the Main class has removed the command line options, and all that is left
       # in ARGV is the commands and their options.
-      process_command_line(ARGV[0], ARGV[1..-1])
+      process_command_line
     rescue BadCommandError => error
       separator_line = "! #{'-' * 75} !\n"
       puts '' << separator_line << error.to_s << "\n" << separator_line
