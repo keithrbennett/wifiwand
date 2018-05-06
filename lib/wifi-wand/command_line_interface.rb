@@ -178,9 +178,9 @@ When in interactive shell mode:
     begin
       require 'pry'
     rescue LoadError
-      puts "The 'pry' gem and/or one of its prerequisites, required for running the shell, was not found." +
-               " Please `gem install pry` or, if necessary, `sudo gem install pry`."
-      exit(-1)
+      message = "The 'pry' gem and/or one of its prerequisites, required for running the shell, was not found." +
+          " Please `gem install pry` or, if necessary, `sudo gem install pry`."
+      raise Error.new(message)
     end
 
     print_help
