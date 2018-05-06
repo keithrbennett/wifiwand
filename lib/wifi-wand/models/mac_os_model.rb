@@ -31,6 +31,7 @@ class MacOsModel < BaseModel
     end
   end
 
+
   # Identifies the (first) wireless network hardware port in the system, e.g. en0 or en1
   # This may not detect wifi ports with nonstandard names, such as USB wifi devices.
   def detect_wifi_port
@@ -305,6 +306,7 @@ class MacOsModel < BaseModel
       nameservers.join(' ')
     end
     run_os_command("networksetup -setdnsservers Wi-Fi #{arg}")
+    nameservers
   end
 
 
@@ -327,6 +329,7 @@ class MacOsModel < BaseModel
     end
   end
   private :colon_output_to_hash
+
 
   # @return array of nameserver IP addresses from /etc/resolv.conf, or nil if not found
   # Though this is strictly *not* OS-agnostic, it will be used by most OS's,
