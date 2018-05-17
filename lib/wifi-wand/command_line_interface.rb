@@ -80,7 +80,7 @@ ro[pen]                   - open resource (#{OPEN_RESOURCES.help_string})
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                             1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
                             2) wait interval, in seconds (optional, defaults to 0.5 seconds)
-w[ifion]                  - is the wifi on?
+w[ifi_on]                 - is the wifi on?
 x[it]                     - exits this program (interactive shell mode only) (see also 'q')
 
 When in interactive shell mode:
@@ -211,7 +211,7 @@ When in interactive shell mode:
   end
 
 
-  # For use by the shell; when typing a command and options, it is passed to process_command_line
+  # For use by the shell when the user types the DSL commands
   def method_missing(method_name, *method_args)
     attempt_command_action(method_name.to_s, *method_args) do
       puts(%Q{"#{method_name}" is not a valid command or option. } \

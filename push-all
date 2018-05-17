@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #
-# push_all  Pushes commits to all remote repos.
+# push_all  Pushes a branch and its tags to all remote repos.
 #
 
 BRANCH = ARGV[0] || 'master'

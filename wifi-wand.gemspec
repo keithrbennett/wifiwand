@@ -7,8 +7,8 @@ Gem::Specification.new do |spec|
   spec.version       = WifiWand::VERSION
   spec.authors       = ["Keith Bennett"]
   spec.email         = ["keithrbennett@gmail.com"]
-  spec.description   = %q{A command line interface for managing wifi on a Mac.}
-  spec.summary       = %q{Mac wifi utility}
+  spec.description   = %q{A command line interface for managing WiFi on a Mac.}
+  spec.summary       = %q{Mac WiFi utility}
   spec.homepage      = "https://github.com/keithrbennett/wifi-wand"
   spec.license       = "MIT"
 
