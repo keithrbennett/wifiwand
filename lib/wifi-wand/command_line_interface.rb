@@ -84,7 +84,7 @@ w[ifi_on]                 - is the wifi on?
 x[it]                     - exits this program (interactive shell mode only) (see also 'q')
 
 When in interactive shell mode:
-  * use quotes for string parameters such as method names.
+  * remember to quote string literals.
   * for pry commands, use prefix `%`.
 
 "
