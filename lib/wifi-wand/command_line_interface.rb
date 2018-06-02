@@ -108,8 +108,6 @@ When in interactive shell mode:
   end
 
 
-  # Until command line option parsing is added, the only way to specify
-  # verbose mode is in the environment variable MAC_WIFI_OPTS.
   def verbose_mode
     options.verbose
   end
