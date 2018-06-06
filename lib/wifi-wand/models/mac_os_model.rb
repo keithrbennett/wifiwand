@@ -1,5 +1,6 @@
 require 'ipaddr'
 require 'ostruct'
+require 'rexml/document'
 require 'shellwords'
 
 require_relative 'base_model'
@@ -108,22 +109,58 @@ class MacOsModel < BaseModel
   end
 
 
-  # @return an array of unique available network names only, sorted alphabetically
-  # The reason we don't use an XML parser to get the exactly correct result is that we don't want
-  # users to need to install any external dependencies in order to run this script.
+  # The Mac OS airport utility (at
+  # /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport)
+  # outputs the network names right padded with spaces so there is no way to differentiate a
+  # network name *with* leading space(s) from one without:
+  #
+  #                   SSID BSSID             RSSI CHANNEL HT CC SECURITY (auth/unicast/group)
+  #    ngHub_319442NL0293C 04:a1:51:58:5b:05 -65  11      Y  US WPA2(PSK/AES/AES)
+  #        NETGEAR89_2GEXT 9c:3d:cf:11:69:b4 -67  8       Y  US NONE
+  #
+  # To remedy this, they offer a "-x" option that outputs the information in (pseudo) XML.
+  # This XML has 'dict' elements that contain many elements. The SSID can be found in the
+  # XML element <string> which immediately follows an XML element whose text is "SSID_STR".
+  # Unfortunately, since there is no way to connect the two other than their physical location,
+  # the key is rather useless for XML parsing.
+  #
+  # I tried extracting the arrays of keys and strings, and finding the string element
+  # at the same position in the string array as the 'SSID_STR' was in the keys array.
+  # However, not all keys had string elements, so the index in the key array was the wrong index.
+  # Here is an excerpt from the XML output:
+  #
+  # 		<key>RSSI</key>
+  # 		<integer>-91</integer>
+  # 		<key>SSID</key>
+  # 		<data>
+  # 		TkVUR0VBUjY1
+  # 		</data>
+  # 		<key>SSID_STR</key>
+  # 		<string>NETGEAR65</string>
+  #
+  # The kludge I came up with was that the ssid was always the 2nd value in the <string> element
+  # array, so that's what is used here.
+  #
+  # REXML is used here to avoid the need for the user to install Nokogiri.
+
+  def ssids_from_airport_xml_output(xml_string)
+    doc = REXML::Document.new(xml_string)
+    doc.get_elements('/plist/array/dict').map do |dict|
+      strings = dict.get_elements('string')
+      strings[1].text
+    end.sort { |x,y| x.casecmp(y) }.uniq
+  end
+
+
+  # @return an array of unique available network names only, sorted alphabetically, case insensitively
   def available_network_names
-
-    # awk command below kindly provided by @nohillside at https://apple.stackexchange.com/questions/320323/how-to-programmatically-get-available-wifi-networks-without-airport-utility.
-    command = %Q{#{airport_command} -s -x | awk '{ if (catch == 1) { print; catch=0 } } /SSID_STR/ { catch=1 }'}
+    # For some reason, the airport command very often returns nothing, so we need to try until
+    # we get data in the response:
+    command = "#{airport_command} -s -x"
     stop_condition = ->(response) { ! [nil, ''].include?(response) }
-
     output = try_os_command_until(command, stop_condition)
-    output = output.split("\n")
-    output.map!(&:strip)
-    output.map! { |s| s.gsub(/<\/?string>/, '') }
-    output.sort! { |s1, s2| s1.casecmp(s2) }    # sort alphabetically, case insensitively
-    output.uniq!
-    output
+
+    ssids_from_airport_xml_output(output)
   end
 
 
