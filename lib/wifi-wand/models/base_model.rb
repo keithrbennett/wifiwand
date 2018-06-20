@@ -215,12 +215,20 @@ class BaseModel
   # @stop_condition a lambda taking the command's stdout as its sole parameter
   # @return the stdout produced by the command
   def try_os_command_until(command, stop_condition, max_tries = 100)
-    max_tries.times do
+
+    report_attempt_count = ->(attempt_count) do
+      puts "Command was executed #{attempt_count} time(s)." if @verbose_mode
+    end
+
+    max_tries.times do |n|
       stdout = run_os_command(command)
       if stop_condition.(stdout)
+        report_attempt_count.(n + 1)
         return stdout
       end
     end
+
+    report_attempt_count.(max_tries)
     nil
   end
 
