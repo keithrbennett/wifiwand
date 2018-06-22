@@ -141,63 +141,21 @@ class MacOsModel < BaseModel
   # The kludge I came up with was that the ssid was always the 2nd value in the <string> element
   # array, so that's what is used here.
   #
+  # But now even that approach has been superseded by the XPath approach now used.
+  #
   # REXML is used here to avoid the need for the user to install Nokogiri.
-
-  def ssids_from_airport_xml_output(xml_string)
-    doc = REXML::Document.new(xml_string)
-    doc.get_elements('/plist/array/dict').map do |dict|
-      strings = dict.get_elements('string')
-      strings[1].text
-    end.sort { |x,y| x.casecmp(y) }.uniq
-  end
-
-
-  def available_network_names_simple
+  def available_network_names
     # For some reason, the airport command very often returns nothing, so we need to try until
     # we get data in the response:
 
     command = "#{airport_command} -s -x"
     stop_condition = ->(response) { ! [nil, ''].include?(response) }
     output = try_os_command_until(command, stop_condition)
-
-    ssids_from_airport_xml_output(output)
+    doc = REXML::Document.new(output)
+    xpath = '//key[text() = "SSID_STR"][1]/following-sibling::*[1]'
+    names = REXML::XPath.match(doc, xpath).map(&:text)
+    names.sort { |x,y| x.casecmp(y) }.uniq
   end
-
-
-
-  def available_network_names_xmllint
-    command = %Q{#{airport_command}  -s -x | xmllint --xpath '//key[text() = "SSID_STR"][1]/following-sibling::*[1]' -}
-    stop_condition = ->(response) { ! [nil, ''].include?(response) }
-    output = try_os_command_until(command, stop_condition)
-    output.gsub('<string>', '') \
-        .gsub('</string>', "\n") \
-        .split("\n") \
-        .sort { |a, b| a.casecmp(b) } \
-        .uniq
-  end
-
-
-  def available_network_names
-    # Run the two approaches in parallel:
-    simple_thread = Thread.new { available_network_names_simple }
-    xmllint_thread = Thread.new { available_network_names_xmllint }
-    simple_thread.join; xmllint_thread.join
-
-    using_simple = simple_thread.value
-    using_xmllint = xmllint_thread.value
-
-    if using_simple != using_xmllint
-      puts "Lists using both approaches differed:"
-      puts "\nIn xmllint but not simple:"
-      puts using_xmllint - using_simple
-      puts "\n\nIn simple but not xmllint:"
-      puts using_simple - using_xmllint
-      puts '----'
-    end
-
-    using_xmllint
-  end
-
 
 
   # Returns data pertaining to "preferred" networks, many/most of which will probably not be available.
