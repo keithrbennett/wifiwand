@@ -153,8 +153,10 @@ class MacOsModel < BaseModel
     output = try_os_command_until(command, stop_condition)
     doc = REXML::Document.new(output)
     xpath = '//key[text() = "SSID_STR"][1]/following-sibling::*[1]' # provided by @ScreenStaring on Twitter
-    names = REXML::XPath.match(doc, xpath).map(&:text)
-    names.sort { |x,y| x.casecmp(y) }.uniq
+    REXML::XPath.match(doc, xpath) \
+        .map(&:text) \
+        .sort { |x,y| x.casecmp(y) } \
+        .uniq
   end
 
 
