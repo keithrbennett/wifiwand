@@ -1,3 +1,9 @@
+## v2.11.0
+
+* Various fixes and clarifications.
+* Change implementation of available_network_names to use REXML; first implemented w/position number, then XPath.
+* Add attempt count to try_os_command_until in verbose mode.
+
 ## v2.10.1
 
 * Fix egregious bug; the 'a' command did not work if `airport` was not in the path; I should have been using the AIRPORT_CMD constant but hard coded `airport` instead.
