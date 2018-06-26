@@ -72,10 +72,10 @@ class BaseModel
 
     # We test using ping first because that will allow us to fail faster
     # if there is no network connection.
-    test_using_ping = -> do
-      run_os_command('ping -c 1 -t 3 google.com', false)
-      $?.exitstatus == 0
-    end
+    # test_using_ping = -> do
+    #   run_os_command('ping -c 1 -t 3 google.com', false)
+    #   $?.exitstatus == 0
+    # end
 
 
     test_using_http_get = -> do
@@ -106,7 +106,8 @@ class BaseModel
       success
     end
 
-    test_using_ping.() && test_using_http_get.()
+    # test_using_ping.() && test_using_http_get.()
+    test_using_http_get.()
   end
 
 
