@@ -387,6 +387,9 @@ class MacOsModel < BaseModel
 
   def nameservers_using_networksetup
     output = run_os_command("networksetup -getdnsservers Wi-Fi")
+    if output == "There aren't any DNS Servers set on Wi-Fi.\n"
+      output = ''
+    end
     output.split("\n")
   end
 end
