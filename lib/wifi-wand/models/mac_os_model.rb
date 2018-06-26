@@ -279,7 +279,7 @@ class MacOsModel < BaseModel
   # then this method returns the current address if none is provided,
   # but sets to the specified address if it is.
   def mac_address
-    run_os_command("ifconfig #{wifi_port} | awk '/ether/{print $2}'")
+    run_os_command("ifconfig #{wifi_port} | awk '/ether/{print $2}'").chomp
   end
 
 
