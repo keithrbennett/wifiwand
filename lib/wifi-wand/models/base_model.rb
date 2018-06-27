@@ -68,6 +68,7 @@ class BaseModel
   # This method returns whether or not there is a working Internet connection,
   # which is defined as name resolution and HTTP get being successful.
   # Domains attempted are google.com and baidu.com. Success is either being successful.
+  # Commands for the multiple sites are run in parallel, in threads, to save time.
   def connected_to_internet?
 
     # We cannot use run_os_command for the running of external processes here,

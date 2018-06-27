@@ -1,3 +1,11 @@
+## v2.12.0
+
+* Change connected_to_internet?. Use 'dig' to test name resolution first, then HTTP get. Also, add baidu.com for China where google.com is blocked.
+* Remove ping test from connected_to_internet?. It was failing on a network that had connectivity (Syma in France).
+* Remove trailing newline from MAC address.
+* Fix nameservers command to return empty array instead of ["There aren't any DNS Servers set on Wi-Fi."] (output of underlying command)when no nameservers.
+
+
 ## v2.11.0
 
 * Various fixes and clarifications.
