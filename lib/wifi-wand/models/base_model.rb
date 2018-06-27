@@ -66,48 +66,63 @@ class BaseModel
 
 
   # This method returns whether or not there is a working Internet connection,
-  # which is defined as being able to get a successful response
-  # from google.com within 3 seconds..
+  # which is defined as name resolution and HTTP get being successful.
+  # Domains attempted are google.com and baidu.com. Success is either being successful.
   def connected_to_internet?
 
-    # We test using ping first because that will allow us to fail faster
-    # if there is no network connection.
-    # test_using_ping = -> do
-    #   run_os_command('ping -c 1 -t 3 google.com', false)
-    #   $?.exitstatus == 0
-    # end
+    # We cannot use run_os_command for the running of external processes here,
+    # because they are multithreaded, and the output will get mixed up.
 
+    # First pass to fail quickly if name resolving does not work.
+    test_using_dig = -> do
+      domains = %w(google.com  baidu.com)
+      puts "Calling dig on domains #{domains}..." if @verbose_mode
 
-    test_using_http_get = -> do
-      test_site = 'https://www.google.com'
-      url = URI.parse(test_site)
-      success = true
-
-      if @verbose_mode
-        puts CommandOutputFormatter.command_attempt_as_string("[Calling Net:HTTP.start(#{url.host})]")
-      end
-
-      start_time = Time.now
-
-      begin
-        Net::HTTP.start(url.host) do |http|
-          http.read_timeout = 3 # seconds
-          http.get('.')
+      threads = domains.map do |domain|
+        Thread.new do
+          output = `dig +short #{domain}`
+          output.length > 0
         end
-      rescue
-        success = false
       end
 
-      if @verbose_mode
-        puts "Duration: #{'%.4f' % [Time.now - start_time]} seconds"
-        puts CommandOutputFormatter.command_result_as_string("#{success}\n")
-      end
-
+      threads.each(&:join)
+      values = threads.map(&:value)
+      success = values.include?(true)
+      puts "Results of dig: success == #{success}, values were #{values}." if @verbose_mode
       success
     end
 
-    # test_using_ping.() && test_using_http_get.()
-    test_using_http_get.()
+    test_using_http_get = -> do
+      test_sites = %w{https://www.google.com  http://baidu.com}
+      puts "Calling HTTP.get on sites #{test_sites}..." if @verbose_mode
+
+      threads = test_sites.map do |site|
+        Thread.new do
+          url = URI.parse(site)
+          success = true
+
+          begin
+            Net::HTTP.start(url.host) do |http|
+              http.read_timeout = 3 # seconds
+              http.get('.')
+            end
+          rescue
+            success = false
+          end
+
+          success
+        end
+      end
+
+      threads.each(&:join)
+      values = threads.map(&:value)
+      success = values.include?(true)
+
+      puts "Results of HTTP.get: success == #{success}, values were #{values}." if @verbose_mode
+      success
+    end
+
+    test_using_dig.() && test_using_http_get.()
   end
 
 
