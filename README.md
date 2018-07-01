@@ -9,8 +9,8 @@ or, you may need to precede that command with `sudo`:
 `sudo gem install wifi-wand`
 
 The `wifi-wand` gem enables the query and management 
-of wifi configuration and environment on a Mac.
-The code encapsulates the Mac OS specific logic in a minimal class 
+of WiFi configuration and environment on a Mac.
+The code encapsulates the Mac OS specific logic in model classes 
 to more easily add support for other operating systems,
 but as of now, only Mac OS is supported. (Feel free to add an OS!)
 
@@ -30,7 +30,7 @@ $ wifi-wand -h
 
 Syntax is: exe/wifi-wand [options] command [command_options]
 
-Command Line Switches:                    [wifi-wand version 2.10.0 at https://github.com/keithrbennett/wifiwand]
+Command Line Switches:                    [wifi-wand version 2.12.0 at https://github.com/keithrbennett/wifiwand]
 
 -o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
 -p wifi_port_name         - override automatic detection of port name with this name
@@ -44,7 +44,7 @@ ci                        - connected to Internet (not just wifi on)?
 co[nnect] network-name    - turns wifi on, connects to network-name
 cy[cle]                   - turns wifi off, then on, preserving network selection
 d[isconnect]              - disconnects from current network, does not turn off wifi
-f[orget] network-name     - removes network-name(s) from the preferred networks list
+f[orget] name1 [..name_n] - removes network-name(s) from the preferred networks list
 h[elp]                    - prints this help
 i[nfo]                    - a hash of wifi-related information
 l[s_avail_nets]           - details about available networks
@@ -59,17 +59,21 @@ ro[pen]                   - open resource ('ipl' (IP Location), 'ipw' (What is M
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                             1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
                             2) wait interval, in seconds (optional, defaults to 0.5 seconds)
-w[ifion]                  - is the wifi on?
+w[ifi_on]                 - is the wifi on?
 x[it]                     - exits this program (interactive shell mode only) (see also 'q')
+
+When in interactive shell mode:
+  * remember to quote string literals.
+  * for pry commands, use prefix `%`.
+
 
 When in interactive shell mode:
   * use quotes for string parameters such as method names.
   * for pry commands, use prefix `%`.
 ```
 
-Internally, it uses several Mac command line utilities. This is not ideal,
-I would have preferred OS system calls, but the current approach enabled me to develop
-this script quickly and simply.
+Internally, it uses several Mac command line utilities to interact with the
+underlying operating system.
 
 
 ### Pretty Output
@@ -115,21 +119,6 @@ gems, you will need to precede those commands with `sudo`:
 sudo gem install pry
 sudo gem install pry-coolline
 ```
-
-
-### Using It in Scripts
-
-Sometimes calling `wifi-wand` from a script is handy. I have this script that
-connects to a commonly used wifi network, and then speaks a message when it's done:
-
-```
-wifi-wand connect my_network_name my_password  && \
-wifi-wand till conn && \
-say -v Kyoko "Connected to my network."
-```
-
-(The Mac OS `say` command supports all kinds of accents that are fun to play around with.
-You can get a list of all of them by running `say -v "?"`)
 
 
 ### Using the Shell
@@ -190,7 +179,7 @@ or constants, which will _not_ hide the methods:
 ```
 
 2) If you accidentally refer to a nonexistent variable or method name,
-the result may be mysterious.  For example, if I were write the wifi information
+the result may be mysterious.  For example, if I were write the WiFi information
 to a file, this would work:
 
 ```
@@ -284,7 +273,7 @@ puts model.available_network_names.to_yaml # etc...
 but these commands could also each be specified on a line of its own.)
 
 ```
-# Print out wifi info:
+# Print out WiFi info:
 i
 
 # Cycle (off/on) the network then connect to the specified network not requiring a password
@@ -303,11 +292,12 @@ You are connected on port en0 to .@ AIS SUPER WiFi on IP address 172.27.145.225.
 There are 341 preferred networks.
 
 # Delete all preferred networks whose names begin with "TOTTGUEST", the hard way:
-> pr.grep(/^TOTTGUEST/).each { |n| rm(n) }
+> pr.grep(/^TOTTGUEST/).each { |n| forget(n) }
 
 # Delete all preferred networks whose names begin with "TOTTGUEST", the easy way.
-# rm can take multiple network names, but they must be specified as separate parameters; thus the '*'.
-> rm(*pr.grep(/^TOTTGUEST/))
+# 'forget' can take multiple network names, 
+# but they must be specified as separate parameters; thus the '*'.
+> forget(*pr.grep(/^TOTTGUEST/))
 
 # Define a method to wait for the Internet connection to be active.
 # (This functionality is included in the `till` command.)
@@ -347,14 +337,14 @@ return this:
 
 If this happens, the public IP information will be silently omitted from the
 information hash. In this case, the web site 'https://www.iplocation.net/' is
-recommended, and `ro ipl` on the command line or `ro 'ipl'` in the shell will
+recommended, and `wifi-wand ro ipl` on the command line or `ro 'ipl'` in the shell will
 open that page in your browser for you.
 
 
 ### Password Lookup Oddity
 
 You may find it odd (I did, anyway) that even if you issue the password command 
-(`mac_wifi pa a-network-name`) using sudo, you will still be prompted 
+(`mac_wifi password a-network-name`) using sudo, you will still be prompted 
 with a graphical dialog for both a user id and password. This is no doubt
 for better security, but it's unfortunate in that it makes it impossible to fully automate this task.
 
