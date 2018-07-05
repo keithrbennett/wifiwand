@@ -70,6 +70,7 @@ class BaseModel
   # Domains attempted are google.com and baidu.com. Success is either being successful.
   # Commands for the multiple sites are run in parallel, in threads, to save time.
   def connected_to_internet?
+    return nil unless wifi_on? # no need to try
 
     # We cannot use run_os_command for the running of external processes here,
     # because they are multithreaded, and the output will get mixed up.

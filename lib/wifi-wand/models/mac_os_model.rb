@@ -145,7 +145,9 @@ class MacOsModel < BaseModel
   #
   # REXML is used here to avoid the need for the user to install Nokogiri.
   def available_network_names
-    # For some reason, the airport command very often returns nothing, so we need to try until
+    return nil unless wifi_on? # no need to try
+
+# For some reason, the airport command very often returns nothing, so we need to try until
     # we get data in the response:
 
     command = "#{airport_command} -s -x"
@@ -238,6 +240,7 @@ class MacOsModel < BaseModel
 
   # Returns the IP address assigned to the wifi port, or nil if none.
   def ip_address
+    return nil unless wifi_on? # no need to try
     begin
       run_os_command("ipconfig getifaddr #{wifi_port}").chomp
     rescue OsCommandError => error
@@ -259,6 +262,7 @@ class MacOsModel < BaseModel
 
   # Returns the network currently connected to, or nil if none.
   def connected_network_name
+    return nil unless wifi_on? # no need to try
     lines = run_os_command("#{airport_command} -I").split("\n")
     ssid_lines = lines.grep(/ SSID:/)
     ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last.lstrip
@@ -267,6 +271,7 @@ class MacOsModel < BaseModel
 
   # Disconnects from the currently connected network. Does not turn off wifi.
   def disconnect
+    return nil unless wifi_on? # no need to try
     run_os_command("sudo #{airport_command} -z")
     nil
   end
