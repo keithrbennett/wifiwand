@@ -150,7 +150,7 @@ class MacOsModel < BaseModel
 # For some reason, the airport command very often returns nothing, so we need to try until
     # we get data in the response:
 
-    command = "#{airport_command} -s -x"
+    command = "#{airport_command} -s -x | iconv -f macroman -t utf-8"
     stop_condition = ->(response) { ! [nil, ''].include?(response) }
     output = try_os_command_until(command, stop_condition)
     doc = REXML::Document.new(output)
