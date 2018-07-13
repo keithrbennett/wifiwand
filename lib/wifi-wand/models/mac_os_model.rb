@@ -73,7 +73,7 @@ class MacOsModel < BaseModel
   #     "DIRECT-sq-BRAVIA                 02:71:cc:87:4a:8c -76  6       Y  -- WPA2(PSK/AES/AES) ",  #
   def available_network_info
     return nil unless wifi_on? # no need to try
-    command = "#{airport_command} -s"
+    command = "#{airport_command} -s | iconv -f macroman -t utf-8"
     max_attempts = 50
 
 
