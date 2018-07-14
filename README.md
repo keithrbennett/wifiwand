@@ -30,7 +30,7 @@ $ wifi-wand -h
 
 Syntax is: exe/wifi-wand [options] command [command_options]
 
-Command Line Switches:                    [wifi-wand version 2.12.0 at https://github.com/keithrbennett/wifiwand]
+Command Line Switches:                    [wifi-wand version 2.13.0 at https://github.com/keithrbennett/wifiwand]
 
 -o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
 -p wifi_port_name         - override automatic detection of port name with this name

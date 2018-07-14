@@ -1,3 +1,8 @@
+## v2.13.0
+
+* Fix: network names could not be displayed when one contained a nonstandard character (e.g. D5 for a special apostrophe in Mac Roman encoding).
+* Fix: some operations that didn't make sense with WiFi off were attempted anyway; this was removed.
+
 ## v2.12.0
 
 * Change connected_to_internet?. Use 'dig' to test name resolution first, then HTTP get. Also, add baidu.com for China where google.com is blocked.
