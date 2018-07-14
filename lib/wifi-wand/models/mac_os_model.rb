@@ -147,7 +147,7 @@ class MacOsModel < BaseModel
   def available_network_names
     return nil unless wifi_on? # no need to try
 
-# For some reason, the airport command very often returns nothing, so we need to try until
+    # For some reason, the airport command very often returns nothing, so we need to try until
     # we get data in the response:
 
     command = "#{airport_command} -s -x | iconv -f macroman -t utf-8"
@@ -342,7 +342,8 @@ class MacOsModel < BaseModel
         raise Error.new("Bad IP addresses provided: #{bad_addresses.join(', ')}")
       end
       nameservers.join(' ')
-    end
+    end # end assignment to arg variable
+
     run_os_command("networksetup -setdnsservers Wi-Fi #{arg}")
     nameservers
   end
