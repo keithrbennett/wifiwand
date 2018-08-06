@@ -1,4 +1,4 @@
-![readme](https://user-images.githubusercontent.com/37614260/43696688-7686552a-9969-11e8-8398-0f6260477c8e.png)
+![logo](logo/wifiwand-logo-horizontal-color.png)
 
 # wifi-wand
 
