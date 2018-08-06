@@ -7,6 +7,9 @@
 ![h-black](wifiwand-logo-horizontal-black.png)
 
 #### wifiwand-logo-horizontal-white.png
+
+(White is invisible on this page.)
+
 ![h-white](wifiwand-logo-horizontal-white.png)
 
 
@@ -17,6 +20,9 @@
 ![v-black](wifiwand-logo-vertical-black.png)
 
 #### wifiwand-logo-vertical-white.png
+
+(White is invisible on this page.)
+
 ![v-white](wifiwand-logo-vertical-white.png)
 
 
@@ -27,4 +33,7 @@
 ![v-black](wifiwand-logomark-black.png)
 
 #### wifiwand-logomark-white.png
+
+(White is invisible on this page.)
+
 ![v-white](wifiwand-logomark-white.png)
