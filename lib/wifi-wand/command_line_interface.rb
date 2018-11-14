@@ -9,6 +9,7 @@ class CommandLineInterface
 
   attr_reader :interactive_mode, :model, :open_resources, :options
 
+  PROJECT_URL = 'https://github.com/keithrbennett/wifiwand'
 
   class Command < Struct.new(:min_string, :max_string, :action); end
 
@@ -469,6 +470,7 @@ When in interactive shell mode:
         Command.new('pr',  'pref_nets',     -> (*_options) { cmd_pr            }),
         Command.new('q',   'quit',          -> (*_options) { cmd_q             }),
         Command.new('t',   'till',          -> (*options)  { cmd_t(*options)   }),
+        Command.new('u',   'url',           -> (*_options) { PROJECT_URL       }),
         Command.new('w',   'wifi_on',       -> (*_options) { cmd_w             }),
         Command.new('x',   'xit',           -> (*_options) { cmd_x             })
     ]
