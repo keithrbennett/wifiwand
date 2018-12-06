@@ -379,7 +379,11 @@ When in interactive shell mode:
     resource_codes.each do |code|
       resource = OPEN_RESOURCES.find_by_code(code)
       if resource
-        model.open_resource(resource.resource)
+        if code == 'spe' && Dir.exist?('/Applications/Speedtest.app/')
+          model.open_application('Speedtest')
+        else
+          model.open_resource(resource.resource)
+        end
       end
     end
     nil

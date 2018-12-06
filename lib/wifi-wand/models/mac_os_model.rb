@@ -349,6 +349,11 @@ class MacOsModel < BaseModel
   end
 
 
+  def open_application(application_name)
+    run_os_command('open -a ' + application_name)
+  end
+
+
   def open_resource(resource_url)
     run_os_command('open ' + resource_url)
   end
