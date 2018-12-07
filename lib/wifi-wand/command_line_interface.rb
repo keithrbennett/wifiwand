@@ -307,15 +307,22 @@ When in interactive shell mode:
 
   def cmd_l
     info = model.available_network_info
+
     if interactive_mode
       info
     else
-      if post_processor
-        puts post_processor.(info)
+      output = ''
+      unless model.wifi_on?
+        output << "Wifi is off, cannot see available networks."
       else
-        message = model.wifi_on? ? fancy_string(info) : "Wifi is off, cannot see available networks."
-        puts(message)
+        if post_processor
+          output = post_processor.(info)
+        else
+          output << "\nAccess points listed in descending order of signal strength (RSSI):\n\n"
+          output << fancy_string(info)
+        end
       end
+      puts output
     end
   end
 

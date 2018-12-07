@@ -76,12 +76,16 @@ class MacOsModel < BaseModel
     command = "#{airport_command} -s | iconv -f macroman -t utf-8"
     max_attempts = 50
 
-
     reformat_line = ->(line) do
       ssid = line[0..31].strip
       "%-32.32s%s" % [ssid, line[32..-1]]
     end
 
+    signal_strength = ->(line) { (line[50..54] || '').to_i }
+
+    sort_in_place_by_signal_strength = ->(lines) do
+      lines.sort! { |x,y| signal_strength.(y) <=> signal_strength.(x) }
+    end
 
     process_tabular_data = ->(output) do
       lines = output.split("\n")
@@ -91,11 +95,9 @@ class MacOsModel < BaseModel
         # Reformat the line so that the name is left instead of right justified
         reformat_line.(line)
       end
-      # TODO: Need to sort case insensitively?:
-      data_lines.sort!
+      sort_in_place_by_signal_strength.(data_lines)
       [reformat_line.(header_line)] + data_lines
     end
-
 
     output = try_os_command_until(command, ->(output) do
       ! ([nil, ''].include?(output))
