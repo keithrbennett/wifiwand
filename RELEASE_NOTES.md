@@ -1,3 +1,8 @@
+## v2.14.0
+
+* `ls_avail_nets` command now outputs access points in signal strength order.
+* Add logo to project, show it in README.md.
+
 ## v2.13.0
 
 * Fix: network names could not be displayed when one contained a nonstandard character (e.g. D5 for a special apostrophe in Mac Roman encoding).
