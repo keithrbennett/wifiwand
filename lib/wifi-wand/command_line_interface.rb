@@ -69,18 +69,18 @@ d[isconnect]              - disconnects from current network, does not turn off 
 f[orget] name1 [..name_n] - removes network-name(s) from the preferred networks list
 h[elp]                    - prints this help
 i[nfo]                    - a hash of wifi-related information
-l[s_avail_nets]           - details about available networks
+l[s_avail_nets]           - details about available networks, in descending order of signal strength
 na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear, or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
 ne[twork_name]            - name (SSID) of currently connected network
 on                        - turns wifi on
 of[f]                     - turns wifi off
 pa[ssword] network-name   - password for preferred network-name
-pr[ef_nets]               - preferred (not necessarily available) networks
+pr[ef_nets]               - preferred (saved) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
 ro[pen]                   - open resource (#{OPEN_RESOURCES.help_string})
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                             1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
-                            2) wait interval, in seconds (optional, defaults to 0.5 seconds)
+                            2) wait interval between tests, in seconds (optional, defaults to 0.5 seconds)
 w[ifi_on]                 - is the wifi on?
 x[it]                     - exits this program (interactive shell mode only) (see also 'q')
 
