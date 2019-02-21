@@ -45,14 +45,14 @@ class BaseModel
 
   def run_os_command(command, raise_on_error = true)
 
-    if @verbose_mode
+    if verbose_mode
       puts CommandOutputFormatter.command_attempt_as_string(command)
     end
 
     start_time = Time.now
     output = `#{command} 2>&1` # join stderr with stdout
 
-    if @verbose_mode
+    if verbose_mode
       puts "Duration: #{'%.4f' % [Time.now - start_time]} seconds"
       puts CommandOutputFormatter.command_result_as_string(output)
     end
@@ -78,7 +78,7 @@ class BaseModel
     # First pass to fail quickly if name resolving does not work.
     test_using_dig = -> do
       domains = %w(google.com  baidu.com)
-      puts "Calling dig on domains #{domains}..." if @verbose_mode
+      puts "Calling dig on domains #{domains}..." if verbose_mode
 
       threads = domains.map do |domain|
         Thread.new do
@@ -90,13 +90,13 @@ class BaseModel
       threads.each(&:join)
       values = threads.map(&:value)
       success = values.include?(true)
-      puts "Results of dig: success == #{success}, values were #{values}." if @verbose_mode
+      puts "Results of dig: success == #{success}, values were #{values}." if verbose_mode
       success
     end
 
     test_using_http_get = -> do
       test_sites = %w{https://www.google.com  http://baidu.com}
-      puts "Calling HTTP.get on sites #{test_sites}..." if @verbose_mode
+      puts "Calling HTTP.get on sites #{test_sites}..." if verbose_mode
 
       threads = test_sites.map do |site|
         Thread.new do
@@ -123,7 +123,7 @@ class BaseModel
       values = threads.map(&:value)
       success = values.include?(true)
 
-      puts "Results of HTTP.get: success == #{success}, values were #{values}." if @verbose_mode
+      puts "Results of HTTP.get: success == #{success}, values were #{values}." if verbose_mode
       success
     end
 
@@ -240,7 +240,7 @@ class BaseModel
   def try_os_command_until(command, stop_condition, max_tries = 100)
 
     report_attempt_count = ->(attempt_count) do
-      puts "Command was executed #{attempt_count} time(s)." if @verbose_mode
+      puts "Command was executed #{attempt_count} time(s)." if verbose_mode
     end
 
     max_tries.times do |n|

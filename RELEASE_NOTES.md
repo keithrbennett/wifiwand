@@ -1,3 +1,10 @@
+## v2.15.0
+
+* Allow using symbols in the 'nameservers' subcommands.
+* Modify `forget` method to allow passing a single array of names, as returned by `pr.grep`, for example.
+* Output duration of http get's.
+
+
 ## v2.14.0
 
 * `ls_avail_nets` command now outputs access points in signal strength order.

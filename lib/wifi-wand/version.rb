@@ -1,5 +1,5 @@
 module WifiWand
 
-  VERSION = '2.14.0'
+  VERSION = '2.15.0'
 
 end
