@@ -105,8 +105,11 @@ class BaseModel
 
           begin
             Net::HTTP.start(url.host) do |http|
+              start = Time.now
               http.read_timeout = 3 # seconds
               http.get('.')
+              duration = Time.now - start
+              puts "Finished HTTP get #{url.host} in #{duration} seconds" if verbose_mode
             end
           rescue
             success = false
@@ -177,8 +180,10 @@ class BaseModel
 
   # Removes the specified network(s) from the preferred network list.
   # @param network_names names of networks to remove; may be empty or contain nonexistent networks
+  #        can be a single arg which is an array of names or 1 name string per arg
   # @return names of the networks that were removed (excludes non-preexisting networks)
   def remove_preferred_networks(*network_names)
+    network_names = network_names.first if network_names.first.is_a?(Array) && network_names.size == 1
     networks_to_remove = network_names & preferred_networks # exclude any nonexistent networks
     networks_to_remove.each { |name| remove_preferred_network(name) }
   end
