@@ -67,10 +67,12 @@ co[nnect] network-name    - turns wifi on, connects to network-name
 cy[cle]                   - turns wifi off, then on, preserving network selection
 d[isconnect]              - disconnects from current network, does not turn off wifi
 f[orget] name1 [..name_n] - removes network-name(s) from the preferred networks list
+                            in interactive mode, can be a single array of names, e.g. returned by `pref_nets`
 h[elp]                    - prints this help
 i[nfo]                    - a hash of wifi-related information
 l[s_avail_nets]           - details about available networks, in descending order of signal strength
-na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear, or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
+na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear,
+                            or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
 ne[twork_name]            - name (SSID) of currently connected network
 on                        - turns wifi on
 of[f]                     - turns wifi off
@@ -330,9 +332,9 @@ When in interactive shell mode:
   # Performs nameserver functionality.
   # @param subcommand 'get' or no arg to get, 'clear' to clear, and an array of IP addresses to set
   def cmd_na(*args)
-    subcommand = if [[], ['get']].include?(args)
+    subcommand = if args.empty? || args.first.to_sym == :get
       :get
-    elsif args == ['clear']
+    elsif args.first.to_sym == :clear
       :clear
     else
       :put
