@@ -102,16 +102,16 @@ class BaseModel
         Thread.new do
           url = URI.parse(site)
           success = true
+          start = Time.now
 
           begin
             Net::HTTP.start(url.host) do |http|
-              start = Time.now
               http.read_timeout = 3 # seconds
               http.get('.')
-              duration = Time.now - start
-              puts "Finished HTTP get #{url.host} in #{duration} seconds" if verbose_mode
+              puts "Finished HTTP get #{url.host} in #{Time.now - start} seconds" if verbose_mode
             end
-          rescue
+          rescue => e
+            puts "Got error for host #{url.host} in #{Time.now - start} seconds:\n#{e.inspect}" if verbose_mode
             success = false
           end
 
