@@ -1,3 +1,8 @@
+## v2.15.1
+
+* Fix bug; when calling connect with an SSID with leading spaces, a warning was erroneously issued about the SSID.
+
+
 ## v2.15.0
 
 * Allow using symbols in the 'nameservers' subcommands.

@@ -267,7 +267,7 @@ class MacOsModel < BaseModel
     return nil unless wifi_on? # no need to try
     lines = run_os_command("#{airport_command} -I").split("\n")
     ssid_lines = lines.grep(/ SSID:/)
-    ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last.lstrip
+    ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last
   end
 
 
