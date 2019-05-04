@@ -299,9 +299,12 @@ class MacOsModel < BaseModel
       false
     end
 
+    need_hotspot_login = hotspot_login_required
+
     info = {
         'wifi_on'     => wifi_on?,
         'internet_on' => connected,
+        'hotspot_login_required' => need_hotspot_login,
         'port'        => wifi_port,
         'network'     => connected_network_name,
         'ip_address'  => ip_address,
@@ -314,7 +317,7 @@ class MacOsModel < BaseModel
     info.merge!(more_info)
     info.delete('AirPort') # will be here if off, but info is already in wifi_on key
 
-    if info['internet_on']
+    if info['internet_on'] && (! need_hotspot_login)
       begin
         info['public_ip'] = public_ip_address_info
       rescue => e

@@ -131,6 +131,13 @@ class BaseModel
   end
 
 
+  def hotspot_login_required
+    response_text = run_os_command('curl --max-time 3 http://captive.apple.com', false)
+    required = ['Error', '302', 'Hotspot login required'].all? { |s| response_text.include?(s) }
+    required
+  end
+
+
   # Turns wifi off and then on, reconnecting to the originally connecting network.
   def cycle_network
     # TODO: Make this network name saving and restoring conditional on it not having a password.
@@ -164,7 +171,13 @@ class BaseModel
 
     # Verify that the network is now connected:
     actual_network_name = connected_network_name
-    unless actual_network_name == network_name
+
+    if actual_network_name == network_name
+      if hotspot_login_required
+        puts "Hotspot login required. Opening browser to captive.apple.com."
+        `open https://captive.apple.com`
+      end
+    else
       message = %Q{Expected to connect to "#{network_name}" but }
       if actual_network_name.nil? || actual_network_name.empty?
         message << "unable to connect to any network."
