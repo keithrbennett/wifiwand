@@ -386,6 +386,7 @@ When in interactive shell mode:
   # Use Mac OS 'open' command line utility
   def cmd_ro(*resource_codes)
     resource_codes.each do |code|
+      code = code.to_s  # accommodate conversion of parameter from other types, esp. symbols
       resource = OPEN_RESOURCES.find_by_code(code)
       if resource
         if code == 'spe' && Dir.exist?('/Applications/Speedtest.app/')
