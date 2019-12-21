@@ -1,3 +1,10 @@
+## v2.15.2
+
+* Improve support for 'hotspot login required'.
+* Add 'hotspot_login_required' field to info hash, & on connect, opens captive.aple.com page if needed.
+* Change license from MIT to Apache 2.
+
+
 ## v2.15.1
 
 * Fix bug; when calling connect with an SSID with leading spaces, a warning was erroneously issued about the SSID.
