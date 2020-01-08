@@ -43,6 +43,7 @@ class CommandLineInterface
   end
 
   OPEN_RESOURCES = OpenResources.new([
+      OpenResource.new('cap',  'https://captive.apple.com/',                'Portal Logins'),
       OpenResource.new('ipl',  'https://www.iplocation.net/',               'IP Location'),
       OpenResource.new('ipw',  'https://www.whatismyip.com',                'What is My IP'),
       OpenResource.new('spe',  'http://speedtest.net/',                     'Speed Test'),
