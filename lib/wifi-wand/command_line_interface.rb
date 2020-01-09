@@ -386,6 +386,11 @@ When in interactive shell mode:
 
   # Use Mac OS 'open' command line utility
   def cmd_ro(*resource_codes)
+    if resource_codes.empty?
+      puts "Please specify a resource to open:\n #{OPEN_RESOURCES.help_string.gsub(',', "\n")}"
+      return
+    end
+
     resource_codes.each do |code|
       code = code.to_s  # accommodate conversion of parameter from other types, esp. symbols
       resource = OPEN_RESOURCES.find_by_code(code)
