@@ -361,7 +361,7 @@ MIT License (see LICENSE.txt)
 
 ### Logo
 
-Logo designed and generously contributed by Anhar Ismail (Github: [@anharismail](https://github.com/anharismail), Twitter: [@aizenanhar](https://twitter.com/aizenanhar)).`
+Logo designed and generously contributed by Anhar Ismail (Github: [@anharismail](https://github.com/anharismail), Twitter: [@aizenanhar](https://twitter.com/aizenanhar)).
 
 
 ### Shameless Ad
