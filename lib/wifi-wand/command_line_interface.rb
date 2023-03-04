@@ -94,12 +94,17 @@ When in interactive shell mode:
 "
 
   def initialize(options)
-    @options = options
     current_os = OperatingSystems.new.current_os
-    raise Error.new("Could not determine operating system") if current_os.nil?
+    if current_os.nil?
+      puts "This application currently runs only on Mac OS."
+      exit(1)
+    end
+
+    @options = options
+
     model_options = OpenStruct.new({
-        verbose:   options.verbose,
-        wifi_port: options.wifi_port
+      verbose:   options.verbose,
+      wifi_port: options.wifi_port
     })
 
     unless awesome_print_available?

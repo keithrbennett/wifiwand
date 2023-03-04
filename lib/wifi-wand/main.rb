@@ -64,7 +64,6 @@ class Main
     begin
       WifiWand::CommandLineInterface.new(options).call
     rescue => e
-      # require 'pry'; binding.pry
       puts "Error: #{e.backtrace.join("\n")}\n\n#{e.message}"
     end
   end
