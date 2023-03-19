@@ -1,3 +1,4 @@
+require 'awesome_print'
 require_relative 'operating_systems'
 require 'ostruct'
 require_relative 'error'
@@ -107,10 +108,6 @@ When in interactive shell mode:
       wifi_port: options.wifi_port
     })
 
-    unless awesome_print_available?
-      HELP_TEXT << "For nicer output, `gem install awesome_print`.\n\n"
-    end
-
     @model = current_os.create_model(model_options)
     @interactive_mode = !!(options.interactive_mode)
     run_shell if @interactive_mode
@@ -127,27 +124,8 @@ When in interactive shell mode:
   end
 
 
-  # @return true if awesome_print is available (after requiring it), else false after requiring 'pp'.
-  # We'd like to use awesome_print if it is available, but not require it.
-  # So, we try to require it, but if that fails, we fall back to using pp (pretty print),
-  # which is included in Ruby distributions without the need to install a gem.
-  def awesome_print_available?
-    if @awesome_print_available.nil?  # first time here
-      begin
-        require 'awesome_print'
-        @awesome_print_available = true
-      rescue LoadError
-        require 'pp'
-        @awesome_print_available = false
-      end
-    end
-
-    @awesome_print_available
-  end
-
-
   def fancy_string(object)
-    awesome_print_available? ? object.ai : object.pretty_inspect
+    object.awesome_inspect
   end
 
 
