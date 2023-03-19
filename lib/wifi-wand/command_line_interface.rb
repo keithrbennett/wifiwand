@@ -145,30 +145,11 @@ When in interactive shell mode:
   end
 
 
-  # Pry will output the content of the method from which it was called.
-  # This small method exists solely to reduce the amount of pry's output
-  # that is not needed here.
-  def run_pry
-    binding.pry
-
-    # the seemingly useless line below is needed to avoid pry's exiting
-    # (see https://github.com/deivid-rodriguez/pry-byebug/issues/45)
-    _a = nil
-  end
-
-
   # Runs a pry session in the context of this object.
   # Commands and options specified on the command line can also be specified in the shell.
   def run_shell
-    begin
-      require 'pry'
-    rescue LoadError
-      message = "The 'pry' gem and/or one of its prerequisites, required for running the shell, was not found." +
-          " Please `gem install pry` or, if necessary, `sudo gem install pry`."
-      raise Error.new(message)
-    end
-
     print_help
+    require 'pry'
 
     # Enable the line below if you have any problems with pry configuration being loaded
     # that is messing up this runtime use of pry:
@@ -179,7 +160,7 @@ When in interactive shell mode:
     # a pry command from a DSL command, which _is_ useful here.
     Pry.config.command_prefix = '%'
 
-    run_pry
+    binding.pry
   end
 
 

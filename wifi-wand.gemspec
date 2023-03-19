@@ -20,6 +20,11 @@ Gem::Specification.new do |spec|
 
   # spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.add_dependency('awesome_print', '~> 1.9')
+
+  # still on version 0, no need to exclude future versions, but need bug fix for pry not pry'ing
+  # on last line of method:
+  spec.add_dependency('pry', '>= 0.14.2')
+
   spec.add_dependency('rexml', '~> 3.0')
 
   spec.add_development_dependency "bundler", ">= 2.2.10"
