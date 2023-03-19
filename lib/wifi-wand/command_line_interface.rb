@@ -47,6 +47,7 @@ class CommandLineInterface
       OpenResource.new('cap',  'https://captive.apple.com/',                'Portal Logins'),
       OpenResource.new('ipl',  'https://www.iplocation.net/',               'IP Location'),
       OpenResource.new('ipw',  'https://www.whatismyip.com',                'What is My IP'),
+      OpenResource.new('libre','https://www.librespeed.org',                'LibreSpeed'),
       OpenResource.new('spe',  'http://speedtest.net/',                     'Speed Test'),
       OpenResource.new('this', 'https://github.com/keithrbennett/wifiwand', 'wifi-wand home page'),
   ])
