@@ -1,4 +1,4 @@
-require_relative '../../../lib/wifi-wand/models/mac_os_model'
+require_relative '../../../lib/wifi-wand/models/base_model'
 
 module WifiWand
 

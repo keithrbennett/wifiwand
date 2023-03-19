@@ -4,7 +4,6 @@ require 'tempfile'
 require 'uri'
 require_relative 'helpers/command_output_formatter'
 require_relative '../error'
-require_relative '../../wifi-wand'
 
 module WifiWand
 
