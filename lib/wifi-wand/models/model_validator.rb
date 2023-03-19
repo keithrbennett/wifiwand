@@ -16,8 +16,8 @@ module WifiWand
         :try_os_command_until,
         :verbose_mode,
         :verbose_mode=,
-        :wifi_port,
-        :wifi_port=
+        :wifi_interface,
+        :wifi_interface=
     ]
 
 
@@ -30,10 +30,10 @@ module WifiWand
         :available_network_info,
         :available_network_names,
         :connected_network_name,
-        :detect_wifi_port,
+        :detect_wifi_interface,
         :disconnect,
         :ip_address,
-        :is_wifi_port?,
+        :is_wifi_interface?,
         :mac_address,
         :nameservers_using_networksetup,
         :nameservers_using_resolv_conf,

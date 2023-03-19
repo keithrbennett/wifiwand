@@ -58,7 +58,7 @@ class CommandLineInterface
 Command Line Switches:                    [wifi-wand version #{WifiWand::VERSION} at https://github.com/keithrbennett/wifiwand]
 
 -o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
--p wifi_port_name         - override automatic detection of port name with this name
+-p wifi_interface_name    - override automatic detection of interface name with this name
 -s                        - run in shell mode
 -v                        - verbose mode (prints OS commands and their outputs)
 
@@ -105,8 +105,8 @@ When in interactive shell mode:
     @options = options
 
     model_options = OpenStruct.new({
-      verbose:   options.verbose,
-      wifi_port: options.wifi_port
+      verbose:        options.verbose,
+      wifi_interface: options.wifi_interface
     })
 
     @model = current_os.create_model(model_options)

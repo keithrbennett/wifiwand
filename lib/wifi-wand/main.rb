@@ -46,8 +46,8 @@ class Main
         options.post_processor = formatters[choice]
       end
 
-      parser.on("-p", "--wifi-port PORT", "WiFi port name") do |v|
-        options.wifi_port = v
+      parser.on("-p", "--wifi-interface interface", "WiFi interface name") do |v|
+        options.wifi_interface = v
       end
 
       parser.on("-h", "--help", "Show help") do |_help_requested|

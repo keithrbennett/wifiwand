@@ -54,9 +54,9 @@ describe MacOsModel do
       subject.connected_to_internet?
     end
 
-    it 'can get wifi port' do
+    it 'can get wifi interface' do
       wifi_starts_on ? subject.wifi_on : subject.wifi_off
-      subject.wifi_port
+      subject.wifi_interface
     end
 
     it 'can list info' do

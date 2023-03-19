@@ -9,7 +9,7 @@ module WifiWand
 
 class BaseModel
 
-  attr_accessor :wifi_port, :verbose_mode
+  attr_accessor :wifi_interface, :verbose_mode
 
   class OsCommandError < RuntimeError
     attr_reader :exitstatus, :command, :text
@@ -33,10 +33,10 @@ class BaseModel
   def initialize(options)
     @verbose_mode = options.verbose
 
-    if options.wifi_port && (! is_wifi_port?(options.wifi_port))
-      raise Error.new("#{options.wifi_port} is not a Wi-Fi interface.")
+    if options.wifi_interface && (! is_wifi_interface?(options.wifi_interface))
+      raise Error.new("#{options.wifi_interface} is not a Wi-Fi interface.")
     end
-    @wifi_port = options.wifi_port
+    @wifi_interface = options.wifi_interface
   end
 
 
@@ -283,8 +283,8 @@ class BaseModel
   end
 
 
-  def wifi_port
-    @wifi_port ||= detect_wifi_port
+  def wifi_interface
+    @wifi_interface ||= detect_wifi_interface
   end
 end
 end
