@@ -19,10 +19,10 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   # spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
+  spec.add_dependency('rexml', '~> 3.0')
 
   spec.add_development_dependency "bundler", ">= 2.2.10"
   spec.add_development_dependency "rake", ">= 12.3.3"
   spec.add_development_dependency "rspec", "~> 3.0"
 
 end
-
