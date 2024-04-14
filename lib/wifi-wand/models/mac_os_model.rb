@@ -6,6 +6,17 @@ require 'shellwords'
 require_relative 'base_model'
 require_relative '../error'
 
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# Apple has deprecated the 'airport' utility and has already disabled its
+# functionality. This utility is used for the following wifi-wand commands:
+
+# cmd: info, fn: wifi_info - adds information to the info output
+# cmd: avail_nets, fn: available_network_names - available wifi network names
+# cmd: ls_avail_nets, fn: available_network_info - available wifi networks details
+# cmd: wifi_on, fn: wifi_on?
+# cmd: network_name, fn: connected_network_name
+# cmd: disconnect, fn: disconnect
+
 module WifiWand
 
 class MacOsModel < BaseModel
