@@ -10,7 +10,7 @@ module WifiWand
 
 class MacOsModel < BaseModel
 
-  AIRPORT_CMD = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
+  DEFAULT_AIRPORT_FILESPEC = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
   # Takes an OpenStruct containing options such as verbose mode and interface name.
   def initialize(options = OpenStruct.new)
@@ -25,8 +25,8 @@ class MacOsModel < BaseModel
     airport_in_path = `which airport`.chomp
     if ! airport_in_path.empty?
       airport_in_path
-    elsif File.exist?(AIRPORT_CMD)
-      AIRPORT_CMD
+    elsif File.exist?(DEFAULT_AIRPORT_FILESPEC)
+      DEFAULT_AIRPORT_FILESPEC
     else
       raise Error.new("Airport command not found.")
     end
