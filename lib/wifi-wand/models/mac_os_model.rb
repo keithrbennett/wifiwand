@@ -204,14 +204,15 @@ class MacOsModel < BaseModel
 
   # Returns true if wifi is on, else false.
   def wifi_on?
-    lines = run_os_command("#{airport_command} -I").split("\n")
-    lines.grep("AirPort: Off").none?
+    output = run_os_command("networksetup -getairportpower #{wifi_interface}")
+    output.chomp.match?(/\): On$/)
   end
 
 
   # Turns wifi on.
   def wifi_on
     return if wifi_on?
+
     run_os_command("networksetup -setairportpower #{wifi_interface} on")
     wifi_on? ? nil : Error.new(raise("Wifi could not be enabled."))
   end
@@ -220,7 +221,9 @@ class MacOsModel < BaseModel
   # Turns wifi off.
   def wifi_off
     return unless wifi_on?
+
     run_os_command("networksetup -setairportpower #{wifi_interface} off")
+
     wifi_on? ? Error.new(raise("Wifi could not be disabled.")) : nil
   end
 
