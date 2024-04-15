@@ -17,6 +17,10 @@ require_relative '../error'
 # cmd: network_name, fn: connected_network_name
 # cmd: disconnect, fn: disconnect
 
+# An AskDifferent (Mac StackExchange site) question has been posted to
+# https://apple.stackexchange.com/questions/471886/how-to-replace-functionality-of-deprecated-airport-command-line-application.
+# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 module WifiWand
 
 class MacOsModel < BaseModel
@@ -276,9 +280,11 @@ class MacOsModel < BaseModel
   # Returns the network currently connected to, or nil if none.
   def connected_network_name
     return nil unless wifi_on? # no need to try
-    lines = run_os_command("#{airport_command} -I").split("\n")
-    ssid_lines = lines.grep(/ SSID:/)
-    ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last
+
+    output = run_os_command("networksetup -getairportnetwork #{wifi_interface}").chomp
+    connected_fragment = 'Current Wi-Fi Network: '
+    connected = output.include?(connected_fragment)
+    connected ? output.split(connected_fragment).last : nil
   end
 
 
