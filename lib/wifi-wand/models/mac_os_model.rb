@@ -7,15 +7,20 @@ require_relative 'base_model'
 require_relative '../error'
 
 # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# 2024-04-18:
+#
 # Apple has deprecated the 'airport' utility and has already disabled its
 # functionality. This utility is used for the following wifi-wand commands:
 
-# cmd: info, fn: wifi_info - adds information to the info output
-# cmd: avail_nets, fn: available_network_names - available wifi network names
-# cmd: ls_avail_nets, fn: available_network_info - available wifi networks details
-# cmd: wifi_on, fn: wifi_on?
-# cmd: network_name, fn: connected_network_name
-# cmd: disconnect, fn: disconnect
+# 1) cmd: info, fn: wifi_info - adds information to the info output
+# 2) cmd: avail_nets, fn: available_network_names - available wifi network names
+# 3) cmd: ls_avail_nets, fn: available_network_info - available wifi networks details
+# 4) cmd: wifi_on, fn: wifi_on?
+# 5) cmd: network_name, fn: connected_network_name
+# 6) cmd: disconnect, fn: disconnect
+
+# Functions 4 and 5 have been fixed to use `networksetup` instead of `airport`.
+# The others are not yet fixed.
 
 # An AskDifferent (Mac StackExchange site) question has been posted to
 # https://apple.stackexchange.com/questions/471886/how-to-replace-functionality-of-deprecated-airport-command-line-application.
@@ -27,11 +32,28 @@ class MacOsModel < BaseModel
 
   DEFAULT_AIRPORT_FILESPEC = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
+  attr_reader :airport_deprecated, :mac_os_version_major, :mac_os_version_minor, :mac_os_version_string
+
   # Takes an OpenStruct containing options such as verbose mode and interface name.
   def initialize(options = OpenStruct.new)
     super
+    populate_mac_os_version
+    @airport_deprecated = @mac_os_version_major > 14 || (@mac_os_version_major == 14 && @mac_os_version_minor >= 4)
   end
 
+  # Provides Mac OS major and minor version numbers
+  def populate_mac_os_version
+    @mac_os_version_string = `sw_vers --productVersion`.chomp
+    @mac_os_version_major, @mac_os_version_minor = mac_os_version_string.split('.').map(&:to_i)
+    [@mac_os_version_major, @mac_os_version_minor]
+  end
+
+  def airport_deprecated_message
+    <<~MESSAGE
+      This method requires the airport utility which is no longer functional in Mac OS >= 14.4.
+      You are running Mac OS version #{mac_os_version_string}.
+    MESSAGE
+  end
 
   # Although at this time the airport command utility is predictable,
   # allow putting it elsewhere in the path for overriding and easier fix
@@ -87,6 +109,12 @@ class MacOsModel < BaseModel
   #     "Chancery                         2a:a4:3c:03:33:99 -59  60,+1   Y  -- NONE",
   #     "DIRECT-sq-BRAVIA                 02:71:cc:87:4a:8c -76  6       Y  -- WPA2(PSK/AES/AES) ",  #
   def available_network_info
+
+    if airport_deprecated
+      warn airport_deprecated_message
+      return nil
+    end
+
     return nil unless wifi_on? # no need to try
     command = "#{airport_command} -s | iconv -f macroman -t utf-8"
     max_attempts = 50
@@ -162,6 +190,11 @@ class MacOsModel < BaseModel
   #
   # REXML is used here to avoid the need for the user to install Nokogiri.
   def available_network_names
+    if airport_deprecated
+      warn airport_deprecated_message
+      return nil
+    end
+
     return nil unless wifi_on? # no need to try
 
     # For some reason, the airport command very often returns nothing, so we need to try until
@@ -293,6 +326,11 @@ class MacOsModel < BaseModel
 
   # Disconnects from the currently connected network. Does not turn off wifi.
   def disconnect
+    if airport_deprecated
+      warn airport_deprecated_message
+      return nil
+    end
+
     return nil unless wifi_on? # no need to try
     run_os_command("sudo #{airport_command} -z")
     nil
@@ -332,10 +370,13 @@ class MacOsModel < BaseModel
         'nameservers' => nameservers_using_scutil,
         'timestamp'   => Time.now,
     }
-    more_output = run_os_command(airport_command + " -I")
-    more_info   = colon_output_to_hash(more_output)
-    info.merge!(more_info)
-    info.delete('AirPort') # will be here if off, but info is already in wifi_on key
+
+    unless airport_deprecated
+      more_output = run_os_command(airport_command + " -I")
+      more_info   = colon_output_to_hash(more_output)
+      info.merge!(more_info)
+      info.delete('AirPort') # will be here if off, but info is already in wifi_on key
+    end
 
     if info['internet_on'] && (! need_hotspot_login)
       begin
