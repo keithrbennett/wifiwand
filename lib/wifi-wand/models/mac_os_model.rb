@@ -266,16 +266,10 @@ class MacOsModel < BaseModel
   def connected_network_name
     return nil unless wifi_on? # no need to try
 
-    networksetup_command = "networksetup -getairportnetwork #{wifi_interface}"
-    command_output = run_os_command(networksetup_command)
-
-    # When not connected to a network, the output of the command is:
-    # "You are not associated with an AirPort network."
-    return nil if command_output.include?("not associated")
-
-    # However, when connected, the output is:
-    # "Current Wi-Fi Network: Pattara211\n"
-    command_output.split.last
+    command_output = run_os_command("networksetup -getairportnetwork #{wifi_interface}")
+    connected_prefix = 'Current Wi-Fi Network: '
+    connected = Regexp.new(connected_prefix).match?(command_output)
+    connected ? command_output.split(connected_prefix).last.chomp : nil
   end
 
 
