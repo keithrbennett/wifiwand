@@ -284,10 +284,10 @@ class MacOsModel < BaseModel
   def connected_network_name
     return nil unless wifi_on? # no need to try
 
-    output = run_os_command("networksetup -getairportnetwork #{wifi_interface}").chomp
-    connected_fragment = 'Current Wi-Fi Network: '
-    connected = output.include?(connected_fragment)
-    connected ? output.split(connected_fragment).last : nil
+    command_output = run_os_command("networksetup -getairportnetwork #{wifi_interface}")
+    connected_prefix = 'Current Wi-Fi Network: '
+    connected = Regexp.new(connected_prefix).match?(command_output)
+    connected ? command_output.split(connected_prefix).last.chomp : nil
   end
 
 
