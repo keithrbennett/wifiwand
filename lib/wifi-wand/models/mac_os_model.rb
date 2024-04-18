@@ -265,9 +265,17 @@ class MacOsModel < BaseModel
   # Returns the network currently connected to, or nil if none.
   def connected_network_name
     return nil unless wifi_on? # no need to try
-    lines = run_os_command("#{airport_command} -I").split("\n")
-    ssid_lines = lines.grep(/ SSID:/)
-    ssid_lines.empty? ? nil : ssid_lines.first.split('SSID: ').last
+
+    networksetup_command = "networksetup -getairportnetwork #{wifi_interface}"
+    command_output = run_os_command(networksetup_command)
+
+    # When not connected to a network, the output of the command is:
+    # "You are not associated with an AirPort network."
+    return nil if command_output.include?("not associated")
+
+    # However, when connected, the output is:
+    # "Current Wi-Fi Network: Pattara211\n"
+    command_output.split.last
   end
 
 
