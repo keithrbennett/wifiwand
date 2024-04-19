@@ -19,16 +19,16 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   # spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
-  spec.add_dependency('awesome_print', '~> 1.9')
+  spec.add_dependency('awesome_print', '>= 1.9.2', '< 2')
 
   # still on version 0, no need to exclude future versions, but need bug fix for pry not pry'ing
   # on last line of method:
   spec.add_dependency('pry', '>= 0.14.2')
 
-  spec.add_dependency('rexml', '~> 3.0')
+  spec.add_dependency('rexml', '>= 3.2.6', '< 4')
 
-  spec.add_development_dependency "bundler", ">= 2.2.10"
-  spec.add_development_dependency "rake", ">= 12.3.3"
-  spec.add_development_dependency "rspec", "~> 3.0"
+  spec.add_development_dependency "bundler", ">= 2.5.9"
+  spec.add_development_dependency "rake", ">= 13.2.1"
+  spec.add_development_dependency "rspec", ">= 3.13.0", "< 4"
 
 end

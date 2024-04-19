@@ -50,8 +50,10 @@ class MacOsModel < BaseModel
 
   def airport_deprecated_message
     <<~MESSAGE
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
       This method requires the airport utility which is no longer functional in Mac OS >= 14.4.
       You are running Mac OS version #{mac_os_version_string}.
+      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     MESSAGE
   end
 
