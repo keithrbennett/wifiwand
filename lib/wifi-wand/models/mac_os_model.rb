@@ -60,13 +60,14 @@ class MacOsModel < BaseModel
   # if that location should change.
   def airport_command
     airport_in_path = `which airport`.chomp
-    if ! airport_in_path.empty?
-      airport_in_path
-    elsif File.exist?(DEFAULT_AIRPORT_FILESPEC)
-      DEFAULT_AIRPORT_FILESPEC
-    else
-      raise Error.new("Airport command not found.")
-    end
+
+    return airport_in_path unless airport_in_path.empty?
+
+    return DEFAULT_AIRPORT_FILESPEC if File.exist?(DEFAULT_AIRPORT_FILESPEC)
+
+    raise Error.new("Airport command not found.") unless airport_deprecated
+
+    nil # no error, no data
   end
 
 
@@ -110,10 +111,7 @@ class MacOsModel < BaseModel
   #     "DIRECT-sq-BRAVIA                 02:71:cc:87:4a:8c -76  6       Y  -- WPA2(PSK/AES/AES) ",  #
   def available_network_info
 
-    if airport_deprecated
-      warn airport_deprecated_message
-      return nil
-    end
+    raise RuntimeError, airport_deprecated_message if airport_deprecated
 
     return nil unless wifi_on? # no need to try
     command = "#{airport_command} -s | iconv -f macroman -t utf-8"
@@ -190,10 +188,7 @@ class MacOsModel < BaseModel
   #
   # REXML is used here to avoid the need for the user to install Nokogiri.
   def available_network_names
-    if airport_deprecated
-      warn airport_deprecated_message
-      return nil
-    end
+    raise RuntimeError, airport_deprecated_message if airport_deprecated
 
     return nil unless wifi_on? # no need to try
 
@@ -227,7 +222,7 @@ class MacOsModel < BaseModel
   end
 
 
-  # Returns whether or not the specified interface is a WiFi interfae.
+  # Returns whether or not the specified interface is a WiFi interface.
   def is_wifi_interface?(interface)
     run_os_command("networksetup -listpreferredwirelessnetworks #{interface} 2>/dev/null")
     exit_status = $?.exitstatus
@@ -263,7 +258,7 @@ class MacOsModel < BaseModel
 
   # This method is called by BaseModel#connect to do the OS-specific connection logic.
   def os_level_connect(network_name, password = nil)
-    command = "networksetup -setairportnetwork #{wifi_interface} " + "#{Shellwords.shellescape(network_name)}"
+    command = "networksetup -setairportnetwork #{wifi_interface} #{Shellwords.shellescape(network_name)}"
     if password
       command << ' ' << Shellwords.shellescape(password)
     end
@@ -326,10 +321,7 @@ class MacOsModel < BaseModel
 
   # Disconnects from the currently connected network. Does not turn off wifi.
   def disconnect
-    if airport_deprecated
-      warn airport_deprecated_message
-      return nil
-    end
+    raise RuntimeError, airport_deprecated_message if airport_deprecated
 
     return nil unless wifi_on? # no need to try
     run_os_command("sudo #{airport_command} -z")
