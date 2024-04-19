@@ -69,6 +69,15 @@ When in interactive shell mode:
 Internally, it uses several Mac command line utilities to interact with the
 underlying operating system.
 
+> [!WARNING]  
+> Starting in Mac OS version 14.4, the `airport` utility on which some of this project's
+> functionality relies has been disabled and will presumably eventually be removed.
+> 
+> The following commands will result in a runtime error if `airport` is no longer available:
+> 
+> * listing names of available wifi networks
+> * listing detailed information about available wifi networks
+> * disconnecting from a wifi network
 
 ### Pretty Output
 

@@ -1,3 +1,3 @@
 module WifiWand
-  VERSION = '2.15.1' unless defined?(VERSION)
+  VERSION = '2.16.0' unless defined?(VERSION)
 end
