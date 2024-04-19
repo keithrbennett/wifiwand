@@ -1,3 +1,12 @@
+## v2.16.0 (2024-04)
+
+* Handle deprecation of the `airport` command starting at Mac OS 14.4.
+* Add hotspot_login_required functionality.
+* Change 'port' to 'interface' in some names.
+* Add to external resources: captive.apple.com, librespeed.org
+* Change license from MIT to Apache 2.
+
+
 ## v2.15.2
 
 * Improve support for 'hotspot login required'.
