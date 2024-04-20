@@ -192,14 +192,7 @@ class MacOsModel < BaseModel
   def available_network_names
     return nil unless wifi_on? # no need to try
 
-    swift_filespec = File.absolute_path(
-      File.join(
-        File.dirname(__FILE__), '../../../swift/AvailableWifiNetworkLister.swift'
-      )
-    )
-    command = "swift #{swift_filespec}"
-    output = `#{command}`
-    output.split("\n")
+    run_swift_command('AvailableWifiNetworkLister').split("\n")
   end
 
 
@@ -317,10 +310,9 @@ class MacOsModel < BaseModel
 
   # Disconnects from the currently connected network. Does not turn off wifi.
   def disconnect
-    raise RuntimeError, airport_deprecated_message if airport_deprecated
-
     return nil unless wifi_on? # no need to try
-    run_os_command("sudo #{airport_command} -z")
+
+    run_swift_command('WifiNetworkDisconecter')
     nil
   end
 
@@ -456,6 +448,14 @@ class MacOsModel < BaseModel
       output = ''
     end
     output.split("\n")
+  end
+
+  def run_swift_command(basename)
+    swift_filespec = File.join(
+      File.dirname(__FILE__), "../../../swift/#{basename}.swift"
+    )
+    command = "swift #{swift_filespec}"
+    `#{command}`
   end
 end
 end
