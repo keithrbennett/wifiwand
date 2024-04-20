@@ -190,22 +190,16 @@ class MacOsModel < BaseModel
   #
   # REXML is used here to avoid the need for the user to install Nokogiri.
   def available_network_names
-    raise RuntimeError, airport_deprecated_message if airport_deprecated
-
     return nil unless wifi_on? # no need to try
 
-    # For some reason, the airport command very often returns nothing, so we need to try until
-    # we get data in the response:
-
-    command = "#{airport_command} -s -x | iconv -f macroman -t utf-8"
-    stop_condition = ->(response) { ! [nil, ''].include?(response) }
-    output = try_os_command_until(command, stop_condition)
-    doc = REXML::Document.new(output)
-    xpath = '//key[text() = "SSID_STR"][1]/following-sibling::*[1]' # provided by @ScreenStaring on Twitter
-    REXML::XPath.match(doc, xpath) \
-        .map(&:text) \
-        .sort { |x,y| x.casecmp(y) } \
-        .uniq
+    swift_filespec = File.absolute_path(
+      File.join(
+        File.dirname(__FILE__), '../../../swift/AvailableWifiNetworkLister.swift'
+      )
+    )
+    command = "swift #{swift_filespec}"
+    output = `#{command}`
+    output.split("\n")
   end
 
 
