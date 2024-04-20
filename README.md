@@ -69,16 +69,6 @@ When in interactive shell mode:
 Internally, it uses several Mac command line utilities to interact with the
 underlying operating system.
 
-> [!WARNING]  
-> Starting in Mac OS version 14.4, the `airport` utility on which some of this project's
-> functionality relies has been disabled and will presumably eventually be removed.
-> 
-> The following commands will result in a runtime error if `airport` is no longer available:
-> 
-> * listing names of available wifi networks
-> * listing detailed information about available wifi networks
-> * disconnecting from a wifi network
-
 ### Pretty Output
 
 For nicely formatted output of the `info` command in non-interactive mode,
@@ -362,6 +352,21 @@ to create a script for your most commonly used networks containing something lik
 ```
 wifi-wand  connect  my-usual-network  its-password
 ```
+
+### Airport Utility Deprecation (April 2024)
+
+Starting in Mac OS version 14.4, the `airport` utility on which some of this project's
+functionality relies has been disabled and will presumably eventually be removed.
+
+The following tasks were restored by using Swift scripts:
+* listing names of all available networks
+* disconnecting from a network (with the added benefit that sudo access is no longer required)
+
+The following tasks were restored by using `networksetup`:
+* determining whether or not wifi is on
+* the name of the currently connected network
+
+The only remaining issue is that we were getting some extended information from airport for each available network.
 
 
 ### License

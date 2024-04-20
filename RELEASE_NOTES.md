@@ -1,3 +1,7 @@
+## v2.16.1
+
+* Fix airport deprecations' removal of listing all networks and disconnecting from a network by using Swift scripts.
+
 ## v2.16.0 (2024-04)
 
 * Handle deprecation of the `airport` command starting at Mac OS 14.4.

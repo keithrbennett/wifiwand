@@ -6,26 +6,6 @@ require 'shellwords'
 require_relative 'base_model'
 require_relative '../error'
 
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# 2024-04-18:
-#
-# Apple has deprecated the 'airport' utility and has already disabled its
-# functionality. This utility is used for the following wifi-wand commands:
-
-# 1) cmd: info, fn: wifi_info - adds information to the info output
-# 2) cmd: avail_nets, fn: available_network_names - available wifi network names
-# 3) cmd: ls_avail_nets, fn: available_network_info - available wifi networks details
-# 4) cmd: wifi_on, fn: wifi_on?
-# 5) cmd: network_name, fn: connected_network_name
-# 6) cmd: disconnect, fn: disconnect
-
-# Functions 4 and 5 have been fixed to use `networksetup` instead of `airport`.
-# The others are not yet fixed.
-
-# An AskDifferent (Mac StackExchange site) question has been posted to
-# https://apple.stackexchange.com/questions/471886/how-to-replace-functionality-of-deprecated-airport-command-line-application.
-# !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 module WifiWand
 
 class MacOsModel < BaseModel
