@@ -40,7 +40,7 @@ describe MacOsModel do
 
     it 'can list available networks' do
       subject.wifi_on
-      subject.available_network_info
+      subject.available_network_names
     end
   end
 

@@ -10,48 +10,10 @@ module WifiWand
 
 class MacOsModel < BaseModel
 
-  DEFAULT_AIRPORT_FILESPEC = '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
-
-  attr_reader :airport_deprecated, :mac_os_version_major, :mac_os_version_minor, :mac_os_version_string
-
   # Takes an OpenStruct containing options such as verbose mode and interface name.
   def initialize(options = OpenStruct.new)
     super
-    populate_mac_os_version
-    @airport_deprecated = @mac_os_version_major > 14 || (@mac_os_version_major == 14 && @mac_os_version_minor >= 4)
   end
-
-  # Provides Mac OS major and minor version numbers
-  def populate_mac_os_version
-    @mac_os_version_string = `sw_vers --productVersion`.chomp
-    @mac_os_version_major, @mac_os_version_minor = mac_os_version_string.split('.').map(&:to_i)
-    [@mac_os_version_major, @mac_os_version_minor]
-  end
-
-  def airport_deprecated_message
-    <<~MESSAGE
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      This method requires the airport utility which is no longer functional in Mac OS >= 14.4.
-      You are running Mac OS version #{mac_os_version_string}.
-      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    MESSAGE
-  end
-
-  # Although at this time the airport command utility is predictable,
-  # allow putting it elsewhere in the path for overriding and easier fix
-  # if that location should change.
-  def airport_command
-    airport_in_path = `which airport`.chomp
-
-    return airport_in_path unless airport_in_path.empty?
-
-    return DEFAULT_AIRPORT_FILESPEC if File.exist?(DEFAULT_AIRPORT_FILESPEC)
-
-    raise Error.new("Airport command not found.") unless airport_deprecated
-
-    nil # no error, no data
-  end
-
 
   # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
   # This may not detect wifi ports with nonstandard names, such as USB wifi devices.
@@ -78,97 +40,6 @@ class MacOsModel < BaseModel
     end
   end
 
-
-  # Returns data pertaining to available wireless networks.
-  # For some reason, this often returns no results, so I've put the operation in a loop.
-  # I was unable to detect a sort strategy in the airport utility's output, so I sort
-  # the lines alphabetically, to show duplicates and for easier lookup.
-  #
-  # Sample Output:
-  #
-  # => ["SSID                             BSSID             RSSI CHANNEL HT CC SECURITY (auth/unicast/group)",
-  #     "ByCO-U00tRzUzMEg                 64:6c:b2:db:f3:0c -56  6       Y  -- NONE",
-  #     "Chancery                         0a:18:d6:0b:b9:c3 -82  11      Y  -- NONE",
-  #     "Chancery                         2a:a4:3c:03:33:99 -59  60,+1   Y  -- NONE",
-  #     "DIRECT-sq-BRAVIA                 02:71:cc:87:4a:8c -76  6       Y  -- WPA2(PSK/AES/AES) ",  #
-  def available_network_info
-
-    raise RuntimeError, airport_deprecated_message if airport_deprecated
-
-    return nil unless wifi_on? # no need to try
-    command = "#{airport_command} -s | iconv -f macroman -t utf-8"
-    max_attempts = 50
-
-    reformat_line = ->(line) do
-      ssid = line[0..31].strip
-      "%-32.32s%s" % [ssid, line[32..-1]]
-    end
-
-    signal_strength = ->(line) { (line[50..54] || '').to_i }
-
-    sort_in_place_by_signal_strength = ->(lines) do
-      lines.sort! { |x,y| signal_strength.(y) <=> signal_strength.(x) }
-    end
-
-    process_tabular_data = ->(output) do
-      lines = output.split("\n")
-      header_line = lines[0]
-      data_lines = lines[1..-1]
-      data_lines.map! do |line|
-        # Reformat the line so that the name is left instead of right justified
-        reformat_line.(line)
-      end
-      sort_in_place_by_signal_strength.(data_lines)
-      [reformat_line.(header_line)] + data_lines
-    end
-
-    output = try_os_command_until(command, ->(output) do
-      ! ([nil, ''].include?(output))
-    end)
-
-    if output
-      process_tabular_data.(output)
-    else
-      raise Error.new("Unable to get available network information after #{max_attempts} attempts.")
-    end
-  end
-
-
-  # The Mac OS airport utility (at
-  # /System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport)
-  # outputs the network names right padded with spaces so there is no way to differentiate a
-  # network name *with* leading space(s) from one without:
-  #
-  #                   SSID BSSID             RSSI CHANNEL HT CC SECURITY (auth/unicast/group)
-  #    ngHub_319442NL0293C 04:a1:51:58:5b:05 -65  11      Y  US WPA2(PSK/AES/AES)
-  #        NETGEAR89_2GEXT 9c:3d:cf:11:69:b4 -67  8       Y  US NONE
-  #
-  # To remedy this, they offer a "-x" option that outputs the information in (pseudo) XML.
-  # This XML has 'dict' elements that contain many elements. The SSID can be found in the
-  # XML element <string> which immediately follows an XML element whose text is "SSID_STR".
-  # Unfortunately, since there is no way to connect the two other than their physical location,
-  # the key is rather useless for XML parsing.
-  #
-  # I tried extracting the arrays of keys and strings, and finding the string element
-  # at the same position in the string array as the 'SSID_STR' was in the keys array.
-  # However, not all keys had string elements, so the index in the key array was the wrong index.
-  # Here is an excerpt from the XML output:
-  #
-  # 		<key>RSSI</key>
-  # 		<integer>-91</integer>
-  # 		<key>SSID</key>
-  # 		<data>
-  # 		TkVUR0VBUjY1
-  # 		</data>
-  # 		<key>SSID_STR</key>
-  # 		<string>NETGEAR65</string>
-  #
-  # The kludge I came up with was that the ssid was always the 2nd value in the <string> element
-  # array, so that's what is used here.
-  #
-  # But now even that approach has been superseded by the XPath approach now used.
-  #
-  # REXML is used here to avoid the need for the user to install Nokogiri.
   def available_network_names
     return nil unless wifi_on? # no need to try
 
@@ -331,13 +202,6 @@ class MacOsModel < BaseModel
         'timestamp'   => Time.now,
     }
 
-    unless airport_deprecated
-      more_output = run_os_command(airport_command + " -I")
-      more_info   = colon_output_to_hash(more_output)
-      info.merge!(more_info)
-      info.delete('AirPort') # will be here if off, but info is already in wifi_on key
-    end
-
     if info['internet_on'] && (! need_hotspot_login)
       begin
         info['public_ip'] = public_ip_address_info
@@ -441,7 +305,6 @@ class MacOsModel < BaseModel
 
   def swift_and_corewlan_present?
     system("swift -e 'import CoreWLAN' >/dev/null 2>&1")
-    false
   end
 
   def run_swift_command(basename)

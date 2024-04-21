@@ -32,7 +32,7 @@ $ wifi-wand -h
 Command Line Switches:                    [wifi-wand version 2.14.0 at https://github.com/keithrbennett/wifiwand]
 
 -o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
--p wifi_port_name         - override automatic detection of port name with this name
+-p wifi_interface_name    - override automatic detection of interface name with this name
 -s                        - run in shell mode
 -v                        - verbose mode (prints OS commands and their outputs)
 
@@ -44,17 +44,18 @@ co[nnect] network-name    - turns wifi on, connects to network-name
 cy[cle]                   - turns wifi off, then on, preserving network selection
 d[isconnect]              - disconnects from current network, does not turn off wifi
 f[orget] name1 [..name_n] - removes network-name(s) from the preferred networks list
+                            in interactive mode, can be a single array of names, e.g. returned by `pref_nets`
 h[elp]                    - prints this help
 i[nfo]                    - a hash of wifi-related information
-l[s_avail_nets]           - details about available networks in descending order of signal strength
-na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear, or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
+na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear,
+                            or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
 ne[twork_name]            - name (SSID) of currently connected network
 on                        - turns wifi on
 of[f]                     - turns wifi off
 pa[ssword] network-name   - password for preferred network-name
 pr[ef_nets]               - preferred (saved) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
-ro[pen]                   - open resource ('ipl' (IP Location), 'ipw' (What is My IP), 'spe' (Speed Test), 'this' (wifi-wand home page))
+ro[pen]                   - open resource ('cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page))
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                             1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
                             2) wait interval between tests, in seconds (optional, defaults to 0.5 seconds)
@@ -203,7 +204,6 @@ constants or instance variables if you want to create variables in your shell.
 ```
 wifi-wand i            # prints out wifi info
 wifi-wand a            # prints out names of available networks
-wifi-wand lsa          # prints available networks detailed information
 wifi-wand pr           # prints preferred networks
 wifi-wand cy           # cycles the wifi off and on
 wifi-wand co a-network a-password # connects to a network requiring a password
@@ -366,12 +366,14 @@ The following tasks were restored by using `networksetup`:
 * determining whether or not wifi is on
 * the name of the currently connected network
 
-The only remaining issue is that we were getting some extended information from airport for each available network.
+The only remaining issue is that we were getting some extended information from airport for each available network. This extended information has now been removed in version 2.17.0.
+
+In addition, the extended information about the available networks (`ls_avail_nets`) has been removed in version 2.17.0.
 
 
 ### License
 
-MIT License (see LICENSE.txt)
+Apache 2 License (see LICENSE.txt)
 
 ### Logo
 

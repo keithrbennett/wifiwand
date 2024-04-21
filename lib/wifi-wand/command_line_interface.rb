@@ -73,7 +73,6 @@ f[orget] name1 [..name_n] - removes network-name(s) from the preferred networks 
                             in interactive mode, can be a single array of names, e.g. returned by `pref_nets`
 h[elp]                    - prints this help
 i[nfo]                    - a hash of wifi-related information
-l[s_avail_nets]           - details about available networks, in descending order of signal strength
 na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear,
                             or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
 ne[twork_name]            - name (SSID) of currently connected network
@@ -271,29 +270,6 @@ When in interactive shell mode:
       end
     end
   end
-
-
-  def cmd_l
-    info = model.available_network_info
-
-    if interactive_mode
-      info
-    else
-      output = ''
-      unless model.wifi_on?
-        output << "Wifi is off, cannot see available networks."
-      else
-        if post_processor
-          output = post_processor.(info)
-        else
-          output << "\nAccess points listed in descending order of signal strength (RSSI):\n\n"
-          output << fancy_string(info)
-        end
-      end
-      puts output
-    end
-  end
-
 
   # Performs nameserver functionality.
   # @param subcommand 'get' or no arg to get, 'clear' to clear, and an array of IP addresses to set
