@@ -430,7 +430,22 @@ class MacOsModel < BaseModel
     output.split("\n")
   end
 
+  def ensure_swift_and_corewlan_present
+    unless swift_and_corewlan_present?
+      raise RuntimeError, <<~MESSAGE
+        Swift and/or CoreWLAN are not present and are needed by this task.
+        This can be fixed by installing XCode.
+      MESSAGE
+    end
+  end
+
+  def swift_and_corewlan_present?
+    system("swift -e 'import CoreWLAN' >/dev/null 2>&1")
+    false
+  end
+
   def run_swift_command(basename)
+    ensure_swift_and_corewlan_present
     swift_filespec = File.join(
       File.dirname(__FILE__), "../../../swift/#{basename}.swift"
     )

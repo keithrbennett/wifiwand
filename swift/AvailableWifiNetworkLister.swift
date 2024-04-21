@@ -13,10 +13,9 @@ class NetworkScanner {
             return nil
         }
         self.currentInterface = defaultInterface
-        self.scanForNetworks()
     }
     
-    func scanForNetworks() {
+    func available_networks() {
         do {
             let networks = try currentInterface.scanForNetworks(withName: nil)
             for network in networks {
@@ -28,4 +27,4 @@ class NetworkScanner {
     }
 }
 
-NetworkScanner()
+NetworkScanner()?.available_networks()
