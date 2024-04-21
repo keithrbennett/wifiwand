@@ -202,7 +202,6 @@ When in interactive shell mode:
   end
 
 
-
   def quit
     if interactive_mode
       exit(0)

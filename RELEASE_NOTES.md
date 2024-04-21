@@ -1,6 +1,16 @@
+## v2.17.0
+
+* Remove all remaining uses of the 'airport' command.
+* Remove 'available_network_info' command which required the 'airport' command.
+* Remove extended information in the 'info' command output, which required the 'airport' command.
+* Remove unused ModelValidator class.
+* In README, update license reference and make other edits.
+
+
 ## v2.16.1
 
 * Fix airport deprecations' removal of listing all networks and disconnecting from a network by using Swift scripts.
+
 
 ## v2.16.0 (2024-04)
 
