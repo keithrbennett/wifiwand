@@ -1,3 +1,5 @@
+#!/usr/bin/env swift
+
 import Foundation
 import CoreWLAN
 
@@ -23,10 +25,7 @@ class NetworkScanner {
         } catch let error as NSError {
             print("Error: \(error.localizedDescription)")
         }
-}
+    }
 }
 
-// Usage
-if NetworkScanner() != nil {
-    // The list of available networks will be printed
-}
+NetworkScanner()
