@@ -313,7 +313,7 @@ class MacOsModel < BaseModel
       File.dirname(__FILE__), "../../../swift/#{basename}.swift"
     )
     command = "swift #{swift_filespec}"
-    `#{command}`
+    run_os_command(command)
   end
 end
 end
