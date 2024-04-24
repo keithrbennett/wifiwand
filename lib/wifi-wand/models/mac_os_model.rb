@@ -206,8 +206,11 @@ class MacOsModel < BaseModel
       begin
         info['public_ip'] = public_ip_address_info
       rescue => e
-        puts "Error obtaining public IP address info, proceeding with everything else:"
-        puts e.to_s
+        puts <<~MESSAGE
+          #{e.class} obtaining public IP address info, proceeding with everything else. Error message:
+          #{e}
+
+        MESSAGE
       end
     end
     info
