@@ -1,3 +1,10 @@
+## v2.17.1
+
+* Fix verbose output for running a Swift command. 
+* Exit Swift programs with code 1 on error.
+* Remove rexml dependency, no longer needed.
+
+
 ## v2.17.0
 
 * Remove all remaining uses of the 'airport' command.
