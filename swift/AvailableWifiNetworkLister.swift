@@ -2,10 +2,11 @@
 
 import Foundation
 import CoreWLAN
+import Darwin
 
 class NetworkScanner {
     var currentInterface: CWInterface
-    
+
     init?() {
         // Initialize with the default Wi-Fi interface
         guard let defaultInterface = CWWiFiClient.shared().interface(),
@@ -14,7 +15,7 @@ class NetworkScanner {
         }
         self.currentInterface = defaultInterface
     }
-    
+
     func available_networks() {
         do {
             let networks = try currentInterface.scanForNetworks(withName: nil)
@@ -23,8 +24,9 @@ class NetworkScanner {
             }
         } catch let error as NSError {
             print("Error: \(error.localizedDescription)")
+            exit(1)
         }
     }
 }
 
-NetworkScanner()?.available_networks()
+let _ = NetworkScanner()?.available_networks()
