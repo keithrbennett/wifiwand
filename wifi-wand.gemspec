@@ -25,8 +25,6 @@ Gem::Specification.new do |spec|
   # on last line of method:
   spec.add_dependency('pry', '>= 0.14.2')
 
-  spec.add_dependency('rexml', '>= 3.2.6', '< 4')
-
   spec.add_development_dependency "bundler", ">= 2.5.9"
   spec.add_development_dependency "rake", ">= 13.2.1"
   spec.add_development_dependency "rspec", ">= 3.13.0", "< 4"

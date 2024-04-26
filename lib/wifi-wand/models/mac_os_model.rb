@@ -1,6 +1,5 @@
 require 'ipaddr'
 require 'ostruct'
-require 'rexml/document'
 require 'shellwords'
 
 require_relative 'base_model'
