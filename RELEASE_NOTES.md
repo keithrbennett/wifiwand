@@ -1,3 +1,8 @@
+## v2.18.0
+
+* Remove 'hotspot_login_required' informational item and logic (was not working correctly).
+
+
 ## v2.17.1
 
 * Fix verbose output for running a Swift command. 

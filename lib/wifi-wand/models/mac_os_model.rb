@@ -187,12 +187,9 @@ class MacOsModel < BaseModel
       false
     end
 
-    need_hotspot_login = hotspot_login_required
-
     info = {
         'wifi_on'     => wifi_on?,
         'internet_on' => connected,
-        'hotspot_login_required' => need_hotspot_login,
         'interface'   => wifi_interface,
         'network'     => connected_network_name,
         'ip_address'  => ip_address,
@@ -201,7 +198,7 @@ class MacOsModel < BaseModel
         'timestamp'   => Time.now,
     }
 
-    if info['internet_on'] && (! need_hotspot_login)
+    if info['internet_on']
       begin
         info['public_ip'] = public_ip_address_info
       rescue => e
