@@ -8,6 +8,6 @@ if let wifiInterface = CWWiFiClient.shared().interface() {
     print("ok")
     exit(0)
 } else {
-    print("error")
+    print("Failed to disconnect. One possible reason: XCode not installed.")
     exit(1)
 }
