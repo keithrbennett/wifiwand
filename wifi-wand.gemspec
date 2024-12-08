@@ -21,6 +21,9 @@ Gem::Specification.new do |spec|
   # spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.add_dependency('awesome_print', '>= 1.9.2', '< 2')
 
+  # ostruct will no longer be part of the default gems starting from Ruby 3.5.0.
+  spec.add_dependency('ostruct')
+
   # still on version 0, no need to exclude future versions, but need bug fix for pry not pry'ing
   # on last line of method:
   spec.add_dependency('pry', '>= 0.14.2')
