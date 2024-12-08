@@ -96,12 +96,23 @@ class MacOsModel < BaseModel
 
 
   # This method is called by BaseModel#connect to do the OS-specific connection logic.
-  def os_level_connect(network_name, password = nil)
+  def os_level_connect_using_networksetup(network_name, password = nil)
     command = "networksetup -setairportnetwork #{wifi_interface} #{Shellwords.shellescape(network_name)}"
     if password
       command << ' ' << Shellwords.shellescape(password)
     end
     run_os_command(command)
+  end
+
+  def os_level_connect_using_swift(network_name, password = nil)
+    ensure_swift_and_corewlan_present
+    args = [Shellwords.shellescape(network_name)]
+    args << Shellwords.shellescape(password) if password
+    run_swift_command('WifiNetworkConnecter', *args)
+  end
+
+  def os_level_connect(network_name, password = nil)
+    os_level_connect_using_swift(network_name, password)
   end
 
 
@@ -306,12 +317,12 @@ class MacOsModel < BaseModel
     system("swift -e 'import CoreWLAN' >/dev/null 2>&1")
   end
 
-  def run_swift_command(basename)
+
+  def run_swift_command(basename, *args)
     ensure_swift_and_corewlan_present
-    swift_filespec = File.join(
-      File.dirname(__FILE__), "../../../swift/#{basename}.swift"
-    )
-    command = "swift #{swift_filespec}"
+    swift_filespec = File.absolute_path(File.join(File.dirname(__FILE__), "../../../swift/#{basename}.swift"))
+    argv = ['swift', swift_filespec] + args
+    command = argv.compact.join(' ')
     run_os_command(command)
   end
 end
