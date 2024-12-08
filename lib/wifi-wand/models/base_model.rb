@@ -11,25 +11,6 @@ class BaseModel
 
   attr_accessor :wifi_interface, :verbose_mode
 
-  class OsCommandError < RuntimeError
-    attr_reader :exitstatus, :command, :text
-
-    def initialize(exitstatus, command, text)
-      @exitstatus = exitstatus
-      @command = command
-      @text = text
-    end
-
-    def to_s
-      "#{self.class.name}: Error code #{exitstatus}, command = #{command}, text = #{text}"
-    end
-
-    def to_h
-      { exitstatus: exitstatus, command: command, text: text }
-    end
-  end
-
-
   def initialize(options)
     @verbose_mode = options.verbose
 
@@ -273,6 +254,24 @@ class BaseModel
 
   def wifi_interface
     @wifi_interface ||= detect_wifi_interface
+  end
+
+  class OsCommandError < RuntimeError
+    attr_reader :exitstatus, :command, :text
+
+    def initialize(exitstatus, command, text)
+      @exitstatus = exitstatus
+      @command = command
+      @text = text
+    end
+
+    def to_s
+      "#{self.class.name}: Error code #{exitstatus}, command = #{command}, text = #{text}"
+    end
+
+    def to_h
+      { exitstatus: exitstatus, command: command, text: text }
+    end
   end
 end
 end

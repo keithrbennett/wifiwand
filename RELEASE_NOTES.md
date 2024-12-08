@@ -1,3 +1,7 @@
+## v2.19.0
+
+* Replace `netwoksetup` with Swift script for connecting to a network.
+
 ## v2.18.0
 
 * Remove 'hotspot_login_required' informational item and logic (was not working correctly).
