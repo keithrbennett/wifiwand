@@ -14,17 +14,16 @@ class BaseModel
   def initialize(options)
     @verbose_mode = options.verbose
 
-    if options.wifi_interface && (! is_wifi_interface?(options.wifi_interface))
-      raise Error.new("#{options.wifi_interface} is not a Wi-Fi interface.")
+    if options.wifi_interface
+      if is_wifi_interface?(options.wifi_interface)
+        @wifi_interface = options.wifi_interface
+      else
+        raise Error.new("#{options.wifi_interface} is not a Wi-Fi interface.")
+      end
     end
-    @wifi_interface = options.wifi_interface
   end
 
-
-
-
   def run_os_command(command, raise_on_error = true)
-
     if verbose_mode
       puts CommandOutputFormatter.command_attempt_as_string(command)
     end
@@ -46,16 +45,15 @@ class BaseModel
 
 
   # This method returns whether or not there is a working Internet connection,
-  # which is defined as name resolution and HTTP get being successful.
-  # Domains attempted are google.com and baidu.com. Success is either being successful.
+  # which is defined as success for both name resolution and an HTTP get.
+  # Domains attempted are google.com and baidu.com.
+  # Success is defined as either being successful.
   # Commands for the multiple sites are run in parallel, in threads, to save time.
   def connected_to_internet?
-    return nil unless wifi_on? # no need to try
+    return false unless wifi_on? # no need to try
 
     # We cannot use run_os_command for the running of external processes here,
     # because they are multithreaded, and the output will get mixed up.
-
-    # First pass to fail quickly if name resolving does not work.
     test_using_dig = -> do
       domains = %w(google.com  baidu.com)
       puts "Calling dig on domains #{domains}..." if verbose_mode
@@ -185,8 +183,8 @@ class BaseModel
   # @param wait_interval_in_secs sleeps this interval between retries; if nil or absent,
   #        a default will be provided
   #
+  # Connected is defined as being able to connect to an external web site.
   def till(target_status, wait_interval_in_secs = nil)
-
     # One might ask, why not just put the 0.5 up there as the default argument.
     # We could do that, but we'd still need the line below in case nil
     # was explicitly specified. The default argument of nil above emphasizes that
@@ -217,7 +215,7 @@ class BaseModel
   # Tries an OS command until the stop condition is true.
   # @command the command to run in the OS
   # @stop_condition a lambda taking the command's stdout as its sole parameter
-  # @return the stdout produced by the command
+  # @return the stdout produced by the command, or nil if max_tries was reached
   def try_os_command_until(command, stop_condition, max_tries = 100)
 
     report_attempt_count = ->(attempt_count) do
@@ -225,10 +223,10 @@ class BaseModel
     end
 
     max_tries.times do |n|
-      stdout = run_os_command(command)
-      if stop_condition.(stdout)
+      stdout_text = run_os_command(command)
+      if stop_condition.(stdout_text)
         report_attempt_count.(n + 1)
-        return stdout
+        return stdout_text
       end
     end
 
