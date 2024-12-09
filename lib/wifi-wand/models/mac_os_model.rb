@@ -49,10 +49,21 @@ class MacOsModel < BaseModel
     wifi['interface']
   end
 
+  # Returns the network names sorted in descending order of signal strength.
   def available_network_names
     return nil unless wifi_on? # no need to try
 
-    run_swift_command('AvailableWifiNetworkLister').split("\n")
+    # run_swift_command('AvailableWifiNetworkLister').split("\n").uniq
+
+    json_text = run_os_command('system_profiler -json SPAirPortDataType')
+    data = JSON.parse(json_text)
+    nets = data['SPAirPortDataType'] \
+      .detect { |h| h['spairport_airport_interfaces'] } \
+      ['spairport_airport_interfaces'] \
+      .detect { |h| h['_name'] == wifi_interface } \
+      ['spairport_airport_other_local_wireless_networks'] \
+      .sort_by { |net| -net['spairport_signal_noise'].split('/').first.to_i }
+    nets.map { |h| h['_name']}.uniq
   end
 
 
