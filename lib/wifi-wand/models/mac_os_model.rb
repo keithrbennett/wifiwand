@@ -16,7 +16,7 @@ class MacOsModel < BaseModel
 
   # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
   # This may not detect wifi ports with nonstandard names, such as USB wifi devices.
-  def detect_wifi_interface
+  def detect_wifi_interface_using_networksetup
 
     lines = run_os_command("networksetup -listallhardwareports").split("\n")
     # Produces something like this:
@@ -37,6 +37,16 @@ class MacOsModel < BaseModel
     else
       lines[wifi_interface_line_num + 1].split(': ').last
     end
+  end
+
+  # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
+  # This may not detect wifi ports with nonstandard names, such as USB wifi devices.
+  def detect_wifi_interface
+    json_text = run_os_command('system_profiler -json SPNetworkDataType')
+    net_data = JSON.parse(json_text)
+    nets = net_data['SPNetworkDataType']
+    wifi = nets.detect { |net| net['_name'] == 'Wi-Fi'}
+    wifi['interface']
   end
 
   def available_network_names
