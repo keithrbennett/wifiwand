@@ -1,13 +1,13 @@
-## v2.20.0
+## v2.19.1
 
-* For detecting the wifi interface (e.g. 'en0'), replace networksetup with system_profiler.
-* For listing available networks, replace Swift script with system_profiler. Now sorts in signal strength order and removes duplicates.
-* Cleanup and refactoring in BaseModel and CommandLineInterface.
+* Fix connected_network_name when wifi is on but no network is connected.
+
 
 ## v2.19.0
 
 * Replace `networksetup` with Swift script for connecting to a network.
 * For getting connected network name, replace `networksetup` with `ipconfig`. 
+
 
 ## v2.18.0
 
