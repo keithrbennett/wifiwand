@@ -1,7 +1,13 @@
+## v2.19.1
+
+* Fix connected_network_name when wifi is on but no network is connected.
+
+
 ## v2.19.0
 
 * Replace `networksetup` with Swift script for connecting to a network.
 * For getting connected network name, replace `networksetup` with `ipconfig`. 
+
 
 ## v2.18.0
 
