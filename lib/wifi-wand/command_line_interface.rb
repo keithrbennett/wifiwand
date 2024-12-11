@@ -219,9 +219,17 @@ When in interactive shell mode:
       if post_processor
         puts post_processor.(info)
       else
-        puts model.wifi_on? \
-            ? "Available networks are:\n\n#{fancy_string(info)}" \
-            : "Wifi is off, cannot see available networks."
+        message = if model.wifi_on?
+          <<~MESSAGE
+            Available networks, in descending signal strength order, 
+            and not including any currently connected network, are:
+  
+            #{fancy_string(info)}"
+          MESSAGE
+        else
+          "Wifi is off, cannot see available networks."
+        end
+        puts message
       end
     end
   end
