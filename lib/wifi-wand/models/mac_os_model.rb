@@ -163,7 +163,7 @@ class MacOsModel < BaseModel
     return nil unless wifi_on? # no need to try
 
     command_output = run_os_command("ipconfig getsummary #{wifi_interface} | grep ' SSID :'", false)
-    return nil if command_output.nil?
+    return nil if command_output.empty?
 
     command_output.split('SSID :').last.strip
   end
