@@ -16,7 +16,7 @@ class MacOsModel < BaseModel
 
   # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
   # This may not detect wifi ports with nonstandard names, such as USB wifi devices.
-  def detect_wifi_interface
+  def detect_wifi_interface_using_networksetup
 
     lines = run_os_command("networksetup -listallhardwareports").split("\n")
     # Produces something like this:
@@ -39,10 +39,34 @@ class MacOsModel < BaseModel
     end
   end
 
+  # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
+  # This may not detect wifi ports with nonstandard names, such as USB wifi devices.
+  def detect_wifi_interface
+    json_text = run_os_command('system_profiler -json SPNetworkDataType')
+    net_data = JSON.parse(json_text)
+    nets = net_data['SPNetworkDataType']
+    wifi = nets.detect { |net| net['_name'] == 'Wi-Fi'}
+    wifi['interface']
+  end
+
+  # Returns the network names sorted in descending order of signal strength.
   def available_network_names
     return nil unless wifi_on? # no need to try
 
-    run_swift_command('AvailableWifiNetworkLister').split("\n")
+    # run_swift_command('AvailableWifiNetworkLister').split("\n").uniq
+
+    json_text = run_os_command('system_profiler -json SPAirPortDataType')
+    data = JSON.parse(json_text)
+
+    inner_key = connected_network_name ? 'spairport_airport_other_local_wireless_networks' : 'spairport_airport_local_wireless_networks'
+
+    nets = data['SPAirPortDataType'] \
+       .detect { |h| h.key?('spairport_airport_interfaces') } \
+        ['spairport_airport_interfaces'] \
+       .detect { |h| h['_name'] == wifi_interface } \
+        [inner_key] \
+        .sort_by { |net| -net['spairport_signal_noise'].split('/').first.to_i }
+    nets.map { |h| h['_name']}.uniq
   end
 
 
