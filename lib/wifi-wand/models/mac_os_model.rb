@@ -55,15 +55,17 @@ class MacOsModel < BaseModel
 
     # run_swift_command('AvailableWifiNetworkLister').split("\n").uniq
 
-    json_text = run_os_command('system_profiler -json SPAirPortDataType')
+      json_text = run_os_command('system_profiler -json SPAirPortDataType')
     data = JSON.parse(json_text)
 
+    inner_key = connected_network_name ? 'spairport_airport_other_local_wireless_networks' : 'spairport_airport_local_wireless_networks'
+
     nets = data['SPAirPortDataType'] \
-      .detect { |h| h['spairport_airport_interfaces'] } \
-      ['spairport_airport_interfaces'] \
-      .detect { |h| h['_name'] == wifi_interface } \
-      ['spairport_airport_local_wireless_networks'] \
-      .sort_by { |net| -net['spairport_signal_noise'].split('/').first.to_i }
+       .detect { |h| h.key?('spairport_airport_interfaces') } \
+        ['spairport_airport_interfaces'] \
+       .detect { |h| h['_name'] == wifi_interface } \
+        [inner_key] \
+        .sort_by { |net| -net['spairport_signal_noise'].split('/').first.to_i }
     nets.map { |h| h['_name']}.uniq
   end
 
@@ -184,10 +186,10 @@ class MacOsModel < BaseModel
   def connected_network_name
     return nil unless wifi_on? # no need to try
 
-    command_output = run_os_command("networksetup -getairportnetwork #{wifi_interface}")
-    connected_prefix = 'Current Wi-Fi Network: '
-    connected = Regexp.new(connected_prefix).match?(command_output)
-    connected ? command_output.split(connected_prefix).last.chomp : nil
+    command_output = run_os_command("ipconfig getsummary #{wifi_interface} | grep ' SSID :'", false)
+    return nil if command_output.empty?
+
+    command_output.split('SSID :').last.strip
   end
 
 
