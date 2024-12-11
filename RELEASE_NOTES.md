@@ -1,3 +1,10 @@
+## v2.20.0
+
+* Change detect_wifi_interface and available_network_names to use system_profiler JSON output.
+* Previously, detect_wifi_interface parsed human readable text; parsing JSON is more reliable.
+* Previously, available_network_names used Swift and CoreLAN and required XCode installation.
+
+
 ## v2.19.1
 
 * Fix connected_network_name when wifi is on but no network is connected.
