@@ -55,7 +55,7 @@ class MacOsModel < BaseModel
 
     # run_swift_command('AvailableWifiNetworkLister').split("\n").uniq
 
-      json_text = run_os_command('system_profiler -json SPAirPortDataType')
+    json_text = run_os_command('system_profiler -json SPAirPortDataType')
     data = JSON.parse(json_text)
 
     inner_key = connected_network_name ? 'spairport_airport_other_local_wireless_networks' : 'spairport_airport_local_wireless_networks'
