@@ -1,6 +1,7 @@
 ## v2.19.0
 
-* Replace `netwoksetup` with Swift script for connecting to a network.
+* Replace `networksetup` with Swift script for connecting to a network.
+* For getting connected network name, replace `networksetup` with `ipconfig`. 
 
 ## v2.18.0
 
