@@ -1,6 +1,6 @@
 ## v2.19.0
 
-* Replace `netwoksetup` with Swift script for connecting to a network.
+* Replace `networksetup` with Swift script for connecting to a network.
 
 ## v2.18.0
 
