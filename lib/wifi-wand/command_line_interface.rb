@@ -363,7 +363,7 @@ When in interactive shell mode:
       if post_processor
         puts post_processor.(password)
       else
-        output =  %Q{Preferred network "#{model.connected_network_name}" }
+        output =  %Q{Preferred network "#{network}" }
         output << (password ? %Q{stored password is "#{password}".} : "has no stored password.")
         puts output
       end
