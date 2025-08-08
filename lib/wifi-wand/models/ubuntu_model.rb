@@ -54,10 +54,37 @@ class UbuntuModel < BaseModel
   end
 
   def os_level_connect(network_name, password = nil)
-    if password
-      run_os_command("nmcli dev wifi connect '#{network_name}' password '#{password}'")
+    # Check if there's an existing connection profile for this network
+    existing_connections = preferred_networks
+    if existing_connections.include?(network_name)
+      # Use exact matching with existing connection
+      run_os_command("nmcli connection up '#{network_name}'")
     else
-      run_os_command("nmcli dev wifi connect '#{network_name}'")
+      # Create new connection - use BSSID for exact matching to avoid substring issues
+      # First get the available networks and find the exact match
+      available_networks_output = run_os_command("nmcli -t -f SSID,BSSID dev wifi list")
+      networks = available_networks_output.split("\n").map do |line|
+        # Handle escaped colons in BSSID - split on first unescaped colon only
+        if line =~ /^(.+?):(.+)$/
+          ssid = $1
+          bssid = $2.gsub('\\:', ':')  # Unescape the colons in BSSID
+          [ssid.strip, bssid.strip] unless ssid.empty? || bssid.empty?
+        end
+      end.compact
+      
+      # Find exact match for SSID
+      exact_match = networks.find { |ssid, _| ssid == network_name }
+      
+      if exact_match
+        ssid, bssid = exact_match
+        if password
+          run_os_command("nmcli dev wifi connect '#{ssid}' password '#{password}' bssid '#{bssid}'")
+        else
+          run_os_command("nmcli dev wifi connect '#{ssid}' bssid '#{bssid}'")
+        end
+      else
+        raise Error.new("Network '#{network_name}' not found in available networks.")
+      end
     end
   end
 
