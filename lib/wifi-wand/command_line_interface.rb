@@ -97,7 +97,7 @@ When in interactive shell mode:
   def initialize(options)
     current_os = OperatingSystems.new.current_os
     if current_os.nil?
-      puts "This application currently runs only on Mac OS."
+      puts "This application currently runs only on Mac OS and Ubuntu Linux."
       exit(1)
     end
 

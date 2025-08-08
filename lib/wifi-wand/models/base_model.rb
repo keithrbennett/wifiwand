@@ -254,6 +254,83 @@ class BaseModel
     @wifi_interface ||= detect_wifi_interface
   end
 
+  # Abstract methods to be implemented by subclasses
+  def detect_wifi_interface
+    raise NotImplementedError, "Subclasses must implement detect_wifi_interface"
+  end
+
+  def is_wifi_interface?(interface)
+    raise NotImplementedError, "Subclasses must implement is_wifi_interface?"
+  end
+
+  def wifi_on?
+    raise NotImplementedError, "Subclasses must implement wifi_on?"
+  end
+
+  def wifi_on
+    raise NotImplementedError, "Subclasses must implement wifi_on"
+  end
+
+  def wifi_off
+    raise NotImplementedError, "Subclasses must implement wifi_off"
+  end
+
+  def available_network_names
+    raise NotImplementedError, "Subclasses must implement available_network_names"
+  end
+
+  def connected_network_name
+    raise NotImplementedError, "Subclasses must implement connected_network_name"
+  end
+
+  def os_level_connect(network_name, password)
+    raise NotImplementedError, "Subclasses must implement os_level_connect"
+  end
+
+  def preferred_networks
+    raise NotImplementedError, "Subclasses must implement preferred_networks"
+  end
+
+  def remove_preferred_network(network_name)
+    raise NotImplementedError, "Subclasses must implement remove_preferred_network"
+  end
+
+  def os_level_preferred_network_password(preferred_network_name)
+    raise NotImplementedError, "Subclasses must implement os_level_preferred_network_password"
+  end
+
+  def ip_address
+    raise NotImplementedError, "Subclasses must implement ip_address"
+  end
+
+  def mac_address
+    raise NotImplementedError, "Subclasses must implement mac_address"
+  end
+
+  def disconnect
+    raise NotImplementedError, "Subclasses must implement disconnect"
+  end
+
+  def nameservers_using_resolv_conf
+    raise NotImplementedError, "Subclasses must implement nameservers_using_resolv_conf"
+  end
+
+  def set_nameservers(nameservers)
+    raise NotImplementedError, "Subclasses must implement set_nameservers"
+  end
+
+  def open_application(application_name)
+    raise NotImplementedError, "Subclasses must implement open_application"
+  end
+
+  def open_resource(resource_url)
+    raise NotImplementedError, "Subclasses must implement open_resource"
+  end
+
+  def wifi_info
+    raise NotImplementedError, "Subclasses must implement wifi_info"
+  end
+
   class OsCommandError < RuntimeError
     attr_reader :exitstatus, :command, :text
 
