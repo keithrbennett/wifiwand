@@ -291,7 +291,7 @@ When in interactive shell mode:
 
     case(subcommand)
       when :get
-        current_nameservers = model.nameservers_using_networksetup
+        current_nameservers = model.nameservers
         if interactive_mode
           current_nameservers
         else

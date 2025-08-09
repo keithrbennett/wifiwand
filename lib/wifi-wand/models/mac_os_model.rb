@@ -229,7 +229,7 @@ class MacOsModel < BaseModel
         'network'     => connected_network_name,
         'ip_address'  => ip_address,
         'mac_address' => mac_address,
-        'nameservers' => nameservers_using_scutil,
+        'nameservers' => nameservers,
         'timestamp'   => Time.now,
     }
 
@@ -299,18 +299,6 @@ class MacOsModel < BaseModel
   private :colon_output_to_hash
 
 
-  # @return array of nameserver IP addresses from /etc/resolv.conf, or nil if not found
-  # Though this is strictly *not* OS-agnostic, it will be used by most OS's,
-  # and can be overridden by subclasses (e.g. Windows).
-  def nameservers_using_resolv_conf
-    begin
-      File.readlines('/etc/resolv.conf').grep(/^nameserver /).map { |line| line.split.last }
-    rescue Errno::ENOENT
-      nil
-    end
-  end
-
-
   def nameservers_using_scutil
     output = run_os_command('scutil --dns')
     nameserver_lines_scoped_and_unscoped = output.split("\n").grep(/^\s*nameserver\[/)
@@ -326,6 +314,11 @@ class MacOsModel < BaseModel
       output = ''
     end
     output.split("\n")
+  end
+
+  def nameservers
+    # Use scutil for the most accurate DNS information on Mac OS
+    nameservers_using_scutil
   end
 
   def ensure_swift_and_corewlan_present

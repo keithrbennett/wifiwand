@@ -121,12 +121,8 @@ class UbuntuModel < BaseModel
     nil
   end
 
-  def nameservers_using_resolv_conf
-    begin
-      File.readlines('/etc/resolv.conf').grep(/^nameserver /).map { |line| line.split.last }
-    rescue Errno::ENOENT
-      nil
-    end
+  def nameservers
+    nameservers_using_resolv_conf
   end
 
   def set_nameservers(nameservers)
@@ -178,7 +174,7 @@ class UbuntuModel < BaseModel
         'network'     => connected_network_name,
         'ip_address'  => ip_address,
         'mac_address' => mac_address,
-        'nameservers' => nameservers_using_resolv_conf,
+        'nameservers' => nameservers,
         'timestamp'   => Time.now,
     }
 

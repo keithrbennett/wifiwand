@@ -23,6 +23,16 @@ class BaseModel
     end
   end
 
+  # @return array of nameserver IP addresses from /etc/resolv.conf, or nil if not found
+  # This is the fallback method that works on most Unix-like systems
+  def nameservers_using_resolv_conf
+    begin
+      File.readlines('/etc/resolv.conf').grep(/^nameserver /).map { |line| line.split.last }
+    rescue Errno::ENOENT
+      nil
+    end
+  end
+
   # Define methods that must be implemented by subclasses in order to be called successfully:
   def self.define_subclass_required_method(method_name)
     define_method(method_name) do
@@ -38,7 +48,7 @@ class BaseModel
     ip_address
     is_wifi_interface?
     mac_address
-    nameservers_using_resolv_conf
+    nameservers
     open_application
     open_resource
     os_level_connect
