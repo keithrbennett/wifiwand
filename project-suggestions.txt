@@ -1,0 +1,37 @@
+ Code Quality & Architecture
+
+  - Add comprehensive testing: Currently has minimal unit specs (only 1 test file) and limited integration tests. Need full test coverage for all OS models and edge cases.
+  - Improve error handling: In main.rb:67, backtraces are exposed to users - should use cleaner error messages for CLI.
+  - Extract hardcoded domains: In base_model.rb:97, google.com and baidu.com are hardcoded - should be configurable.
+  - Add input validation: Commands like connect in base_model.rb:176 need robust validation for network names and passwords.
+
+  Testing & Reliability
+
+  - Mock external dependencies: Network operations (curl, dig, OS commands) should be mocked in tests.
+  - Add cross-platform tests: Need automated testing for both macOS and Ubuntu environments.
+  - Test network failure scenarios: Poor connectivity, timeouts, and command failures.
+
+  Security & Performance
+
+  - Secure credential handling: Password handling in CLI could be improved with secure prompts.
+  - Add command timeouts: Network operations in base_model.rb:91-148 need proper timeout handling.
+  - Rate limiting protection: External API calls (ipinfo.io) should have retry limits and backoff.
+
+  User Experience
+
+  - Better help system: Command help is text-based - could add examples and better formatting.
+  - Progress indicators: Long-running operations (network scanning) should show progress.
+  - Configuration file: Allow users to save preferences (default interface, preferred networks).
+
+  Documentation
+
+  - API documentation: The library can be used programmatically but lacks API docs.
+  - Contributing guidelines: No contribution guidelines for new OS support.
+  - Troubleshooting guide: Could expand the existing troubleshooting section.
+
+  Multi-OS Support
+
+  - Abstract OS detection: Currently hardcoded - should be dynamic for easier OS additions.
+  - Windows support: Could add Windows model using PowerShell commands.
+  - Docker compatibility: Consider containerized testing environment.
+
