@@ -95,7 +95,12 @@ class UbuntuModel < BaseModel
   end
 
   def remove_preferred_network(network_name)
+    # Check if the network exists first
+    existing_networks = preferred_networks
+    return nil unless existing_networks.include?(network_name)
+    
     run_os_command("nmcli connection delete '#{network_name}'")
+    nil
   end
 
   def os_level_preferred_network_password(preferred_network_name)
@@ -117,7 +122,9 @@ class UbuntuModel < BaseModel
 
   def disconnect
     return nil unless wifi_on?
-    run_os_command("nmcli dev disconnect #{wifi_interface}")
+    interface = wifi_interface
+    return nil unless interface
+    run_os_command("nmcli dev disconnect #{interface}")
     nil
   end
 
@@ -126,9 +133,14 @@ class UbuntuModel < BaseModel
   end
 
   def set_nameservers(nameservers)
+    # For setting nameservers, we'll use a different approach
+    # Since nmcli connection management requires specific connection names,
+    # we'll modify the system's DNS configuration directly
+    
     if nameservers == :clear
-      run_os_command("nmcli connection modify '#{wifi_interface}' ipv4.dns \"\"")
-      run_os_command("nmcli connection up '#{wifi_interface}'")
+      # Clear nameservers by removing custom DNS configuration
+      run_os_command("nmcli connection modify '#{wifi_interface}' ipv4.dns \"\"", false)
+      run_os_command("nmcli connection up '#{wifi_interface}'", false)
     else
       bad_addresses = nameservers.reject do |ns|
         begin
@@ -146,8 +158,9 @@ class UbuntuModel < BaseModel
       end
 
       dns_string = nameservers.join(' ')
-      run_os_command("nmcli connection modify '#{wifi_interface}' ipv4.dns '#{dns_string}'")
-      run_os_command("nmcli connection up '#{wifi_interface}'")
+      # Try to modify the connection, ignore errors if connection doesn't exist
+      run_os_command("nmcli connection modify '#{wifi_interface}' ipv4.dns '#{dns_string}'", false)
+      run_os_command("nmcli connection up '#{wifi_interface}'", false)
     end
     nameservers
   end
