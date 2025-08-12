@@ -98,9 +98,9 @@ class BaseModel
   def internet_tcp_connectivity?
     test_endpoints = [
       { host: '1.1.1.1', port: 53 },        # Cloudflare DNS
-      { host: 'httpbin.org', port: 443 },   # Global HTTP service
-      { host: 'api.github.com', port: 443 }, # Global API
-      { host: 'www.baidu.com', port: 443 }, # China-friendly
+      { host: '8.8.8.8', port: 53 },        # Google DNS
+      { host: '208.67.222.222', port: 53 }, # OpenDNS
+      { host: '180.76.76.76', port: 53 },   # Baidu DNS (China-friendly)
     ]
     
     if verbose_mode
@@ -140,7 +140,7 @@ class BaseModel
 
   # Tests DNS resolution capability
   def dns_working?
-    test_domains = %w(google.com baidu.com)
+    test_domains = %w(google.com baidu.com cloudflare.com github.com)
     
     if verbose_mode
       puts "Testing DNS resolution for domains: #{test_domains.join(', ')}"
