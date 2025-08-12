@@ -22,7 +22,7 @@ describe UbuntuModel do
         interface = subject.detect_wifi_interface
         if interface
           result = subject.is_wifi_interface?(interface)
-          expect(result).to be(true).or(be(false))
+          expect([true, false]).to include(result)
         else
           # Skip test if no wifi interface detected
           pending 'No wifi interface available'
@@ -33,14 +33,14 @@ describe UbuntuModel do
         # This test just verifies the method returns a boolean
         # The actual result depends on the system configuration
         result = subject.is_wifi_interface?('nonexistent_interface_12345')
-        expect(result).to be(true).or(be(false))
+        expect([true, false]).to include(result)
       end
     end
 
     describe '#wifi_on?' do
       it 'returns boolean indicating wifi status' do
         result = subject.wifi_on?
-        expect(result).to be(true).or(be(false))
+        expect([true, false]).to include(result)
       end
     end
 
@@ -57,6 +57,19 @@ describe UbuntuModel do
           expect(result).to be_a(Array).or(be_nil)
           if result
             expect(result).to all(be_a(String))
+          end
+        else
+          skip 'WiFi is currently off'
+        end
+      end
+
+      it 'returns unique network names when wifi is on', :requires_wifi_on do
+        # Check that duplicate SSIDs are removed (strongest signal kept)
+        if subject.wifi_on?
+          result = subject.available_network_names
+          expect(result).to be_a(Array).or(be_nil)
+          if result
+            expect(result.uniq).to eq(result)  # Should be unique
           end
         else
           skip 'WiFi is currently off'
@@ -138,18 +151,7 @@ describe UbuntuModel do
       end
     end
 
-    describe '#wifi_info' do
-      it 'returns hash with wifi information' do
-        result = subject.wifi_info
-        expect(result).to be_a(Hash)
-        expect(result).to include('wifi_on', 'internet_on', 'interface', 'timestamp')
-        expect(result['wifi_on']).to be(true).or(be(false))
-        expect(result['internet_on']).to be(true).or(be(false))
-        expect(result['interface']).to be_a(String).or(be_nil)
-        expect(result['timestamp']).to be_a(Time)
-      end
-    end
-
+    
     describe '#os_level_preferred_network_password' do
       it 'returns string or nil for existing network' do
         networks = subject.preferred_networks

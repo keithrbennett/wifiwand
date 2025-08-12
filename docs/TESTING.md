@@ -55,9 +55,10 @@ Tests are organized into three main categories based on their system impact:
 spec/
 ├── spec_helper.rb                 # RSpec configuration and tagging setup
 ├── wifi-wand/
+│   ├── common_os_model_spec.rb     # OS-agnostic interface tests (NEW)
 │   └── models/
 │       ├── base_model_spec.rb      # Error handling tests
-│       └── ubuntu_model_spec.rb    # Ubuntu-specific tests (NEW)
+│       └── ubuntu_model_spec.rb    # Ubuntu-specific tests
 └── integration-tests/
     └── wifi-wand/
         └── models/
@@ -265,6 +266,70 @@ For Mac OS testing, use the existing integration tests:
 # Run Mac OS integration tests
 bundle exec rspec integration-tests/wifi-wand/models/mac_os_model_spec.rb
 ```
+
+## OS-Agnostic Testing
+
+### Common Interface Tests
+
+The `common_os_model_spec.rb` file provides OS-agnostic testing that automatically adapts to whatever operating system is running the tests:
+
+**Key Features:**
+- **Automatic OS Detection**: Instantiates the correct model for the current OS
+- **Interface Contract Testing**: Ensures all OS models implement the same interface
+- **Cross-Platform Compatibility**: Single test suite works on Ubuntu, Mac, and future OSes
+- **Future-Proof**: New OS models automatically get tested without adding new specs
+
+**How It Works:**
+```ruby
+# Automatically detects OS and instantiates appropriate model
+subject do
+  os_detector = WifiWand::OperatingSystems.new
+  current_os = os_detector.current_os
+  current_os.create_model(OpenStruct.new(verbose: false))
+end
+
+# Tests run on any OS with consistent expectations
+describe '#internet_tcp_connectivity?' do
+  it 'returns boolean indicating TCP connectivity' do
+    result = subject.internet_tcp_connectivity?
+    expect([true, false]).to include(result)
+  end
+end
+```
+
+**Running Common Tests:**
+```bash
+# Runs on current OS (Ubuntu, Mac, etc.)
+bundle exec rspec spec/wifi-wand/common_os_model_spec.rb
+
+# Safe to run on any OS
+bundle exec rspec spec/wifi-wand/common_os_model_spec.rb --tag ~modifies_system
+```
+
+**Benefits:**
+- **Single Source of Truth**: All OS models must implement the same interface
+- **No Duplication**: Don't need to add tests for new OS models
+- **Consistent Behavior**: Ensures the same expectations across all platforms
+- **Automatic Validation**: New OS models are immediately validated
+
+**Interface Requirements:**
+All OS models must implement these methods with consistent return types:
+- `internet_tcp_connectivity?` → Boolean
+- `dns_working?` → Boolean  
+- `default_interface` → String or nil
+- `wifi_info` → Hash with consistent structure
+- And all other base model methods
+
+### Adding New OS Models
+
+When adding support for a new OS:
+
+1. **Implement the interface**: Ensure all required methods are implemented
+2. **Run common tests**: `bundle exec rspec spec/wifi-wand/common_os_model_spec.rb`
+3. **Add OS-specific tests**: Create OS-specific test file for implementation details
+4. **Update documentation**: Add any OS-specific testing considerations
+
+The common tests will automatically validate that the new OS model correctly implements the expected interface.
 
 ## Test Development Workflow
 
