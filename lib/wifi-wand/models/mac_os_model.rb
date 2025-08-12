@@ -53,8 +53,6 @@ class MacOsModel < BaseModel
   def available_network_names
     return nil unless wifi_on? # no need to try
 
-    # run_swift_command('AvailableWifiNetworkLister').split("\n").uniq
-
     json_text = run_os_command('system_profiler -json SPAirPortDataType')
     data = JSON.parse(json_text)
 

@@ -12,7 +12,7 @@ class UbuntuModel < BaseModel
   end
 
   def detect_wifi_interface
-    interfaces = run_os_command("iw dev | awk '$1==\"Interface\"{print $2}'").split("\n")
+    interfaces = run_os_command("iw dev | grep Interface | cut -d' ' -f2").split("\n")
     interfaces.first
   end
 
@@ -38,18 +38,26 @@ class UbuntuModel < BaseModel
     wifi_on? ? raise(Error.new("Wifi could not be disabled.")) : nil
   end
 
-  def available_network_names
+    def available_network_names
     return nil unless wifi_on?
     
-    output = run_os_command("nmcli -t -f SSID dev wifi list")
-    networks = output.split("\n").map(&:strip).reject(&:empty?).uniq
-    networks.sort
+    output = run_os_command("nmcli -t -f SSID,SIGNAL dev wifi list")
+    networks_with_signal = output.split("\n").map(&:strip).reject(&:empty?)
+    
+    # Parse SSID and signal strength, then sort by signal (descending)
+    networks = networks_with_signal.map do |line|
+      ssid, signal = line.split(':')
+      [ssid, signal.to_i]
+    end.sort_by { |_, signal| -signal }.map { |ssid, _| ssid }
+    
+    networks.uniq
   end
 
   def connected_network_name
     return nil unless wifi_on?
-    
-    output = run_os_command("nmcli -t -f active,ssid dev wifi | grep '^yes:' | cut -d: -f2", false)
+
+    cmd = "nmcli -t -f NAME,TYPE connection show --active | grep 802-11-wireless | cut -d: -f1"
+    output = run_os_command(cmd, false)
     output.empty? ? nil : output.strip
   end
 
@@ -104,19 +112,24 @@ class UbuntuModel < BaseModel
   end
 
   def os_level_preferred_network_password(preferred_network_name)
-    output = run_os_command("nmcli --show-secrets connection show '#{preferred_network_name}' | grep '802-11-wireless-security.psk:' | cut -d':' -f2- | sed 's/^[[:space:]]*//'", false)
+    cmd = [
+      "nmcli --show-secrets connection show '#{preferred_network_name}'",
+      "grep '802-11-wireless-security.psk:'",
+      "cut -d':' -f2-"
+    ].join(' | ')
+    output = run_os_command(cmd, false)
     output.empty? ? nil : output.strip
   end
 
   def ip_address
     return nil unless wifi_on?
     
-    output = run_os_command("ip -4 addr show #{wifi_interface} | grep -oP '(?<=inet\\s)\\d+(\\.\\d+){3}'", false)
+    output = run_os_command("ip -4 addr show #{wifi_interface} | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1", false)
     output.empty? ? nil : output.strip
   end
 
   def mac_address
-    output = run_os_command("ip link show #{wifi_interface} | grep -oP '(?<=ether\\s)[0-9a-f:]{17}'", false)
+    output = run_os_command("ip link show #{wifi_interface} | grep ether | awk '{print $2}'", false)
     output.empty? ? nil : output.strip
   end
 

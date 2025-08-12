@@ -20,6 +20,8 @@ class BaseModel
       else
         raise Error.new("#{options.wifi_interface} is not a Wi-Fi interface.")
       end
+    else
+      @wifi_interface = detect_wifi_interface
     end
   end
 
@@ -289,11 +291,6 @@ class BaseModel
   end
 
   end
-
-  def wifi_interface
-    @wifi_interface ||= detect_wifi_interface
-  end
-
 
   class OsCommandError < RuntimeError
     attr_reader :exitstatus, :command, :text
