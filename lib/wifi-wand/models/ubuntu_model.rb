@@ -187,21 +187,31 @@ class UbuntuModel < BaseModel
   end
 
   def wifi_info
-    connected = begin
-      connected_to_internet?
+    internet_tcp = begin
+      internet_tcp_connectivity?
     rescue
       false
     end
+    
+    dns_working = begin
+      dns_working?
+    rescue
+      false
+    end
+    
+    connected = internet_tcp && dns_working
 
     info = {
-        'wifi_on'     => wifi_on?,
-        'internet_on' => connected,
-        'interface'   => wifi_interface,
-        'network'     => connected_network_name,
-        'ip_address'  => ip_address,
-        'mac_address' => mac_address,
-        'nameservers' => nameservers,
-        'timestamp'   => Time.now,
+        'wifi_on'                   => wifi_on?,
+        'internet_tcp_connectivity' => internet_tcp,
+        'dns_working'               => dns_working,
+        'internet_on'               => connected,
+        'interface'                 => wifi_interface,
+        'network'                   => connected_network_name,
+        'ip_address'                => ip_address,
+        'mac_address'               => mac_address,
+        'nameservers'               => nameservers,
+        'timestamp'                 => Time.now,
     }
 
     if info['internet_on']

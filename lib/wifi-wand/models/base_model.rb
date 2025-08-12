@@ -1,5 +1,6 @@
 require 'json'
 require 'net/http'
+require 'socket'
 require 'tempfile'
 require 'uri'
 require_relative 'helpers/command_output_formatter'
@@ -14,6 +15,7 @@ class BaseModel
   def initialize(options)
     @verbose_mode = options.verbose
 
+    # Initialize wifi interface (e.g.: "wlp0s20f3")
     if options.wifi_interface
       if is_wifi_interface?(options.wifi_interface)
         @wifi_interface = options.wifi_interface
@@ -85,68 +87,60 @@ class BaseModel
   end
 
 
-  # This method returns whether or not there is a working Internet connection,
-  # which is defined as success for both name resolution and an HTTP get.
-  # Domains attempted are google.com and baidu.com.
-  # Success is defined as either being successful.
-  # Commands for the multiple sites are run in parallel, in threads, to save time.
+  # This method returns whether or not there is a working Internet connection.
+  # Tests both TCP connectivity to internet hosts and DNS resolution.
   def connected_to_internet?
     return false unless wifi_on? # no need to try
+    internet_tcp_connectivity? && dns_working?
+  end
 
-    # We cannot use run_os_command for the running of external processes here,
-    # because they are multithreaded, and the output will get mixed up.
-    test_using_dig = -> do
-      domains = %w(google.com  baidu.com)
-      puts "Calling dig on domains #{domains}..." if verbose_mode
-
-      threads = domains.map do |domain|
-        Thread.new do
-          output = `dig +short #{domain}`
-          output.length > 0
-        end
-      end
-
-      threads.each(&:join)
-      values = threads.map(&:value)
-      success = values.include?(true)
-      puts "Results of dig: success == #{success}, values were #{values}." if verbose_mode
-      success
+  # Tests TCP connectivity to internet hosts (not localhost)
+  def internet_tcp_connectivity?
+    test_endpoints = [
+      { host: '1.1.1.1', port: 53 },        # Cloudflare DNS
+      { host: 'httpbin.org', port: 443 },   # Global HTTP service
+      { host: 'api.github.com', port: 443 }, # Global API
+      { host: 'www.baidu.com', port: 443 }, # China-friendly
+    ]
+    
+    if verbose_mode
+      puts "Testing internet TCP connectivity to: #{test_endpoints.map { |e| "#{e[:host]}:#{e[:port]}" }.join(', ')}"
     end
 
-    test_using_http_get = -> do
-      test_sites = %w{https://www.google.com  http://baidu.com}
-      puts "Calling HTTP.get on sites #{test_sites}..." if verbose_mode
-
-      threads = test_sites.map do |site|
-        Thread.new do
-          url = URI.parse(site)
-          success = true
-          start = Time.now
-
-          begin
-            Net::HTTP.start(url.host) do |http|
-              http.read_timeout = 3 # seconds
-              http.get('.')
-              puts "Finished HTTP get #{url.host} in #{Time.now - start} seconds" if verbose_mode
-            end
-          rescue => e
-            puts "Got error for host #{url.host} in #{Time.now - start} seconds:\n#{e.inspect}" if verbose_mode
-            success = false
-          end
-
-          success
+    test_endpoints.any? do |endpoint|
+      begin
+        Timeout.timeout(2) do
+          result = Socket.tcp(endpoint[:host], endpoint[:port], connect_timeout: 2) { true }
+          puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}" if verbose_mode
+          result
         end
+      rescue => e
+        puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if verbose_mode
+        false
       end
-
-      threads.each(&:join)
-      values = threads.map(&:value)
-      success = values.include?(true)
-
-      puts "Results of HTTP.get: success == #{success}, values were #{values}." if verbose_mode
-      success
     end
+  end
 
-    test_using_dig.() && test_using_http_get.()
+  # Tests DNS resolution capability
+  def dns_working?
+    test_domains = %w(google.com baidu.com)
+    
+    if verbose_mode
+      puts "Testing DNS resolution for domains: #{test_domains.join(', ')}"
+    end
+    
+    test_domains.any? do |domain|
+      begin
+        Timeout.timeout(2) do
+          IPSocket.getaddress(domain)
+          puts "Successfully resolved #{domain}" if verbose_mode
+          true
+        end
+      rescue => e
+        puts "Failed to resolve #{domain}: #{e.class}" if verbose_mode
+        false
+      end
+    end
   end
 
 
