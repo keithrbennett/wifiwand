@@ -110,7 +110,7 @@ class BaseModel
     # Test all endpoints in parallel, return as soon as any succeeds
     success_queue = Queue.new
     
-    threads = test_endpoints.map do |endpoint|
+    test_endpoints.each do |endpoint|
       Thread.new do
         begin
           Timeout.timeout(2) do
@@ -146,17 +146,33 @@ class BaseModel
       puts "Testing DNS resolution for domains: #{test_domains.join(', ')}"
     end
     
-    test_domains.any? do |domain|
-      begin
-        Timeout.timeout(2) do
-          IPSocket.getaddress(domain)
-          puts "Successfully resolved #{domain}" if verbose_mode
-          true
+    # Test all domains in parallel, return as soon as any succeeds
+    success_queue = Queue.new
+    
+    test_domains.each do |domain|
+      Thread.new do
+        begin
+          Timeout.timeout(2) do
+            IPSocket.getaddress(domain)
+            success_queue.push(true)
+            puts "Successfully resolved #{domain}" if verbose_mode
+          end
+        rescue => e
+          puts "Failed to resolve #{domain}: #{e.class}" if verbose_mode
+          # Don't push anything on failure
         end
-      rescue => e
-        puts "Failed to resolve #{domain}: #{e.class}" if verbose_mode
-        false
       end
+    end
+    
+    # Wait for first success or overall timeout
+    begin
+      Timeout.timeout(2.5) do
+        # Return as soon as any thread succeeds
+        success_queue.pop
+      end
+    rescue Timeout::Error
+      # No success within overall timeout
+      false
     end
   end
 
