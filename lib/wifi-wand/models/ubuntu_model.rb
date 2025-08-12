@@ -186,46 +186,5 @@ class UbuntuModel < BaseModel
     run_os_command("xdg-open '#{resource_url}'")
   end
 
-  def wifi_info
-    internet_tcp = begin
-      internet_tcp_connectivity?
-    rescue
-      false
-    end
-    
-    dns_working = begin
-      dns_working?
-    rescue
-      false
-    end
-    
-    connected = internet_tcp && dns_working
-
-    info = {
-        'wifi_on'                   => wifi_on?,
-        'internet_tcp_connectivity' => internet_tcp,
-        'dns_working'               => dns_working,
-        'internet_on'               => connected,
-        'interface'                 => wifi_interface,
-        'network'                   => connected_network_name,
-        'ip_address'                => ip_address,
-        'mac_address'               => mac_address,
-        'nameservers'               => nameservers,
-        'timestamp'                 => Time.now,
-    }
-
-    if info['internet_on']
-      begin
-        info['public_ip'] = public_ip_address_info
-      rescue => e
-        puts <<~MESSAGE
-          #{e.class} obtaining public IP address info, proceeding with everything else. Error message:
-          #{e}
-
-        MESSAGE
-      end
-    end
-    info
   end
-end
 end

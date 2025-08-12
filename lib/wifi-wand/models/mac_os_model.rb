@@ -211,40 +211,7 @@ class MacOsModel < BaseModel
   end
 
 
-  # Returns some useful wifi-related information.
-  def wifi_info
-
-    connected = begin
-      connected_to_internet?
-    rescue
-      false
-    end
-
-    info = {
-        'wifi_on'     => wifi_on?,
-        'internet_on' => connected,
-        'interface'   => wifi_interface,
-        'network'     => connected_network_name,
-        'ip_address'  => ip_address,
-        'mac_address' => mac_address,
-        'nameservers' => nameservers,
-        'timestamp'   => Time.now,
-    }
-
-    if info['internet_on']
-      begin
-        info['public_ip'] = public_ip_address_info
-      rescue => e
-        puts <<~MESSAGE
-          #{e.class} obtaining public IP address info, proceeding with everything else. Error message:
-          #{e}
-
-        MESSAGE
-      end
-    end
-    info
-  end
-
+  
 
   def set_nameservers(nameservers)
     arg = if nameservers == :clear
