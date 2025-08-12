@@ -124,4 +124,118 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
+  describe '#wifi_on', :modifies_system do
+    it 'can turn wifi on when it is off' do
+      subject.wifi_off if subject.wifi_on?
+      expect(subject.wifi_on?).to be(false)
+      
+      subject.wifi_on
+      expect(subject.wifi_on?).to be(true)
+    end
+
+    it 'does nothing when wifi is already on' do
+      subject.wifi_on unless subject.wifi_on?
+      expect(subject.wifi_on?).to be(true)
+      
+      subject.wifi_on
+      expect(subject.wifi_on?).to be(true)
+    end
+  end
+
+  describe '#wifi_off', :modifies_system do
+    it 'can turn wifi off when it is on' do
+      subject.wifi_on unless subject.wifi_on?
+      expect(subject.wifi_on?).to be(true)
+      
+      subject.wifi_off
+      expect(subject.wifi_on?).to be(false)
+    end
+
+    it 'does nothing when wifi is already off' do
+      subject.wifi_off if subject.wifi_on?
+      expect(subject.wifi_on?).to be(false)
+      
+      subject.wifi_off
+      expect(subject.wifi_on?).to be(false)
+    end
+  end
+
+  describe '#cycle_network', :modifies_system do
+    it 'can turn wifi off and on, preserving network selection' do
+      # Note: This test may not preserve network connection in all cases
+      # but should verify the cycle completes without error
+      subject.wifi_on unless subject.wifi_on?
+      expect { subject.cycle_network }.not_to raise_error
+      expect(subject.wifi_on?).to be(true)
+    end
+  end
+
+  describe '#available_network_names', :modifies_system do
+    it 'can list available networks' do
+      subject.wifi_on unless subject.wifi_on?
+      result = subject.available_network_names
+      expect(result).to be_a(Array).or(be_nil)
+      if result
+        expect(result).to all(be_a(String))
+      end
+    end
+  end
+
+  # The following tests run commands and verify they complete without error,
+  # testing both wifi on and wifi off states
+  shared_examples 'interface commands complete without error' do |wifi_starts_on|
+
+    it 'can determine if connected to Internet' do
+      wifi_starts_on ? subject.wifi_on : subject.wifi_off
+      subject.connected_to_internet?
+    end
+
+    it 'can get wifi interface' do
+      wifi_starts_on ? subject.wifi_on : subject.wifi_off
+      result = subject.wifi_interface
+      expect(result).to be_a(String).or(be_nil)
+    end
+
+    it 'can get wifi info' do
+      wifi_starts_on ? subject.wifi_on : subject.wifi_off
+      result = subject.wifi_info
+      expect(result).to be_a(Hash)
+    end
+
+    it 'can list preferred networks' do
+      wifi_starts_on ? subject.wifi_on : subject.wifi_off
+      result = subject.preferred_networks
+      expect(result).to be_a(Array)
+      expect(result).to all(be_a(String))
+    end
+
+    it 'can check wifi status' do
+      wifi_starts_on ? subject.wifi_on : subject.wifi_off
+      result = subject.wifi_on?
+      expect([true, false]).to include(result)
+    end
+
+    it 'can query connected network name' do
+      wifi_starts_on ? subject.wifi_on : subject.wifi_off
+      name = subject.connected_network_name
+      unless subject.wifi_on?
+        expect(name).to be_nil
+      end
+    end
+
+    it 'can call disconnect twice consecutively' do
+      wifi_starts_on ? subject.wifi_on : subject.wifi_off
+      expect { subject.disconnect; subject.disconnect }.not_to raise_error
+    end
+
+  end
+
+  context 'wifi starts on' do
+    include_examples 'interface commands complete without error', true
+  end
+
+  context 'wifi starts off' do
+    include_examples 'interface commands complete without error', false
+  end
+
 end

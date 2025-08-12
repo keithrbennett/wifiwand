@@ -27,7 +27,7 @@ Tests are organized into three main categories based on their system impact:
 - Password retrieval (read-only)
 
 #### 2. System-Modifying Tests (`:modifies_system`)
-- **Safety Level**: ⚠️  Use with caution
+- **Safety Level**: ⚠️  Use with ca ution
 - **System Impact**: Changes WiFi state (on/off)
 - **Network Impact**: May temporarily disrupt connectivity
 - **Required Flag**: `--tag modifies_system` or `--tag ~network_connection`
