@@ -107,17 +107,34 @@ class BaseModel
       puts "Testing internet TCP connectivity to: #{test_endpoints.map { |e| "#{e[:host]}:#{e[:port]}" }.join(', ')}"
     end
 
-    test_endpoints.any? do |endpoint|
-      begin
-        Timeout.timeout(2) do
-          result = Socket.tcp(endpoint[:host], endpoint[:port], connect_timeout: 2) { true }
-          puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}" if verbose_mode
-          result
+    # Test all endpoints in parallel, return as soon as any succeeds
+    success_queue = Queue.new
+    
+    threads = test_endpoints.map do |endpoint|
+      Thread.new do
+        begin
+          Timeout.timeout(2) do
+            Socket.tcp(endpoint[:host], endpoint[:port], connect_timeout: 2) do
+              success_queue.push(true)
+              puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}" if verbose_mode
+            end
+          end
+        rescue => e
+          puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if verbose_mode
+          # Don't push anything on failure
         end
-      rescue => e
-        puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if verbose_mode
-        false
       end
+    end
+    
+    # Wait for first success or overall timeout
+    begin
+      Timeout.timeout(2.5) do
+        # Return as soon as any thread succeeds
+        success_queue.pop
+      end
+    rescue Timeout::Error
+      # No success within overall timeout
+      false
     end
   end
 
