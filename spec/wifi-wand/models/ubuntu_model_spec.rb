@@ -2,7 +2,7 @@ require_relative '../../../lib/wifi-wand/models/ubuntu_model'
 
 module WifiWand
 
-describe UbuntuModel do
+describe UbuntuModel, :os_ubuntu do
 
   subject { UbuntuModel.new(OpenStruct.new(verbose: false)) }
 

@@ -73,12 +73,38 @@ spec/
 # Install dependencies
 bundle install
 
-# Run safe read-only tests (default)
+# Run tests appropriate for current OS (automatic OS detection)
+bundle exec rspec
+```
+
+### Automatic OS Detection
+
+The test suite automatically detects the current operating system and runs only compatible tests:
+
+**How it works:**
+- ✅ **Tests with no OS tags** run on all OSes (common interface tests)
+- ✅ **Tests with OS tags** run only on compatible OSes  
+- ❌ **Tests with foreign OS tags** are automatically excluded
+
+**Examples:**
+```bash
+# On Ubuntu - automatically runs:
+# ✅ common_os_model_spec.rb (no OS tags)
+# ✅ ubuntu_model_spec.rb (:os_ubuntu tag)
+# ❌ Skips mac_os_model_spec.rb (:os_mac tag)
 bundle exec rspec
 
-# Run all tests for Ubuntu model (safe + system-modifying)
-bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb --tag ~network_connection
+# On Mac - automatically runs:
+# ✅ common_os_model_spec.rb (no OS tags)  
+# ✅ mac_os_model_spec.rb (:os_mac tag)
+# ❌ Skips ubuntu_model_spec.rb (:os_ubuntu tag)
+bundle exec rspec
 ```
+
+**OS Tags Available:**
+- `:os_ubuntu` - Ubuntu-specific tests
+- `:os_mac` - Mac OS-specific tests
+- Future: `:os_linux`, `:os_bsd`, etc.
 
 ### Detailed Commands
 
@@ -173,13 +199,35 @@ bundle exec rspec --tag focus
 The spec helper includes:
 - Custom tag definitions
 - Default filtering configuration
+- Automatic OS detection and filtering
 - Test documentation on startup
 - Cleanup procedures for system-modifying tests
 
 Key configuration:
 ```ruby
+# Exclude high-risk tags by default
 config.filter_run_excluding :network_connection => true
 config.filter_run_excluding :modifies_system => true
+
+# Automatic OS detection and filtering
+config.filter_run do |metadata|
+  # If test has no OS tags, run it unconditionally
+  os_tags = metadata.keys.select { |key| key.to_s.start_with?('os_') }
+  
+  if os_tags.empty?
+    true # No OS tags - run on all OSes (common tests)
+  else
+    # Test has OS tags - only run if compatible with current OS
+    os_tags.include?(compatible_os_tag)
+  end
+end
+```
+
+The OS detection:
+- Evaluates once per test run (efficient)
+- Automatically excludes foreign OS tests
+- Runs common tests on all platforms
+- Falls back gracefully if OS detection fails
 ```
 
 ## Writing Tests

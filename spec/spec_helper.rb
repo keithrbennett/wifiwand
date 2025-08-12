@@ -3,6 +3,7 @@ require 'ostruct'
 
 # Require the main library
 require_relative '../lib/wifi-wand'
+require_relative '../lib/wifi-wand/operating_systems'
 
 # Configure RSpec
 RSpec.configure do |config|
@@ -14,6 +15,31 @@ RSpec.configure do |config|
   # Exclude high-risk tags by default
   config.filter_run_excluding :network_connection => true
   config.filter_run_excluding :modifies_system => true
+  
+  # Auto-detect current OS and filter tests accordingly
+  begin
+    os_detector = WifiWand::OperatingSystems.new
+    current_os = os_detector.current_os
+    current_os_name = current_os.class.name.split('::').last.gsub('Os', '').downcase.to_sym
+    compatible_os_tag = "os_#{current_os_name}".to_sym
+    
+    # Filter tests based on OS compatibility (evaluated once per run)
+    config.filter_run do |metadata|
+      # If test has no OS tags, run it unconditionally
+      os_tags = metadata.keys.select { |key| key.to_s.start_with?('os_') }
+      
+      if os_tags.empty?
+        true # No OS tags - run on all OSes (common tests)
+      else
+        # Test has OS tags - only run if compatible with current OS
+        os_tags.include?(compatible_os_tag)
+      end
+    end
+    
+  rescue => e
+    puts "Warning: Could not detect current OS for test filtering: #{e.message}"
+    puts "Running all tests - some may fail due to OS incompatibility"
+  end
   
   # Add custom tags
   config.define_derived_metadata do |meta|

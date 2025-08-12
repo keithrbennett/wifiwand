@@ -12,7 +12,7 @@ require_relative '../../../lib/wifi-wand/models/mac_os_model'
 
 module WifiWand
 
-describe MacOsModel do
+describe MacOsModel, :os_mac do
 
 
   subject { MacOsModel.new }
