@@ -44,12 +44,35 @@ class BaseModel
     end
   end
 
-  %i[
+  # Methods that subclasses must implement but are called via wrapper methods
+  UNDERSCORE_PREFIXED_METHODS = %i[
     _available_network_names
     _connected_network_name
-    detect_wifi_interface
     _disconnect
     _ip_address
+  ].freeze
+
+  # Verify that a subclass implements all required underscore-prefixed methods
+  def self.verify_underscore_methods_implemented(subclass)
+    missing_methods = UNDERSCORE_PREFIXED_METHODS - subclass.public_instance_methods
+    unless missing_methods.empty?
+      raise NotImplementedError, "Subclass #{subclass.name} must implement #{missing_methods.inspect}"
+    end
+  end
+
+  # Automatically verify underscore methods when a subclass is inherited
+  def self.inherited(subclass)
+    trace = TracePoint.new(:end) do |tp|
+      if tp.self == subclass
+        verify_underscore_methods_implemented(subclass)
+        trace.disable
+      end
+    end
+    trace.enable
+  end
+
+  %i[
+    detect_wifi_interface
     is_wifi_interface?
     mac_address
     nameservers
