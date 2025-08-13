@@ -183,6 +183,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#disconnect graceful handling', :disruptive do
     it 'handles disconnect gracefully when already disconnected' do
+      skip_unless_network_restore_available
+      
       # Ensure we start in a known state - disconnected
       if subject.connected_network_name
         subject.disconnect
@@ -190,9 +192,14 @@ describe 'Common WiFi Model Behavior (All OS)' do
       
       # Now test that calling disconnect on already-disconnected state doesn't raise error
       expect { subject.disconnect }.not_to raise_error
+      
+      # Restore network state after test
+      restore_network_state
     end
     
     it 'handles disconnect gracefully when connected' do
+      skip_unless_network_restore_available
+      
       # Ensure we're connected to a network first
       subject.wifi_on unless subject.wifi_on?
       
@@ -201,8 +208,16 @@ describe 'Common WiFi Model Behavior (All OS)' do
         skip 'No network connection available to test connected disconnect'
       end
       
+      original_network = subject.connected_network_name
+      
       # Test that disconnect doesn't raise error when connected
       expect { subject.disconnect }.not_to raise_error
+      
+      # Verify we're disconnected
+      expect(subject.connected_network_name).to be_nil
+      
+      # Restore network state after test
+      restore_network_state
     end
   end
 
@@ -210,38 +225,39 @@ describe 'Common WiFi Model Behavior (All OS)' do
   # testing both wifi on and wifi off states
   shared_examples 'interface commands complete without error' do |wifi_starts_on|
 
+    before(:each) do
+      # Only set wifi state in disruptive contexts
+      if self.class.metadata[:disruptive]
+        wifi_starts_on ? subject.wifi_on : subject.wifi_off
+      end
+    end
+
     it 'can determine if connected to Internet' do
-      wifi_starts_on ? subject.wifi_on : subject.wifi_off
       subject.connected_to_internet?
     end
 
     it 'can get wifi interface' do
-      wifi_starts_on ? subject.wifi_on : subject.wifi_off
       result = subject.wifi_interface
       expect(result).to be_a(String).or(be_nil)
     end
 
     it 'can get wifi info' do
-      wifi_starts_on ? subject.wifi_on : subject.wifi_off
       result = subject.wifi_info
       expect(result).to be_a(Hash)
     end
 
     it 'can list preferred networks' do
-      wifi_starts_on ? subject.wifi_on : subject.wifi_off
       result = subject.preferred_networks
       expect(result).to be_a(Array)
       expect(result).to all(be_a(String))
     end
 
     it 'can check wifi status' do
-      wifi_starts_on ? subject.wifi_on : subject.wifi_off
       result = subject.wifi_on?
       expect([true, false]).to include(result)
     end
 
     it 'can query connected network name' do
-      wifi_starts_on ? subject.wifi_on : subject.wifi_off
       name = subject.connected_network_name
       unless subject.wifi_on?
         expect(name).to be_nil
@@ -251,11 +267,33 @@ describe 'Common WiFi Model Behavior (All OS)' do
     
   end
 
-  context 'wifi starts on' do
+  # Check current wifi state and create appropriate contexts
+  let(:current_wifi_on) { subject.wifi_on? }
+
+  # Non-disruptive context - only runs when wifi is already on
+  context 'wifi starts on', :disruptive => false do
+    before(:each) do
+      skip "Wifi is not currently on" unless current_wifi_on
+    end
+
     include_examples 'interface commands complete without error', true
   end
 
-  context 'wifi starts off' do
+  # Non-disruptive context - only runs when wifi is already off  
+  context 'wifi starts off', :disruptive => false do
+    before(:each) do
+      skip "Wifi is currently on" if current_wifi_on
+    end
+
+    include_examples 'interface commands complete without error', false
+  end
+
+  # Disruptive contexts - only run with --tag disruptive flag
+  context 'wifi starts on (disruptive)', :disruptive do
+    include_examples 'interface commands complete without error', true
+  end
+
+  context 'wifi starts off (disruptive)', :disruptive do
     include_examples 'interface commands complete without error', false
   end
 
