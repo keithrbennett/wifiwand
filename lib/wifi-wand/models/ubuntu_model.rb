@@ -38,8 +38,7 @@ class UbuntuModel < BaseModel
     wifi_on? ? raise(Error.new("Wifi could not be disabled.")) : nil
   end
 
-    def available_network_names
-    return nil unless wifi_on?
+    def _available_network_names
     
     output = run_os_command("nmcli -t -f SSID,SIGNAL dev wifi list")
     networks_with_signal = output.split("\n").map(&:strip).reject(&:empty?)
@@ -53,8 +52,7 @@ class UbuntuModel < BaseModel
     networks.uniq
   end
 
-  def connected_network_name
-    return nil unless wifi_on?
+  def _connected_network_name
 
     cmd = "nmcli -t -f NAME,TYPE connection show --active | grep 802-11-wireless | cut -d: -f1"
     output = run_os_command(cmd, false)
@@ -121,8 +119,7 @@ class UbuntuModel < BaseModel
     output.empty? ? nil : output.strip
   end
 
-  def ip_address
-    return nil unless wifi_on?
+  def _ip_address
     
     output = run_os_command("ip -4 addr show #{wifi_interface} | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1", false)
     output.empty? ? nil : output.strip
@@ -133,8 +130,7 @@ class UbuntuModel < BaseModel
     output.empty? ? nil : output.strip
   end
 
-  def disconnect
-    return nil unless wifi_on?
+  def _disconnect
     interface = wifi_interface
     return nil unless interface
     begin

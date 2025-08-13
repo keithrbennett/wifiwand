@@ -45,11 +45,11 @@ class BaseModel
   end
 
   %i[
-    available_network_names
-    connected_network_name
+    _available_network_names
+    _connected_network_name
     detect_wifi_interface
-    disconnect
-    ip_address
+    _disconnect
+    _ip_address
     is_wifi_interface?
     mac_address
     nameservers
@@ -60,11 +60,27 @@ class BaseModel
     preferred_networks
     remove_preferred_network
     set_nameservers
-    wifi_info
     wifi_off
     wifi_on
     wifi_on?
   ].each { |method_name| define_subclass_required_method(method_name) }
+
+  # Public wrapper methods with wifi_on? check
+  def available_network_names
+    wifi_on? ? _available_network_names : nil
+  end
+
+  def connected_network_name
+    wifi_on? ? _connected_network_name : nil
+  end
+
+  def disconnect
+    wifi_on? ? _disconnect : nil
+  end
+
+  def ip_address
+    wifi_on? ? _ip_address : nil
+  end
 
   def run_os_command(command, raise_on_error = true)
     if verbose_mode

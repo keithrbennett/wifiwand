@@ -50,8 +50,7 @@ class MacOsModel < BaseModel
   end
 
   # Returns the network names sorted in descending order of signal strength.
-  def available_network_names
-    return nil unless wifi_on? # no need to try
+  def _available_network_names
 
     json_text = run_os_command('system_profiler -json SPAirPortDataType')
     data = JSON.parse(json_text)
@@ -159,8 +158,7 @@ class MacOsModel < BaseModel
 
 
   # Returns the IP address assigned to the wifi interface, or nil if none.
-  def ip_address
-    return nil unless wifi_on? # no need to try
+  def _ip_address
     begin
       run_os_command("ipconfig getifaddr #{wifi_interface}").chomp
     rescue OsCommandError => error
@@ -181,8 +179,7 @@ class MacOsModel < BaseModel
 
 
   # Returns the network currently connected to, or nil if none.
-  def connected_network_name
-    return nil unless wifi_on? # no need to try
+  def _connected_network_name
 
     command_output = run_os_command("ipconfig getsummary #{wifi_interface} | grep ' SSID :'", false)
     return nil if command_output.empty?
@@ -192,8 +189,7 @@ class MacOsModel < BaseModel
 
 
   # Disconnects from the currently connected network. Does not turn off wifi.
-  def disconnect
-    return nil unless wifi_on? # no need to try
+  def _disconnect
 
     run_swift_command('WifiNetworkDisconnector')
     nil
