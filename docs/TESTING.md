@@ -12,7 +12,7 @@ The wifi-wand project uses RSpec for testing with a carefully designed structure
 
 Tests are organized into three main categories based on their system impact:
 
-#### 1. Read-only Tests (`:read_only`)
+#### 1. Read-only Tests (Default)
 - **Safety Level**: ✅ Safe to run anytime
 - **System Impact**: No changes to system state
 - **Network Impact**: No disruption to connectivity
@@ -26,27 +26,19 @@ Tests are organized into three main categories based on their system impact:
 - Nameserver queries
 - Password retrieval (read-only)
 
-#### 2. System-Modifying Tests (`:modifies_system`)
-- **Safety Level**: ⚠️  Use with ca ution
-- **System Impact**: Changes WiFi state (on/off)
-- **Network Impact**: May temporarily disrupt connectivity
-- **Required Flag**: `--tag modifies_system` or `--tag ~network_connection`
+#### 2. Disruptive Tests (`:disruptive`)
+- **Safety Level**: 🔴 High impact
+- **System Impact**: Changes WiFi state and connections
+- **Network Impact**: Will disrupt current connectivity
+- **Required Flag**: `--tag disruptive`
 
 **Includes tests for:**
 - Turning WiFi on/off
 - Network disconnection
-- Removing preferred networks
-- Setting nameservers
-
-#### 3. Network Connection Tests (`:network_connection`)
-- **Safety Level**: 🔴 High impact
-- **System Impact**: Actually connects to networks
-- **Network Impact**: Will change active network connections
-- **Required Flag**: `--tag network_connection`
-
-**Includes tests for:**
 - Connecting to WiFi networks
 - Network authentication
+- Removing preferred networks
+- Setting nameservers
 - Connection error handling
 
 ### Test Files
@@ -162,9 +154,9 @@ A convenience script is available in `scripts/test.sh` for easier test execution
 
 | Tag | Description | Default Behavior |
 |-----|-------------|------------------|
-| `:read_only` | Tests that don't modify system state | ✅ Included by default |
-| `:modifies_system` | Tests that change WiFi state | ❌ Excluded by default |
-| `:network_connection` | Tests that actually connect to networks | ❌ Excluded by default |
+| `:disruptive` | Tests that modify system state or network connections | ❌ Excluded by default |
+| `:os_ubuntu` | Ubuntu-specific tests | See OS Filtering |
+| `:os_mac` | macOS-specific tests | See OS Filtering |
 | `:requires_wifi_on` | Tests that require WiFi to be on | ❌ Excluded by default |
 | `:requires_available_network` | Tests that need available networks | ❌ Excluded by default |
 
@@ -172,13 +164,10 @@ A convenience script is available in `scripts/test.sh` for easier test execution
 
 ```bash
 # Include specific tags
-bundle exec rspec --tag read_only
+bundle exec rspec --tag disruptive
 
-# Exclude specific tags
-bundle exec rspec --tag ~network_connection
-
-# Multiple conditions
-bundle exec rspec --tag read_only --tag ~network_connection
+# Exclude specific tags  
+bundle exec rspec --tag ~disruptive
 
 # Focus on specific tests
 bundle exec rspec --tag focus
@@ -205,20 +194,24 @@ The spec helper includes:
 
 Key configuration:
 ```ruby
-# Exclude high-risk tags by default
-config.filter_run_excluding :network_connection => true
-config.filter_run_excluding :modifies_system => true
+# Exclude disruptive tests by default
+config.filter_run_excluding :disruptive => true
 
-# Automatic OS detection and filtering
-config.filter_run do |metadata|
-  # If test has no OS tags, run it unconditionally
-  os_tags = metadata.keys.select { |key| key.to_s.start_with?('os_') }
-  
-  if os_tags.empty?
-    true # No OS tags - run on all OSes (common tests)
-  else
-    # Test has OS tags - only run if compatible with current OS
-    os_tags.include?(compatible_os_tag)
+# Automatic OS detection and filtering (only if no command line tags specified)
+if config.inclusion_filter.rules.empty? && config.exclusion_filter.rules.empty?
+  config.filter_run do |metadata|
+    # Apply default exclusion for disruptive tests
+    return false if metadata[:disruptive]
+    
+    # Check OS compatibility for non-disruptive tests
+    os_tags = metadata.keys.select { |key| key.to_s.start_with?('os_') }
+    
+    if os_tags.empty?
+      true # No OS tags - run on all OSes (common tests)
+    else
+      # Test has OS tags - only run if compatible with current OS
+      os_tags.include?(compatible_os_tag)
+    end
   end
 end
 ```
@@ -237,20 +230,20 @@ The OS detection:
 When adding tests, categorize them appropriately:
 
 ```ruby
-# Read-only test (safe)
-it 'returns wifi status', :read_only do
+# Read-only test (safe) - runs by default
+it 'returns wifi status' do
   result = subject.wifi_on?
   expect(result).to be(true).or(be(false))
 end
 
-# System-modifying test
-it 'turns wifi on', :modifies_system do
+# Disruptive test - requires --tag disruptive flag
+it 'turns wifi on', :disruptive do
   subject.wifi_on
   expect(subject.wifi_on?).to be(true)
 end
 
-# Network connection test
-it 'connects to network', :network_connection do
+# Disruptive test - requires --tag disruptive flag  
+it 'connects to network', :disruptive do
   subject.os_level_connect('TestNetwork')
   expect(subject.connected_network_name).to eq('TestNetwork')
 end

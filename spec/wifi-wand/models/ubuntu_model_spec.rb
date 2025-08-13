@@ -172,7 +172,7 @@ describe UbuntuModel, :os_ubuntu do
   end
 
   # System-modifying tests (will change wifi state)
-  context 'system-modifying operations', :modifies_system do
+  context 'system-modifying operations', :disruptive do
 
     describe '#wifi_on' do
       it 'turns wifi on when it is off' do
@@ -258,7 +258,7 @@ describe UbuntuModel, :os_ubuntu do
   end
 
   # Network connection tests (highest risk)
-  context 'network connection operations', :network_connection do
+  context 'network connection operations', :disruptive do
 
     describe '#os_level_connect' do
       let(:test_network) { 'TestNetwork' }

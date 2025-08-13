@@ -12,9 +12,8 @@ RSpec.configure do |config|
   config.filter_run_including :focus => true
   config.run_all_when_everything_filtered = true
   
-  # Exclude high-risk tags by default
-  config.filter_run_excluding :network_connection => true
-  config.filter_run_excluding :modifies_system => true
+  # Exclude disruptive tests by default
+  config.filter_run_excluding :disruptive => true
   
   # Auto-detect current OS and filter tests accordingly
   begin
@@ -24,15 +23,21 @@ RSpec.configure do |config|
     compatible_os_tag = "os_#{current_os_name}".to_sym
     
     # Filter tests based on OS compatibility (evaluated once per run)
-    config.filter_run do |metadata|
-      # If test has no OS tags, run it unconditionally
-      os_tags = metadata.keys.select { |key| key.to_s.start_with?('os_') }
-      
-      if os_tags.empty?
-        true # No OS tags - run on all OSes (common tests)
-      else
-        # Test has OS tags - only run if compatible with current OS
-        os_tags.include?(compatible_os_tag)
+    # Only filter if command line doesn't specify any tag inclusion/exclusion
+    if config.inclusion_filter.rules.empty? && config.exclusion_filter.rules.empty?
+      config.filter_run do |metadata|
+        # Apply default exclusion for disruptive tests
+        return false if metadata[:disruptive]
+        
+        # Check OS compatibility for non-disruptive tests
+        os_tags = metadata.keys.select { |key| key.to_s.start_with?('os_') }
+        
+        if os_tags.empty?
+          true # No OS tags - run on all OSes (common tests)
+        else
+          # Test has OS tags - only run if compatible with current OS
+          os_tags.include?(compatible_os_tag)
+        end
       end
     end
     
@@ -43,7 +48,7 @@ RSpec.configure do |config|
   
   # Add custom tags
   config.define_derived_metadata do |meta|
-    meta[:slow] = true if meta[:modifies_system] || meta[:network_connection]
+    meta[:slow] = true if meta[:disruptive]
   end
   
   # Example usage documentation
@@ -54,29 +59,25 @@ RSpec.configure do |config|
     puts "Run only read-only tests (default):"
     puts "  bundle exec rspec"
     puts ""
-    puts "Run read-only + system-modifying tests:"
-    puts "  bundle exec rspec --tag ~network_connection"
-    puts "  OR"
-    puts "  bundle exec rspec --tag modifies_system"
+    puts "Run read-only + disruptive tests:"
+    puts "  bundle exec rspec --tag disruptive"
     puts ""
-    puts "Run ALL tests (including network connections):"
-    puts "  bundle exec rspec --tag network_connection"
-    puts "  OR"
-    puts "  bundle exec rspec --tag ~no_network"
+    puts "Run ALL tests (including disruptive):"
+    puts "  bundle exec rspec --tag ~disruptive"
     puts ""
     puts "Run specific file with all tests:"
-    puts "  bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb --tag ~network_connection"
+    puts "  bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb --tag disruptive"
     puts ""
     puts "="*60 + "\n"
   end
   
-  # Store original wifi state for system-modifying tests
-  config.before(:context, :modifies_system) do
+  # Store original wifi state for disruptive tests
+  config.before(:context, :disruptive) do
     @original_wifi_state = nil
   end
   
-  # Cleanup after system-modifying tests
-  config.after(:context, :modifies_system) do
+  # Cleanup after disruptive tests
+  config.after(:context, :disruptive) do
     # We don't restore wifi state automatically as it might disrupt user workflow
     puts "\nNote: Some tests may have modified your system's wifi state."
   end
