@@ -137,7 +137,14 @@ class UbuntuModel < BaseModel
     return nil unless wifi_on?
     interface = wifi_interface
     return nil unless interface
-    run_os_command("nmcli dev disconnect #{interface}")
+    begin
+      run_os_command("nmcli dev disconnect #{interface}")
+    rescue OsCommandError => e
+      # It's normal for disconnect to fail if there's no active connection
+      # Common scenarios: device not active, not connected to any network
+      return nil if e.exitstatus == 6
+      raise e
+    end
     nil
   end
 

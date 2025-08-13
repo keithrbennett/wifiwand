@@ -130,7 +130,7 @@ class MacOsModel < BaseModel
     ensure_swift_and_corewlan_present
     args = [Shellwords.shellescape(network_name)]
     args << Shellwords.shellescape(password) if password
-    run_swift_command('WifiNetworkConnecter', *args)
+    run_swift_command('WifiNetworkConnector', *args)
   end
 
   def os_level_connect(network_name, password = nil)
@@ -195,7 +195,7 @@ class MacOsModel < BaseModel
   def disconnect
     return nil unless wifi_on? # no need to try
 
-    run_swift_command('WifiNetworkDisconecter')
+    run_swift_command('WifiNetworkDisconnector')
     nil
   end
 
