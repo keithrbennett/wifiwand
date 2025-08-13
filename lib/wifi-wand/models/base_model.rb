@@ -370,6 +370,46 @@ class BaseModel
     chars.join(':')
   end
 
+  # Network State Management for Testing
+  # These methods help capture and restore network state during disruptive tests
+  
+  def capture_network_state
+    {
+      wifi_enabled: wifi_on?,
+      network_name: connected_network_name,
+      network_password: connected_network_password,
+      interface: wifi_interface
+    }
+  end
+  
+  def restore_network_state(state)
+    return unless state
+    
+    # Restore wifi enabled state
+    if state[:wifi_enabled]
+      wifi_on unless wifi_on?
+    else
+      wifi_off if wifi_on?
+      return # If wifi should be off, we're done
+    end
+    
+    # Restore network connection if one existed
+    if state[:network_name] && state[:wifi_enabled]
+      begin
+        # Try to reconnect with saved password or current password
+        password = state[:network_password] || preferred_network_password(state[:network_name])
+        connect(state[:network_name], password)
+      rescue => e
+        puts "Warning: Could not restore network connection to '#{state[:network_name]}': #{e.message}"
+        puts "You may need to manually reconnect to this network."
+      end
+    end
+  end
+  
+  private
+  
+  def connected_network_password
+    preferred_network_password(connected_network_name)
   end
 
   class OsCommandError < RuntimeError
@@ -389,4 +429,5 @@ class BaseModel
       { exitstatus: exitstatus, command: command, text: text }
     end
   end
+end
 end

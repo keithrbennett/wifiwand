@@ -27,14 +27,22 @@ Tests are organized into three main categories based on their system impact:
 - Password retrieval (read-only)
 
 #### 2. Disruptive Tests (`:disruptive`)
-- **Safety Level**: 🔴 High impact
+- **Safety Level**: 🔴 High impact  
 - **System Impact**: Changes WiFi state and connections
 - **Network Impact**: Will disrupt current connectivity
 - **Required Flag**: `--tag disruptive`
+- **Automatic Restoration**: ✅ Network state is captured and restored when possible
+
+**Network Restoration Features:**
+- Automatic network state capture before running disruptive tests
+- Automatic reconnection to your original network after tests complete
+- On macOS: May prompt for keychain access permissions to retrieve network passwords
+- Graceful fallback: If restoration fails, warns user to manually reconnect
+- Individual tests can call `restore_network_state` to restore connection mid-test
 
 **Includes tests for:**
 - Turning WiFi on/off
-- Network disconnection
+- Network disconnection  
 - Connecting to WiFi networks
 - Network authentication
 - Removing preferred networks
@@ -242,10 +250,17 @@ it 'turns wifi on', :disruptive do
   expect(subject.wifi_on?).to be(true)
 end
 
-# Disruptive test - requires --tag disruptive flag  
-it 'connects to network', :disruptive do
-  subject.os_level_connect('TestNetwork')
-  expect(subject.connected_network_name).to eq('TestNetwork')
+# Disruptive test with network restoration - requires --tag disruptive flag  
+it 'tests disconnect and restores connection', :disruptive do
+  skip_unless_network_restore_available
+  
+  original_network = subject.connected_network_name
+  subject.disconnect
+  expect(subject.connected_network_name).to be_nil
+  
+  # Restore the original network connection
+  restore_network_state
+  expect(subject.connected_network_name).to eq(original_network)
 end
 ```
 

@@ -71,15 +71,83 @@ RSpec.configure do |config|
     puts "="*60 + "\n"
   end
   
-  # Store original wifi state for disruptive tests
-  config.before(:context, :disruptive) do
-    @original_wifi_state = nil
+  # Network State Management for disruptive tests
+  config.before(:suite) do
+    # Capture network state at the beginning of test suite
+    @network_state = nil
+    begin
+      # Create a test model instance to capture state
+      test_model = WifiWand::OperatingSystems.create_model_for_current_os(OpenStruct.new(verbose: false))
+      @network_state = test_model.capture_network_state
+      if @network_state[:network_name]
+        puts "\nCaptured network state for restoration: #{@network_state[:network_name]}"
+        puts "Note: On macOS, you may be prompted for keychain access permissions."
+      end
+    rescue => e
+      puts "\nWarning: Could not capture network state: #{e.message}"
+      puts "Network restoration will not be available for this test run."
+      @network_state = nil
+    end
   end
   
-  # Cleanup after disruptive tests
+  # Store original network state for individual disruptive contexts
+  config.before(:context, :disruptive) do
+    @context_network_state = nil
+    if @network_state
+      begin
+        test_model = WifiWand::OperatingSystems.create_model_for_current_os(OpenStruct.new(verbose: false))
+        @context_network_state = test_model.capture_network_state
+      rescue => e
+        puts "Warning: Could not capture context network state: #{e.message}"
+      end
+    end
+  end
+  
+  # Restore network state after individual disruptive contexts
   config.after(:context, :disruptive) do
-    # We don't restore wifi state automatically as it might disrupt user workflow
-    puts "\nNote: Some tests may have modified your system's wifi state."
+    if @context_network_state && @context_network_state[:network_name]
+      begin
+        test_model = WifiWand::OperatingSystems.create_model_for_current_os(OpenStruct.new(verbose: false))
+        test_model.restore_network_state(@context_network_state)
+        puts "Restored network connection: #{@context_network_state[:network_name]}"
+      rescue => e
+        puts "Warning: Could not restore network state for context: #{e.message}"
+      end
+    end
+  end
+  
+  # Helper method for individual tests to restore network state
+  config.include(Module.new do
+    def restore_network_state
+      return unless @network_state
+      
+      test_model = WifiWand::OperatingSystems.create_model_for_current_os(OpenStruct.new(verbose: false))
+      test_model.restore_network_state(@network_state)
+    end
+    
+    def network_state
+      @network_state
+    end
+    
+    def skip_unless_network_restore_available
+      skip "Network state restoration not available" unless @network_state && @network_state[:network_name]
+    end
+  end)
+  
+  # Attempt final restoration at the end of test suite
+  config.after(:suite) do
+    if @network_state && @network_state[:network_name]
+      puts "\n" + "="*60
+      begin
+        test_model = WifiWand::OperatingSystems.create_model_for_current_os(OpenStruct.new(verbose: false))
+        test_model.restore_network_state(@network_state)
+        puts "✅ Successfully restored network connection: #{@network_state[:network_name]}"
+      rescue => e
+        puts "⚠️  Could not restore network connection: #{e.message}"
+        puts "You may need to manually reconnect to: #{@network_state[:network_name]}"
+      end
+      puts "="*60
+    end
   end
   
 end
