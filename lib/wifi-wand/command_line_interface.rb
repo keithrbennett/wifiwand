@@ -180,9 +180,10 @@ When in interactive shell mode:
   # For use by the shell when the user types the DSL commands
   def method_missing(method_name, *method_args)
     attempt_command_action(method_name.to_s, *method_args) do
-      puts(%Q{"#{method_name}" is not a valid command or option. } \
-          << 'If you intend for this to be a string literal, ' \
-          << 'use quotes or %q{}/%Q{}.')
+      puts <<~MESSAGE
+          "#{method_name}" is not a valid command or option. 
+          If you intend for this to be a string literal, use quotes or %q{}/%Q{}.
+        MESSAGE
     end
   end
 
@@ -363,9 +364,11 @@ When in interactive shell mode:
       if post_processor
         puts post_processor.(password)
       else
-        output =  %Q{Preferred network "#{network}" }
-        output << (password ? %Q{stored password is "#{password}".} : "has no stored password.")
-        puts output
+        puts <<~MESSAGE
+          Preferred network "#{network}" #{
+            password ? "stored password is \"#{password}\"." : "has no stored password."
+          }
+        MESSAGE
       end
     end
   end
