@@ -72,7 +72,7 @@ underlying operating system.
 
 ### Pretty Output
 
-For nicely formatted output of the `info` command in non-interactive mode,
+For nicely formatted output of the `info` command,
 the `awesome_print` gem is used if it is installed;
 otherwise, the somewhat less awesome pretty print (`pp`) is used.  Therefore,
 installation of the `awesome_print` gem is recommended. 
@@ -82,6 +82,8 @@ This is accomplished by the following command:
 
 You may need to precede this command with `sudo `, especially if you are using the 
 version of Ruby that comes packaged with MacOS.
+
+The `awesome_print` gem is used for formatting output in both non-interactive and interactive shell modes.
 
 
 ### JSON, YAML, and Other Output Formats
@@ -214,14 +216,13 @@ wifi-wand t on && say "Internet connected" # Play audible message when Internet 
 #### Interactive Shell Commands
 
 When in shell mode, commands generally return the target object (e.g. the array of
-available networks) rather than outputting a nicely formatted string. 
-This is intentional, so that you can compose expressions and in general
-have maximum flexibility. The result may be that `pry` displays 
-that returned value in an ugly way.
+available networks) AND display it formatted with awesome_print. 
+This gives you both the raw object for use in further expressions AND readable output 
+for immediate viewing.
 
-If you don't need the return value but just want to display the value nicely,
-you can use the `fancy_puts` method to output it nicely. An alias `fp` has been
-provided for your convenience. You're welcome!  For example:
+You can still use the `fancy_puts` method or its alias `fp` if you want to 
+explicitly format and display a value, but this is now optional since return values 
+are automatically formatted. For example:
 
 ```
 [5] pry(#<WifiWand::CommandLineInterface>)> fp pr.first(3)
