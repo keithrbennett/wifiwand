@@ -291,14 +291,19 @@ class BaseModel
   # Relies on subclass implementation of os_level_connect().
   def connect(network_name, password = nil)
     # Allow symbols and anything responding to to_s for user convenience
-    network_name = network_name.to_s if network_name
-    password     = password.to_s     if password
+    network_name = network_name&.to_s
+    password     = password&.to_s
 
     if network_name.nil? || network_name.empty?
       raise Error.new("A network name is required but was not provided.")
     end
+
+    # If we're already connected to the desired network, no need to proceed
+    return if network_name == connected_network_name
+
     wifi_on
     os_level_connect(network_name, password)
+
 
     # Verify that the network is now connected:
     actual_network_name = connected_network_name
