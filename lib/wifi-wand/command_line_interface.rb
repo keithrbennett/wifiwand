@@ -159,6 +159,7 @@ When in interactive shell mode:
     # code context output, which is not useful here. Anyway, this will differentiate
     # a pry command from a DSL command, which _is_ useful here.
     Pry.config.command_prefix = '%'
+    Pry.config.print = ->(output, value, _pry) { output.puts(value.awesome_inspect) }
 
     binding.pry
   end
