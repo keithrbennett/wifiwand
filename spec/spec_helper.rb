@@ -101,9 +101,7 @@ RSpec.configure do |config|
   config.after(:suite) do
     network_state = NetworkStateManager.network_state
     if network_state && network_state[:network_name]
-      puts <<~MESSAGE
-
-      #{"=" * 60}
+      puts "\n#{"=" * 60}"
       begin
         NetworkStateManager.restore_state
         puts "✅ Successfully restored network connection: #{network_state[:network_name]}"
@@ -113,9 +111,7 @@ RSpec.configure do |config|
           You may need to manually reconnect to: #{network_state[:network_name]}
         ERROR_MESSAGE
       end
-      #{"=" * 60}
-
-    MESSAGE
+      puts "#{"=" * 60}\n\n"
     end
   end
   
