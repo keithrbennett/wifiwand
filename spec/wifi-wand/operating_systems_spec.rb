@@ -9,11 +9,11 @@ describe OperatingSystems do
   describe '#initialize' do
     it 'populates supported_operating_systems with expected OS classes' do
       expect(subject.supported_operating_systems).to be_a(Array)
-      expect(subject.supported_operating_systems.length).to be >= 3
+      expect(subject.supported_operating_systems.length).to be >= 2
       
       # Check for expected OS types
       os_classes = subject.supported_operating_systems.map(&:class)
-      expect(os_classes).to include(Ubuntu, MacOs, ImaginaryOs)
+      expect(os_classes).to include(Ubuntu, MacOs)
     end
 
     it 'creates OS instances with proper structure' do
@@ -166,12 +166,6 @@ describe OperatingSystems do
       expect([true, false]).to include(mac_os.current_os_is_this_os?)
     end
 
-    it 'verifies Imaginary OS behavior' do
-      imaginary_os = subject.supported_operating_systems.find { |os| os.is_a?(ImaginaryOs) }
-      expect(imaginary_os).not_to be_nil
-      expect(imaginary_os.current_os_is_this_os?).to be false
-      expect { imaginary_os.create_model(OpenStruct.new) }.to raise_error(RuntimeError, /imaginary/)
-    end
   end
 
   describe 'OS validation' do
@@ -197,7 +191,6 @@ describe OperatingSystems do
   describe 'integration with model creation' do
     it 'can create models for detectable OSes without errors' do
       subject.supported_operating_systems.each do |os|
-        next if os.is_a?(ImaginaryOs) # Skip imaginary OS as it's designed to raise errors
         
         begin
           if os.current_os_is_this_os?

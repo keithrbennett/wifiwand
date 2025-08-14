@@ -1,6 +1,5 @@
 require_relative 'error'
 require_relative 'os/base_os'
-require_relative 'os/imaginary_os'
 require_relative 'os/mac_os'
 require_relative 'os/ubuntu'
 
@@ -22,7 +21,6 @@ class OperatingSystems
 
   def initialize
     @supported_operating_systems = [
-        ImaginaryOs.new,
         MacOs.new,
         Ubuntu.new
     ]
