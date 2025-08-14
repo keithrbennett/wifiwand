@@ -4,6 +4,7 @@ require 'ostruct'
 # Require the main library
 require_relative '../lib/wifi-wand'
 require_relative '../lib/wifi-wand/operating_systems'
+require_relative 'network_state_manager'
 
 # Configure RSpec
 RSpec.configure do |config|
@@ -73,78 +74,40 @@ RSpec.configure do |config|
   
   # Network State Management for disruptive tests
   config.before(:suite) do
-    # Capture network state at the beginning of test suite
-    @network_state = nil
-    begin
-      # Create a test model instance to capture state
-      test_model = WifiWand::OperatingSystems.create_model_for_current_os(OpenStruct.new(verbose: false))
-      @network_state = test_model.capture_network_state
-      if @network_state[:network_name]
-        puts "\nCaptured network state for restoration: #{@network_state[:network_name]}"
-        puts "Note: On macOS, you may be prompted for keychain access permissions."
-      end
-    rescue => e
-      puts "\nWarning: Could not capture network state: #{e.message}"
-      puts "Network restoration will not be available for this test run."
-      @network_state = nil
-    end
-  end
-  
-  # Store original network state for individual disruptive contexts
-  config.before(:context, :disruptive) do
-    @context_network_state = nil
-    if @network_state
-      begin
-        test_model = WifiWand::OperatingSystems.create_model_for_current_os(OpenStruct.new(verbose: false))
-        @context_network_state = test_model.capture_network_state
-      rescue => e
-        puts "Warning: Could not capture context network state: #{e.message}"
-      end
-    end
-  end
-  
-  # Restore network state after individual disruptive contexts
-  config.after(:context, :disruptive) do
-    if @context_network_state && @context_network_state[:network_name]
-      begin
-        test_model = WifiWand::OperatingSystems.create_model_for_current_os(OpenStruct.new(verbose: false))
-        test_model.restore_network_state(@context_network_state)
-        puts "Restored network connection: #{@context_network_state[:network_name]}"
-      rescue => e
-        puts "Warning: Could not restore network state for context: #{e.message}"
-      end
-    end
+    NetworkStateManager.capture_state
   end
   
   # Helper method for individual tests to restore network state
   config.include(Module.new do
     def restore_network_state
-      return unless @network_state
-      
-      test_model = WifiWand::OperatingSystems.create_model_for_current_os(OpenStruct.new(verbose: false))
-      test_model.restore_network_state(@network_state)
+      NetworkStateManager.restore_state
     end
     
     def network_state
-      @network_state
+      NetworkStateManager.network_state
     end
     
     def skip_unless_network_restore_available
-      skip "Network state restoration not available" unless @network_state && @network_state[:network_name]
+      skip "Network state restoration not available" unless NetworkStateManager.state_available?
     end
   end)
   
+  # Restore network state after each disruptive test
+  config.after(:each, :disruptive) do
+    NetworkStateManager.restore_state
+  end
+  
   # Attempt final restoration at the end of test suite
   config.after(:suite) do
-    if @network_state && @network_state[:network_name]
+    network_state = NetworkStateManager.network_state
+    if network_state && network_state[:network_name]
       puts "\n" + "="*60
       begin
-        test_model = WifiWand::OperatingSystems.create_model_for_current_os(OpenStruct.new(verbose: false))
-        test_model.restore_network_state(@network_state)
-        puts "✅ Successfully restored network connection: #{@network_state[:network_name]}"
+        NetworkStateManager.restore_state
+        puts "✅ Successfully restored network connection: #{network_state[:network_name]}"
       rescue => e
         puts "⚠️  Could not restore network connection: #{e.message}"
-        puts "You may need to manually reconnect to: #{@network_state[:network_name]}"
+        puts "You may need to manually reconnect to: #{network_state[:network_name]}"
       end
       puts "="*60
     end

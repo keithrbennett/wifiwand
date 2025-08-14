@@ -261,22 +261,8 @@ describe UbuntuModel, :os_ubuntu do
   context 'network connection operations', :disruptive do
 
     describe '#os_level_connect' do
-      let(:test_network) { 'TestNetwork' }
-      
       it 'raises error for non-existent network' do
         expect { subject.os_level_connect('non_existent_network_123') }.to raise_error(WifiWand::Error)
-      end
-
-      it 'handles connection with password', :requires_available_network do
-        # This test is risky and may require manual setup
-        skip 'Requires known test network setup'
-        # expect { subject.os_level_connect(test_network, 'password') }.not_to raise_error
-      end
-
-      it 'handles connection without password', :requires_available_network do
-        # This test is risky and may require manual setup
-        skip 'Requires known open network setup'
-        # expect { subject.os_level_connect(test_network) }.not_to raise_error
       end
     end
 
