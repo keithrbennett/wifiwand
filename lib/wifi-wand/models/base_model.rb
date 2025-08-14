@@ -48,6 +48,7 @@ class BaseModel
   UNDERSCORE_PREFIXED_METHODS = %i[
     _available_network_names
     _connected_network_name
+    _connect
     _disconnect
     _ip_address
   ].freeze
@@ -78,7 +79,6 @@ class BaseModel
     nameservers
     open_application
     open_resource
-    os_level_connect
     os_level_preferred_network_password
     preferred_networks
     remove_preferred_network
@@ -302,7 +302,7 @@ class BaseModel
     return if network_name == connected_network_name
 
     wifi_on
-    os_level_connect(network_name, password)
+    _connect(network_name, password)
 
 
     # Verify that the network is now connected:

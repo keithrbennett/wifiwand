@@ -132,7 +132,7 @@ class MacOsModel < BaseModel
     run_swift_command('WifiNetworkConnector', *args)
   end
 
-  def os_level_connect(network_name, password = nil)
+  def _connect(network_name, password = nil)
     os_level_connect_using_swift(network_name, password)
   end
 

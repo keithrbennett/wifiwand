@@ -58,7 +58,7 @@ class UbuntuModel < BaseModel
     output.empty? ? nil : output.strip
   end
 
-  def os_level_connect(network_name, password = nil)
+  def _connect(network_name, password = nil)
     # Check if there's an existing connection profile for this network
     existing_connections = preferred_networks
     if existing_connections.include?(network_name)
