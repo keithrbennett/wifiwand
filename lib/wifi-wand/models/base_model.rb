@@ -426,7 +426,10 @@ class BaseModel
     
     # Restore wifi enabled state
     if state[:wifi_enabled]
-      wifi_on unless wifi_on?
+      unless wifi_on?
+        wifi_on
+        sleep 3 # give time to automatically reconnect to previously connected network
+      end
     else
       wifi_off if wifi_on?
       return # If wifi should be off, we're done
@@ -434,10 +437,13 @@ class BaseModel
     
     # Restore network connection if one existed
     if state[:network_name] && state[:wifi_enabled]
+      # If we are already connected to the original network, no need to proceed
+      return if wifi_on? == state[:wifi_enabled] && connected_network_name == state[:network_name]
+
       begin
         # Try to reconnect with saved password or current password
         password = state[:network_password] || preferred_network_password(state[:network_name])
-        connect(state[:network_name], password)
+        connect(state[:network_name], password); sleep 3
       rescue => e
         puts "Warning: Could not restore network connection to '#{state[:network_name]}': #{e.message}"
         puts "You may need to manually reconnect to this network."
