@@ -2,14 +2,27 @@
 
 module WifiWand
 
-class BaseOs < Struct.new(:id, :display_name); end
+class BaseOs < Struct.new(:id, :display_name)
 
-class BaseOs
+  class NonSubclassInstantiationError < RuntimeError
+    def to_s
+      "Class #{self.class} can only be instantiated by subclasses"
+    end
+  end
+
+  def initialize(id, display_name)
+    instantiated_by_subclass = (self.class.name != WifiWand::BaseOs.name)
+    if instantiated_by_subclass
+      super
+    else
+      raise NonSubclassInstantiationError.new
+    end
+  end
 
   class MethodNotImplementedError < RuntimeError
 
     def to_s
-      "This class is not intended to be instantiated directly. Instantiate a subclass of it."
+      "The #{self.class} class is not intended to be instantiated directly. Instantiate a subclass of it."
     end
   end
 
