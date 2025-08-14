@@ -54,22 +54,26 @@ RSpec.configure do |config|
   
   # Example usage documentation
   config.before(:suite) do
-    puts "\n" + "="*60
-    puts "TEST FILTERING OPTIONS:"
-    puts "="*60
-    puts "Run only read-only tests (default):"
-    puts "  bundle exec rspec"
-    puts ""
-    puts "Run read-only + disruptive tests:"
-    puts "  bundle exec rspec --tag disruptive"
-    puts ""
-    puts "Run ALL tests (including disruptive):"
-    puts "  bundle exec rspec --tag ~disruptive"
-    puts ""
-    puts "Run specific file with all tests:"
-    puts "  bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb --tag disruptive"
-    puts ""
-    puts "="*60 + "\n"
+    puts <<~MESSAGE
+
+      #{"=" * 60}
+      TEST FILTERING OPTIONS:
+      #{"=" * 60}
+      Run only read-only tests (default):
+        bundle exec rspec
+
+      Run read-only + disruptive tests:
+        bundle exec rspec --tag disruptive
+
+      Run ALL tests (including disruptive):
+        bundle exec rspec --tag ~disruptive
+
+      Run specific file with all tests:
+        bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb --tag disruptive
+
+      #{"=" * 60}
+
+    MESSAGE
   end
   
   # Network State Management for disruptive tests
@@ -97,15 +101,21 @@ RSpec.configure do |config|
   config.after(:suite) do
     network_state = NetworkStateManager.network_state
     if network_state && network_state[:network_name]
-      puts "\n" + "="*60
+      puts <<~MESSAGE
+
+      #{"=" * 60}
       begin
         NetworkStateManager.restore_state
         puts "✅ Successfully restored network connection: #{network_state[:network_name]}"
       rescue => e
-        puts "⚠️  Could not restore network connection: #{e.message}"
-        puts "You may need to manually reconnect to: #{network_state[:network_name]}"
+        puts <<~ERROR_MESSAGE
+          ⚠️  Could not restore network connection: #{e.message}
+          You may need to manually reconnect to: #{network_state[:network_name]}
+        ERROR_MESSAGE
       end
-      puts "="*60
+      #{"=" * 60}
+
+    MESSAGE
     end
   end
   

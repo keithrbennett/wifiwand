@@ -8,12 +8,20 @@ module NetworkStateManager
     begin
       @network_state = model.capture_network_state
       if @network_state[:network_name]
-        puts "\nCaptured network state for restoration: #{@network_state[:network_name]}"
-        puts "Note: On macOS, you may be prompted for keychain access permissions."
+        puts <<~MESSAGE
+
+          Captured network state for restoration: #{@network_state[:network_name]}
+          Note: On macOS, you may be prompted for keychain access permissions.
+
+        MESSAGE
       end
     rescue => e
-      puts "\nWarning: Could not capture network state: #{e.message}"
-      puts "Network restoration will not be available for this test run."
+      puts <<~MESSAGE
+
+        Warning: Could not capture network state: #{e.message}
+        Network restoration will not be available for this test run.
+
+      MESSAGE
       @network_state = nil
     end
   end
