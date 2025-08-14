@@ -126,7 +126,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#wifi_on', :disruptive do
     it 'can turn wifi on when it is off' do
-      subject.wifi_off if subject.wifi_on?
+      subject.wifi_off
       expect(subject.wifi_on?).to be(false)
       
       subject.wifi_on
@@ -134,7 +134,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'does nothing when wifi is already on' do
-      subject.wifi_on unless subject.wifi_on?
+      subject.wifi_on
       expect(subject.wifi_on?).to be(true)
       
       subject.wifi_on
@@ -144,7 +144,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#wifi_off', :disruptive do
     it 'can turn wifi off when it is on' do
-      subject.wifi_on unless subject.wifi_on?
+      subject.wifi_on
       expect(subject.wifi_on?).to be(true)
       
       subject.wifi_off
@@ -152,7 +152,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'does nothing when wifi is already off' do
-      subject.wifi_off if subject.wifi_on?
+      subject.wifi_off
       expect(subject.wifi_on?).to be(false)
       
       subject.wifi_off
@@ -164,7 +164,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'can turn wifi off and on, preserving network selection' do
       # Note: This test may not preserve network connection in all cases
       # but should verify the cycle completes without error
-      subject.wifi_on unless subject.wifi_on?
+      subject.wifi_on
       expect { subject.cycle_network }.not_to raise_error
       expect(subject.wifi_on?).to be(true)
     end
@@ -172,7 +172,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#available_network_names', :disruptive do
     it 'can list available networks' do
-      subject.wifi_on unless subject.wifi_on?
+      subject.wifi_on
       result = subject.available_network_names
       expect(result).to be_a(Array).or(be_nil)
       if result
@@ -183,8 +183,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#disconnect graceful handling', :disruptive do
     it 'handles disconnect gracefully when already disconnected' do
-      skip_unless_network_restore_available
-      
       # Ensure we start in a known state - disconnected
       if subject.connected_network_name
         subject.disconnect
@@ -192,16 +190,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
       
       # Now test that calling disconnect on already-disconnected state doesn't raise error
       expect { subject.disconnect }.not_to raise_error
-      
-      # Restore network state after test
-      restore_network_state
     end
     
     it 'handles disconnect gracefully when connected' do
-      skip_unless_network_restore_available
-      
       # Ensure we're connected to a network first
-      subject.wifi_on unless subject.wifi_on?
+      subject.wifi_on
       
       # If we're not connected to any network, we can't test this scenario
       if subject.connected_network_name.nil?
@@ -215,9 +208,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
       
       # Verify we're disconnected
       expect(subject.connected_network_name).to be_nil
-      
-      # Restore network state after test
-      restore_network_state
     end
   end
 

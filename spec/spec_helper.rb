@@ -86,10 +86,6 @@ RSpec.configure do |config|
     def network_state
       NetworkStateManager.network_state
     end
-    
-    def skip_unless_network_restore_available
-      skip "Network state restoration not available" unless NetworkStateManager.state_available?
-    end
   end)
   
   # Restore network state after each disruptive test

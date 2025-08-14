@@ -176,7 +176,7 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#wifi_on' do
       it 'turns wifi on when it is off' do
-        subject.wifi_off if subject.wifi_on?
+        subject.wifi_off
         expect(subject.wifi_on?).to be(false)
         
         subject.wifi_on
@@ -184,7 +184,7 @@ describe UbuntuModel, :os_ubuntu do
       end
 
       it 'does nothing when wifi is already on' do
-        subject.wifi_on unless subject.wifi_on?
+        subject.wifi_on
         expect(subject.wifi_on?).to be(true)
         
         expect { subject.wifi_on }.not_to raise_error
@@ -194,7 +194,7 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#wifi_off' do
       it 'turns wifi off when it is on' do
-        subject.wifi_on unless subject.wifi_on?
+        subject.wifi_on
         expect(subject.wifi_on?).to be(true)
         
         subject.wifi_off
@@ -202,7 +202,7 @@ describe UbuntuModel, :os_ubuntu do
       end
 
       it 'does nothing when wifi is already off' do
-        subject.wifi_off if subject.wifi_on?
+        subject.wifi_off
         expect(subject.wifi_on?).to be(false)
         
         expect { subject.wifi_off }.not_to raise_error
@@ -212,7 +212,6 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#disconnect' do
       it 'disconnects from current network' do
-        subject.wifi_on unless subject.wifi_on?
         # Can disconnect even when not connected to a network
         expect { subject.disconnect }.not_to raise_error
       end
@@ -238,13 +237,13 @@ describe UbuntuModel, :os_ubuntu do
       let(:valid_nameservers) { ['8.8.8.8', '8.8.4.4'] }
       
       it 'sets valid nameservers' do
-        subject.wifi_on unless subject.wifi_on?
+        subject.wifi_on
         result = subject.set_nameservers(valid_nameservers)
         expect(result).to eq(valid_nameservers)
       end
 
       it 'clears nameservers with :clear' do
-        subject.wifi_on unless subject.wifi_on?
+        subject.wifi_on
         result = subject.set_nameservers(:clear)
         expect(result).to eq(:clear)
       end
