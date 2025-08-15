@@ -328,7 +328,27 @@ class MacOsModel < BaseModel
 
 
   def swift_and_corewlan_present?
-    system("swift -e 'import CoreWLAN' >/dev/null 2>&1")
+    begin
+      # Try to import CoreWLAN using Swift
+      run_os_command("swift -e 'import CoreWLAN'", false)
+      true
+    rescue OsCommandError => e
+      # Log the specific error if in verbose mode
+      if verbose_mode
+        case e.exitstatus
+        when 127
+          puts "Swift command not found (exit code #{e.exitstatus}). Install Xcode Command Line Tools."
+        when 1
+          puts "CoreWLAN framework not available (exit code #{e.exitstatus}). Install Xcode."
+        else
+          puts "Swift/CoreWLAN check failed with exit code #{e.exitstatus}: #{e.text.strip}"
+        end
+      end
+      false
+    rescue => e
+      puts "Unexpected error checking Swift/CoreWLAN: #{e.message}" if verbose_mode
+      false
+    end
   end
 
   # Returns the network interface used for default internet route on macOS
