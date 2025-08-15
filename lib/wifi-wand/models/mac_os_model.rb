@@ -9,9 +9,14 @@ module WifiWand
 
 class MacOsModel < BaseModel
 
-  # Takes an OpenStruct containing options such as verbose mode and interface name.
+  # Minimum supported macOS version (Monterey 12.0+)
+  # Apple currently supports macOS 12+ as of 2024
+  MIN_SUPPORTED_OS_VERSION = "12.0"
+  
   def initialize(options = OpenStruct.new)
     super
+    @macos_version = detect_macos_version
+    validate_macos_version
   end
 
   # Detects the Wi-Fi service name dynamically (e.g., "Wi-Fi", "AirPort", etc.)
@@ -106,7 +111,6 @@ class MacOsModel < BaseModel
 
   # Returns the network names sorted in descending order of signal strength.
   def _available_network_names
-
     json_text = run_os_command('system_profiler -json SPAirPortDataType')
     data = JSON.parse(json_text)
 
@@ -216,10 +220,30 @@ class MacOsModel < BaseModel
     begin
       return run_os_command(command).chomp
     rescue OsCommandError => error
-      if error.exitstatus == 44 # network has no password stored
+      case error.exitstatus
+      when 44
+        # Item not found in keychain - network has no password stored
         nil
+      when 45
+        raise Error.new("Access to keychain denied by user for network '#{preferred_network_name}'. Please grant access when prompted.")
+      when 128
+        raise Error.new("Keychain access cancelled by user for network '#{preferred_network_name}'.")
+      when 51
+        raise Error.new("Cannot access keychain for network '#{preferred_network_name}' in non-interactive environment.")
+      when 25
+        raise Error.new("Invalid keychain search parameters for network '#{preferred_network_name}'.")
+      when 1
+        if error.text.include?("could not be found")
+          # Alternative way item not found might be reported
+          nil
+        else
+          raise Error.new("Keychain error accessing password for network '#{preferred_network_name}': #{error.text.strip}")
+        end
       else
-        raise
+        # Unknown error - provide detailed information for debugging
+        error_msg = "Unknown keychain error (exit code #{error.exitstatus}) accessing password for network '#{preferred_network_name}'"
+        error_msg += ": #{error.text.strip}" unless error.text.empty?
+        raise Error.new(error_msg)
       end
     end
   end
@@ -405,6 +429,49 @@ class MacOsModel < BaseModel
     end
   end
 
+
+  # Detects the current macOS version
+  def detect_macos_version
+    begin
+      output = run_os_command("sw_vers -productVersion")
+      output.chomp
+    rescue => e
+      if verbose_mode
+        puts "Could not detect macOS version: #{e.message}."
+      end
+      nil
+    end
+  end
+
+  # Validates that the current macOS version is supported
+  def validate_macos_version
+    return unless @macos_version
+    
+    unless supported_version?(@macos_version)
+      raise Error.new("WifiWand requires macOS #{MIN_SUPPORTED_OS_VERSION} or later. Current version: #{@macos_version}")
+    end
+    
+    puts "macOS #{@macos_version} detected and supported" if verbose_mode
+  end
+
+  # Checks if the current version meets the minimum supported version
+  def supported_version?(current_version)
+    return false unless current_version
+
+    # Convert to numeric arrays
+    version_string_to_num_array = ->(s) { s.split('.').map(&:to_i) }
+    current_parts = version_string_to_num_array.(current_version)
+    min_parts     = version_string_to_num_array.(MIN_SUPPORTED_OS_VERSION)
+    
+    # Determine max length for padding
+    max_length = [current_parts.length, min_parts.length].max
+    
+    # Pad array to max_length with zeros
+    pad_array = ->(arr) { arr + [0] * (max_length - arr.length) }
+    
+    (pad_array.(current_parts) <=> pad_array.(min_parts)) >= 0
+  end
+  private :supported_version?
 
   def run_swift_command(basename, *args)
     swift_filespec = File.absolute_path(File.join(File.dirname(__FILE__), "../../../swift/#{basename}.swift"))
