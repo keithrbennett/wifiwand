@@ -31,7 +31,7 @@ module WifiWand
           skip "macOS version not detected" unless current_version
           
           result = model.send(:supported_version?, current_version)
-          expect(result).to be true, "Current version #{current_version} should be supported"
+          expect(result).to be(true), "Current version #{current_version} should be supported"
         end
       end
       
