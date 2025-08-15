@@ -139,14 +139,27 @@ class MacOsModel < BaseModel
   end
 
   def os_level_connect_using_swift(network_name, password = nil)
-    ensure_swift_and_corewlan_present
     args = [Shellwords.shellescape(network_name)]
     args << Shellwords.shellescape(password) if password
     run_swift_command('WifiNetworkConnector', *args)
   end
 
   def _connect(network_name, password = nil)
-    os_level_connect_using_swift(network_name, password)
+    # Try Swift/CoreWLAN first (preferred method)
+    if swift_and_corewlan_present?
+      begin
+        os_level_connect_using_swift(network_name, password)
+        return
+      rescue => e
+        puts "Swift/CoreWLAN connection failed: #{e.message}. Falling back to networksetup..." if verbose_mode
+        # Fall through to networksetup fallback
+      end
+    else
+      puts "Swift/CoreWLAN not available. Using networksetup..." if verbose_mode
+    end
+    
+    # Fallback to networksetup
+    os_level_connect_using_networksetup(network_name, password)
   end
 
 
@@ -203,8 +216,26 @@ class MacOsModel < BaseModel
 
   # Disconnects from the currently connected network. Does not turn off wifi.
   def _disconnect
-
-    run_swift_command('WifiNetworkDisconnector')
+    # Try Swift/CoreWLAN first (preferred method)
+    if swift_and_corewlan_present?
+      begin
+        run_swift_command('WifiNetworkDisconnector')
+        return nil
+      rescue => e
+        puts "Swift/CoreWLAN disconnect failed: #{e.message}. Falling back to ifconfig..." if verbose_mode
+        # Fall through to ifconfig fallback
+      end
+    else
+      puts "Swift/CoreWLAN not available. Using ifconfig..." if verbose_mode
+    end
+    
+    # Fallback to ifconfig (disassociate from current network)
+    begin
+      run_os_command("sudo ifconfig #{wifi_interface} disassociate", false)
+    rescue OsCommandError
+      # If sudo ifconfig fails, try without sudo (may work on some systems)
+      run_os_command("ifconfig #{wifi_interface} disassociate", false)
+    end
     nil
   end
 
@@ -295,14 +326,6 @@ class MacOsModel < BaseModel
     nameservers_using_scutil
   end
 
-  def ensure_swift_and_corewlan_present
-    unless swift_and_corewlan_present?
-      raise RuntimeError, <<~MESSAGE
-        Swift and/or CoreWLAN are not present and are needed by this task.
-        This can be fixed by installing XCode.
-      MESSAGE
-    end
-  end
 
   def swift_and_corewlan_present?
     system("swift -e 'import CoreWLAN' >/dev/null 2>&1")
@@ -321,7 +344,6 @@ class MacOsModel < BaseModel
 
 
   def run_swift_command(basename, *args)
-    ensure_swift_and_corewlan_present
     swift_filespec = File.absolute_path(File.join(File.dirname(__FILE__), "../../../swift/#{basename}.swift"))
     argv = ['swift', swift_filespec] + args
     command = argv.compact.join(' ')
