@@ -188,5 +188,19 @@ class UbuntuModel < BaseModel
     run_os_command("xdg-open '#{resource_url}'")
   end
 
+  # Returns the network interface used for default internet route on Linux
+  def default_interface
+    begin
+      output = run_os_command("ip route show default | awk '{print $5}'", false)
+      return nil if output.empty?
+      
+      # Take the first interface if multiple are returned
+      interfaces = output.split("\n").map(&:strip).reject(&:empty?)
+      interfaces.first
+    rescue OsCommandError
+      nil
+    end
+  end
+
   end
 end

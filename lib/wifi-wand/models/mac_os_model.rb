@@ -308,6 +308,17 @@ class MacOsModel < BaseModel
     system("swift -e 'import CoreWLAN' >/dev/null 2>&1")
   end
 
+  # Returns the network interface used for default internet route on macOS
+  def default_interface
+    begin
+      output = run_os_command("route -n get default | grep 'interface:' | awk '{print $2}'", false)
+      return nil if output.empty?
+      output.strip
+    rescue OsCommandError
+      nil
+    end
+  end
+
 
   def run_swift_command(basename, *args)
     ensure_swift_and_corewlan_present

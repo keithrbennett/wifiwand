@@ -73,6 +73,7 @@ class BaseModel
   end
 
   %i[
+    default_interface
     detect_wifi_interface
     is_wifi_interface?
     mac_address
@@ -215,15 +216,6 @@ class BaseModel
     end
   end
 
-  # Returns the network interface used for default internet route
-  def default_interface
-    output = run_os_command("ip route show default | awk '{print $5}'", false)
-    return nil if output.empty?
-    
-    # Take the first interface if multiple are returned
-    interfaces = output.split("\n").map(&:strip).reject(&:empty?)
-    interfaces.first
-  end
 
   # Returns comprehensive WiFi information including connectivity details
   def wifi_info
