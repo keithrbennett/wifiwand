@@ -11,7 +11,7 @@ or, you may need to precede that command with `sudo`:
 `sudo gem install wifi-wand`
 
 The `wifi-wand` gem enables the query and management 
-of WiFi configuration and environment on a Mac.
+of WiFi configuration and environment on Mac and Ubuntu systems.
 The code encapsulates the Mac OS specific logic in model classes 
 to more easily add support for other operating systems,
 but as of now, only Mac OS is supported. (Feel free to add an OS!)
@@ -75,10 +75,10 @@ underlying operating system.
 For nicely formatted output of the `info` command,
 the `awesome_print` gem is used if it is installed;
 otherwise, the somewhat less awesome pretty print (`pp`) is used.  Therefore,
-installation of the `awesome_print` gem is recommended. 
+installation of the `awesome_print` gem is automatic as it's a required dependency. 
 This is accomplished by the following command:
 
-`gem install awesome_print`
+The `awesome_print` gem is installed automatically with `wifi-wand`
 
 You may need to precede this command with `sudo `, especially if you are using the 
 version of Ruby that comes packaged with MacOS.
@@ -310,14 +310,12 @@ Connected!
 
 ### Dependent Gems
 
-Currently, no dependent gems are installed when this gem is installed.
+Currently, dependent gems are installed automatically when this gem is installed.
 However, the program _will_ use other gems as follows:
 
 * `pry`, when the interactive shell is requested with the `-s` option
-* `awesome_print`, if it is found, to more nicely format output in non-interactive mode
+* `awesome_print`, to provide nicely formatted output, to more nicely format output in non-interactive mode
 
-So the user can avoid installing gems other than this one altogether
-as long as they don't need to use the interactive shell,
 and as long as they are comfortable with the less pretty output.
 
 

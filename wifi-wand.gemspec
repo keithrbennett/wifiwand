@@ -7,8 +7,8 @@ Gem::Specification.new do |spec|
   spec.version       = WifiWand::VERSION
   spec.authors       = ["Keith Bennett"]
   spec.email         = ["keithrbennett@gmail.com"]
-  spec.description   = %q{A command line interface for managing WiFi on a Mac.}
-  spec.summary       = %q{Mac WiFi utility}
+  spec.description   = %q{A command line interface for managing WiFi on Mac and Ubuntu systems.}
+  spec.summary       = %q{Cross-platform WiFi management utility}
   spec.homepage      = "https://github.com/keithrbennett/wifiwand"
   spec.license       = "MIT"
 
@@ -19,6 +19,7 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
 
   # spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
+
   spec.add_dependency('awesome_print', '>= 1.9.2', '< 2')
 
   # ostruct will no longer be part of the default gems starting from Ruby 3.5.0.
@@ -28,8 +29,8 @@ Gem::Specification.new do |spec|
   # on last line of method:
   spec.add_dependency('pry', '>= 0.14.2')
 
-  spec.add_development_dependency "bundler", ">= 2.5.9"
-  spec.add_development_dependency "rake", ">= 13.2.1"
-  spec.add_development_dependency "rspec", ">= 3.13.0", "< 4"
+  spec.add_development_dependency "bundler", ">= 2.0"
+  spec.add_development_dependency "rake", "~> 13.0"
+  spec.add_development_dependency "rspec", "~> 3.12"
 
 end
