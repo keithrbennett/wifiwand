@@ -272,11 +272,33 @@ class MacOsModel < BaseModel
 
   # Returns the network currently connected to, or nil if none.
   def _connected_network_name
+    json_text = run_os_command('system_profiler -json SPAirPortDataType')
 
-    command_output = run_os_command("ipconfig getsummary #{wifi_interface} | grep ' SSID :'", false)
-    return nil if command_output.empty?
+    # Handle JSON parsing errors
+    begin
+      data = JSON.parse(json_text)
+    rescue JSON::ParserError => e
+      raise "Failed to parse system_profiler output: #{e.message}"
+    end
 
-    command_output.split('SSID :').last.strip
+    # Handle missing or malformed data structure
+    airport_data = data.dig("SPAirPortDataType", 0, "spairport_airport_interfaces")
+    return nil unless airport_data
+
+    wifi_interface = detect_wifi_interface # e.g. "en0"
+    wifi_interface_data = airport_data.find do |interface|
+      interface["_name"] == wifi_interface
+    end
+
+    # Handle interface not found
+    return nil unless wifi_interface_data
+
+    # Handle no current network connection
+    current_network = wifi_interface_data["spairport_current_network_information"]
+    return nil unless current_network
+
+    # Return the network name (could still be nil)
+    current_network["_name"]
   end
 
 
