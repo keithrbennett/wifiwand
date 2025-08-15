@@ -14,6 +14,44 @@ class MacOsModel < BaseModel
     super
   end
 
+  # Detects the Wi-Fi service name dynamically (e.g., "Wi-Fi", "AirPort", etc.)
+  def detect_wifi_service_name
+    @wifi_service_name ||= begin
+      lines = run_os_command("networksetup -listallhardwareports").split("\n")
+      
+      # Look for common Wi-Fi service name patterns
+      wifi_patterns = [
+        /: Wi-Fi$/,           # Most common
+        /: AirPort$/,         # Older systems 
+        /: Wireless$/,        # Alternative naming
+        /: WiFi$/,            # Alternative spelling
+        /: WLAN$/             # Generic wireless LAN
+      ]
+      
+      wifi_service_line = lines.find do |line|
+        wifi_patterns.any? { |pattern| pattern.match(line) }
+      end
+      
+      if wifi_service_line
+        wifi_service_line.split(': ').last
+      else
+        # Fallback: look for the interface that matches our wifi_interface
+        wifi_iface = wifi_interface
+        lines.each_with_index do |line, index|
+          if line.include?("Device: #{wifi_iface}") && index > 0
+            prev_line = lines[index - 1]
+            if prev_line.start_with?("Hardware Port: ")
+              return prev_line.split(': ').last
+            end
+          end
+        end
+        
+        # Final fallback
+        "Wi-Fi"
+      end
+    end
+  end
+
   # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
   # This may not detect wifi ports with nonstandard names, such as USB wifi devices.
   def detect_wifi_interface_using_networksetup
@@ -28,8 +66,10 @@ class MacOsModel < BaseModel
     # Device: en3
     # Ethernet Address: ac:bc:32:b9:a9:9e
 
+    # Use dynamic service name detection instead of hardcoded "Wi-Fi"
+    service_name = detect_wifi_service_name
     wifi_interface_line_num = (0...lines.size).detect do |index|
-      /: Wi-Fi$/.match(lines[index])
+      lines[index].end_with?(": #{service_name}")
     end
 
     if wifi_interface_line_num.nil?
@@ -48,15 +88,17 @@ class MacOsModel < BaseModel
     
     return nil if nets.nil? || nets.empty?
     
-    wifi = nets.detect { |net| net['_name'] == 'Wi-Fi'}
+    # Use dynamic service name detection
+    service_name = detect_wifi_service_name
+    wifi = nets.detect { |net| net['_name'] == service_name}
     
     if wifi.nil?
-      raise Error.new(%Q{Wi-Fi interface not found in output of: system_profiler -json SPNetworkDataType})
+      raise Error.new(%Q{#{service_name} interface not found in output of: system_profiler -json SPNetworkDataType})
     end
     
     interface = wifi['interface']
     if interface.nil? || interface.empty?
-      raise Error.new(%Q{Wi-Fi interface name not found in network data for Wi-Fi service})
+      raise Error.new(%Q{#{service_name} interface name not found in network data for #{service_name} service})
     end
     
     interface
@@ -273,7 +315,7 @@ class MacOsModel < BaseModel
       nameservers.join(' ')
     end # end assignment to arg variable
 
-    run_os_command("networksetup -setdnsservers Wi-Fi #{arg}")
+    run_os_command("networksetup -setdnsservers #{detect_wifi_service_name} #{arg}")
     nameservers
   end
 
@@ -314,8 +356,9 @@ class MacOsModel < BaseModel
 
 
   def nameservers_using_networksetup
-    output = run_os_command("networksetup -getdnsservers Wi-Fi")
-    if output == "There aren't any DNS Servers set on Wi-Fi.\n"
+    service_name = detect_wifi_service_name
+    output = run_os_command("networksetup -getdnsservers #{service_name}")
+    if output == "There aren't any DNS Servers set on #{service_name}.\n"
       output = ''
     end
     output.split("\n")
