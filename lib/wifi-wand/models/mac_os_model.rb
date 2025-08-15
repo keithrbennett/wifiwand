@@ -45,8 +45,21 @@ class MacOsModel < BaseModel
     json_text = run_os_command('system_profiler -json SPNetworkDataType')
     net_data = JSON.parse(json_text)
     nets = net_data['SPNetworkDataType']
+    
+    return nil if nets.nil? || nets.empty?
+    
     wifi = nets.detect { |net| net['_name'] == 'Wi-Fi'}
-    wifi['interface']
+    
+    if wifi.nil?
+      raise Error.new(%Q{Wi-Fi interface not found in output of: system_profiler -json SPNetworkDataType})
+    end
+    
+    interface = wifi['interface']
+    if interface.nil? || interface.empty?
+      raise Error.new(%Q{Wi-Fi interface name not found in network data for Wi-Fi service})
+    end
+    
+    interface
   end
 
   # Returns the network names sorted in descending order of signal strength.
