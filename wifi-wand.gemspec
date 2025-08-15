@@ -18,7 +18,7 @@ Gem::Specification.new do |spec|
 
   spec.require_paths = ["lib"]
 
-  # spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
+  spec.required_ruby_version = ">= 2.7.0"
 
   spec.add_dependency('awesome_print', '>= 1.9.2', '< 2')
 
