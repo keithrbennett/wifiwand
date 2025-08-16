@@ -117,26 +117,14 @@ bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb
 bundle exec rspec --format documentation
 ```
 
-#### System-Modifying Tests
+#### Disruptive Tests
 ```bash
-# Run read-only + system-modifying tests
+# Run ALL tests (read-only + disruptive)
 bundle exec rspec --tag disruptive
-
-# Run only system-modifying tests
-bundle exec rspec --tag disruptive
-
-# Run Ubuntu model tests including system-modifying
-bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb --tag disruptive
 ```
 
-#### All Tests (Including Network Connections)
-```bash
-# Run ALL tests (high impact - will change network state)
-bundle exec rspec --tag disruptive
+**Note:** `bundle exec rspec --tag ~disruptive` is equivalent to `bundle exec rspec` - both exclude disruptive tests.
 
-# Run Ubuntu model tests including network connections
-bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb --tag disruptive
-```
 
 
 ## Test Filtering with RSpec Tags
@@ -179,7 +167,7 @@ The spec helper includes:
 - Default filtering configuration
 - Automatic OS detection and filtering
 - Test documentation on startup
-- Cleanup procedures for system-modifying tests
+- Cleanup procedures for disruptive tests
 
 Key configuration:
 ```ruby
@@ -233,7 +221,6 @@ end
 
 # Disruptive test with network restoration - requires --tag disruptive flag  
 it 'tests disconnect and restores connection', :disruptive do
-  skip_unless_network_restore_available
   
   original_network = subject.connected_network_name
   subject.disconnect
@@ -260,7 +247,7 @@ end
 #### Conditional Tests
 ```ruby
 describe '#available_network_names' do
-  it 'returns array when wifi is on', :requires_wifi_on do
+  it 'returns array when wifi is on' do
     if subject.wifi_on?
       result = subject.available_network_names
       expect(result).to be_a(Array)
@@ -271,7 +258,7 @@ describe '#available_network_names' do
 end
 ```
 
-#### Safe System-Modifying Tests
+#### Disruptive Tests
 ```ruby
 describe '#wifi_on' do
   it 'turns wifi on when it is off', :disruptive do
@@ -286,21 +273,12 @@ end
 
 ## Platform-Specific Testing
 
-### Ubuntu Testing
+The test suite includes tests specific to the supported operating systems.
 
-The Ubuntu model tests are designed to run safely on Ubuntu systems:
-
-- **File**: `spec/wifi-wand/models/ubuntu_model_spec.rb`
-- **Tools tested**: `nmcli`, `iw`, `ip`
-- **Safety**: Read-only tests are completely safe
-- **Coverage**: Comprehensive testing of all Ubuntu-specific methods
-
-### Mac OS Testing
-
-For Mac OS testing, use the existing integration tests:
+Tests for operating systems _not_ the currently running one are automatically excluded.
 
 ```bash
-# Run Mac OS integration tests
+# Run macOS integration tests
 bundle exec rspec spec/wifi-wand/models/mac_os_model_spec.rb
 ```
 
@@ -376,9 +354,9 @@ The common tests will automatically validate that the new OS model correctly imp
 bundle exec rspec --format documentation
 ```
 
-### 2. Testing System Changes
+### 2. Testing Disruptive Features
 ```bash
-# When testing system-modifying features
+# When testing disruptive features
 bundle exec rspec --tag disruptive
 ```
 
@@ -418,7 +396,7 @@ nmcli device status
 sudo bundle exec rspec
 ```
 
-#### Network Manager Issues
+#### NetworkManager Issues
 **Problem**: Tests interact with NetworkManager
 **Solution**: Ensure NetworkManager is running:
 ```bash
@@ -470,7 +448,7 @@ Example CI configuration focus:
 Current test coverage:
 - **Ubuntu Model**: 16 examples (14 passing, 2 pending)
 - **Base Model**: Error handling tests
-- **Mac OS Model**: Integration tests
+- **macOS Model**: Integration tests
 
 Target coverage: 80%+ for all core functionality
 
@@ -491,7 +469,7 @@ When contributing tests:
 1. Follow the existing tag conventions
 2. Add new tests to appropriate files
 3. Update this documentation if adding new test categories
-4. Test on both Ubuntu and Mac OS when possible
+4. Test on both Ubuntu and macOS when possible
 5. Ensure all tests pass before submitting pull requests
 
 ## Support
