@@ -58,11 +58,8 @@ spec/
 │   ├── common_os_model_spec.rb     # OS-agnostic interface tests (NEW)
 │   └── models/
 │       ├── base_model_spec.rb      # Error handling tests
+│       ├── mac_os_model_spec.rb    # Mac OS-specific tests
 │       └── ubuntu_model_spec.rb    # Ubuntu-specific tests
-└── integration-tests/
-    └── wifi-wand/
-        └── models/
-            └── mac_os_model_spec.rb # Mac OS integration tests
 ```
 
 ## Running Tests
@@ -123,38 +120,24 @@ bundle exec rspec --format documentation
 #### System-Modifying Tests
 ```bash
 # Run read-only + system-modifying tests
-bundle exec rspec --tag ~network_connection
+bundle exec rspec --tag disruptive
 
 # Run only system-modifying tests
-bundle exec rspec --tag modifies_system
+bundle exec rspec --tag disruptive
 
 # Run Ubuntu model tests including system-modifying
-bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb --tag ~network_connection
+bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb --tag disruptive
 ```
 
 #### All Tests (Including Network Connections)
 ```bash
 # Run ALL tests (high impact - will change network state)
-bundle exec rspec --tag network_connection
+bundle exec rspec --tag disruptive
 
 # Run Ubuntu model tests including network connections
-bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb --tag network_connection
+bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb --tag disruptive
 ```
 
-### Using the Convenience Script
-
-A convenience script is available in `scripts/test.sh` for easier test execution:
-
-```bash
-# Read-only tests only (safe to run anytime)
-./scripts/test.sh read-only
-
-# Read-only + system-modifying tests (will change WiFi state)
-./scripts/test.sh system-modifying
-
-# ALL tests including network connections (high impact)
-./scripts/test.sh all
-```
 
 ## Test Filtering with RSpec Tags
 
@@ -165,8 +148,6 @@ A convenience script is available in `scripts/test.sh` for easier test execution
 | `:disruptive` | Tests that modify system state or network connections | ❌ Excluded by default |
 | `:os_ubuntu` | Ubuntu-specific tests | See OS Filtering |
 | `:os_mac` | macOS-specific tests | See OS Filtering |
-| `:requires_wifi_on` | Tests that require WiFi to be on | ❌ Excluded by default |
-| `:requires_available_network` | Tests that need available networks | ❌ Excluded by default |
 
 ### Tag Combinations
 
@@ -293,7 +274,7 @@ end
 #### Safe System-Modifying Tests
 ```ruby
 describe '#wifi_on' do
-  it 'turns wifi on when it is off', :modifies_system do
+  it 'turns wifi on when it is off', :disruptive do
     subject.wifi_off if subject.wifi_on?
     expect(subject.wifi_on?).to be(false)
     
@@ -320,7 +301,7 @@ For Mac OS testing, use the existing integration tests:
 
 ```bash
 # Run Mac OS integration tests
-bundle exec rspec integration-tests/wifi-wand/models/mac_os_model_spec.rb
+bundle exec rspec spec/wifi-wand/models/mac_os_model_spec.rb
 ```
 
 ## OS-Agnostic Testing
@@ -359,7 +340,7 @@ end
 bundle exec rspec spec/wifi-wand/common_os_model_spec.rb
 
 # Safe to run on any OS
-bundle exec rspec spec/wifi-wand/common_os_model_spec.rb --tag ~modifies_system
+bundle exec rspec spec/wifi-wand/common_os_model_spec.rb --tag ~disruptive
 ```
 
 **Benefits:**
@@ -398,13 +379,13 @@ bundle exec rspec --format documentation
 ### 2. Testing System Changes
 ```bash
 # When testing system-modifying features
-bundle exec rspec --tag ~network_connection
+bundle exec rspec --tag disruptive
 ```
 
 ### 3. Full Test Suite
 ```bash
 # Before committing or deploying
-bundle exec rspec --tag network_connection
+bundle exec rspec --tag disruptive
 ```
 
 ### 4. Specific Test Files
@@ -518,4 +499,3 @@ When contributing tests:
 For questions about testing:
 - Check existing test patterns in `spec/wifi-wand/models/`
 - Review the RSpec configuration in `spec/spec_helper.rb`
-- Use the convenience script in `scripts/test.sh`
