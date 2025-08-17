@@ -71,7 +71,17 @@ RSpec.configure do |config|
   
   # Network State Management for disruptive tests
   config.before(:suite) do
-    NetworkStateManager.capture_state
+    # Only capture network state if disruptive tests will run
+    # Check if disruptive tests are included (either explicitly or by not being excluded)
+    disruptive_tests_will_run = !config.exclusion_filter[:disruptive] || 
+                               config.inclusion_filter[:disruptive]
+    
+    if disruptive_tests_will_run
+      NetworkStateManager.capture_state
+      $network_state_captured = true
+    else
+      $network_state_captured = false
+    end
   end
   
   # Helper method for individual tests to restore network state
@@ -92,19 +102,22 @@ RSpec.configure do |config|
   
   # Attempt final restoration at the end of test suite
   config.after(:suite) do
-    network_state = NetworkStateManager.network_state
-    if network_state && network_state[:network_name]
-      puts "\n#{"=" * 60}"
-      begin
-        NetworkStateManager.restore_state
-        puts "✅ Successfully restored network connection: #{network_state[:network_name]}"
-      rescue => e
-        puts <<~ERROR_MESSAGE
-          ⚠️  Could not restore network connection: #{e.message}
-          You may need to manually reconnect to: #{network_state[:network_name]}
-        ERROR_MESSAGE
+    # Only restore if we actually captured state
+    if $network_state_captured
+      network_state = NetworkStateManager.network_state
+      if network_state && network_state[:network_name]
+        puts "\n#{"=" * 60}"
+        begin
+          NetworkStateManager.restore_state
+          puts "✅ Successfully restored network connection: #{network_state[:network_name]}"
+        rescue => e
+          puts <<~ERROR_MESSAGE
+            ⚠️  Could not restore network connection: #{e.message}
+            You may need to manually reconnect to: #{network_state[:network_name]}
+          ERROR_MESSAGE
+        end
+        puts "#{"=" * 60}\n\n"
       end
-      puts "#{"=" * 60}\n\n"
     end
   end
   
