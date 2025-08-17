@@ -119,9 +119,8 @@ class UbuntuModel < BaseModel
   end
 
   def _ip_address
-    
     output = run_os_command("ip -4 addr show #{wifi_interface} | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1", false)
-    output.empty? ? nil : output.strip
+    output.empty? ? nil : output.split("\n").first&.strip
   end
 
   def mac_address

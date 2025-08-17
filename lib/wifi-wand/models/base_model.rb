@@ -25,6 +25,11 @@ class BaseModel
     else
       @wifi_interface = detect_wifi_interface
     end
+    
+    # Validate that wifi_interface is a valid string
+    if @wifi_interface.nil? || @wifi_interface.empty?
+      raise Error.new("No Wi-Fi interface found. Ensure Wi-Fi hardware is present and drivers are installed.")
+    end
   end
 
   # @return array of nameserver IP addresses from /etc/resolv.conf, or nil if not found

@@ -97,16 +97,7 @@ class MacOsModel < BaseModel
     service_name = detect_wifi_service_name
     wifi = nets.detect { |net| net['_name'] == service_name}
     
-    if wifi.nil?
-      raise Error.new(%Q{#{service_name} interface not found in output of: system_profiler -json SPNetworkDataType})
-    end
-    
-    interface = wifi['interface']
-    if interface.nil? || interface.empty?
-      raise Error.new(%Q{#{service_name} interface name not found in network data for #{service_name} service})
-    end
-    
-    interface
+    wifi ? wifi['interface'] : nil
   end
 
   # Returns the network names sorted in descending order of signal strength.
