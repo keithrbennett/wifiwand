@@ -120,15 +120,20 @@ bundle exec rspec
 ### Tag Combinations
 
 ```bash
-# Include specific tags
+# Run only disruptive tests
 bundle exec rspec --tag disruptive
 
-# Exclude specific tags  
-bundle exec rspec --tag ~disruptive
+# Run ALL tests (including disruptive) - NOTE: Quote the tilde to avoid shell expansion
+bundle exec rspec --tag "~disruptive"
+
+# Run only non-disruptive tests (default behavior)
+bundle exec rspec
 
 # Focus on specific tests
 bundle exec rspec --tag focus
 ```
+
+**Important Shell Note**: The `~` character must be quoted (`"~disruptive"` or `'~disruptive'`) to prevent shell expansion in bash/zsh, as `~` normally expands to the home directory.
 
 ## Test Configuration
 
