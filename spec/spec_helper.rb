@@ -23,8 +23,11 @@ RSpec.configure do |config|
     # Store in global variable for use in before hooks
     $compatible_os_tag = compatible_os_tag
     
-    # Apply default exclusion for disruptive tests
-    config.filter_run_excluding :disruptive => true
+    # Apply default exclusion for disruptive tests unless user wants all tests
+    # Use RSPEC_DISABLE_EXCLUSIONS=true to run ALL tests including disruptive ones
+    unless ENV['RSPEC_DISABLE_EXCLUSIONS'] == 'true'
+      config.filter_run_excluding :disruptive => true
+    end
     
   rescue => e
     puts "Warning: Could not detect current OS for test filtering: #{e.message}"
@@ -55,14 +58,14 @@ RSpec.configure do |config|
       Run only read-only tests (default):
         bundle exec rspec
 
-      Run read-only + disruptive tests:
+      Run only disruptive tests:
         bundle exec rspec --tag disruptive
 
       Run ALL tests (including disruptive):
-        bundle exec rspec --tag ~disruptive
+        RSPEC_DISABLE_EXCLUSIONS=true bundle exec rspec
 
       Run specific file with all tests:
-        bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb --tag disruptive
+        RSPEC_DISABLE_EXCLUSIONS=true bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb
 
       #{"=" * 60}
 
@@ -74,7 +77,8 @@ RSpec.configure do |config|
     # Only capture network state if disruptive tests will run
     # Check if disruptive tests are included (either explicitly or by not being excluded)
     disruptive_tests_will_run = !config.exclusion_filter[:disruptive] || 
-                               config.inclusion_filter[:disruptive]
+                               config.inclusion_filter[:disruptive] ||
+                               ENV['RSPEC_DISABLE_EXCLUSIONS'] == 'true'
     
     if disruptive_tests_will_run
       NetworkStateManager.capture_state
