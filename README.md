@@ -11,25 +11,25 @@ or, you may need to precede that command with `sudo`:
 `sudo gem install wifi-wand`
 
 The `wifi-wand` gem enables the query and management 
-of WiFi configuration and environment on Mac and Ubuntu systems.
-The code encapsulates the Mac OS specific logic in model classes 
-to more easily add support for other operating systems,
-Currently supported: macOS and Ubuntu Linux.
+of WiFi configuration, environment, and behavior, on Mac and Ubuntu systems.
+Internally, it uses OS-specific command line utilities to interact with the
+underlying operating system -- for example, `networksetup`, `system_profiler`,
+and `ipconfig` on macOS, and `nmcli`, `iw`, and `ip` on Ubuntu Linux.
+However, the code encapsulates the OS-specific logic in model subclasses with identical
+method names and argument lists, so that they present a unified interface for use in:
 
-It can be run in single-command or interactive mode. 
-Interactive mode uses the [pry](https://github.com/pry/pry) gem,
-providing an interface familiar to Rubyists and other 
-[REPL](https://en.wikipedia.org/wiki/Read%E2%80%93eval%E2%80%93print_loop) users.
-
+* command line invocation (e.g. `wifi-wand co my-network my-password` to connect to a network)
+* interactive shell (REPL) sessions where the wifi-wand methods are effectively DSL commands (`wifi-wand -s` to run in interactive mode)
+* other Ruby applications as a gem (library) (`require wifi-wand`)
 
 ### Usage
 
-Available commands can be seen by using the `h` (or `help`) option. Here is its
+Available commands can be seen by using the `-h` (or `--help`) option. Here is its
 output at the time of this writing:
 
 ```
-$ wifi-wand -h
-Command Line Switches:                    [wifi-wand version 2.14.0 at https://github.com/keithrbennett/wifiwand]
+
+Command Line Switches:                    [wifi-wand version 2.20.0 at https://github.com/keithrbennett/wifiwand]
 
 -o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
 -p wifi_interface_name    - override automatic detection of interface name with this name
@@ -66,10 +66,6 @@ When in interactive shell mode:
   * remember to quote string literals.
   * for pry commands, use prefix `%`.
 ```
-
-Internally, it uses OS-specific command line utilities to interact with the
-underlying operating system -- for example, `networksetup`, `system_profiler`,
-and `ipconfig` on macOS, and `nmcli`, `iw`, and `ip` on Ubuntu Linux.
 
 ### Pretty Output
 
@@ -120,9 +116,6 @@ sudo gem install pry-coolline
 
 ### Using the Shell
 
-_If the program immediately exits when you try to run the shell, try upgrading `pry` and `pry-byebug`.
-This can be done by running `gem install pry; gem install pry-byebug`._
-
 The shell, invoked with the `-s` switch on the command line, provides an interactive
 session. It can be useful when:
 
@@ -132,7 +125,6 @@ session. It can be useful when:
 * you want to incorporate these commands into other Ruby code interactively
 * you want to combine the results of commands with other OS commands 
   (you can shell out to run other command line programs by preceding the command with a period (`.`))   .
-
 
 ### Using Variables in the Shell
 
