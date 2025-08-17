@@ -20,7 +20,7 @@ class Ubuntu < BaseOs
 
   def create_model(options)
     require_relative '../models/ubuntu_model'
-    UbuntuModel.new(options)
+    UbuntuModel.create_model(options)
   end
 end
 end

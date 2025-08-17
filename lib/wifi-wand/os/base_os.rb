@@ -15,6 +15,7 @@ class BaseOs < Struct.new(:id, :display_name)
     if instantiated_by_subclass
       super
     else
+      # Prohibit BaseOs.new call
       raise NonSubclassInstantiationError.new
     end
   end

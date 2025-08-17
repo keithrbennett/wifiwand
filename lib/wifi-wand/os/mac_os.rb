@@ -14,7 +14,7 @@ class MacOs < BaseOs
 
   def create_model(options)
     require_relative '../models/mac_os_model'
-    MacOsModel.new(options)
+    MacOsModel.create_model(options)
   end
 end
 end

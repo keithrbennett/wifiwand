@@ -15,8 +15,14 @@ class MacOsModel < BaseModel
   
   def initialize(options = OpenStruct.new)
     super
-    @macos_version = detect_macos_version
-    validate_macos_version
+  end
+
+  def macos_version
+    @macos_version ||= detect_macos_version
+  end
+
+  def self.os_id
+    :mac
   end
 
   # Detects the Wi-Fi service name dynamically (e.g., "Wi-Fi", "AirPort", etc.)
@@ -486,11 +492,21 @@ class MacOsModel < BaseModel
   end
   private :supported_version?
 
+  def validate_os_preconditions
+    # All core commands are built-in, just warn about optional ones
+    unless command_available_using_which?("swift")
+      puts "Warning: Swift not available. Some advanced features may use fallback methods. Install with: xcode-select --install" if verbose_mode
+    end
+    
+    :ok
+  end
+
   def run_swift_command(basename, *args)
     swift_filespec = File.absolute_path(File.join(File.dirname(__FILE__), "../../../swift/#{basename}.swift"))
     argv = ['swift', swift_filespec] + args
     command = argv.compact.join(' ')
     run_os_command(command)
   end
+
 end
 end

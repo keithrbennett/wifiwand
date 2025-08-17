@@ -12,15 +12,30 @@ class BaseModel
 
   attr_accessor :wifi_interface, :verbose_mode
 
+  def self.create_model(options = OpenStruct.new)
+    instance = new(options)
+    instance.init if current_os_matches_this_model?
+    instance
+  end
+
+  def self.current_os_matches_this_model?
+    WifiWand::OperatingSystems.current_os&.id == os_id
+  end
+
   def initialize(options)
+    @options = options
     @verbose_mode = options.verbose
+  end
+
+  def init
+    validate_os_preconditions
 
     # Initialize wifi interface (e.g.: "wlp0s20f3")
-    if options.wifi_interface
-      if is_wifi_interface?(options.wifi_interface)
-        @wifi_interface = options.wifi_interface
+    if @options.wifi_interface
+      if is_wifi_interface?(@options.wifi_interface)
+        @wifi_interface = @options.wifi_interface
       else
-        raise Error.new("#{options.wifi_interface} is not a Wi-Fi interface.")
+        raise Error.new("#{@options.wifi_interface} is not a Wi-Fi interface.")
       end
     else
       @wifi_interface = detect_wifi_interface
@@ -30,6 +45,8 @@ class BaseModel
     if @wifi_interface.nil? || @wifi_interface.empty?
       raise Error.new("No Wi-Fi interface found. Ensure Wi-Fi hardware is present and drivers are installed.")
     end
+
+    self
   end
 
   # @return array of nameserver IP addresses from /etc/resolv.conf, or nil if not found
@@ -89,6 +106,7 @@ class BaseModel
     preferred_networks
     remove_preferred_network
     set_nameservers
+    validate_os_preconditions
     wifi_off
     wifi_on
     wifi_on?
@@ -457,6 +475,10 @@ class BaseModel
   
   def connected_network_password
     preferred_network_password(connected_network_name)
+  end
+
+  def command_available_using_which?(command)
+    !`which #{command} 2>/dev/null`.empty?
   end
 
   class OsCommandError < RuntimeError

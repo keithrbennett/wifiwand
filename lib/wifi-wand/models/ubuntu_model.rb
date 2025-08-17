@@ -11,6 +11,24 @@ class UbuntuModel < BaseModel
     super
   end
 
+  def self.os_id
+    :ubuntu
+  end
+
+  def validate_os_preconditions
+    missing_commands = []
+    
+    # Check for critical commands
+    missing_commands << "iw (install: sudo apt install iw)" unless command_available_using_which?("iw")
+    missing_commands << "nmcli (install: sudo apt install network-manager)" unless command_available_using_which?("nmcli")
+    
+    unless missing_commands.empty?
+      raise Error.new("Missing required commands: #{missing_commands.join(', ')}")
+    end
+    
+    :ok
+  end
+
   def detect_wifi_interface
     interfaces = run_os_command("iw dev | grep Interface | cut -d' ' -f2").split("\n")
     interfaces.first
