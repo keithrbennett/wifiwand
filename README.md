@@ -14,7 +14,7 @@ The `wifi-wand` gem enables the query and management
 of WiFi configuration and environment on Mac and Ubuntu systems.
 The code encapsulates the Mac OS specific logic in model classes 
 to more easily add support for other operating systems,
-but as of now, only Mac OS is supported. (Feel free to add an OS!)
+Currently supported: macOS and Ubuntu Linux.
 
 It can be run in single-command or interactive mode. 
 Interactive mode uses the [pry](https://github.com/pry/pry) gem,
@@ -67,8 +67,9 @@ When in interactive shell mode:
   * for pry commands, use prefix `%`.
 ```
 
-Internally, it uses several Mac command line utilities to interact with the
-underlying operating system.
+Internally, it uses OS-specific command line utilities to interact with the
+underlying operating system -- for example, `networksetup`, `system_profiler`,
+and `ipconfig` on macOS, and `nmcli`, `iw`, and `ip` on Ubuntu Linux.
 
 ### Pretty Output
 
@@ -95,7 +96,7 @@ See the help for which command line switches to use.
 
 ### Seeing the Underlying OS Commands and Output
 
-If you would like to see the Mac OS commands and their output, 
+If you would like to see the OS commands and their output, 
 you can do so by specifying "-v" (for _verbose_) on the command line.
 
 You may notice that some commands are executed more than once. This is to simplify the application logic
@@ -256,7 +257,17 @@ Here is an example of how to do that:
 
 ```ruby
 require 'wifi-wand'
-model = WifiWand::MacOsModel.new
+model = WifiWand::OperatingSystems.create_model_for_current_os
+puts model.available_network_names.to_yaml # etc...
+```
+
+Or for a specific OS:
+
+```ruby
+require 'wifi-wand'
+model = WifiWand::MacOsModel.new  # For macOS
+# or
+model = WifiWand::UbuntuModel.new  # For Ubuntu
 puts model.available_network_names.to_yaml # etc...
 ```
 

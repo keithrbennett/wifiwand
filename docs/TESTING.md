@@ -10,7 +10,11 @@ The wifi-wand project uses RSpec for testing with a carefully designed structure
 
 ### Test Categories
 
-Tests are organized into three main categories based on their system impact:
+Tests are organized into two main categories based on their system impact:
+
+* disruptive - (requires `--tag disruptive to run) any tests that can potentially modify the system
+* nondisruptive - (default test suite run mode or with `--tag ~disruptive) all other tests
+
 
 #### 1. Read-only Tests (Default)
 - **Safety Level**: ✅ Safe to run anytime
@@ -103,39 +107,15 @@ bundle exec rspec
 - `:os_mac` - Mac OS-specific tests
 - Future: `:os_linux`, `:os_bsd`, etc.
 
-### Detailed Commands
-
-#### Safe Read-Only Tests
-```bash
-# Run all read-only tests
-bundle exec rspec
-
-# Run only Ubuntu model read-only tests
-bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb
-
-# Run read-only tests with verbose output
-bundle exec rspec --format documentation
-```
-
-#### Disruptive Tests
-```bash
-# Run ALL tests (read-only + disruptive)
-bundle exec rspec --tag disruptive
-```
-
-**Note:** `bundle exec rspec --tag ~disruptive` is equivalent to `bundle exec rspec` - both exclude disruptive tests.
-
-
-
 ## Test Filtering with RSpec Tags
 
 ### Available Tags
 
-| Tag | Description | Default Behavior |
-|-----|-------------|------------------|
+| Tag           | Description                                           | Default Behavior      |
+|---------------|-------------------------------------------------------|-----------------------|
 | `:disruptive` | Tests that modify system state or network connections | ❌ Excluded by default |
-| `:os_ubuntu` | Ubuntu-specific tests | See OS Filtering |
-| `:os_mac` | macOS-specific tests | See OS Filtering |
+| `:os_ubuntu`  | Ubuntu-specific tests                                 | See OS Filtering      |
+| `:os_mac`     | macOS-specific tests                                  | See OS Filtering      |
 
 ### Tag Combinations
 
