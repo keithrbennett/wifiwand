@@ -69,19 +69,7 @@ When in interactive shell mode:
 
 ### Pretty Output
 
-For nicely formatted output of the `info` command,
-the `awesome_print` gem is used if it is installed;
-otherwise, the somewhat less awesome pretty print (`pp`) is used.  Therefore,
-installation of the `awesome_print` gem is automatic as it's a required dependency. 
-This is accomplished by the following command:
-
-The `awesome_print` gem is installed automatically with `wifi-wand`
-
-You may need to precede this command with `sudo `, especially if you are using the 
-version of Ruby that comes packaged with MacOS.
-
-The `awesome_print` gem is used for formatting output in both non-interactive and interactive shell modes.
-
+The `awesome_print` gem is used for formatting output nicely in both non-interactive and interactive (shell) modes.
 
 ### JSON, YAML, and Other Output Formats
 
@@ -208,33 +196,22 @@ wifi-wand t on && say "Internet connected" # Play audible message when Internet 
 
 #### Interactive Shell Commands
 
-When in shell mode, commands generally return the target object (e.g. the array of
-available networks) AND display it formatted with awesome_print. 
-This gives you both the raw object for use in further expressions AND readable output 
-for immediate viewing.
-
-You can still use the `fancy_puts` method or its alias `fp` if you want to 
-explicitly format and display a value, but this is now optional since return values 
-are automatically formatted. For example:
+The `pry` shell used by wifi_wand outputs the last evaluated value in the terminal session.
+The `awesome_print` gem is used to format that output nicely.
+In addition to outputting the value to the terminal, the command's value can be used in an expression.
+For example:
 
 ```
-[5] pry(#<WifiWand::CommandLineInterface>)> fp pr.first(3)
-[
-    [0] "  AIS SMART Login",
-    [1] " BubblesLive",
-    [2] "#HKAirport Free WiFi"
-]
+[14] pry(#<WifiWand::CommandLineInterface>)> local_ip = info['ip_address'].split("\n").grep(/192/).first
+=> "192.168.110.251"
+[15] pry(#<WifiWand::CommandLineInterface>)> puts "My IP address on the LAN is #{local_ip.inspect}"
+My IP address on the LAN is "192.168.110.251"
 ```
-
-For best display results, be sure `awesome_print` is `gem install`ed.
-The program will silently use a not-as-nice formatter without it.
-(This silence is intentional, so that users who don't want to install
-`awesome-print` will not be bothered.)
 
 If you want to suppress output altogether (e.g. if you are using the value in an
 expression and don't need to see it displayed,
 you can simply append `;nil` to the expression
-and `nil` will be value output to the console. For example:
+and `nil` will be the value output to the console. For example:
 
 ```
 [10] pry(#<WifiWand::CommandLineInterface>)> available_networks = avail_nets; nil
@@ -271,7 +248,7 @@ but these commands could also each be specified on a line of its own.)
 
 ```
 # Print out WiFi info:
-i
+> info
 
 # Cycle (off/on) the network then connect to the specified network not requiring a password
 > cycle; connect 'my-network'
@@ -282,8 +259,8 @@ i
 # Cycle (off/on) the network then connect to the specified network using the specified password
 > cycle; connect 'my-network', 'my-password'
 
-> @i = i; puts "You are connected on port #{@i[:port]} to #{@i[:network]} on IP address #{@i[:ip_address]}."
-You are connected on port en0 to .@ AIS SUPER WiFi on IP address 172.27.145.225.
+> @i = i; "Interface: #{@i['interface']}, SSID: #{@i['network']}, IP address: #{@i['ip_address']}."
+Interface: wlp0s20f3, SSID: CafeBleu 5G, IP address: 192.168.110.251.
 
 > puts "There are #{pr.size} preferred networks."
 There are 341 preferred networks.
