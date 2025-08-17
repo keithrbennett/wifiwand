@@ -276,15 +276,12 @@ There are 341 preferred networks.
 # Define a method to wait for the Internet connection to be active.
 # (This functionality is included in the `till` command.)
 # Call it, then output celebration message:
-[17] pry(#<WifiWandView>)> def wait_for_internet; loop do; break if ci; sleep 0.5; end; end
-[18] pry(#<WifiWandView>)> wait_for_internet; puts "Connected!"
+> def wait_for_internet; loop do; break if ci; sleep 0.1; end; end
+> wait_for_internet; puts "Connected!"
 Connected!
 
-# Same, but using a lambda instead of a method so we can use a variable name
-# and not need to worry about method name collision:
-@wait_for_internet = -> { loop do; break if ci; sleep 0.5; end }
-@wait_for_internet.() ; puts "Connected!"
-Connected!
+# Use the model's `till` method to simplify:
+> till :conn, 0.1
 ```
 
 
