@@ -259,9 +259,9 @@ describe UbuntuModel, :os_ubuntu do
   # Network connection tests (highest risk)
   context 'network connection operations', :disruptive do
 
-    describe '#os_level_connect' do
+    describe '#_connect' do
       it 'raises error for non-existent network' do
-        expect { subject.os_level_connect('non_existent_network_123') }.to raise_error(WifiWand::Error)
+        expect { subject._connect('non_existent_network_123') }.to raise_error(WifiWand::Error)
       end
     end
 

@@ -303,7 +303,7 @@ class BaseModel
 
   # Connects to the passed network name, optionally with password.
   # Turns wifi on first, in case it was turned off.
-  # Relies on subclass implementation of os_level_connect().
+  # Relies on subclass implementation of _connect().
   def connect(network_name, password = nil)
     # Allow symbols and anything responding to to_s for user convenience
     network_name = network_name&.to_s
