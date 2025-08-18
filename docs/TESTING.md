@@ -12,8 +12,10 @@ The wifi-wand project uses RSpec for testing with a carefully designed structure
 
 Tests are organized into two main categories based on their system impact:
 
-* disruptive - (requires `--tag disruptive to run) any tests that can potentially modify the system
-* nondisruptive - (default test suite run mode or with `--tag ~disruptive) all other tests
+* disruptive - (requires `--tag disruptive` to run) any tests that can potentially modify the system
+* nondisruptive - (default test suite run mode or with `--tag ~disruptive`) all other tests
+
+**Note:** The `~` symbol in RSpec means "NOT" - so `--tag ~disruptive` means "run all tests that are NOT tagged as disruptive".
 
 
 #### 1. Read-only Tests (Default)
@@ -39,7 +41,7 @@ Tests are organized into two main categories based on their system impact:
 
 **Network Restoration Features:**
 - Automatic network state capture before running disruptive tests
-- Automatic reconnection to your original network after tests complete
+- Automatic reconnection to your original network after each disruptive test completes and after the entire test suite has completed
 - On macOS: May prompt for keychain access permissions to retrieve network passwords
 - Graceful fallback: If restoration fails, warns user to manually reconnect
 - Individual tests can call `restore_network_state` to restore connection mid-test
@@ -124,6 +126,7 @@ bundle exec rspec
 bundle exec rspec --tag disruptive
 
 # Run ALL tests (including disruptive)
+# This environment variable bypasses all default exclusions
 RSPEC_DISABLE_EXCLUSIONS=true bundle exec rspec
 
 # Run only non-disruptive tests (default behavior)
@@ -402,6 +405,21 @@ VERBOSE=true bundle exec rspec
 # Check WiFi status before/after tests
 nmcli radio wifi
 nmcli connection show
+nmcli device status
+
+# Check specific WiFi interface
+iw dev
+iwconfig
+
+# Verify NetworkManager service
+systemctl status NetworkManager
+
+# Check for conflicting network managers
+ps aux | grep -E "(wpa_supplicant|dhcpcd|connman)"
+
+# Test basic connectivity
+ping -c 3 8.8.8.8
+nslookup google.com
 ```
 
 #### Isolate Test Failures
@@ -426,14 +444,6 @@ Example CI configuration focus:
   run: bundle exec rspec
 ```
 
-### Test Metrics
-
-Current test coverage:
-- **Ubuntu Model**: 16 examples (14 passing, 2 pending)
-- **Base Model**: Error handling tests
-- **macOS Model**: Integration tests
-
-Target coverage: 80%+ for all core functionality
 
 ## Best Practices
 
