@@ -344,7 +344,7 @@ class BaseModel
   def remove_preferred_networks(*network_names)
     network_names = network_names.first if network_names.first.is_a?(Array) && network_names.size == 1
     networks_to_remove = network_names & preferred_networks # exclude any nonexistent networks
-    networks_to_remove.each { |name| remove_preferred_network(name) }
+    networks_to_remove.each { |name| remove_preferred_network(name.to_s) }
   end
 
 
