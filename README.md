@@ -2,13 +2,17 @@
 
 # wifi-wand
 
+### Installation
+
 To install this software, run:
 
 `gem install wifi-wand`
 
-or, you may need to precede that command with `sudo`:
+or, you may need to precede that command with `sudo` to install it system-wide:
 
 `sudo gem install wifi-wand`
+
+### Description
 
 The `wifi-wand` gem enables the query and management 
 of WiFi configuration, environment, and behavior, on Mac and Ubuntu systems.
@@ -22,10 +26,28 @@ method names and argument lists, so that they present a unified interface for us
 * interactive shell (REPL) sessions where the wifi-wand methods are effectively DSL commands (`wifi-wand -s` to run in interactive mode)
 * other Ruby applications as a gem (library) (`require wifi-wand`)
 
+### Quick Start
+
+```bash
+# Check WiFi status
+wifi-wand w
+
+# See available networks
+wifi-wand a
+
+# Connect to a network
+wifi-wand co "MyNetwork" "password"
+
+# Get WiFi information
+wifi-wand i
+
+# Start interactive shell
+wifi-wand -s
+```
+
 ### Usage
 
-Available commands can be seen by using the `-h` (or `--help`) option. Here is its
-output at the time of this writing:
+Available commands can be seen by using the `-h` (or `--help`) option:
 
 ```
 
@@ -76,6 +98,7 @@ The `awesome_print` gem is used for formatting output nicely in both non-interac
 You can specify that output in _noninteractive_ mode be in a certain format.
 Currently, JSON, "Pretty" JSON, YAML, inspect, and puts formats are supported.
 See the help for which command line switches to use.
+In _interactive_ mode, you can call the usual Ruby methods (`to_json`, `to_yaml`, etc.) instead.
 
 
 ### Seeing the Underlying OS Commands and Output
@@ -87,57 +110,49 @@ You may notice that some commands are executed more than once. This is to simpli
 and eliminate the need for the complexity of balancing the speed that a cache offers and the risk
 of stale data.
 
+### Interactive Shell Mode vs Command Line Mode
 
-### Troubleshooting
-
-If you try to run the shell, the script will require the `pry` gem, so that will need to be installed.
-`pry` in turn requires access to a `readline` library. If you encounter an error relating to finding a
-`readline` library, this can probably be fixed by installing the `pry-coolline` gem: `gem install pry-coolline`.
-If you are using the Ruby packaged with Mac OS, or for some other reason require root access to install
-gems, you will need to precede those commands with `sudo`:
-
-```
-sudo gem install pry
-sudo gem install pry-coolline
+**Command Line Mode** (default): Execute single commands and exit
+```bash
+wifi-wand info          # Run once, show output, exit
+wifi-wand connect MyNet # Connect and exit
 ```
 
+**Interactive Shell Mode** (`-s` flag): Start a persistent Ruby session
+```bash
+wifi-wand -s            # Enter interactive mode
+[1] pry(#<WifiWandView>)> info
+[2] pry(#<WifiWandView>)> connect "MyNet"
+[3] pry(#<WifiWandView>)> cycle; connect "MyNet"
+```
 
-### Using the Shell
+The shell is useful when you want to:
+* Issue multiple commands without restarting the program
+* Combine commands and manipulate their output with Ruby code
+* Use the data in formats not provided by the CLI
+* Shell out to other programs (prefix with `.`)
+* Work with the results interactively
 
-The shell, invoked with the `-s` switch on the command line, provides an interactive
-session. It can be useful when:
-
-* you want to issue multiple commands
-* you want to combine commands
-* you want the data in a format not provided by this application
-* you want to incorporate these commands into other Ruby code interactively
-* you want to combine the results of commands with other OS commands 
-  (you can shell out to run other command line programs by preceding the command with a period (`.`))   .
+If you `gem install` (or `sudo gem install` if necessary) the `pry-coolline` gem, than pry will use it
+for its readline operations. This can resolve some readline issues and adds several readline enhancements.
 
 ### Using Variables in the Shell
 
-There are a couple of things (that may be surprising) to keep in mind
-when using the shell. They relate to the fact that local variables
-and method calls use the same notation in Ruby (since use of parentheses
-in a method call is optional):
+#### Local Variable Shadowing
 
-1) In Ruby, when both a method and a local variable have the same name,
+In Ruby, when both a method and a local variable have the same name,
 the local variable will override the method name. Therefore, local variables
 may override this app's commands.  For example:
 
 ```
-[1] pry(#<WifiWandView>)> n  # network_name command
-=> ".@ AIS SUPER WiFi"
-[2] pry(#<WifiWandView>)> n = 123  # override it with a local variable
-=> 123
-[3] pry(#<WifiWandView>)> n  # 'n' no longer calls the method
-=> 123
-[4] pry(#<WifiWandView>)> ne  # but any other name that `network_name starts with will still call the method
-=> ".@ AIS SUPER WiFi"
-[5] pry(#<WifiWandView>)> network_name
-=> ".@ AIS SUPER WiFi"
-[6] pry(#<WifiWandView>)> ne_xzy123
-"ne_xyz123" is not a valid command or option. If you intend for this to be a string literal, use quotes.
+[1] pry(#<WifiWandView>)> x  # exit command
+➜  wifi-wand git:(master) ✗  
+[2] pry(#<WifiWandView>)> x = :foo  # override it with a local variable
+=> :foo
+[3] pry(#<WifiWandView>)> x  # 'x' no longer calls the exit method
+=> :foo
+[4] pry(#<WifiWandView>)> xit  # but the full method name still works
+➜  wifi-wand git:(master) ✗  
 ``` 
 
 If you don't want to deal with this, you could use global variables, instance variables,
