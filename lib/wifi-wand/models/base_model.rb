@@ -371,6 +371,10 @@ class BaseModel
     # the absence of an argument and a specification of nil will behave identically.
     wait_interval_in_secs ||= 0.5
 
+    if verbose_mode
+      puts "till waiting for #{target_status}, interval (seconds): #{wait_interval_in_secs}"
+    end
+
     finished_predicates = {
         conn: -> { connected_to_internet? },
         disc: -> { ! connected_to_internet? },
@@ -385,12 +389,23 @@ class BaseModel
           "Option must be one of #{finished_predicates.keys.inspect}. Was: #{target_status.inspect}")
     end
 
-    loop do
-      puts "no need to wait, state is already changed"
-      return if finished_predicate.()
+    if finished_predicate.()
+      puts "till completed without needing to wait" if verbose_mode
+      return nil
+    end
+
+    start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+    until finished_predicate.()
       sleep(wait_interval_in_secs)
       puts("waiting #{wait_interval_in_secs} seconds for #{target_status}: #{Time.now}")
     end
+
+    end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    if verbose_mode
+      puts "till #{target_status} wait time (seconds): #{end_time - start_time}"
+    end
+    nil
   end
 
 
@@ -444,6 +459,7 @@ class BaseModel
   end
   
   def restore_network_state(state)
+    puts "restore_network_state: #{state} called" if verbose_mode
     return :no_state_to_restore unless state
     
     # Restore wifi enabled state
