@@ -67,6 +67,9 @@ RSpec.configure do |config|
       Run specific file with all tests:
         RSPEC_DISABLE_EXCLUSIONS=true bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb
 
+      Verbose mode for WifiWand commands can be enabled by setting WIFIWAND_VERBOSE=true.
+      Current environment setting: WIFIWAND_VERBOSE=#{ENV['WIFIWAND_VERBOSE'] || '[undefined]'}
+
       #{"=" * 60}
 
     MESSAGE
