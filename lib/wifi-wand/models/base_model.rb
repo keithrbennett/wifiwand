@@ -386,8 +386,10 @@ class BaseModel
     end
 
     loop do
+      puts "no need to wait, state is already changed"
       return if finished_predicate.()
       sleep(wait_interval_in_secs)
+      puts("waiting #{wait_interval_in_secs} seconds for #{target_status}: #{Time.now}")
     end
   end
 
@@ -442,28 +444,32 @@ class BaseModel
   end
   
   def restore_network_state(state)
-    return unless state
+    return :no_state_to_restore unless state
     
     # Restore wifi enabled state
     if state[:wifi_enabled]
       unless wifi_on?
         wifi_on
-        sleep 3 # give time to automatically reconnect to previously connected network
+        till :on, 0.05
       end
     else
-      wifi_off if wifi_on?
+      if wifi_on?
+        wifi_off
+        till :off, 0.05
+      end
       return # If wifi should be off, we're done
     end
     
     # Restore network connection if one existed
     if state[:network_name] && state[:wifi_enabled]
       # If we are already connected to the original network, no need to proceed
-      return if wifi_on? == state[:wifi_enabled] && connected_network_name == state[:network_name]
+      return :already_connected if wifi_on? == state[:wifi_enabled] && connected_network_name == state[:network_name]
 
       begin
         # Try to reconnect with saved password or current password
         password = state[:network_password] || preferred_network_password(state[:network_name])
-        connect(state[:network_name], password); sleep 3
+        connect(state[:network_name], password)
+        till :conn, 0.25
       rescue => e
         puts "Warning: Could not restore network connection to '#{state[:network_name]}': #{e.message}"
         puts "You may need to manually reconnect to this network."

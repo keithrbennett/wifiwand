@@ -4,7 +4,7 @@ require_relative '../../../lib/wifi-wand/models/mac_os_model'
 module WifiWand
   describe MacOsModel do
     describe "version support" do
-      subject(:model) { MacOsModel.new(OpenStruct.new) }
+      subject(:model) { create_mac_os_test_model }
       
       it "compares version strings correctly" do
         test_cases = [
@@ -48,19 +48,19 @@ module WifiWand
       
       context "#validate_macos_version" do
         it "accepts supported versions" do
-          model = MacOsModel.new(OpenStruct.new)
+          model = create_mac_os_test_model
           model.instance_variable_set(:@macos_version, "12.0")
           expect { model.send(:validate_macos_version) }.not_to raise_error
         end
         
         it "rejects unsupported versions" do
-          model = MacOsModel.new(OpenStruct.new)
+          model = create_mac_os_test_model
           model.instance_variable_set(:@macos_version, "11.6")
           expect { model.send(:validate_macos_version) }.to raise_error(Error)
         end
         
         it "handles nil version gracefully" do
-          model = MacOsModel.new(OpenStruct.new)
+          model = create_mac_os_test_model
           model.instance_variable_set(:@macos_version, nil)
           expect { model.send(:validate_macos_version) }.not_to raise_error
         end
@@ -68,13 +68,13 @@ module WifiWand
       
       context "#detect_macos_version" do
         it "detects macOS version when command succeeds" do
-          model = MacOsModel.new(OpenStruct.new)
+          model = create_mac_os_test_model
           allow(model).to receive(:run_os_command).with("sw_vers -productVersion").and_return("15.6\n")
           expect(model.send(:detect_macos_version)).to eq("15.6")
         end
         
         it "returns nil when command fails" do
-          model = MacOsModel.new(OpenStruct.new)
+          model = create_mac_os_test_model
           allow(model).to receive(:run_os_command).with("sw_vers -productVersion").and_raise(StandardError.new("Command failed"))
           expect { model.send(:detect_macos_version) }.not_to raise_error
           expect(model.send(:detect_macos_version)).to be_nil

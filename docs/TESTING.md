@@ -119,6 +119,64 @@ bundle exec rspec
 | `:os_ubuntu`  | Ubuntu-specific tests                                 | See OS Filtering      |
 | `:os_mac`     | macOS-specific tests                                  | See OS Filtering      |
 
+## Verbose Testing Mode
+
+The test suite includes built-in support for verbose mode, which shows the actual OS commands being executed and their outputs during testing. This is extremely helpful for debugging test failures and understanding what wifi-wand is doing under the hood.
+
+### Environment Variable Control
+
+Use the `WIFIWAND_VERBOSE` environment variable to enable verbose mode:
+
+```bash
+# Enable verbose mode for all tests
+WIFIWAND_VERBOSE=true bundle exec rspec
+```
+
+### Test-Level Override
+
+Individual tests can override the environment variable setting:
+
+```ruby
+# Force verbose mode for this specific test (even if WIFIWAND_VERBOSE=false)
+subject { create_test_model(verbose: true) }
+
+# Force quiet mode for this specific test (even if WIFIWAND_VERBOSE=true)  
+subject { create_test_model(verbose: false) }
+
+# Use environment setting (default behavior)
+subject { create_test_model }
+```
+
+### What Verbose Mode Shows
+
+When verbose mode is enabled, you'll see:
+
+- **OS Commands**: The exact command line being executed (e.g., `nmcli device wifi list`)
+- **Command Duration**: How long each command took to execute
+- **Command Output**: The raw stdout/stderr from each command
+
+**Example verbose output:**
+```
+Attempting to run OS command: nmcli device wifi list
+Duration: 0.1234 seconds
+Command result:
+IN-USE  BSSID              SSID         MODE   CHAN  RATE        SIGNAL  BARS  SECURITY  
+*       AA:BB:CC:DD:EE:FF  MyNetwork    Infra  6     130 Mbit/s  72      ▂▄▆_  WPA2
+```
+
+### Helper Methods
+
+The test suite provides centralized helper methods for creating models:
+
+- `create_test_model(options = {})` - Creates model for current OS
+- `create_ubuntu_test_model(options = {})` - Creates Ubuntu model specifically  
+- `create_mac_os_test_model(options = {})` - Creates macOS model specifically
+
+These methods automatically handle:
+- ✅ Verbose mode configuration from `WIFIWAND_VERBOSE`
+- ✅ Test-specific option overrides
+- ✅ Proper model initialization with `create_model` factory method
+
 ### Tag Combinations
 
 ```bash
@@ -396,8 +454,11 @@ systemctl status NetworkManager
 # Run tests with verbose output
 bundle exec rspec --format documentation --backtrace
 
-# Run with debug logging
-VERBOSE=true bundle exec rspec
+# Run with wifi-wand verbose mode (shows OS commands and their outputs)
+WIFIWAND_VERBOSE=true bundle exec rspec
+
+# Run specific tests with verbose mode
+WIFIWAND_VERBOSE=true bundle exec rspec --tag disruptive
 ```
 
 #### Check System State

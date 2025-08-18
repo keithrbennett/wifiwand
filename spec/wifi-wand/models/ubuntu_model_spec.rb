@@ -4,7 +4,7 @@ module WifiWand
 
 describe UbuntuModel, :os_ubuntu do
 
-  subject { UbuntuModel.new(OpenStruct.new(verbose: false)) }
+  subject { create_ubuntu_test_model }
 
   # Read-only tests (no system state changes)
   context 'read-only operations', :read_only do

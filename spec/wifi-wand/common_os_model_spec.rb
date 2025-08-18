@@ -3,11 +3,7 @@ require_relative '../../lib/wifi-wand/operating_systems'
 describe 'Common WiFi Model Behavior (All OS)' do
   
   # Automatically instantiate the correct model for the current OS
-  subject do
-    os_detector = WifiWand::OperatingSystems.new
-    current_os = os_detector.current_os
-    current_os.create_model(OpenStruct.new(verbose: false))
-  end
+  subject { create_test_model }
 
   # These tests run on any OS - interface consistency tests
   describe '#internet_tcp_connectivity?' do
