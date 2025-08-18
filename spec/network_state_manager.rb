@@ -1,7 +1,7 @@
 module NetworkStateManager
 
   def self.model
-    @model ||= WifiWand::OperatingSystems.create_model_for_current_os(OpenStruct.new(verbose: false))
+    @model ||= WifiWand::OperatingSystems.create_model_for_current_os(OpenStruct.new(verbose: ENV['WIFIWAND_VERBOSE'] == 'true'))
   end
 
   def self.capture_state
