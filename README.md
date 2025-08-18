@@ -106,10 +106,6 @@ In _interactive_ mode, you can call the usual Ruby methods (`to_json`, `to_yaml`
 If you would like to see the OS commands and their output, 
 you can do so by specifying "-v" (for _verbose_) on the command line.
 
-You may notice that some commands are executed more than once. This is to simplify the application logic
-and eliminate the need for the complexity of balancing the speed that a cache offers and the risk
-of stale data.
-
 ### Interactive Shell Mode vs Command Line Mode
 
 **Command Line Mode** (default): Execute single commands and exit
@@ -141,33 +137,38 @@ for its readline operations. This can resolve some readline issues and adds seve
 #### Local Variable Shadowing
 
 In Ruby, when both a method and a local variable have the same name,
-the local variable will override the method name. Therefore, local variables
+the local variable will shadow (override) the method name. Therefore, local variables
 may override this app's commands.  For example:
 
 ```
-[1] pry(#<WifiWandView>)> x  # exit command
-➜  wifi-wand git:(master) ✗  
-[2] pry(#<WifiWandView>)> x = :foo  # override it with a local variable
-=> :foo
-[3] pry(#<WifiWandView>)> x  # 'x' no longer calls the exit method
-=> :foo
-[4] pry(#<WifiWandView>)> xit  # but the full method name still works
-➜  wifi-wand git:(master) ✗  
+[1] pry(#<WifiWandView>)> x  # exit command, can be called as 'x', 'xi', or 'xit'
+$
+$ wifi-wand -s
+
+[1] pry(#<WifiWand::CommandLineInterface>)> x = :foo  # override it with a local variable
+:foo
+[2] pry(#<WifiWand::CommandLineInterface>)> x  # 'x' no longer calls the exit method
+:foo
+[3] pry(#<WifiWand::CommandLineInterface>)> xit  # but the full method name still works
+➜  ~ 
 ``` 
 
 If you don't want to deal with this, you could use global variables, instance variables,
 or constants, which will _not_ hide the methods:
 
 ```
-[7] pry(#<WifiWandView>)> N = 123
-[8] pry(#<WifiWandView>)> @n = 456
-[9] pry(#<WifiWandView>)> $n = 789
-[10] pry(#<WifiWandView>)> puts n, N, @n, $n
-.@ AIS SUPER WiFi
+[1] pry(#<WifiWand::CommandLineInterface>)> NETWORK_NAME = 123
+123
+[2] pry(#<WifiWand::CommandLineInterface>)> @network_name = 456
+456
+[3] pry(#<WifiWand::CommandLineInterface>)> $network_name = 789
+789
+[4] pry(#<WifiWand::CommandLineInterface>)> puts network_name, NETWORK_NAME, @network_name, $network_name
+Superfast_5G
 123
 456
 789
-=> nil
+nil  # (return value of puts)
 ```
 
 2) If you accidentally refer to a nonexistent variable or method name,
@@ -213,8 +214,9 @@ wifi-wand t on && say "Internet connected" # Play audible message when Internet 
 
 The `pry` shell used by wifi_wand outputs the last evaluated value in the terminal session.
 The `awesome_print` gem is used to format that output nicely.
-In addition to outputting the value to the terminal, the command's value can be used in an expression.
-For example:
+As with other REPL's, command return values can also be used in expressions, passed to methods,
+saved in variables, etc. In this example, the value returned by the wifi-wand command is saved
+in the local variable `local_ip`.
 
 ```
 [14] pry(#<WifiWand::CommandLineInterface>)> local_ip = info['ip_address'].split("\n").grep(/192/).first
@@ -223,13 +225,13 @@ For example:
 My IP address on the LAN is "192.168.110.251"
 ```
 
-If you want to suppress output altogether (e.g. if you are using the value in an
-expression and don't need to see it displayed,
-you can simply append `;nil` to the expression
-and `nil` will be the value output to the console. For example:
+By the way, if you want to suppress output altogether (e.g. if you are using the value in an
+expression and don't need to see it displayed, you can simply append `;nil` to the expression
+and `nil` will be the value output to the console. For example, the system may have hundreds
+of preferred networks, so you might want to suppress their output:
 
 ```
-[10] pry(#<WifiWand::CommandLineInterface>)> available_networks = avail_nets; nil
+[10] pry(#<WifiWand::CommandLineInterface>)> prs = pref_nets; nil
 => nil
 ```
 
@@ -300,17 +302,6 @@ Connected!
 ```
 
 
-### Dependent Gems
-
-Currently, dependent gems are installed automatically when this gem is installed.
-However, the program _will_ use other gems as follows:
-
-* `pry`, when the interactive shell is requested with the `-s` option
-* `awesome_print`, to provide nicely formatted output, to more nicely format output in non-interactive mode
-
-and as long as they are comfortable with the less pretty output.
-
-
 ### Public IP Information
 
 The information hash will normally include information about the public IP address.
@@ -327,7 +318,7 @@ open that page in your browser for you.
 
 ### Password Lookup Oddity
 
-You may find it odd (I did, anyway) that even if you issue the password command 
+You may find it odd (I did, anyway) that on macOS even if you issue the password command 
 (`mac_wifi password a-network-name`) using sudo, you will still be prompted 
 with a graphical dialog for both a user id and password. This is no doubt
 for better security, but it's unfortunate in that it makes it impossible to fully automate this task.
@@ -371,8 +362,10 @@ Apache 2 License (see LICENSE.txt)
 Logo designed and generously contributed by Anhar Ismail (Github: [@anharismail](https://github.com/anharismail), Twitter: [@aizenanhar](https://twitter.com/aizenanhar)).
 
 
-### Shameless Ad
+### Contact Me
 
 I am available for consulting, development, tutoring, training, troubleshooting, etc.
+Here is my contact information:
 
-You can contact me via GMail, Twitter, Github, and LinkedIn, as _keithrbennett_.
+* GMail, Github, LinkedIn, X, : _keithrbennett_
+* Website: [Bennett Business Solutions, Inc.](https://www.bbs-software.com)
