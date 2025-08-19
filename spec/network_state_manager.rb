@@ -1,7 +1,8 @@
 module NetworkStateManager
 
   def self.model
-    @model ||= WifiWand::OperatingSystems.create_model_for_current_os(OpenStruct.new(verbose: ENV['WIFIWAND_VERBOSE'] == 'true'))
+    options = OpenStruct.new(verbose: ENV['WIFIWAND_VERBOSE'] == 'true')
+    @model ||= WifiWand::OperatingSystems.create_model_for_current_os(options)
   end
 
   def self.capture_state
@@ -29,11 +30,7 @@ module NetworkStateManager
   def self.restore_state
     return unless @network_state
     
-    begin
-      model.restore_network_state(@network_state)
-    rescue => e
-      puts "Warning: Could not restore network state: #{e.message}"
-    end
+    model.restore_network_state(@network_state, fail_silently: true)
   end
 
   def self.state_available?

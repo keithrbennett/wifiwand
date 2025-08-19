@@ -458,37 +458,41 @@ class BaseModel
     }
   end
   
-  def restore_network_state(state)
+  def restore_network_state(state, fail_silently: false)
     puts "restore_network_state: #{state} called" if verbose_mode
     return :no_state_to_restore unless state
     
-    # Restore wifi enabled state
-    if state[:wifi_enabled]
-      unless wifi_on?
-        wifi_on
-        till :on, 0.05
+    begin
+      # Restore wifi enabled state
+      if state[:wifi_enabled]
+        unless wifi_on?
+          wifi_on
+          till :on, 0.05
+        end
+      else
+        if wifi_on?
+          wifi_off
+          till :off, 0.05
+        end
+        return # If wifi should be off, we're done
       end
-    else
-      if wifi_on?
-        wifi_off
-        till :off, 0.05
-      end
-      return # If wifi should be off, we're done
-    end
-    
-    # Restore network connection if one existed
-    if state[:network_name] && state[:wifi_enabled]
-      # If we are already connected to the original network, no need to proceed
-      return :already_connected if wifi_on? == state[:wifi_enabled] && connected_network_name == state[:network_name]
+      
+      # Restore network connection if one existed
+      if state[:network_name] && state[:wifi_enabled]
+        # If we are already connected to the original network, no need to proceed
+        return :already_connected if wifi_on? == state[:wifi_enabled] && connected_network_name == state[:network_name]
 
-      begin
         # Try to reconnect with saved password or current password
         password = state[:network_password] || preferred_network_password(state[:network_name])
         connect(state[:network_name], password)
         till :conn, 0.25
-      rescue => e
-        puts "Warning: Could not restore network connection to '#{state[:network_name]}': #{e.message}"
-        puts "You may need to manually reconnect to this network."
+      end
+    rescue => e
+      if fail_silently
+        $stderr.puts "Warning: Could not restore network state: #{e.message}"
+        $stderr.puts "You may need to manually reconnect to: #{state[:network_name]}" if state[:network_name]
+      else
+        raise
       end
     end
   end

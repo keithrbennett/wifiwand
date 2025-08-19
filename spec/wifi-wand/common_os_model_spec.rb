@@ -283,4 +283,79 @@ describe 'Common WiFi Model Behavior (All OS)' do
     include_examples 'interface commands complete without error', false
   end
 
+  describe '#restore_network_state' do
+    let(:valid_state) do
+      {
+        wifi_enabled: true,
+        network_name: 'TestNetwork',
+        network_password: 'testpass',
+        interface: 'wlan0'
+      }
+    end
+
+    context 'with fail_silently: false' do
+      it 'raises exceptions on wifi operation failures' do
+        allow(subject).to receive(:wifi_on?).and_return(false)
+        allow(subject).to receive(:wifi_on).and_raise(StandardError.new('WiFi hardware error'))
+
+        expect {
+          subject.restore_network_state(valid_state, fail_silently: false)
+        }.to raise_error(StandardError, 'WiFi hardware error')
+      end
+
+      it 'raises exceptions on connection failures' do
+        allow(subject).to receive(:wifi_on?).and_return(true)
+        allow(subject).to receive(:connected_network_name).and_return('OtherNetwork')
+        allow(subject).to receive(:preferred_network_password).and_return('testpass')
+        allow(subject).to receive(:connect).and_raise(StandardError.new('Network unavailable'))
+
+        expect {
+          subject.restore_network_state(valid_state, fail_silently: false)
+        }.to raise_error(StandardError, 'Network unavailable')
+      end
+    end
+
+    context 'with fail_silently: true' do
+      it 'swallows wifi operation failures and logs to stderr' do
+        allow(subject).to receive(:wifi_on?).and_return(false)
+        allow(subject).to receive(:wifi_on).and_raise(StandardError.new('WiFi hardware error'))
+
+        expect($stderr).to receive(:puts).with('Warning: Could not restore network state: WiFi hardware error')
+        expect($stderr).to receive(:puts).with('You may need to manually reconnect to: TestNetwork')
+
+        expect {
+          subject.restore_network_state(valid_state, fail_silently: true)
+        }.not_to raise_error
+      end
+
+      it 'swallows connection failures and logs to stderr' do
+        allow(subject).to receive(:wifi_on?).and_return(true)
+        allow(subject).to receive(:connected_network_name).and_return('OtherNetwork')
+        allow(subject).to receive(:preferred_network_password).and_return('testpass')
+        allow(subject).to receive(:connect).and_raise(StandardError.new('Network unavailable'))
+        allow(subject).to receive(:till)
+
+        expect($stderr).to receive(:puts).with('Warning: Could not restore network state: Network unavailable')
+        expect($stderr).to receive(:puts).with('You may need to manually reconnect to: TestNetwork')
+
+        expect {
+          subject.restore_network_state(valid_state, fail_silently: true)
+        }.not_to raise_error
+      end
+    end
+
+    it 'returns :no_state_to_restore when state is nil' do
+      result = subject.restore_network_state(nil)
+      expect(result).to eq(:no_state_to_restore)
+    end
+
+    it 'returns :already_connected when already on correct network' do
+      allow(subject).to receive(:wifi_on?).and_return(true)
+      allow(subject).to receive(:connected_network_name).and_return('TestNetwork')
+
+      result = subject.restore_network_state(valid_state)
+      expect(result).to eq(:already_connected)
+    end
+  end
+
 end
