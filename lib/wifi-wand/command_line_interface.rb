@@ -43,21 +43,23 @@ class CommandLineInterface
     end
   end
 
-  def self.load_open_resources
-    require 'yaml'
-    yaml_path = File.join(File.dirname(__FILE__), 'data', 'open_resources.yml')
-    data = YAML.load_file(yaml_path)
-    resources = data['resources'].map do |resource|
-      OpenResource.new(resource['code'], resource['url'], resource['desc'])
+  def open_resources
+    @open_resources ||= begin
+      require 'yaml'
+      yaml_path = File.join(File.dirname(__FILE__), 'data', 'open_resources.yml')
+      data = YAML.load_file(yaml_path)
+      resources = data['resources'].map do |resource|
+        OpenResource.new(resource['code'], resource['url'], resource['desc'])
+      end
+      OpenResources.new(resources)
     end
-    OpenResources.new(resources)
   end
 
-  OPEN_RESOURCES = load_open_resources
 
 
   # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.
-  HELP_TEXT = "
+  def help_text
+    @help_text ||= "
 Command Line Switches:                    [wifi-wand version #{WifiWand::VERSION} at https://github.com/keithrbennett/wifiwand]
 
 -o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
@@ -84,7 +86,7 @@ of[f]                     - turns wifi off
 pa[ssword] network-name   - password for preferred network-name
 pr[ef_nets]               - preferred (saved) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
-ro[pen]                   - open resource (#{OPEN_RESOURCES.help_string})
+ro[pen]                   - open resource (#{open_resources.help_string})
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                             1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
                             2) wait interval between tests, in seconds (optional, defaults to 0.5 seconds)
@@ -96,6 +98,7 @@ When in interactive shell mode:
   * for pry commands, use prefix `%`.
 
 "
+  end
 
   def initialize(options)
     current_os = OperatingSystems.new.current_os
@@ -123,7 +126,7 @@ When in interactive shell mode:
 
 
   def print_help
-    puts HELP_TEXT
+    puts help_text
   end
 
 
@@ -340,13 +343,13 @@ When in interactive shell mode:
   # Use Mac OS 'open' command line utility
   def cmd_ro(*resource_codes)
     if resource_codes.empty?
-      puts "Please specify a resource to open:\n #{OPEN_RESOURCES.help_string.gsub(',', "\n")}"
+      puts "Please specify a resource to open:\n #{open_resources.help_string.gsub(',', "\n")}"
       return
     end
 
     resource_codes.each do |code|
       code = code.to_s  # accommodate conversion of parameter from other types, esp. symbols
-      resource = OPEN_RESOURCES.find_by_code(code)
+      resource = open_resources.find_by_code(code)
       if resource
         if code == 'spe' && Dir.exist?('/Applications/Speedtest.app/')
           model.open_application('Speedtest')

@@ -17,7 +17,7 @@ module WifiWand
 
     # Tests TCP connectivity to internet hosts (not localhost)
     def tcp_connectivity?
-      test_endpoints = load_tcp_test_endpoints
+      test_endpoints = tcp_test_endpoints
       
       if @verbose
         endpoints_list = test_endpoints.map { |e| "#{e[:host]}:#{e[:port]}" }.join(', ')
@@ -57,7 +57,7 @@ module WifiWand
 
     # Tests DNS resolution capability
     def dns_working?
-      test_domains = load_dns_test_domains
+      test_domains = dns_test_domains
       
       if @verbose
         puts "Testing DNS resolution for domains: #{test_domains.join(', ')}"
@@ -95,16 +95,20 @@ module WifiWand
 
     private
 
-    def load_tcp_test_endpoints
-      yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'tcp_test_endpoints.yml')
-      data = YAML.load_file(yaml_path)
-      data['endpoints'].map { |endpoint| endpoint.transform_keys(&:to_sym) }
+    def tcp_test_endpoints
+      @tcp_test_endpoints ||= begin
+        yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'tcp_test_endpoints.yml')
+        data = YAML.load_file(yaml_path)
+        data['endpoints'].map { |endpoint| endpoint.transform_keys(&:to_sym) }
+      end
     end
 
-    def load_dns_test_domains
-      yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'dns_test_domains.yml')
-      data = YAML.load_file(yaml_path)
-      data['domains'].map { |domain| domain['domain'] }
+    def dns_test_domains
+      @dns_test_domains ||= begin
+        yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'dns_test_domains.yml')
+        data = YAML.load_file(yaml_path)
+        data['domains'].map { |domain| domain['domain'] }
+      end
     end
   end
 end
