@@ -10,8 +10,6 @@ module WifiWand
     # @param target_status must be in [:conn, :disc, :off, :on]; waits for that state
     # @param wait_interval_in_secs sleeps this interval between retries; if nil or absent,
     #        a default will be provided
-    #
-    # Connected is defined as being able to connect to an external web site.
     def wait_for(target_status, wait_interval_in_secs = nil)
       # One might ask, why not just put the 0.5 up there as the default argument.
       # We could do that, but we'd still need the line below in case nil
@@ -20,7 +18,7 @@ module WifiWand
       wait_interval_in_secs ||= 0.5
 
       if @verbose
-        puts "till waiting for #{target_status}, interval (seconds): #{wait_interval_in_secs}"
+        puts "StatusWaiter: waiting for #{target_status}, interval (seconds): #{wait_interval_in_secs}"
       end
 
       finished_predicates = {
@@ -38,7 +36,7 @@ module WifiWand
       end
 
       if finished_predicate.()
-        puts "till completed without needing to wait" if @verbose
+        puts "StatusWaiter: completed without needing to wait" if @verbose
         return nil
       end
 
@@ -46,12 +44,12 @@ module WifiWand
 
       until finished_predicate.()
         sleep(wait_interval_in_secs)
-        puts("waiting #{wait_interval_in_secs} seconds for #{target_status}: #{Time.now}")
+        puts("StatusWaiter: waiting #{wait_interval_in_secs} seconds for #{target_status}: #{Time.now}")
       end
 
       end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       if @verbose
-        puts "till #{target_status} wait time (seconds): #{end_time - start_time}"
+        puts "StatusWaiter: #{target_status} wait time (seconds): #{end_time - start_time}"
       end
       nil
     end

@@ -119,14 +119,14 @@ describe WifiWand::StatusWaiter do
         
         expect {
           verbose_waiter.wait_for(:on, 0.1)
-        }.to output(/till waiting for on, interval.*0\.1/).to_stdout
+        }.to output(/StatusWaiter: waiting for on, interval.*0\.1/).to_stdout
       end
 
       it 'logs completion message when condition is already met' do
         allow(mock_model).to receive(:wifi_on?).and_return(true)
         expect {
           verbose_waiter.wait_for(:on)
-        }.to output(/till completed without needing to wait/).to_stdout
+        }.to output(/StatusWaiter: completed without needing to wait/).to_stdout
       end
 
       it 'logs total wait time when waiting is required' do
@@ -140,7 +140,7 @@ describe WifiWand::StatusWaiter do
         
         expect {
           verbose_waiter.wait_for(:on, 0.1)
-        }.to output(/till on wait time \(seconds\):/).to_stdout
+        }.to output(/StatusWaiter: on wait time \(seconds\):/).to_stdout
       end
     end
 
@@ -163,13 +163,13 @@ describe WifiWand::StatusWaiter do
         
         expect {
           verbose_waiter.wait_for(:on, 0.1)
-        }.to output(/till on wait time \(seconds\): 2\.5/).to_stdout
+        }.to output(/StatusWaiter: on wait time \(seconds\): 2\.5/).to_stdout
       end
     end
   end
 
   describe 'integration with BaseModel' do
-    it 'is accessible through BaseModel till method' do
+    it 'is accessible through BaseModel till method (delegates to wait_for)' do
       require_relative '../../../lib/wifi-wand/models/base_model'
       require 'ostruct'
       model = WifiWand::BaseModel.new(OpenStruct.new(verbose: false))
