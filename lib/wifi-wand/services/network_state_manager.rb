@@ -1,4 +1,4 @@
-
+require_relative '../timing_constants'
 
 module WifiWand
   class NetworkStateManager
@@ -29,12 +29,12 @@ module WifiWand
         if state[:wifi_enabled]
           unless @model.wifi_on?
             @model.wifi_on
-            @model.till :on, 0.05
+            @model.till :on, TimingConstants::WIFI_STATE_CHANGE_WAIT
           end
         else
           if @model.wifi_on?
             @model.wifi_off
-            @model.till :off, 0.05
+            @model.till :off, TimingConstants::WIFI_STATE_CHANGE_WAIT
           end
           return # If wifi should be off, we're done
         end
@@ -47,7 +47,7 @@ module WifiWand
           # Try to reconnect with saved password or current password
           password = state[:network_password] || @model.preferred_network_password(state[:network_name])
           @model.connect(state[:network_name], password)
-          @model.till :conn, 0.25
+          @model.till :conn, TimingConstants::NETWORK_CONNECTION_WAIT
         end
       rescue => e
         if fail_silently

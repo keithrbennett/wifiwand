@@ -1,3 +1,5 @@
+require_relative '../timing_constants'
+
 module WifiWand
   class StatusWaiter
     
@@ -15,7 +17,7 @@ module WifiWand
       # We could do that, but we'd still need the line below in case nil
       # was explicitly specified. The default argument of nil above emphasizes that
       # the absence of an argument and a specification of nil will behave identically.
-      wait_interval_in_secs ||= 0.5
+      wait_interval_in_secs ||= TimingConstants::DEFAULT_WAIT_INTERVAL
 
       if @verbose
         puts "StatusWaiter: waiting for #{target_status}, interval (seconds): #{wait_interval_in_secs}"

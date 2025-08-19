@@ -2,6 +2,7 @@ require 'socket'
 require 'timeout'
 require 'yaml'
 require 'ipaddr'
+require_relative '../timing_constants'
 
 module WifiWand
   class NetworkConnectivityTester
@@ -30,8 +31,8 @@ module WifiWand
       test_endpoints.each do |endpoint|
         Thread.new do
           begin
-            Timeout.timeout(2) do
-              Socket.tcp(endpoint[:host], endpoint[:port], connect_timeout: 2) do
+            Timeout.timeout(TimingConstants::TCP_CONNECTION_TIMEOUT) do
+              Socket.tcp(endpoint[:host], endpoint[:port], connect_timeout: TimingConstants::TCP_CONNECTION_TIMEOUT) do
                 success_queue.push(true)
                 puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}" if @verbose
               end
@@ -45,7 +46,7 @@ module WifiWand
       
       # Wait for first success or overall timeout
       begin
-        Timeout.timeout(2.5) do
+        Timeout.timeout(TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do
           # Return as soon as any thread succeeds
           success_queue.pop
         end
@@ -69,7 +70,7 @@ module WifiWand
       test_domains.each do |domain|
         Thread.new do
           begin
-            Timeout.timeout(2) do
+            Timeout.timeout(TimingConstants::DNS_RESOLUTION_TIMEOUT) do
               IPSocket.getaddress(domain)
               success_queue.push(true)
               puts "Successfully resolved #{domain}" if @verbose
@@ -83,7 +84,7 @@ module WifiWand
       
       # Wait for first success or overall timeout
       begin
-        Timeout.timeout(2.5) do
+        Timeout.timeout(TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do
           # Return as soon as any thread succeeds
           success_queue.pop
         end

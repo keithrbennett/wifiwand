@@ -3,6 +3,7 @@ require_relative 'operating_systems'
 require 'ostruct'
 require_relative 'error'
 require_relative 'version'
+require_relative 'timing_constants'
 
 module WifiWand
 
@@ -89,7 +90,7 @@ q[uit]                    - exits this program (interactive shell mode only) (se
 ro[pen]                   - open resource (#{open_resources.help_string})
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                             1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
-                            2) wait interval between tests, in seconds (optional, defaults to 0.5 seconds)
+                            2) wait interval between tests, in seconds (optional, defaults to #{WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL} seconds)
 w[ifi_on]                 - is the wifi on?
 x[it]                     - exits this program (interactive shell mode only) (see also 'q')
 
