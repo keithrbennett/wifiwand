@@ -5,12 +5,16 @@ require 'tempfile'
 require 'uri'
 require_relative 'helpers/command_output_formatter'
 require_relative '../error'
+require_relative '../services/command_executor'
+require_relative '../services/network_connectivity_tester'
+require_relative '../services/network_state_manager'
+require_relative '../services/status_waiter'
 
 module WifiWand
 
 class BaseModel
 
-  attr_accessor :wifi_interface, :verbose_mode
+  attr_accessor :wifi_interface, :verbose_mode, :command_executor, :connectivity_tester, :state_manager, :status_waiter
 
   def self.create_model(options = OpenStruct.new)
     instance = new(options)
@@ -25,6 +29,10 @@ class BaseModel
   def initialize(options)
     @options = options
     @verbose_mode = options.verbose
+    @command_executor = CommandExecutor.new(verbose: @verbose_mode)
+    @connectivity_tester = NetworkConnectivityTester.new(verbose: @verbose_mode)
+    @state_manager = NetworkStateManager.new(self, verbose: @verbose_mode)
+    @status_waiter = StatusWaiter.new(self, verbose: @verbose_mode)
   end
 
   def init
@@ -135,23 +143,7 @@ class BaseModel
   end
 
   def run_os_command(command, raise_on_error = true)
-    if verbose_mode
-      puts CommandOutputFormatter.command_attempt_as_string(command)
-    end
-
-    start_time = Time.now
-    output = `#{command} 2>&1` # join stderr with stdout
-
-    if verbose_mode
-      puts "Duration: #{'%.4f' % [Time.now - start_time]} seconds"
-      puts CommandOutputFormatter.command_result_as_string(output)
-    end
-
-    if $?.exitstatus != 0 && raise_on_error
-      raise OsCommandError.new($?.exitstatus, command, output)
-    end
-
-    output
+    @command_executor.run_os_command(command, raise_on_error)
   end
 
 
@@ -159,85 +151,17 @@ class BaseModel
   # Tests both TCP connectivity to internet hosts and DNS resolution.
   def connected_to_internet?
     return false unless wifi_on? # no need to try
-    internet_tcp_connectivity? && dns_working?
+    @connectivity_tester.connected_to_internet?
   end
 
   # Tests TCP connectivity to internet hosts (not localhost)
   def internet_tcp_connectivity?
-    test_endpoints = load_tcp_test_endpoints
-    
-    if verbose_mode
-      endpoints_list = test_endpoints.map { |e| "#{e[:host]}:#{e[:port]}" }.join(', ')
-      puts "Testing internet TCP connectivity to: #{endpoints_list}"
-    end
-
-    # Test all endpoints in parallel, return as soon as any succeeds
-    success_queue = Queue.new
-    
-    test_endpoints.each do |endpoint|
-      Thread.new do
-        begin
-          Timeout.timeout(2) do
-            Socket.tcp(endpoint[:host], endpoint[:port], connect_timeout: 2) do
-              success_queue.push(true)
-              puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}" if verbose_mode
-            end
-          end
-        rescue => e
-          puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if verbose_mode
-          # Don't push anything on failure
-        end
-      end
-    end
-    
-    # Wait for first success or overall timeout
-    begin
-      Timeout.timeout(2.5) do
-        # Return as soon as any thread succeeds
-        success_queue.pop
-      end
-    rescue Timeout::Error
-      # No success within overall timeout
-      false
-    end
+    @connectivity_tester.tcp_connectivity?
   end
 
   # Tests DNS resolution capability
   def dns_working?
-    test_domains = load_dns_test_domains
-    
-    if verbose_mode
-      puts "Testing DNS resolution for domains: #{test_domains.join(', ')}"
-    end
-    
-    # Test all domains in parallel, return as soon as any succeeds
-    success_queue = Queue.new
-    
-    test_domains.each do |domain|
-      Thread.new do
-        begin
-          Timeout.timeout(2) do
-            IPSocket.getaddress(domain)
-            success_queue.push(true)
-            puts "Successfully resolved #{domain}" if verbose_mode
-          end
-        rescue => e
-          puts "Failed to resolve #{domain}: #{e.class}" if verbose_mode
-          # Don't push anything on failure
-        end
-      end
-    end
-    
-    # Wait for first success or overall timeout
-    begin
-      Timeout.timeout(2.5) do
-        # Return as soon as any thread succeeds
-        success_queue.pop
-      end
-    rescue Timeout::Error
-      # No success within overall timeout
-      false
-    end
+    @connectivity_tester.dns_working?
   end
 
 
@@ -366,47 +290,7 @@ class BaseModel
   #
   # Connected is defined as being able to connect to an external web site.
   def till(target_status, wait_interval_in_secs = nil)
-    # One might ask, why not just put the 0.5 up there as the default argument.
-    # We could do that, but we'd still need the line below in case nil
-    # was explicitly specified. The default argument of nil above emphasizes that
-    # the absence of an argument and a specification of nil will behave identically.
-    wait_interval_in_secs ||= 0.5
-
-    if verbose_mode
-      puts "till waiting for #{target_status}, interval (seconds): #{wait_interval_in_secs}"
-    end
-
-    finished_predicates = {
-        conn: -> { connected_to_internet? },
-        disc: -> { ! connected_to_internet? },
-        on:   -> { wifi_on? },
-        off:  -> { ! wifi_on? }
-    }
-
-    finished_predicate = finished_predicates[target_status]
-
-    if finished_predicate.nil?
-      raise ArgumentError.new(
-          "Option must be one of #{finished_predicates.keys.inspect}. Was: #{target_status.inspect}")
-    end
-
-    if finished_predicate.()
-      puts "till completed without needing to wait" if verbose_mode
-      return nil
-    end
-
-    start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-
-    until finished_predicate.()
-      sleep(wait_interval_in_secs)
-      puts("waiting #{wait_interval_in_secs} seconds for #{target_status}: #{Time.now}")
-    end
-
-    end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    if verbose_mode
-      puts "till #{target_status} wait time (seconds): #{end_time - start_time}"
-    end
-    nil
+    @status_waiter.wait_for(target_status, wait_interval_in_secs)
   end
 
 
@@ -415,21 +299,7 @@ class BaseModel
   # @stop_condition a lambda taking the command's stdout as its sole parameter
   # @return the stdout produced by the command, or nil if max_tries was reached
   def try_os_command_until(command, stop_condition, max_tries = 100)
-
-    report_attempt_count = ->(attempt_count) do
-      puts "Command was executed #{attempt_count} time(s)." if verbose_mode
-    end
-
-    max_tries.times do |n|
-      stdout_text = run_os_command(command)
-      if stop_condition.(stdout_text)
-        report_attempt_count.(n + 1)
-        return stdout_text
-      end
-    end
-
-    report_attempt_count.(max_tries)
-    nil
+    @command_executor.try_os_command_until(command, stop_condition, max_tries)
   end
 
 
@@ -451,93 +321,25 @@ class BaseModel
   # These methods help capture and restore network state during disruptive tests
   
   def capture_network_state
-    {
-      wifi_enabled: wifi_on?,
-      network_name: connected_network_name,
-      network_password: connected_network_password,
-      interface: wifi_interface
-    }
+    @state_manager.capture_network_state
   end
   
   def restore_network_state(state, fail_silently: false)
-    puts "restore_network_state: #{state} called" if verbose_mode
-    return :no_state_to_restore unless state
-    
-    begin
-      # Restore wifi enabled state
-      if state[:wifi_enabled]
-        unless wifi_on?
-          wifi_on
-          till :on, 0.05
-        end
-      else
-        if wifi_on?
-          wifi_off
-          till :off, 0.05
-        end
-        return # If wifi should be off, we're done
-      end
-      
-      # Restore network connection if one existed
-      if state[:network_name] && state[:wifi_enabled]
-        # If we are already connected to the original network, no need to proceed
-        return :already_connected if wifi_on? == state[:wifi_enabled] && connected_network_name == state[:network_name]
-
-        # Try to reconnect with saved password or current password
-        password = state[:network_password] || preferred_network_password(state[:network_name])
-        connect(state[:network_name], password)
-        till :conn, 0.25
-      end
-    rescue => e
-      if fail_silently
-        $stderr.puts "Warning: Could not restore network state: #{e.message}"
-        $stderr.puts "You may need to manually reconnect to: #{state[:network_name]}" if state[:network_name]
-      else
-        raise
-      end
-    end
+    @state_manager.restore_network_state(state, fail_silently: fail_silently)
   end
   
   private
 
-  def load_tcp_test_endpoints
-    require 'yaml'
-    yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'tcp_test_endpoints.yml')
-    data = YAML.load_file(yaml_path)
-    data['endpoints'].map { |endpoint| endpoint.transform_keys(&:to_sym) }
-  end
-
-  def load_dns_test_domains
-    require 'yaml'
-    yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'dns_test_domains.yml')
-    data = YAML.load_file(yaml_path)
-    data['domains'].map { |domain| domain['domain'] }
-  end
-  
   def connected_network_password
+    return nil unless connected_network_name
     preferred_network_password(connected_network_name)
   end
 
   def command_available_using_which?(command)
-    !`which #{command} 2>/dev/null`.empty?
+    @command_executor.command_available_using_which?(command)
   end
 
-  class OsCommandError < RuntimeError
-    attr_reader :exitstatus, :command, :text
-
-    def initialize(exitstatus, command, text)
-      @exitstatus = exitstatus
-      @command = command
-      @text = text
-    end
-
-    def to_s
-      "#{self.class.name}: Error code #{exitstatus}, command = #{command}, text = #{text}"
-    end
-
-    def to_h
-      { exitstatus: exitstatus, command: command, text: text }
-    end
-  end
+  # Re-export OsCommandError from CommandExecutor for backward compatibility
+  OsCommandError = CommandExecutor::OsCommandError
 end
 end
