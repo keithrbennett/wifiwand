@@ -1,7 +1,7 @@
 require 'ostruct'
 
 require_relative 'base_model'
-require_relative '../error'
+require_relative '../errors'
 
 module WifiWand
 
@@ -23,7 +23,7 @@ class UbuntuModel < BaseModel
     missing_commands << "nmcli (install: sudo apt install network-manager)" unless command_available_using_which?("nmcli")
     
     unless missing_commands.empty?
-      raise Error.new("Missing required commands: #{missing_commands.join(', ')}")
+      raise CommandNotFoundError.new(missing_commands)
     end
     
     :ok
@@ -47,13 +47,13 @@ class UbuntuModel < BaseModel
   def wifi_on
     return if wifi_on?
     run_os_command("nmcli radio wifi on")
-    wifi_on? ? nil : raise(Error.new("Wifi could not be enabled."))
+    wifi_on? ? nil : raise(WifiEnableError.new)
   end
 
   def wifi_off
     return unless wifi_on?
     run_os_command("nmcli radio wifi off")
-    wifi_on? ? raise(Error.new("Wifi could not be disabled.")) : nil
+    wifi_on? ? raise(WifiDisableError.new) : nil
   end
 
   def _available_network_names
@@ -106,7 +106,7 @@ class UbuntuModel < BaseModel
           run_os_command("nmcli dev wifi connect '#{ssid}' bssid '#{bssid}'")
         end
       else
-        raise Error.new("Network '#{network_name}' not found in available networks.")
+        raise NetworkNotFoundError.new(network_name, available_network_names)
       end
     end
   end
@@ -186,7 +186,7 @@ class UbuntuModel < BaseModel
       end
 
       unless bad_addresses.empty?
-        raise Error.new("Bad IP addresses provided: #{bad_addresses.join(', ')}")
+        raise InvalidIPAddressError.new(bad_addresses)
       end
 
       dns_string = nameservers.join(' ')

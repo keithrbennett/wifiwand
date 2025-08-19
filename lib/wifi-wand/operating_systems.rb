@@ -1,4 +1,4 @@
-require_relative 'error'
+require_relative 'errors'
 require_relative 'os/base_os'
 require_relative 'os/mac_os'
 require_relative 'os/ubuntu'
@@ -32,7 +32,7 @@ class OperatingSystems
       matches = supported_operating_systems.select { |os| os.current_os_is_this_os? }
       if matches.size > 1
         matching_names = matches.map(&:display_name)
-        raise Error.new("There should only be 1 matching OS, but there were multiple: #{matching_names.inspect}")
+        raise MultipleOSMatchError.new(matching_names)
       end
       @current_os = matches.first
     end
@@ -51,7 +51,7 @@ class OperatingSystems
   # Class method to create a model for the current OS
   def self.create_model_for_current_os(options = OpenStruct.new)
     current_os_instance = current_os
-    raise Error.new("No supported operating system detected") unless current_os_instance
+    raise NoSupportedOSError.new unless current_os_instance
     current_os_instance.create_model(options)
   end
 

@@ -59,7 +59,7 @@ describe OperatingSystems do
         
         allow(subject).to receive(:supported_operating_systems).and_return([mock_os1, mock_os2])
         
-        expect { subject.current_os }.to raise_error(Error, /multiple.*Mock OS 1.*Mock OS 2/)
+        expect { subject.current_os }.to raise_error(WifiWand::MultipleOSMatchError)
       end
 
       it 'returns nil when no OS matches current system' do
@@ -130,7 +130,7 @@ describe OperatingSystems do
         # Reset class variable to force re-detection
         OperatingSystems.instance_variable_set(:@current_os, nil)
         
-        expect { OperatingSystems.create_model_for_current_os }.to raise_error(Error, /No supported operating system detected/)
+        expect { OperatingSystems.create_model_for_current_os }.to raise_error(WifiWand::NoSupportedOSError)
       end
 
       it 'accepts options and passes them to model creation' do

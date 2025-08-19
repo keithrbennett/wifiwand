@@ -1,7 +1,7 @@
 require 'awesome_print'
 require_relative 'operating_systems'
 require 'ostruct'
-require_relative 'error'
+require_relative 'errors'
 require_relative 'version'
 require_relative 'timing_constants'
 
@@ -29,10 +29,7 @@ class CommandLineInterface
 
   def initialize(options)
     current_os = OperatingSystems.new.current_os
-    if current_os.nil?
-      puts "This application currently runs only on macOS and Ubuntu Linux."
-      exit(1)
-    end
+    raise NoSupportedOSError.new if current_os.nil?
 
     @options = options
 

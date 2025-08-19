@@ -56,7 +56,7 @@ module WifiWand
         it "rejects unsupported versions" do
           model = create_mac_os_test_model
           model.instance_variable_set(:@macos_version, "11.6")
-          expect { model.send(:validate_macos_version) }.to raise_error(Error)
+          expect { model.send(:validate_macos_version) }.to raise_error(WifiWand::UnsupportedSystemError)
         end
         
         it "handles nil version gracefully" do

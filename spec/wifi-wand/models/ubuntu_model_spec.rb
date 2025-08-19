@@ -250,7 +250,7 @@ describe UbuntuModel, :os_ubuntu do
 
       it 'raises error for invalid IP addresses' do
         invalid_nameservers = ['invalid.ip', '256.256.256.256']
-        expect { subject.set_nameservers(invalid_nameservers) }.to raise_error(WifiWand::Error)
+        expect { subject.set_nameservers(invalid_nameservers) }.to raise_error(WifiWand::InvalidIPAddressError)
       end
     end
 
@@ -261,7 +261,7 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#_connect' do
       it 'raises error for non-existent network' do
-        expect { subject._connect('non_existent_network_123') }.to raise_error(WifiWand::Error)
+        expect { subject._connect('non_existent_network_123') }.to raise_error(WifiWand::NetworkNotFoundError)
       end
     end
 

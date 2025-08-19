@@ -4,7 +4,7 @@ require 'socket'
 require 'tempfile'
 require 'uri'
 require_relative 'helpers/command_output_formatter'
-require_relative '../error'
+require_relative '../errors'
 require_relative '../services/command_executor'
 require_relative '../services/network_connectivity_tester'
 require_relative '../services/network_state_manager'
@@ -48,7 +48,7 @@ class BaseModel
       if is_wifi_interface?(@options.wifi_interface)
         @wifi_interface = @options.wifi_interface
       else
-        raise Error.new("#{@options.wifi_interface} is not a Wi-Fi interface.")
+        raise InvalidInterfaceError.new(@options.wifi_interface)
       end
     else
       @wifi_interface = detect_wifi_interface
@@ -56,7 +56,7 @@ class BaseModel
     
     # Validate that wifi_interface is a valid string
     if @wifi_interface.nil? || @wifi_interface.empty?
-      raise Error.new("No Wi-Fi interface found. Ensure Wi-Fi hardware is present and drivers are installed.")
+      raise WifiInterfaceError.new
     end
 
     self
@@ -198,12 +198,24 @@ class BaseModel
     if info['internet_on']
       begin
         info['public_ip'] = public_ip_address_info
+      rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED, SocketError => e
+        # Network connectivity issues - retry with exponential backoff
+        begin
+          sleep(0.5)
+          info['public_ip'] = public_ip_address_info
+        rescue => retry_error
+          # Still failed - silently degrade (don't spam stdout)
+          $stderr.puts "Warning: Could not obtain public IP info: #{retry_error.class}" if @verbose_mode
+          info['public_ip'] = nil
+        end
+      rescue JSON::ParserError => e
+        # Service returned invalid JSON - try alternate approach
+        $stderr.puts "Warning: Public IP service returned invalid data" if @verbose_mode
+        info['public_ip'] = nil  
       rescue => e
-        puts <<~MESSAGE
-          #{e.class} obtaining public IP address info, proceeding with everything else. Error message:
-          #{e}
-
-        MESSAGE
+        # Other errors - log if verbose, gracefully degrade
+        $stderr.puts "Warning: Public IP lookup failed: #{e.class}" if @verbose_mode
+        info['public_ip'] = nil
       end
     end
     info
@@ -235,7 +247,7 @@ class BaseModel
     password     = password&.to_s
 
     if network_name.nil? || network_name.empty?
-      raise Error.new("A network name is required but was not provided.")
+      raise InvalidNetworkNameError.new(network_name || "")
     end
 
     # If we're already connected to the desired network, no need to proceed
@@ -256,7 +268,7 @@ class BaseModel
         message << %Q{connected to "#{connected_network_name}" instead.}
       end
       message << ' Did you ' << (password ? "provide the correct password?" : "need to provide a password?")
-      raise Error.new(message)
+      raise NetworkConnectionError.new(network_name, actual_network_name ? "connected to '#{connected_network_name}' instead" : "unable to connect to any network")
     end
     nil
   end
@@ -278,7 +290,7 @@ class BaseModel
     if preferred_networks.include?(preferred_network_name)
       os_level_preferred_network_password(preferred_network_name)
     else
-      raise Error.new("Network #{preferred_network_name} not in preferred networks list.")
+      raise PreferredNetworkNotFoundError.new(preferred_network_name)
     end
   end
 

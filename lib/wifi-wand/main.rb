@@ -5,6 +5,7 @@ require 'yaml'
 
 require_relative 'command_line_interface'
 require_relative 'operating_systems'
+require_relative 'errors'
 
 
 module WifiWand
@@ -40,7 +41,7 @@ class Main
           message = %Q{Output format "#{choice}" not in list of available formats} <<
               " (#{formatters.keys})."
           puts; puts message; puts
-          raise Error.new(message)
+          raise ConfigurationError.new("Invalid output format '#{choice}'. Available formats: #{formatters.keys.join(', ')}")
         end
 
         options.post_processor = formatters[choice]

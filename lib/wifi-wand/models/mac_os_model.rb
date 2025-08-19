@@ -3,7 +3,7 @@ require 'ostruct'
 require 'shellwords'
 
 require_relative 'base_model'
-require_relative '../error'
+require_relative '../errors'
 
 module WifiWand
 
@@ -84,7 +84,7 @@ class MacOsModel < BaseModel
     end
 
     if wifi_interface_line_num.nil?
-      raise Error.new(%Q{Wifi interface (e.g. "en0") not found in output of: networksetup -listallhardwareports})
+      raise WifiInterfaceError.new
     else
       lines[wifi_interface_line_num + 1].split(': ').last
     end
@@ -158,7 +158,7 @@ class MacOsModel < BaseModel
     return if wifi_on?
 
     run_os_command("networksetup -setairportpower #{wifi_interface} on")
-    wifi_on? ? nil : Error.new(raise("Wifi could not be enabled."))
+    wifi_on? ? nil : raise(WifiEnableError.new)
   end
 
 
@@ -168,7 +168,7 @@ class MacOsModel < BaseModel
 
     run_os_command("networksetup -setairportpower #{wifi_interface} off")
 
-    wifi_on? ? Error.new(raise("Wifi could not be disabled.")) : nil
+    wifi_on? ? raise(WifiDisableError.new) : nil
   end
 
 
@@ -222,25 +222,25 @@ class MacOsModel < BaseModel
         # Item not found in keychain - network has no password stored
         nil
       when 45
-        raise Error.new("Access to keychain denied by user for network '#{preferred_network_name}'. Please grant access when prompted.")
+        raise KeychainAccessDeniedError.new(preferred_network_name)
       when 128
-        raise Error.new("Keychain access cancelled by user for network '#{preferred_network_name}'.")
+        raise KeychainAccessCancelledError.new(preferred_network_name)
       when 51
-        raise Error.new("Cannot access keychain for network '#{preferred_network_name}' in non-interactive environment.")
+        raise KeychainNonInteractiveError.new(preferred_network_name)
       when 25
-        raise Error.new("Invalid keychain search parameters for network '#{preferred_network_name}'.")
+        raise KeychainError.new("Invalid keychain search parameters for network '#{preferred_network_name}'")
       when 1
         if error.text.include?("could not be found")
           # Alternative way item not found might be reported
           nil
         else
-          raise Error.new("Keychain error accessing password for network '#{preferred_network_name}': #{error.text.strip}")
+          raise KeychainError.new("Keychain error accessing password for network '#{preferred_network_name}': #{error.text.strip}")
         end
       else
         # Unknown error - provide detailed information for debugging
         error_msg = "Unknown keychain error (exit code #{error.exitstatus}) accessing password for network '#{preferred_network_name}'"
         error_msg += ": #{error.text.strip}" unless error.text.empty?
-        raise Error.new(error_msg)
+        raise KeychainError.new(error_msg)
       end
     end
   end
@@ -353,7 +353,7 @@ class MacOsModel < BaseModel
       end
 
       unless bad_addresses.empty?
-        raise Error.new("Bad IP addresses provided: #{bad_addresses.join(', ')}")
+        raise InvalidIPAddressError.new(bad_addresses)
       end
       nameservers.join(' ')
     end # end assignment to arg variable
@@ -467,7 +467,7 @@ class MacOsModel < BaseModel
     return unless @macos_version
     
     unless supported_version?(@macos_version)
-      raise Error.new("WifiWand requires macOS #{MIN_SUPPORTED_OS_VERSION} or later. Current version: #{@macos_version}")
+      raise UnsupportedSystemError.new("macOS #{MIN_SUPPORTED_OS_VERSION}", @macos_version)
     end
     
     puts "macOS #{@macos_version} detected and supported" if verbose_mode
