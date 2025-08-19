@@ -5,101 +5,27 @@ require_relative 'error'
 require_relative 'version'
 require_relative 'timing_constants'
 
+# Include extracted modules
+require_relative 'command_line_interface/help_system'
+require_relative 'command_line_interface/resource_manager'
+require_relative 'command_line_interface/output_formatter'
+require_relative 'command_line_interface/error_handling'
+require_relative 'command_line_interface/command_registry'
+require_relative 'command_line_interface/shell_interface'
+
 module WifiWand
 
 class CommandLineInterface
+  include HelpSystem
+  include ResourceManager
+  include OutputFormatter
+  include ErrorHandling
+  include CommandRegistry
+  include ShellInterface
 
-  attr_reader :interactive_mode, :model, :open_resources, :options
+  attr_reader :interactive_mode, :model, :options
 
   PROJECT_URL = 'https://github.com/keithrbennett/wifiwand'
-
-  class Command < Struct.new(:min_string, :max_string, :action); end
-
-
-  class OpenResource < Struct.new(:code, :resource, :description)
-
-    # Ex: "'ipw' (What is My IP)"
-    def help_string
-      "'#{code}' (#{description})"
-    end
-  end
-
-
-  class OpenResources < Array
-
-    def find_by_code(code)
-      detect { |resource| resource.code == code }
-    end
-
-    # Ex: "('ipc' (IP Chicken), 'ipw' (What is My IP), 'spe' (Speed Test))"
-    def help_string
-      map(&:help_string).join(', ')
-    end
-  end
-
-
-  class BadCommandError < RuntimeError
-    def initialize(error_message)
-      super
-    end
-  end
-
-  def open_resources
-    @open_resources ||= begin
-      require 'yaml'
-      yaml_path = File.join(File.dirname(__FILE__), 'data', 'open_resources.yml')
-      data = YAML.load_file(yaml_path)
-      resources = data['resources'].map do |resource|
-        OpenResource.new(resource['code'], resource['url'], resource['desc'])
-      end
-      OpenResources.new(resources)
-    end
-  end
-
-
-
-  # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.
-  def help_text
-    @help_text ||= "
-Command Line Switches:                    [wifi-wand version #{WifiWand::VERSION} at https://github.com/keithrbennett/wifiwand]
-
--o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
--p wifi_interface_name    - override automatic detection of interface name with this name
--s                        - run in shell mode
--v                        - verbose mode (prints OS commands and their outputs)
-
-Commands:
-
-a[vail_nets]              - array of names of the available networks
-ci                        - connected to Internet (not just wifi on)?
-co[nnect] network-name    - turns wifi on, connects to network-name
-cy[cle]                   - turns wifi off, then on, preserving network selection
-d[isconnect]              - disconnects from current network, does not turn off wifi
-f[orget] name1 [..name_n] - removes network-name(s) from the preferred networks list
-                            in interactive mode, can be a single array of names, e.g. returned by `pref_nets`
-h[elp]                    - prints this help
-i[nfo]                    - a hash of wifi-related information
-na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear,
-                            or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
-ne[twork_name]            - name (SSID) of currently connected network
-on                        - turns wifi on
-of[f]                     - turns wifi off
-pa[ssword] network-name   - password for preferred network-name
-pr[ef_nets]               - preferred (saved) networks
-q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
-ro[pen]                   - open resource (#{open_resources.help_string})
-t[ill]                    - returns when the desired Internet connection state is true. Options:
-                            1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
-                            2) wait interval between tests, in seconds (optional, defaults to #{WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL} seconds)
-w[ifi_on]                 - is the wifi on?
-x[it]                     - exits this program (interactive shell mode only) (see also 'q')
-
-When in interactive shell mode:
-  * remember to quote string literals.
-  * for pry commands, use prefix `%`.
-
-"
-  end
 
   def initialize(options)
     current_os = OperatingSystems.new.current_os
@@ -120,27 +46,9 @@ When in interactive shell mode:
     run_shell if @interactive_mode
   end
 
-
   def verbose_mode
     options.verbose
   end
-
-
-  def print_help
-    puts help_text
-  end
-
-
-  def fancy_string(object)
-    object.awesome_inspect
-  end
-
-
-  def fancy_puts(object)
-    puts fancy_string(object)
-  end
-  alias_method :fp, :fancy_puts
-
 
   # Asserts that a command has been passed on the command line.
   def validate_command_line
@@ -150,51 +58,6 @@ When in interactive shell mode:
       exit(-1)
     end
   end
-
-
-  # Runs a pry session in the context of this object.
-  # Commands and options specified on the command line can also be specified in the shell.
-  def run_shell
-    print_help
-    require 'pry'
-
-    # Enable the line below if you have any problems with pry configuration being loaded
-    # that is messing up this runtime use of pry:
-    # Pry.config.should_load_rc = false
-
-    # Strangely, this is the only thing I have found that successfully suppresses the
-    # code context output, which is not useful here. Anyway, this will differentiate
-    # a pry command from a DSL command, which _is_ useful here.
-    Pry.config.command_prefix = '%'
-    Pry.config.print = ->(output, value, _pry) { output.puts(value.awesome_inspect) }
-
-    binding.pry
-  end
-
-
-  # Look up the command name and, if found, run it. If not, execute the passed block.
-  def attempt_command_action(command, *args, &error_handler_block)
-    action = find_command_action(command)
-
-    if action
-      action.(*args)
-    else
-      error_handler_block.call
-      nil
-    end
-  end
-
-
-  # For use by the shell when the user types the DSL commands
-  def method_missing(method_name, *method_args)
-    attempt_command_action(method_name.to_s, *method_args) do
-      puts <<~MESSAGE
-          "#{method_name}" is not a valid command or option. 
-          If you intend for this to be a string literal, use quotes or %q{}/%Q{}.
-        MESSAGE
-    end
-  end
-
 
   # Processes the command (ARGV[0]) and any relevant options (ARGV[1..-1]).
   #
@@ -210,15 +73,8 @@ When in interactive shell mode:
     end
   end
 
-
-  def quit
-    if interactive_mode
-      exit(0)
-    else
-      puts "This command can only be run in shell mode."
-    end
-  end
-
+  # ===== MODEL-RELATED COMMANDS =====
+  # All commands that delegate to the model stay here
 
   def cmd_a
     info = model.available_network_names
@@ -243,7 +99,6 @@ When in interactive shell mode:
     end
   end
 
-
   def cmd_ci
     connected = model.connected_to_internet?
     if interactive_mode
@@ -253,26 +108,17 @@ When in interactive shell mode:
     end
   end
 
-
   def cmd_co(network, password = nil)
     model.connect(network, password)
   end
-
 
   def cmd_cy
     model.cycle_network
   end
 
-
   def cmd_d
     model.disconnect
   end
-
-
-  def cmd_h
-    print_help
-  end
-
 
   def cmd_i
     info = model.wifi_info
@@ -319,7 +165,6 @@ When in interactive shell mode:
     end
   end
 
-
   def cmd_ne
     name = model.connected_network_name
     if interactive_mode
@@ -330,16 +175,79 @@ When in interactive shell mode:
     end
   end
 
-
   def cmd_of
     model.wifi_off
   end
-
 
   def cmd_on
     model.wifi_on
   end
 
+  def cmd_pa(network)
+    password = model.preferred_network_password(network)
+
+    if interactive_mode
+      password
+    else
+      if post_processor
+        puts post_processor.(password)
+      else
+        puts <<~MESSAGE
+          Preferred network "#{network}" #{
+            password ? "stored password is \"#{password}\"." : "has no stored password."
+          }
+        MESSAGE
+      end
+    end
+  end
+
+  def cmd_pr
+    networks = model.preferred_networks
+    if interactive_mode
+      networks
+    else
+      puts (post_processor ? post_processor.(networks) : fancy_string(networks))
+    end
+  end
+
+  def cmd_f(*options)
+    removed_networks = model.remove_preferred_networks(*options)
+    if interactive_mode
+      removed_networks
+    else
+      puts (post_processor ? post_processor.(removed_networks) : "Removed networks: #{removed_networks.inspect}")
+    end
+  end
+
+  def cmd_t(*options)
+    target_status = options[0].to_sym
+    wait_interval_in_secs = (options[1] ? Float(options[1]) : nil)
+    model.till(target_status, wait_interval_in_secs)
+  end
+
+  def cmd_w
+    on = model.wifi_on?
+    if interactive_mode
+      on
+    else
+      puts (post_processor ? post_processor.(on) : "Wifi on: #{on}")
+    end
+  end
+
+  # ===== OTHER COMMANDS =====
+  # Commands that don't directly delegate to the model
+
+  def cmd_h
+    print_help
+  end
+
+  def cmd_q
+    quit
+  end
+
+  def cmd_x
+    quit
+  end
 
   # Use Mac OS 'open' command line utility
   def cmd_ro(*resource_codes)
@@ -362,120 +270,7 @@ When in interactive shell mode:
     nil
   end
 
-
-  def cmd_pa(network)
-    password = model.preferred_network_password(network)
-
-    if interactive_mode
-      password
-    else
-      if post_processor
-        puts post_processor.(password)
-      else
-        puts <<~MESSAGE
-          Preferred network "#{network}" #{
-            password ? "stored password is \"#{password}\"." : "has no stored password."
-          }
-        MESSAGE
-      end
-    end
-  end
-
-
-  def cmd_pr
-    networks = model.preferred_networks
-    if interactive_mode
-      networks
-    else
-      puts (post_processor ? post_processor.(networks) : fancy_string(networks))
-    end
-  end
-
-
-  def cmd_q
-    quit
-  end
-
-
-  def cmd_f(*options)
-    removed_networks = model.remove_preferred_networks(*options)
-    if interactive_mode
-      removed_networks
-    else
-      puts (post_processor ? post_processor.(removed_networks) : "Removed networks: #{removed_networks.inspect}")
-    end
-  end
-
-
-  def cmd_t(*options)
-    target_status = options[0].to_sym
-    wait_interval_in_secs = (options[1] ? Float(options[1]) : nil)
-    model.till(target_status, wait_interval_in_secs)
-  end
-
-
-  def cmd_w
-    on = model.wifi_on?
-    if interactive_mode
-      on
-    else
-      puts (post_processor ? post_processor.(on) : "Wifi on: #{on}")
-    end
-  end
-
-
-  def cmd_x
-    quit
-  end
-
-
-  def commands
-    @commands_ ||= [
-        Command.new('a',   'avail_nets',    -> (*_options) { cmd_a             }),
-        Command.new('ci',  'ci',            -> (*_options) { cmd_ci            }),
-        Command.new('co',  'connect',       -> (*options)  { cmd_co(*options)  }),
-        Command.new('cy',  'cycle',         -> (*_options) { cmd_cy            }),
-        Command.new('d',   'disconnect',    -> (*_options) { cmd_d             }),
-        Command.new('f',   'forget',        -> (*options)  { cmd_f(*options)   }),
-        Command.new('h',   'help',          -> (*_options) { cmd_h             }),
-        Command.new('i',   'info',          -> (*_options) { cmd_i             }),
-        Command.new('l',   'ls_avail_nets', -> (*_options) { cmd_l             }),
-        Command.new('na',  'nameservers',   -> (*options)  { cmd_na(*options)  }),
-        Command.new('ne',  'network_name',  -> (*_options) { cmd_ne            }),
-        Command.new('of',  'off',           -> (*_options) { cmd_of            }),
-        Command.new('on',  'on',            -> (*_options) { cmd_on            }),
-        Command.new('ro',  'ropen',         -> (*options)  { cmd_ro(*options)  }),
-        Command.new('pa',  'password',      -> (*options)  { cmd_pa(*options)  }),
-        Command.new('pr',  'pref_nets',     -> (*_options) { cmd_pr            }),
-        Command.new('q',   'quit',          -> (*_options) { cmd_q             }),
-        Command.new('t',   'till',          -> (*options)  { cmd_t(*options)   }),
-        Command.new('u',   'url',           -> (*_options) { PROJECT_URL       }),
-        Command.new('w',   'wifi_on',       -> (*_options) { cmd_w             }),
-        Command.new('x',   'xit',           -> (*_options) { cmd_x             })
-    ]
-  end
-
-
-  def find_command_action(command_string)
-    result = commands.detect do |cmd|
-      cmd.max_string.start_with?(command_string) \
-      && \
-      command_string.length >= cmd.min_string.length  # e.g. 'c' by itself should not work
-    end
-    result ? result.action : nil
-  end
-
-
-  # If a post-processor has been configured (e.g. YAML or JSON), use it.
-  def post_process(object)
-    post_processor ? post_processor.(object) : object
-  end
-
-
-  def post_processor
-    options.post_processor
-  end
-
+  # ===== MAIN ENTRY POINT =====
 
   def call
     validate_command_line
