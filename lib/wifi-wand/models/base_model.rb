@@ -28,6 +28,11 @@ class BaseModel
   end
 
   def init
+    init_wifi_interface
+    self
+  end
+
+  def init_wifi_interface
     validate_os_preconditions
 
     # Initialize wifi interface (e.g.: "wlp0s20f3")
@@ -167,7 +172,8 @@ class BaseModel
     ]
     
     if verbose_mode
-      puts "Testing internet TCP connectivity to: #{test_endpoints.map { |e| "#{e[:host]}:#{e[:port]}" }.join(', ')}"
+      endpoints_list = test_endpoints.map { |e| "#{e[:host]}:#{e[:port]}" }.join(', ')
+      puts "Testing internet TCP connectivity to: #{endpoints_list}"
     end
 
     # Test all endpoints in parallel, return as soon as any succeeds

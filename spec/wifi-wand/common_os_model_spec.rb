@@ -11,6 +11,28 @@ describe 'Common WiFi Model Behavior (All OS)' do
       result = subject.internet_tcp_connectivity?
       expect([true, false]).to include(result)
     end
+
+    context 'with verbose mode enabled' do
+      subject { create_test_model(verbose: true) }
+
+      before do
+        # Mock Socket to prevent actual network calls
+        allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
+      end
+
+      it 'outputs formatted endpoint list to stdout' do
+        # Capture stdout to verify the formatted output
+        expect { subject.internet_tcp_connectivity? }.to output(
+          a_string_matching(/Testing internet TCP connectivity to: .*:.*/)
+        ).to_stdout
+      end
+
+      it 'formats endpoints as host:port pairs separated by commas' do
+        expect { subject.internet_tcp_connectivity? }.to output(
+          a_string_matching(/1\.1\.1\.1:53.*8\.8\.8\.8:53.*208\.67\.222\.222:53/)
+        ).to_stdout
+      end
+    end
   end
 
   describe '#dns_working?' do
