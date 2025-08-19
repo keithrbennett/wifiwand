@@ -30,6 +30,18 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#wifi_info' do
     it 'returns hash with consistent structure across all OSes' do
+      # Mock all the underlying methods that wifi_info calls
+      allow(subject).to receive(:internet_tcp_connectivity?).and_return(true)
+      allow(subject).to receive(:dns_working?).and_return(true)
+      allow(subject).to receive(:wifi_on?).and_return(true)
+      allow(subject).to receive(:wifi_interface).and_return('wlan0')
+      allow(subject).to receive(:default_interface).and_return('eth0')
+      allow(subject).to receive(:connected_network_name).and_return('TestNetwork')
+      allow(subject).to receive(:ip_address).and_return('192.168.1.100')
+      allow(subject).to receive(:mac_address).and_return('aa:bb:cc:dd:ee:ff')
+      allow(subject).to receive(:nameservers).and_return(['8.8.8.8', '8.8.4.4'])
+      allow(subject).to receive(:public_ip_address_info).and_return({'ip' => '1.2.3.4'})
+      
       result = subject.wifi_info
       expect(result).to be_a(Hash)
       
