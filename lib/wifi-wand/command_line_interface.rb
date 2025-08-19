@@ -43,14 +43,17 @@ class CommandLineInterface
     end
   end
 
-  OPEN_RESOURCES = OpenResources.new([
-      OpenResource.new('cap',  'https://captive.apple.com/',                'Portal Logins'),
-      OpenResource.new('ipl',  'https://www.iplocation.net/',               'IP Location'),
-      OpenResource.new('ipw',  'https://www.whatismyip.com',                'What is My IP'),
-      OpenResource.new('libre','https://www.librespeed.org',                'LibreSpeed'),
-      OpenResource.new('spe',  'http://speedtest.net/',                     'Speed Test'),
-      OpenResource.new('this', 'https://github.com/keithrbennett/wifiwand', 'wifi-wand home page'),
-  ])
+  def self.load_open_resources
+    require 'yaml'
+    yaml_path = File.join(File.dirname(__FILE__), 'data', 'open_resources.yml')
+    data = YAML.load_file(yaml_path)
+    resources = data['resources'].map do |resource|
+      OpenResource.new(resource['code'], resource['url'], resource['desc'])
+    end
+    OpenResources.new(resources)
+  end
+
+  OPEN_RESOURCES = load_open_resources
 
 
   # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.

@@ -164,12 +164,7 @@ class BaseModel
 
   # Tests TCP connectivity to internet hosts (not localhost)
   def internet_tcp_connectivity?
-    test_endpoints = [
-      { host: '1.1.1.1', port: 53 },        # Cloudflare DNS
-      { host: '8.8.8.8', port: 53 },        # Google DNS
-      { host: '208.67.222.222', port: 53 }, # OpenDNS
-      { host: '180.76.76.76', port: 53 },   # Baidu DNS (China-friendly)
-    ]
+    test_endpoints = load_tcp_test_endpoints
     
     if verbose_mode
       endpoints_list = test_endpoints.map { |e| "#{e[:host]}:#{e[:port]}" }.join(', ')
@@ -209,7 +204,7 @@ class BaseModel
 
   # Tests DNS resolution capability
   def dns_working?
-    test_domains = %w(google.com baidu.com cloudflare.com github.com)
+    test_domains = load_dns_test_domains
     
     if verbose_mode
       puts "Testing DNS resolution for domains: #{test_domains.join(', ')}"
@@ -504,6 +499,20 @@ class BaseModel
   end
   
   private
+
+  def load_tcp_test_endpoints
+    require 'yaml'
+    yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'tcp_test_endpoints.yml')
+    data = YAML.load_file(yaml_path)
+    data['endpoints'].map { |endpoint| endpoint.transform_keys(&:to_sym) }
+  end
+
+  def load_dns_test_domains
+    require 'yaml'
+    yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'dns_test_domains.yml')
+    data = YAML.load_file(yaml_path)
+    data['domains'].map { |domain| domain['domain'] }
+  end
   
   def connected_network_password
     preferred_network_password(connected_network_name)

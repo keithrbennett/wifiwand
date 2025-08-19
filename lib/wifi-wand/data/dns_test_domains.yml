@@ -1,0 +1,10 @@
+---
+domains:
+  - domain: "google.com"
+    desc: "Google - Global reach and reliability"
+  - domain: "baidu.com"
+    desc: "Baidu - China-accessible search engine"
+  - domain: "cloudflare.com"
+    desc: "Cloudflare - DNS and CDN provider"
+  - domain: "github.com"
+    desc: "GitHub - Popular development platform"

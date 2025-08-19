@@ -1,0 +1,14 @@
+---
+endpoints:
+  - host: "1.1.1.1"
+    port: 53
+    desc: "Cloudflare DNS"
+  - host: "8.8.8.8"
+    port: 53
+    desc: "Google DNS"
+  - host: "208.67.222.222"
+    port: 53
+    desc: "OpenDNS"
+  - host: "180.76.76.76"
+    port: 53
+    desc: "Baidu DNS (China-friendly)"
