@@ -216,7 +216,7 @@ class MacOsModel < BaseModel
     command = %Q{security find-generic-password -D "AirPort network password" -a "#{preferred_network_name}" -w 2>&1}
     begin
       return run_os_command(command).chomp
-    rescue OsCommandError => error
+    rescue WifiWand::CommandExecutor::OsCommandError => error
       case error.exitstatus
       when 44
         # Item not found in keychain - network has no password stored
@@ -250,7 +250,7 @@ class MacOsModel < BaseModel
   def _ip_address
     begin
       run_os_command("ipconfig getifaddr #{wifi_interface}").chomp
-    rescue OsCommandError => error
+    rescue WifiWand::CommandExecutor::OsCommandError => error
       if error.exitstatus == 1
         nil
       else
@@ -317,7 +317,7 @@ class MacOsModel < BaseModel
     # Fallback to ifconfig (disassociate from current network)
     begin
       run_os_command("sudo ifconfig #{wifi_interface} disassociate", false)
-    rescue OsCommandError
+    rescue WifiWand::CommandExecutor::OsCommandError
       # If sudo ifconfig fails, try without sudo (may work on some systems)
       run_os_command("ifconfig #{wifi_interface} disassociate", false)
     end
@@ -418,7 +418,7 @@ class MacOsModel < BaseModel
       # Try to import CoreWLAN using Swift
       run_os_command("swift -e 'import CoreWLAN'", false)
       true
-    rescue OsCommandError => e
+    rescue WifiWand::CommandExecutor::OsCommandError => e
       # Log the specific error if in verbose mode
       if verbose_mode
         case e.exitstatus
@@ -443,7 +443,7 @@ class MacOsModel < BaseModel
       output = run_os_command("route -n get default | grep 'interface:' | awk '{print $2}'", false)
       return nil if output.empty?
       output.strip
-    rescue OsCommandError
+    rescue WifiWand::CommandExecutor::OsCommandError
       nil
     end
   end

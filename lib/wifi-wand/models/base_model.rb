@@ -339,7 +339,5 @@ class BaseModel
     @command_executor.command_available_using_which?(command)
   end
 
-  # Re-export OsCommandError from CommandExecutor for backward compatibility
-  OsCommandError = CommandExecutor::OsCommandError
 end
 end

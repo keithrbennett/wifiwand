@@ -1,0 +1,135 @@
+require_relative '../../spec_helper'
+require_relative '../../../lib/wifi-wand/services/command_executor'
+
+describe WifiWand::CommandExecutor do
+
+  describe '#run_os_command' do
+    context 'with verbose mode disabled' do
+      let(:executor) { WifiWand::CommandExecutor.new(verbose: false) }
+
+      it 'executes commands successfully' do
+        expect(executor.run_os_command('echo "test"').strip).to eq('test')
+      end
+
+      it 'raises OsCommandError on command failure when raise_on_error is true' do
+        expect {
+          executor.run_os_command('false')  # Command that always fails
+        }.to raise_error(WifiWand::CommandExecutor::OsCommandError)
+      end
+
+      it 'returns output without raising on command failure when raise_on_error is false' do
+        expect(executor.run_os_command('false', false)).to be_a(String)
+      end
+
+      it 'captures both stdout and stderr' do
+        result = executor.run_os_command('bash -c \'echo "stdout"; echo "stderr" >&2\'', false)
+        expect(result).to include('stdout')
+        expect(result).to include('stderr')
+      end
+    end
+
+    context 'with verbose mode enabled' do
+      let(:executor) { WifiWand::CommandExecutor.new(verbose: true) }
+
+      it 'outputs command attempt and duration info' do
+        expect {
+          executor.run_os_command('echo "test"')
+        }.to output(/Command:.*echo "test".*Duration:.*seconds/m).to_stdout
+      end
+    end
+  end
+
+  describe '#try_os_command_until' do
+    let(:executor) { WifiWand::CommandExecutor.new(verbose: false) }
+
+    it 'returns output when condition is met on first try' do
+      condition = ->(output) { output.include?('success') }
+      expect(executor.try_os_command_until('echo "success"', condition, 3).strip).to eq('success')
+    end
+
+    it 'retries until condition is met' do
+      call_count = 0
+      
+      # Mock the run_os_command to include the iteration number in output
+      allow(executor).to receive(:run_os_command) do |command|
+        call_count += 1
+        "attempt #{call_count}"
+      end
+      
+      condition = ->(output) { 
+        # Succeed on second try
+        output.include?('attempt 2')
+      }
+      
+      result = executor.try_os_command_until('echo "test"', condition, 5)
+      expect(result.strip).to eq('attempt 2')  # Should succeed on second try
+      expect(call_count).to eq(2)  # Should have been called exactly twice
+    end
+
+    it 'returns nil when max_tries is reached without success' do
+      condition = ->(_output) { false }  # Never succeeds
+      expect(executor.try_os_command_until('echo "fail"', condition, 2)).to be_nil
+    end
+
+    it 'reports attempt count in verbose mode' do
+      verbose_executor = WifiWand::CommandExecutor.new(verbose: true)
+      condition = ->(_output) { true }  # Succeeds on first try
+      
+      expect {
+        verbose_executor.try_os_command_until('echo "test"', condition, 3)
+      }.to output(/Command was executed 1 time/).to_stdout
+    end
+  end
+
+  describe '#command_available_using_which?' do
+    let(:executor) { WifiWand::CommandExecutor.new(verbose: false) }
+
+    it 'returns true for available commands' do
+      expect(executor.command_available_using_which?('echo')).to be true
+    end
+
+    it 'returns false for unavailable commands' do
+      expect(executor.command_available_using_which?('nonexistent_command_12345')).to be false
+    end
+  end
+
+  describe WifiWand::CommandExecutor::OsCommandError do
+    let(:error) { WifiWand::CommandExecutor::OsCommandError.new(1, 'false', 'command failed') }
+
+    it 'stores command execution details' do
+      expect(error.exitstatus).to eq(1)
+      expect(error.command).to eq('false')
+      expect(error.text).to eq('command failed')
+    end
+
+    it 'provides readable string representation' do
+      error_string = error.to_s
+      expect(error_string).to include('Error code 1')
+      expect(error_string).to include('command = false')
+      expect(error_string).to include('text = command failed')
+    end
+
+    it 'provides hash representation' do
+      error_hash = error.to_h
+      expect(error_hash).to eq({
+        exitstatus: 1,
+        command: 'false',
+        text: 'command failed'
+      })
+    end
+  end
+
+  describe 'integration with BaseModel' do
+    # Test that the service integrates properly with BaseModel
+    it 'is accessible through BaseModel' do
+      require_relative '../../../lib/wifi-wand/models/base_model'
+      require 'ostruct'
+      
+      # This tests the integration without actually running OS-specific code
+      expect {
+        WifiWand::BaseModel.new(OpenStruct.new(verbose: false))
+      }.not_to raise_error
+    end
+
+  end
+end

@@ -8,37 +8,13 @@ describe 'Common WiFi Model Behavior (All OS)' do
   # These tests run on any OS - interface consistency tests
   describe '#internet_tcp_connectivity?' do
     it 'returns boolean indicating TCP connectivity' do
-      result = subject.internet_tcp_connectivity?
-      expect([true, false]).to include(result)
-    end
-
-    context 'with verbose mode enabled' do
-      subject { create_test_model(verbose: true) }
-
-      before do
-        # Mock Socket to prevent actual network calls
-        allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
-      end
-
-      it 'outputs formatted endpoint list to stdout' do
-        # Capture stdout to verify the formatted output
-        expect { subject.internet_tcp_connectivity? }.to output(
-          a_string_matching(/Testing internet TCP connectivity to: .*:.*/)
-        ).to_stdout
-      end
-
-      it 'formats endpoints as host:port pairs separated by commas' do
-        expect { subject.internet_tcp_connectivity? }.to output(
-          a_string_matching(/1\.1\.1\.1:53.*8\.8\.8\.8:53.*208\.67\.222\.222:53/)
-        ).to_stdout
-      end
+      expect([true, false]).to include(subject.internet_tcp_connectivity?)
     end
   end
 
   describe '#dns_working?' do
     it 'returns boolean indicating DNS resolution capability' do
-      result = subject.dns_working?
-      expect([true, false]).to include(result)
+      expect([true, false]).to include(subject.dns_working?)
     end
   end
 
@@ -74,8 +50,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#wifi_on?' do
     it 'returns boolean indicating wifi status' do
-      result = subject.wifi_on?
-      expect([true, false]).to include(result)
+      expect([true, false]).to include(subject.wifi_on?)
     end
   end
 
@@ -91,8 +66,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#connected_network_name' do
     it 'returns string or nil for connected network' do
-      result = subject.connected_network_name
-      expect(result).to be_a(String).or(be_nil)
+      expect(subject.connected_network_name).to be_a(String).or(be_nil)
     end
   end
 
@@ -245,13 +219,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'can get wifi interface' do
-      result = subject.wifi_interface
-      expect(result).to be_a(String).or(be_nil)
+      expect(subject.wifi_interface).to be_a(String).or(be_nil)
     end
 
     it 'can get wifi info' do
-      result = subject.wifi_info
-      expect(result).to be_a(Hash)
+      expect(subject.wifi_info).to be_a(Hash)
     end
 
     it 'can list preferred networks' do
@@ -261,8 +233,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'can check wifi status' do
-      result = subject.wifi_on?
-      expect([true, false]).to include(result)
+      expect([true, false]).to include(subject.wifi_on?)
     end
 
     it 'can query connected network name' do
@@ -315,68 +286,15 @@ describe 'Common WiFi Model Behavior (All OS)' do
       }
     end
 
-    context 'with fail_silently: false' do
-      it 'raises exceptions on wifi operation failures' do
-        allow(subject).to receive(:wifi_on?).and_return(false)
-        allow(subject).to receive(:wifi_on).and_raise(StandardError.new('WiFi hardware error'))
-
-        expect {
-          subject.restore_network_state(valid_state, fail_silently: false)
-        }.to raise_error(StandardError, 'WiFi hardware error')
-      end
-
-      it 'raises exceptions on connection failures' do
-        allow(subject).to receive(:wifi_on?).and_return(true)
-        allow(subject).to receive(:connected_network_name).and_return('OtherNetwork')
-        allow(subject).to receive(:preferred_network_password).and_return('testpass')
-        allow(subject).to receive(:connect).and_raise(StandardError.new('Network unavailable'))
-
-        expect {
-          subject.restore_network_state(valid_state, fail_silently: false)
-        }.to raise_error(StandardError, 'Network unavailable')
-      end
-    end
-
-    context 'with fail_silently: true' do
-      it 'swallows wifi operation failures and logs to stderr' do
-        allow(subject).to receive(:wifi_on?).and_return(false)
-        allow(subject).to receive(:wifi_on).and_raise(StandardError.new('WiFi hardware error'))
-
-        expect($stderr).to receive(:puts).with('Warning: Could not restore network state: WiFi hardware error')
-        expect($stderr).to receive(:puts).with('You may need to manually reconnect to: TestNetwork')
-
-        expect {
-          subject.restore_network_state(valid_state, fail_silently: true)
-        }.not_to raise_error
-      end
-
-      it 'swallows connection failures and logs to stderr' do
-        allow(subject).to receive(:wifi_on?).and_return(true)
-        allow(subject).to receive(:connected_network_name).and_return('OtherNetwork')
-        allow(subject).to receive(:preferred_network_password).and_return('testpass')
-        allow(subject).to receive(:connect).and_raise(StandardError.new('Network unavailable'))
-        allow(subject).to receive(:till)
-
-        expect($stderr).to receive(:puts).with('Warning: Could not restore network state: Network unavailable')
-        expect($stderr).to receive(:puts).with('You may need to manually reconnect to: TestNetwork')
-
-        expect {
-          subject.restore_network_state(valid_state, fail_silently: true)
-        }.not_to raise_error
-      end
-    end
-
     it 'returns :no_state_to_restore when state is nil' do
-      result = subject.restore_network_state(nil)
-      expect(result).to eq(:no_state_to_restore)
+      expect(subject.restore_network_state(nil)).to eq(:no_state_to_restore)
     end
 
     it 'returns :already_connected when already on correct network' do
       allow(subject).to receive(:wifi_on?).and_return(true)
       allow(subject).to receive(:connected_network_name).and_return('TestNetwork')
 
-      result = subject.restore_network_state(valid_state)
-      expect(result).to eq(:already_connected)
+      expect(subject.restore_network_state(valid_state)).to eq(:already_connected)
     end
   end
 

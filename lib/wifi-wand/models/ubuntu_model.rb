@@ -151,7 +151,7 @@ class UbuntuModel < BaseModel
     return nil unless interface
     begin
       run_os_command("nmcli dev disconnect #{interface}")
-    rescue OsCommandError => e
+    rescue WifiWand::CommandExecutor::OsCommandError => e
       # It's normal for disconnect to fail if there's no active connection
       # Common scenarios: device not active, not connected to any network
       return nil if e.exitstatus == 6
@@ -214,7 +214,7 @@ class UbuntuModel < BaseModel
       # Take the first interface if multiple are returned
       interfaces = output.split("\n").map(&:strip).reject(&:empty?)
       interfaces.first
-    rescue OsCommandError
+    rescue WifiWand::CommandExecutor::OsCommandError
       nil
     end
   end
