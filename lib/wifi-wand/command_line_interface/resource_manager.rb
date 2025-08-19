@@ -27,7 +27,7 @@ module WifiWand
       def open_resources
         @open_resources ||= begin
           yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'open_resources.yml')
-          data = YAML.load_file(yaml_path)
+          data = YAML.safe_load_file(yaml_path)
           resources = data['resources'].map do |resource|
             OpenResource.new(resource['code'], resource['url'], resource['desc'])
           end

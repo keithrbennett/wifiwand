@@ -99,7 +99,7 @@ module WifiWand
     def tcp_test_endpoints
       @tcp_test_endpoints ||= begin
         yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'tcp_test_endpoints.yml')
-        data = YAML.load_file(yaml_path)
+        data = YAML.safe_load_file(yaml_path)
         data['endpoints'].map { |endpoint| endpoint.transform_keys(&:to_sym) }
       end
     end
@@ -107,7 +107,7 @@ module WifiWand
     def dns_test_domains
       @dns_test_domains ||= begin
         yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'dns_test_domains.yml')
-        data = YAML.load_file(yaml_path)
+        data = YAML.safe_load_file(yaml_path)
         data['domains'].map { |domain| domain['domain'] }
       end
     end
