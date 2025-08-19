@@ -408,7 +408,7 @@ class MacOsModel < BaseModel
   end
 
   def nameservers
-    # Use scutil for the most accurate DNS information on Mac OS
+    # Use scutil for the most accurate DNS information on macOS
     nameservers_using_scutil
   end
 

@@ -64,7 +64,7 @@ spec/
 │   ├── common_os_model_spec.rb     # OS-agnostic interface tests (NEW)
 │   └── models/
 │       ├── base_model_spec.rb      # Error handling tests
-│       ├── mac_os_model_spec.rb    # Mac OS-specific tests
+│       ├── mac_os_model_spec.rb    # macOS-specific tests
 │       └── ubuntu_model_spec.rb    # Ubuntu-specific tests
 ```
 
@@ -106,7 +106,7 @@ bundle exec rspec
 
 **OS Tags Available:**
 - `:os_ubuntu` - Ubuntu-specific tests
-- `:os_mac` - Mac OS-specific tests
+- `:os_mac` - macOS-specific tests
 - Future: `:os_linux`, `:os_bsd`, etc.
 
 ## Test Filtering with RSpec Tags

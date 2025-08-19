@@ -337,7 +337,7 @@ wifi-wand  connect  my-usual-network  its-password
 
 ### Airport Utility Deprecation (April 2024)
 
-Starting in Mac OS version 14.4, the `airport` utility on which some of this project's
+Starting in macOS version 14.4, the `airport` utility on which some of this project's
 functionality relies has been disabled and will presumably eventually be removed.
 
 The following tasks were restored by using Swift scripts:

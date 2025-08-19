@@ -168,7 +168,7 @@ describe OperatingSystems do
       expect([true, false]).to include(ubuntu_os.current_os_is_this_os?)
     end
 
-    it 'verifies Mac OS detection methods' do
+    it 'verifies macOS detection methods' do
       mac_os = subject.supported_operating_systems.find { |os| os.is_a?(MacOs) }
       expect(mac_os).not_to be_nil
       expect([true, false]).to include(mac_os.current_os_is_this_os?)

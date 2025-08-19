@@ -5,7 +5,7 @@ module WifiWand
 class MacOs < BaseOs
 
   def initialize()
-    super(:mac, 'Mac OS')
+    super(:mac, 'macOS')
   end
 
   def current_os_is_this_os?

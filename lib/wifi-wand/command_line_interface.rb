@@ -30,7 +30,7 @@ class CommandLineInterface
   def initialize(options)
     current_os = OperatingSystems.new.current_os
     if current_os.nil?
-      puts "This application currently runs only on Mac OS and Ubuntu Linux."
+      puts "This application currently runs only on macOS and Ubuntu Linux."
       exit(1)
     end
 
@@ -249,7 +249,7 @@ class CommandLineInterface
     quit
   end
 
-  # Use Mac OS 'open' command line utility
+  # Use macOS 'open' command line utility
   def cmd_ro(*resource_codes)
     if resource_codes.empty?
       puts "Please specify a resource to open:\n #{open_resources.help_string.gsub(',', "\n")}"
@@ -260,7 +260,8 @@ class CommandLineInterface
       code = code.to_s  # accommodate conversion of parameter from other types, esp. symbols
       resource = open_resources.find_by_code(code)
       if resource
-        if code == 'spe' && Dir.exist?('/Applications/Speedtest.app/')
+        is_mac_os = OperatingSystems.new.current_os.is_a?(WifiWand::MacOs)
+        if is_mac_os && code == 'spe' && Dir.exist?('/Applications/Speedtest.app/')
           model.open_application('Speedtest')
         else
           model.open_resource(resource.resource)
