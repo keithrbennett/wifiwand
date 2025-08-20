@@ -136,12 +136,12 @@ describe OperatingSystems do
       it 'accepts options and passes them to model creation' do
         if OperatingSystems.current_os
           options = OpenStruct.new(verbose: true)
-          # Only add wifi_interface if we know it won't cause initialization errors
-          if defined?(WifiWand::MacOsModel) && OperatingSystems.current_os.is_a?(WifiWand::MacOs)
-            # On Mac, don't specify an interface that doesn't exist
-            options.wifi_interface = nil
-          else
-            options.wifi_interface = 'test-interface'
+          
+          # Mock detect_wifi_interface to avoid OS calls during model creation
+          if OperatingSystems.current_os.class.name.include?('Ubuntu')
+            allow_any_instance_of(WifiWand::UbuntuModel).to receive(:detect_wifi_interface).and_return('wlan0')
+          elsif OperatingSystems.current_os.class.name.include?('MacOs')
+            allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_return('en0')
           end
           
           model = OperatingSystems.create_model_for_current_os(options)

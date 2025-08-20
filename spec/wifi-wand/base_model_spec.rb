@@ -2,6 +2,30 @@ require_relative '../../lib/wifi-wand/operating_systems'
 
 describe 'Common WiFi Model Behavior (All OS)' do
   
+  # Mock OS calls to prevent real system interaction during non-disruptive tests
+  before(:each) do
+    # Mock detect_wifi_interface for both OS types
+    allow_any_instance_of(WifiWand::UbuntuModel).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
+    allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_return('en0') if defined?(WifiWand::MacOsModel)
+    
+    # Mock all OS-calling methods to prevent real system calls in non-disruptive tests
+    # Only mock for non-disruptive tests (those not tagged with :disruptive)
+    unless self.class.metadata[:disruptive] || self.class.parent_groups.any? { |group| group.metadata[:disruptive] }
+      allow(subject).to receive(:wifi_on?).and_return(true)
+      allow(subject).to receive(:available_network_names).and_return(['TestNetwork1', 'TestNetwork2'])
+      allow(subject).to receive(:connected_network_name).and_return('TestNetwork1')
+      allow(subject).to receive(:ip_address).and_return('192.168.1.100')
+      allow(subject).to receive(:mac_address).and_return('aa:bb:cc:dd:ee:ff')
+      allow(subject).to receive(:default_interface).and_return('wlan0')
+      allow(subject).to receive(:nameservers).and_return(['8.8.8.8', '8.8.4.4'])
+      allow(subject).to receive(:preferred_networks).and_return(['TestNetwork1', 'SavedNetwork1'])
+      allow(subject).to receive(:internet_tcp_connectivity?).and_return(true)
+      allow(subject).to receive(:dns_working?).and_return(true)
+      allow(subject).to receive(:connected_to_internet?).and_return(true)
+      allow(subject).to receive(:public_ip_address_info).and_return({'ip' => '1.2.3.4'})
+    end
+  end
+  
   # Automatically instantiate the correct model for the current OS
   subject { create_test_model }
 
@@ -30,17 +54,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#wifi_info' do
     it 'returns hash with consistent structure across all OSes' do
-      # Mock all the underlying methods that wifi_info calls
-      allow(subject).to receive(:internet_tcp_connectivity?).and_return(true)
-      allow(subject).to receive(:dns_working?).and_return(true)
-      allow(subject).to receive(:wifi_on?).and_return(true)
+      # Override default mocks for this specific test if needed
       allow(subject).to receive(:wifi_interface).and_return('wlan0')
-      allow(subject).to receive(:default_interface).and_return('eth0')
-      allow(subject).to receive(:connected_network_name).and_return('TestNetwork')
-      allow(subject).to receive(:ip_address).and_return('192.168.1.100')
-      allow(subject).to receive(:mac_address).and_return('aa:bb:cc:dd:ee:ff')
-      allow(subject).to receive(:nameservers).and_return(['8.8.8.8', '8.8.4.4'])
-      allow(subject).to receive(:public_ip_address_info).and_return({'ip' => '1.2.3.4'})
       
       result = subject.wifi_info
       expect(result).to be_a(Hash)

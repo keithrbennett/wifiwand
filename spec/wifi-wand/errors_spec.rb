@@ -3,6 +3,13 @@ require_relative '../../lib/wifi-wand/errors'
 module WifiWand
   describe 'Error Classes' do
     
+    # Mock OS calls to prevent real system interaction during non-disruptive tests
+    before(:each) do
+      # Mock detect_wifi_interface for both OS types
+      allow_any_instance_of(WifiWand::UbuntuModel).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
+      allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_return('en0') if defined?(WifiWand::MacOsModel)
+    end
+    
     # Test inheritance
     describe 'Error inheritance' do
       it 'all errors inherit from base Error class' do

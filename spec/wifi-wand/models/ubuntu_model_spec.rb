@@ -3,6 +3,34 @@ require_relative '../../../lib/wifi-wand/models/ubuntu_model'
 module WifiWand
 
 describe UbuntuModel, :os_ubuntu do
+  
+  # Mock OS calls for model initialization, but allow specific tests to override
+  before(:each) do |example|
+    # Don't mock for tests that specifically need to test detect_wifi_interface
+    unless example.metadata[:allow_os_calls]
+      allow_any_instance_of(WifiWand::UbuntuModel).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
+    end
+    
+    # For read-only tests, mock all OS-calling methods to prevent system interaction
+    # Check if we're in a read_only context by looking at example groups
+    is_read_only = example.metadata[:read_only] || 
+                   example.example_group.metadata[:read_only] ||
+                   example.example_group.parent_groups.any? { |group| group.metadata[:read_only] }
+    
+    if is_read_only && !example.metadata[:allow_os_calls]
+      allow(subject).to receive(:wifi_on?).and_return(true)
+      allow(subject).to receive(:available_network_names).and_return(['TestNetwork1', 'TestNetwork2'])
+      allow(subject).to receive(:connected_network_name).and_return('TestNetwork1')
+      allow(subject).to receive(:ip_address).and_return('192.168.1.100')
+      allow(subject).to receive(:mac_address).and_return('aa:bb:cc:dd:ee:ff')
+      allow(subject).to receive(:nameservers).and_return(['8.8.8.8', '8.8.4.4'])
+      allow(subject).to receive(:preferred_networks).and_return(['TestNetwork1', 'SavedNetwork1'])
+      allow(subject).to receive(:os_level_preferred_network_password).with('TestNetwork1').and_return('password123')
+      allow(subject).to receive(:os_level_preferred_network_password).with('SavedNetwork1').and_return('password456')
+      allow(subject).to receive(:os_level_preferred_network_password).and_return(nil) # Default for non-existent networks
+      allow(subject).to receive(:is_wifi_interface?).and_return(true)
+    end
+  end
 
   subject { create_ubuntu_test_model }
 
@@ -10,7 +38,7 @@ describe UbuntuModel, :os_ubuntu do
   context 'read-only operations', :read_only do
 
     describe '#detect_wifi_interface' do
-      it 'returns a wifi interface name' do
+      it 'returns a wifi interface name', :allow_os_calls do
         # This should complete without error, even if no wifi interface exists
         result = subject.detect_wifi_interface
         expect(result).to be_a(String).or(be_nil)
@@ -18,7 +46,7 @@ describe UbuntuModel, :os_ubuntu do
     end
 
     describe '#is_wifi_interface?' do
-      it 'returns boolean for valid interface' do
+      it 'returns boolean for valid interface', :allow_os_calls do
         interface = subject.detect_wifi_interface
         if interface
           result = subject.is_wifi_interface?(interface)
