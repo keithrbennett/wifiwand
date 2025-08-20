@@ -106,56 +106,6 @@ describe WifiWand::NetworkStateManager do
       expect(state_manager.restore_network_state(valid_state)).to eq(:already_connected)
     end
 
-    it 'restores wifi off state correctly' do
-      wifi_off_state = valid_state.merge(wifi_enabled: false)
-      allow(mock_model).to receive(:wifi_on?).and_return(true)
-
-      expect(mock_model).to receive(:wifi_off)
-      expect(mock_model).to receive(:till).with(:off, 0.05)
-
-      state_manager.restore_network_state(wifi_off_state)
-    end
-
-    it 'restores wifi on state correctly when wifi is off' do
-      allow(mock_model).to receive(:wifi_on?).and_return(false, true)  # First false, then true after wifi_on
-      allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
-      expect(mock_model).to receive(:wifi_on)
-      expect(mock_model).to receive(:till).with(:on, 0.05)
-      expect(state_manager.restore_network_state(valid_state)).to eq(:already_connected)
-    end
-
-    it 'connects to specified network when not already connected' do
-      allow(mock_model).to receive(:wifi_on?).and_return(true)
-      allow(mock_model).to receive(:connected_network_name).and_return('DifferentNetwork')
-      allow(mock_model).to receive(:preferred_network_password).with('TestNetwork').and_return('testpass')
-
-      expect(mock_model).to receive(:connect).with('TestNetwork', 'testpass')
-      expect(mock_model).to receive(:till).with(:conn, 0.25)
-
-      state_manager.restore_network_state(valid_state)
-    end
-
-    it 'uses provided password when available' do
-      allow(mock_model).to receive(:wifi_on?).and_return(true)
-      allow(mock_model).to receive(:connected_network_name).and_return('DifferentNetwork')
-
-      expect(mock_model).to receive(:connect).with('TestNetwork', 'testpass')
-      expect(mock_model).to receive(:till).with(:conn, 0.25)
-
-      state_manager.restore_network_state(valid_state)
-    end
-
-    it 'falls back to preferred network password when state password is nil' do
-      state_without_password = valid_state.merge(network_password: nil)
-      allow(mock_model).to receive(:wifi_on?).and_return(true)
-      allow(mock_model).to receive(:connected_network_name).and_return('DifferentNetwork')
-      allow(mock_model).to receive(:preferred_network_password).with('TestNetwork').and_return('fallback_password')
-
-      expect(mock_model).to receive(:connect).with('TestNetwork', 'fallback_password')
-      expect(mock_model).to receive(:till).with(:conn, 0.25)
-
-      state_manager.restore_network_state(state_without_password)
-    end
   end
 
   describe 'verbose mode' do

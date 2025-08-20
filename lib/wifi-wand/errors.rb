@@ -134,4 +134,10 @@ module WifiWand
       super("Network '#{network_name}' not in preferred networks list")
     end
   end
+
+  class ConfigurationError < Error
+    def initialize(message)
+      super(message)
+    end
+  end
 end
