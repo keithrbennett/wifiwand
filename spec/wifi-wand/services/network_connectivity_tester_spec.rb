@@ -9,12 +9,11 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: true) }
 
       before do
-        # Mock Socket to prevent actual network calls
         allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
+        allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
       end
 
       it 'outputs formatted endpoint list to stdout' do
-        # Capture stdout to verify the formatted output
         expect { tester.tcp_connectivity? }.to output(
           a_string_matching(/Testing internet TCP connectivity to: .*:.*/)
         ).to_stdout
@@ -32,6 +31,7 @@ describe WifiWand::NetworkConnectivityTester do
 
       before do
         allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
+        allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
       end
 
       it 'returns false when all endpoints fail' do
@@ -44,6 +44,7 @@ describe WifiWand::NetworkConnectivityTester do
 
       before do
         allow(Socket).to receive(:tcp).and_yield
+        allow(Timeout).to receive(:timeout).and_yield
       end
 
       it 'returns true when at least one endpoint succeeds' do
@@ -59,6 +60,7 @@ describe WifiWand::NetworkConnectivityTester do
 
       before do
         allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
+        allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
       end
 
       it 'outputs domain list to stdout' do
@@ -73,6 +75,7 @@ describe WifiWand::NetworkConnectivityTester do
 
       before do
         allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
+        allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
       end
 
       it 'returns false when all domains fail to resolve' do
@@ -85,6 +88,7 @@ describe WifiWand::NetworkConnectivityTester do
 
       before do
         allow(IPSocket).to receive(:getaddress).and_return('1.2.3.4')
+        allow(Timeout).to receive(:timeout).and_yield
       end
 
       it 'returns true when at least one domain resolves' do
