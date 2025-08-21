@@ -22,9 +22,9 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency('awesome_print', '>= 1.9.2', '< 2')
 
-  # ostruct will no longer be part of the default gems starting from Ruby 3.5.0.
-  spec.add_dependency('ostruct')
-
+  # ostruct and reline will no longer be part of the default gems starting from Ruby 3.5.0.
+  spec.add_dependency 'ostruct'
+  spec.add_dependency 'reline'
   # still on version 0, no need to exclude future versions, but need bug fix for pry not pry'ing
   # on last line of method:
   spec.add_dependency('pry', '>= 0.14.2')
