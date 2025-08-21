@@ -1,5 +1,5 @@
-require_relative '../spec_helper'
-require_relative '../../lib/wifi-wand/main'
+require_relative '../../spec_helper'
+require_relative '../../../lib/wifi-wand/main'
 
 describe WifiWand::Main do
   
