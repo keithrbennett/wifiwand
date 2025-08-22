@@ -7,7 +7,9 @@ module WifiWand
       
       # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.
       def help_text
-        @help_text ||= "
+        resource_help = model ? model.resource_manager.open_resources.help_string : "[resources unavailable]"
+        
+        "
 Command Line Switches:                    [wifi-wand version #{WifiWand::VERSION} at https://github.com/keithrbennett/wifiwand]
 
 -o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
@@ -34,7 +36,7 @@ of[f]                     - turns wifi off
 pa[ssword] network-name   - password for preferred network-name
 pr[ef_nets]               - preferred (saved) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
-ro[pen]                   - open resource (#{open_resources.help_string})
+ro[pen]                   - open resource (#{resource_help})
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                             1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
                             2) wait interval between tests, in seconds (optional, defaults to #{WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL} seconds)

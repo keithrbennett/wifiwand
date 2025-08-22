@@ -163,4 +163,61 @@ describe WifiWand::CommandLineInterface do
     end
   end
 
+  describe 'resource management commands' do
+    let(:mock_resource_manager) { double('resource_manager') }
+    
+    before(:each) do
+      allow(mock_model).to receive(:resource_manager).and_return(mock_resource_manager)
+      allow(mock_model).to receive(:open_resources_by_codes)
+      allow(mock_model).to receive(:available_resources_help)
+    end
+
+    describe 'cmd_ro (open resources)' do
+      it 'displays help when no resource codes provided' do
+        allow(mock_model).to receive(:available_resources_help).and_return('Available resources help text')
+        
+        expect { subject.cmd_ro }.to output("Available resources help text\n").to_stdout
+      end
+
+      it 'opens valid resources and reports success' do
+        opened_resources = [
+          double('resource', code: 'ipw', description: 'What is My IP'),
+          double('resource', code: 'spe', description: 'Speed Test')
+        ]
+        
+        allow(mock_model).to receive(:open_resources_by_codes)
+          .with('ipw', 'spe')
+          .and_return({ opened_resources: opened_resources, invalid_codes: [] })
+        
+        expect { subject.cmd_ro('ipw', 'spe') }.not_to output.to_stdout
+      end
+
+      it 'displays error message for invalid resource codes' do
+        allow(mock_model).to receive(:open_resources_by_codes)
+          .with('invalid1', 'invalid2')
+          .and_return({ opened_resources: [], invalid_codes: ['invalid1', 'invalid2'] })
+        
+        allow(mock_resource_manager).to receive(:invalid_codes_error)
+          .with(['invalid1', 'invalid2'])
+          .and_return("Invalid resource codes: 'invalid1', 'invalid2'")
+        
+        expect { subject.cmd_ro('invalid1', 'invalid2') }.to output("Invalid resource codes: 'invalid1', 'invalid2'\n").to_stdout
+      end
+
+      it 'handles mixed valid and invalid codes' do
+        opened_resources = [double('resource', code: 'ipw', description: 'What is My IP')]
+        
+        allow(mock_model).to receive(:open_resources_by_codes)
+          .with('ipw', 'invalid')
+          .and_return({ opened_resources: opened_resources, invalid_codes: ['invalid'] })
+        
+        allow(mock_resource_manager).to receive(:invalid_codes_error)
+          .with(['invalid'])
+          .and_return("Invalid resource code: 'invalid'")
+        
+        expect { subject.cmd_ro('ipw', 'invalid') }.to output("Invalid resource code: 'invalid'\n").to_stdout
+      end
+    end
+  end
+
 end

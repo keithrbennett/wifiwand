@@ -50,8 +50,7 @@ wifi-wand -s
 Available commands can be seen by using the `-h` (or `--help`) option:
 
 ```
-
-Command Line Switches:                    [wifi-wand version 2.20.0 at https://github.com/keithrbennett/wifiwand]
+Command Line Switches:                    [wifi-wand version 3.0.0-alpha.1 at https://github.com/keithrbennett/wifiwand]
 
 -o {i,j,k,p,y}            - outputs data in inspect, JSON, pretty JSON, puts, or YAML format when not in shell mode
 -p wifi_interface_name    - override automatic detection of interface name with this name

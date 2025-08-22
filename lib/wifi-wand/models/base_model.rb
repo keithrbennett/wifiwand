@@ -4,6 +4,7 @@ require 'socket'
 require 'tempfile'
 require 'uri'
 require_relative 'helpers/command_output_formatter'
+require_relative 'helpers/resource_manager'
 require_relative '../errors'
 require_relative '../services/command_executor'
 require_relative '../services/network_connectivity_tester'
@@ -327,6 +328,19 @@ class BaseModel
     bytes = Array.new(6) { rand(256) }
     chars = bytes.map { |b| "%02x" % b }
     chars.join(':')
+  end
+
+  # Resource management functionality
+  def resource_manager
+    @resource_manager ||= Helpers::ResourceManager.new
+  end
+
+  def open_resources_by_codes(*resource_codes)
+    resource_manager.open_resources_by_codes(self, *resource_codes)
+  end
+
+  def available_resources_help
+    resource_manager.available_resources_help
   end
 
   # Network State Management for Testing

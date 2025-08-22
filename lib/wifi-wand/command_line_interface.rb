@@ -7,7 +7,6 @@ require_relative 'timing_constants'
 
 # Include extracted modules
 require_relative 'command_line_interface/help_system'
-require_relative 'command_line_interface/resource_manager'
 require_relative 'command_line_interface/output_formatter'
 require_relative 'command_line_interface/error_handling'
 require_relative 'command_line_interface/command_registry'
@@ -17,7 +16,6 @@ module WifiWand
 
 class CommandLineInterface
   include HelpSystem
-  include ResourceManager
   include OutputFormatter
   include ErrorHandling
   include CommandRegistry
@@ -249,22 +247,16 @@ class CommandLineInterface
   # Use macOS 'open' command line utility
   def cmd_ro(*resource_codes)
     if resource_codes.empty?
-      puts "Please specify a resource to open:\n #{open_resources.help_string.gsub(',', "\n")}"
+      puts model.available_resources_help
       return
     end
 
-    resource_codes.each do |code|
-      code = code.to_s  # accommodate conversion of parameter from other types, esp. symbols
-      resource = open_resources.find_by_code(code)
-      if resource
-        is_mac_os = OperatingSystems.new.current_os.is_a?(WifiWand::MacOs)
-        if is_mac_os && code == 'spe' && Dir.exist?('/Applications/Speedtest.app/')
-          model.open_application('Speedtest')
-        else
-          model.open_resource(resource.resource)
-        end
-      end
+    result = model.open_resources_by_codes(*resource_codes)
+    
+    unless result[:invalid_codes].empty?
+      puts model.resource_manager.invalid_codes_error(result[:invalid_codes])
     end
+    
     nil
   end
 
