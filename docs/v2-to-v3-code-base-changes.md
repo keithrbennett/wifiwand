@@ -1,4 +1,4 @@
-# Version 2.x to 3.0 Changes
+# Version 2.x to 3.0 Code Base Changes
 
 This document summarizes the changes and improvements made in version 3.0 compared to version 2.x.
 
@@ -27,10 +27,10 @@ This document summarizes the changes and improvements made in version 3.0 compar
 ## Test Suite Improvements
 
 - Created OS-agnostic common interface tests that work across all supported platforms
-- Added verbose testing mode with `WIFIWAND_VERBOSE` environment variable support
+- Added tags to enable separation of disruptive (to system) and nondisruptive tests; default mode runs only nondisruptivek
+- Made verbose mode accessible to tests via a WIFIWAND_VERBOSE environment variable
 - Implemented automatic network state capture and restoration for disruptive tests
 - Added helper methods for consistent test model creation across different OS platforms
-- Enhanced test filtering with RSpec tags for safe development workflows
 
 ## Code Architecture Enhancements
 
