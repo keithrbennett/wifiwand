@@ -105,6 +105,11 @@ class CommandLineInterface
 
   def cmd_co(network, password = nil)
     model.connect(network, password)
+    
+    # Show message if we used a saved password
+    if model.last_connection_used_saved_password? && !interactive_mode
+      puts "Using saved password for '#{network}'. Use 'forget #{network}' if you need to use a different password."
+    end
   end
 
   def cmd_cy

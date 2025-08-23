@@ -135,6 +135,60 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
+  describe '#connect with saved passwords' do
+    it 'uses saved password when none provided and network is preferred' do
+      network_name = 'SavedNetwork1'
+      saved_password = 'saved_password_123'
+      
+      # Mock that the network is in preferred networks
+      allow(subject).to receive(:preferred_networks).and_return([network_name])
+      allow(subject).to receive(:preferred_network_password).with(network_name).and_return(saved_password)
+      allow(subject).to receive(:connected_network_name).and_return(nil, network_name)
+      allow(subject).to receive(:wifi_on)
+      allow(subject).to receive(:_connect)
+      
+      # Connect without providing password
+      subject.connect(network_name)
+      
+      # Should have called _connect with the saved password
+      expect(subject).to have_received(:_connect).with(network_name, saved_password)
+      expect(subject.last_connection_used_saved_password?).to be true
+    end
+
+    it 'does not use saved password when one is provided' do
+      network_name = 'SavedNetwork1'
+      provided_password = 'provided_password'
+      
+      allow(subject).to receive(:preferred_networks).and_return([network_name])
+      allow(subject).to receive(:connected_network_name).and_return(nil, network_name)
+      allow(subject).to receive(:wifi_on)
+      allow(subject).to receive(:_connect)
+      
+      # Connect with explicit password
+      subject.connect(network_name, provided_password)
+      
+      # Should have called _connect with the provided password
+      expect(subject).to have_received(:_connect).with(network_name, provided_password)
+      expect(subject.last_connection_used_saved_password?).to be false
+    end
+
+    it 'does not use saved password when network is not preferred' do
+      network_name = 'UnknownNetwork'
+      
+      allow(subject).to receive(:preferred_networks).and_return(['SavedNetwork1'])
+      allow(subject).to receive(:connected_network_name).and_return(nil, network_name)
+      allow(subject).to receive(:wifi_on)
+      allow(subject).to receive(:_connect)
+      
+      # Connect without password to non-preferred network
+      subject.connect(network_name)
+      
+      # Should have called _connect with nil password
+      expect(subject).to have_received(:_connect).with(network_name, nil)
+      expect(subject.last_connection_used_saved_password?).to be false
+    end
+  end
+
   describe '#disconnect', :disruptive do
     it 'completes without raising an error' do
       # Tagged as :modifies_system to exclude by default since it may disrupt network

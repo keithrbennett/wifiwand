@@ -242,7 +242,15 @@ class BaseModel
   # Connects to the passed network name, optionally with password.
   # Turns wifi on first, in case it was turned off.
   # Relies on subclass implementation of _connect().
+  #
+  # Note: The @last_connection_used_saved_password flag is cleared at the start 
+  # of each connect attempt and only set to true if a saved password is successfully 
+  # used. If the connection fails, this flag may not accurately represent the 
+  # most recent connection attempt's state.
   def connect(network_name, password = nil)
+    # Reset saved password flag at start of each connection attempt
+    @last_connection_used_saved_password = nil
+    
     # Allow symbols and anything responding to to_s for user convenience
     network_name = network_name&.to_s
     password     = password&.to_s
@@ -254,8 +262,25 @@ class BaseModel
     # If we're already connected to the desired network, no need to proceed
     return if network_name == connected_network_name
 
+    # If no password provided, check if this is a preferred network with saved password
+    used_saved_password = false
+    if password.nil? || password.empty?
+      if preferred_networks.include?(network_name)
+        begin
+          password = preferred_network_password(network_name)
+          used_saved_password = true unless password.nil? || password.empty?
+        rescue => e
+          # If we can't get the saved password, continue without one
+          # This could happen due to keychain access issues, etc.
+        end
+      end
+    end
+
     wifi_on
     _connect(network_name, password)
+
+    # Store whether we used a saved password for potential CLI messaging
+    @last_connection_used_saved_password = used_saved_password
 
 
     # Verify that the network is now connected:
@@ -352,6 +377,14 @@ class BaseModel
   
   def restore_network_state(state, fail_silently: false)
     @state_manager.restore_network_state(state, fail_silently: fail_silently)
+  end
+
+  # Returns true if the last connection attempt used a saved password.
+  # Note: This flag is reset at the start of each connect() call, so it only
+  # reflects saved password usage if the most recent connect() call completed
+  # successfully. Failed connections may leave this in an inconsistent state.
+  def last_connection_used_saved_password?
+    !!@last_connection_used_saved_password
   end
   
   private

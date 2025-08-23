@@ -163,6 +163,39 @@ describe WifiWand::CommandLineInterface do
     end
   end
 
+  describe 'connect command with saved passwords' do
+    it 'shows message when saved password is used in non-interactive mode' do
+      network_name = 'SavedNetwork'
+      allow(mock_model).to receive(:connect).with(network_name, nil)
+      allow(mock_model).to receive(:last_connection_used_saved_password?).and_return(true)
+      
+      # Capture output
+      expect { subject.cmd_co(network_name) }.to output(/Using saved password for 'SavedNetwork'/).to_stdout
+    end
+
+    it 'does not show message when saved password is not used' do
+      network_name = 'TestNetwork'
+      password = 'explicit_password'
+      allow(mock_model).to receive(:connect).with(network_name, password)
+      allow(mock_model).to receive(:last_connection_used_saved_password?).and_return(false)
+      
+      # Should not output message
+      expect { subject.cmd_co(network_name, password) }.not_to output(/Using saved password/).to_stdout
+    end
+
+    it 'does not show message in interactive mode even when saved password is used' do
+      network_name = 'SavedNetwork'
+      interactive_options = OpenStruct.new(verbose: false, wifi_interface: nil, interactive_mode: true)
+      interactive_cli = described_class.new(interactive_options)
+      
+      allow(interactive_cli.model).to receive(:connect).with(network_name, nil)
+      allow(interactive_cli.model).to receive(:last_connection_used_saved_password?).and_return(true)
+      
+      # Should not output message in interactive mode
+      expect { interactive_cli.cmd_co(network_name) }.not_to output(/Using saved password/).to_stdout
+    end
+  end
+
   describe 'resource management commands' do
     let(:mock_resource_manager) { double('resource_manager') }
     
