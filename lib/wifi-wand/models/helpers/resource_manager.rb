@@ -41,12 +41,7 @@ module WifiWand
           resource = open_resources.find_by_code(code)
           
           if resource
-            # Special handling for Speedtest app on macOS
-            if model.class.os_id == :mac && code == 'spe' && Dir.exist?('/Applications/Speedtest.app/')
-              model.open_application('Speedtest')
-            else
-              model.open_resource(resource.resource)
-            end
+            model.open_resource(resource.resource)
             opened_resources << resource
           else
             invalid_codes << code

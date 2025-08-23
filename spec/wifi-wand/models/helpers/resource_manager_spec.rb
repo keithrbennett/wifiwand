@@ -51,8 +51,6 @@ describe WifiWand::Helpers::ResourceManager do
     
     before do
       allow(mock_model).to receive(:open_resource)
-      allow(mock_model).to receive(:open_application)
-      allow(mock_model.class).to receive(:os_id).and_return(:ubuntu)
     end
     
     context 'with empty codes' do
@@ -101,32 +99,6 @@ describe WifiWand::Helpers::ResourceManager do
       end
     end
     
-    context 'with Speedtest special case on macOS' do
-      before do
-        allow(mock_model.class).to receive(:os_id).and_return(:mac)
-      end
-      
-      it 'opens Speedtest app when available' do
-        allow(Dir).to receive(:exist?).with('/Applications/Speedtest.app/').and_return(true)
-        
-        result = resource_manager.open_resources_by_codes(mock_model, 'spe')
-        
-        expect(mock_model).to have_received(:open_application).with('Speedtest')
-        expect(mock_model).not_to have_received(:open_resource)
-        expect(result[:opened_resources].size).to eq(1)
-        expect(result[:opened_resources].first.code).to eq('spe')
-      end
-      
-      it 'opens URL when Speedtest app not available' do
-        allow(Dir).to receive(:exist?).with('/Applications/Speedtest.app/').and_return(false)
-        
-        result = resource_manager.open_resources_by_codes(mock_model, 'spe')
-        
-        expect(mock_model).to have_received(:open_resource)
-        expect(mock_model).not_to have_received(:open_application)
-        expect(result[:opened_resources].size).to eq(1)
-      end
-    end
     
     it 'converts codes to strings' do
       result = resource_manager.open_resources_by_codes(mock_model, :ipw, 123)
