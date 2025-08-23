@@ -3,6 +3,20 @@ require_relative '../../../../lib/wifi-wand/models/helpers/resource_manager'
 
 describe WifiWand::Helpers::ResourceManager do
   let(:resource_manager) { described_class.new }
+  let(:mock_resources_data) do
+    {
+      'resources' => [
+        { 'code' => 'test1', 'url' => 'https://example1.com', 'desc' => 'Test Resource 1' },
+        { 'code' => 'test2', 'url' => 'https://example2.com', 'desc' => 'Test Resource 2' },
+        { 'code' => 'test3', 'url' => 'https://example3.com', 'desc' => 'Test Resource 3' }
+      ]
+    }
+  end
+  
+  before do
+    allow(YAML).to receive(:safe_load_file).and_return(mock_resources_data)
+    allow(File).to receive(:exist?).and_return(true)
+  end
   
   describe '#open_resources' do
     it 'lazily loads resources from YAML file' do
@@ -12,7 +26,7 @@ describe WifiWand::Helpers::ResourceManager do
       
       # Verify it contains expected resource codes
       codes = resources.map(&:code)
-      expect(codes).to include('ipw', 'spe', 'cap', 'ipl', 'libre', 'this')
+      expect(codes).to include('test1', 'test2', 'test3')
     end
     
     it 'memoizes the resources on subsequent calls' do
@@ -26,8 +40,8 @@ describe WifiWand::Helpers::ResourceManager do
     it 'returns formatted help text' do
       help = resource_manager.available_resources_help
       expect(help).to include("Please specify a resource to open:")
-      expect(help).to include("'ipw' (What is My IP)")
-      expect(help).to include("'spe' (Speed Test)")
+      expect(help).to include("'test1' (Test Resource 1)")
+      expect(help).to include("'test2' (Test Resource 2)")
     end
   end
   
@@ -36,7 +50,7 @@ describe WifiWand::Helpers::ResourceManager do
       error = resource_manager.invalid_codes_error(['invalid'])
       expect(error).to include("Invalid resource code: 'invalid'")
       expect(error).to include("Valid codes are:")
-      expect(error).to include("'ipw' (What is My IP)")
+      expect(error).to include("'test1' (Test Resource 1)")
     end
     
     it 'formats error message for multiple invalid codes' do
@@ -69,11 +83,11 @@ describe WifiWand::Helpers::ResourceManager do
     
     context 'with valid codes' do
       it 'opens resources and returns opened resources' do
-        result = resource_manager.open_resources_by_codes(mock_model, 'ipw', 'cap')
+        result = resource_manager.open_resources_by_codes(mock_model, 'test1', 'test2')
         
         expect(mock_model).to have_received(:open_resource).twice
         expect(result[:opened_resources].size).to eq(2)
-        expect(result[:opened_resources].map(&:code)).to eq(['ipw', 'cap'])
+        expect(result[:opened_resources].map(&:code)).to eq(['test1', 'test2'])
         expect(result[:invalid_codes]).to be_empty
       end
     end
@@ -90,21 +104,21 @@ describe WifiWand::Helpers::ResourceManager do
     
     context 'with mixed valid and invalid codes' do
       it 'opens valid resources and reports invalid ones' do
-        result = resource_manager.open_resources_by_codes(mock_model, 'ipw', 'invalid', 'cap')
+        result = resource_manager.open_resources_by_codes(mock_model, 'test1', 'invalid', 'test2')
         
         expect(mock_model).to have_received(:open_resource).twice
         expect(result[:opened_resources].size).to eq(2)
-        expect(result[:opened_resources].map(&:code)).to eq(['ipw', 'cap'])
+        expect(result[:opened_resources].map(&:code)).to eq(['test1', 'test2'])
         expect(result[:invalid_codes]).to eq(['invalid'])
       end
     end
     
     
     it 'converts codes to strings' do
-      result = resource_manager.open_resources_by_codes(mock_model, :ipw, 123)
+      result = resource_manager.open_resources_by_codes(mock_model, :test1, 123)
       
       expect(result[:invalid_codes]).to eq(['123']) # 123 converted to '123' and not found
-      expect(result[:opened_resources].size).to eq(1) # :ipw converted to 'ipw' and found
+      expect(result[:opened_resources].size).to eq(1) # :test1 converted to 'test1' and found
     end
   end
 end
@@ -112,8 +126,8 @@ end
 describe WifiWand::Helpers::ResourceManager::OpenResource do
   describe '#help_string' do
     it 'formats help string correctly' do
-      resource = described_class.new('ipw', 'https://www.whatismyip.com', 'What is My IP')
-      expect(resource.help_string).to eq("'ipw' (What is My IP)")
+      resource = described_class.new('test', 'https://example.com', 'Test Resource')
+      expect(resource.help_string).to eq("'test' (Test Resource)")
     end
   end
 end
@@ -121,17 +135,17 @@ end
 describe WifiWand::Helpers::ResourceManager::OpenResources do
   let(:resources) do
     described_class.new([
-      WifiWand::Helpers::ResourceManager::OpenResource.new('ipw', 'https://www.whatismyip.com', 'What is My IP'),
-      WifiWand::Helpers::ResourceManager::OpenResource.new('spe', 'http://speedtest.net/', 'Speed Test')
+      WifiWand::Helpers::ResourceManager::OpenResource.new('test1', 'https://example1.com', 'Test Resource 1'),
+      WifiWand::Helpers::ResourceManager::OpenResource.new('test2', 'https://example2.com', 'Test Resource 2')
     ])
   end
   
   describe '#find_by_code' do
     it 'finds resource by code' do
-      resource = resources.find_by_code('ipw')
+      resource = resources.find_by_code('test1')
       expect(resource).not_to be_nil
-      expect(resource.code).to eq('ipw')
-      expect(resource.url).to eq('https://www.whatismyip.com')
+      expect(resource.code).to eq('test1')
+      expect(resource.url).to eq('https://example1.com')
     end
     
     it 'returns nil for non-existent code' do
@@ -143,7 +157,7 @@ describe WifiWand::Helpers::ResourceManager::OpenResources do
   describe '#help_string' do
     it 'formats help string for all resources' do
       help = resources.help_string
-      expect(help).to eq("'ipw' (What is My IP), 'spe' (Speed Test)")
+      expect(help).to eq("'test1' (Test Resource 1), 'test2' (Test Resource 2)")
     end
   end
 end
