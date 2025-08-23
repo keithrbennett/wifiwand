@@ -1,4 +1,6 @@
 require_relative '../../lib/wifi-wand/operating_systems'
+require_relative '../../lib/wifi-wand/models/ubuntu_model'
+require_relative '../../lib/wifi-wand/models/mac_os_model'
 
 describe 'Common WiFi Model Behavior (All OS)' do
   

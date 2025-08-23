@@ -10,12 +10,13 @@ require_relative '../services/command_executor'
 require_relative '../services/network_connectivity_tester'
 require_relative '../services/network_state_manager'
 require_relative '../services/status_waiter'
+require_relative '../services/connection_manager'
 
 module WifiWand
 
 class BaseModel
 
-  attr_accessor :wifi_interface, :verbose_mode, :command_executor, :connectivity_tester, :state_manager, :status_waiter
+  attr_accessor :wifi_interface, :verbose_mode, :command_executor, :connectivity_tester, :state_manager, :status_waiter, :connection_manager
 
   def self.create_model(options = OpenStruct.new)
     instance = new(options)
@@ -34,6 +35,7 @@ class BaseModel
     @connectivity_tester = NetworkConnectivityTester.new(verbose: @verbose_mode)
     @state_manager = NetworkStateManager.new(self, verbose: @verbose_mode)
     @status_waiter = StatusWaiter.new(self, verbose: @verbose_mode)
+    @connection_manager = ConnectionManager.new(self, verbose: @verbose_mode)
   end
 
   def init
@@ -240,63 +242,9 @@ class BaseModel
 
 
   # Connects to the passed network name, optionally with password.
-  # Turns wifi on first, in case it was turned off.
-  # Relies on subclass implementation of _connect().
-  #
-  # Note: The @last_connection_used_saved_password flag is cleared at the start 
-  # of each connect attempt and only set to true if a saved password is successfully 
-  # used. If the connection fails, this flag may not accurately represent the 
-  # most recent connection attempt's state.
+  # Delegates to ConnectionManager for complex connection logic.
   def connect(network_name, password = nil)
-    # Reset saved password flag at start of each connection attempt
-    @last_connection_used_saved_password = nil
-    
-    # Allow symbols and anything responding to to_s for user convenience
-    network_name = network_name&.to_s
-    password     = password&.to_s
-
-    if network_name.nil? || network_name.empty?
-      raise InvalidNetworkNameError.new(network_name || "")
-    end
-
-    # If we're already connected to the desired network, no need to proceed
-    return if network_name == connected_network_name
-
-    # If no password provided, check if this is a preferred network with saved password
-    used_saved_password = false
-    if password.nil? || password.empty?
-      if preferred_networks.include?(network_name)
-        begin
-          password = preferred_network_password(network_name)
-          used_saved_password = true unless password.nil? || password.empty?
-        rescue => e
-          # If we can't get the saved password, continue without one
-          # This could happen due to keychain access issues, etc.
-        end
-      end
-    end
-
-    wifi_on
-    _connect(network_name, password)
-
-    # Store whether we used a saved password for potential CLI messaging
-    @last_connection_used_saved_password = used_saved_password
-
-
-    # Verify that the network is now connected:
-    actual_network_name = connected_network_name
-
-    unless actual_network_name == network_name
-      message = %Q{Expected to connect to "#{network_name}" but }
-      if actual_network_name.nil? || actual_network_name.empty?
-        message << "unable to connect to any network."
-      else
-        message << %Q{connected to "#{connected_network_name}" instead.}
-      end
-      message << ' Did you ' << (password ? "provide the correct password?" : "need to provide a password?")
-      raise NetworkConnectionError.new(network_name, actual_network_name ? "connected to '#{connected_network_name}' instead" : "unable to connect to any network")
-    end
-    nil
+    @connection_manager.connect(network_name, password)
   end
 
 
@@ -380,11 +328,8 @@ class BaseModel
   end
 
   # Returns true if the last connection attempt used a saved password.
-  # Note: This flag is reset at the start of each connect() call, so it only
-  # reflects saved password usage if the most recent connect() call completed
-  # successfully. Failed connections may leave this in an inconsistent state.
   def last_connection_used_saved_password?
-    !!@last_connection_used_saved_password
+    @connection_manager.last_connection_used_saved_password?
   end
   
   private
