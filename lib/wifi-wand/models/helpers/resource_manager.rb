@@ -4,7 +4,7 @@ module WifiWand
   module Helpers
     class ResourceManager
       
-      class OpenResource < Struct.new(:code, :resource, :description)
+      class OpenResource < Struct.new(:code, :url, :description)
         def help_string
           "'#{code}' (#{description})"
         end
@@ -41,7 +41,7 @@ module WifiWand
           resource = open_resources.find_by_code(code)
           
           if resource
-            model.open_resource(resource.resource)
+            model.open_resource(resource.url)
             opened_resources << resource
           else
             invalid_codes << code

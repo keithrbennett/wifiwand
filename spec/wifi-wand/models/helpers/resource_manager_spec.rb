@@ -131,7 +131,7 @@ describe WifiWand::Helpers::ResourceManager::OpenResources do
       resource = resources.find_by_code('ipw')
       expect(resource).not_to be_nil
       expect(resource.code).to eq('ipw')
-      expect(resource.resource).to eq('https://www.whatismyip.com')
+      expect(resource.url).to eq('https://www.whatismyip.com')
     end
     
     it 'returns nil for non-existent code' do
@@ -195,7 +195,7 @@ describe 'ResourceManager error handling and edge cases' do
       expect { resource_manager.open_resources }.not_to raise_error
       resource = resource_manager.open_resources.first
       expect(resource.code).to eq('test')
-      expect(resource.resource).to be_nil
+      expect(resource.url).to be_nil
       expect(resource.description).to be_nil
       
       File.delete(incomplete_yaml_path) if File.exist?(incomplete_yaml_path)
