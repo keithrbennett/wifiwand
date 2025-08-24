@@ -78,13 +78,31 @@ class UbuntuModel < BaseModel
   end
 
   def _connect(network_name, password = nil)
-    # Connect to the Wi-Fi network using nmcli.
-    # The 'nmcli dev wifi connect' command handles both new and existing connections.
-    # If a password is provided, it will be used (and may update a saved password).
-    # If no password is provided, the OS will attempt to use a saved password if available.
-    command = "nmcli dev wifi connect #{Shellwords.shellescape(network_name)}"
-    command << " password #{Shellwords.shellescape(password)}" if password
-    run_os_command(command, false)
+    # Check if we're already connected to avoid unnecessary reconnection
+    if _connected_network_name == network_name
+      return
+    end
+    
+    # If a password is provided, always use wifi connect command to update/use the password
+    if password
+      connect_with_wifi_command(network_name, password)
+      return
+    end
+    
+    # Check if there's an existing connection profile for this network
+    existing_connections = preferred_networks
+    if existing_connections.include?(network_name)
+      # Use existing connection profile to avoid deactivation/reactivation
+      begin
+        run_os_command("nmcli connection up #{Shellwords.shellescape(network_name)}")
+      rescue WifiWand::CommandExecutor::OsCommandError => e
+        # If connection up fails, fall back to wifi connect
+        connect_with_wifi_command(network_name, password)
+      end
+    else
+      # Create new connection using wifi connect command
+      connect_with_wifi_command(network_name, password)
+    end
   end
 
   def preferred_networks
@@ -92,6 +110,50 @@ class UbuntuModel < BaseModel
     connections = output.split("\n").map(&:strip).reject(&:empty?)
     connections.sort
   end
+
+  private
+
+  def connect_with_wifi_command(network_name, password)
+    command = "nmcli dev wifi connect #{Shellwords.shellescape(network_name)}"
+    command << " password #{Shellwords.shellescape(password)}" if password
+    
+    output = run_os_command(command, false)
+    
+    # Check for error conditions using exit codes (language-independent)
+    if $?.exitstatus != 0
+      case $?.exitstatus
+      when 10
+        # nmcli exit code 10: Connection activation failed
+        # This typically indicates network not found or connection issues
+        if output.downcase.include?("ssid") || output.downcase.include?("network")
+          raise NetworkNotFoundError.new(network_name)
+        else
+          raise WifiWand::CommandExecutor::OsCommandError.new($?.exitstatus, command, output)
+        end
+      when 4
+        # nmcli exit code 4: Timeout
+        raise WifiWand::CommandExecutor::OsCommandError.new($?.exitstatus, command, output)
+      else
+        # For other errors, still check English text as fallback but also check common patterns
+        network_not_found_patterns = [
+          /No network with SSID/i,
+          /not found/i,
+          /network.*not.*found/i,
+          /ssid.*not.*found/i
+        ]
+        
+        if network_not_found_patterns.any? { |pattern| output.match?(pattern) }
+          raise NetworkNotFoundError.new(network_name)
+        else
+          raise WifiWand::CommandExecutor::OsCommandError.new($?.exitstatus, command, output)
+        end
+      end
+    end
+    
+    output
+  end
+
+  public
 
   def remove_preferred_network(network_name)
     # Check if the network exists first
