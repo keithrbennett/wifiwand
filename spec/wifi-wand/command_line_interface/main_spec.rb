@@ -113,12 +113,23 @@ describe WifiWand::Main do
       expect { subject.call }.to output(/Error:.*Test error/m).to_stdout
     end
 
-    it 'prints backtrace on exceptions' do
+    it 'prints clean error messages without backtraces by default' do
       error = StandardError.new('Test error')
       allow(error).to receive(:backtrace).and_return(['line1', 'line2', 'line3'])
       allow(mock_cli).to receive(:call).and_raise(error)
       
-      expect { subject.call }.to output(/line1.*line2.*line3.*Test error/m).to_stdout
+      expect { subject.call }.to output("Error: Test error\n").to_stdout
+    end
+
+    it 'prints backtrace only in verbose mode' do
+      error = StandardError.new('Test error')
+      allow(error).to receive(:backtrace).and_return(['line1', 'line2', 'line3'])
+      allow(mock_cli).to receive(:call).and_raise(error)
+      
+      # Mock verbose mode
+      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: true))
+      
+      expect { subject.call }.to output(/Error: Test error\n\nStack trace:\nline1\nline2\nline3/m).to_stdout
     end
 
     it 'succeeds when no exceptions occur' do

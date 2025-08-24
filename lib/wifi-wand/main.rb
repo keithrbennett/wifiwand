@@ -6,6 +6,7 @@ require 'yaml'
 require_relative 'command_line_interface'
 require_relative 'operating_systems'
 require_relative 'errors'
+require_relative 'services/command_executor'
 
 
 module WifiWand
@@ -65,7 +66,29 @@ class Main
     begin
       WifiWand::CommandLineInterface.new(options).call
     rescue => e
-      puts "Error: #{e.backtrace.join("\n")}\n\n#{e.message}"
+      handle_error(e, options.verbose)
+    end
+  end
+
+  private
+
+  def handle_error(error, verbose_mode)
+    case error
+    when WifiWand::CommandExecutor::OsCommandError
+      # Show the helpful command error message and details but not the stack trace
+      puts "Error: #{error.message}"
+      puts "Command failed: #{error.command}"
+      puts "Exit code: #{error.exitstatus}"
+    when WifiWand::Error
+      # Custom WiFi-related errors already have user-friendly messages
+      puts "Error: #{error.message}"
+    else
+      # Unknown errors - show message but not stack trace unless verbose
+      puts "Error: #{error.message}"
+      if verbose_mode
+        puts "\nStack trace:"
+        puts error.backtrace.join("\n")
+      end
     end
   end
 end
