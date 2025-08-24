@@ -2,7 +2,7 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/models/mac_os_model'
 
 module WifiWand
-  describe MacOsModel do
+  describe MacOsModel, :os_macos do
     describe "version support" do
       subject(:model) { create_mac_os_test_model }
 
