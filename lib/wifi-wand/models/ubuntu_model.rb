@@ -114,10 +114,26 @@ class UbuntuModel < BaseModel
   private
 
   def connect_with_wifi_command(network_name, password)
-    command = "nmcli dev wifi connect #{Shellwords.shellescape(network_name)}"
-    command << " password #{Shellwords.shellescape(password)}" if password
-    
-    output = run_os_command(command, false)
+    # For networks with existing connection profiles, update the password and connect
+    # This approach is necessary because 'nmcli dev wifi connect' with a password on an
+    # existing connection can sometimes fail with "key-mgmt property is missing" errors,
+    # as it tries to create/modify security settings that may conflict with the existing profile.
+    # By updating the existing profile's PSK and using 'connection up', we preserve all
+    # existing security settings (key-mgmt, etc.) while just updating the password.
+    existing_connections = preferred_networks
+    if existing_connections.include?(network_name) && password
+      # Update existing connection with new password, then connect
+      update_cmd = "nmcli connection modify #{Shellwords.shellescape(network_name)} 802-11-wireless-security.psk #{Shellwords.shellescape(password)}"
+      run_os_command(update_cmd, false)
+      
+      connect_cmd = "nmcli connection up #{Shellwords.shellescape(network_name)}"
+      output = run_os_command(connect_cmd, false)
+    else
+      # Create new connection or connect without password
+      command = "nmcli dev wifi connect #{Shellwords.shellescape(network_name)}"
+      command << " password #{Shellwords.shellescape(password)}" if password
+      output = run_os_command(command, false)
+    end
     
     # Check for error conditions using exit codes (language-independent)
     if $?.exitstatus != 0
