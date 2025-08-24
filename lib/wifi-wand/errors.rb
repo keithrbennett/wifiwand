@@ -140,4 +140,11 @@ module WifiWand
       super(message)
     end
   end
+
+  # === COMMAND LINE INTERFACE ERRORS ===
+  class BadCommandError < Error
+    def initialize(error_message)
+      super
+    end
+  end
 end

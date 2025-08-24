@@ -137,7 +137,7 @@ describe WifiWand::CommandLineInterface do
       it 'raises BadCommandError for invalid commands' do
         stub_const('ARGV', ['invalid_command', 'arg1', 'arg2'])
         
-        expect { subject.process_command_line }.to raise_error(WifiWand::CommandLineInterface::BadCommandError) do |error|
+        expect { subject.process_command_line }.to raise_error(WifiWand::BadCommandError) do |error|
           expect(error.message).to include('Unrecognized command')
           expect(error.message).to include('invalid_command')
           expect(error.message).to include('arg1')

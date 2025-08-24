@@ -8,7 +8,6 @@ require_relative 'timing_constants'
 # Include extracted modules
 require_relative 'command_line_interface/help_system'
 require_relative 'command_line_interface/output_formatter'
-require_relative 'command_line_interface/error_handling'
 require_relative 'command_line_interface/command_registry'
 require_relative 'command_line_interface/shell_interface'
 
@@ -17,7 +16,6 @@ module WifiWand
 class CommandLineInterface
   include HelpSystem
   include OutputFormatter
-  include ErrorHandling
   include CommandRegistry
   include ShellInterface
 
@@ -63,7 +61,7 @@ class CommandLineInterface
   def process_command_line
     attempt_command_action(ARGV[0], *ARGV[1..-1]) do
       print_help
-      raise BadCommandError.new(
+      raise WifiWand::BadCommandError.new(
           %Q{! Unrecognized command. Command was "#{ARGV.first.inspect}" and options were #{ARGV[1..-1].inspect}.})
     end
   end
@@ -273,7 +271,7 @@ class CommandLineInterface
       # By this time, the Main class has removed the command line options, and all that is left
       # in ARGV is the commands and their options.
       process_command_line
-    rescue BadCommandError => error
+    rescue WifiWand::BadCommandError => error
       separator_line = "! #{'-' * 75} !\n"
       puts '' << separator_line << error.to_s << "\n" << separator_line
       exit(-1)
