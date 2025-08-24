@@ -153,7 +153,6 @@ class BaseModel
   # This method returns whether or not there is a working Internet connection.
   # Tests both TCP connectivity to internet hosts and DNS resolution.
   def connected_to_internet?
-    return false unless wifi_on? # no need to try
     @connectivity_tester.connected_to_internet?
   end
 

@@ -39,6 +39,9 @@
 
 This major release represents a complete rewrite focused on cross-platform support while maintaining backward compatibility for existing macOS users.
 
+* Added 's/status' status line command.
+* 'Connected to Internet' now ignores wifi on/off since there can be an Ethernet connection to the Internet.
+
 
 ## v2.20.0
 
