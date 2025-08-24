@@ -46,8 +46,7 @@ class CommandLineInterface
   # Asserts that a command has been passed on the command line.
   def validate_command_line
     if ARGV.empty?
-      puts "Syntax is: #{$0} [options] command [command_options]"
-      print_help_hint
+      puts "Syntax is: #{File.basename($0)} [options] command [command_options]. #{help_hint}"
       exit(-1)
     end
   end
@@ -231,7 +230,7 @@ class CommandLineInterface
       process_command_line
     rescue WifiWand::BadCommandError => error
       puts error.to_s
-      print_help_hint
+      puts help_hint
       exit(-1)
     end
   end
