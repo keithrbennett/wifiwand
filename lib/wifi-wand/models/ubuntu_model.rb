@@ -30,7 +30,8 @@ class UbuntuModel < BaseModel
   end
 
   def detect_wifi_interface
-    interfaces = run_os_command("iw dev | grep Interface | cut -d' ' -f2").split("\n")
+    cmd = "iw dev | grep Interface | cut -d' ' -f2"
+    interfaces = run_os_command(cmd).split("\n")
     interfaces.first
   end
 
@@ -112,12 +113,14 @@ class UbuntuModel < BaseModel
   end
 
   def _ip_address
-    output = run_os_command("ip -4 addr show #{Shellwords.shellescape(wifi_interface)} | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1", false)
+    cmd = "ip -4 addr show #{Shellwords.shellescape(wifi_interface)} | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1"
+    output = run_os_command(cmd, false)
     output.empty? ? nil : output.split("\n").first&.strip
   end
 
   def mac_address
-    output = run_os_command("ip link show #{Shellwords.shellescape(wifi_interface)} | grep ether | awk '{print $2}'", false)
+    cmd = "ip link show #{Shellwords.shellescape(wifi_interface)} | grep ether | awk '{print $2}'"
+    output = run_os_command(cmd, false)
     output.empty? ? nil : output.strip
   end
 
@@ -166,7 +169,8 @@ class UbuntuModel < BaseModel
 
       dns_string = nameservers.join(' ')
       # Try to modify the connection, ignore errors if connection doesn't exist
-      run_os_command("nmcli connection modify #{Shellwords.shellescape(wifi_interface)} ipv4.dns #{Shellwords.shellescape(dns_string)}", false)
+      cmd = "nmcli connection modify #{Shellwords.shellescape(wifi_interface)} ipv4.dns #{Shellwords.shellescape(dns_string)}"
+      run_os_command(cmd, false)
       run_os_command("nmcli connection up #{Shellwords.shellescape(wifi_interface)}", false)
     end
     nameservers
