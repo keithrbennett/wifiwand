@@ -53,6 +53,10 @@ When in interactive shell mode:
       def print_help
         puts help_text
       end
+
+      def print_help_hint
+        puts "Use 'wifi-wand help' or 'wifi-wand -h' for help.R"
+      end
     end
   end
 end

@@ -47,7 +47,7 @@ class CommandLineInterface
   def validate_command_line
     if ARGV.empty?
       puts "Syntax is: #{$0} [options] command [command_options]"
-      print_help
+      print_help_hint
       exit(-1)
     end
   end
@@ -60,9 +60,8 @@ class CommandLineInterface
   # Otherwise it will assume it's a method name and pass it to method_missing!
   def process_command_line
     attempt_command_action(ARGV[0], *ARGV[1..-1]) do
-      print_help
       raise WifiWand::BadCommandError.new(
-          %Q{! Unrecognized command. Command was "#{ARGV.first.inspect}" and options were #{ARGV[1..-1].inspect}.})
+          %Q{Unrecognized command. Command was #{ARGV.first.inspect} and options were #{ARGV[1..-1].inspect}.})
     end
   end
 
@@ -226,8 +225,8 @@ class CommandLineInterface
       # in ARGV is the commands and their options.
       process_command_line
     rescue WifiWand::BadCommandError => error
-      separator_line = "! #{'-' * 75} !\n"
-      puts '' << separator_line << error.to_s << "\n" << separator_line
+      puts error.to_s
+      print_help_hint
       exit(-1)
     end
   end
