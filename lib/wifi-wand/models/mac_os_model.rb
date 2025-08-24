@@ -108,9 +108,7 @@ class MacOsModel < BaseModel
 
   # Returns the network names sorted in descending order of signal strength.
   def _available_network_names
-    json_text = run_os_command('system_profiler -json SPAirPortDataType')
-    data = JSON.parse(json_text)
-
+    data = airport_data
     inner_key = connected_network_name ? 'spairport_airport_other_local_wireless_networks' : 'spairport_airport_local_wireless_networks'
 
     nets = data['SPAirPortDataType'] \
@@ -269,16 +267,7 @@ class MacOsModel < BaseModel
 
   # Returns the network currently connected to, or nil if none.
   def _connected_network_name
-    json_text = run_os_command('system_profiler -json SPAirPortDataType')
-
-    # Handle JSON parsing errors
-    begin
-      data = JSON.parse(json_text)
-    rescue JSON::ParserError => e
-      raise "Failed to parse system_profiler output: #{e.message}"
-    end
-
-    # Handle missing or malformed data structure
+    data = airport_data
     airport_data = data.dig("SPAirPortDataType", 0, "spairport_airport_interfaces")
     return nil unless airport_data
 
@@ -509,5 +498,15 @@ class MacOsModel < BaseModel
     run_os_command(command)
   end
 
+  private
+
+  def airport_data
+    json_text = run_os_command('system_profiler -json SPAirPortDataType')
+    begin
+      JSON.parse(json_text)
+    rescue JSON::ParserError => e
+      raise "Failed to parse system_profiler output: #{e.message}"
+    end
+  end
 end
 end
