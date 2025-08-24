@@ -76,7 +76,7 @@ class CommandLineInterface
           Available networks, in descending signal strength order, 
           and not including any currently connected network, are:
   
-          #{fancy_string(info)}" "
+          #{format_object(info)}" "
         MESSAGE
       else
         "Wifi is off, cannot see available networks."
@@ -109,7 +109,7 @@ class CommandLineInterface
 
   def cmd_i
     info = model.wifi_info
-    handle_output(info, -> { fancy_string(info) })
+    handle_output(info, -> { format_object(info) })
   end
 
   # Performs nameserver functionality.
@@ -166,7 +166,7 @@ class CommandLineInterface
 
   def cmd_pr
     networks = model.preferred_networks
-    handle_output(networks, -> { fancy_string(networks) })
+    handle_output(networks, -> { format_object(networks) })
   end
 
   def cmd_f(*options)

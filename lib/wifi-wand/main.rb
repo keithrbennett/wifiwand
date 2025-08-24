@@ -1,6 +1,7 @@
 require 'json'
 require 'optparse'
 require 'ostruct'
+require 'stringio'
 require 'yaml'
 
 require_relative 'command_line_interface'

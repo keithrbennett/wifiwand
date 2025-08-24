@@ -173,6 +173,32 @@ describe WifiWand::Main do
 
       expect(result).to eq(test_data.inspect)
     end
+
+    it 'creates pretty JSON processor' do
+      stub_const('ARGV', ['-o', 'k', 'info'])  # 'k' for pretty JSON
+      options = subject.parse_command_line
+
+      processor = options.post_processor
+      test_data = {'test' => 'value'}
+      result = processor.call(test_data)
+
+      expect(result).to be_a(String)
+      parsed_result = JSON.parse(result)
+      expect(parsed_result).to eq(test_data)
+      expect(result).to include("\n")  # Pretty formatting includes newlines
+    end
+
+    it 'creates StringIO processor' do
+      stub_const('ARGV', ['-o', 'p', 'info'])  # 'p' for puts via StringIO
+      options = subject.parse_command_line
+
+      processor = options.post_processor
+      test_data = {'test' => 'value'}
+      result = processor.call(test_data)
+
+      expect(result).to be_a(String)
+      expect(result).to eq("#{test_data}\n")
+    end
   end
 
   describe 'integration workflow' do
