@@ -83,30 +83,12 @@ class UbuntuModel < BaseModel
       # Use exact matching with existing connection
       run_os_command("nmcli connection up '#{network_name}'")
     else
-      # Create new connection - use BSSID for exact matching to avoid substring issues
-      # First get the available networks and find the exact match
-      available_networks_output = run_os_command("nmcli -t -f SSID,BSSID dev wifi list")
-      networks = available_networks_output.split("\n").map do |line|
-        # Handle escaped colons in BSSID - split on first unescaped colon only
-        if line =~ /^(.+?):(.+)$/
-          ssid = $1
-          bssid = $2.gsub('\\:', ':')  # Unescape the colons in BSSID
-          [ssid.strip, bssid.strip] unless ssid.empty? || bssid.empty?
-        end
-      end.compact
-      
-      # Find exact match for SSID
-      exact_match = networks.find { |ssid, _| ssid == network_name }
-      
-      if exact_match
-        ssid, bssid = exact_match
-        if password
-          run_os_command("nmcli dev wifi connect '#{ssid}' password '#{password}' bssid '#{bssid}'")
-        else
-          run_os_command("nmcli dev wifi connect '#{ssid}' bssid '#{bssid}'")
-        end
+      # Create new connection using only the network name (SSID).
+      # The OS's network manager is expected to intelligently select the best BSSID.
+      if password
+        run_os_command("nmcli dev wifi connect '#{network_name}' password '#{password}'")
       else
-        raise NetworkNotFoundError.new(network_name, available_network_names)
+        run_os_command("nmcli dev wifi connect '#{network_name}'")
       end
     end
   end
