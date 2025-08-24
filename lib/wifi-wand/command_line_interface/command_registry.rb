@@ -23,6 +23,7 @@ module WifiWand
             Command.new('pa',  'password',      -> (*options)  { cmd_pa(*options)  }),
             Command.new('pr',  'pref_nets',     -> (*_options) { cmd_pr            }),
             Command.new('q',   'quit',          -> (*_options) { cmd_q             }),
+            Command.new('s',   'status',        -> (*_options) { cmd_s             }),
             Command.new('t',   'till',          -> (*options)  { cmd_t(*options)   }),
             Command.new('u',   'url',           -> (*_options) { PROJECT_URL       }),
             Command.new('w',   'wifi_on',       -> (*_options) { cmd_w             }),

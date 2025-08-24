@@ -196,6 +196,11 @@ class CommandLineInterface
     quit
   end
 
+  def cmd_s
+    status = status_line
+    puts status unless status.empty?
+  end
+
   def cmd_x
     quit
   end

@@ -37,6 +37,7 @@ pa[ssword] network-name   - password for preferred network-name
 pr[ef_nets]               - preferred (saved) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
 ro[pen]                   - open resource (#{resource_help})
+s[tatus]                  - status line (WiFi, Network, TCP, DNS, Internet)
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                             1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
                             2) wait interval between tests, in seconds (optional, defaults to #{WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL} seconds)
@@ -55,7 +56,7 @@ When in interactive shell mode:
       end
 
       def print_help_hint
-        puts "Use 'wifi-wand help' or 'wifi-wand -h' for help.R"
+        puts "Use 'wifi-wand help' or 'wifi-wand -h' for help."
       end
     end
   end
