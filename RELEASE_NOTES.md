@@ -1,3 +1,45 @@
+## v3.0.0
+
+**BREAKING CHANGES:**
+* **Add Ubuntu/Linux support** - wifi-wand now supports Ubuntu and other Linux distributions alongside macOS
+* **Architecture overhaul** - Complete restructure with OS abstraction layer for cross-platform compatibility
+* **Remove legacy macOS-specific features** - Removed Speedtest app launcher, fancy_print dependency, and macOS-specific code paths
+* **Error handling improvements** - Added comprehensive error classes and improved error messaging
+* **Testing framework redesign** - Implemented OS-specific test filtering and disruptive/non-disruptive test categorization
+
+**New Features:**
+* **Cross-platform WiFi management** - Unified API supporting both macOS and Ubuntu/Linux systems  
+* **Ubuntu support via NetworkManager** - Full Ubuntu WiFi operations using `nmcli`, `iw`, and `ip` commands
+* **Interactive shell improvements** - Enhanced Pry-based shell with better help system and output formatting
+* **Environment variable control** - Added `WIFIWAND_VERBOSE` and `RSPEC_DISABLE_EXCLUSIONS` for better control
+* **Resource management system** - Automated network state capture/restore for testing
+* **Connection management** - Intelligent password saving and network reconnection logic
+
+**Improvements:**
+* **Modular architecture** - Extracted functionality into specialized modules (HelpSystem, OutputFormatter, ErrorHandling, etc.)
+* **Enhanced output formatting** - Improved JSON/YAML output with proper formatting for different output targets  
+* **Better error messages** - Cleaner error output without backtraces except in verbose mode
+* **Robust OS detection** - Improved operating system detection and model instantiation
+* **Test suite enhancements** - Comprehensive test coverage with OS-aware test filtering
+* **Documentation updates** - Updated README and documentation to reflect Ubuntu support
+
+**Bug Fixes:**
+* **Ubuntu connection stability** - Fixed unnecessary reconnections and improved error handling for Ubuntu
+* **Output formatting fixes** - Fixed `-op` output with StringIO requirement for modern Ruby versions
+* **Test exclusions** - Fixed macOS disruptive tests exclusion when running on Ubuntu
+* **Ruby compatibility** - Added StringIO require and Reline dependency for Ruby >= 3.5.0
+* **Command execution** - Improved shell command escaping and argument handling
+
+**Technical Changes:**
+* **Dependency updates** - Updated gemspec with proper Ruby version requirements and dependencies
+* **Code organization** - Moved to layered architecture with clear separation of concerns  
+* **YAML configuration** - Extracted hardcoded data into YAML configuration files
+* **Status monitoring** - Enhanced connection status monitoring with configurable timeouts
+* **Mock testing** - Removed real OS commands from non-disruptive unit tests
+
+This major release represents a complete rewrite focused on cross-platform support while maintaining backward compatibility for existing macOS users.
+
+
 ## v2.20.0
 
 * Change detect_wifi_interface and available_network_names to use system_profiler JSON output.
