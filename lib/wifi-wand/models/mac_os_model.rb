@@ -182,8 +182,8 @@ class MacOsModel < BaseModel
   end
 
   def os_level_connect_using_swift(network_name, password = nil)
-    args = [Shellwords.shellescape(network_name)]
-    args << Shellwords.shellescape(password) if password
+    args = [network_name]
+    args << password if password
     run_swift_command('WifiNetworkConnector', *args)
   end
 
@@ -503,7 +503,8 @@ class MacOsModel < BaseModel
 
   def run_swift_command(basename, *args)
     swift_filespec = File.absolute_path(File.join(File.dirname(__FILE__), "../../../swift/#{basename}.swift"))
-    argv = ['swift', swift_filespec] + args
+    escaped_args = args.map { |arg| Shellwords.shellescape(arg) }
+    argv = ['swift', swift_filespec] + escaped_args
     command = argv.compact.join(' ')
     run_os_command(command)
   end
