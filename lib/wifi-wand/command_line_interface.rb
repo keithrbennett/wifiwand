@@ -71,34 +71,24 @@ class CommandLineInterface
 
   def cmd_a
     info = model.available_network_names
-    if interactive_mode
-      info
-    else
-      if post_processor
-        puts post_processor.(info)
-      else
-        message = if model.wifi_on?
-          <<~MESSAGE
-            Available networks, in descending signal strength order, 
-            and not including any currently connected network, are:
+    human_readable_string_producer = -> do
+      if model.wifi_on?
+        <<~MESSAGE
+          Available networks, in descending signal strength order, 
+          and not including any currently connected network, are:
   
-            #{fancy_string(info)}"
-          MESSAGE
-        else
-          "Wifi is off, cannot see available networks."
-        end
-        puts message
+          #{fancy_string(info)}" "
+        MESSAGE
+      else
+        "Wifi is off, cannot see available networks."
       end
     end
+    handle_output(info, human_readable_string_producer)
   end
 
   def cmd_ci
     connected = model.connected_to_internet?
-    if interactive_mode
-      connected
-    else
-      puts (post_processor ? post_processor.(connected) : "Connected to Internet: #{connected}")
-    end
+    handle_output(connected, -> { "Connected to Internet: #{connected}" })
   end
 
   def cmd_co(network, password = nil)
@@ -120,15 +110,7 @@ class CommandLineInterface
 
   def cmd_i
     info = model.wifi_info
-    if interactive_mode
-      info
-    else
-      if post_processor
-        puts post_processor.(info)
-      else
-        puts fancy_string(info)
-      end
-    end
+    handle_output(info, -> { fancy_string(info) })
   end
 
   # Performs nameserver functionality.
@@ -145,16 +127,11 @@ class CommandLineInterface
     case(subcommand)
       when :get
         current_nameservers = model.nameservers
-        if interactive_mode
-          current_nameservers
-        else
-          if post_processor
-            puts post_processor.(current_nameservers)
-          else
-            current_nameservers_as_string = current_nameservers.empty? ? "[None]" : current_nameservers.join(', ')
-            puts "Nameservers: #{current_nameservers_as_string}"
-          end
+        human_readable_string_producer = -> do
+          current_nameservers_as_string = current_nameservers.empty? ? "[None]" : current_nameservers.join(', ')
+          "Nameservers: #{current_nameservers_as_string}"
         end
+        handle_output(current_nameservers, human_readable_string_producer)
       when :clear
         model.set_nameservers(:clear)
       when :put
@@ -165,12 +142,7 @@ class CommandLineInterface
 
   def cmd_ne
     name = model.connected_network_name
-    if interactive_mode
-      name
-    else
-      display_name = name ? name : '[none]'
-      puts (post_processor ? post_processor.(name) : %Q{Network (SSID) name: "#{display_name}"})
-    end
+    handle_output(name, -> { %Q{Network (SSID) name: "#{name ? name : '[none]'}"} })
   end
 
   def cmd_of
@@ -183,38 +155,24 @@ class CommandLineInterface
 
   def cmd_pa(network)
     password = model.preferred_network_password(network)
-
-    if interactive_mode
-      password
-    else
-      if post_processor
-        puts post_processor.(password)
-      else
-        puts <<~MESSAGE
-          Preferred network "#{network}" #{
-            password ? "stored password is \"#{password}\"." : "has no stored password."
-          }
-        MESSAGE
-      end
+    human_readable_string_producer = -> do
+      <<~MESSAGE
+        Preferred network "#{network}" {
+          password ? "stored password is \"#{password}\"." : "has no stored password."
+        }
+      MESSAGE
     end
+    handle_output(password, human_readable_string_producer)
   end
 
   def cmd_pr
     networks = model.preferred_networks
-    if interactive_mode
-      networks
-    else
-      puts (post_processor ? post_processor.(networks) : fancy_string(networks))
-    end
+    handle_output(networks, -> { fancy_string(networks) })
   end
 
   def cmd_f(*options)
     removed_networks = model.remove_preferred_networks(*options)
-    if interactive_mode
-      removed_networks
-    else
-      puts (post_processor ? post_processor.(removed_networks) : "Removed networks: #{removed_networks.inspect}")
-    end
+    handle_output(removed_networks, -> { "Removed networks: #{removed_networks.inspect}" })
   end
 
   def cmd_t(*options)
@@ -225,11 +183,7 @@ class CommandLineInterface
 
   def cmd_w
     on = model.wifi_on?
-    if interactive_mode
-      on
-    else
-      puts (post_processor ? post_processor.(on) : "Wifi on: #{on}")
-    end
+    handle_output(on, -> { "Wifi on: #{on}" })
   end
 
   # ===== OTHER COMMANDS =====
@@ -275,6 +229,20 @@ class CommandLineInterface
       separator_line = "! #{'-' * 75} !\n"
       puts '' << separator_line << error.to_s << "\n" << separator_line
       exit(-1)
+    end
+  end
+
+  private
+
+  def handle_output(data, human_readable_string_producer)
+    if interactive_mode
+      data
+    else
+      if options.post_processor
+        puts options.post_processor.(data)
+      else
+        puts human_readable_string_producer.call
+      end
     end
   end
 end
