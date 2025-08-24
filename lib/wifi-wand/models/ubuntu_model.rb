@@ -180,7 +180,7 @@ class UbuntuModel < BaseModel
     nil
   end
 
-  def os_level_preferred_network_password(preferred_network_name)
+  def _preferred_network_password(preferred_network_name)
     cmd = [
       "nmcli --show-secrets connection show #{Shellwords.shellescape(preferred_network_name)}",
       "grep '802-11-wireless-security.psk:'",

@@ -15,7 +15,7 @@ describe 'BaseModel Resource Management' do
       # Stub other required methods to prevent NotImplementedError
       %i[
         default_interface detect_wifi_interface is_wifi_interface?
-        mac_address nameservers os_level_preferred_network_password
+        mac_address nameservers _preferred_network_password
         preferred_networks remove_preferred_network set_nameservers
         validate_os_preconditions wifi_off wifi_on wifi_on?
         _available_network_names _connected_network_name _connect

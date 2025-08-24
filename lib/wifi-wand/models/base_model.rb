@@ -89,6 +89,7 @@ class BaseModel
     _connect
     _disconnect
     _ip_address
+    _preferred_network_password
   ].freeze
 
   # Verify that a subclass implements all required underscore-prefixed methods
@@ -118,7 +119,6 @@ class BaseModel
     nameservers
     open_application
     open_resource
-    os_level_preferred_network_password
     preferred_networks
     remove_preferred_network
     set_nameservers
@@ -261,7 +261,7 @@ class BaseModel
   def preferred_network_password(preferred_network_name)
     preferred_network_name = preferred_network_name.to_s
     if preferred_networks.include?(preferred_network_name)
-      os_level_preferred_network_password(preferred_network_name)
+      _preferred_network_password(preferred_network_name)
     else
       raise PreferredNetworkNotFoundError.new(preferred_network_name)
     end

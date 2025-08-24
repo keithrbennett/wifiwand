@@ -21,6 +21,7 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
     ['pa', 'password'],
     ['pr', 'pref_nets'],
     ['q', 'quit'],
+    ['s', 'status'],
     ['t', 'till'],
     ['u', 'url'],
     ['w', 'wifi_on'],

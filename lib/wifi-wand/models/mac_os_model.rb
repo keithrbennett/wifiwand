@@ -208,7 +208,7 @@ class MacOsModel < BaseModel
   #     If not, return nil
   #   else
   #     raise an error
-  def os_level_preferred_network_password(preferred_network_name)
+  def _preferred_network_password(preferred_network_name)
     command = %Q{security find-generic-password -D "AirPort network password" -a #{Shellwords.shellescape(preferred_network_name)} -w 2>&1}
     begin
       return run_os_command(command).chomp

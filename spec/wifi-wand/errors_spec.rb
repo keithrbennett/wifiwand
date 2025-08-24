@@ -155,7 +155,7 @@ module WifiWand
             WifiWand::CommandExecutor::OsCommandError.new(45, "security", "access denied")
           )
           
-          expect { model.os_level_preferred_network_password('TestNetwork') }.to raise_error(KeychainAccessDeniedError)
+          expect { model._preferred_network_password('TestNetwork') }.to raise_error(KeychainAccessDeniedError)
         end
         
         it 'raises KeychainAccessCancelledError when user cancels keychain access' do
@@ -164,7 +164,7 @@ module WifiWand
             WifiWand::CommandExecutor::OsCommandError.new(128, "security", "user cancelled")
           )
           
-          expect { model.os_level_preferred_network_password('TestNetwork') }.to raise_error(KeychainAccessCancelledError)
+          expect { model._preferred_network_password('TestNetwork') }.to raise_error(KeychainAccessCancelledError)
         end
         
         it 'raises KeychainNonInteractiveError in non-interactive environment' do
@@ -173,7 +173,7 @@ module WifiWand
             WifiWand::CommandExecutor::OsCommandError.new(51, "security", "non-interactive")
           )
           
-          expect { model.os_level_preferred_network_password('TestNetwork') }.to raise_error(KeychainNonInteractiveError)
+          expect { model._preferred_network_password('TestNetwork') }.to raise_error(KeychainNonInteractiveError)
         end
       end
     end
