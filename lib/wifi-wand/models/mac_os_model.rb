@@ -123,7 +123,7 @@ class MacOsModel < BaseModel
 
   # Returns data pertaining to "preferred" networks, many/most of which will probably not be available.
   def preferred_networks
-    lines = run_os_command("networksetup -listpreferredwirelessnetworks #{wifi_interface}").split("\n")
+    lines = run_os_command("networksetup -listpreferredwirelessnetworks #{Shellwords.shellescape(wifi_interface)}").split("\n")
     # Produces something like this, unsorted, and with leading tabs:
     # Preferred networks on en0:
     #         LibraryWiFi
@@ -138,7 +138,7 @@ class MacOsModel < BaseModel
 
   # Returns whether or not the specified interface is a WiFi interface.
   def is_wifi_interface?(interface)
-    run_os_command("networksetup -listpreferredwirelessnetworks #{interface} 2>/dev/null")
+    run_os_command("networksetup -listpreferredwirelessnetworks #{Shellwords.shellescape(interface)} 2>/dev/null")
     exit_status = $?.exitstatus
     exit_status != 10
   end
@@ -146,7 +146,7 @@ class MacOsModel < BaseModel
 
   # Returns true if wifi is on, else false.
   def wifi_on?
-    output = run_os_command("networksetup -getairportpower #{wifi_interface}")
+    output = run_os_command("networksetup -getairportpower #{Shellwords.shellescape(wifi_interface)}")
     output.chomp.match?(/\): On$/)
   end
 
@@ -155,7 +155,7 @@ class MacOsModel < BaseModel
   def wifi_on
     return if wifi_on?
 
-    run_os_command("networksetup -setairportpower #{wifi_interface} on")
+    run_os_command("networksetup -setairportpower #{Shellwords.shellescape(wifi_interface)} on")
     wifi_on? ? nil : raise(WifiEnableError.new)
   end
 
@@ -164,7 +164,7 @@ class MacOsModel < BaseModel
   def wifi_off
     return unless wifi_on?
 
-    run_os_command("networksetup -setairportpower #{wifi_interface} off")
+    run_os_command("networksetup -setairportpower #{Shellwords.shellescape(wifi_interface)} off")
 
     wifi_on? ? raise(WifiDisableError.new) : nil
   end
@@ -172,7 +172,7 @@ class MacOsModel < BaseModel
 
   # This method is called by BaseModel#connect to do the OS-specific connection logic.
   def os_level_connect_using_networksetup(network_name, password = nil)
-    command = "networksetup -setairportnetwork #{wifi_interface} #{Shellwords.shellescape(network_name)}"
+    command = "networksetup -setairportnetwork #{Shellwords.shellescape(wifi_interface)} #{Shellwords.shellescape(network_name)}"
     if password
       command << ' ' << Shellwords.shellescape(password)
     end
@@ -201,7 +201,7 @@ class MacOsModel < BaseModel
   #   else
   #     raise an error
   def os_level_preferred_network_password(preferred_network_name)
-    command = %Q{security find-generic-password -D "AirPort network password" -a "#{preferred_network_name}" -w 2>&1}
+    command = %Q{security find-generic-password -D "AirPort network password" -a #{Shellwords.shellescape(preferred_network_name)} -w 2>&1}
     begin
       return run_os_command(command).chomp
     rescue WifiWand::CommandExecutor::OsCommandError => error
@@ -237,7 +237,7 @@ class MacOsModel < BaseModel
   # Returns the IP address assigned to the wifi interface, or nil if none.
   def _ip_address
     begin
-      run_os_command("ipconfig getifaddr #{wifi_interface}").chomp
+      run_os_command("ipconfig getifaddr #{Shellwords.shellescape(wifi_interface)}").chomp
     rescue WifiWand::CommandExecutor::OsCommandError => error
       if error.exitstatus == 1
         nil
@@ -250,8 +250,7 @@ class MacOsModel < BaseModel
 
   def remove_preferred_network(network_name)
     network_name = network_name.to_s
-    run_os_command("sudo networksetup -removepreferredwirelessnetwork " +
-                       "#{wifi_interface} #{Shellwords.shellescape(network_name)}")
+    run_os_command("sudo networksetup -removepreferredwirelessnetwork " + Shellwords.shellescape(wifi_interface) + " " + Shellwords.shellescape(network_name))
   end
 
 
@@ -295,10 +294,10 @@ class MacOsModel < BaseModel
     
     # Fallback to ifconfig (disassociate from current network)
     begin
-      run_os_command("sudo ifconfig #{wifi_interface} disassociate", false)
+      run_os_command("sudo ifconfig #{Shellwords.shellescape(wifi_interface)} disassociate", false)
     rescue WifiWand::CommandExecutor::OsCommandError
       # If sudo ifconfig fails, try without sudo (may work on some systems)
-      run_os_command("ifconfig #{wifi_interface} disassociate", false)
+      run_os_command("ifconfig #{Shellwords.shellescape(wifi_interface)} disassociate", false)
     end
     nil
   end
@@ -311,7 +310,7 @@ class MacOsModel < BaseModel
   # then this method returns the current address if none is provided,
   # but sets to the specified address if it is.
   def mac_address
-    run_os_command("ifconfig #{wifi_interface} | awk '/ether/{print $2}'").chomp
+    run_os_command("ifconfig #{Shellwords.shellescape(wifi_interface)} | awk '/ether/{print $2}'").chomp
   end
 
 
@@ -337,18 +336,18 @@ class MacOsModel < BaseModel
       nameservers.join(' ')
     end # end assignment to arg variable
 
-    run_os_command("networksetup -setdnsservers #{detect_wifi_service_name} #{arg}")
+    run_os_command("networksetup -setdnsservers #{Shellwords.shellescape(detect_wifi_service_name)} #{arg}")
     nameservers
   end
 
 
   def open_application(application_name)
-    run_os_command('open -a ' + application_name)
+    run_os_command('open -a ' + Shellwords.shellescape(application_name))
   end
 
 
   def open_resource(resource_url)
-    run_os_command('open ' + resource_url)
+    run_os_command('open ' + Shellwords.shellescape(resource_url))
   end
 
 
@@ -379,7 +378,7 @@ class MacOsModel < BaseModel
 
   def nameservers_using_networksetup
     service_name = detect_wifi_service_name
-    output = run_os_command("networksetup -getdnsservers #{service_name}")
+    output = run_os_command("networksetup -getdnsservers #{Shellwords.shellescape(service_name)}")
     if output == "There aren't any DNS Servers set on #{service_name}.\n"
       output = ''
     end

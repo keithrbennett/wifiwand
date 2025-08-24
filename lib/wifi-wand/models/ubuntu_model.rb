@@ -35,7 +35,7 @@ class UbuntuModel < BaseModel
   end
 
   def is_wifi_interface?(interface)
-    output = run_os_command("iw dev #{interface} info 2>/dev/null", false)
+    output = run_os_command("iw dev #{Shellwords.shellescape(interface)} info 2>/dev/null", false)
     !output.empty?
   end
 
@@ -77,20 +77,13 @@ class UbuntuModel < BaseModel
   end
 
   def _connect(network_name, password = nil)
-    # Check if there's an existing connection profile for this network
-    existing_connections = preferred_networks
-    if existing_connections.include?(network_name)
-      # Use exact matching with existing connection
-      run_os_command("nmcli connection up '#{network_name}'")
-    else
-      # Create new connection using only the network name (SSID).
-      # The OS's network manager is expected to intelligently select the best BSSID.
-      if password
-        run_os_command("nmcli dev wifi connect '#{network_name}' password '#{password}'")
-      else
-        run_os_command("nmcli dev wifi connect '#{network_name}'")
-      end
-    end
+    # Connect to the Wi-Fi network using nmcli.
+    # The 'nmcli dev wifi connect' command handles both new and existing connections.
+    # If a password is provided, it will be used (and may update a saved password).
+    # If no password is provided, the OS will attempt to use a saved password if available.
+    command = "nmcli dev wifi connect #{Shellwords.shellescape(network_name)}"
+    command << " password #{Shellwords.shellescape(password)}" if password
+    run_os_command(command, false)
   end
 
   def preferred_networks
@@ -104,13 +97,13 @@ class UbuntuModel < BaseModel
     existing_networks = preferred_networks
     return nil unless existing_networks.include?(network_name)
     
-    run_os_command("nmcli connection delete '#{network_name}'")
+    run_os_command("nmcli connection delete #{Shellwords.shellescape(network_name)}")
     nil
   end
 
   def os_level_preferred_network_password(preferred_network_name)
     cmd = [
-      "nmcli --show-secrets connection show '#{preferred_network_name}'",
+      "nmcli --show-secrets connection show #{Shellwords.shellescape(preferred_network_name)}",
       "grep '802-11-wireless-security.psk:'",
       "cut -d':' -f2-"
     ].join(' | ')
@@ -119,12 +112,12 @@ class UbuntuModel < BaseModel
   end
 
   def _ip_address
-    output = run_os_command("ip -4 addr show #{wifi_interface} | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1", false)
+    output = run_os_command("ip -4 addr show #{Shellwords.shellescape(wifi_interface)} | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1", false)
     output.empty? ? nil : output.split("\n").first&.strip
   end
 
   def mac_address
-    output = run_os_command("ip link show #{wifi_interface} | grep ether | awk '{print $2}'", false)
+    output = run_os_command("ip link show #{Shellwords.shellescape(wifi_interface)} | grep ether | awk '{print $2}'", false)
     output.empty? ? nil : output.strip
   end
 
@@ -132,7 +125,7 @@ class UbuntuModel < BaseModel
     interface = wifi_interface
     return nil unless interface
     begin
-      run_os_command("nmcli dev disconnect #{interface}")
+      run_os_command("nmcli dev disconnect #{Shellwords.shellescape(interface)}")
     rescue WifiWand::CommandExecutor::OsCommandError => e
       # It's normal for disconnect to fail if there's no active connection
       # Common scenarios: device not active, not connected to any network
@@ -153,8 +146,8 @@ class UbuntuModel < BaseModel
     
     if nameservers == :clear
       # Clear nameservers by removing custom DNS configuration
-      run_os_command("nmcli connection modify '#{wifi_interface}' ipv4.dns \"\"", false)
-      run_os_command("nmcli connection up '#{wifi_interface}'", false)
+      run_os_command("nmcli connection modify #{Shellwords.shellescape(wifi_interface)} ipv4.dns \"\"", false)
+      run_os_command("nmcli connection up #{Shellwords.shellescape(wifi_interface)}", false)
     else
       bad_addresses = nameservers.reject do |ns|
         begin
@@ -173,18 +166,18 @@ class UbuntuModel < BaseModel
 
       dns_string = nameservers.join(' ')
       # Try to modify the connection, ignore errors if connection doesn't exist
-      run_os_command("nmcli connection modify '#{wifi_interface}' ipv4.dns '#{dns_string}'", false)
-      run_os_command("nmcli connection up '#{wifi_interface}'", false)
+      run_os_command("nmcli connection modify #{Shellwords.shellescape(wifi_interface)} ipv4.dns #{Shellwords.shellescape(dns_string)}", false)
+      run_os_command("nmcli connection up #{Shellwords.shellescape(wifi_interface)}", false)
     end
     nameservers
   end
 
   def open_application(application_name)
-    run_os_command("xdg-open '#{application_name}'")
+    run_os_command("xdg-open #{Shellwords.shellescape(application_name)}")
   end
 
   def open_resource(resource_url)
-    run_os_command("xdg-open '#{resource_url}'")
+    run_os_command("xdg-open #{Shellwords.shellescape(resource_url)}")
   end
 
   # Returns the network interface used for default internet route on Linux
