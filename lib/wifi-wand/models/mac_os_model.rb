@@ -186,21 +186,11 @@ class MacOsModel < BaseModel
   end
 
   def _connect(network_name, password = nil)
-    # Try Swift/CoreWLAN first (preferred method)
     if swift_and_corewlan_present?
-      begin
-        os_level_connect_using_swift(network_name, password)
-        return
-      rescue => e
-        puts "Swift/CoreWLAN connection failed: #{e.message}. Falling back to networksetup..." if verbose_mode
-        # Fall through to networksetup fallback
-      end
+      os_level_connect_using_swift(network_name, password)
     else
-      puts "Swift/CoreWLAN not available. Using networksetup..." if verbose_mode
+      os_level_connect_using_networksetup(network_name, password)
     end
-    
-    # Fallback to networksetup
-    os_level_connect_using_networksetup(network_name, password)
   end
 
 
