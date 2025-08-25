@@ -1,47 +1,54 @@
 ## v3.0.0
 
-**BREAKING CHANGES:**
-* 'Connected to Internet' now ignores WiFi on/off since there can be an Ethernet connection to the Internet.
+### The Big Kahuna
+
+* We now support Ubuntu and compatible Linux distributions!!!
+
+### Breaking Changes
 * `cycle_network` now toggles WiFi state twice for both starting states (on and off). Previously it unconditionally did off, then on.
 * Removed macOS Speedtest application launch support; web site is sufficient.
 * Removed 'fancy_print'; Awesome Print is now a required gem so it is always available, no need for fancy_print.
+* We no longer assume that if WiFi is off there is no Internet connectivity, since that connectivity can be provided by an Ethernet connection
+  * The 'ci' (connected to Internet) command can now return true if WiFi is off but there is another Internet connection.
+  * 
 
+### Error Handling Improvements 
+* Added comprehensive error classes and improved error messaging
+* Stack traces are no longer displayed unless in verbose mode
 
-* **Error handling improvements** - Added comprehensive error classes and improved error messaging
-
-**New Features:**
+### New Features
 * WiFi-wand now supports Ubuntu and compatible Linux distributions in addition to macOS, with a uniform interface for both
 * Added support for `WIFIWAND_VERBOSE` environment variable to simulate `-v` flag, mainly for unit testing
-* **Resource management system** - Automated network state capture/restore for testing
-* **Connection management** - Intelligent password saving and network reconnection logic
 
-** Testing Improvements:**
+### Testing Improvements
 * Tests are divided into disruptive (system state changing) and nondisruptive tests.
 * By default, only nondisruptive tests are run.
-* Disruptive tests can be run by adding `--tag disruptive` to the rspec command line.
-* Added support for `RSPEC_DISRUPTIVE_TESTS` environment variable to control which tests will run.
+* Disruptive test inclusion and exclusion can be controlled with the `RSPEC_DISRUPTIVE_TESTS` environment variable.
+* Tests save state at start of test suite and restore that state after each "disruptive" test.
+* OS-specific tests are tagged with their OS and excluded when not the native OS.
+* The number of tests that do real OS calls has been greatly reduced, speeding testing and enabling the more frequent testing of some behavior.
 
+### Architectural Improvements
 
-**Improvements:**
+* Large classes and files have been broken into smaller, more specific and
+cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
+* The system automatically detects the OS and loads the appropriate model for that OS.
+* Extracted hardcoded data into YAML configuration files.
 
-* **Modular architecture** - Extracted functionality into specialized modules (HelpSystem, OutputFormatter, ErrorHandling, etc.)
-* **Enhanced output formatting** - Improved JSON/YAML output with proper formatting for different output targets  
-* **Better error messages** - Cleaner error output without backtraces except in verbose mode
-* **Robust OS detection** - Improved operating system detection and model instantiation
-* **Test suite enhancements** - Comprehensive test coverage with OS-aware test filtering
-* **Documentation updates** - Updated README and documentation to reflect Ubuntu support
+### Documentation
 
-**Bug Fixes:**
-* **Ubuntu connection stability** - Fixed unnecessary reconnections and improved error handling for Ubuntu
-* **Output formatting fixes** - Fixed `-op` output with StringIO requirement for modern Ruby versions
-* **Test exclusions** - Fixed macOS disruptive tests exclusion when running on Ubuntu
-* **Ruby compatibility** - Added StringIO require and Reline dependency for Ruby >= 3.5.0
-* **Command execution** - Improved shell command escaping and argument handling
+* README has been improved and updated to reflect the changes.
+* A TESTING.md file has been added.
+* A CLAUDE.md file generated and used by Claude Code has helpful information about the code base.
 
-**Technical Changes:**
-* **Dependency updates** - Updated gemspec with proper Ruby version requirements and dependencies
-* **Code organization** - Moved to layered architecture with clear separation of concerns  
-* **YAML configuration** - Extracted hardcoded data into YAML configuration files
+### Bug Fixes
+* Fixed the lack of explicit require of 'stringio' for modern Ruby versions.
+* Added shell escaping for strings included in OS commands.
+
+### Technical Changes
+* gemspec:
+  * Updated some gemspec gem specifications for the first time in years.
+  * Added version constraints where there were none.
 * **Status monitoring** - Enhanced connection status monitoring with configurable timeouts
 * **Mock testing** - Removed real OS commands from non-disruptive unit tests
 
