@@ -72,7 +72,7 @@ class UbuntuModel < BaseModel
   end
 
   def _connected_network_name
-    cmd = "nmcli -t -f NAME,TYPE connection show --active | grep 802-11-wireless | cut -d: -f1"
+    cmd = %q{nmcli -t -f active,ssid device wifi | egrep '^yes' | cut -d\: -f2}
     output = run_os_command(cmd, false)
     output.empty? ? nil : output.strip
   end
