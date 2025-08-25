@@ -181,10 +181,10 @@ These methods automatically handle:
 
 ```bash
 # Run disruptive tests only
-RSPEC_DISRUPTIVE=only bundle exec rspec
+RSPEC_DISRUPTIVE_TESTS=only bundle exec rspec
 
 # Run ALL native OS tests (including disruptive)
-RSPEC_DISRUPTIVE=include bundle exec rspec
+RSPEC_DISRUPTIVE_TESTS=include bundle exec rspec
 
 # Run only non-disruptive tests (default behavior)
 bundle exec rspec

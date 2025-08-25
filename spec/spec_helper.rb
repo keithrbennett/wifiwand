@@ -24,7 +24,7 @@ RSpec.configure do |config|
     $compatible_os_tag = compatible_os_tag
     
     # Configure disruptive test filtering
-    case ENV['RSPEC_DISRUPTIVE']
+    case ENV['RSPEC_DISRUPTIVE_TESTS']
     when 'only'
       config.filter_run_including :disruptive => true
     when 'include'
@@ -64,10 +64,10 @@ RSpec.configure do |config|
         bundle exec rspec
 
       Run ONLY disruptive native OS tests:
-        RSPEC_DISRUPTIVE=only bundle exec rspec
+        RSPEC_DISRUPTIVE_TESTS=only bundle exec rspec
 
       Run ALL native OS tests (including disruptive):
-        RSPEC_DISRUPTIVE=include bundle exec rspec
+        RSPEC_DISRUPTIVE_TESTS=include bundle exec rspec
 
       Verbose mode for WifiWand commands can be enabled by setting WIFIWAND_VERBOSE=true.
       Current environment setting: WIFIWAND_VERBOSE=#{ENV['WIFIWAND_VERBOSE'] || '[undefined]'}
@@ -83,8 +83,8 @@ RSpec.configure do |config|
     # Check if disruptive tests are included (either explicitly or by not being excluded)
     disruptive_tests_will_run = !config.exclusion_filter[:disruptive] || 
                                config.inclusion_filter[:disruptive] ||
-                               ENV['RSPEC_DISRUPTIVE'] == 'include' ||
-                               ENV['RSPEC_DISRUPTIVE'] == 'only'
+                               ENV['RSPEC_DISRUPTIVE_TESTS'] == 'include' ||
+                               ENV['RSPEC_DISRUPTIVE_TESTS'] == 'only'
     
     if disruptive_tests_will_run
       NetworkStateManager.capture_state
