@@ -13,6 +13,18 @@ RSpec.configure do |config|
   config.filter_run_including :focus => true
   config.run_all_when_everything_filtered = true
   
+  # Configure disruptive test filtering
+    case ENV['RSPEC_DISRUPTIVE_TESTS']
+    when 'only'
+      config.filter_run_including :disruptive => true
+    when 'include'
+      # Run both disruptive and non-disruptive (no filters)
+    when 'exclude', ''
+      config.filter_run_excluding :disruptive => true
+    else
+      raise "Invalid RSPEC_DISRUPTIVE_TESTS option. Valid options: 'only', 'include', 'exclude', ''"
+    end
+
   # Auto-detect current OS and filter tests accordingly
   begin
     os_detector = WifiWand::OperatingSystems.new
@@ -22,19 +34,6 @@ RSpec.configure do |config|
     
     # Store in global variable for use in before hooks
     $compatible_os_tag = compatible_os_tag
-    
-    # Configure disruptive test filtering
-    case ENV['RSPEC_DISRUPTIVE_TESTS']
-    when 'only'
-      config.filter_run_including :disruptive => true
-    when 'include'
-      # Run both disruptive and non-disruptive (no filters)
-    when 'exclude'
-      config.filter_run_excluding :disruptive => true
-    else
-      # Default: exclude disruptive tests
-      config.filter_run_excluding :disruptive => true
-    end
     
   rescue => e
     puts "Warning: Could not detect current OS for test filtering: #{e.message}"
