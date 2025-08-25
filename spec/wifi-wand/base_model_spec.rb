@@ -300,8 +300,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
         skip 'No network connection available to test connected disconnect'
       end
       
-      original_network = subject.connected_network_name
-      
       # Test that disconnect doesn't raise error when connected
       expect { subject.disconnect }.not_to raise_error
       

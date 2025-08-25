@@ -66,7 +66,7 @@ module WifiWand
           internet_status = internet_connected ? colorize_text("YES", :green) : colorize_text("NO", :red)
 
           "WiFi: #{wifi_status} | Network: #{network_display} | TCP: #{tcp_status} | DNS: #{dns_status} | Internet: #{internet_status}"
-        rescue => e
+        rescue
           # Fallback if any status check fails
           colorize_text("WiFi: [status unavailable]", :yellow)
         end

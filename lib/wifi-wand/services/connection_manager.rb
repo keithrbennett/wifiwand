@@ -78,7 +78,7 @@ class ConnectionManager
             password = saved_password
             used_saved_password = true
           end
-        rescue => e
+        rescue
           # If we can't get the saved password, continue without one
           # This could happen due to keychain access issues, etc.
         end

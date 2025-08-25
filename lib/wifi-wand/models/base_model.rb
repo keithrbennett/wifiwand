@@ -210,7 +210,7 @@ class BaseModel
           $stderr.puts "Warning: Could not obtain public IP info: #{retry_error.class}" if @verbose_mode
           info['public_ip'] = nil
         end
-      rescue JSON::ParserError => e
+      rescue JSON::ParserError
         # Service returned invalid JSON - try alternate approach
         $stderr.puts "Warning: Public IP service returned invalid data" if @verbose_mode
         info['public_ip'] = nil  
