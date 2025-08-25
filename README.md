@@ -29,20 +29,29 @@ method names and argument lists, so that they present a unified interface for us
 ### Quick Start
 
 ```bash
-# Check WiFi status
+# Display networking status (e.g.: WiFi: ON | Network: "my_network" | TCP: YES | DNS: YES | Internet: YES)
+wifi-wand s
+
+# Display WiFi on/off status
 wifi-wand w
 
-# See available networks
+# See available WiFi networks
 wifi-wand a
 
-# Connect to a network
-wifi-wand co "MyNetwork" "password"
+# Connect to a WiFI network with password
+wifi-wand co MyNetwork password
 
-# Get WiFi information
+# Connect to a WiFI network without password (if no password required or network is saved/preferred
+wifi-wand co MyNetwork
+
+# Display detailed networking information
 wifi-wand i
 
 # Start interactive shell
 wifi-wand -s
+
+# Display underlying OS calls and their output
+wifi-wand -v ...
 ```
 
 ### Usage
