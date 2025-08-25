@@ -192,43 +192,53 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   describe '#disconnect', :disruptive do
-    it 'completes without raising an error' do
-      # Tagged as :modifies_system to exclude by default since it may disrupt network
-      # Run with: bundle exec rspec --tag modifies_system
+    it 'disconnects from network and handles subsequent calls gracefully' do
+      subject.wifi_on
+      
+      # Ensure we're connected first (may need to connect to a network if not already)
+      if subject.connected_network_name.nil?
+        skip "No network connection available for disconnect test"
+      end
+      
+      # Test disconnect works
       subject.disconnect
+      expect(subject.connected_network_name).to be_nil
+      
+      # Test calling disconnect again doesn't raise error
+      expect { subject.disconnect }.not_to raise_error
     end
   end
 
-  describe '#wifi_on', :disruptive do
-    it 'can turn wifi on when it is off' do
-      subject.wifi_off
-      expect(subject.wifi_on?).to be(false)
-      
-      subject.wifi_on
-      expect(subject.wifi_on?).to be(true)
-    end
-
+  describe '#wifi_on' do
     it 'does nothing when wifi is already on' do
+      allow(subject).to receive(:wifi_on?).and_return(true)
+      allow(subject).to receive(:run_os_command)
+      
       subject.wifi_on
-      expect(subject.wifi_on?).to be(true)
+      expect(subject).not_to have_received(:run_os_command)
+    end
+
+    it 'can turn wifi on when it is off', :disruptive do
+      subject.wifi_off
+      expect(subject.wifi_on?).to be(false)
       
       subject.wifi_on
       expect(subject.wifi_on?).to be(true)
     end
   end
 
-  describe '#wifi_off', :disruptive do
-    it 'can turn wifi off when it is on' do
-      subject.wifi_on
-      expect(subject.wifi_on?).to be(true)
+  describe '#wifi_off' do
+    it 'does nothing when wifi is already off' do
+      allow(subject).to receive(:wifi_on?).and_return(false)
+      allow(subject).to receive(:run_os_command)
       
       subject.wifi_off
-      expect(subject.wifi_on?).to be(false)
+      expect(subject).not_to have_received(:run_os_command)
     end
 
-    it 'does nothing when wifi is already off' do
-      subject.wifi_off
-      expect(subject.wifi_on?).to be(false)
+    it 'can turn wifi off when it is on', :disruptive do
+      subject.wifi_on
+      expect(subject.wifi_on?).to be(true)
       
       subject.wifi_off
       expect(subject.wifi_on?).to be(false)
@@ -280,33 +290,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
-  describe '#disconnect graceful handling', :disruptive do
-    it 'handles disconnect gracefully when already disconnected' do
-      # Ensure we start in a known state - disconnected
-      if subject.connected_network_name
-        subject.disconnect
-      end
-      
-      # Now test that calling disconnect on already-disconnected state doesn't raise error
-      expect { subject.disconnect }.not_to raise_error
-    end
-    
-    it 'handles disconnect gracefully when connected' do
-      # Ensure we're connected to a network first
-      subject.wifi_on
-      
-      # If we're not connected to any network, we can't test this scenario
-      if subject.connected_network_name.nil?
-        skip 'No network connection available to test connected disconnect'
-      end
-      
-      # Test that disconnect doesn't raise error when connected
-      expect { subject.disconnect }.not_to raise_error
-      
-      # Verify we're disconnected
-      expect(subject.connected_network_name).to be_nil
-    end
-  end
 
   # The following tests run commands and verify they complete without error,
   # testing both wifi on and wifi off states

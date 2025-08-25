@@ -20,14 +20,6 @@ describe UbuntuModel, :os_ubuntu do
         subject.wifi_on
         expect(subject.wifi_on?).to be(true)
       end
-
-      it 'does nothing when wifi is already on' do
-        subject.wifi_on
-        expect(subject.wifi_on?).to be(true)
-        
-        expect { subject.wifi_on }.not_to raise_error
-        expect(subject.wifi_on?).to be(true)
-      end
     end
 
     describe '#wifi_off' do
@@ -36,14 +28,6 @@ describe UbuntuModel, :os_ubuntu do
         expect(subject.wifi_on?).to be(true)
         
         subject.wifi_off
-        expect(subject.wifi_on?).to be(false)
-      end
-
-      it 'does nothing when wifi is already off' do
-        subject.wifi_off
-        expect(subject.wifi_on?).to be(false)
-        
-        expect { subject.wifi_off }.not_to raise_error
         expect(subject.wifi_on?).to be(false)
       end
     end

@@ -10,7 +10,9 @@ hooks:
 
 ## Project Overview
 
-**wifi-wand** is a Ruby gem that provides cross-platform WiFi management for Mac and Ubuntu systems. It operates through both command-line interface and interactive shell modes, using OS-specific utilities under the hood while presenting a unified API.
+**wifi-wand** is a Ruby gem that provides cross-platform WiFi management for Mac and Ubuntu systems. 
+It operates through both command-line interface and interactive shell modes, 
+using OS-specific utilities under the hood while presenting a unified API.
 
 ## Development Commands
 
