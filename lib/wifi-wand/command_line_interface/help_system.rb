@@ -35,14 +35,14 @@ on                        - turns WiFi on
 of[f]                     - turns WiFi off
 pa[ssword] network-name   - password for preferred network name
 pr[ef_nets]               - preferred (saved) networks
-q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
-ro[pen]                   - open resource (#{resource_help})
+q[uit]                    - exits this program (interactive shell mode only) (same as 'x')
+ro[pen]                   - open web resources: #{resource_help}
 s[tatus]                  - status line (WiFi, Network, TCP, DNS, Internet)
-t[ill]                    - returns when the desired Internet connection state is true. Options:
-                            1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
-                            2) wait interval between tests, in seconds (optional, defaults to #{WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL} seconds)
+t[ill]                    - wait until Internet connection reaches desired state:
+                            'on'/:on (connected), 'off'/:off (disconnected), 'conn'/:conn (connected), 'disc'/:disc (disconnected)
+                            Optional: wait interval between checks in seconds (default: #{WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL})
 w[ifi_on]                 - is the WiFi on?
-x[it]                     - exits this program (interactive shell mode only) (see also 'q')
+x[it]                     - exits this program (interactive shell mode only) (same as 'q')
 
 When in interactive shell mode:
   * remember to quote string literals.

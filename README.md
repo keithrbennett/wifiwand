@@ -59,7 +59,6 @@ wifi-wand -v ...
 Available commands can be seen by using the `-h` (or `--help`) option:
 
 ```
-
 Command Line Switches     [wifi-wand version 3.0.0-alpha.1 at https://github.com/keithrbennett/wifiwand]
 ---------------------
 -o {i,j,k,p,y}            - when not in shell mode, outputs data in the following formats: inspect, JSON, pretty JSON, puts, YAML
@@ -85,14 +84,14 @@ on                        - turns WiFi on
 of[f]                     - turns WiFi off
 pa[ssword] network-name   - password for preferred network name
 pr[ef_nets]               - preferred (saved) networks
-q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
-ro[pen]                   - open resource ('cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (WiFi-wand home page))
+q[uit]                    - exits this program (interactive shell mode only) (same as 'x')
+ro[pen]                   - open web resources: 'cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page)
 s[tatus]                  - status line (WiFi, Network, TCP, DNS, Internet)
-t[ill]                    - returns when the desired Internet connection state is true. Options:
-                            1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
-                            2) wait interval between tests, in seconds (optional, defaults to 0.5 seconds)
+t[ill]                    - wait until Internet connection reaches desired state:
+                            'on'/:on (connected), 'off'/:off (disconnected), 'conn'/:conn (connected), 'disc'/:disc (disconnected)
+                            Optional: wait interval between checks in seconds (default: 0.5)
 w[ifi_on]                 - is the WiFi on?
-x[it]                     - exits this program (interactive shell mode only) (see also 'q')
+x[it]                     - exits this program (interactive shell mode only) (same as 'q')
 
 When in interactive shell mode:
   * remember to quote string literals.
