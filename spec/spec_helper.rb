@@ -19,10 +19,10 @@ RSpec.configure do |config|
       config.filter_run_including :disruptive => true
     when 'include'
       # Run both disruptive and non-disruptive (no filters)
-    when 'exclude', ''
+    when 'exclude', '', nil
       config.filter_run_excluding :disruptive => true
     else
-      raise "Invalid RSPEC_DISRUPTIVE_TESTS option. Valid options: 'only', 'include', 'exclude', ''"
+      raise "Invalid RSPEC_DISRUPTIVE_TESTS option. Valid options: 'only', 'include', 'exclude', '', nil"
     end
 
   # Auto-detect current OS and filter tests accordingly
