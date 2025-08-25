@@ -41,6 +41,7 @@ This major release represents a complete rewrite focused on cross-platform suppo
 
 * Added 's/status' status line command.
 * 'Connected to Internet' now ignores wifi on/off since there can be an Ethernet connection to the Internet.
+* `cycle_network` now toggles WiFi state twice for both starting states (on and off)
 
 
 ## v2.20.0

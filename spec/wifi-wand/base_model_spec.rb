@@ -235,13 +235,37 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
-  describe '#cycle_network', :disruptive do
-    it 'can turn wifi off and on, preserving network selection' do
-      # Note: This test may not preserve network connection in all cases
-      # but should verify the cycle completes without error
-      subject.wifi_on
-      expect { subject.cycle_network }.not_to raise_error
-      expect(subject.wifi_on?).to be(true)
+  describe '#cycle_network' do
+    # Shared setup for mocking wifi operations without system calls
+    before do
+      allow(subject).to receive(:wifi_off)
+      allow(subject).to receive(:wifi_on)
+    end
+    
+    context 'when wifi starts on' do
+      before do
+        allow(subject).to receive(:wifi_on?).and_return(true)
+      end
+      
+      it 'calls wifi_off then wifi_on in sequence' do
+        subject.cycle_network
+        
+        expect(subject).to have_received(:wifi_off).ordered
+        expect(subject).to have_received(:wifi_on).ordered
+      end
+    end
+    
+    context 'when wifi starts off' do
+      before do
+        allow(subject).to receive(:wifi_on?).and_return(false)
+      end
+      
+      it 'calls wifi_on then wifi_off in sequence' do
+        subject.cycle_network
+        
+        expect(subject).to have_received(:wifi_on).ordered
+        expect(subject).to have_received(:wifi_off).ordered
+      end
     end
   end
 
