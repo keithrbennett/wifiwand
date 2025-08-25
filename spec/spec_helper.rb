@@ -29,6 +29,8 @@ RSpec.configure do |config|
       config.filter_run_including :disruptive => true
     when 'include'
       # Run both disruptive and non-disruptive (no filters)
+    when 'exclude'
+      config.filter_run_excluding :disruptive => true
     else
       # Default: exclude disruptive tests
       config.filter_run_excluding :disruptive => true
@@ -60,8 +62,10 @@ RSpec.configure do |config|
       #{"=" * 60}
       TEST FILTERING OPTIONS:
       #{"=" * 60}
-      Run only read-only (nondisruptive) tests (default):
+      Run only read-only (nondisruptive) tests:
         bundle exec rspec
+        or
+        RSPEC_DISRUPTIVE_TESTS=exclude bundle exec rspec
 
       Run ONLY disruptive native OS tests:
         RSPEC_DISRUPTIVE_TESTS=only bundle exec rspec

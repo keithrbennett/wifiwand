@@ -189,6 +189,9 @@ RSPEC_DISRUPTIVE_TESTS=include bundle exec rspec
 # Run only non-disruptive tests (default behavior)
 bundle exec rspec
 
+# Run only non-disruptive tests (explicitly)
+RSPEC_DISRUPTIVE_TESTS=exclude bundle exec rspec
+
 # Focus on specific tests
 bundle exec rspec --tag focus
 ```
