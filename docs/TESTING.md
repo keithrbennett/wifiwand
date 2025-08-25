@@ -180,12 +180,11 @@ These methods automatically handle:
 ### Tag Combinations
 
 ```bash
-# Run only disruptive tests
-bundle exec rspec --tag disruptive
+# Run disruptive tests only
+RSPEC_DISRUPTIVE=only bundle exec rspec
 
-# Run ALL tests (including disruptive)
-# This environment variable bypasses all default exclusions
-RSPEC_DISABLE_EXCLUSIONS=true bundle exec rspec
+# Run ALL native OS tests (including disruptive)
+RSPEC_DISRUPTIVE=include bundle exec rspec
 
 # Run only non-disruptive tests (default behavior)
 bundle exec rspec

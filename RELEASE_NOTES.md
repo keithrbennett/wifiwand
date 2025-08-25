@@ -3,22 +3,30 @@
 **BREAKING CHANGES:**
 * 'Connected to Internet' now ignores WiFi on/off since there can be an Ethernet connection to the Internet.
 * `cycle_network` now toggles WiFi state twice for both starting states (on and off)
-
-* **Architecture overhaul** - Complete restructure with OS abstraction layer for cross-platform compatibility
-* **Remove legacy macOS-specific features** - Removed Speedtest app launcher, fancy_print dependency, and macOS-specific code paths
+* Removed macOS Speedtest application launch support; web site is sufficient.
+* Removed 'fancy_print'; Awesome Print is now a required gem so it is always available, no need for fancy_print.
+* 
+* 
 * **Error handling improvements** - Added comprehensive error classes and improved error messaging
 * **Testing framework redesign** - Implemented OS-specific test filtering and disruptive/non-disruptive test categorization
 
 **New Features:**
-* **Add Ubuntu/Linux support** - WiFi-wand now supports Ubuntu and compatible Linux distributions in addition to macOS
-* **Cross-platform WiFi management** - Unified API supporting both macOS and Ubuntu/Linux systems  
-* **Ubuntu support via NetworkManager** - Full Ubuntu WiFi operations using `nmcli`, `iw`, and `ip` commands
-* **Interactive shell improvements** - Enhanced Pry-based shell with better help system and output formatting
-* **Environment variable control** - Added `WIFIWAND_VERBOSE` and `RSPEC_DISABLE_EXCLUSIONS` for better control
+* WiFi-wand now supports Ubuntu and compatible Linux distributions in addition to macOS, with a uniform interface for both
+* Added support for `WIFIWAND_VERBOSE` environment variable to simulate `-v` flag, mainly for unit testing
+* Added support for `RSPEC_DISABLE_EXCLUSIONS` for better control
 * **Resource management system** - Automated network state capture/restore for testing
 * **Connection management** - Intelligent password saving and network reconnection logic
 
+** Testing Improvements:**
+* Tests are divided into disruptive (system state changing) and nondisruptive tests.
+* By default, only nondisruptive tests are run.
+* Disruptive tests can be run by adding `--tag disruptive` to the rspec command line.
+* Setting `RSPEC_DISABLE_EXCLUSIONS=true` will result in both disruptive and nondisruptive tests running.
+* 
+
+
 **Improvements:**
+
 * **Modular architecture** - Extracted functionality into specialized modules (HelpSystem, OutputFormatter, ErrorHandling, etc.)
 * **Enhanced output formatting** - Improved JSON/YAML output with proper formatting for different output targets  
 * **Better error messages** - Cleaner error output without backtraces except in verbose mode

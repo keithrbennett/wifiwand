@@ -23,9 +23,14 @@ RSpec.configure do |config|
     # Store in global variable for use in before hooks
     $compatible_os_tag = compatible_os_tag
     
-    # Apply default exclusion for disruptive tests unless user wants all tests
-    # Use RSPEC_DISABLE_EXCLUSIONS=true to run ALL tests including disruptive ones
-    unless ENV['RSPEC_DISABLE_EXCLUSIONS'] == 'true'
+    # Configure disruptive test filtering
+    case ENV['RSPEC_DISRUPTIVE']
+    when 'only'
+      config.filter_run_including :disruptive => true
+    when 'include'
+      # Run both disruptive and non-disruptive (no filters)
+    else
+      # Default: exclude disruptive tests
       config.filter_run_excluding :disruptive => true
     end
     
@@ -55,17 +60,14 @@ RSpec.configure do |config|
       #{"=" * 60}
       TEST FILTERING OPTIONS:
       #{"=" * 60}
-      Run only read-only tests (default):
+      Run only read-only (nondisruptive) tests (default):
         bundle exec rspec
 
-      Run only disruptive tests:
-        bundle exec rspec --tag disruptive
+      Run ONLY disruptive native OS tests:
+        RSPEC_DISRUPTIVE=only bundle exec rspec
 
-      Run ALL tests (including disruptive):
-        RSPEC_DISABLE_EXCLUSIONS=true bundle exec rspec
-
-      Run specific file with all tests:
-        RSPEC_DISABLE_EXCLUSIONS=true bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb
+      Run ALL native OS tests (including disruptive):
+        RSPEC_DISRUPTIVE=include bundle exec rspec
 
       Verbose mode for WifiWand commands can be enabled by setting WIFIWAND_VERBOSE=true.
       Current environment setting: WIFIWAND_VERBOSE=#{ENV['WIFIWAND_VERBOSE'] || '[undefined]'}
@@ -81,7 +83,8 @@ RSpec.configure do |config|
     # Check if disruptive tests are included (either explicitly or by not being excluded)
     disruptive_tests_will_run = !config.exclusion_filter[:disruptive] || 
                                config.inclusion_filter[:disruptive] ||
-                               ENV['RSPEC_DISABLE_EXCLUSIONS'] == 'true'
+                               ENV['RSPEC_DISRUPTIVE'] == 'include' ||
+                               ENV['RSPEC_DISRUPTIVE'] == 'only'
     
     if disruptive_tests_will_run
       NetworkStateManager.capture_state
