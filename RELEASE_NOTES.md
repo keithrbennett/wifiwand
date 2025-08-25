@@ -1,13 +1,16 @@
 ## v3.0.0
 
 **BREAKING CHANGES:**
-* **Add Ubuntu/Linux support** - wifi-wand now supports Ubuntu and other Linux distributions alongside macOS
+* 'Connected to Internet' now ignores WiFi on/off since there can be an Ethernet connection to the Internet.
+* `cycle_network` now toggles WiFi state twice for both starting states (on and off)
+
 * **Architecture overhaul** - Complete restructure with OS abstraction layer for cross-platform compatibility
 * **Remove legacy macOS-specific features** - Removed Speedtest app launcher, fancy_print dependency, and macOS-specific code paths
 * **Error handling improvements** - Added comprehensive error classes and improved error messaging
 * **Testing framework redesign** - Implemented OS-specific test filtering and disruptive/non-disruptive test categorization
 
 **New Features:**
+* **Add Ubuntu/Linux support** - WiFi-wand now supports Ubuntu and compatible Linux distributions in addition to macOS
 * **Cross-platform WiFi management** - Unified API supporting both macOS and Ubuntu/Linux systems  
 * **Ubuntu support via NetworkManager** - Full Ubuntu WiFi operations using `nmcli`, `iw`, and `ip` commands
 * **Interactive shell improvements** - Enhanced Pry-based shell with better help system and output formatting
@@ -40,8 +43,6 @@
 This major release represents a complete rewrite focused on cross-platform support while maintaining backward compatibility for existing macOS users.
 
 * Added 's/status' status line command.
-* 'Connected to Internet' now ignores wifi on/off since there can be an Ethernet connection to the Internet.
-* `cycle_network` now toggles WiFi state twice for both starting states (on and off)
 
 
 ## v2.20.0
@@ -53,7 +54,7 @@ This major release represents a complete rewrite focused on cross-platform suppo
 
 ## v2.19.1
 
-* Fix connected_network_name when wifi is on but no network is connected.
+* Fix connected_network_name when WiFi is on but no network is connected.
 
 
 ## v2.19.0
@@ -182,7 +183,7 @@ This major release represents a complete rewrite focused on cross-platform suppo
 
 ## v2.5.0
 
-* Add limited support for nonstandard wifi devices (https://github.com/keithrbennett/wifiwand/issues/6).
+* Add limited support for nonstandard WiFi devices (https://github.com/keithrbennett/wifiwand/issues/6).
 
 
 ## v2.4.2
@@ -245,7 +246,7 @@ and `mac-wifi.rb` file.
 * 99% fix for reporting of available network names containing leading spaces
   (this will not correctly handle the case of network names that are identical
   except for numbers of leading spaces).
-* Improved handling of attempting to list available networks when wifi is off.
+* Improved handling of attempting to list available networks when WiFi is off.
 
 
 ## v1.3.0

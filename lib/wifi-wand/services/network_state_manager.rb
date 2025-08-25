@@ -25,7 +25,7 @@ module WifiWand
       return :no_state_to_restore unless state
       
       begin
-        # Restore wifi enabled state
+        # Restore WiFi enabled state
         if state[:wifi_enabled]
           unless @model.wifi_on?
             @model.wifi_on
@@ -36,7 +36,7 @@ module WifiWand
             @model.wifi_off
             @model.till :off, TimingConstants::WIFI_STATE_CHANGE_WAIT
           end
-          return # If wifi should be off, we're done
+          return # If WiFi should be off, we're done
         end
         
         # Restore network connection if one existed

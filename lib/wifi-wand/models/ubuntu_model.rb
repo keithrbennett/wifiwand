@@ -83,7 +83,7 @@ class UbuntuModel < BaseModel
       return
     end
     
-    # If a password is provided, always use wifi connect command to update/use the password
+    # If a password is provided, always use WiFi connect command to update/use the password
     if password
       connect_with_wifi_command(network_name, password)
       return
@@ -96,11 +96,11 @@ class UbuntuModel < BaseModel
       begin
         run_os_command("nmcli connection up #{Shellwords.shellescape(network_name)}")
       rescue WifiWand::CommandExecutor::OsCommandError => e
-        # If connection up fails, fall back to wifi connect
+        # If connection up fails, fall back to WiFi connect
         connect_with_wifi_command(network_name, password)
       end
     else
-      # Create new connection using wifi connect command
+      # Create new connection using WiFi connect command
       connect_with_wifi_command(network_name, password)
     end
   end

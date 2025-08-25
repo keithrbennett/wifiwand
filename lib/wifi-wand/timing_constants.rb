@@ -4,7 +4,7 @@ module WifiWand
     DEFAULT_WAIT_INTERVAL = 0.5
     
     # NetworkStateManager wait intervals
-    WIFI_STATE_CHANGE_WAIT = 0.05  # Wait for wifi on/off state changes
+    WIFI_STATE_CHANGE_WAIT = 0.05  # Wait for WiFi on/off state changes
     NETWORK_CONNECTION_WAIT = 0.25  # Wait for network connection establishment
     
     # NetworkConnectivityTester timeouts

@@ -10,7 +10,7 @@ module WifiWand
 # add it to the list of supported OS's.
 #
 # For the purpose of this program, an OS is defined as an approach to getting and setting
-# wifi information. Therefore, although Ubuntu and RedHat are both Linux, they will probably
+# WiFi information. Therefore, although Ubuntu and RedHat are both Linux, they will probably
 # need separate BaseOs subclasses.
 
 class OperatingSystems

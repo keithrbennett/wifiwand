@@ -13,7 +13,7 @@ class ConnectionManager
   end
   
   # Connects to the passed network name, optionally with password.
-  # Turns wifi on first, in case it was turned off.
+  # Turns WiFi on first, in case it was turned off.
   # Relies on model implementation of _connect().
   #
   # Note: The @last_connection_used_saved_password flag is cleared at the start 

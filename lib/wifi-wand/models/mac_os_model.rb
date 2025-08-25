@@ -65,7 +65,7 @@ class MacOsModel < BaseModel
   end
 
   # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
-  # This may not detect wifi ports with nonstandard names, such as USB wifi devices.
+  # This may not detect WiFi ports with nonstandard names, such as USB WiFi devices.
   def detect_wifi_interface_using_networksetup
 
     cmd = "networksetup -listallhardwareports"
@@ -93,7 +93,7 @@ class MacOsModel < BaseModel
   end
 
   # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
-  # This may not detect wifi ports with nonstandard names, such as USB wifi devices.
+  # This may not detect WiFi ports with nonstandard names, such as USB WiFi devices.
   def detect_wifi_interface
     cmd = 'system_profiler -json SPNetworkDataType'
     json_text = run_os_command(cmd)
@@ -149,7 +149,7 @@ class MacOsModel < BaseModel
   end
 
 
-  # Returns true if wifi is on, else false.
+  # Returns true if WiFi is on, else false.
   def wifi_on?
     cmd = "networksetup -getairportpower #{Shellwords.shellescape(wifi_interface)}"
     output = run_os_command(cmd)
@@ -157,7 +157,7 @@ class MacOsModel < BaseModel
   end
 
 
-  # Turns wifi on.
+  # Turns WiFi on.
   def wifi_on
     return if wifi_on?
 
@@ -167,7 +167,7 @@ class MacOsModel < BaseModel
   end
 
 
-  # Turns wifi off.
+  # Turns WiFi off.
   def wifi_off
     return unless wifi_on?
 
@@ -242,7 +242,7 @@ class MacOsModel < BaseModel
   end
 
 
-  # Returns the IP address assigned to the wifi interface, or nil if none.
+  # Returns the IP address assigned to the WiFi interface, or nil if none.
   def _ip_address
     begin
       cmd = "ipconfig getifaddr #{Shellwords.shellescape(wifi_interface)}"
@@ -287,7 +287,7 @@ class MacOsModel < BaseModel
   end
 
 
-  # Disconnects from the currently connected network. Does not turn off wifi.
+  # Disconnects from the currently connected network. Does not turn off WiFi.
   def _disconnect
     # Try Swift/CoreWLAN first (preferred method)
     if swift_and_corewlan_present?

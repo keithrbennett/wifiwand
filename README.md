@@ -23,7 +23,7 @@ However, the code encapsulates the OS-specific logic in model subclasses with id
 method names and argument lists, so that they present a unified interface for use in:
 
 * command line invocation (e.g. `wifi-wand co my-network my-password` to connect to a network)
-* interactive shell (REPL) sessions where the wifi-wand methods are effectively DSL commands (`wifi-wand -s` to run in interactive mode)
+* interactive shell (REPL) sessions where the WiFi-wand methods are effectively DSL commands (`wifi-wand -s` to run in interactive mode)
 * other Ruby applications as a gem (library) (`require wifi-wand`)
 
 ### Quick Start
@@ -38,10 +38,10 @@ wifi-wand w
 # See available WiFi networks
 wifi-wand a
 
-# Connect to a WiFI network with password
+# Connect to a WiFi network with password
 wifi-wand co MyNetwork password
 
-# Connect to a WiFI network without password (if no password required or network is saved/preferred
+# Connect to a WiFi network without password (if no password required or network is saved/preferred
 wifi-wand co MyNetwork
 
 # Display detailed networking information
@@ -63,7 +63,7 @@ Available commands can be seen by using the `-h` (or `--help`) option:
 Command Line Switches     [wifi-wand version 3.0.0-alpha.1 at https://github.com/keithrbennett/wifiwand]
 ---------------------
 -o {i,j,k,p,y}            - when not in shell mode, outputs data in the following formats: inspect, JSON, pretty JSON, puts, YAML
--p wifi_interface_name    - specify wifi interface name (overrides auto-detection)
+-p wifi_interface_name    - specify WiFi interface name (overrides auto-detection)
 -s                        - run in shell mode (interactive pry REPL session)
 -v                        - verbose mode (prints OS commands and their outputs)
 
@@ -72,26 +72,26 @@ Commands
 a[vail_nets]              - array of names of the available networks
 ci                        - state of Internet connectivity, defined as both DNS and TCP working
 co[nnect] network-name    - connects to the specified network-name, turning WiFi on if necessary
-cy[cle]                   - toggles wifi on/off state twice, regardless of starting state
-d[isconnect]              - disconnects from current network, does not turn off wifi
+cy[cle]                   - toggles WiFi on/off state twice, regardless of starting state
+d[isconnect]              - disconnects from current network, does not turn off WiFi
 f[orget] name1 [..name_n] - removes network-name(s) from the preferred (saved) networks list
                             in interactive mode, can be a single array of names, e.g. returned by `pref_nets`
 h[elp]                    - prints this help
 i[nfo]                    - a hash of detailed networking information
 na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear,
                             or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
-ne[twork_name]            - name (SSID) of currently connected wifi network
-on                        - turns wifi on
-of[f]                     - turns wifi off
+ne[twork_name]            - name (SSID) of currently connected WiFi network
+on                        - turns WiFi on
+of[f]                     - turns WiFi off
 pa[ssword] network-name   - password for preferred network name
 pr[ef_nets]               - preferred (saved) networks
 q[uit]                    - exits this program (interactive shell mode only) (see also 'x')
-ro[pen]                   - open resource ('cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page))
+ro[pen]                   - open resource ('cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (WiFi-wand home page))
 s[tatus]                  - status line (WiFi, Network, TCP, DNS, Internet)
 t[ill]                    - returns when the desired Internet connection state is true. Options:
                             1) 'on'/:on, 'off'/:off, 'conn'/:conn, or 'disc'/:disc
                             2) wait interval between tests, in seconds (optional, defaults to 0.5 seconds)
-w[ifi_on]                 - is the wifi on?
+w[ifi_on]                 - is the WiFi on?
 x[it]                     - exits this program (interactive shell mode only) (see also 'q')
 
 When in interactive shell mode:
@@ -211,10 +211,10 @@ constants or instance variables if you want to create variables in your shell.
 #### Single Command Invocations
 
 ```
-wifi-wand i            # prints out wifi info
+wifi-wand i            # prints out WiFi info
 wifi-wand a            # prints out names of available networks
 wifi-wand pr           # prints preferred networks
-wifi-wand cy           # cycles the wifi off and on
+wifi-wand cy           # cycles the WiFi off and on
 wifi-wand co a-network a-password # connects to a network requiring a password
 wifi-wand co a-network            # connects to a network _not_ requiring a password
 wifi-wand t on && say "Internet connected" # Play audible message when Internet becomes connected
@@ -225,7 +225,7 @@ wifi-wand t on && say "Internet connected" # Play audible message when Internet 
 The `pry` shell used by wifi_wand outputs the last evaluated value in the terminal session.
 The `awesome_print` gem is used to format that output nicely.
 As with other REPL's, command return values can also be used in expressions, passed to methods,
-saved in variables, etc. In this example, the value returned by the wifi-wand command is saved
+saved in variables, etc. In this example, the value returned by the WiFi-wand command is saved
 in the local variable `local_ip`.
 
 ```
@@ -355,7 +355,7 @@ The following tasks were restored by using Swift scripts:
 * disconnecting from a network (with the added benefit that sudo access is no longer required)
 
 The following tasks were restored by using `networksetup`:
-* determining whether or not wifi is on
+* determining whether or not WiFi is on
 * the name of the currently connected network
 
 The only remaining issue is that we were getting some extended information from airport for each available network. This extended information has now been removed in version 2.17.0.

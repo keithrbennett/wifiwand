@@ -46,7 +46,7 @@ class BaseModel
   def init_wifi_interface
     validate_os_preconditions
 
-    # Initialize wifi interface (e.g.: "wlp0s20f3")
+    # Initialize WiFi interface (e.g.: "wlp0s20f3")
     if @options.wifi_interface
       if is_wifi_interface?(@options.wifi_interface)
         @wifi_interface = @options.wifi_interface
@@ -57,7 +57,7 @@ class BaseModel
       @wifi_interface = detect_wifi_interface
     end
     
-    # Validate that wifi_interface is a valid string
+    # Validate that WiFi interface is a valid string
     if @wifi_interface.nil? || @wifi_interface.empty?
       raise WifiInterfaceError.new
     end
@@ -128,7 +128,7 @@ class BaseModel
     wifi_on?
   ].each { |method_name| define_subclass_required_method(method_name) }
 
-  # Public wrapper methods with wifi_on? check
+  # Public wrapper methods with WiFi state check
   def available_network_names
     wifi_on? ? _available_network_names : nil
   end
