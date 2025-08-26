@@ -82,13 +82,45 @@ class UbuntuModel < BaseModel
     if _connected_network_name == network_name
       return
     end
-    
-    # If a password is provided, always use WiFi connect command to update/use the password
-    if password
-      connect_with_wifi_command(network_name, password)
-      return
+
+    def security_to_key_mgmt
+      # Normalize the input - convert to uppercase and strip whitespace
+      security = security_type.to_s.upcase.strip
+
+      case security
+      when /WPA3/
+        'sae'
+      when /WPA2/, /WPA/
+        'wpa-psk'
+      when /WEP/
+        'none'
+      when '--', ''
+        nil  # Open network, no key management needed
+      else
+        'wpa-psk'  # Default fallback for unknown security types
+      end
     end
-    
+
+    def get_security_type(ssid)
+      cmd = "nmcli dev wifi list | grep #{Shellwords.shellescape(ssid)}"
+
+      # returns:  D6:39:D3:8B:E9:72  My Network         Infra  36    135 Mbit/s  100     ▂▄▆█  WPA2
+      output = run_os_command(cmd)
+      output.chomp.split.last
+    end
+
+    # TODO: This code is wrong and needs attention!:
+    #
+
+    # If a password is provided, always use WiFi connect command to update/use the password
+    # if password
+    #   security_type = get_security_type(network_name)
+    #   key_mgmt = security_to_key_mgmt(security_type)
+    #   command =
+    #   connect_with_wifi_command(network_name, password)
+    #   return
+    # end
+    #
     # Check if there's an existing connection profile for this network
     existing_connections = preferred_networks
     if existing_connections.include?(network_name)
