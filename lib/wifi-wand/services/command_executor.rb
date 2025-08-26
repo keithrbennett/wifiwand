@@ -15,8 +15,11 @@ module WifiWand
       start_time = Time.now
       output = `#{command} 2>&1` # join stderr with stdout
 
+      status = Process.last_status
+      status_string = "Exit code: #{status.exitstatus} (#{status.success? ? 'success' : 'error'})"
+
       if @verbose
-        puts "Duration: #{'%.4f' % [Time.now - start_time]} seconds"
+        puts "#{status_string}, Duration: #{'%.4f' % [Time.now - start_time]} seconds"
         puts CommandOutputFormatter.command_result_as_string(output)
       end
 
