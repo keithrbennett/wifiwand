@@ -8,7 +8,9 @@ require_relative 'network_state_manager'
 
 # Configure RSpec
 RSpec.configure do |config|
-  
+
+  config.example_status_persistence_file_path = 'rspec-errors.txt'
+
   # Enable RSpec tags
   config.filter_run_including :focus => true
   config.run_all_when_everything_filtered = true
