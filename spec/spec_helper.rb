@@ -6,6 +6,8 @@ require_relative '../lib/wifi-wand'
 require_relative '../lib/wifi-wand/operating_systems'
 require_relative 'network_state_manager'
 
+$stdout.sync = true # Essential for test suite output to be in the correct order.
+
 # Configure RSpec
 RSpec.configure do |config|
 
@@ -139,7 +141,7 @@ RSpec.configure do |config|
   config.after(:each, :disruptive) do
     NetworkStateManager.restore_state
   end
-  
+
   # Attempt final restoration at the end of test suite
   config.after(:suite) do
     # Only restore if we actually captured state
@@ -160,5 +162,5 @@ RSpec.configure do |config|
       end
     end
   end
-  
+
 end
