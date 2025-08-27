@@ -120,14 +120,14 @@ describe WifiWand::StatusWaiter do
         
         expect {
           verbose_waiter.wait_for(:on, nil, WifiWand::TimingConstants::FAST_TEST_INTERVAL)
-        }.to output(/StatusWaiter: waiting for on, timeout:.*s, interval: #{WifiWand::TimingConstants::FAST_TEST_INTERVAL}s/).to_stdout
+        }.to output(/StatusWaiter \(on\): starting, timeout:.*s, interval: #{WifiWand::TimingConstants::FAST_TEST_INTERVAL}s/).to_stdout
       end
 
       it 'logs completion message when condition is already met' do
         allow(mock_model).to receive(:wifi_on?).and_return(true)
         expect {
           verbose_waiter.wait_for(:on)
-        }.to output(/StatusWaiter: completed without needing to wait/).to_stdout
+        }.to output(/StatusWaiter \(on\): completed without needing to wait/).to_stdout
       end
 
       it 'logs total wait time when waiting is required' do
@@ -141,7 +141,7 @@ describe WifiWand::StatusWaiter do
         
         expect {
           verbose_waiter.wait_for(:on, WifiWand::TimingConstants::FAST_TEST_INTERVAL)
-        }.to output(/StatusWaiter: on wait time \(seconds\):/).to_stdout
+        }.to output(/StatusWaiter \(on\): wait time \(seconds\):/).to_stdout
       end
     end
 
@@ -164,7 +164,7 @@ describe WifiWand::StatusWaiter do
         
         expect {
           verbose_waiter.wait_for(:on, 10)  # Use longer timeout to ensure it doesn't timeout
-        }.to output(/StatusWaiter: on wait time \(seconds\): 2\.5/).to_stdout
+        }.to output(/StatusWaiter \(on\): wait time \(seconds\): 2\.5/).to_stdout
       end
     end
   end
