@@ -273,7 +273,8 @@ class BaseModel
 
   # Waits for the Internet connection to be in the desired state.
   # @param target_status must be in [:conn, :disc, :off, :on]; waits for that state
-  # @param timeout_in_secs after this many seconds, the method will raise a WaitTimeoutError
+  # @param timeout_in_secs after this many seconds, the method will raise a WaitTimeoutError; 
+  #        if nil (default), waits indefinitely
   # @param wait_interval_in_secs sleeps this interval between retries; if nil or absent,
   #        a default will be provided
   #

@@ -120,7 +120,7 @@ describe WifiWand::StatusWaiter do
         
         expect {
           verbose_waiter.wait_for(:on, nil, WifiWand::TimingConstants::FAST_TEST_INTERVAL)
-        }.to output(/StatusWaiter \(on\): starting, timeout:.*s, interval: #{WifiWand::TimingConstants::FAST_TEST_INTERVAL}s/).to_stdout
+        }.to output(/StatusWaiter \(on\): starting, timeout: never, interval: #{WifiWand::TimingConstants::FAST_TEST_INTERVAL}s/).to_stdout
       end
 
       it 'logs completion message when condition is already met' do

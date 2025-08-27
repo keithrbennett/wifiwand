@@ -10,16 +10,17 @@ module WifiWand
 
     # Waits for the Internet connection to be in the desired state.
     # @param target_status must be in [:conn, :disc, :off, :on]; waits for that state
-    # @param timeout_in_secs after this many seconds, the method will raise a WaitTimeoutError
+    # @param timeout_in_secs after this many seconds, the method will raise a WaitTimeoutError;
+    #        if nil (default), waits indefinitely
     # @param wait_interval_in_secs sleeps this interval between retries; if nil or absent,
     #        a default will be provided
     def wait_for(target_status, timeout_in_secs = nil, wait_interval_in_secs = nil)
       wait_interval_in_secs ||= TimingConstants::DEFAULT_WAIT_INTERVAL
-      timeout_in_secs ||= TimingConstants::STATUS_WAIT_TIMEOUT_LONG
       message_prefix = "StatusWaiter (#{target_status}):"
 
       if @verbose
-        puts "#{message_prefix} starting, timeout: #{timeout_in_secs}s, interval: #{wait_interval_in_secs}s"
+        timeout_display = timeout_in_secs ? "#{timeout_in_secs}s" : "never"
+        puts "#{message_prefix} starting, timeout: #{timeout_display}, interval: #{wait_interval_in_secs}s"
       end
 
       finished_predicates = {
@@ -45,7 +46,7 @@ module WifiWand
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       loop do
         elapsed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-        if elapsed_time >= timeout_in_secs
+        if timeout_in_secs && elapsed_time >= timeout_in_secs
           raise WaitTimeoutError.new(target_status, timeout_in_secs)
         end
 
