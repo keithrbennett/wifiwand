@@ -119,8 +119,8 @@ describe WifiWand::StatusWaiter do
         allow(verbose_waiter).to receive(:sleep)  # Mock sleep
         
         expect {
-          verbose_waiter.wait_for(:on, WifiWand::TimingConstants::FAST_TEST_INTERVAL)
-        }.to output(/StatusWaiter: waiting for on, interval.*#{WifiWand::TimingConstants::FAST_TEST_INTERVAL}/).to_stdout
+          verbose_waiter.wait_for(:on, nil, WifiWand::TimingConstants::FAST_TEST_INTERVAL)
+        }.to output(/StatusWaiter: waiting for on, timeout:.*s, interval: #{WifiWand::TimingConstants::FAST_TEST_INTERVAL}s/).to_stdout
       end
 
       it 'logs completion message when condition is already met' do
@@ -158,12 +158,12 @@ describe WifiWand::StatusWaiter do
         end_time = 1002.5
         allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
                                                 .and_return(start_time, end_time)
-        allow(waiter).to receive(:sleep)
         
         verbose_waiter = WifiWand::StatusWaiter.new(mock_model, verbose: true)
+        allow(verbose_waiter).to receive(:sleep)
         
         expect {
-          verbose_waiter.wait_for(:on, WifiWand::TimingConstants::FAST_TEST_INTERVAL)
+          verbose_waiter.wait_for(:on, 10)  # Use longer timeout to ensure it doesn't timeout
         }.to output(/StatusWaiter: on wait time \(seconds\): 2\.5/).to_stdout
       end
     end

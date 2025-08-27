@@ -2,6 +2,10 @@ module WifiWand
   module TimingConstants
     # Default wait intervals for status polling
     DEFAULT_WAIT_INTERVAL = 0.5
+
+    # StatusWaiter timeouts
+    STATUS_WAIT_TIMEOUT_LONG = 15
+    STATUS_WAIT_TIMEOUT_SHORT = 5
     
     # NetworkStateManager wait intervals
     WIFI_STATE_CHANGE_WAIT = 0.05  # Wait for WiFi on/off state changes

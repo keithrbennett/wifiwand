@@ -91,6 +91,7 @@ class ConnectionManager
   def perform_connection(network_name, password)
     model.wifi_on
     model._connect(network_name, password)
+    model.till(:conn)
   end
   
   def store_saved_password_usage(used_saved_password)

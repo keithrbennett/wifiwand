@@ -12,6 +12,7 @@ describe WifiWand::ConnectionManager do
     allow(mock_model).to receive(:preferred_networks).and_return([])
     allow(mock_model).to receive(:wifi_on)
     allow(mock_model).to receive(:_connect)
+    allow(mock_model).to receive(:till)
   end
 
   describe '#initialize' do

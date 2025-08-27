@@ -56,6 +56,12 @@ module WifiWand
     end
   end
 
+  class WaitTimeoutError < Error
+    def initialize(action, timeout)
+      super("Timed out after #{timeout} seconds waiting for #{action}")
+    end
+  end
+
   # === CONFIGURATION ERRORS ===
   class InvalidIPAddressError < Error
     attr_reader :invalid_addresses

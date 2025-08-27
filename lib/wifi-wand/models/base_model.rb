@@ -153,22 +153,27 @@ class BaseModel
   # This method returns whether or not there is a working Internet connection.
   # Tests both TCP connectivity to internet hosts and DNS resolution.
   def connected_to_internet?
+    debug_method_entry(__method__)
+
     @connectivity_tester.connected_to_internet?
   end
 
   # Tests TCP connectivity to internet hosts (not localhost)
   def internet_tcp_connectivity?
+    debug_method_entry(__method__)
     @connectivity_tester.tcp_connectivity?
   end
 
   # Tests DNS resolution capability
   def dns_working?
+    debug_method_entry(__method__)
     @connectivity_tester.dns_working?
   end
 
 
   # Returns comprehensive WiFi information including connectivity details
   def wifi_info
+    debug_method_entry(__method__)
     internet_tcp = begin
       internet_tcp_connectivity?
     rescue
@@ -225,11 +230,13 @@ class BaseModel
 
   # Toggles WiFi on/off state twice; if on, turns off then on; else, turn on then off.
   def cycle_network
+    debug_method_entry(__method__)
     wifi_on? ? (wifi_off; wifi_on) : (wifi_on; wifi_off)
   end
 
 
   def connected_to?(network_name)
+    debug_method_entry(__method__, binding, :network_name)
     network_name == connected_network_name
   end
 
@@ -237,6 +244,7 @@ class BaseModel
   # Connects to the passed network name, optionally with password.
   # Delegates to ConnectionManager for complex connection logic.
   def connect(network_name, password = nil)
+    debug_method_entry(__method__, binding, %i{network_name password})
     @connection_manager.connect(network_name, password)
   end
 
@@ -253,6 +261,7 @@ class BaseModel
 
 
   def preferred_network_password(preferred_network_name)
+    debug_method_entry(__method__, binding, :preferred_network_name)
     preferred_network_name = preferred_network_name.to_s
     if preferred_networks.include?(preferred_network_name)
       _preferred_network_password(preferred_network_name)
@@ -264,12 +273,15 @@ class BaseModel
 
   # Waits for the Internet connection to be in the desired state.
   # @param target_status must be in [:conn, :disc, :off, :on]; waits for that state
+  # @param timeout_in_secs after this many seconds, the method will raise a WaitTimeoutError
   # @param wait_interval_in_secs sleeps this interval between retries; if nil or absent,
   #        a default will be provided
   #
   # Connected is defined as being able to connect to an external web site.
-  def till(target_status, wait_interval_in_secs = nil)
-    @status_waiter.wait_for(target_status, wait_interval_in_secs)
+  def till(target_status, timeout_in_secs = nil, wait_interval_in_secs = nil)
+    debug_method_entry(__method__, binding, %i{target_status timeout_in_secs wait_interval_in_secs})
+
+    @status_waiter.wait_for(target_status, timeout_in_secs, wait_interval_in_secs)
   end
 
 
@@ -278,6 +290,8 @@ class BaseModel
   # @stop_condition a lambda taking the command's stdout as its sole parameter
   # @return the stdout produced by the command, or nil if max_tries was reached
   def try_os_command_until(command, stop_condition, max_tries = 100)
+    debug_method_entry(__method__, binding, %i{command stop_condition max_tries})
+
     @command_executor.try_os_command_until(command, stop_condition, max_tries)
   end
 
@@ -313,21 +327,27 @@ class BaseModel
   # These methods help capture and restore network state during disruptive tests
   
   def capture_network_state
+    debug_method_entry(__method__)
+
     @state_manager.capture_network_state
   end
   
   def restore_network_state(state, fail_silently: false)
+    debug_method_entry(__method__, binding, %i{state fail_silently})
     @state_manager.restore_network_state(state, fail_silently: fail_silently)
   end
 
   # Returns true if the last connection attempt used a saved password.
   def last_connection_used_saved_password?
+    debug_method_entry(__method__)
+
     @connection_manager.last_connection_used_saved_password?
   end
   
   private
 
   def connected_network_password
+    debug_method_entry(__method__)
     return nil unless connected_network_name
     preferred_network_password(connected_network_name)
   end
@@ -343,7 +363,7 @@ class BaseModel
     param_names = Array(param_names) # force to array if passed a single symbol
     if param_names
       values = param_names.map { |name| binding.local_variable_get(name) }
-      s << "(#{values.inspect})"
+      s << "(#{values.map(&:to_s).map(&:inspect).join(', ')})"
     end
     puts s
   end

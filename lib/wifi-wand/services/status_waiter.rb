@@ -10,50 +10,55 @@ module WifiWand
 
     # Waits for the Internet connection to be in the desired state.
     # @param target_status must be in [:conn, :disc, :off, :on]; waits for that state
+    # @param timeout_in_secs after this many seconds, the method will raise a WaitTimeoutError
     # @param wait_interval_in_secs sleeps this interval between retries; if nil or absent,
     #        a default will be provided
-    def wait_for(target_status, wait_interval_in_secs = nil)
-      # One might ask, why not just put the 0.5 up there as the default argument.
-      # We could do that, but we'd still need the line below in case nil
-      # was explicitly specified. The default argument of nil above emphasizes that
-      # the absence of an argument and a specification of nil will behave identically.
+    def wait_for(target_status, timeout_in_secs = nil, wait_interval_in_secs = nil)
       wait_interval_in_secs ||= TimingConstants::DEFAULT_WAIT_INTERVAL
+      timeout_in_secs ||= TimingConstants::STATUS_WAIT_TIMEOUT_LONG
+      message_prefix = "StatusWaiter (#{target_status}):"
 
       if @verbose
-        puts "StatusWaiter: waiting for #{target_status}, interval (seconds): #{wait_interval_in_secs}"
+        puts "#{message_prefix} starting, timeout: #{timeout_in_secs}s, interval: #{wait_interval_in_secs}s"
       end
 
       finished_predicates = {
           conn: -> { @model.connected_to_internet? },
-          disc: -> { ! @model.connected_to_internet? },
+          disc: -> { !@model.connected_to_internet? },
           on:   -> { @model.wifi_on? },
-          off:  -> { ! @model.wifi_on? }
+          off:  -> { !@model.wifi_on? }
       }
 
       finished_predicate = finished_predicates[target_status]
 
       if finished_predicate.nil?
-        raise ArgumentError.new(
-            "Option must be one of #{finished_predicates.keys.inspect}. Was: #{target_status.inspect}")
+        raise ArgumentError, "Option must be one of #{finished_predicates.keys.inspect}. Was: #{target_status.inspect}"
       end
 
-      if finished_predicate.()
-        puts "StatusWaiter: completed without needing to wait" if @verbose
+      if finished_predicate.call
+        puts "#{message_prefix} completed without needing to wait" if @verbose
         return nil
+      else
+        puts "#{message_prefix} First attempt failed, entering waiting loop" if @verbose
       end
 
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      loop do
+        elapsed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+        if elapsed_time >= timeout_in_secs
+          raise WaitTimeoutError.new(target_status, timeout_in_secs)
+        end
 
-      until finished_predicate.()
+        puts "#{message_prefix} checking predicate..." if @verbose
+        if finished_predicate.call
+          if @verbose
+            end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+            puts "#{message_prefix} wait time (seconds): #{end_time - start_time}"
+          end
+          return nil
+        end
         sleep(wait_interval_in_secs)
-        puts("StatusWaiter: waiting #{wait_interval_in_secs} seconds for #{target_status}: #{Time.now}")
       end
-
-      end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      if @verbose
-        puts "StatusWaiter: #{target_status} wait time (seconds): #{end_time - start_time}"
-      end
-      nil
     end
   end
 end

@@ -12,7 +12,14 @@ describe 'Common WiFi Model Behavior (All OS)' do
     
     # Mock all OS-calling methods to prevent real system calls in non-disruptive tests
     # Only mock for non-disruptive tests (those not tagged with :disruptive)
-    unless self.class.metadata[:disruptive] || self.class.parent_groups.any? { |group| group.metadata[:disruptive] }
+    # Check both example-level and group-level metadata for :disruptive tag
+    # Use RSpec.current_example to get the current running example
+    current_example = RSpec.current_example
+    example_disruptive = current_example&.metadata&.fetch(:disruptive, nil)
+    group_disruptive = self.class.metadata[:disruptive] || self.class.parent_groups.any? { |group| group.metadata[:disruptive] }
+    is_disruptive = example_disruptive || group_disruptive
+    
+    unless is_disruptive
       allow(subject).to receive(:wifi_on?).and_return(true)
       allow(subject).to receive(:available_network_names).and_return(['TestNetwork1', 'TestNetwork2'])
       allow(subject).to receive(:connected_network_name).and_return('TestNetwork1')

@@ -19,7 +19,7 @@ module WifiWand
       status_string = "Exit code: #{status.exitstatus} (#{status.success? ? 'success' : 'error'})"
 
       if @verbose
-        puts "#{status_string}, Duration: #{'%.4f' % [Time.now - start_time]} seconds"
+        puts "#{status_string}, Duration: #{'%.4f' % [Time.now - start_time]} seconds -- #{Time.now.iso8601}"
         puts CommandOutputFormatter.command_result_as_string(output)
       end
 

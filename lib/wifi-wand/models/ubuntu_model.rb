@@ -43,23 +43,29 @@ class UbuntuModel < BaseModel
 
   def wifi_on?
     output = run_os_command("nmcli radio wifi", false)
-    output.strip == 'enabled'
+    output.match?(/enabled/)
   end
 
   def wifi_on
     return if wifi_on?
     run_os_command("nmcli radio wifi on")
+    till(:on, WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
     wifi_on? ? nil : raise(WifiEnableError.new)
+  rescue WifiWand::WaitTimeoutError
+    raise WifiEnableError.new
   end
 
   def wifi_off
     return unless wifi_on?
     run_os_command("nmcli radio wifi off")
+    till(:off, WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
     wifi_on? ? raise(WifiDisableError.new) : nil
+  rescue WifiWand::WaitTimeoutError
+    raise WifiDisableError.new
   end
 
   def _available_network_names
-    debug_method_entry(__method)
+    debug_method_entry(__method__)
 
     output = run_os_command("nmcli -t -f SSID,SIGNAL dev wifi list")
     networks_with_signal = output.split("\n").map(&:strip).reject(&:empty?)
