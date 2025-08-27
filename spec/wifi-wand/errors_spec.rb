@@ -88,6 +88,7 @@ module WifiWand
           # Mock wifi_on? to return false after wifi_on command
           allow(model).to receive(:run_os_command).and_return(true)
           allow(model).to receive(:wifi_on?).and_return(false)
+          allow(model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:on, 5))
           
           expect { model.wifi_on }.to raise_error(WifiEnableError)
         end
@@ -100,6 +101,7 @@ module WifiWand
           # Mock wifi_on? to return true after wifi_off command  
           allow(model).to receive(:run_os_command).and_return(true)
           allow(model).to receive(:wifi_on?).and_return(true)
+          allow(model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:off, 5))
           
           expect { model.wifi_off }.to raise_error(WifiDisableError)
         end
