@@ -46,6 +46,8 @@ Tests are organized into two main categories based on their system impact:
 - Graceful fallback: If restoration fails, warns user to manually reconnect
 - Individual tests can call `restore_network_state` to restore connection mid-test
 
+**Performance Considerations (Disruptive Tests):** The automatic network restoration for disruptive tests, while robust, has a significant performance impact. When the disruptive test suite is initiated from a connected state, each test triggers a slow network reconnection, which can make the suite run up to 5 times slower. For a much faster test cycle, you can run the disruptive tests after manually disconnecting from Wi-Fi (either by turning Wi-Fi off or disconnecting from the network). This avoids the lengthy reconnection process after each test. While this approach skips a small amount of connection-related test logic (like the `disconnect` test), it covers the vast majority of functionality and is ideal for rapid, iterative development.
+
 **Includes tests for:**
 - Turning WiFi on/off
 - Network disconnection  
