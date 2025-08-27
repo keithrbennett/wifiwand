@@ -336,5 +336,16 @@ class BaseModel
     @command_executor.command_available_using_which?(command)
   end
 
+  def debug_method_entry(method_name, binding = nil, param_names = nil)
+    return unless verbose_mode
+
+    s = "Entered #{self.class.name.split('::').last}##{method_name}"
+    param_names = Array(param_names) # force to array if passed a single symbol
+    if param_names
+      values = param_names.map { |name| binding.local_variable_get(name) }
+      s << "(#{values.inspect})"
+    end
+    puts s
+  end
 end
 end

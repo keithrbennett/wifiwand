@@ -30,6 +30,7 @@ class UbuntuModel < BaseModel
   end
 
   def detect_wifi_interface
+    debug_method_entry(__method__)
     cmd = "iw dev | grep Interface | cut -d' ' -f2"
     interfaces = run_os_command(cmd).split("\n")
     interfaces.first
@@ -58,7 +59,8 @@ class UbuntuModel < BaseModel
   end
 
   def _available_network_names
-    
+    debug_method_entry(__method)
+
     output = run_os_command("nmcli -t -f SSID,SIGNAL dev wifi list")
     networks_with_signal = output.split("\n").map(&:strip).reject(&:empty?)
     
@@ -72,138 +74,168 @@ class UbuntuModel < BaseModel
   end
 
   def _connected_network_name
+    debug_method_entry(__method__)
     cmd = %q{nmcli -t -f active,ssid device wifi | egrep '^yes' | cut -d\: -f2}
     output = run_os_command(cmd, false)
     output.empty? ? nil : output.strip
   end
 
   def _connect(network_name, password = nil)
-    # Check if we're already connected to avoid unnecessary reconnection
+    #
+    # CONNECTION LOGIC
+    #
+    # This logic is designed to be robust and handle the nuances of nmcli,
+    # including the common problem of duplicate connection profiles (e.g.,
+    # "MySSID", "MySSID 1").
+    #
+    # 1. CHECK IF ALREADY CONNECTED:
+    #    The first step is to check if we are already connected to the target
+    #    network. If so, there's nothing to do.
+    #
+    # 2. HANDLE CONNECTION REQUESTS WITH A PASSWORD:
+    #    If a password is provided, we first check if it's different from the
+    #    stored password. We only run a disruptive `modify` command if the
+    #    password has actually changed. This prevents unnecessary modifications
+    #    during test suite cleanup phases, which can cause system instability.
+    #    a. Find the best existing profile for the SSID (by most recent timestamp).
+    #    b. If a profile exists and the password differs, query its security type
+    #       to use the correct parameter (e.g. .psk, .wep-key0) and modify it.
+    #    c. If no profile is found, create a new one from scratch.
+    #
+    # 3. HANDLE CONNECTION REQUESTS WITHOUT A PASSWORD:
+    #    If no password is provided, the user's intent is to connect to a
+    #    network that is either open or already saved.
+    #    a. Find the best existing profile for the SSID.
+    #    b. If a profile is found, attempt to activate it using its stored settings.
+    #    c. If no profile is found, assume it's an open network and attempt to connect.
+
+    debug_method_entry(__method__)
+
     if _connected_network_name == network_name
       return
     end
 
-    def security_to_key_mgmt
-      # Normalize the input - convert to uppercase and strip whitespace
-      security = security_type.to_s.upcase.strip
-
-      case security
-      when /WPA3/
-        'sae'
-      when /WPA2/, /WPA/
-        'wpa-psk'
-      when /WEP/
-        'none'
-      when '--', ''
-        nil  # Open network, no key management needed
+    begin
+      if password
+        # Case 2: Password is provided.
+        profile = find_best_profile_for_ssid(network_name)
+        if profile
+          # Profile exists. Only modify it if the password has changed.
+          if password != _preferred_network_password(profile)
+            security_param = get_security_parameter(network_name)
+            if security_param
+              modify_cmd = "nmcli connection modify #{Shellwords.shellescape(profile)} #{security_param} #{Shellwords.shellescape(password)}"
+              run_os_command(modify_cmd)
+            else
+              # Fallback if security type can't be determined (e.g. out of range).
+              run_os_command("nmcli dev wifi connect #{Shellwords.shellescape(network_name)} password #{Shellwords.shellescape(password)}")
+              return # The connect command already activates.
+            end
+          end
+          # Always bring the connection up.
+          run_os_command("nmcli connection up #{Shellwords.shellescape(profile)}")
+        else
+          # No profile exists, create a new one.
+          connect_cmd = "nmcli dev wifi connect #{Shellwords.shellescape(network_name)} password #{Shellwords.shellescape(password)}"
+          run_os_command(connect_cmd)
+        end
       else
-        'wpa-psk'  # Default fallback for unknown security types
+        # Case 3: No password provided.
+        profile = find_best_profile_for_ssid(network_name)
+        if profile
+          # Profile exists, try to bring it up with stored settings.
+          run_os_command("nmcli connection up #{Shellwords.shellescape(profile)}")
+        else
+          # No profile exists, try to connect to it as an open network.
+          run_os_command("nmcli dev wifi connect #{Shellwords.shellescape(network_name)}")
+        end
+      end
+    rescue WifiWand::CommandExecutor::OsCommandError => e
+      # The nmcli command failed. Check if it was because the network was not found.
+      if e.message.match?(/No network with SSID/i) || e.message.match?(/Connection activation failed/i)
+        raise WifiWand::NetworkNotFoundError.new(network_name)
+      else
+        # Re-raise the original error if it's for a different reason.
+        raise e
       end
     end
-
-    def get_security_type(ssid)
-      cmd = "nmcli dev wifi list | grep #{Shellwords.shellescape(ssid)}"
-
-      # returns:  D6:39:D3:8B:E9:72  My Network         Infra  36    135 Mbit/s  100     ▂▄▆█  WPA2
-      output = run_os_command(cmd)
-      output.chomp.split.last
-    end
-
-    # TODO: This code is wrong and needs attention!:
-    #
-
-    # If a password is provided, always use WiFi connect command to update/use the password
-    # if password
-    #   security_type = get_security_type(network_name)
-    #   key_mgmt = security_to_key_mgmt(security_type)
-    #   command =
-    #   connect_with_wifi_command(network_name, password)
-    #   return
-    # end
-    #
-    # Check if there's an existing connection profile for this network
-    existing_connections = preferred_networks
-    if existing_connections.include?(network_name)
-      # Use existing connection profile to avoid deactivation/reactivation
-      begin
-        run_os_command("nmcli connection up #{Shellwords.shellescape(network_name)}")
-      rescue WifiWand::CommandExecutor::OsCommandError => e
-        # If connection up fails, fall back to WiFi connect
-        connect_with_wifi_command(network_name, password)
-      end
-    else
-      # Create new connection using WiFi connect command
-      connect_with_wifi_command(network_name, password)
-    end
-  end
-
-  def preferred_networks
-    output = run_os_command("nmcli -t -f NAME connection show")
-    connections = output.split("\n").map(&:strip).reject(&:empty?)
-    connections.sort
   end
 
   private
 
-  def connect_with_wifi_command(network_name, password)
-    # For networks with existing connection profiles, update the password and connect
-    # This approach is necessary because 'nmcli dev wifi connect' with a password on an
-    # existing connection can sometimes fail with "key-mgmt property is missing" errors,
-    # as it tries to create/modify security settings that may conflict with the existing profile.
-    # By updating the existing profile's PSK and using 'connection up', we preserve all
-    # existing security settings (key-mgmt, etc.) while just updating the password.
-    existing_connections = preferred_networks
-    if existing_connections.include?(network_name) && password
-      # Update existing connection with new password, then connect
-      update_cmd = "nmcli connection modify #{Shellwords.shellescape(network_name)} 802-11-wireless-security.psk #{Shellwords.shellescape(password)}"
-      run_os_command(update_cmd, false)
-      
-      connect_cmd = "nmcli connection up #{Shellwords.shellescape(network_name)}"
-      output = run_os_command(connect_cmd, false)
+  # Determines the correct nmcli security parameter for a given network.
+  #
+  # @param ssid [String] The SSID of the network to check.
+  # @return [String, nil] The nmcli parameter string (e.g., "802-11-wireless-security.psk"),
+  #   or nil if the security type cannot be determined or is unsupported.
+  def get_security_parameter(ssid)
+    debug_method_entry(__method__, binding, :ssid)
+
+    # Use the terse, machine-readable output to get the security protocol.
+    cmd = "nmcli -t -f SSID,SECURITY dev wifi list"
+    begin
+      output = run_os_command(cmd, false)
+    rescue WifiWand::CommandExecutor::OsCommandError
+      return nil # Can't scan, so can't determine the type.
+    end
+
+    network_line = output.split("\n").find { |line| line.start_with?("#{ssid}:") }
+    return nil unless network_line
+
+    # The output can be like "SSID:WPA2" or "SSID:WPA1 WPA2", so we just grab the part after the first colon.
+    security_type = network_line.split(':')[1..-1].join(':').strip
+
+    case security_type
+    when /WPA3/i, /WPA2/i, /WPA1/i, /WPA/i
+      "802-11-wireless-security.psk"
+    when /WEP/i
+      "802-11-wireless-security.wep-key0"
     else
-      # Create new connection or connect without password
-      command = "nmcli dev wifi connect #{Shellwords.shellescape(network_name)}"
-      command << " password #{Shellwords.shellescape(password)}" if password
-      output = run_os_command(command, false)
+      # Unsupported or open network (which shouldn't happen if a password is provided).
+      nil
     end
-    
-    # Check for error conditions using exit codes (language-independent)
-    if $?.exitstatus != 0
-      case $?.exitstatus
-      when 10
-        # nmcli exit code 10: Connection activation failed
-        # This typically indicates network not found or connection issues
-        if output.downcase.include?("ssid") || output.downcase.include?("network")
-          raise NetworkNotFoundError.new(network_name)
-        else
-          raise WifiWand::CommandExecutor::OsCommandError.new($?.exitstatus, command, output)
-        end
-      when 4
-        # nmcli exit code 4: Timeout
-        raise WifiWand::CommandExecutor::OsCommandError.new($?.exitstatus, command, output)
+  end
+
+  # Finds the best connection profile for a given SSID.
+  # "Best" is defined as the one with the most recent TIMESTAMP, which indicates
+  # it was the most recently used or configured. This helps solve the problem
+  # of duplicate connection names (e.g., "MySSID", "MySSID 1").
+  #
+  # @param ssid [String] The SSID to search for.
+  # @return [String, nil] The name of the best profile, or nil if none are found.
+  def find_best_profile_for_ssid(ssid)
+    # Get all profiles for the SSID, with their name and timestamp.
+    # The output is a colon-separated string, e.g., "MySSID:1678886400"
+    debug_method_entry(__method__, binding, :ssid)
+
+    cmd = "nmcli -t -f NAME,TIMESTAMP connection show"
+    begin
+      output = run_os_command(cmd, false)
+    rescue WifiWand::CommandExecutor::OsCommandError
+      # If the command fails for any reason, we can't find profiles.
+      return nil
+    end
+
+    profiles = output.split("\n").map do |line|
+      name, timestamp = line.split(':')
+      # We only care about profiles whose names start with the SSID,
+      # to catch "MySSID" and "MySSID 1", etc.
+      if name.start_with?(ssid)
+        { name: name, timestamp: timestamp.to_i }
       else
-        # For other errors, still check English text as fallback but also check common patterns
-        network_not_found_patterns = [
-          /No network with SSID/i,
-          /not found/i,
-          /network.*not.*found/i,
-          /ssid.*not.*found/i
-        ]
-        
-        if network_not_found_patterns.any? { |pattern| output.match?(pattern) }
-          raise NetworkNotFoundError.new(network_name)
-        else
-          raise WifiWand::CommandExecutor::OsCommandError.new($?.exitstatus, command, output)
-        end
+        nil
       end
-    end
-    
-    output
+    end.compact
+
+    # Find the profile with the highest (most recent) timestamp.
+    profiles.max_by { |p| p[:timestamp] }&.dig(:name)
   end
 
   public
 
   def remove_preferred_network(network_name)
+    puts "Entered #{self.class}##{__method__} with #{network_name}" if verbose_mode
+
     # Check if the network exists first
     existing_networks = preferred_networks
     return nil unless existing_networks.include?(network_name)
@@ -212,7 +244,17 @@ class UbuntuModel < BaseModel
     nil
   end
 
+  def preferred_networks
+    debug_method_entry(__method__)
+
+    output = run_os_command("nmcli -t -f NAME connection show")
+    connections = output.split("\n").map(&:strip).reject(&:empty?)
+    connections.sort
+  end
+
   def _preferred_network_password(preferred_network_name)
+    debug_method_entry(__method__, binding, :preferred_network_name)
+
     cmd = [
       "nmcli --show-secrets connection show #{Shellwords.shellescape(preferred_network_name)}",
       "grep '802-11-wireless-security.psk:'",
@@ -223,18 +265,24 @@ class UbuntuModel < BaseModel
   end
 
   def _ip_address
+    debug_method_entry(__method__)
+
     cmd = "ip -4 addr show #{Shellwords.shellescape(wifi_interface)} | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1"
     output = run_os_command(cmd, false)
     output.empty? ? nil : output.split("\n").first&.strip
   end
 
   def mac_address
+    debug_method_entry(__method__)
+
     cmd = "ip link show #{Shellwords.shellescape(wifi_interface)} | grep ether | awk '{print $2}'"
     output = run_os_command(cmd, false)
     output.empty? ? nil : output.strip
   end
 
   def _disconnect
+    debug_method_entry(__method__)
+
     interface = wifi_interface
     return nil unless interface
     begin
@@ -249,6 +297,7 @@ class UbuntuModel < BaseModel
   end
 
   def nameservers
+    debug_method_entry(__method__)
     nameservers_using_resolv_conf
   end
 
@@ -256,7 +305,9 @@ class UbuntuModel < BaseModel
     # For setting nameservers, we'll use a different approach
     # Since nmcli connection management requires specific connection names,
     # we'll modify the system's DNS configuration directly
-    
+
+    debug_method_entry(__method__, binding, :nameservers)
+
     if nameservers == :clear
       # Clear nameservers by removing custom DNS configuration
       run_os_command("nmcli connection modify #{Shellwords.shellescape(wifi_interface)} ipv4.dns \"\"", false)
@@ -286,16 +337,16 @@ class UbuntuModel < BaseModel
     nameservers
   end
 
-  def open_application(application_name)
-    run_os_command("xdg-open #{Shellwords.shellescape(application_name)}")
-  end
-
   def open_resource(resource_url)
+    debug_method_entry(__method__, binding, :resource_url)
+
     run_os_command("xdg-open #{Shellwords.shellescape(resource_url)}")
   end
 
   # Returns the network interface used for default internet route on Linux
   def default_interface
+    debug_method_entry(__method__)
+
     begin
       output = run_os_command("ip route show default | awk '{print $5}'", false)
       return nil if output.empty?
