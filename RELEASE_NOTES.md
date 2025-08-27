@@ -5,12 +5,11 @@
 * We now support Ubuntu and compatible Linux distributions!!!
 
 ### Breaking Changes
-* `cycle_network` now toggles WiFi state twice for both starting states (on and off). Previously it unconditionally did off, then on.
-* Removed macOS Speedtest application launch support; web site is sufficient.
+* `cycle_network` now toggles WiFi state twice regardless of starting state (on or off). Previously it unconditionally did off, then on.
+* Removed macOS Speedtest application launch support; the web site is still available via the `ro spe` command.
 * Removed 'fancy_print'; Awesome Print is now a required gem so it is always available, no need for fancy_print.
 * We no longer assume that if WiFi is off there is no Internet connectivity, since that connectivity can be provided by an Ethernet connection
   * The 'ci' (connected to Internet) command can now return true if WiFi is off but there is another Internet connection.
-  * 
 
 ### Error Handling Improvements 
 * Added comprehensive error classes and improved error messaging
@@ -44,6 +43,10 @@ cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
 ### Bug Fixes
 * Fixed the lack of explicit require of 'stringio' for modern Ruby versions.
 * Added shell escaping for strings included in OS commands.
+
+### Verbose Mode Debug Output
+
+* Many improvements have been made.
 
 ### Technical Changes
 * gemspec:
