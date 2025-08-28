@@ -278,7 +278,13 @@ class UbuntuModel < BaseModel
     output.empty? ? nil : output.split("\n").first&.strip
   end
 
-  def mac_address
+  def mac_address(new_mac_address = nil)
+    if new_mac_address
+      raise InvalidMacAddressError.new(new_mac_address) unless valid_mac_address?(new_mac_address)
+      run_os_command("sudo ip link set dev #{Shellwords.shellescape(wifi_interface)} down")
+      run_os_command("sudo ip link set dev #{Shellwords.shellescape(wifi_interface)} address #{Shellwords.shellescape(new_mac_address)}")
+      run_os_command("sudo ip link set dev #{Shellwords.shellescape(wifi_interface)} up")
+    end
     debug_method_entry(__method__)
 
     cmd = "ip link show #{Shellwords.shellescape(wifi_interface)} | grep ether | awk '{print $2}'"
@@ -314,10 +320,13 @@ class UbuntuModel < BaseModel
 
     debug_method_entry(__method__, binding, :nameservers)
 
+    iface = wifi_interface
+    raise WifiInterfaceError.new("Wi-Fi interface not found.") unless iface
+
     if nameservers == :clear
       # Clear nameservers by removing custom DNS configuration
-      run_os_command("nmcli connection modify #{Shellwords.shellescape(wifi_interface)} ipv4.dns \"\"", false)
-      run_os_command("nmcli connection up #{Shellwords.shellescape(wifi_interface)}", false)
+      run_os_command("nmcli connection modify #{Shellwords.shellescape(iface)} ipv4.dns \"\"", false)
+      run_os_command("nmcli connection up #{Shellwords.shellescape(iface)}", false)
     else
       bad_addresses = nameservers.reject do |ns|
         begin
@@ -336,9 +345,9 @@ class UbuntuModel < BaseModel
 
       dns_string = nameservers.join(' ')
       # Try to modify the connection, ignore errors if connection doesn't exist
-      cmd = "nmcli connection modify #{Shellwords.shellescape(wifi_interface)} ipv4.dns #{Shellwords.shellescape(dns_string)}"
+      cmd = "nmcli connection modify #{Shellwords.shellescape(iface)} ipv4.dns #{Shellwords.shellescape(dns_string)}"
       run_os_command(cmd, false)
-      run_os_command("nmcli connection up #{Shellwords.shellescape(wifi_interface)}", false)
+      run_os_command("nmcli connection up #{Shellwords.shellescape(iface)}", false)
     end
     nameservers
   end
