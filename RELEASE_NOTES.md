@@ -34,6 +34,8 @@ cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
 * Stack traces are no longer displayed unless in verbose mode
 
 ### Testing Improvements
+* Massive increase in test coverage.
+* Added test coverage configuration.
 * Tests are divided into disruptive (system state changing) and nondisruptive tests.
 * By default, only nondisruptive tests are run.
 * Disruptive test inclusion and exclusion can be controlled with the `RSPEC_DISRUPTIVE_TESTS` environment variable.
