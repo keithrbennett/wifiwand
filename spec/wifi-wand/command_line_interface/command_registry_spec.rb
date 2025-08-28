@@ -13,6 +13,7 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
     ['h', 'help'],
     ['i', 'info'],
     ['l', 'ls_avail_nets'],
+    ['ma', 'mac_address'],
     ['na', 'nameservers'],
     ['ne', 'network_name'],
     ['of', 'off'],
@@ -44,7 +45,7 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
       end
       
       # Mock all the cmd_* methods
-      %w[a ci co cy d f h i l na ne of on ro pa pr q t u w x].each do |cmd|
+      %w[a ci co cy d f h i l ma na ne of on ro pa pr q t u w x].each do |cmd|
         define_method("cmd_#{cmd}") do |*args|
           @called_commands << { command: cmd, args: args }
           "#{cmd}_result"

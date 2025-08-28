@@ -311,6 +311,12 @@ class BaseModel
     chars.join(':')
   end
 
+  def valid_mac_address?(mac_address)
+    # Regular expression to match a MAC address in the format XX:XX:XX:XX:XX:XX
+    # where X is a hexadecimal character (0-9, a-f, A-F)
+    /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/.match?(mac_address)
+  end
+
   # Resource management functionality
   def resource_manager
     @resource_manager ||= Helpers::ResourceManager.new

@@ -108,6 +108,11 @@ class CommandLineInterface
     handle_output(info, -> { format_object(info) })
   end
 
+  def cmd_ma(new_mac_address = nil)
+    mac_address = model.mac_address(new_mac_address)
+    handle_output(mac_address, -> { "MAC Address: #{mac_address}" })
+  end
+
   # Performs nameserver functionality.
   # @param subcommand 'get' or no arg to get, 'clear' to clear, and an array of IP addresses to set
   def cmd_na(*args)

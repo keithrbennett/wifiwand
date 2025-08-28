@@ -321,7 +321,12 @@ class MacOsModel < BaseModel
   # One way to implement this is to have an optional address argument,
   # then this method returns the current address if none is provided,
   # but sets to the specified address if it is.
-  def mac_address
+  def mac_address(new_mac_address = nil)
+    if new_mac_address
+      raise InvalidMacAddressError.new(new_mac_address) unless valid_mac_address?(new_mac_address)
+      cmd = "sudo ifconfig #{Shellwords.shellescape(wifi_interface)} ether #{Shellwords.shellescape(new_mac_address)}"
+      run_os_command(cmd)
+    end
     cmd = "ifconfig #{Shellwords.shellescape(wifi_interface)} | awk '/ether/{print $2}'"
     run_os_command(cmd).chomp
   end

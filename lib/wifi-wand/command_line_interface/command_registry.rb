@@ -15,6 +15,7 @@ module WifiWand
             Command.new('h',   'help',          -> (*_options) { cmd_h             }),
             Command.new('i',   'info',          -> (*_options) { cmd_i             }),
             Command.new('l',   'ls_avail_nets', -> (*_options) { cmd_l             }),
+            Command.new('ma',  'mac_address',   -> (*options)  { cmd_ma(*options)  }),
             Command.new('na',  'nameservers',   -> (*options)  { cmd_na(*options)  }),
             Command.new('ne',  'network_name',  -> (*_options) { cmd_ne            }),
             Command.new('of',  'off',           -> (*_options) { cmd_of            }),

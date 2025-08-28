@@ -84,6 +84,12 @@ module WifiWand
     end
   end
 
+  class InvalidMacAddressError < Error
+    def initialize(mac_address)
+      super("Invalid MAC address: '#{mac_address}'")
+    end
+  end
+
   # === SYSTEM/PERMISSION ERRORS ===
   class UnsupportedSystemError < Error
     def initialize(required_version = nil, current_version = nil)
