@@ -1,31 +1,20 @@
-## v3.0.0
+## What's New in WifiWand v3.0.0
 
 ### The Big Kahuna
 
-* We now support Ubuntu and compatible Linux distributions!!!
+* **We now support Ubuntu and compatible Linux distributions in addition to macOS, with a uniform interface for both!!!**
 
 ### Breaking Changes
 * `cycle_network` now toggles WiFi state twice regardless of starting state (on or off). Previously it unconditionally did off, then on.
 * Removed macOS Speedtest application launch support; the web site is still available via the `ro spe` command.
-* Removed 'fancy_print'; Awesome Print is now a required gem so it is always available, no need for fancy_print.
+* Removed `fancy_print`.  Awesome Print is now a required gem so it is always available, so there is no need for fancy_print.
 * We no longer assume that if WiFi is off there is no Internet connectivity, since that connectivity can be provided by an Ethernet connection
   * The 'ci' (connected to Internet) command can now return true if WiFi is off but there is another Internet connection.
 
-### Error Handling Improvements 
-* Added comprehensive error classes and improved error messaging
-* Stack traces are no longer displayed unless in verbose mode
+### User Experience Improvements
 
-### New Features
-* WiFi-wand now supports Ubuntu and compatible Linux distributions in addition to macOS, with a uniform interface for both
-* Added support for `WIFIWAND_VERBOSE` environment variable to simulate `-v` flag, mainly for unit testing
-
-### Testing Improvements
-* Tests are divided into disruptive (system state changing) and nondisruptive tests.
-* By default, only nondisruptive tests are run.
-* Disruptive test inclusion and exclusion can be controlled with the `RSPEC_DISRUPTIVE_TESTS` environment variable.
-* Tests save state at start of test suite and restore that state after each "disruptive" test.
-* OS-specific tests are tagged with their OS and excluded when not the native OS.
-* The number of tests that do real OS calls has been greatly reduced, speeding testing and enabling the more frequent testing of some behavior.
+* Added support for `WIFIWAND_VERBOSE` environment variable to simulate `-v` flag. This is especially useful for testing.
+* Added a `status` command for displaying a 1-line network status summary.
 
 ### Architectural Improvements
 
@@ -34,11 +23,30 @@ cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
 * The system automatically detects the OS and loads the appropriate model for that OS.
 * Extracted hardcoded data into YAML configuration files.
 
-### Documentation
+### Network Management & Reporting Improvements
+
+* The 'connected to Internet?' functionality has been improved:
+  * wifi off will no longer by itself cause it to return false, since there may be an Ethernet connection
+  * DNS and TCP tests are both done, with separate indicators in the new 'status' command's output.
+
+### Error Handling Improvements
+* Added comprehensive error classes and improved error messaging
+* Stack traces are no longer displayed unless in verbose mode
+
+### Testing Improvements
+* Tests are divided into disruptive (system state changing) and nondisruptive tests.
+* By default, only nondisruptive tests are run.
+* Disruptive test inclusion and exclusion can be controlled with the `RSPEC_DISRUPTIVE_TESTS` environment variable.
+* Tests save state at start of test suite and restore that state after each "disruptive" test and at the end of the test suite.
+* OS-specific tests are tagged with their OS and excluded when not the native OS.
+* The number of tests that do real OS calls has been greatly reduced, speeding testing and enabling the more frequent testing of some behavior.
+
+### Documentation Improvements
 
 * README has been improved and updated to reflect the changes.
 * A TESTING.md file has been added.
 * A CLAUDE.md file generated and used by Claude Code has helpful information about the code base.
+* Prompts located in a `prompts/` directory are used to create and update some documents using AI, such as "OS Command Use" for each supported OS.
 
 ### Bug Fixes
 * Fixed the lack of explicit require of 'stringio' for modern Ruby versions.
