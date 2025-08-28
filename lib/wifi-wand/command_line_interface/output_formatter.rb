@@ -27,9 +27,9 @@ module WifiWand
 
       def colorize_status(text)
         case text.to_s.downcase
-        when /true|on|connected|yes/
+        when /\b(true|on|connected|yes)\b/
           colorize_text(text, :green)
-        when /false|off|disconnected|no/
+        when /\b(false|off|disconnected|no)\b/
           colorize_text(text, :red)
         else
           text

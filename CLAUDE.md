@@ -115,6 +115,116 @@ The CLI uses modular design with mixins:
 - Branch coverage can be enabled with `COVERAGE_BRANCH=true`
 - Strict coverage enforcement (80% overall, 70% per file) with `COVERAGE_STRICT=true`
 
+### Test Refactoring Guidelines
+
+When improving test coverage or adding new tests, follow these patterns to eliminate duplication:
+
+#### Unified Testing Pattern for Methods with Contextual Behavior
+For methods that behave differently based on context/configuration (e.g., TTY status, user permissions, feature flags),
+use this unified pattern:
+
+```ruby
+# Shared examples for methods with contextual behavior
+shared_examples 'contextual method' do |test_cases|
+  test_cases[:tests].each do |description, data|
+    it description do
+      # Set up context/configuration based on test data
+      allow($stdout).to receive(:tty?).and_return(data[:context_flag]) if data.key?(:context_flag)
+      allow(subject).to receive(:some_config).and_return(data[:config_value]) if data.key?(:config_value)
+      
+      result = subject.public_send(test_cases[:method_name], data[:input])
+      expect(result).to eq(data[:expected_output])
+      
+      # Verify context-dependent behavior (example: colorization)
+      if data.key?(:verify_pattern)
+        expected_behavior = data[:context_flag] && data.fetch(:special_case, true)
+        expect(result.match?(data[:verify_pattern])).to eq(expected_behavior)
+      end
+    end
+  end
+end
+
+# Usage with embedded context settings (colorization example)
+include_examples 'contextual method', {
+  method_name: :colorize_status,
+  tests: {
+    'colorizes when context enabled'    => { input: 'true', expected_output: "\e[32mtrue\e[0m", context_flag: true,  verify_pattern: /\e\[\d+m/ },
+    'returns plain text when disabled' => { input: 'true', expected_output: 'true',              context_flag: false, verify_pattern: /\e\[\d+m/ },
+    'handles edge case when enabled'    => { input: 'unknown', expected_output: 'unknown',       context_flag: true,  verify_pattern: /\e\[\d+m/, special_case: false }
+  }
+}
+```
+
+#### Key Principles
+1. **Embed context settings in test data** instead of separate context blocks
+2. **Use edge case flags** for special behaviors that don't follow normal patterns (e.g., `special_case: false`)
+3. **Properly verify both scenarios**: Test behavior when context is enabled/disabled
+4. **Avoid duplicate context blocks** - unify different contextual states in single test structure
+5. **Use data-driven testing** with hashes for cleaner test organization
+
+### Complete Test Style Guide
+
+When creating comprehensive test files, follow these patterns for consistency and maintainability:
+
+#### File Structure
+```ruby
+describe Module::ClassName do
+  # Extract repeated regex patterns into constants at the top
+  ANSI_COLOR_REGEX = /\e\[\d+m/
+  GREEN_TEXT_REGEX = /\e\[32m.*\e\[0m/
+  # ...
+   
+  # Test setup with mocks
+  let(:mock_dependencies) { ... }
+  subject { ... }
+  
+  # Shared examples for similar behavior patterns
+  shared_examples 'behavior pattern' do |test_cases|
+    # Implementation
+  end
+  
+  # Individual method tests
+end
+```
+
+#### Data Structure Standards
+- **Hash alignment**: All fields start at same column positions
+- **Descriptive keys**: Test names clearly indicate expected behavior
+- **Embedded configuration**: Include all test parameters in data structure
+- **Semantic constants**: Extract repeated regex/values into named constants
+
+#### Assertion Patterns
+- **Format-agnostic**: Test logical content, not exact formatting (`/WiFi.*ON/` not `"WiFi: ON"`)
+- **Comprehensive verification**: Test both positive and negative cases
+- **Color code validation**: Use extracted regex constants consistently
+- **Mock isolation**: Never call real system methods in tests
+
+#### Test Organization
+- **Shared examples**: For methods with similar TTY/non-TTY patterns
+- **Data-driven tests**: Use hashes/arrays for multiple similar test cases  
+- **Edge case handling**: Include `has_color: false` for non-colorizing cases
+- **Brittle test avoidance**: Use regex patterns instead of exact string matching
+
+#### Coverage Priorities
+1. **All public methods** with comprehensive test cases
+2. **TTY vs non-TTY behavior** for colorization methods
+3. **Edge cases and error conditions** with proper mocking
+4. **Format flexibility** to avoid brittle tests
+5. **Regex extraction** to eliminate duplication
+
+#### Example Implementation
+```ruby
+# Bad - brittle exact matching
+expect(result).to eq("WiFi: \e[32mON\e[0m | Network: \e[36m\"Test\"\e[0m")
+
+# Good - flexible pattern matching  
+expect(result).to match(/WiFi.*ON/)
+expect(result).to match(GREEN_TEXT_REGEX)
+expect(result).to match(CYAN_TEXT_REGEX)
+```
+
+Apply these patterns proactively when creating new test files to ensure consistency across the codebase.
+
 ## Code Conventions
 
 - Ruby 2.7+ required
