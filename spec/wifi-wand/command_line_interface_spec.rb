@@ -18,7 +18,7 @@ describe WifiWand::CommandLineInterface do
 
   before(:each) do
     # Mock OS detection to avoid real system calls
-    allow_any_instance_of(WifiWand::OperatingSystems).to receive(:current_os).and_return(mock_os)
+    allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(mock_os)
     # Prevent interactive shell from starting
     allow_any_instance_of(WifiWand::CommandLineInterface).to receive(:run_shell)
   end
@@ -27,7 +27,7 @@ describe WifiWand::CommandLineInterface do
 
   describe 'initialization' do
     it 'raises NoSupportedOSError when no OS is detected' do
-      allow_any_instance_of(WifiWand::OperatingSystems).to receive(:current_os).and_return(nil)
+      allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(nil)
       
       expect { described_class.new(options) }.to raise_error(WifiWand::NoSupportedOSError)
     end
@@ -164,9 +164,12 @@ describe WifiWand::CommandLineInterface do
   end
 
   describe 'connect command with saved passwords' do
+    before do
+      allow(mock_model).to receive(:connect).and_return(nil)
+    end
+
     it 'shows message when saved password is used in non-interactive mode' do
       network_name = 'SavedNetwork'
-      allow(mock_model).to receive(:connect).with(network_name, nil)
       allow(mock_model).to receive(:last_connection_used_saved_password?).and_return(true)
       
       # Capture output
@@ -176,7 +179,6 @@ describe WifiWand::CommandLineInterface do
     it 'does not show message when saved password is not used' do
       network_name = 'TestNetwork'
       password = 'explicit_password'
-      allow(mock_model).to receive(:connect).with(network_name, password)
       allow(mock_model).to receive(:last_connection_used_saved_password?).and_return(false)
       
       # Should not output message

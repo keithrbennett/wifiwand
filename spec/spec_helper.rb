@@ -31,8 +31,7 @@ RSpec.configure do |config|
 
   # Auto-detect current OS and filter tests accordingly
   begin
-    os_detector = WifiWand::OperatingSystems.new
-    current_os = os_detector.current_os
+    current_os = WifiWand::OperatingSystems.current_os
     current_os_name = current_os.class.name.split('::').last.gsub('Os', '').downcase.to_sym
     compatible_os_tag = "os_#{current_os_name}".to_sym
     

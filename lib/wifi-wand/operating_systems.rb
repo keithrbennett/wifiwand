@@ -14,46 +14,40 @@ module WifiWand
 # need separate BaseOs subclasses.
 
 class OperatingSystems
-
-
-  attr_reader :supported_operating_systems
-
-
-  def initialize
-    @supported_operating_systems = [
+  class << self
+    def supported_operating_systems
+      @supported_operating_systems ||= [
         MacOs.new,
         Ubuntu.new
-    ]
-  end
-
-
-  def current_os
-    if @current_os.nil?
-      matches = supported_operating_systems.select { |os| os.current_os_is_this_os? }
-      if matches.size > 1
-        matching_names = matches.map(&:display_name)
-        raise MultipleOSMatchError.new(matching_names)
-      end
-      @current_os = matches.first
+      ]
     end
-    @current_os
+
+    def current_os
+      @current_os ||= begin
+        matches = supported_operating_systems.select { |os| os.current_os_is_this_os? }
+        if matches.size > 1
+          matching_names = matches.map(&:display_name)
+          raise MultipleOSMatchError.new(matching_names)
+        end
+        matches.first # nil for an unrecognized OS
+      end
+    end
+
+    def current_id
+      current_os&.id
+    end
+
+    def current_display_name
+      current_os&.display_name
+    end
+
+    def create_model_for_current_os(options = OpenStruct.new)
+      current_os_instance = current_os
+      raise NoSupportedOSError.new unless current_os_instance
+      current_os_instance.create_model(options)
+    end
   end
 
-
-  def current_id;            current_os ? current_os.id : nil;            end
-  def current_display_name;  current_os ? current_os.display_name : nil;  end
-
-  # Class method to get the current OS without instantiating
-  def self.current_os
-    @current_os ||= new.current_os
-  end
-  
-  # Class method to create a model for the current OS
-  def self.create_model_for_current_os(options = OpenStruct.new)
-    current_os_instance = current_os
-    raise NoSupportedOSError.new unless current_os_instance
-    current_os_instance.create_model(options)
-  end
-
+  private_class_method :new
 end
 end

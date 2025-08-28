@@ -24,9 +24,6 @@ class CommandLineInterface
   PROJECT_URL = 'https://github.com/keithrbennett/wifiwand'
 
   def initialize(options)
-    current_os = OperatingSystems.new.current_os
-    raise NoSupportedOSError.new if current_os.nil?
-
     @options = options
 
     model_options = OpenStruct.new({
@@ -34,7 +31,7 @@ class CommandLineInterface
       wifi_interface: options.wifi_interface
     })
 
-    @model = current_os.create_model(model_options)
+    @model = OperatingSystems.create_model_for_current_os(model_options)
     @interactive_mode = !!(options.interactive_mode)
     run_shell if @interactive_mode
   end
