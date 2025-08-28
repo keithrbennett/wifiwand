@@ -1,4 +1,5 @@
 require_relative '../../spec_helper'
+require 'stringio'
 require_relative '../../../lib/wifi-wand/services/network_connectivity_tester'
 
 describe WifiWand::NetworkConnectivityTester do
@@ -6,7 +7,8 @@ describe WifiWand::NetworkConnectivityTester do
   describe '#tcp_connectivity?' do
 
     context 'with verbose mode enabled' do
-      let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: true) }
+      let(:output) { StringIO.new }
+      let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: true, output: output) }
 
       before do
         allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
@@ -14,15 +16,13 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       it 'outputs formatted endpoint list to stdout' do
-        expect { tester.tcp_connectivity? }.to output(
-          a_string_matching(/Testing internet TCP connectivity to: .*:.*/)
-        ).to_stdout
+        tester.tcp_connectivity?
+        expect(output.string).to match(/Testing internet TCP connectivity to: .*:.*/)
       end
 
       it 'formats endpoints as host:port pairs separated by commas' do
-        expect { tester.tcp_connectivity? }.to output(
-          a_string_matching(/1\.1\.1\.1:53.*8\.8\.8\.8:53.*208\.67\.222\.222:53/)
-        ).to_stdout
+        tester.tcp_connectivity?
+        expect(output.string).to match(/1\.1\.1\.1:53.*8\.8\.8\.8:53.*208\.67\.222\.222:53/)
       end
     end
 
@@ -56,7 +56,8 @@ describe WifiWand::NetworkConnectivityTester do
   describe '#dns_working?' do
 
     context 'with verbose mode enabled' do
-      let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: true) }
+      let(:output) { StringIO.new }
+      let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: true, output: output) }
 
       before do
         allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
@@ -64,9 +65,8 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       it 'outputs domain list to stdout' do
-        expect { tester.dns_working? }.to output(
-          a_string_matching(/Testing DNS resolution for domains: .*\.com/)
-        ).to_stdout
+        tester.dns_working?
+        expect(output.string).to match(/Testing DNS resolution for domains: .*\.com/)
       end
     end
 

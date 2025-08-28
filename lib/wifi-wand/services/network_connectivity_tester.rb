@@ -7,8 +7,9 @@ require_relative '../timing_constants'
 module WifiWand
   class NetworkConnectivityTester
     
-    def initialize(verbose: false)
+    def initialize(verbose: false, output: $stdout)
       @verbose = verbose
+      @output = output
     end
 
     # Tests both TCP connectivity to internet hosts and DNS resolution.
@@ -22,7 +23,7 @@ module WifiWand
       
       if @verbose
         endpoints_list = test_endpoints.map { |e| "#{e[:host]}:#{e[:port]}" }.join(', ')
-        puts "Testing internet TCP connectivity to: #{endpoints_list}"
+        @output.puts "Testing internet TCP connectivity to: #{endpoints_list}"
       end
 
       # Test all endpoints in parallel, return as soon as any succeeds
@@ -34,11 +35,11 @@ module WifiWand
             Timeout.timeout(TimingConstants::TCP_CONNECTION_TIMEOUT) do
               Socket.tcp(endpoint[:host], endpoint[:port], connect_timeout: TimingConstants::TCP_CONNECTION_TIMEOUT) do
                 success_queue.push(true)
-                puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}" if @verbose
+                @output.puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}" if @verbose
               end
             end
           rescue => e
-            puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if @verbose
+            @output.puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if @verbose
             # Don't push anything on failure
           end
         end
@@ -61,7 +62,7 @@ module WifiWand
       test_domains = dns_test_domains
       
       if @verbose
-        puts "Testing DNS resolution for domains: #{test_domains.join(', ')}"
+        @output.puts "Testing DNS resolution for domains: #{test_domains.join(', ')}"
       end
       
       # Test all domains in parallel, return as soon as any succeeds
@@ -73,10 +74,10 @@ module WifiWand
             Timeout.timeout(TimingConstants::DNS_RESOLUTION_TIMEOUT) do
               IPSocket.getaddress(domain)
               success_queue.push(true)
-              puts "Successfully resolved #{domain}" if @verbose
+              @output.puts "Successfully resolved #{domain}" if @verbose
             end
           rescue => e
-            puts "Failed to resolve #{domain}: #{e.class}" if @verbose
+            @output.puts "Failed to resolve #{domain}: #{e.class}" if @verbose
             # Don't push anything on failure
           end
         end
