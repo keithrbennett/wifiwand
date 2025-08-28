@@ -35,6 +35,12 @@ RSPEC_DISRUPTIVE_TESTS=only bundle exec rspec
 
 # Run all native OS tests (disruptive + non-disruptive)
 RSPEC_DISRUPTIVE_TESTS=include bundle exec rspec
+
+# Run tests with branch coverage enabled
+COVERAGE_BRANCH=true bundle exec rspec
+
+# Run tests with strict coverage enforcement (80% overall, 70% per file)
+COVERAGE_STRICT=true bundle exec rspec
 ```
 
 ### Development Setup
@@ -101,6 +107,13 @@ The CLI uses modular design with mixins:
 - Network state is captured/restored for disruptive tests
 - Use `WIFIWAND_VERBOSE=true` to debug underlying OS commands
 - ResourceManager tracks and cleans up test resources
+
+### Test Coverage
+- SimpleCov generates coverage reports automatically when running tests
+- HTML reports are saved to `coverage/index.html`
+- Coverage is grouped by component (Models, Services, OS Detection, Core)
+- Branch coverage can be enabled with `COVERAGE_BRANCH=true`
+- Strict coverage enforcement (80% overall, 70% per file) with `COVERAGE_STRICT=true`
 
 ## Code Conventions
 
