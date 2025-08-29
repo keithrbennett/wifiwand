@@ -567,50 +567,48 @@ describe 'Common WiFi Model Behavior (All OS)' do
       # These tests are complex because they test error handling paths within wifi_info
       # that involve verbose logging. We simplify by testing the behavior more directly.
       
-      it 'handles retry failure with verbose logging' do
+      context 'with verbose logging enabled' do
         include_context 'verbose test model setup'
         
-        # Make public_ip_address_info fail twice (triggering retry path)
-        allow(test_model).to receive(:public_ip_address_info)
-          .and_raise(Errno::ETIMEDOUT)
-          .twice
-        
-        stderr_output = capture_stderr_and_run do
-          result = test_model.wifi_info
-          expect(result['public_ip']).to be_nil
+        it 'handles retry failure with verbose logging' do
+          # Make public_ip_address_info fail twice (triggering retry path)
+          allow(test_model).to receive(:public_ip_address_info)
+            .and_raise(Errno::ETIMEDOUT)
+            .twice
+          
+          stderr_output = capture_stderr_and_run do
+            result = test_model.wifi_info
+            expect(result['public_ip']).to be_nil
+          end
+          
+          expect(stderr_output).to match(/Warning: Could not obtain public IP info/)
         end
         
-        expect(stderr_output).to match(/Warning: Could not obtain public IP info/)
-      end
-      
-      it 'handles JSON parsing errors' do
-        include_context 'verbose test model setup'
-        
-        # Make public_ip_address_info fail with JSON parse error
-        allow(test_model).to receive(:public_ip_address_info)
-          .and_raise(JSON::ParserError, 'Invalid JSON')
-        
-        stderr_output = capture_stderr_and_run do
-          result = test_model.wifi_info
-          expect(result['public_ip']).to be_nil
+        it 'handles JSON parsing errors' do
+          # Make public_ip_address_info fail with JSON parse error
+          allow(test_model).to receive(:public_ip_address_info)
+            .and_raise(JSON::ParserError, 'Invalid JSON')
+          
+          stderr_output = capture_stderr_and_run do
+            result = test_model.wifi_info
+            expect(result['public_ip']).to be_nil
+          end
+          
+          expect(stderr_output).to match(/Warning: Public IP service returned invalid data/)
         end
         
-        expect(stderr_output).to match(/Warning: Public IP service returned invalid data/)
-      end
-      
-      it 'handles other exceptions' do
-        include_context 'verbose test model setup'
-        
-        # Make public_ip_address_info fail with runtime error
-        allow(test_model).to receive(:public_ip_address_info)
-          .and_raise(RuntimeError, 'Unknown error')
-        
-        stderr_output = capture_stderr_and_run do
-          result = test_model.wifi_info
-          expect(result['public_ip']).to be_nil
+        it 'handles other exceptions' do
+          # Make public_ip_address_info fail with runtime error
+          allow(test_model).to receive(:public_ip_address_info)
+            .and_raise(RuntimeError, 'Unknown error')
+          
+          stderr_output = capture_stderr_and_run do
+            result = test_model.wifi_info
+            expect(result['public_ip']).to be_nil
+          end
+          
+          expect(stderr_output).to match(/Warning: Public IP lookup failed: RuntimeError/)
         end
-        
-        expect(stderr_output).to match(/Warning: Public IP lookup failed: RuntimeError/)
       end
     end
   end
