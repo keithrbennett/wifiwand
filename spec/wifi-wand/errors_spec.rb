@@ -14,6 +14,8 @@ module WifiWand
     describe 'Error inheritance' do
       it 'all errors inherit from base Error class' do
         error_classes = [
+          BaseOs::MethodNotImplementedError,
+          BaseOs::NonSubclassInstantiationError,
           CommandNotFoundError,
           InvalidInterfaceError,
           InvalidIPAddressError,
@@ -33,8 +35,16 @@ module WifiWand
         ]
         
         error_classes.each do |error_class|
-          expect(error_class.superclass).to eq(Error)
+          expect(error_class).to be < Error
         end
+      end
+      
+      it 'BaseOs errors provide meaningful messages' do
+        non_subclass_error = BaseOs::NonSubclassInstantiationError.new
+        expect(non_subclass_error.to_s).to include('can only be instantiated by subclasses')
+        
+        method_not_impl_error = BaseOs::MethodNotImplementedError.new
+        expect(method_not_impl_error.to_s).to include('must be implemented in, and called on, a subclass')
       end
     end
     

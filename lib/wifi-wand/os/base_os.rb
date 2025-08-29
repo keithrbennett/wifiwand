@@ -1,10 +1,12 @@
 # Base class for classes identifying a supported operating system.
 
+require_relative '../errors'
+
 module WifiWand
 
 class BaseOs < Struct.new(:id, :display_name)
 
-  class NonSubclassInstantiationError < RuntimeError
+  class NonSubclassInstantiationError < Error
     def to_s
       "Class #{self.class} can only be instantiated by subclasses"
     end
@@ -20,10 +22,10 @@ class BaseOs < Struct.new(:id, :display_name)
     end
   end
 
-  class MethodNotImplementedError < RuntimeError
+  class MethodNotImplementedError < Error
 
     def to_s
-      "The #{self.class} class is not intended to be instantiated directly. Instantiate a subclass of it."
+      "This method is not implemented in this base class. It must be implemented in, and called on, a subclass."
     end
   end
 
