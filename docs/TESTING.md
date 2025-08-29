@@ -414,7 +414,25 @@ bundle exec rspec --tag disruptive
 bundle exec rspec --tag disruptive
 ```
 
-### 4. Specific Test Files
+### 4. Maximum Coverage Testing
+
+For the highest test coverage, ensure optimal network configuration:
+
+```bash
+# Ensure WiFi is the only active internet connection
+# Disconnect Ethernet, mobile hotspots, or other network interfaces
+# Then run all tests including disruptive ones:
+RSPEC_DISRUPTIVE_TESTS=include bundle exec rspec
+```
+
+**Important**: Maximum code coverage can only be achieved by running the complete test suite (`RSPEC_DISRUPTIVE_TESTS=include`), and it requires that **WiFi be the only active internet connection**. Other network interfaces (Ethernet, mobile hotspot, etc.) can cause certain WiFi-specific code paths to be skipped.
+
+This happens because:
+- Many network connectivity tests will use non-WiFi interfaces when available
+- WiFi-specific error handling and edge cases may not trigger
+- The `default_interface` detection behaves differently with multiple active connections
+
+### 5. Specific Test Files
 ```bash
 # Test specific functionality
 bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb
