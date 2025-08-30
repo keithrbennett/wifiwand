@@ -69,15 +69,16 @@ tabular report of coverage for all files in the project.
 
 ### CLI Output Format
 
-The CLI output is formatted as a clean table with the following columns:
+The CLI output is formatted as a clean table with box-style borders and the following columns:
 
 ```
------------------------------------     ----------  --------  --------
-File                                       Percentage   Covered     Total
------------------------------------     ----------  --------  --------
-lib/models/user.rb                          92.31%        12        13
-lib/services/auth.rb                       100.00%         8         8
-spec/user_spec.rb                            85.71%        12        14
+┌───────────────────────────┬──────────┬──────────┬────────┐
+│ File                      │        % │  Covered │  Total │
+├───────────────────────────┼──────────┼──────────┼────────┤
+│ lib/models/user.rb        │    92.31 │       12 │     13 │
+│ lib/services/auth.rb      │   100.00 │        8 │      8 │
+│ spec/user_spec.rb         │    85.71 │       12 │     14 │
+└───────────────────────────┴──────────┴──────────┴────────┘
 ```
 
 Files are sorted by:
@@ -467,25 +468,41 @@ class CoverageCLI
       }
     end.compact.sort_by { |f| [f[:percentage], f[:file]] }
     
-    # Format as table - one row per line, with aligned columns
+    # Format as table with box-style borders
     max_file_length = file_summaries.map { |f| f[:file].length }.max.to_i
     max_file_length = [max_file_length, "File".length].max
     
-    # Separator line above headers
-    printf "%-#{max_file_length}s  %8s  %8s  %8s\n", "-" * max_file_length, "----------", "--------", "--------"
+    # Calculate maximum numeric values for proper column widths
+    max_covered = file_summaries.map { |f| f[:covered].to_s.length }.max
+    max_total = file_summaries.map { |f| f[:total].to_s.length }.max
     
-    # Header
-    printf "%-#{max_file_length}s  %8s  %8s  %8s\n", "File", "Percentage", "Covered", "Total"
-    printf "%-#{max_file_length}s  %8s  %8s  %8s\n", "-" * max_file_length, "----------", "--------", "--------"
+    # Define column widths
+    file_width = max_file_length + 2  # Extra padding
+    pct_width = 8
+    covered_width = [max_covered, "Covered".length].max + 2
+    total_width = [max_total, "Total".length].max + 2
     
-    # Rows
+    # Top border
+    puts "┌#{"─" * (file_width + 2)}┬#{"─" * (pct_width + 2)}┬#{"─" * (covered_width + 2)}┬#{"─" * (total_width + 2)}┐"
+    
+    # Header row
+    printf "│ %-#{file_width}s │ %#{pct_width}s │ %#{covered_width}s │ %#{total_width}s │\n",
+           "File", " %", "Covered", "Total"
+    
+    # Header separator
+    puts "├#{"─" * (file_width + 2)}┼#{"─" * (pct_width + 2)}┼#{"─" * (covered_width + 2)}┼#{"─" * (total_width + 2)}┤"
+    
+    # Data rows
     file_summaries.each do |file_data|
-      printf "%-#{max_file_length}s  %8.2f%%  %8d  %8d\n", 
+      printf "│ %-#{file_width}s │ %#{pct_width - 1}.2f%% │ %#{covered_width}d │ %#{total_width}d │\n", 
              file_data[:file], 
              file_data[:percentage],
              file_data[:covered], 
              file_data[:total]
     end
+    
+    # Bottom border
+    puts "└#{"─" * (file_width + 2)}┴#{"─" * (pct_width + 2)}┴#{"─" * (covered_width + 2)}┴#{"─" * (total_width + 2)}┘"
   end
 
   def run_mcp_server
