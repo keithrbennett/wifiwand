@@ -117,7 +117,7 @@ module WifiWand
           }
         },
         {
-          method: :validate_os_preconditions, args: [], error: CommandNotFoundError, os: :ubuntu,
+          method: :validate_os_preconditions, args: [], error: CommandNotFoundError, os_tag: :os_ubuntu,
           before: -> {
             allow(model).to receive(:command_available_using_which?).with("iw").and_return(false)
             allow(model).to receive(:command_available_using_which?).with("nmcli").and_return(false)
@@ -126,7 +126,7 @@ module WifiWand
       ]
 
       error_raising_test_cases.each do |test_case|
-        it "raises #{test_case[:error]} when calling #{test_case[:method]} with #{test_case[:args]}", os: test_case[:os] || :any do
+        it "raises #{test_case[:error]} when calling #{test_case[:method]} with #{test_case[:args]}", test_case[:os_tag] || {} do
           # Run the before block in the context of the test
           instance_exec(&test_case[:before]) if test_case[:before]
 
