@@ -278,13 +278,14 @@ class UbuntuModel < BaseModel
     output.empty? ? nil : output.split("\n").first&.strip
   end
 
-  def mac_address(new_mac_address = nil)
-    if new_mac_address
-      raise InvalidMacAddressError.new(new_mac_address) unless valid_mac_address?(new_mac_address)
-      run_os_command("sudo ip link set dev #{Shellwords.shellescape(wifi_interface)} down")
-      run_os_command("sudo ip link set dev #{Shellwords.shellescape(wifi_interface)} address #{Shellwords.shellescape(new_mac_address)}")
-      run_os_command("sudo ip link set dev #{Shellwords.shellescape(wifi_interface)} up")
-    end
+  def mac_address
+  # def mac_address(new_mac_address = nil)
+  #   if new_mac_address
+  #     raise InvalidMacAddressError.new(new_mac_address) unless valid_mac_address?(new_mac_address)
+  #     run_os_command("sudo ip link set dev #{Shellwords.shellescape(wifi_interface)} down")
+  #     run_os_command("sudo ip link set dev #{Shellwords.shellescape(wifi_interface)} address #{Shellwords.shellescape(new_mac_address)}")
+  #     run_os_command("sudo ip link set dev #{Shellwords.shellescape(wifi_interface)} up")
+  #   end
     debug_method_entry(__method__)
 
     cmd = "ip link show #{Shellwords.shellescape(wifi_interface)} | grep ether | awk '{print $2}'"
