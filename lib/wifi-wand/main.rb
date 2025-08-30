@@ -12,6 +12,9 @@ require_relative 'services/command_executor'
 
 module WifiWand
 class Main
+  def initialize(output_stream = $stdout)
+    @output_stream = output_stream
+  end
 
   # Parses the command line with Ruby's internal 'optparse'.
   # optparse removes what it processes from ARGV, which simplifies our command parsing.
@@ -40,9 +43,11 @@ class Main
         choice = v[0].downcase
 
         unless formatters.keys.include?(choice)
-          message = %Q{Output format "#{choice}" not in list of available formats} <<
-              " (#{formatters.keys})."
-          puts; puts message; puts
+          @output_stream.puts <<~MESSAGE
+
+            Output format "#{choice}" not in list of available formats (#{formatters.keys.join(', ')}).
+
+          MESSAGE
           raise ConfigurationError.new("Invalid output format '#{choice}'. Available formats: #{formatters.keys.join(', ')}")
         end
 
@@ -77,25 +82,28 @@ class Main
     case error
     when WifiWand::CommandExecutor::OsCommandError
       # Show the helpful command error message and details but not the stack trace
-      puts <<~MESSAGE
+      @output_stream.puts <<~MESSAGE
 
-        Error: #{error.message}
+        Error: #{error.text}
         Command failed: #{error.command}
         Exit code: #{error.exitstatus}
       MESSAGE
     when WifiWand::Error
       # Custom WiFi-related errors already have user-friendly messages
-      puts "Error: #{error.message}"
+      @output_stream.puts "Error: #{error.message}"
     else
       # Unknown errors - show message but not stack trace unless verbose
-      message = "Error: #{error.message}"
       if verbose_mode
-        message += <<~MESSAGE
-        
+        message = <<~MESSAGE
+          Error: #{error.message}
+
           Stack trace:
-          #{%Q{error.backtrace.join("\n")}}"
+          #{error.backtrace.join("\n")} 
         MESSAGE
+      else
+        message = "Error: #{error.message}"
       end
+      @output_stream.puts message
     end
   end
 end
