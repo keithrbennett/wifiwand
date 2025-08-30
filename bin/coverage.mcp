@@ -1,21 +1,139 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# MCP stdio server for SimpleCov .resultset.json
-# Tools:
-#   - coverage_raw(path, root=".")
-#   - coverage_summary(path, root=".")
-#   - uncovered_lines(path, root=".")
-#   - coverage_detailed(path, root=".")
-#   - all_files_coverage(root=".")
-#
-# Env:
-#   SIMPLECOV_RESULTSET  # optional explicit path to .resultset.json
+=begin
+
+# Coverage MCP Server with CLI Interface
+
+A versatile Ruby tool that provides both MCP (Model Context Protocol) server functionality
+and command-line interface for analyzing code coverage data from SimpleCov.
+
+## Overview
+
+This program serves dual purposes:
+
+1. **MCP Server Mode**: Provides programmatic access to coverage analysis tools via JSON-RPC over stdio
+2. **CLI Mode**: Offers a human-readable coverage report in tabular format
+
+## MCP Server Mode
+
+When executed with data available on stdin (typically from an MCP client), the program
+operates as an MCP server that provides coverage analysis tools.
+
+### Available MCP Tools
+
+- `coverage_raw(path, root=".")` - Returns the original SimpleCov 'lines' array for a file
+- `coverage_summary(path, root=".")` - Returns {covered, total, pct} summary for a file
+- `uncovered_lines(path, root=".")` - Returns uncovered line numbers plus summary
+- `coverage_detailed(path, root=".")` - Returns verbose per-line objects [{line,hits,covered}]
+- `all_files_coverage(root=".")` - Returns coverage percentages for all project files
+
+### Environment Variables
+
+- `SIMPLECOV_RESULTSET` - Optional explicit path to .resultset.json file
+
+### MCP Server Usage
+
+```bash
+# Run as MCP server (when stdin has data from MCP client)
+echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"coverage_summary","arguments":{"path":"lib/foo.rb"}}}' | ./coverage.mcp
+```
+
+## CLI Mode
+
+When executed with no arguments and empty stdin, the program provides a clean
+tabular report of coverage for all files in the project.
+
+### CLI Commands
+
+- `all-files` - Show coverage for all files in tabular format
+- `help` - Show help message
+
+### CLI Options
+
+- `--root <path>` - Set project root directory (default: current directory)
+- `--help, -h` - Show help message
+
+### CLI Usage Examples
+
+```bash
+# Show coverage report for all files (relative to current directory)
+./coverage.mcp
+
+# Show coverage report with custom project root
+./coverage.mcp all-files --root /path/to/project
+
+# Show help
+./coverage.mcp help
+```
+
+### CLI Output Format
+
+The CLI output is formatted as a clean table with the following columns:
+
+```
+-----------------------------------     ----------  --------  --------
+File                                       Percentage   Covered     Total
+-----------------------------------     ----------  --------  --------
+lib/models/user.rb                          92.31%        12        13
+lib/services/auth.rb                       100.00%         8         8
+spec/user_spec.rb                            85.71%        12        14
+```
+
+Files are sorted by:
+1. **Primary**: Coverage percentage (ascending - lowest first)
+2. **Secondary**: File path (alphabetical order)
+
+## Data Sources
+
+The program reads SimpleCov coverage data from `.resultset.json` files. It searches
+for the resultset in the following locations:
+
+1. `.resultset.json` (current directory)
+2. `coverage/.resultset.json`
+3. `tmp/.resultset.json`
+
+The search can be overridden using the `SIMPLECOV_RESULTSET` environment variable.
+
+## File Path Resolution
+
+- **CLI Output**: File paths are shown relative to the current working directory
+- **MCP Mode**: All file path resolution is relative to the specified or current root directory
+- **Fallback**: Uses filename matching when exact path resolution fails
+
+## Dependencies
+
+- `json` - JSON parsing
+- `pathname` - Path manipulation
+- `mcp` - MCP framework
+- `awesome_print` - Formatted output for debugging
+- `time` - Timestamp handling
+
+## Usage Detection
+
+The program automatically determines its mode based on input:
+
+1. **CLI Mode**: When called with no arguments AND empty stdin
+2. **MCP Server Mode**: When called with no arguments AND stdin has data
+3. **CLI Command Mode**: When called with command arguments
+
+## Error Handling
+
+- Provides clear error messages for missing files or invalid paths
+- Gracefully handles missing .resultset.json files with helpful guidance
+- Logs detailed debugging information to `~/coverage_mcp.log`
+
+=end
 
 require "json"
 require "time"
+require "pathname"
 require "mcp"
 require "mcp/server/transports/stdio_transport"
+require "awesome_print"
+
+# Input read from stdin is treated as coming from an MCP client.
+# Responses are sent to stdout.
 
 RESULTSET_CANDIDATES = [
   ".resultset.json",
@@ -238,10 +356,149 @@ class AllFilesCoverage < MCP::Tool
   end
 end
 
-# ---------- server ----------
-server = MCP::Server.new(
-  name:    "ruby_coverage_server",
-  version: "0.5.0",
-  tools:   [CoverageRaw, CoverageSummary, UncoveredLines, CoverageDetailed, AllFilesCoverage]
-)
-MCP::Server::Transports::StdioTransport.new(server).open
+# ---------- CLI interface ----------
+class CoverageCLI
+  def initialize
+    @root = "."
+  end
+
+  def usage
+    <<~USAGE
+      Coverage MCP Server with CLI Interface
+      
+      Usage:
+        coverage.mcp [command] [options]
+      
+      Commands:
+        all-files          Show coverage for all files in tabular format
+        help               Show this help message
+      
+      Options:
+        --root <path>      Set project root directory (default: .)
+        --help, -h         Show help message
+      
+      When no command is provided, runs as MCP server.
+    USAGE
+  end
+
+  def run(argv)
+    # Check if stdin is empty (no data available)
+    if argv.empty?
+      if stdin_empty?
+        show_default_report
+        return
+      else
+        return run_mcp_server
+      end
+    end
+
+    command, *args = argv
+    
+    case command
+    when "help", "--help", "-h"
+      puts usage
+      exit 0
+    when "all-files"
+      handle_all_files(args)
+    else
+      puts "Unknown command: #{command}"
+      puts usage
+      exit 1
+    end
+  end
+
+  private
+
+  def stdin_empty?
+    # Check if stdin has data available to read
+    !select([$stdin], nil, nil, 0.1)
+  end
+
+  def show_default_report
+    puts "This program is primarily an MCP server that takes input from an MCP client on stdin,"
+    puts "and sends JSON responses to stdout."
+    puts ""
+    puts "Running as standalone CLI to show coverage report:"
+    puts ""
+    
+    # Reuse the all-files logic to show the report
+    @root = "."
+    parse_options([])
+    send(:handle_all_files, [])
+  end
+
+  def parse_options(args)
+    options = {}
+    
+    while args.any?
+      case args.first
+      when "--root"
+        args.shift
+        @root = args.shift || "."
+      when "--help", "-h"
+        puts usage
+        exit 0
+      else
+        break
+      end
+    end
+    
+    options
+  end
+
+  
+  def handle_all_files(args)
+    parse_options(args)
+    
+    root = File.absolute_path(@root)
+    cov = CovUtil.load_latest_coverage(root)
+    
+    file_summaries = cov.map do |abs_path, data|
+      next unless data["lines"].is_a?(Array)
+      
+      summary = CovUtil.summary(data["lines"])
+      # Convert absolute path to relative path from current working directory
+      relative_path = Pathname.new(abs_path).relative_path_from(Pathname.new(Dir.pwd)).to_s
+      {
+        file: relative_path,
+        covered: summary["covered"],
+        total: summary["total"],
+        percentage: summary["pct"]
+      }
+    end.compact.sort_by { |f| [f[:percentage], f[:file]] }
+    
+    # Format as table - one row per line, with aligned columns
+    max_file_length = file_summaries.map { |f| f[:file].length }.max.to_i
+    max_file_length = [max_file_length, "File".length].max
+    
+    # Separator line above headers
+    printf "%-#{max_file_length}s  %8s  %8s  %8s\n", "-" * max_file_length, "----------", "--------", "--------"
+    
+    # Header
+    printf "%-#{max_file_length}s  %8s  %8s  %8s\n", "File", "Percentage", "Covered", "Total"
+    printf "%-#{max_file_length}s  %8s  %8s  %8s\n", "-" * max_file_length, "----------", "--------", "--------"
+    
+    # Rows
+    file_summaries.each do |file_data|
+      printf "%-#{max_file_length}s  %8.2f%%  %8d  %8d\n", 
+             file_data[:file], 
+             file_data[:percentage],
+             file_data[:covered], 
+             file_data[:total]
+    end
+  end
+
+  def run_mcp_server
+    server = MCP::Server.new(
+      name:    "ruby_coverage_server",
+      version: "0.5.0",
+      tools:   [CoverageRaw, CoverageSummary, UncoveredLines, CoverageDetailed, AllFilesCoverage]
+    )
+    MCP::Server::Transports::StdioTransport.new(server).open
+  end
+end
+
+# ---------- main execution ----------
+if __FILE__ == $0
+  CoverageCLI.new.run(ARGV)
+end
