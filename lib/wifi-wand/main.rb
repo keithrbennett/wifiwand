@@ -77,18 +77,24 @@ class Main
     case error
     when WifiWand::CommandExecutor::OsCommandError
       # Show the helpful command error message and details but not the stack trace
-      puts "Error: #{error.message}"
-      puts "Command failed: #{error.command}"
-      puts "Exit code: #{error.exitstatus}"
+      puts <<~MESSAGE
+
+        Error: #{error.message}
+        Command failed: #{error.command}
+        Exit code: #{error.exitstatus}
+      MESSAGE
     when WifiWand::Error
       # Custom WiFi-related errors already have user-friendly messages
       puts "Error: #{error.message}"
     else
       # Unknown errors - show message but not stack trace unless verbose
-      puts "Error: #{error.message}"
+      message = "Error: #{error.message}"
       if verbose_mode
-        puts "\nStack trace:"
-        puts error.backtrace.join("\n")
+        message += <<~MESSAGE
+        
+          Stack trace:
+          #{%Q{error.backtrace.join("\n")}}"
+        MESSAGE
       end
     end
   end
