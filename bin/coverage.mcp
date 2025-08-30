@@ -41,30 +41,14 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"coverage_s
 
 ## CLI Mode
 
-When executed with no arguments and empty stdin, the program provides a clean
+When executed with empty stdin, the program provides a clean
 tabular report of coverage for all files in the project.
-
-### CLI Commands
-
-- `all-files` - Show coverage for all files in tabular format
-- `help` - Show help message
-
-### CLI Options
-
-- `--root <path>` - Set project root directory (default: current directory)
-- `--help, -h` - Show help message
 
 ### CLI Usage Examples
 
 ```bash
 # Show coverage report for all files (relative to current directory)
-./coverage.mcp
-
-# Show coverage report with custom project root
-./coverage.mcp all-files --root /path/to/project
-
-# Show help
-./coverage.mcp help
+bin/coverage.mcp
 ```
 
 ### CLI Output Format
@@ -114,9 +98,8 @@ The search can be overridden using the `SIMPLECOV_RESULTSET` environment variabl
 
 The program automatically determines its mode based on input:
 
-1. **CLI Mode**: When called with no arguments AND empty stdin
-2. **MCP Server Mode**: When called with no arguments AND stdin has data
-3. **CLI Command Mode**: When called with command arguments
+1. **CLI Mode**: When called with empty stdin
+2. **MCP Server Mode**: When called with data on stdin
 
 ## Error Handling
 
