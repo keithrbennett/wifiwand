@@ -481,17 +481,16 @@ class CoverageCLI
     pct_width = 8
     covered_width = [max_covered, "Covered".length].max + 2
     total_width = [max_total, "Total".length].max + 2
-    
+
+    # Hyphen line; hyphens whose count are the number passed with + 2
+    h_line = ->(col_width) { '─' * (col_width + 2) }
+
     # Border line lambda
     border_line = ->(left, middle, right) {
-        left +
-        %Q{#{"─" * (file_width + 2)}} +
-        middle +
-        %Q{#{"─" * (pct_width + 2)}} +
-        middle +
-        %Q{#{"─" * (covered_width + 2)}} +
-        middle +
-        %Q{#{"─" * (total_width + 2)}} +
+        left   + h_line.(file_width) +
+        middle + h_line.(pct_width) +
+        middle + h_line.(covered_width) +
+        middle + h_line.(total_width) +
         right
     }
     
