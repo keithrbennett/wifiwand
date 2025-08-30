@@ -14,19 +14,24 @@ module WifiWand
       end
     end
 
-    # Test inheritance
+    # Test inheritance - ensures all error classes inherit from base Error class
     describe 'Error inheritance' do
-      it 'all classes defined in errors.rb inherit from the base Error class' do
-        errors_file_content = File.read(File.expand_path('../../lib/wifi-wand/errors.rb', __dir__))
-        defined_classes = errors_file_content.scan(/class\s+([A-Z][A-Za-z0-9_]+)/).flatten
+      it 'all error classes defined in WifiWand module inherit from the base Error class' do
+        # Use Ruby reflection to find all constants that are classes ending in 'Error'
+        all_error_classes = WifiWand.constants
+          .map { |const_name| WifiWand.const_get(const_name) }
+          .select { |const| const.is_a?(Class) && const.name.end_with?('Error') }
+
+        # Exclude base class and any future exceptions
+        excluded_classes = [WifiWand::Error]
+        error_classes = all_error_classes - excluded_classes
 
         # Ensure we're testing a significant number of error classes
-        expect(defined_classes.size).to be > 15
+        expect(error_classes.size).to be > 15
 
-        defined_classes.each do |class_name|
-          error_class = WifiWand.const_get(class_name)
-          next if error_class == WifiWand::Error # Skip the base class itself
-          expect(error_class).to be < WifiWand::Error
+        error_classes.each do |error_class|
+          expect(error_class).to be < WifiWand::Error, 
+            "#{error_class.name} should inherit from WifiWand::Error"
         end
       end
     end
