@@ -1,0 +1,247 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# MCP stdio server for SimpleCov .resultset.json
+# Tools:
+#   - coverage_raw(path, root=".")
+#   - coverage_summary(path, root=".")
+#   - uncovered_lines(path, root=".")
+#   - coverage_detailed(path, root=".")
+#   - all_files_coverage(root=".")
+#
+# Env:
+#   SIMPLECOV_RESULTSET  # optional explicit path to .resultset.json
+
+require "json"
+require "time"
+require "mcp"
+require "mcp/server/transports/stdio_transport"
+
+RESULTSET_CANDIDATES = [
+  ".resultset.json",
+  "coverage/.resultset.json",
+  "tmp/.resultset.json"
+].freeze
+
+# ---------- helpers ----------
+module CovUtil
+  module_function
+
+  LOGFILE = File.expand_path("~/coverage_mcp.log")
+
+  def log(msg)
+    File.open(LOGFILE, "a") do |f|
+      f.puts "[#{Time.now}] #{msg}"
+    end
+  end
+
+  def find_resultset(root)
+    if (env = ENV["SIMPLECOV_RESULTSET"]) && !env.empty?
+      path = File.absolute_path(env, root)
+      return path if File.file?(path)
+    end
+    RESULTSET_CANDIDATES
+      .map { |p| File.absolute_path(p, root) }
+      .find { |p| File.file?(p) } or
+      raise "Could not find .resultset.json under #{root.inspect}; run tests or set SIMPLECOV_RESULTSET"
+  end
+
+  # returns { abs_path => {"lines" => [hits|nil,...]} }
+  def load_latest_coverage(root)
+    log "#{__method__} called with root=#{root}"
+
+    rs = find_resultset(root)
+    raw = JSON.parse(File.read(rs))
+    _suite, data = raw.max_by { |_k, v| (v["timestamp"] || v["created_at"] || 0).to_i }
+    cov = data["coverage"] or raise "No 'coverage' key in .resultset.json"
+    cov.transform_keys { |k| File.absolute_path(k, root) }
+  end
+
+  def lookup_lines(cov, file_abs)
+    log "#{__method__} called with file_abs=#{file_abs}"
+    if (h = cov[file_abs]) && h["lines"].is_a?(Array)
+      return h["lines"]
+    end
+
+    # try without current working directory prefix
+    cwd = Dir.pwd
+    without = file_abs.sub(/\A#{Regexp.escape(cwd)}\//, "")
+    if (h = cov[without]) && h["lines"].is_a?(Array)
+      return h["lines"]
+    end
+
+    # fallback: basename match
+    base = File.basename(file_abs)
+    kv = cov.find { |k, v| File.basename(k) == base && v["lines"].is_a?(Array) }
+    kv and return kv[1]["lines"]
+
+    raise "No coverage entry found for #{file_abs}"
+  end
+
+  def summary(arr)
+    log "#{__method__} called with arr.length=#{arr.length}"
+    total = 0
+    covered = 0
+    arr.each do |hits|
+      next if hits.nil?
+      total += 1
+      covered += 1 if hits.to_i > 0
+    end
+    pct = total.zero? ? 100.0 : ((covered.to_f * 100.0 / total) * 100).round / 100.0
+    { "covered" => covered, "total" => total, "pct" => pct }
+  end
+
+  def uncovered(arr)
+    log "#{__method__} called with arr.length=#{arr.length}"
+    out = []
+    arr.each_with_index do |hits, i|
+      next if hits.nil?
+      out << (i + 1) if hits.to_i.zero?
+    end
+    out
+  end
+
+  def detailed(arr)
+    log "#{__method__} called with arr.length=#{arr.length}"
+    rows = []
+    arr.each_with_index do |hits, i|
+      next if hits.nil?
+      h = hits.to_i
+      rows << { line: i + 1, hits: h, covered: h.positive? }
+    end
+    rows
+  end
+
+  # resolve inputs → [abs_file, lines_array]
+  def resolve(root, path)
+    root = File.absolute_path(root || ".")
+    abs  = File.absolute_path(path, root)
+    cov  = load_latest_coverage(root)
+    [abs, lookup_lines(cov, abs)]
+  end
+end
+
+# ---------- tool base ----------
+class BaseTool < MCP::Tool
+  INPUT_SCHEMA = {
+    type: "object",
+    properties: {
+      path: { type: "string", description: "Absolute or project-relative file path" },
+      root: { type: "string", description: "Project root for resolution", default: "." }
+    },
+    required: ["path"]
+  }
+  def self.input_schema_def = INPUT_SCHEMA
+end
+
+# ---------- tools ----------
+class CoverageRaw < BaseTool
+  description "Return the original SimpleCov 'lines' array for a file"
+  input_schema(**input_schema_def)
+  class << self
+    def call(path:, root: ".", server_context:)
+      file, arr = CovUtil.resolve(root, path)
+      MCP::Tool::Response.new([{ type: "json", json: { file: file, lines: arr } }],
+                              meta: { mimeType: "application/json" })
+    rescue => e
+      MCP::Tool::Response.new([{ type: "text", text: "Error: #{e.class}: #{e.message}" }])
+    end
+  end
+end
+
+class CoverageSummary < BaseTool
+  description "Return {covered,total,pct} for a file"
+  input_schema(**input_schema_def)
+  class << self
+    def call(path:, root: ".", server_context:)
+      file, arr = CovUtil.resolve(root, path)
+      sum = CovUtil.summary(arr)
+      MCP::Tool::Response.new([{ type: "json", json: { file: file, summary: sum } }],
+                              meta: { mimeType: "application/json" })
+    rescue => e
+      MCP::Tool::Response.new([{ type: "text", text: "Error: #{e.class}: #{e.message}" }])
+    end
+  end
+end
+
+class UncoveredLines < BaseTool
+  description "Return only uncovered executable line numbers plus a summary"
+  input_schema(**input_schema_def)
+  class << self
+    def call(path:, root: ".", server_context:)
+      file, arr = CovUtil.resolve(root, path)
+      list = CovUtil.uncovered(arr)
+      sum  = CovUtil.summary(arr)
+      MCP::Tool::Response.new([{ type: "json", json: { file: file, uncovered: list, summary: sum } }],
+                              meta: { mimeType: "application/json" })
+    rescue => e
+      MCP::Tool::Response.new([{ type: "text", text: "Error: #{e.class}: #{e.message}" }])
+    end
+  end
+end
+
+class CoverageDetailed < BaseTool
+  description "Verbose per-line objects [{line,hits,covered}] (token-heavy)"
+  input_schema(**input_schema_def)
+  class << self
+    def call(path:, root: ".", server_context:)
+      file, arr = CovUtil.resolve(root, path)
+      rows = CovUtil.detailed(arr)
+      sum  = CovUtil.summary(arr)
+      MCP::Tool::Response.new([{ type: "json", json: { file: file, lines: rows, summary: sum } }],
+                              meta: { mimeType: "application/json" })
+    rescue => e
+      MCP::Tool::Response.new([{ type: "text", text: "Error: #{e.class}: #{e.message}" }])
+    end
+  end
+end
+
+class AllFilesCoverage < MCP::Tool
+  description "Return coverage percentage for all files in the project"
+  input_schema(
+    type: "object",
+    properties: {
+      root: { type: "string", description: "Project root for resolution", default: "." },
+      sort_order: { type: "string", description: "Sort order for coverage percentage: ascending or descending", default: "ascending", enum: ["ascending", "descending"] }
+    }
+  )
+  class << self
+    def call(root: ".", sort_order: "ascending", server_context:)
+      root = File.absolute_path(root || ".")
+      cov = CovUtil.load_latest_coverage(root)
+      
+      file_summaries = cov.map do |abs_path, data|
+        next unless data["lines"].is_a?(Array)
+        
+        summary = CovUtil.summary(data["lines"])
+        {
+          file: abs_path,
+          covered: summary["covered"],
+          total: summary["total"],
+          percentage: summary["pct"]
+        }
+      end.compact
+      
+      # Sort by percentage (ascending/descending) then by filespec (always ascending)
+      file_summaries.sort! do |a, b|
+        pct_comparison = sort_order == "descending" ? 
+          b[:percentage] <=> a[:percentage] : 
+          a[:percentage] <=> b[:percentage]
+        pct_comparison == 0 ? a[:file] <=> b[:file] : pct_comparison
+      end
+      
+      MCP::Tool::Response.new([{ type: "json", json: { files: file_summaries } }],
+                              meta: { mimeType: "application/json" })
+    rescue => e
+      MCP::Tool::Response.new([{ type: "text", text: "Error: #{e.class}: #{e.message}" }])
+    end
+  end
+end
+
+# ---------- server ----------
+server = MCP::Server.new(
+  name:    "ruby_coverage_server",
+  version: "0.5.0",
+  tools:   [CoverageRaw, CoverageSummary, UncoveredLines, CoverageDetailed, AllFilesCoverage]
+)
+MCP::Server::Transports::StdioTransport.new(server).open
