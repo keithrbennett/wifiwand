@@ -482,15 +482,28 @@ class CoverageCLI
     covered_width = [max_covered, "Covered".length].max + 2
     total_width = [max_total, "Total".length].max + 2
     
+    # Border line lambda
+    border_line = ->(left, middle, right) {
+        left +
+        %Q{#{"─" * (file_width + 2)}} +
+        middle +
+        %Q{#{"─" * (pct_width + 2)}} +
+        middle +
+        %Q{#{"─" * (covered_width + 2)}} +
+        middle +
+        %Q{#{"─" * (total_width + 2)}} +
+        right
+    }
+    
     # Top border
-    puts "┌#{"─" * (file_width + 2)}┬#{"─" * (pct_width + 2)}┬#{"─" * (covered_width + 2)}┬#{"─" * (total_width + 2)}┐"
+    puts border_line.call("┌", "┬", "┐")
     
     # Header row
     printf "│ %-#{file_width}s │ %#{pct_width}s │ %#{covered_width}s │ %#{total_width}s │\n",
            "File", " %", "Covered", "Total"
     
     # Header separator
-    puts "├#{"─" * (file_width + 2)}┼#{"─" * (pct_width + 2)}┼#{"─" * (covered_width + 2)}┼#{"─" * (total_width + 2)}┤"
+    puts border_line.call("├", "┼", "┤")
     
     # Data rows
     file_summaries.each do |file_data|
@@ -502,7 +515,7 @@ class CoverageCLI
     end
     
     # Bottom border
-    puts "└#{"─" * (file_width + 2)}┴#{"─" * (pct_width + 2)}┴#{"─" * (covered_width + 2)}┴#{"─" * (total_width + 2)}┘"
+    puts border_line.call("└", "┴", "┘")
   end
 
   def run_mcp_server
