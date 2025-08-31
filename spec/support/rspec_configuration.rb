@@ -8,7 +8,8 @@ module RSpecConfiguration
 
     # Enable RSpec tags
     config.filter_run_including :focus => true
-    config.run_all_when_everything_filtered = true
+    # Avoid running the entire suite when using --only-failures and the filter matches nothing
+    config.run_all_when_everything_filtered = !config.only_failures?
     
     configure_disruptive_test_filtering(config)
     
@@ -35,6 +36,9 @@ module RSpecConfiguration
     
     setup_test_suite_hooks(config)
     setup_network_state_management(config)
+
+    # Verbose mode now strictly respects ENV['WIFIWAND_VERBOSE'] or per-test options.
+    # Use helpers like `silence_output` in specs to suppress only targeted noise.
   end
 
   private
@@ -88,39 +92,93 @@ module RSpecConfiguration
   def self.setup_network_state_management(config)
     # Network State Management for disruptive tests
     config.before(:suite) do
-      # Only capture network state if disruptive tests will run
-      # Check if disruptive tests are included (either explicitly or by not being excluded)
-      disruptive_tests_will_run = !config.exclusion_filter[:disruptive] || 
-                                 config.inclusion_filter[:disruptive] ||
-                                 ENV['RSPEC_DISRUPTIVE_TESTS'] == 'include' ||
-                                 ENV['RSPEC_DISRUPTIVE_TESTS'] == 'only'
+      # Determine examples RSpec will actually run after filters (e.g., --only-failures)
+      examples_to_run = if RSpec.world.respond_to?(:filtered_examples)
+                          RSpec.world.filtered_examples.values.flatten
+                        else
+                          []
+                        end
+
+      # Only capture network state if disruptive tests are actually scheduled to run
+      disruptive_tests_will_run = examples_to_run.any? { |ex| ex.metadata[:disruptive] }
+      sudo_tests_will_run       = examples_to_run.any? { |ex| ex.metadata[:needs_sudo_access] }
       
       if disruptive_tests_will_run
         if RUBY_PLATFORM.include?('darwin')
-          puts <<~MESSAGE
-            
-            #{"=" * 60}
-            AUTHENTICATION MAY BE REQUIRED FOR DISRUPTIVE TESTS
-            #{"=" * 60}
-            Some macOS operations may prompt for authentication:
-            
-              • remove_preferred_network (sudo for networksetup)
-              • ifconfig disassociate (sudo for disconnect fallback)
-              • _preferred_network_password (keychain access dialog)
-            
-            Please be available to respond to authentication prompts
-            during test execution.
-            #{"=" * 60}
+          # Build a dynamic list of examples that require sudo access
+          begin
+            # Gather all examples from example groups recursively
+            def self.__collect_examples(group)
+              examples = []
+              examples.concat(group.examples) if group.respond_to?(:examples)
+              child_groups = if group.respond_to?(:children)
+                               group.children
+                             elsif group.respond_to?(:example_groups)
+                               group.example_groups
+                             else
+                               []
+                             end
+              child_groups.each { |child| examples.concat(__collect_examples(child)) }
+              examples
+            end
 
-          MESSAGE
+            # Prefer the set of examples RSpec will actually run after filters (e.g., --only-failures)
+            if RSpec.world.respond_to?(:filtered_examples)
+              examples_to_run = RSpec.world.filtered_examples.values.flatten
+            else
+              top_groups = RSpec.world.respond_to?(:example_groups) ? RSpec.world.example_groups : []
+              examples_to_run = top_groups.flat_map { |g| __collect_examples(g) }
+            end
 
-          # Validate sudo timestamp before tests begin
-          puts "\nAttempting to validate sudo timestamp..."
-          system("sudo -v")
-          unless $?.success?
-            abort "❌ Sudo validation failed. Please run 'sudo -v' manually and enter your password before starting the test suite."
+            # Filter to those explicitly requiring sudo access among examples that will run
+            sudo_examples = examples_to_run.select { |ex| ex.metadata[:needs_sudo_access] }
+            formatted = if sudo_examples.any?
+              sudo_examples.map do |ex|
+                name = ex.full_description
+                file = ex.metadata[:file_path]
+                line = ex.metadata[:line_number]
+                "- #{name}: #{file}:#{line}"
+              end.join("\n")
+            else
+              "(no tests tagged :needs_sudo_access)"
+            end
+
+            puts <<~MESSAGE
+              
+              #{"=" * 60}
+              AUTHENTICATION MAY BE REQUIRED FOR DISRUPTIVE TESTS
+              #{"=" * 60}
+              Tests that require sudo access:
+              
+              #{formatted}
+              
+              Please be available to respond to authentication prompts
+              during test execution.
+              #{"=" * 60}
+
+            MESSAGE
+          rescue => e
+            # Fallback to a simple notice if we cannot enumerate examples
+            puts <<~FALLBACK
+              
+              #{"=" * 60}
+              AUTHENTICATION MAY BE REQUIRED FOR DISRUPTIVE TESTS
+              #{"=" * 60}
+              (Could not enumerate :needs_sudo_access specs: #{e.class}: #{e.message})
+              #{"=" * 60}
+
+            FALLBACK
           end
-          puts "✅ Sudo timestamp validated."
+
+          # Validate sudo timestamp only if at least one sudo-tagged example will run
+          if sudo_tests_will_run
+            puts "\nAttempting to validate sudo timestamp..."
+            system("sudo -v")
+            unless $?.success?
+              abort "❌ Sudo validation failed. Please run 'sudo -v' manually and enter your password before starting the test suite."
+            end
+            puts "✅ Sudo timestamp validated."
+          end
         end
         
         NetworkStateManager.capture_state

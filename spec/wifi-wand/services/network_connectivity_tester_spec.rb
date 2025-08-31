@@ -30,8 +30,8 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
 
       before do
+        # Mock Socket.tcp to always raise connection refused
         allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
-        allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
       end
 
       it 'returns false when all endpoints fail' do
@@ -43,8 +43,8 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
 
       before do
+        # Mock Socket.tcp to succeed (simulate successful connection)
         allow(Socket).to receive(:tcp).and_yield
-        allow(Timeout).to receive(:timeout).and_yield
       end
 
       it 'returns true when at least one endpoint succeeds' do
@@ -61,7 +61,6 @@ describe WifiWand::NetworkConnectivityTester do
 
       before do
         allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
-        allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
       end
 
       it 'outputs domain list to stdout' do
@@ -74,8 +73,8 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
 
       before do
+        # Mock IPSocket.getaddress to always raise socket error
         allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
-        allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
       end
 
       it 'returns false when all domains fail to resolve' do
@@ -87,8 +86,8 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
 
       before do
+        # Mock IPSocket.getaddress to succeed (simulate successful DNS resolution)
         allow(IPSocket).to receive(:getaddress).and_return('1.2.3.4')
-        allow(Timeout).to receive(:timeout).and_yield
       end
 
       it 'returns true when at least one domain resolves' do

@@ -152,10 +152,10 @@ class BaseModel
 
   # This method returns whether or not there is a working Internet connection.
   # Tests both TCP connectivity to internet hosts and DNS resolution.
-  def connected_to_internet?
+  # If tcp_working or dns_working parameters are provided, uses them instead of querying the system.
+  def connected_to_internet?(tcp_working = nil, dns_working = nil)
     debug_method_entry(__method__)
-
-    @connectivity_tester.connected_to_internet?
+    @connectivity_tester.connected_to_internet?(tcp_working, dns_working)
   end
 
   # Tests TCP connectivity to internet hosts (not localhost)
@@ -186,7 +186,8 @@ class BaseModel
       false
     end
     
-    connected = internet_tcp && dns_working
+    # Use the optimized connected_to_internet? method with pre-computed values
+    connected = connected_to_internet?(internet_tcp, dns_working)
 
     info = {
         'wifi_on'                   => wifi_on?,

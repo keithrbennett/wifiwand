@@ -12,13 +12,12 @@ class MacOsModel < BaseModel
   # Minimum supported macOS version (Monterey 12.0+)
   # Apple currently supports macOS 12+ as of 2024
   MIN_SUPPORTED_OS_VERSION = "12.0"
-  
+
+  attr_reader :macos_version
+
   def initialize(options = OpenStruct.new)
     super
-  end
-
-  def macos_version
-    @macos_version ||= detect_macos_version
+    @macos_version = detect_macos_version
   end
 
   def self.os_id

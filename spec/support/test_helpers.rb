@@ -1,4 +1,5 @@
 require 'ostruct'
+require 'stringio'
 require_relative '../network_state_manager'
 require_relative '../../lib/wifi-wand/operating_systems'
 
@@ -47,5 +48,17 @@ module TestHelpers
     
     # Merge environment default with provided options (options override env)
     OpenStruct.new({ verbose: verbose }.merge(options))
+  end
+
+  # Suppress stdout/stderr within the given block
+  def silence_output
+    original_stdout = $stdout
+    original_stderr = $stderr
+    $stdout = StringIO.new
+    $stderr = StringIO.new
+    yield
+  ensure
+    $stdout = original_stdout
+    $stderr = original_stderr
   end
 end

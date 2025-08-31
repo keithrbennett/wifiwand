@@ -1,5 +1,5 @@
-require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/command_line_interface'
+require_relative('../../spec_helper')
+require_relative('../../../lib/wifi-wand/command_line_interface')
 
 describe WifiWand::CommandLineInterface::OutputFormatter do
   # Regex patterns for color code detection
@@ -151,7 +151,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         result = subject.status_line
         
         # Test logical content rather than exact formatting
-        expect(result).to match(/WiFi.*ON/)
+        expect(result).to match(/WiFi.*YES/)
         expect(result).to match(/Network.*TestNetwork/)
         expect(result).to match(/TCP.*YES/)
         expect(result).to match(/DNS.*YES/)
@@ -159,12 +159,12 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         
         # Verify colorization is present
         expect(result).to match(GREEN_TEXT_REGEX)      # Green ON
-        expect(result).to match(CYAN_TEXT_REGEX) # Cyan network name
+        expect(result).to match(CYAN_TEXT_REGEX)       # Cyan network name
         expect(result).to match(GREEN_TEXT_REGEX)     # Green YES statuses
       end
       
       {
-        'WiFi off'         => { mock_method: :wifi_on?,                   return_value: false, expected_pattern: /WiFi.*OFF/,     expected_color: RED_TEXT_REGEX },
+        'WiFi off'         => { mock_method: :wifi_on?,                   return_value: false, expected_pattern: /WiFi.*NO/,      expected_color: RED_TEXT_REGEX },
         'no network'       => { mock_method: :connected_network_name,     return_value: nil,   expected_pattern: /Network.*none/, expected_color: YELLOW_TEXT_REGEX },
         'TCP failure'      => { mock_method: :internet_tcp_connectivity?, return_value: false, expected_pattern: /TCP.*NO/,       expected_color: RED_TEXT_REGEX },
         'DNS failure'      => { mock_method: :dns_working?,               return_value: false, expected_pattern: /DNS.*NO/,       expected_color: RED_TEXT_REGEX },
@@ -195,7 +195,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         result = subject.status_line
         
         # Test logical content
-        expect(result).to match(/WiFi.*ON/)
+        expect(result).to match(/WiFi.*YES/)
         expect(result).to match(/Network.*TestNetwork/)
         expect(result).to match(/TCP.*YES/)
         expect(result).to match(/DNS.*YES/)
@@ -209,7 +209,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         allow(mock_model).to receive(:wifi_on?).and_return(false)
         result = subject.status_line
         
-        expect(result).to match(/WiFi.*OFF/)
+        expect(result).to match(/WiFi.*NO/)
         expect(result).not_to match(ANSI_COLOR_REGEX)
       end
       
