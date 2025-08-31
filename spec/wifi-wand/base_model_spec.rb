@@ -481,6 +481,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:ip_address).and_return('192.168.1.100')
       allow(subject).to receive(:mac_address).and_return('aa:bb:cc:dd:ee:ff')
       allow(subject).to receive(:nameservers).and_return(['8.8.8.8'])
+      
+      # Remove the global mock for connected_to_internet? so we can test the real logic
+      allow(subject).to receive(:connected_to_internet?).and_call_original
     end
 
     shared_context 'verbose test model setup' do
