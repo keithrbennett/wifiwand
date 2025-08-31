@@ -98,7 +98,7 @@ describe WifiWand::ConnectionManager do
         expect(subject.last_connection_used_saved_password?).to be false
       end
       
-      it 'handles keychain access errors gracefully', :os_macos do
+      it 'handles keychain access errors gracefully', :os_mac do
         allow(mock_model).to receive(:preferred_network_password).and_raise(StandardError, 'Keychain access denied')
         expect(mock_model).to receive(:_connect).with('SavedNetwork', nil)
         

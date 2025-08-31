@@ -199,7 +199,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   describe '#disconnect', :disruptive do
-    it 'disconnects from network and handles subsequent calls gracefully' do
+    it 'disconnects from network and handles subsequent calls gracefully', :needs_sudo_access => (WifiWand::OperatingSystems.current_id == :mac) do
       subject.wifi_on
       
       # Ensure we're connected first (may need to connect to a network if not already)

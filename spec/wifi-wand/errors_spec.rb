@@ -154,7 +154,7 @@ module WifiWand
         end
       end
 
-      describe 'macOS specific errors', :os_macos do
+      describe 'macOS specific errors', :os_mac do
         let(:mac_model) { create_mac_os_test_model }
 
         keychain_error_test_cases = [

@@ -143,9 +143,13 @@ class MacOsModel < BaseModel
   # Returns whether or not the specified interface is a WiFi interface.
   def is_wifi_interface?(interface)
     cmd = "networksetup -listpreferredwirelessnetworks #{Shellwords.shellescape(interface)} 2>/dev/null"
-    run_os_command(cmd)
-    exit_status = $?.exitstatus
-    exit_status != 10
+    begin
+      run_os_command(cmd)
+      true  # If command succeeds, it's a WiFi interface
+    rescue WifiWand::CommandExecutor::OsCommandError => e
+      # Exit code 10 means not a WiFi interface
+      e.exitstatus != 10
+    end
   end
 
 
@@ -436,7 +440,7 @@ class MacOsModel < BaseModel
   # Returns the network interface used for default internet route on macOS
   def default_interface
     begin
-      cmd = "route -n get default | grep 'interface:' | awk '{print $2}'"
+      cmd = "route -n get default 2>/dev/null | grep 'interface:' | awk '{print $2}'"
       output = run_os_command(cmd, false)
       return nil if output.empty?
       output.strip

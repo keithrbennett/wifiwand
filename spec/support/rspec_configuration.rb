@@ -21,6 +21,15 @@ module RSpecConfiguration
       meta[:slow] = true if meta[:disruptive]
     end
     
+    # Run sudo tests first to get authentication prompts out of the way early
+    config.register_ordering(:sudo_first) do |examples|
+      sudo_examples, other_examples = examples.partition { |ex| ex.metadata[:needs_sudo_access] }
+      sudo_examples + other_examples
+    end
+    
+    # Use the custom ordering for disruptive tests
+    config.order = :sudo_first
+    
     # Include test helper methods
     config.include(TestHelpers)
     
@@ -87,6 +96,33 @@ module RSpecConfiguration
                                  ENV['RSPEC_DISRUPTIVE_TESTS'] == 'only'
       
       if disruptive_tests_will_run
+        if RUBY_PLATFORM.include?('darwin')
+          puts <<~MESSAGE
+            
+            #{"=" * 60}
+            AUTHENTICATION MAY BE REQUIRED FOR DISRUPTIVE TESTS
+            #{"=" * 60}
+            Some macOS operations may prompt for authentication:
+            
+              • remove_preferred_network (sudo for networksetup)
+              • ifconfig disassociate (sudo for disconnect fallback)
+              • _preferred_network_password (keychain access dialog)
+            
+            Please be available to respond to authentication prompts
+            during test execution.
+            #{"=" * 60}
+
+          MESSAGE
+
+          # Validate sudo timestamp before tests begin
+          puts "\nAttempting to validate sudo timestamp..."
+          system("sudo -v")
+          unless $?.success?
+            abort "❌ Sudo validation failed. Please run 'sudo -v' manually and enter your password before starting the test suite."
+          end
+          puts "✅ Sudo timestamp validated."
+        end
+        
         NetworkStateManager.capture_state
         $network_state_captured = true
       else
@@ -119,5 +155,23 @@ module RSpecConfiguration
         end
       end
     end
+  end
+
+  def self.prompt_for_macos_keychain_access
+    puts <<~MESSAGE
+
+      #{"=" * 60}
+      KEYCHAIN ACCESS SETUP FOR DISRUPTIVE TESTS
+      #{"=" * 60}
+      Disruptive tests may access WiFi passwords from your keychain.
+      If prompted, please grant access to enable comprehensive testing.
+      This allows testing of:
+        • Preferred network password retrieval
+        • Network connection with saved credentials
+      #{"=" * 60}
+
+    MESSAGE
+  rescue => e
+    puts "Warning: Could not display keychain access information: #{e.message}"
   end
 end

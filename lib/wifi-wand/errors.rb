@@ -120,6 +120,12 @@ module WifiWand
       super("Cannot access keychain for network '#{network_name}' in non-interactive environment")
     end
   end
+  
+  class KeychainError < Error
+    def initialize(message)
+      super(message)
+    end
+  end
 
 
   # === OPERATING SYSTEM DETECTION ERRORS ===

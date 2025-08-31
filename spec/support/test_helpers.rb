@@ -25,6 +25,19 @@ module TestHelpers
     WifiWand::MacOsModel.create_model(merge_verbose_options(options))
   end
 
+  def wait_for(timeout: 5, interval: 0.1, description: "condition")
+    start_time = Time.now
+    loop do
+      return if yield # The block returns true, so we exit successfully
+
+      if Time.now - start_time > timeout
+        raise "Timeout after #{timeout}s waiting for #{description}"
+      end
+
+      sleep(interval)
+    end
+  end
+
   private
 
   # Merges verbose setting from environment with test options
