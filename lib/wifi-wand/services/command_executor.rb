@@ -12,14 +12,14 @@ module WifiWand
         puts CommandOutputFormatter.command_attempt_as_string(command)
       end
 
-      start_time = Time.now
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       output = `#{command} 2>&1` # join stderr with stdout
 
       status = Process.last_status
       status_string = "Exit code: #{status.exitstatus} (#{status.success? ? 'success' : 'error'})"
 
       if @verbose
-        puts "#{status_string}, Duration: #{'%.4f' % [Time.now - start_time]} seconds -- #{Time.now.iso8601}"
+        puts "#{status_string}, Duration: #{'%.4f' % [Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time]} seconds -- #{Time.now.iso8601}"
         puts CommandOutputFormatter.command_result_as_string(output)
       end
 

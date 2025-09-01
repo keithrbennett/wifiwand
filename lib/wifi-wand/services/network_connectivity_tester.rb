@@ -51,8 +51,8 @@ module WifiWand
       end
       
       # Wait for first success or overall timeout
-      start_time = Time.now
-      while !success && (Time.now - start_time) < TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      while !success && (Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time) < TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
         sleep(0.1)
       end
       
@@ -92,8 +92,8 @@ module WifiWand
       end
       
       # Wait for first success or overall timeout
-      start_time = Time.now
-      while !success && (Time.now - start_time) < TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      while !success && (Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time) < TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
         sleep(0.1)
       end
       

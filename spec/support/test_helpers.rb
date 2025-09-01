@@ -27,11 +27,11 @@ module TestHelpers
   end
 
   def wait_for(timeout: 5, interval: 0.1, description: "condition")
-    start_time = Time.now
+    start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     loop do
       return if yield # The block returns true, so we exit successfully
 
-      if Time.now - start_time > timeout
+      if Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time > timeout
         raise "Timeout after #{timeout}s waiting for #{description}"
       end
 
