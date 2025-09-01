@@ -4,6 +4,12 @@ require_relative '../../../lib/wifi-wand/services/network_connectivity_tester'
 
 describe WifiWand::NetworkConnectivityTester do
   
+  # Mock time-based operations to eliminate delays in tests
+  before(:each) do
+    # Mock sleep to avoid real delays
+    allow_any_instance_of(Object).to receive(:sleep)
+  end
+  
   describe '#tcp_connectivity?' do
 
     context 'with verbose mode enabled' do
@@ -13,6 +19,10 @@ describe WifiWand::NetworkConnectivityTester do
       before do
         allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
         allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
+        
+        # Mock Time.now to simulate immediate timeout for failure scenarios
+        start_time = Time.now
+        allow(Time).to receive(:now).and_return(start_time, start_time + 10)
       end
 
       it 'outputs formatted endpoint list to stdout' do
@@ -32,6 +42,10 @@ describe WifiWand::NetworkConnectivityTester do
       before do
         # Mock Socket.tcp to always raise connection refused
         allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
+        
+        # Mock Time.now to simulate immediate timeout for failure scenarios
+        start_time = Time.now
+        allow(Time).to receive(:now).and_return(start_time, start_time + 10)
       end
 
       it 'returns false when all endpoints fail' do
@@ -61,6 +75,10 @@ describe WifiWand::NetworkConnectivityTester do
 
       before do
         allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
+        
+        # Mock Time.now to simulate immediate timeout for failure scenarios
+        start_time = Time.now
+        allow(Time).to receive(:now).and_return(start_time, start_time + 10)
       end
 
       it 'outputs domain list to stdout' do
@@ -75,6 +93,10 @@ describe WifiWand::NetworkConnectivityTester do
       before do
         # Mock IPSocket.getaddress to always raise socket error
         allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
+        
+        # Mock Time.now to simulate immediate timeout for failure scenarios
+        start_time = Time.now
+        allow(Time).to receive(:now).and_return(start_time, start_time + 10)
       end
 
       it 'returns false when all domains fail to resolve' do

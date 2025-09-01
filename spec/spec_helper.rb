@@ -1,3 +1,6 @@
+# Set environment variable to enable faster timeouts during tests
+ENV['RSPEC_RUNNING'] = 'true'
+
 # Coverage reporting must be started before requiring any application code
 require_relative 'support/coverage_config'
 CoverageConfig.setup
