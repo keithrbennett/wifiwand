@@ -220,6 +220,8 @@ class CommandLineInterface
   # ===== MAIN ENTRY POINT =====
 
   def call
+    return if interactive_mode  # Shell already ran in constructor, nothing more to do
+    
     validate_command_line
     begin
       # By this time, the Main class has removed the command line options, and all that is left
