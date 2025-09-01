@@ -99,7 +99,7 @@ module RSpecConfiguration
                           []
                         end
 
-      # Only capture network state if disruptive tests are actually scheduled to run
+      # Only show messages and validate sudo if disruptive tests are actually scheduled to run
       disruptive_tests_will_run = examples_to_run.any? { |ex| ex.metadata[:disruptive] }
       sudo_tests_will_run       = examples_to_run.any? { |ex| ex.metadata[:needs_sudo_access] }
       
@@ -181,10 +181,18 @@ module RSpecConfiguration
           end
         end
         
+        # Mark that network state should be captured, but don't capture it yet
+        $network_state_should_be_captured = true
+      else
+        $network_state_should_be_captured = false
+      end
+    end
+    
+    # Capture network state only when the first disruptive test actually runs
+    config.before(:each, :disruptive) do
+      if $network_state_should_be_captured && !$network_state_captured
         NetworkStateManager.capture_state
         $network_state_captured = true
-      else
-        $network_state_captured = false
       end
     end
     
