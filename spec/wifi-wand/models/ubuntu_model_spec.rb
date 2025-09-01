@@ -7,14 +7,20 @@ describe UbuntuModel, :os_ubuntu do
   
   # Mock network connectivity tester to prevent real network calls during non-disruptive tests
   before(:each) do
-    allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:connected_to_internet?).and_return(true)
-    allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?).and_return(true)
-    allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
+    # Check if current test or any parent group is marked as disruptive
+    example_disruptive = RSpec.current_example&.metadata[:disruptive]
+    group_disruptive = RSpec.current_example&.example_group&.metadata[:disruptive]
+    is_disruptive = example_disruptive || group_disruptive
     
-    # Mock OS command execution to prevent real WiFi control commands
-    # Use and_call_original as default, then specific mocks override
-    allow(subject).to receive(:run_os_command).and_return('')
-    allow(subject).to receive(:till).and_return(nil)
+    unless is_disruptive
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:connected_to_internet?).and_return(true)
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?).and_return(true)
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
+      
+      # Mock OS command execution to prevent real WiFi control commands
+      allow(subject).to receive(:run_os_command).and_return('')
+      allow(subject).to receive(:till).and_return(nil)
+    end
   end
 
   subject { create_ubuntu_test_model }
