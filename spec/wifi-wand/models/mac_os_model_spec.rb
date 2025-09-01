@@ -4,6 +4,18 @@ require_relative '../../../lib/wifi-wand/models/mac_os_model'
 
 module WifiWand
   describe MacOsModel, :os_mac do
+    
+    # Mock network connectivity tester to prevent real network calls during non-disruptive tests
+    before(:each) do
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:connected_to_internet?).and_return(true)
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?).and_return(true)
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
+      
+      # Mock OS command execution to prevent real system calls (Mac commands would fail on non-Mac anyway)
+      allow_any_instance_of(WifiWand::MacOsModel).to receive(:run_os_command).and_return('')
+      allow_any_instance_of(WifiWand::MacOsModel).to receive(:till).and_return(nil)
+    end
+    
     describe "version support" do
       subject(:model) { create_mac_os_test_model }
 

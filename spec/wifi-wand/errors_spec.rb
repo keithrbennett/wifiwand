@@ -10,6 +10,11 @@ module WifiWand
       # Mock detect_wifi_interface for both OS types
       allow_any_instance_of(WifiWand::UbuntuModel).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
       allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_return('en0') if defined?(WifiWand::MacOsModel)
+      
+      # Mock NetworkConnectivityTester to prevent real network calls
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:connected_to_internet?).and_return(true)
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?).and_return(true)
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
     end
 
     # Test inheritance - ensures all error classes inherit from base Error class
@@ -94,6 +99,9 @@ module WifiWand
             allow(model).to receive(:wifi_on).and_return(true)
             allow(model).to receive(:_connect).with('TestNetwork', nil).and_return(true)
             allow(model).to receive(:connected_network_name).and_return('DifferentNetwork')
+            # Mock the connection manager to prevent real connection attempts
+            allow(model.connection_manager).to receive(:perform_connection)
+            allow(model.connection_manager).to receive(:verify_connection).and_raise(WifiWand::NetworkConnectionError.new('TestNetwork', "connected to 'DifferentNetwork' instead"))
           }
         },
         {

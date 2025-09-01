@@ -30,8 +30,18 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:preferred_networks).and_return(['TestNetwork1', 'SavedNetwork1'])
       allow(subject).to receive(:internet_tcp_connectivity?).and_return(true)
       allow(subject).to receive(:dns_working?).and_return(true)
-      allow(subject).to receive(:connected_to_internet?).and_return(true)
+      # Don't mock connected_to_internet? globally - let tests override it when needed
       allow(subject).to receive(:public_ip_address_info).and_return({'ip' => '1.2.3.4'})
+      
+      # Also mock the underlying NetworkConnectivityTester to prevent real network calls
+      # Don't mock connected_to_internet? - let it use the passed parameters
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?).and_return(true)
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
+      
+      # Mock low-level OS command execution to prevent real system calls
+      # but allow higher-level methods to be called for testing
+      allow(subject).to receive(:run_os_command).and_return('')
+      allow(subject).to receive(:till).and_return(nil)
     end
   end
   
@@ -220,6 +230,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'does nothing when wifi is already on' do
       allow(subject).to receive(:wifi_on?).and_return(true)
       allow(subject).to receive(:run_os_command)
+      allow(subject).to receive(:till) # Mock the status waiter
       
       subject.wifi_on
       expect(subject).not_to have_received(:run_os_command)
@@ -238,6 +249,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'does nothing when wifi is already off' do
       allow(subject).to receive(:wifi_on?).and_return(false)
       allow(subject).to receive(:run_os_command)
+      allow(subject).to receive(:till) # Mock the status waiter
       
       subject.wifi_off
       expect(subject).not_to have_received(:run_os_command)

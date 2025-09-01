@@ -5,9 +5,19 @@ module WifiWand
 
 describe UbuntuModel, :os_ubuntu do
   
+  # Mock network connectivity tester to prevent real network calls during non-disruptive tests
+  before(:each) do
+    allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:connected_to_internet?).and_return(true)
+    allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?).and_return(true)
+    allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
+    
+    # Mock OS command execution to prevent real WiFi control commands
+    # Use and_call_original as default, then specific mocks override
+    allow(subject).to receive(:run_os_command).and_return('')
+    allow(subject).to receive(:till).and_return(nil)
+  end
 
   subject { create_ubuntu_test_model }
-
 
   # Constants for common patterns
   WIFI_INTERFACE_REGEX = /wl[a-z0-9]+/
@@ -415,10 +425,12 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#wifi_on' do
       it 'raises WifiEnableError when command succeeds but wifi remains off' do
-        # Mock all possible command calls to avoid unexpected arguments
-        allow(subject).to receive(:run_os_command).and_call_original
+        # Mock specific command calls to avoid real system calls
         allow(subject).to receive(:run_os_command).with(/nmcli radio wifi on/, anything).and_return('')
         allow(subject).to receive(:run_os_command).with(/nmcli radio wifi$/, anything).and_return('disabled')
+        
+        # Mock the till method to immediately raise WaitTimeoutError (which wifi_on catches and converts to WifiEnableError)
+        allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:on, 5))
         
         expect { subject.wifi_on }.to raise_error(WifiWand::WifiEnableError)
       end
@@ -426,10 +438,12 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#wifi_off' do
       it 'raises WifiDisableError when command succeeds but wifi remains on' do
-        # Mock all possible command calls to avoid unexpected arguments
-        allow(subject).to receive(:run_os_command).and_call_original
+        # Mock specific command calls to avoid real system calls
         allow(subject).to receive(:run_os_command).with(/nmcli radio wifi off/, anything).and_return('')
         allow(subject).to receive(:run_os_command).with(/nmcli radio wifi$/, anything).and_return('enabled')
+        
+        # Mock the till method to immediately raise WaitTimeoutError (which wifi_off catches and converts to WifiDisableError)
+        allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:off, 5))
         
         expect { subject.wifi_off }.to raise_error(WifiWand::WifiDisableError)
       end
@@ -477,8 +491,10 @@ describe UbuntuModel, :os_ubuntu do
       end
 
       it 'handles nmcli connection modify failures' do
-        # Mock nmcli connection modify to fail
-        allow(subject).to receive(:run_os_command).and_call_original
+        # Mock nmcli radio wifi to return enabled so wifi_on succeeds
+        allow(subject).to receive(:run_os_command).with(/nmcli radio wifi$/, anything).and_return('enabled')
+        
+        # Mock nmcli connection modify to fail without calling real commands
         allow(subject).to receive(:run_os_command)
           .with(/nmcli connection modify/, anything)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli connection modify', 'Connection modify failed'))
@@ -489,8 +505,7 @@ describe UbuntuModel, :os_ubuntu do
       end
 
       it 'handles cases when no active connection exists' do
-        # Mock all command calls including wifi_on
-        allow(subject).to receive(:run_os_command).and_call_original
+        # Mock command calls without real system interaction
         allow(subject).to receive(:run_os_command)
           .with(/nmcli radio wifi$/, anything)
           .and_return('enabled')
@@ -504,8 +519,9 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#available_network_names' do
       it 'handles nmcli scan failures' do
-        # Mock nmcli dev wifi list to fail (note the exact command pattern)
-        allow(subject).to receive(:run_os_command).and_call_original
+        # Mock wifi_on? to return true so available_network_names calls _available_network_names
+        allow(subject).to receive(:wifi_on?).and_return(true)
+        # Mock the specific command to fail
         allow(subject).to receive(:run_os_command)
           .with('nmcli -t -f SSID,SIGNAL dev wifi list')
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli -t -f SSID,SIGNAL dev wifi list', 'Scan failed'))
@@ -516,8 +532,7 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#is_wifi_interface?' do
       it 'handles iw dev info command failures' do
-        # Mock iw dev info to fail - the method calls with raise_on_error=false
-        allow(subject).to receive(:run_os_command).and_call_original
+        # Mock iw dev info to fail without real commands
         allow(subject).to receive(:run_os_command)
           .with(/iw dev .* info 2>\/dev\/null/, false)
           .and_return('')  # When command fails with raise_on_error=false, it returns empty string
@@ -528,8 +543,7 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#_connect' do
       it 'raises error for non-existent network' do
-        # Mock nmcli to simulate network not found scenario
-        allow(subject).to receive(:run_os_command).and_call_original
+        # Mock nmcli to simulate network not found scenario without real commands
         allow(subject).to receive(:run_os_command)
           .with(/nmcli dev wifi connect non_existent_network_123/)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(10, 'nmcli dev wifi connect', 'No network with SSID "non_existent_network_123" found'))
@@ -538,8 +552,7 @@ describe UbuntuModel, :os_ubuntu do
       end
 
       it 'handles connection activation failures' do
-        # Mock various paths that _connect might take to ensure we catch the connection attempt
-        allow(subject).to receive(:run_os_command).and_call_original
+        # Mock various paths that _connect might take without real commands
         # Mock connection check
         allow(subject).to receive(:_connected_network_name).and_return(nil)
         # Mock profile finding
@@ -558,7 +571,6 @@ describe UbuntuModel, :os_ubuntu do
         # Mock get_security_parameter to return nil (detection failure)
         allow(subject).to receive(:get_security_parameter).and_return(nil)
         # Mock the fallback connection attempt to avoid real network connection
-        allow(subject).to receive(:run_os_command).and_call_original
         allow(subject).to receive(:_connected_network_name).and_return(nil)
         allow(subject).to receive(:find_best_profile_for_ssid).and_return(nil)
         allow(subject).to receive(:run_os_command)
@@ -630,7 +642,6 @@ describe UbuntuModel, :os_ubuntu do
 
       it 'clears nameservers with :clear' do
         # Mock nmcli commands to avoid real system calls and stderr output
-        allow(subject).to receive(:run_os_command).and_call_original
         allow(subject).to receive(:run_os_command)
           .with(/nmcli radio wifi$/, anything)
           .and_return('enabled')
