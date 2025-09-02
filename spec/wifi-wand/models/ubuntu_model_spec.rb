@@ -300,15 +300,18 @@ describe UbuntuModel, :os_ubuntu do
     describe '#set_nameservers' do
       it 'successfully sets custom nameservers' do
         nameservers = ['8.8.8.8', '1.1.1.1']
-        wifi_interface = 'wlp3s0'
+        connection_name = 'MyHomeNetwork'
         
-        allow(subject).to receive(:wifi_interface).and_return(wifi_interface)
-        # The actual command uses space-separated DNS values, not quoted
+        allow(subject).to receive(:_connected_network_name).and_return(connection_name)
+        # Mock the connection-based DNS commands
         allow(subject).to receive(:run_os_command)
-          .with('nmcli connection modify wlp3s0 ipv4.dns 8.8.8.8\\ 1.1.1.1', false)
+          .with(/nmcli connection modify.*#{connection_name}.*ipv4\.dns.*8\.8\.8\.8 1\.1\.1\.1/, false)
           .and_return('')
         allow(subject).to receive(:run_os_command)
-          .with('nmcli connection up wlp3s0', false)
+          .with(/nmcli connection modify.*#{connection_name}.*ipv4\.ignore-auto-dns yes/, false)
+          .and_return('')
+        allow(subject).to receive(:run_os_command)
+          .with(/nmcli connection up.*#{connection_name}/, false)
           .and_return('')
         
         result = subject.set_nameservers(nameservers)
@@ -316,14 +319,17 @@ describe UbuntuModel, :os_ubuntu do
       end
 
       it 'successfully clears nameservers' do
-        wifi_interface = 'wlp3s0'
+        connection_name = 'MyHomeNetwork'
         
-        allow(subject).to receive(:wifi_interface).and_return(wifi_interface)
+        allow(subject).to receive(:_connected_network_name).and_return(connection_name)
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli connection modify.*ipv4\.dns ""/, false)
+          .with(/nmcli connection modify.*#{connection_name}.*ipv4\.dns ""/, false)
           .and_return('')
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli connection up #{wifi_interface}/, false)
+          .with(/nmcli connection modify.*#{connection_name}.*ipv4\.ignore-auto-dns no/, false)
+          .and_return('')
+        allow(subject).to receive(:run_os_command)
+          .with(/nmcli connection up.*#{connection_name}/, false)
           .and_return('')
         
         result = subject.set_nameservers(:clear)
@@ -486,6 +492,10 @@ describe UbuntuModel, :os_ubuntu do
     describe '#set_nameservers' do
       it 'raises error for invalid IP addresses' do
         invalid_nameservers = ['invalid.ip', '256.256.256.256']
+        connection_name = 'MyHomeNetwork'
+        
+        allow(subject).to receive(:_connected_network_name).and_return(connection_name)
+        
         # Capture stdout to suppress the "invalid address:" output from IP validation
         original_stdout = $stdout
         $stdout = StringIO.new
@@ -497,29 +507,24 @@ describe UbuntuModel, :os_ubuntu do
       end
 
       it 'handles nmcli connection modify failures' do
-        # Mock nmcli radio wifi to return enabled so wifi_on succeeds
-        allow(subject).to receive(:run_os_command).with(/nmcli radio wifi$/, anything).and_return('enabled')
+        connection_name = 'MyHomeNetwork'
+        
+        allow(subject).to receive(:_connected_network_name).and_return(connection_name)
         
         # Mock nmcli connection modify to fail without calling real commands
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli connection modify/, anything)
+          .with(/nmcli connection modify.*#{connection_name}.*ipv4\.dns/, false)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli connection modify', 'Connection modify failed'))
         
-        subject.wifi_on
         expect { subject.set_nameservers(['8.8.8.8']) }
           .to raise_error(WifiWand::CommandExecutor::OsCommandError, /Connection modify failed/)
       end
 
       it 'handles cases when no active connection exists' do
-        # Mock command calls without real system interaction
-        allow(subject).to receive(:run_os_command)
-          .with(/nmcli radio wifi$/, anything)
-          .and_return('enabled')
-        allow(subject).to receive(:run_os_command)
-          .with(/nmcli connection show --active/, anything)
-          .and_return('')
+        # Mock no active connection
+        allow(subject).to receive(:_connected_network_name).and_return(nil)
         
-        expect { subject.set_nameservers(['8.8.8.8']) }.not_to raise_error
+        expect { subject.set_nameservers(['8.8.8.8']) }.to raise_error(WifiWand::WifiInterfaceError, /No active Wi-Fi connection/)
       end
     end
 

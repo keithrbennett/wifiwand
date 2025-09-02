@@ -311,24 +311,37 @@ class UbuntuModel < BaseModel
 
   def nameservers
     debug_method_entry(__method__)
-    nameservers_using_resolv_conf
+    
+    # First try to get DNS from the active connection profile
+    # This shows the configured DNS for the current Wi-Fi network
+    current_connection = _connected_network_name
+    if current_connection
+      connection_nameservers = nameservers_from_connection(current_connection)
+      return connection_nameservers unless connection_nameservers.empty?
+    end
+    
+    # Fallback to system resolver if no connection-specific DNS
+    nameservers_using_resolv_conf || []
   end
 
   def set_nameservers(nameservers)
-    # For setting nameservers, we'll use a different approach
-    # Since nmcli connection management requires specific connection names,
-    # we'll modify the system's DNS configuration directly
+    # Use NetworkManager connection-based DNS configuration
+    # This is the correct approach for Ubuntu - we modify the connection profile,
+    # not the interface directly. Each Wi-Fi network has its own connection profile
+    # which can have different DNS settings.
 
     debug_method_entry(__method__, binding, :nameservers)
 
-    iface = wifi_interface
-    raise WifiInterfaceError.new("Wi-Fi interface not found.") unless iface
+    # Get the current active Wi-Fi connection name
+    current_connection = _connected_network_name
+    raise WifiInterfaceError.new("No active Wi-Fi connection to configure DNS for.") unless current_connection
 
     if nameservers == :clear
-      # Clear nameservers by removing custom DNS configuration
-      run_os_command("nmcli connection modify #{Shellwords.shellescape(iface)} ipv4.dns \"\"", false)
-      run_os_command("nmcli connection up #{Shellwords.shellescape(iface)}", false)
+      # Clear custom DNS and use automatic DNS from router/DHCP
+      run_os_command("nmcli connection modify #{Shellwords.shellescape(current_connection)} ipv4.dns \"\"", false)
+      run_os_command("nmcli connection modify #{Shellwords.shellescape(current_connection)} ipv4.ignore-auto-dns no", false)
     else
+      # Validate IP addresses
       bad_addresses = nameservers.reject do |ns|
         begin
           require 'ipaddr'
@@ -344,12 +357,15 @@ class UbuntuModel < BaseModel
         raise InvalidIPAddressError.new(bad_addresses)
       end
 
+      # Set custom DNS servers and ignore automatic DNS from router/DHCP
       dns_string = nameservers.join(' ')
-      # Try to modify the connection, ignore errors if connection doesn't exist
-      cmd = "nmcli connection modify #{Shellwords.shellescape(iface)} ipv4.dns #{Shellwords.shellescape(dns_string)}"
-      run_os_command(cmd, false)
-      run_os_command("nmcli connection up #{Shellwords.shellescape(iface)}", false)
+      run_os_command("nmcli connection modify #{Shellwords.shellescape(current_connection)} ipv4.dns \"#{dns_string}\"", false)
+      run_os_command("nmcli connection modify #{Shellwords.shellescape(current_connection)} ipv4.ignore-auto-dns yes", false)
     end
+    
+    # Restart the connection to apply DNS changes
+    run_os_command("nmcli connection up #{Shellwords.shellescape(current_connection)}", false)
+    
     nameservers
   end
 
@@ -371,6 +387,44 @@ class UbuntuModel < BaseModel
       interfaces = output.split("\n").map(&:strip).reject(&:empty?)
       interfaces.first
     rescue WifiWand::CommandExecutor::OsCommandError
+      nil
+    end
+  end
+
+  # Gets DNS nameservers configured for a specific connection profile
+  # This is the NetworkManager connection-based approach for getting DNS
+  def nameservers_from_connection(connection_name)
+    debug_method_entry(__method__, binding, :connection_name)
+    
+    begin
+      output = run_os_command("nmcli connection show #{Shellwords.shellescape(connection_name)}", false)
+      
+      # Extract DNS servers from connection configuration
+      # Look for both static configuration (ipv4.dns[1]:) and active DNS (IP4.DNS[1]:)
+      # Format examples:
+      #   ipv4.dns[1]:                        1.1.1.1    (manually configured)
+      #   IP4.DNS[1]:                         192.168.3.1 (from DHCP/router)
+      dns_lines = output.split("\n").select do |line|
+        line.match?(/ip4\.dns\[\d+\]:/i)
+      end
+      
+      nameservers = dns_lines.map do |line|
+        # Split on colon and take everything after the last colon, then strip whitespace
+        line.split(':').last.strip
+      end.reject(&:empty?)
+      
+      nameservers
+    rescue WifiWand::CommandExecutor::OsCommandError
+      # If we can't get connection info, return empty array
+      []
+    end
+  end
+
+  # Gets nameservers from /etc/resolv.conf - fallback method
+  def nameservers_using_resolv_conf
+    begin
+      File.readlines('/etc/resolv.conf').grep(/^nameserver /).map { |line| line.split.last }
+    rescue Errno::ENOENT
       nil
     end
   end
