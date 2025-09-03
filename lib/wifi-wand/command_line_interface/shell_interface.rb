@@ -17,6 +17,9 @@ module WifiWand
         # a pry command from a DSL command, which _is_ useful here.
         Pry.config.command_prefix = '%'
         Pry.config.print = ->(output, value, _pry) { output.puts(value.awesome_inspect) }
+        Pry.config.exception_handler = proc do |output, exception, _pry_|
+          output.puts exception.message
+        end
 
         binding.pry
       end
@@ -24,9 +27,9 @@ module WifiWand
       # For use by the shell when the user types the DSL commands
       def method_missing(method_name, *method_args)
         attempt_command_action(method_name.to_s, *method_args) do
-          puts <<~MESSAGE
-              "#{method_name}" is not a valid command or option. 
-              If you intend for this to be a string literal, use quotes or %q{}/%Q{}.
+          raise NoMethodError, <<~MESSAGE
+              "#{method_name}" is not a valid command or option.
+              If you intended it as an argument to a command, it may be invalid or need quotes.
             MESSAGE
         end
       end

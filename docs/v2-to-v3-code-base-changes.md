@@ -43,3 +43,7 @@ This document summarizes the changes and improvements made in version 3.0 compar
 
 - Updated terminology from "Mac OS" to "macOS" throughout documentation
 - Prepared version bump to 3.0.0-alpha indicating major platform expansion
+
+## Interactive Shell Improvements
+
+- Suppressed pry stack traces for exceptions to provide a cleaner, more user-friendly shell experience. Errors now display a simple message without internal implementation details.
