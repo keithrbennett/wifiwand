@@ -242,10 +242,11 @@ class CommandLineInterface
       data
     else
       if options.post_processor
-        puts options.post_processor.(data)
+        output = options.post_processor.(data)
       else
-        puts human_readable_string_producer.call
+        output = human_readable_string_producer.call
       end
+      puts output unless output.to_s.empty?
     end
   end
 end

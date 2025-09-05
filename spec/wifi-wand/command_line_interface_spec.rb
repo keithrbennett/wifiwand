@@ -495,13 +495,26 @@ describe WifiWand::CommandLineInterface do
     end
     
     describe '#cmd_s (status)' do
+      let(:status_data) do
+        {
+          wifi_on: true,
+          network_name: 'TestNet',
+          tcp_working: true,
+          dns_working: true,
+          internet_connected: true
+        }
+      end
+
       it 'outputs status line when not empty' do
-        allow(subject).to receive(:status_line).and_return('WiFi: ON | Network: "TestNet"')
-        expect { subject.cmd_s }.to output("WiFi: ON | Network: \"TestNet\"\n").to_stdout
+        allow(mock_model).to receive(:status_line_data).and_return(status_data)
+        allow(subject).to receive(:status_line).with(status_data).and_return('WiFi: ON | Network: "TestNet"')
+        expect { subject.cmd_s }.to output("WiFi: ON | Network: \"TestNet\"
+").to_stdout
       end
       
       it 'outputs nothing when status line is empty' do
-        allow(subject).to receive(:status_line).and_return('')
+        allow(mock_model).to receive(:status_line_data).and_return(status_data)
+        allow(subject).to receive(:status_line).with(status_data).and_return('')
         expect { subject.cmd_s }.not_to output.to_stdout
       end
     end

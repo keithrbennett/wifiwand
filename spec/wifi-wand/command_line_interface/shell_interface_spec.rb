@@ -44,8 +44,8 @@ describe WifiWand::CommandLineInterface::ShellInterface do
         nil
       end
       
-      # Should print the actual error message from the implementation
-      expect { subject.invalid_command('arg1', 'arg2') }.to output(/is not a valid command or option/).to_stdout
+      # Should raise NoMethodError
+      expect { subject.invalid_command('arg1', 'arg2') }.to raise_error(NoMethodError, /is not a valid command or option/)
     end
 
     it 'does not interfere with known commands' do
@@ -57,11 +57,12 @@ describe WifiWand::CommandLineInterface::ShellInterface do
     end
 
     it 'prints error for unknown commands' do
-      expect { subject.unknown_command }.to output(/is not a valid command or option/).to_stdout
+      expect { subject.unknown_command }.to raise_error(NoMethodError, /is not a valid command or option/)
     end
 
     it 'suggests string literal usage for unknown commands' do
-      expect { subject.unknown_command }.to output(/use quotes or %q{}\/%Q{}/).to_stdout
+      # The suggestion is part of the error message in the current implementation
+      expect { subject.unknown_command }.to raise_error(NoMethodError, /If you intended it as an argument to a command, it may be invalid or need quotes./)
     end
   end
 
@@ -87,8 +88,9 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       pry_config = double('pry_config')
       allow(pry_config).to receive(:command_prefix=)
       allow(pry_config).to receive(:print=)
+      allow(pry_config).to receive(:exception_handler=)
       pry_class = double('Pry', config: pry_config)
-      stub_const('WifiWand::CommandLineInterface::ShellInterface::Pry', pry_class)
+      stub_const('Pry', pry_class)
       
       mock_binding = double('binding')
       allow(subject).to receive(:binding).and_return(mock_binding)

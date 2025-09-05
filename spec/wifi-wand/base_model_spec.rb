@@ -715,6 +715,56 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
+  describe '#status_line_data' do
+    it 'returns a hash with the correct keys' do
+      data = subject.status_line_data
+      expect(data).to be_a(Hash)
+      expect(data.keys).to contain_exactly(
+        :wifi_on,
+        :network_name,
+        :tcp_working,
+        :dns_working,
+        :internet_connected
+      )
+    end
+
+    test_cases = {
+      'when everything is working' => {
+        wifi_on: true,
+        network_name: 'TestNetwork',
+        tcp_working: true,
+        dns_working: true,
+        internet_connected: true
+      },
+      'when wifi is off' => {
+        wifi_on: false,
+        network_name: nil,
+        tcp_working: false,
+        dns_working: false,
+        internet_connected: false
+      }
+    }
+
+    test_cases.each do |context, expected_data|
+      it "returns correct data #{context}" do
+        allow(subject).to receive(:wifi_on?).and_return(expected_data[:wifi_on])
+        allow(subject).to receive(:connected_network_name).and_return(expected_data[:network_name])
+        allow(subject).to receive(:internet_tcp_connectivity?).and_return(expected_data[:tcp_working])
+        allow(subject).to receive(:dns_working?).and_return(expected_data[:dns_working])
+        allow(subject).to receive(:connected_to_internet?).with(expected_data[:tcp_working], expected_data[:dns_working]).and_return(expected_data[:internet_connected])
+
+        data = subject.status_line_data
+        expect(data).to eq(expected_data)
+      end
+    end
+
+    it 'returns nil when an exception is raised' do
+      allow(subject).to receive(:wifi_on?).and_raise(StandardError)
+      data = subject.status_line_data
+      expect(data).to be_nil
+    end
+  end
+
   describe 'private methods' do
     describe '#connected_network_password' do
       it 'returns nil when not connected to any network' do
