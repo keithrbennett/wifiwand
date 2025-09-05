@@ -52,31 +52,22 @@ module WifiWand
         colorize_text(char, color)
       end
 
-      def status_line
+      def status_line(status_data)
+        return colorize_text("WiFi: [status unavailable]", :yellow) if status_data.nil?
+
+        wifi_status = format_boolean_status(status_data[:wifi_on])
         
-        begin
-          wifi_on = model.wifi_on?
-          wifi_status = format_boolean_status(wifi_on)
-          
-          network_name = model.connected_network_name
-          network_display = network_name ? colorize_text("#{network_name}", :cyan) : colorize_text("[none]", :yellow)
+        network_display = if status_data[:network_name]
+                            colorize_text("#{status_data[:network_name]}", :cyan)
+                          else
+                            colorize_text("[none]", :yellow)
+                          end
 
-          # Test connectivity components (call once to avoid race conditions)
-          tcp_working = model.internet_tcp_connectivity?
-          tcp_status = format_boolean_status(tcp_working)
+        tcp_status = format_boolean_status(status_data[:tcp_working])
+        dns_status = format_boolean_status(status_data[:dns_working])
+        internet_status = format_boolean_status(status_data[:internet_connected])
 
-          dns_working = model.dns_working?
-          dns_status = format_boolean_status(dns_working)
-
-          # Calculate internet status from already-tested components
-          internet_connected = model.connected_to_internet?(tcp_working, dns_working)
-          internet_status = format_boolean_status(internet_connected)
-
-          "WiFi: #{wifi_status} | Network: #{network_display} | TCP: #{tcp_status} | DNS: #{dns_status} | Internet: #{internet_status}"
-        rescue
-          # Fallback if any status check fails
-          colorize_text("WiFi: [status unavailable]", :yellow)
-        end
+        "WiFi: #{wifi_status} | Network: #{network_display} | TCP: #{tcp_status} | DNS: #{dns_status} | Internet: #{internet_status}"
       end
 
 

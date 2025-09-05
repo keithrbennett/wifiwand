@@ -198,8 +198,9 @@ class CommandLineInterface
   end
 
   def cmd_s
-    status = status_line
-    puts status unless status.empty?
+    status_data = model.status_line_data
+    handle_output(status_data, -> { status_line(status_data) })
+    status_data
   end
 
   def cmd_x
