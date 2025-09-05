@@ -144,11 +144,21 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   end
 
   describe '#status_line' do
+    let(:status_data) do
+      {
+        wifi_on: true,
+        network_name: 'TestNetwork',
+        tcp_working: true,
+        dns_working: true,
+        internet_connected: true
+      }
+    end
+
     context 'when stdout is a TTY' do
       before { allow($stdout).to receive(:tty?).and_return(true) }
       
       it 'contains all status components with appropriate colors' do
-        result = subject.status_line
+        result = subject.status_line(status_data)
         
         # Test logical content rather than exact formatting
         expect(result).to match(/WiFi.*YES/)
@@ -163,6 +173,14 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         expect(result).to match(GREEN_TEXT_REGEX)     # Green YES statuses
       end
       
+      hash_key_map = {
+        wifi_on?: :wifi_on,
+        connected_network_name: :network_name,
+        internet_tcp_connectivity?: :tcp_working,
+        dns_working?: :dns_working,
+        connected_to_internet?: :internet_connected
+      }
+
       {
         'WiFi off'         => { mock_method: :wifi_on?,                   return_value: false, expected_pattern: /WiFi.*NO/,      expected_color: RED_TEXT_REGEX },
         'no network'       => { mock_method: :connected_network_name,     return_value: nil,   expected_pattern: /Network.*none/, expected_color: YELLOW_TEXT_REGEX },
@@ -171,8 +189,12 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         'Internet failure' => { mock_method: :connected_to_internet?,     return_value: false, expected_pattern: /Internet.*NO/,  expected_color: RED_TEXT_REGEX }
       }.each do |scenario, config|
         it "displays error status when #{scenario}" do
-          allow(mock_model).to receive(config[:mock_method]).and_return(config[:return_value])
-          result = subject.status_line
+          data = status_data.clone
+          target_key = hash_key_map[config[:mock_method]]
+          new_value = config[:return_value]
+          data[target_key] = new_value
+          
+          result = subject.status_line(data)
           
           expect(result).to match(config[:expected_pattern])
           expect(result).to match(config[:expected_color])
@@ -180,8 +202,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       end
       
       it 'returns fallback message when model raises exception' do
-        allow(mock_model).to receive(:wifi_on?).and_raise(StandardError.new('Test error'))
-        result = subject.status_line
+        result = subject.status_line(nil)
         
         expect(result).to match(/WiFi.*status unavailable/)
         expect(result).to match(YELLOW_TEXT_REGEX) # Yellow warning
@@ -192,7 +213,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       before { allow($stdout).to receive(:tty?).and_return(false) }
       
       it 'contains all status components without color codes' do
-        result = subject.status_line
+        result = subject.status_line(status_data)
         
         # Test logical content
         expect(result).to match(/WiFi.*YES/)
@@ -206,16 +227,16 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       end
       
       it 'shows error conditions without color codes' do
-        allow(mock_model).to receive(:wifi_on?).and_return(false)
-        result = subject.status_line
+        data = status_data.clone
+        data[:wifi_on] = false
+        result = subject.status_line(data)
         
         expect(result).to match(/WiFi.*NO/)
         expect(result).not_to match(ANSI_COLOR_REGEX)
       end
       
       it 'shows fallback status without color codes' do
-        allow(mock_model).to receive(:wifi_on?).and_raise(StandardError.new('Test error'))
-        result = subject.status_line
+        result = subject.status_line(nil)
         
         expect(result).to match(/WiFi.*status unavailable/)
         expect(result).not_to match(ANSI_COLOR_REGEX)
