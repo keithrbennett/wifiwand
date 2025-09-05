@@ -235,6 +235,22 @@ class BaseModel
     wifi_on? ? (wifi_off; wifi_on) : (wifi_on; wifi_off)
   end
 
+  def status_line_data
+    begin
+      tcp_working = internet_tcp_connectivity?
+      dns_working = dns_working?
+      {
+        wifi_on: wifi_on?,
+        network_name: connected_network_name,
+        tcp_working: tcp_working,
+        dns_working: dns_working,
+        internet_connected: connected_to_internet?(tcp_working, dns_working)
+      }
+    rescue
+      nil # Return nil on failure
+    end
+  end
+
 
   def connected_to?(network_name)
     debug_method_entry(__method__, binding, :network_name)
