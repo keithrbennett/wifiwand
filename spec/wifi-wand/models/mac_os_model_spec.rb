@@ -935,6 +935,106 @@ module WifiWand
         end
       end
 
+      describe '#get_connection_security_type' do
+        let(:network_name) { 'TestNetwork' }
+        let(:wifi_interface) { 'en0' }
+        
+        before(:each) do
+          allow(model).to receive(:_connected_network_name).and_return(network_name)
+          allow(model).to receive(:wifi_interface).and_return(wifi_interface)
+        end
+
+        [
+          ['WPA2', 'WPA2'],
+          ['WPA3', 'WPA3'], 
+          ['WPA', 'WPA'],
+          ['WPA1', 'WPA'],
+          ['WEP', 'WEP'],
+          ['Unknown Security', nil]
+        ].each do |security_mode, expected_result|
+          it "returns #{expected_result || 'nil'} for #{security_mode}" do
+            airport_data = {
+              'SPAirPortDataType' => [{
+                'spairport_airport_interfaces' => [{
+                  '_name' => wifi_interface,
+                  'spairport_airport_local_wireless_networks' => [{
+                    '_name' => network_name,
+                    'spairport_security_mode' => security_mode
+                  }]
+                }]
+              }]
+            }
+            
+            allow(model).to receive(:airport_data).and_return(airport_data)
+            
+            expect(model.get_connection_security_type).to eq(expected_result)
+          end
+        end
+
+        it 'returns nil when not connected to any network' do
+          allow(model).to receive(:_connected_network_name).and_return(nil)
+          
+          expect(model.get_connection_security_type).to be_nil
+        end
+
+        it 'returns nil when airport data is unavailable' do
+          allow(model).to receive(:airport_data).and_return({})
+          
+          expect(model.get_connection_security_type).to be_nil
+        end
+
+        it 'returns nil when wifi interface not found in airport data' do
+          airport_data = {
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name' => 'other_interface',
+                'spairport_airport_local_wireless_networks' => []
+              }]
+            }]
+          }
+          
+          allow(model).to receive(:airport_data).and_return(airport_data)
+          
+          expect(model.get_connection_security_type).to be_nil
+        end
+
+        it 'returns nil when connected network not found in scan results' do
+          airport_data = {
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name' => wifi_interface,
+                'spairport_airport_local_wireless_networks' => [{
+                  '_name' => 'OtherNetwork',
+                  'spairport_security_mode' => 'WPA2'
+                }]
+              }]
+            }]
+          }
+          
+          allow(model).to receive(:airport_data).and_return(airport_data)
+          
+          expect(model.get_connection_security_type).to be_nil
+        end
+
+        it 'returns nil when security mode information is missing' do
+          airport_data = {
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name' => wifi_interface,
+                'spairport_airport_local_wireless_networks' => [{
+                  '_name' => network_name
+                  # No spairport_security_mode key
+                }]
+              }]
+            }]
+          }
+          
+          allow(model).to receive(:airport_data).and_return(airport_data)
+          
+          expect(model.get_connection_security_type).to be_nil
+        end
+      end
+
       describe '#detect_wifi_service_name edge cases' do
         it 'returns Wi-Fi as final fallback when all detection fails' do
           no_wifi_output = "Hardware Port: Ethernet\nDevice: en1"

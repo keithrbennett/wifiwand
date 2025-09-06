@@ -181,6 +181,11 @@ class CommandLineInterface
     handle_output(on, -> { "Wifi on: #{on}" })
   end
 
+  def cmd_qr
+    filename = model.generate_qr_code
+    handle_output(filename, -> { "QR code generated: #{filename}" })
+  end
+
   # ===== OTHER COMMANDS =====
   # Commands that don't directly delegate to the model
 

@@ -521,5 +521,45 @@ class MacOsModel < BaseModel
       raise "Failed to parse system_profiler output: #{e.message}"
     end
   end
+
+  # Gets the security type of the currently connected network.
+  # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP", or nil if not connected/not found
+  def get_connection_security_type
+    network_name = _connected_network_name
+    return nil unless network_name
+    
+    data = airport_data
+    inner_key = 'spairport_airport_local_wireless_networks'
+    
+    # Get the networks data from the airport information
+    networks = data['SPAirPortDataType']
+         &.detect { |h| h.key?('spairport_airport_interfaces') }
+         &.dig('spairport_airport_interfaces')
+         &.detect { |h| h['_name'] == wifi_interface }
+         &.dig(inner_key)
+    
+    return nil unless networks
+    
+    # Find the network we're connected to
+    network = networks.detect { |net| net['_name'] == network_name }
+    return nil unless network
+    
+    # Extract security information
+    security_info = network['spairport_security_mode']
+    return nil unless security_info
+    
+    case security_info
+    when /WPA3/i
+      "WPA3"
+    when /WPA2/i
+      "WPA2"
+    when /WPA1/i, /WPA(?!\d)/i # WPA but not WPA2 or WPA3
+      "WPA"
+    when /WEP/i
+      "WEP"
+    else
+      nil
+    end
+  end
 end
 end

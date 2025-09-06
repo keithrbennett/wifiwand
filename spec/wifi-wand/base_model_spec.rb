@@ -739,4 +739,144 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
+  describe '#generate_qr_code' do
+    let(:network_name) { 'TestNetwork' }
+    let(:network_password) { 'test_password' }
+    let(:security_type) { 'WPA2' }
+    let(:expected_filename) { 'TestNetwork-qr-code.png' }
+
+    before(:each) do
+      allow(subject).to receive(:command_available_using_which?).with('qrencode').and_return(true)
+      allow(subject).to receive(:connected_network_name).and_return(network_name)
+      allow(subject).to receive(:connected_network_password).and_return(network_password)
+      allow(subject).to receive(:get_connection_security_type).and_return(security_type)
+      allow(subject).to receive(:run_os_command).and_return('')
+    end
+
+    context 'dependency checking' do
+      [
+        [:ubuntu, 'sudo apt install qrencode'],
+        [:mac, 'brew install qrencode']
+      ].each do |os_id, expected_command|
+        it "raises error with correct install command for #{os_id}" do
+          allow(subject).to receive(:command_available_using_which?).with('qrencode').and_return(false)
+          allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: os_id))
+          
+          expect { subject.generate_qr_code }.to raise_error(WifiWand::Error, /#{Regexp.escape(expected_command)}/)
+        end
+      end
+
+      it 'raises error with generic message for unknown OS' do
+        allow(subject).to receive(:command_available_using_which?).with('qrencode').and_return(false)
+        allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: :unknown))
+        
+        expect { subject.generate_qr_code }.to raise_error(WifiWand::Error, /install qrencode using your system package manager/)
+      end
+    end
+
+    context 'network connection validation' do
+      it 'raises error when not connected to any network' do
+        allow(subject).to receive(:connected_network_name).and_return(nil)
+        
+        expect { subject.generate_qr_code }.to raise_error(WifiWand::Error, /Not connected to any WiFi network/)
+      end
+    end
+
+    context 'QR code generation with different security types' do
+      [
+        ['WPA', 'WPA'],
+        ['WPA2', 'WPA'], 
+        ['WPA3', 'WPA'],
+        ['WEP', 'WEP'],
+        [nil, '']
+      ].each do |input_security, expected_qr_security|
+        it "generates correct QR string for #{input_security || 'open network'}" do
+          allow(subject).to receive(:get_connection_security_type).and_return(input_security)
+          expected_qr_string = "WIFI:T:#{expected_qr_security};S:TestNetwork;P:test_password;H:false;;"
+          
+          subject.generate_qr_code
+          
+          expect(subject).to have_received(:run_os_command)
+            .with("qrencode -o TestNetwork-qr-code.png #{Shellwords.shellescape(expected_qr_string)}")
+        end
+      end
+    end
+
+    context 'special character escaping' do
+      [
+        ['Network;With;Semicolons', 'password,with,commas', 'WIFI:T:WPA;S:Network\\;With\\;Semicolons;P:password\\,with\\,commas;H:false;;'],
+        ['Network:With:Colons', 'password:with:colons', 'WIFI:T:WPA;S:Network\\:With\\:Colons;P:password\\:with\\:colons;H:false;;'],
+        ['Network\\With\\Backslashes', 'pass\\word', 'WIFI:T:WPA;S:Network\\\\With\\\\Backslashes;P:pass\\\\word;H:false;;'],
+        ['Regular-Network_Name', 'regularPassword123', 'WIFI:T:WPA;S:Regular-Network_Name;P:regularPassword123;H:false;;']
+      ].each do |test_network, test_password, expected_qr_string|
+        it "properly escapes special characters in '#{test_network}' / '#{test_password}'" do
+          allow(subject).to receive(:connected_network_name).and_return(test_network)
+          allow(subject).to receive(:connected_network_password).and_return(test_password)
+          
+          subject.generate_qr_code
+          
+          safe_network_name = test_network.gsub(/[^\w\-_]/, '_')
+          expected_filename = "#{safe_network_name}-qr-code.png"
+          
+          expect(subject).to have_received(:run_os_command)
+            .with("qrencode -o #{Shellwords.shellescape(expected_filename)} #{Shellwords.shellescape(expected_qr_string)}")
+        end
+      end
+    end
+
+    context 'filename generation' do
+      [
+        ['SimpleNetwork', 'SimpleNetwork-qr-code.png'],
+        ['Network With Spaces', 'Network_With_Spaces-qr-code.png'],
+        ['Network@#$%^&*()!', 'Network__________-qr-code.png'],
+        ['cafe-reseau', 'cafe-reseau-qr-code.png']
+      ].each do |input_name, expected_filename|
+        it "generates safe filename for '#{input_name}'" do
+          allow(subject).to receive(:connected_network_name).and_return(input_name)
+          
+          result = subject.generate_qr_code
+          
+          expect(result).to eq(expected_filename)
+        end
+      end
+    end
+
+    context 'open network handling' do
+      it 'generates QR code for open network (no password)' do
+        allow(subject).to receive(:connected_network_password).and_return(nil)
+        allow(subject).to receive(:get_connection_security_type).and_return(nil)
+        expected_qr_string = 'WIFI:T:;S:TestNetwork;P:;H:false;;'
+        
+        result = subject.generate_qr_code
+        
+        expect(subject).to have_received(:run_os_command)
+          .with("qrencode -o TestNetwork-qr-code.png #{Shellwords.shellescape(expected_qr_string)}")
+        expect(result).to eq('TestNetwork-qr-code.png')
+      end
+    end
+
+    context 'error handling' do
+      it 'raises WifiWand::Error when qrencode command fails' do
+        allow(subject).to receive(:run_os_command)
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'qrencode', 'Command failed'))
+        
+        expect { subject.generate_qr_code }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
+      end
+    end
+
+    context 'verbose mode output' do
+      it 'prints verbose message when verbose mode is enabled' do
+        subject.instance_variable_set(:@verbose_mode, true)
+        
+        expect { subject.generate_qr_code }.to output(a_string_including('QR code generated: TestNetwork-qr-code.png')).to_stdout
+      end
+
+      it 'does not print QR message when verbose mode is disabled' do
+        subject.instance_variable_set(:@verbose_mode, false)
+        
+        expect { subject.generate_qr_code }.not_to output(/QR code generated:/).to_stdout
+      end
+    end
+  end
+
 end

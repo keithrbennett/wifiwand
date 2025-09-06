@@ -429,5 +429,44 @@ class UbuntuModel < BaseModel
     end
   end
 
+  # Gets the security type of the currently connected network.
+  # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP", "None", or nil if not connected/not found
+  def get_connection_security_type
+    debug_method_entry(__method__)
+    
+    network_name = _connected_network_name
+    return nil unless network_name
+    
+    # Use the terse, machine-readable output to get the security protocol.
+    cmd = "nmcli -t -f SSID,SECURITY dev wifi list"
+    begin
+      output = run_os_command(cmd, false)
+    rescue WifiWand::CommandExecutor::OsCommandError
+      return nil # Can't scan, return nil
+    end
+
+    network_line = output.split("\n").find { |line| line.start_with?("#{network_name}:") }
+    return nil unless network_line
+
+    # The output can be like "SSID:WPA2" or "SSID:WPA1 WPA2", so we just grab the part after the first colon.
+    security_type = network_line.split(':')[1..-1].join(':').strip
+
+    # Return nil for empty security type (open network)
+    return nil if security_type.empty?
+
+    case security_type
+    when /WPA3/i
+      "WPA3"
+    when /WPA2/i
+      "WPA2"
+    when /WPA1/i, /WPA(?!\d)/i # WPA but not WPA2 or WPA3
+      "WPA"
+    when /WEP/i
+      "WEP"
+    else
+      nil
+    end
+  end
+
   end
 end

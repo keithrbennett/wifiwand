@@ -26,7 +26,8 @@ describe WifiWand::CommandLineInterface do
       last_connection_used_saved_password?: false,
       available_resources_help: 'Available resources help text',
       open_resources_by_codes: { opened_resources: [], invalid_codes: [] },
-      resource_manager: double('resource_manager', invalid_codes_error: 'Invalid codes')
+      resource_manager: double('resource_manager', invalid_codes_error: 'Invalid codes'),
+      generate_qr_code: 'TestNetwork-qr-code.png'
     ) 
   }
   let(:mock_os) { double('os', create_model: mock_model) }
@@ -595,6 +596,46 @@ describe WifiWand::CommandLineInterface do
         it 'returns false' do
           expect(subject.verbose_mode).to be(false)
         end
+      end
+    end
+  end
+  
+  describe 'QR code generation commands' do
+    describe '#cmd_qr' do
+      it_behaves_like 'simple command delegation', :cmd_qr, :generate_qr_code
+      
+      it_behaves_like 'interactive vs non-interactive command', :cmd_qr, :generate_qr_code, {
+        return_value: 'TestNetwork-qr-code.png',
+        non_interactive_tests: {
+          'outputs QR code filename in non-interactive mode' => {
+            model_return: 'TestNetwork-qr-code.png',
+            expected_output: "QR code generated: TestNetwork-qr-code.png\n"
+          }
+        }
+      }
+      
+      it 'calls generate_qr_code on the model' do
+        expect(mock_model).to receive(:generate_qr_code).and_return('TestNetwork-qr-code.png')
+        subject.cmd_qr
+      end
+    end
+    
+    describe 'QR command in command registry' do
+      it 'includes qr command in available commands' do
+        command_strings = subject.commands.map(&:max_string)
+        expect(command_strings).to include('qr')
+      end
+      
+      it 'can find qr command action' do
+        action = subject.find_command_action('qr')
+        expect(action).not_to be_nil
+        expect(action).to respond_to(:call)
+      end
+      
+      it 'qr command maps to cmd_qr method' do
+        expect(subject).to receive(:cmd_qr)
+        action = subject.find_command_action('qr')
+        action.call
       end
     end
   end

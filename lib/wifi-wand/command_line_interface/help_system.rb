@@ -36,6 +36,7 @@ of[f]                     - turns WiFi off
 pa[ssword] network-name   - password for preferred network name
 pr[ef_nets]               - preferred (saved) networks
 q[uit]                    - exits this program (interactive shell mode only) (same as 'x')
+qr                        - generates a QR code for the currently connected WiFi network
 ro[pen]                   - open web resources: #{resource_help}
 s[tatus]                  - status line (WiFi, Network, TCP, DNS, Internet)
 t[ill]                    - wait until Internet connection reaches desired state:
