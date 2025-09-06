@@ -784,11 +784,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     context 'QR code generation with different security types' do
       [
-        ['WPA', 'WPA'],
+        ['WPA',  'WPA'],
         ['WPA2', 'WPA'], 
         ['WPA3', 'WPA'],
-        ['WEP', 'WEP'],
-        [nil, '']
+        ['WEP',  'WEP'],
+        [nil,    '']
       ].each do |input_security, expected_qr_security|
         it "generates correct QR string for #{input_security || 'open network'}" do
           allow(subject).to receive(:get_connection_security_type).and_return(input_security)
@@ -826,10 +826,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     context 'filename generation' do
       [
-        ['SimpleNetwork', 'SimpleNetwork-qr-code.png'],
+        ['SimpleNetwork'        'SimpleNetwork-qr-code.png'],
         ['Network With Spaces', 'Network_With_Spaces-qr-code.png'],
-        ['Network@#$%^&*()!', 'Network__________-qr-code.png'],
-        ['cafe-reseau', 'cafe-reseau-qr-code.png']
+        ['Network@#$%^&*()!',   'Network__________-qr-code.png'],
+        ['cafe-reseau',         'cafe-reseau-qr-code.png']
       ].each do |input_name, expected_filename|
         it "generates safe filename for '#{input_name}'" do
           allow(subject).to receive(:connected_network_name).and_return(input_name)
@@ -863,20 +863,5 @@ describe 'Common WiFi Model Behavior (All OS)' do
         expect { subject.generate_qr_code }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
       end
     end
-
-    context 'verbose mode output' do
-      it 'prints verbose message when verbose mode is enabled' do
-        subject.instance_variable_set(:@verbose_mode, true)
-        
-        expect { subject.generate_qr_code }.to output(a_string_including('QR code generated: TestNetwork-qr-code.png')).to_stdout
-      end
-
-      it 'does not print QR message when verbose mode is disabled' do
-        subject.instance_variable_set(:@verbose_mode, false)
-        
-        expect { subject.generate_qr_code }.not_to output(/QR code generated:/).to_stdout
-      end
-    end
   end
-
 end

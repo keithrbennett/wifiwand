@@ -208,14 +208,14 @@ describe UbuntuModel, :os_ubuntu do
       end
 
       [
-        ['WPA2', 'TestNetwork:WPA2', 'WPA2'],
-        ['WPA3', 'TestNetwork:WPA3', 'WPA3'],
-        ['WPA', 'TestNetwork:WPA', 'WPA'],
-        ['WPA1', 'TestNetwork:WPA1', 'WPA'],
-        ['WEP', 'TestNetwork:WEP', 'WEP'],
-        ['Mixed WPA', 'TestNetwork:WPA1 WPA2', 'WPA2'],
-        ['empty security (open)', 'TestNetwork:', nil],
-        ['unknown security', 'TestNetwork:UNKNOWN', nil]
+        ['WPA2',                  'TestNetwork:WPA2',      'WPA2'],
+        ['WPA3',                  'TestNetwork:WPA3',      'WPA3'],
+        ['WPA',                   'TestNetwork:WPA',       'WPA'],
+        ['WPA1',                  'TestNetwork:WPA1',      'WPA'],
+        ['WEP',                   'TestNetwork:WEP',       'WEP'],
+        ['Mixed WPA',             'TestNetwork:WPA1 WPA2', 'WPA2'],
+        ['empty security (open)', 'TestNetwork:',          nil],
+        ['unknown security',      'TestNetwork:UNKNOWN',   nil]
       ].each do |description, nmcli_line, expected|
         it "returns #{expected || 'nil'} for #{description}" do
           allow(subject).to receive(:run_os_command)

@@ -407,10 +407,10 @@ class BaseModel
     # Generate filename
     safe_network_name = network_name.gsub(/[^\w\-_]/, '_')
     filename = "#{safe_network_name}-qr-code.png"
-    
+
     # Generate QR code using qrencode
     qrencode_command = "qrencode -o #{Shellwords.shellescape(filename)} #{Shellwords.shellescape(wifi_qr_string)}"
-    
+
     begin
       run_os_command(qrencode_command)
       puts "QR code generated: #{filename}" if @verbose_mode
