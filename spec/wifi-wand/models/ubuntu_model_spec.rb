@@ -4,6 +4,7 @@ require_relative '../../../lib/wifi-wand/models/ubuntu_model'
 module WifiWand
 
 describe UbuntuModel, :os_ubuntu do
+  let!(:subject) { create_ubuntu_test_model }
   
   # Mock network connectivity tester to prevent real network calls during non-disruptive tests
   before(:each) do
@@ -23,7 +24,7 @@ describe UbuntuModel, :os_ubuntu do
     end
   end
 
-  subject { create_ubuntu_test_model }
+
 
   # Constants for common patterns
   WIFI_INTERFACE_REGEX = /wl[a-z0-9]+/
@@ -249,7 +250,7 @@ describe UbuntuModel, :os_ubuntu do
       end
     end
 
-    describe '#default_interface'
+    describe '#default_interface' do
       it 'returns interface from default route' do
         route_output = "default via 192.168.1.1 dev wlp3s0"
         allow(subject).to receive(:run_os_command)
@@ -782,4 +783,6 @@ describe UbuntuModel, :os_ubuntu do
       end
     end
   end
+end
+
 end
