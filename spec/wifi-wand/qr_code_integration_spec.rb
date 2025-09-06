@@ -163,7 +163,7 @@ describe 'QR Code Integration Tests', :os_ubuntu do
         allow(test_model).to receive(:command_available_using_which?).with('qrencode').and_return(true)
         allow(test_model).to receive(:connected_network_name).and_return(test_case[:network_name])
         allow(test_model).to receive(:connected_network_password).and_return(test_case[:password])
-        allow(test_model).to receive(:get_connection_security_type).and_return(test_case[:security_type])
+        allow(test_model).to receive(:connection_security_type).and_return(test_case[:security_type])
         
         # Mock methods that could make real system calls
         allow(test_model).to receive(:preferred_networks).and_return([test_case[:network_name]])
@@ -219,7 +219,7 @@ describe 'QR Code Integration Tests', :os_ubuntu do
       allow(test_model).to receive(:command_available_using_which?).with('qrencode').and_return(true)
       allow(test_model).to receive(:connected_network_name).and_return('TestNetwork')
       allow(test_model).to receive(:connected_network_password).and_return('password')
-      allow(test_model).to receive(:get_connection_security_type).and_return('WPA2')
+      allow(test_model).to receive(:connection_security_type).and_return('WPA2')
       
       # Mock methods that could make real system calls
       allow(test_model).to receive(:preferred_networks).and_return(['TestNetwork'])
@@ -244,7 +244,7 @@ describe 'QR Code Integration Tests', :os_ubuntu do
       allow(test_model).to receive(:command_available_using_which?).with('qrencode').and_return(true)
       allow(test_model).to receive(:connected_network_name).and_return('TestNetwork')
       allow(test_model).to receive(:connected_network_password).and_return('password123')
-      allow(test_model).to receive(:get_connection_security_type).and_return('WPA2')
+      allow(test_model).to receive(:connection_security_type).and_return('WPA2')
       
       # Mock methods that could make real system calls
       allow(test_model).to receive(:preferred_networks).and_return(['TestNetwork'])
@@ -285,7 +285,7 @@ describe 'QR Code Integration Tests', :os_ubuntu do
         allow(test_model).to receive(:command_available_using_which?).with('qrencode').and_return(true)
         allow(test_model).to receive(:connected_network_name).and_return(config[:ssid])
         allow(test_model).to receive(:connected_network_password).and_return(config[:password])
-        allow(test_model).to receive(:get_connection_security_type).and_return(config[:security])
+        allow(test_model).to receive(:connection_security_type).and_return(config[:security])
         
         # Mock methods that could make real system calls
         allow(test_model).to receive(:preferred_networks).and_return([config[:ssid]])

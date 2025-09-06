@@ -935,7 +935,7 @@ module WifiWand
         end
       end
 
-      describe '#get_connection_security_type' do
+      describe '#connection_security_type' do
         let(:network_name) { 'TestNetwork' }
         let(:wifi_interface) { 'en0' }
         
@@ -967,20 +967,20 @@ module WifiWand
             
             allow(model).to receive(:airport_data).and_return(airport_data)
             
-            expect(model.send(:get_connection_security_type)).to eq(expected_result)
+            expect(model.connection_security_type).to eq(expected_result)
           end
         end
 
         it 'returns nil when not connected to any network' do
           allow(model).to receive(:_connected_network_name).and_return(nil)
           
-          expect(model.send(:get_connection_security_type)).to be_nil
+          expect(model.connection_security_type).to be_nil
         end
 
         it 'returns nil when airport data is unavailable' do
           allow(model).to receive(:airport_data).and_return({})
           
-          expect(model.send(:get_connection_security_type)).to be_nil
+          expect(model.connection_security_type).to be_nil
         end
 
         it 'returns nil when wifi interface not found in airport data' do
@@ -995,7 +995,7 @@ module WifiWand
           
           allow(model).to receive(:airport_data).and_return(airport_data)
           
-          expect(model.send(:get_connection_security_type)).to be_nil
+          expect(model.connection_security_type).to be_nil
         end
 
         it 'returns nil when connected network not found in scan results' do
@@ -1013,7 +1013,7 @@ module WifiWand
           
           allow(model).to receive(:airport_data).and_return(airport_data)
           
-          expect(model.send(:get_connection_security_type)).to be_nil
+          expect(model.connection_security_type).to be_nil
         end
 
         it 'returns nil when security mode information is missing' do
@@ -1031,7 +1031,7 @@ module WifiWand
           
           allow(model).to receive(:airport_data).and_return(airport_data)
           
-          expect(model.send(:get_connection_security_type)).to be_nil
+          expect(model.connection_security_type).to be_nil
         end
       end
 

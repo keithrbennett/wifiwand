@@ -63,6 +63,12 @@ class MacOsModel < BaseModel
     end
   end
 
+  # Preferred, clearer name for the Wi‑Fi service query.
+  # Kept alongside detect_wifi_service_name for backward compatibility.
+  def wifi_service_name
+    detect_wifi_service_name
+  end
+
   # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
   # This may not detect WiFi ports with nonstandard names, such as USB WiFi devices.
   def detect_wifi_interface_using_networksetup
@@ -514,7 +520,7 @@ class MacOsModel < BaseModel
 
   # Gets the security type of the currently connected network.
   # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP", or nil if not connected/not found
-  def get_connection_security_type
+  def connection_security_type
     network_name = _connected_network_name
     return nil unless network_name
     
@@ -551,5 +557,7 @@ class MacOsModel < BaseModel
       nil
     end
   end
+
+  public :connection_security_type
 end
 end

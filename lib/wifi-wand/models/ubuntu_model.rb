@@ -202,6 +202,11 @@ class UbuntuModel < BaseModel
     end
   end
 
+  # Preferred, clearer name for security parameter query
+  def security_parameter(ssid)
+    get_security_parameter(ssid)
+  end
+
   # Finds the best connection profile for a given SSID.
   # "Best" is defined as the one with the most recent TIMESTAMP, which indicates
   # it was the most recently used or configured. This helps solve the problem
@@ -431,7 +436,7 @@ class UbuntuModel < BaseModel
 
   # Gets the security type of the currently connected network.
   # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP", "None", or nil if not connected/not found
-  def get_connection_security_type
+  def connection_security_type
     debug_method_entry(__method__)
     
     network_name = _connected_network_name

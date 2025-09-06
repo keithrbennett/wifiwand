@@ -198,7 +198,7 @@ describe UbuntuModel, :os_ubuntu do
       end
     end
 
-    describe '#get_connection_security_type' do
+    describe '#connection_security_type' do
       let(:network_name) { 'TestNetwork' }
       let(:nmcli_security_output) do
         "TestNetwork:WPA2\nOtherNetwork:WPA1 WPA2\nOpenNetwork:\nWEPNetwork:WEP"
@@ -223,14 +223,14 @@ describe UbuntuModel, :os_ubuntu do
             .with('nmcli -t -f SSID,SECURITY dev wifi list', false)
             .and_return(nmcli_line)
           
-          expect(subject.get_connection_security_type).to eq(expected)
+          expect(subject.connection_security_type).to eq(expected)
         end
       end
 
       it 'returns nil when not connected to any network' do
         allow(subject).to receive(:_connected_network_name).and_return(nil)
         
-        expect(subject.get_connection_security_type).to be_nil
+        expect(subject.connection_security_type).to be_nil
       end
 
       it 'returns nil when network not found in scan results' do
@@ -238,7 +238,7 @@ describe UbuntuModel, :os_ubuntu do
           .with('nmcli -t -f SSID,SECURITY dev wifi list', false)
           .and_return('OtherNetwork:WPA2')
         
-        expect(subject.get_connection_security_type).to be_nil
+        expect(subject.connection_security_type).to be_nil
       end
 
       it 'returns nil when nmcli command fails' do
@@ -246,7 +246,7 @@ describe UbuntuModel, :os_ubuntu do
           .with('nmcli -t -f SSID,SECURITY dev wifi list', false)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'Command failed'))
         
-        expect(subject.get_connection_security_type).to be_nil
+        expect(subject.connection_security_type).to be_nil
       end
     end
 

@@ -115,7 +115,7 @@ class BaseModel
   %i[
     default_interface
     detect_wifi_interface
-    get_connection_security_type
+    connection_security_type
     is_wifi_interface?
     mac_address
     nameservers
@@ -392,7 +392,7 @@ class BaseModel
     
     # Get network password and security type
     password = connected_network_password
-    security_type = get_connection_security_type
+    security_type = connection_security_type
     
     # Build WiFi QR code string in the format:
     # WIFI:T:<security>;S:<SSID>;P:<password>;H:<hidden>;;

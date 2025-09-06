@@ -749,7 +749,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:command_available_using_which?).with('qrencode').and_return(true)
       allow(subject).to receive(:connected_network_name).and_return(network_name)
       allow(subject).to receive(:connected_network_password).and_return(network_password)
-      allow(subject).to receive(:get_connection_security_type).and_return(security_type)
+      allow(subject).to receive(:connection_security_type).and_return(security_type)
       allow(subject).to receive(:run_os_command).and_return('')
       
       # Mock all methods that could make real system calls
@@ -796,7 +796,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         [nil,    '']
       ].each do |input_security, expected_qr_security|
         it "generates correct QR string for #{input_security || 'open network'}" do
-          allow(subject).to receive(:get_connection_security_type).and_return(input_security)
+          allow(subject).to receive(:connection_security_type).and_return(input_security)
           expected_qr_string = "WIFI:T:#{expected_qr_security};S:TestNetwork;P:test_password;H:false;;"
           
           subject.generate_qr_code
@@ -849,7 +849,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     context 'open network handling' do
       it 'generates QR code for open network (no password)' do
         allow(subject).to receive(:connected_network_password).and_return(nil)
-        allow(subject).to receive(:get_connection_security_type).and_return(nil)
+        allow(subject).to receive(:connection_security_type).and_return(nil)
         expected_qr_string = 'WIFI:T:;S:TestNetwork;P:;H:false;;'
         
         result = subject.generate_qr_code
