@@ -13,6 +13,9 @@ module WifiWand
       is_disruptive = example_disruptive || group_disruptive
       
       unless is_disruptive
+        # Ensure initialization doesn’t fail due to interface detection during non-disruptive tests
+        allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_return('en0')
+
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:connected_to_internet?).and_return(true)
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?).and_return(true)
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
@@ -406,20 +409,7 @@ module WifiWand
         end
       end
 
-      describe '#colon_output_to_hash' do
-        it 'parses colon-separated output correctly' do
-          test_cases = [
-            ["SSID: TestNetwork\nMCS: 5\nchannel: 7", {"SSID" => "TestNetwork", "MCS" => "5", "channel" => "7"}],
-            ["key: value\nother: data", {"key" => "value", "other" => "data"}],
-            ["single_line: only", {"single_line" => "only"}],
-            ["", {}]
-          ]
-
-          test_cases.each do |input, expected|
-            expect(model.send(:colon_output_to_hash, input)).to eq(expected)
-          end
-        end
-      end
+      
 
       describe '#_ip_address' do
         it 'handles different ipconfig responses' do
@@ -613,6 +603,12 @@ module WifiWand
       end
 
       describe '#detect_wifi_interface' do
+        # Restore original method behavior for these specific tests
+        before(:each) do
+          allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_call_original
+        end
+        # Provide a valid interface during initialization to avoid init failures in this block
+        subject(:model) { create_mac_os_test_model(wifi_interface: 'en0') }
         let(:system_profiler_output) do
           {
             "SPNetworkDataType" => [
@@ -690,6 +686,10 @@ module WifiWand
       end
 
       describe '#macos_version (real system)', :os_mac do
+        # For these real-system checks, allow actual OS command execution
+        before(:each) do
+          allow_any_instance_of(WifiWand::MacOsModel).to receive(:run_os_command).and_call_original
+        end
         it 'returns a non-empty semantic version on macOS' do
           real_model = create_mac_os_test_model
           v = real_model.macos_version
@@ -967,20 +967,20 @@ module WifiWand
             
             allow(model).to receive(:airport_data).and_return(airport_data)
             
-            expect(model.get_connection_security_type).to eq(expected_result)
+            expect(model.send(:get_connection_security_type)).to eq(expected_result)
           end
         end
 
         it 'returns nil when not connected to any network' do
           allow(model).to receive(:_connected_network_name).and_return(nil)
           
-          expect(model.get_connection_security_type).to be_nil
+          expect(model.send(:get_connection_security_type)).to be_nil
         end
 
         it 'returns nil when airport data is unavailable' do
           allow(model).to receive(:airport_data).and_return({})
           
-          expect(model.get_connection_security_type).to be_nil
+          expect(model.send(:get_connection_security_type)).to be_nil
         end
 
         it 'returns nil when wifi interface not found in airport data' do
@@ -995,7 +995,7 @@ module WifiWand
           
           allow(model).to receive(:airport_data).and_return(airport_data)
           
-          expect(model.get_connection_security_type).to be_nil
+          expect(model.send(:get_connection_security_type)).to be_nil
         end
 
         it 'returns nil when connected network not found in scan results' do
@@ -1013,7 +1013,7 @@ module WifiWand
           
           allow(model).to receive(:airport_data).and_return(airport_data)
           
-          expect(model.get_connection_security_type).to be_nil
+          expect(model.send(:get_connection_security_type)).to be_nil
         end
 
         it 'returns nil when security mode information is missing' do
@@ -1031,7 +1031,7 @@ module WifiWand
           
           allow(model).to receive(:airport_data).and_return(airport_data)
           
-          expect(model.get_connection_security_type).to be_nil
+          expect(model.send(:get_connection_security_type)).to be_nil
         end
       end
 

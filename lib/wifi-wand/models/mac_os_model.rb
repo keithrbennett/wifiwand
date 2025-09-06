@@ -96,6 +96,7 @@ class MacOsModel < BaseModel
   def detect_wifi_interface
     cmd = 'system_profiler -json SPNetworkDataType'
     json_text = run_os_command(cmd)
+    return nil if json_text.nil? || json_text.strip.empty?
     net_data = JSON.parse(json_text)
     nets = net_data['SPNetworkDataType']
     
@@ -370,20 +371,7 @@ class MacOsModel < BaseModel
   end
 
 
-  # Parses output like the text below into a hash:
-  # SSID: Pattara211
-  # MCS: 5
-  # channel: 7
-  def colon_output_to_hash(output)
-    lines = output.split("\n")
-    lines.each_with_object({}) do |line, new_hash|
-      key, value = line.split(': ')
-      key = key.strip
-      value.strip! if value
-      new_hash[key] = value
-    end
-  end
-  private :colon_output_to_hash
+  
 
 
   def nameservers_using_scutil
@@ -454,7 +442,9 @@ class MacOsModel < BaseModel
     begin
       cmd = "sw_vers -productVersion"
       output = run_os_command(cmd)
-      output.chomp
+      version = output.strip
+      return nil if version.empty?
+      version
     rescue => e
       if verbose_mode
         puts "Could not detect macOS version: #{e.message}."
