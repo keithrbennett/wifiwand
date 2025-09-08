@@ -424,6 +424,19 @@ class BaseModel
     safe_network_name = network_name.gsub(/[^\w\-_]/, '_')
     filename = "#{safe_network_name}-qr-code.png"
 
+    # If file exists, confirm overwrite when running in a TTY
+    if File.exist?(filename)
+      if $stdin.tty?
+        print "File '#{filename}' already exists. Overwrite? [y/N]: "
+        answer = $stdin.gets&.strip&.downcase
+        unless %w[y yes].include?(answer)
+          raise WifiWand::Error.new("QR code generation cancelled: file exists and overwrite not confirmed")
+        end
+      else
+        raise WifiWand::Error.new("QR code output file '#{filename}' already exists. Delete the file first or run interactively to confirm overwrite.")
+      end
+    end
+
     # Generate QR code using qrencode
     qrencode_command = "qrencode -o #{Shellwords.shellescape(filename)} #{Shellwords.shellescape(wifi_qr_string)}"
 
