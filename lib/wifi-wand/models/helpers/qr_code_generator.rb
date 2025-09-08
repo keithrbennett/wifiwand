@@ -1,3 +1,25 @@
+# QrCodeGenerator
+# ----------------
+# Generates Wi‑Fi QR codes for the currently connected network.
+#
+# Capabilities
+# - File output: writes a QR image to a file. By default uses PNG. When the
+#   filespec ends with .svg or .eps, output type is set accordingly.
+# - Stdout output: when filespec is '-' prints an ANSI QR to stdout.
+# - Overwrite safety: prompts before overwriting existing files in interactive
+#   TTY sessions; errors in non‑interactive mode if the file exists.
+#
+# Usage (through BaseModel#generate_qr_code):
+#   model.generate_qr_code                # ./<SSID>-qr-code.png (PNG)
+#   model.generate_qr_code('wifi.svg')    # ./wifi.svg (SVG)
+#   model.generate_qr_code('wifi.eps')    # ./wifi.eps (EPS)
+#   model.generate_qr_code('-')           # prints ANSI QR to stdout
+#
+# Notes
+# - Requires the 'qrencode' tool to be installed and available on PATH.
+# - For PDF output, generate SVG first and convert with a separate tool
+#   (e.g., rsvg-convert/inkscape/convert), as qrencode doesn’t emit PDF.
+
 require 'shellwords'
 
 module WifiWand
@@ -92,7 +114,13 @@ module WifiWand
       end
 
       def run_qrencode_file!(model, filename, qr_string)
-        cmd = "qrencode -o #{Shellwords.shellescape(filename)} #{Shellwords.shellescape(qr_string)}"
+        type_flag = qr_type_flag_for(filename)
+        cmd = [
+          'qrencode',
+          type_flag,
+          '-o', Shellwords.shellescape(filename),
+          Shellwords.shellescape(qr_string)
+        ].compact.join(' ')
         begin
           model.run_os_command(cmd)
           puts "QR code generated: #{filename}" if model.verbose_mode
@@ -109,6 +137,14 @@ module WifiWand
           '-'
         rescue WifiWand::CommandExecutor::OsCommandError => e
           raise WifiWand::Error.new("Failed to generate QR code: #{e.message}")
+        end
+      end
+
+      def qr_type_flag_for(filename)
+        case File.extname(filename).downcase
+        when '.svg' then '-t SVG'
+        when '.eps' then '-t EPS'
+        else nil # default PNG
         end
       end
     end
