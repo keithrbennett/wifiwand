@@ -544,18 +544,7 @@ class MacOsModel < BaseModel
     security_info = network['spairport_security_mode']
     return nil unless security_info
     
-    case security_info
-    when /WPA3/i
-      "WPA3"
-    when /WPA2/i
-      "WPA2"
-    when /WPA1/i, /WPA(?!\d)/i # WPA but not WPA2 or WPA3
-      "WPA"
-    when /WEP/i
-      "WEP"
-    else
-      nil
-    end
+    canonical_security_type_from(security_info)
   end
 
   public :connection_security_type

@@ -438,6 +438,32 @@ class BaseModel
   
   private
 
+  # Normalizes a raw security descriptor string from OS tools to
+  # one of: "WPA3", "WPA2", "WPA", "WEP", or nil (unknown/open/enterprise).
+  # This centralizes regex handling across OS implementations.
+  def canonical_security_type_from(security_text)
+    return nil if security_text.nil?
+
+    text = security_text.to_s.strip
+    return nil if text.empty?
+
+    # Exclude enterprise/EAP networks which are not representable with PSK/WEP
+    return nil if text.match?(/802\.?1x|enterprise/i)
+
+    case text
+    when /WPA3/i
+      'WPA3'
+    when /WPA2/i
+      'WPA2'
+    when /WPA1/i, /WPA(?!\d)/i
+      'WPA'
+    when /WEP/i
+      'WEP'
+    else
+      nil
+    end
+  end
+
   def connected_network_password
     debug_method_entry(__method__)
     return nil unless connected_network_name

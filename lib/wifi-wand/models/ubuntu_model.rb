@@ -191,13 +191,13 @@ class UbuntuModel < BaseModel
     # The output can be like "SSID:WPA2" or "SSID:WPA1 WPA2", so we just grab the part after the first colon.
     security_type = network_line.split(':')[1..-1].join(':').strip
 
-    case security_type
-    when /WPA3/i, /WPA2/i, /WPA1/i, /WPA/i
+    case canonical_security_type_from(security_type)
+    when 'WPA3', 'WPA2', 'WPA'
       "802-11-wireless-security.psk"
-    when /WEP/i
+    when 'WEP'
       "802-11-wireless-security.wep-key0"
     else
-      # Unsupported or open network (which shouldn't happen if a password is provided).
+      # Unsupported, enterprise, or open network (shouldn't need password).
       nil
     end
   end
@@ -456,21 +456,8 @@ class UbuntuModel < BaseModel
     # The output can be like "SSID:WPA2" or "SSID:WPA1 WPA2", so we just grab the part after the first colon.
     security_type = network_line.split(':')[1..-1].join(':').strip
 
-    # Return nil for empty security type (open network)
-    return nil if security_type.empty?
-
-    case security_type
-    when /WPA3/i
-      "WPA3"
-    when /WPA2/i
-      "WPA2"
-    when /WPA1/i, /WPA(?!\d)/i # WPA but not WPA2 or WPA3
-      "WPA"
-    when /WEP/i
-      "WEP"
-    else
-      nil
-    end
+    # Normalize via shared logic (returns nil for open/enterprise/unknown)
+    canonical_security_type_from(security_type)
   end
 
   end
