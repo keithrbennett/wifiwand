@@ -12,6 +12,12 @@ or, you may need to precede that command with `sudo` to install it system-wide:
 
 `sudo gem install wifi-wand`
 
+Optional dependency for QR codes:
+
+- To use the `wifi-wand qr` command for generating Wi‑Fi QR codes, install `qrencode`.
+  - macOS: `brew install qrencode`
+  - Ubuntu: `sudo apt install qrencode`
+
 ### Description
 
 The `wifi-wand` gem enables the query and management 
