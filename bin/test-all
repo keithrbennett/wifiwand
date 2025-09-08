@@ -1,0 +1,1 @@
+RSPEC_DISRUPTIVE_TESTS=include COVERAGE_BRANCH=true bundle exec time rspec 2>&1 | tee test-all.out
