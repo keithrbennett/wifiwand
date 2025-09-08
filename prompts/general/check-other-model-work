@@ -1,0 +1,14 @@
+Ask me for a target for `git diff [target]` (with a default target of the `add-ubuntu` branch) and what was the intent of the code changes.
+
+Do the `git diff` to see the code changes implmented to accomplish the specified intent.
+
+Review these changes carefully and thoroughly and tell me:
+
+* will the changes achieve the desired goal?
+* are they following best practices?
+* DRY is very important -- can the code be implemented more concisely?
+* what are the strengths and weaknesses of the approach used?
+* risks of security, obsolescence, etc.?
+* is there an alternate approach that would be better?
+
+Express this report in markdown form where the entire document is enclosed in 4 backticks, so that I can copy and paste it into an .md file and have it rendered correctly.
