@@ -1,168 +1,203 @@
-# Ubuntu OS Command Use
+# OS Command Usage for Ubuntu
+
 ### os-command-use-ubuntu-gemini.md
-### 2025-08-26 12:00:00 UTC
 
-This document outlines the shell commands used by `wifi-wand` on the Ubuntu operating system.
+### 2025-09-09T21:21:00Z
 
-## `nmcli` - NetworkManager Command Line Interface
+This document details the shell commands used by `wifi-wand` on the Ubuntu operating system.
 
-`nmcli` is the primary tool used for managing network connections on Ubuntu. It interacts with NetworkManager to control Wi-Fi adapters, scan for networks, and manage connection profiles.
+## Network Management with `nmcli`
 
-### `nmcli radio wifi`
+On Ubuntu, `wifi-wand` relies heavily on `nmcli`, the command-line interface for NetworkManager. A key concept in NetworkManager is the distinction between a Wi-Fi network (identified by its SSID) and a "connection profile".
 
-*   **Description:** Checks if the Wi-Fi radio is enabled.
-*   **Dynamic Values:** None.
-*   **Base Model Method(s):** `wifi_on?`
-*   **CLI Command(s):** `w` (status)
+*   **Wi-Fi Network (SSID):** The broadcast name of a wireless network (e.g., "MyHomeWiFi").
+*   **Connection Profile:** A saved set of configurations for a network. This includes the SSID, password, IP settings, DNS servers, etc. You can have multiple profiles for the same SSID, which can sometimes be a source of confusion. `wifi-wand` attempts to manage this by finding the most recently used profile for a given SSID when performing actions.
 
-### `nmcli radio wifi on`
+Most `wifi-wand` commands manipulate these connection profiles rather than interacting with the Wi-Fi device directly.
 
-*   **Description:** Turns the Wi-Fi radio on.
-*   **Dynamic Values:** None.
-*   **Base Model Method(s):** `wifi_on`
-*   **CLI Command(s):** `on`
+---
 
-### `nmcli radio wifi off`
+## `iw`
 
-*   **Description:** Turns the Wi-Fi radio off.
-*   **Dynamic Values:** None.
-*   **Base Model Method(s):** `wifi_off`
-*   **CLI Command(s):** `of`
-
-### `nmcli -t -f SSID,SIGNAL dev wifi list`
-
-*   **Description:** Lists available Wi-Fi networks with their signal strength.
-*   **Dynamic Values:** None.
-*   **Base Model Method(s):** `_available_network_names`
-*   **CLI Command(s):** `a` (available networks)
-
-### `nmcli -t -f active,ssid device wifi | egrep '^yes' | cut -d\: -f2`
-
-*   **Description:** Shows the SSID of the currently active Wi-Fi connection.
-*   **Dynamic Values:** None.
-*   **Base Model Method(s):** `_connected_network_name`
-*   **CLI Command(s):** `ne` (network name)
-
-### `nmcli dev wifi list | grep <ssid>`
-
-*   **Description:** Retrieves the full details of a specific network from the scan list to determine its security type.
-*   **Dynamic Values:** `ssid`
-*   **Base Model Method(s):** `_connect`
-*   **CLI Command(s):** `co` (connect)
-
-### `nmcli connection up <network_name>`
-
-*   **Description:** Activates an existing NetworkManager connection profile.
-*   **Dynamic Values:** `network_name`
-*   **Base Model Method(s):** `_connect`
-*   **CLI Command(s):** `co` (connect)
-
-### `nmcli -t -f NAME connection show`
-
-*   **Description:** Lists the names of all saved NetworkManager connection profiles.
-*   **Dynamic Values:** None.
-*   **Base Model Method(s):** `preferred_networks`
-*   **CLI Command(s):** `pr` (preferred networks), `co` (connect)
-
-### `nmcli connection modify <network_name> 802-11-wireless-security.psk <password>`
-
-*   **Description:** Sets the password for a WPA-secured network on an existing connection profile.
-*   **Dynamic Values:** `network_name`, `password`
-*   **Base Model Method(s):** `_connect`
-*   **CLI Command(s):** `co` (connect)
-
-### `nmcli dev wifi connect <network_name> password <password>`
-
-*   **Description:** Connects to a Wi-Fi network, creating a new profile if one doesn't exist.
-*   **Dynamic Values:** `network_name`, `password`
-*   **Base Model Method(s):** `_connect`
-*   **CLI Command(s):** `co` (connect)
-
-### `nmcli connection delete <network_name>`
-
-*   **Description:** Deletes a NetworkManager connection profile.
-*   **Dynamic Values:** `network_name`
-*   **Base Model Method(s):** `remove_preferred_network`
-*   **CLI Command(s):** `f` (forget)
-
-### `nmcli --show-secrets connection show <network_name> | grep '802-11-wireless-security.psk:' | cut -d':' -f2-`
-
-*   **Description:** Shows the Wi-Fi password for a saved connection profile.
-*   **Dynamic Values:** `preferred_network_name`
-*   **Base Model Method(s):** `_preferred_network_password`
-*   **CLI Command(s):** `pa` (password)
-
-### `nmcli dev disconnect <interface>`
-
-*   **Description:** Disconnects a specific network interface from any active connection.
-*   **Dynamic Values:** `interface`
-*   **Base Model Method(s):** `_disconnect`
-*   **CLI Command(s):** `d` (disconnect)
-
-### `nmcli connection modify <interface> ipv4.dns "<dns_servers>"`
-
-*   **Description:** Sets the DNS servers for a network connection.
-*   **Dynamic Values:** `interface`, `dns_servers`
-*   **Base Model Method(s):** `set_nameservers`
-*   **CLI Command(s):** `na` (nameservers)
-
-## `ip` - IP Command
-
-The `ip` command is used to show and manipulate routing, devices, policy routing and tunnels.
-
-### `ip -4 addr show <interface> | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1`
-
-*   **Description:** Shows the IPv4 address of the Wi-Fi interface.
-*   **Dynamic Values:** `wifi_interface`
-*   **Base Model Method(s):** `_ip_address`
-*   **CLI Command(s):** `i` (info)
-
-### `ip link show <interface> | grep ether | awk '{print $2}'`
-
-*   **Description:** Shows the MAC address of the Wi-Fi interface.
-*   **Dynamic Values:** `wifi_interface`
-*   **Base Model Method(s):** `mac_address`
-*   **CLI Command(s):** `i` (info)
-
-### `ip route show default | awk '{print $5}'`
-
-*   **Description:** Determines the default network interface used for internet traffic.
-*   **Dynamic Values:** None.
-*   **Base Model Method(s):** `default_interface`
-*   **CLI Command(s):** `i` (info)
-
-## `iw` - IW Command
-
-`iw` is a tool to show and manipulate wireless devices and their configuration.
+Used for basic wireless device inspection.
 
 ### `iw dev | grep Interface | cut -d' ' -f2`
 
-*   **Description:** Lists all wireless network interfaces.
+*   **Description:** Detects the primary Wi-Fi interface name.
 *   **Dynamic Values:** None.
-*   **Base Model Method(s):** `detect_wifi_interface`
-*   **CLI Command(s):** `i` (info)
+*   **Base Model Method:** `detect_wifi_interface`
+*   **CLI Commands:** All (during initialization).
 
 ### `iw dev <interface> info`
 
 *   **Description:** Checks if a given network interface is a Wi-Fi interface.
 *   **Dynamic Values:** `interface`
-*   **Base Model Method(s):** `is_wifi_interface?`
-*   **CLI Command(s):** (Internal validation)
+*   **Base Model Method:** `is_wifi_interface?`
+*   **CLI Commands:** All (during initialization).
+
+---
+
+## `nmcli`
+
+The primary tool for managing network connections on Ubuntu.
+
+### `nmcli radio wifi`
+
+*   **Description:** Checks if the Wi-Fi radio is enabled.
+*   **Dynamic Values:** None.
+*   **Base Model Method:** `wifi_on?`
+*   **CLI Commands:** `w`, `i`, `a`, `s`, `cy`
+
+### `nmcli radio wifi [on|off]`
+
+*   **Description:** Turns the Wi-Fi radio on or off.
+*   **Dynamic Values:** `on` or `off`.
+*   **Base Model Methods:** `wifi_on`, `wifi_off`
+*   **CLI Commands:** `on`, `of`, `cy`
+
+### `nmcli -t -f SSID,SIGNAL dev wifi list`
+
+*   **Description:** Lists available Wi-Fi networks with their signal strength.
+*   **Dynamic Values:** None.
+*   **Base Model Method:** `_available_network_names`
+*   **CLI Commands:** `a`
+
+### `nmcli -t -f active,ssid device wifi | ...`
+
+*   **Description:** Gets the SSID of the currently connected Wi-Fi network.
+*   **Dynamic Values:** None.
+*   **Base Model Method:** `_connected_network_name`
+*   **CLI Commands:** `ne`, `i`, `s`, `co`, `qr`
+
+### `nmcli dev wifi connect <network_name> [password <password>]`
+
+*   **Description:** Connects to a Wi-Fi network, creating a new connection profile.
+*   **Dynamic Values:** `network_name`, `password`
+*   **Base Model Method:** `_connect`
+*   **CLI Commands:** `co`
+
+### `nmcli connection up <profile>`
+
+*   **Description:** Activates an existing connection profile.
+*   **Dynamic Values:** `profile` (the name of the connection profile).
+*   **Base Model Methods:** `_connect`, `set_nameservers`
+*   **CLI Commands:** `co`, `na`
+
+### `nmcli connection modify <profile> <security_param> <password>`
+
+*   **Description:** Modifies the password of an existing connection profile.
+*   **Dynamic Values:** `profile`, `security_param`, `password`
+*   **Base Model Method:** `_connect`
+*   **CLI Commands:** `co`
+
+### `nmcli -t -f SSID,SECURITY dev wifi list`
+
+*   **Description:** Gets the security type (e.g., WPA2) of available networks.
+*   **Dynamic Values:** None.
+*   **Base Model Methods:** `get_security_parameter`, `connection_security_type`
+*   **CLI Commands:** `co`, `qr` (indirectly)
+
+### `nmcli -t -f NAME,TIMESTAMP connection show`
+
+*   **Description:** Lists saved connection profiles with their last-used timestamp.
+*   **Dynamic Values:** None.
+*   **Base Model Method:** `find_best_profile_for_ssid`
+*   **CLI Commands:** `co` (indirectly)
+
+### `nmcli connection delete <network_name>`
+
+*   **Description:** Deletes a saved connection profile.
+*   **Dynamic Values:** `network_name`
+*   **Base Model Method:** `remove_preferred_network`
+*   **CLI Commands:** `f`
+
+### `nmcli -t -f NAME connection show`
+
+*   **Description:** Lists the names of all saved connection profiles.
+*   **Dynamic Values:** None.
+*   **Base Model Method:** `preferred_networks`
+*   **CLI Commands:** `pr`, `f`
+
+### `nmcli --show-secrets connection show <name> | ...`
+
+*   **Description:** Retrieves the stored password for a saved connection profile.
+*   **Dynamic Values:** `preferred_network_name`
+*   **Base Model Method:** `_preferred_network_password`
+*   **CLI Commands:** `pa`, `qr` (indirectly)
+
+### `nmcli dev disconnect <interface>`
+
+*   **Description:** Disconnects the Wi-Fi interface from the current network.
+*   **Dynamic Values:** `interface`
+*   **Base Model Method:** `_disconnect`
+*   **CLI Commands:** `d`
+
+### `nmcli connection modify <connection> ipv4.dns "..."`
+
+*   **Description:** Sets the DNS servers for a specific connection profile.
+*   **Dynamic Values:** `current_connection`, DNS server IPs.
+*   **Base Model Method:** `set_nameservers`
+*   **CLI Commands:** `na`
+
+### `nmcli connection modify <connection> ipv4.ignore-auto-dns [yes|no]`
+
+*   **Description:** Configures whether to use DNS servers provided by the network.
+*   **Dynamic Values:** `current_connection`
+*   **Base Model Method:** `set_nameservers`
+*   **CLI Commands:** `na`
+
+### `nmcli connection show <connection_name>`
+
+*   **Description:** Shows detailed information for a connection profile, used to get DNS servers.
+*   **Dynamic Values:** `connection_name`
+*   **Base Model Method:** `nameservers_from_connection`
+*   **CLI Commands:** `na`
+
+---
+
+## `ip`
+
+Used for inspecting network interface details.
+
+### `ip -4 addr show <interface> | ...`
+
+*   **Description:** Gets the IPv4 address of the Wi-Fi interface.
+*   **Dynamic Values:** `wifi_interface`
+*   **Base Model Method:** `_ip_address`
+*   **CLI Commands:** `i`
+
+### `ip link show <interface> | ...`
+
+*   **Description:** Gets the MAC address of the Wi-Fi interface.
+*   **Dynamic Values:** `wifi_interface`
+*   **Base Model Method:** `mac_address`
+*   **CLI Commands:** `i`
+
+### `ip route show default | ...`
+
+*   **Description:** Finds the network interface for the default route.
+*   **Dynamic Values:** None.
+*   **Base Model Method:** `default_interface`
+*   **CLI Commands:** `i`
+
+---
 
 ## `xdg-open`
 
-`xdg-open` is a desktop-independent tool for opening files and URLs from the command line.
-
-### `xdg-open <application_name>`
-
-*   **Description:** Opens a specified application.
-*   **Dynamic Values:** `application_name`
-*   **Base Model Method(s):** `open_application`
-*   **CLI Command(s):** `ro` (open resource)
-
 ### `xdg-open <resource_url>`
 
-*   **Description:** Opens a URL in the default web browser.
+*   **Description:** Opens a URL or file with the default application.
 *   **Dynamic Values:** `resource_url`
-*   **Base Model Method(s):** `open_resource`
-*   **CLI Command(s):** `ro` (open resource)
+*   **Base Model Method:** `open_resource`
+*   **CLI Commands:** `ro`
+
+---
+
+## `which`
+
+### `which [command]`
+
+*   **Description:** Checks if a command is available in the system's PATH.
+*   **Dynamic Values:** `command` (`iw`, `nmcli`)
+*   **Base Model Method:** `validate_os_preconditions`
+*   **CLI Commands:** All (during initialization).
