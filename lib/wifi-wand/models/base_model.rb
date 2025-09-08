@@ -6,6 +6,7 @@ require 'tempfile'
 require 'uri'
 require_relative 'helpers/command_output_formatter'
 require_relative 'helpers/resource_manager'
+require_relative 'helpers/qr_code_generator'
 require_relative '../errors'
 require_relative '../services/command_executor'
 require_relative '../services/network_connectivity_tester'
@@ -343,6 +344,11 @@ class BaseModel
     resource_manager.available_resources_help
   end
 
+  # QR code generator helper
+  def qr_code_generator
+    @qr_code_generator ||= Helpers::QrCodeGenerator.new
+  end
+
   # Network State Management for Testing
   # These methods help capture and restore network state during disruptive tests
   
@@ -369,84 +375,7 @@ class BaseModel
   # @raise [WifiWand::Error] If not connected to a network or qrencode is not available
   def generate_qr_code
     debug_method_entry(__method__)
-    
-    # Check if qrencode is available
-    unless command_available_using_which?('qrencode')
-      install_command = case WifiWand::OperatingSystems.current_os&.id
-                       when :mac
-                         'brew install qrencode'
-                       when :ubuntu
-                         'sudo apt install qrencode'
-                       else
-                         'install qrencode using your system package manager'
-                       end
-      
-      raise WifiWand::Error.new("Required operating system dependency 'qrencode' library not found. Use #{install_command} to install it.")
-    end
-    
-    # Get current network information
-    network_name = connected_network_name
-    unless network_name
-      raise WifiWand::Error.new("Not connected to any WiFi network. Connect to a network first.")
-    end
-    
-    # Get network password and security type
-    password = connected_network_password
-    security_type = connection_security_type
-    
-    # Build WiFi QR code string in the format:
-    # WIFI:T:<security>;S:<SSID>;P:<password>;H:<hidden>;;
-    # where:
-    # T = security type (WPA, WEP, or blank for open)
-    # S = SSID (network name)
-    # P = password (blank for open networks)
-    # H = hidden (true/false, we'll assume false)
-    
-    # Map our security types to QR code format
-    qr_security = case security_type
-                  when 'WPA', 'WPA2', 'WPA3'
-                    'WPA'
-                  when 'WEP'
-                    'WEP'
-                  else
-                    '' # Open network
-                  end
-    
-    qr_password = password || ''
-    
-    # Escape special characters in SSID and password
-    escaped_ssid = network_name.gsub(/[;,:\\]/) { |char| "\\#{char}" }
-    escaped_password = qr_password.gsub(/[;,:\\]/) { |char| "\\#{char}" }
-    
-    wifi_qr_string = "WIFI:T:#{qr_security};S:#{escaped_ssid};P:#{escaped_password};H:false;;"
-    
-    # Generate filename
-    safe_network_name = network_name.gsub(/[^\w\-_]/, '_')
-    filename = "#{safe_network_name}-qr-code.png"
-
-    # If file exists, confirm overwrite when running in a TTY
-    if File.exist?(filename)
-      if $stdin.tty?
-        print "File '#{filename}' already exists. Overwrite? [y/N]: "
-        answer = $stdin.gets&.strip&.downcase
-        unless %w[y yes].include?(answer)
-          raise WifiWand::Error.new("QR code generation cancelled: file exists and overwrite not confirmed")
-        end
-      else
-        raise WifiWand::Error.new("QR code output file '#{filename}' already exists. Delete the file first or run interactively to confirm overwrite.")
-      end
-    end
-
-    # Generate QR code using qrencode
-    qrencode_command = "qrencode -o #{Shellwords.shellescape(filename)} #{Shellwords.shellescape(wifi_qr_string)}"
-
-    begin
-      run_os_command(qrencode_command)
-      puts "QR code generated: #{filename}" if @verbose_mode
-      filename
-    rescue WifiWand::CommandExecutor::OsCommandError => e
-      raise WifiWand::Error.new("Failed to generate QR code: #{e.message}")
-    end
+    qr_code_generator.generate(self)
   end
   
   private
