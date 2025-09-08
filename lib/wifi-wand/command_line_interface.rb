@@ -181,9 +181,10 @@ class CommandLineInterface
     handle_output(on, -> { "Wifi on: #{on}" })
   end
 
-  def cmd_qr
-    filename = model.generate_qr_code
-    handle_output(filename, -> { "QR code generated: #{filename}" })
+  def cmd_qr(filespec = nil)
+    result = model.generate_qr_code(filespec)
+    return nil if filespec == '-' # previous call already output the QR code to stdout
+    handle_output(result, -> { "QR code generated: #{result}" })
   end
 
   # ===== OTHER COMMANDS =====

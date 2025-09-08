@@ -613,9 +613,9 @@ describe WifiWand::CommandLineInterface do
     end
   end
   
-  describe 'QR code generation commands' do
-    describe '#cmd_qr' do
-      it_behaves_like 'simple command delegation', :cmd_qr, :generate_qr_code
+    describe 'QR code generation commands' do
+      describe '#cmd_qr' do
+        it_behaves_like 'simple command delegation', :cmd_qr, :generate_qr_code
       
       it_behaves_like 'interactive vs non-interactive command', :cmd_qr, :generate_qr_code, {
         return_value: 'TestNetwork-qr-code.png',
@@ -631,7 +631,16 @@ describe WifiWand::CommandLineInterface do
         expect(mock_model).to receive(:generate_qr_code).and_return('TestNetwork-qr-code.png')
         subject.cmd_qr
       end
-    end
+      end
+
+      it "prints QR text directly when filespec is '-'" do
+        cli = described_class.new(options)
+        allow(cli).to receive(:run_shell)
+        allow(cli).to receive(:puts)
+        # Model is responsible for printing QR text in '-' mode
+        expect(cli.model).to receive(:generate_qr_code).with('-') { puts "[QR-ANSI]"; '-' }
+        expect { cli.cmd_qr('-') }.to output("[QR-ANSI]\n").to_stdout
+      end
     
     describe 'QR command in command registry' do
       it 'includes qr command in available commands' do

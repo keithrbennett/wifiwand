@@ -3,7 +3,7 @@ require 'shellwords'
 module WifiWand
   module Helpers
     class QrCodeGenerator
-      def generate(model)
+      def generate(model, filespec = nil)
         ensure_qrencode_available!(model)
 
         network_name = require_connected_network_name(model)
@@ -11,11 +11,11 @@ module WifiWand
         security     = model.connection_security_type
 
         qr_string = build_wifi_qr_string(network_name, password, security)
-        filename  = build_filename(network_name)
+        return run_qrencode_text!(model, qr_string) if filespec == '-'
 
+        filename  = filespec && !filespec.empty? ? filespec : build_filename(network_name)
         confirm_overwrite!(filename)
-        run_qrencode!(model, filename, qr_string)
-
+        run_qrencode_file!(model, filename, qr_string)
         filename
       end
 
@@ -91,7 +91,7 @@ module WifiWand
         end
       end
 
-      def run_qrencode!(model, filename, qr_string)
+      def run_qrencode_file!(model, filename, qr_string)
         cmd = "qrencode -o #{Shellwords.shellescape(filename)} #{Shellwords.shellescape(qr_string)}"
         begin
           model.run_os_command(cmd)
@@ -100,7 +100,17 @@ module WifiWand
           raise WifiWand::Error.new("Failed to generate QR code: #{e.message}")
         end
       end
+
+      def run_qrencode_text!(model, qr_string)
+        cmd = "qrencode -t ANSI #{Shellwords.shellescape(qr_string)}"
+        begin
+          output = model.run_os_command(cmd)
+          print output
+          '-'
+        rescue WifiWand::CommandExecutor::OsCommandError => e
+          raise WifiWand::Error.new("Failed to generate QR code: #{e.message}")
+        end
+      end
     end
   end
 end
-

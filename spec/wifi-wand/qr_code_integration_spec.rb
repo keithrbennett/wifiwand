@@ -316,3 +316,39 @@ describe 'QR Code Integration Tests', :os_ubuntu do
     end
   end
 end
+
+# Separate tests for stdout text and custom filespec output, kept in this main
+# QR spec file for cohesion but independent of external zbar tools.
+describe 'QR Code Text Output and Filespec', :os_ubuntu do
+  let(:test_model) { create_ubuntu_test_model }
+
+  before(:each) do
+    allow(test_model).to receive(:command_available_using_which?).with('qrencode').and_return(true)
+    allow(test_model).to receive(:connected_network_name).and_return('TestNet')
+    allow(test_model).to receive(:connected_network_password).and_return('secret')
+    allow(test_model).to receive(:connection_security_type).and_return('WPA2')
+  end
+
+  it "writes ANSI QR to stdout when filespec is '-'" do
+    expect(test_model).to receive(:run_os_command) do |cmd, *_|
+      expect(cmd).to start_with('qrencode -t ANSI ')
+      expect(cmd).not_to include(' -o ')
+      "[QR-ANSI]\n"
+    end
+
+    result = nil
+    expect { result = test_model.generate_qr_code('-') }.to output("[QR-ANSI]\n").to_stdout
+    expect(result).to eq('-')
+  end
+
+  it 'accepts a custom output filespec' do
+    filespec = 'my-custom-name.png'
+    expect(test_model).to receive(:run_os_command) do |cmd, *_|
+      expect(cmd).to include("-o #{filespec} ")
+      ''
+    end
+
+    result = test_model.generate_qr_code(filespec)
+    expect(result).to eq(filespec)
+  end
+end

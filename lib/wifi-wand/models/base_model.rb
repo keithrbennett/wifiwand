@@ -373,9 +373,9 @@ class BaseModel
   # Generates a QR code for the currently connected WiFi network
   # @return [String] The filename of the generated QR code PNG file
   # @raise [WifiWand::Error] If not connected to a network or qrencode is not available
-  def generate_qr_code
+  def generate_qr_code(filespec = nil)
     debug_method_entry(__method__)
-    qr_code_generator.generate(self)
+    qr_code_generator.generate(self, filespec)
   end
   
   private
@@ -414,6 +414,11 @@ class BaseModel
 
   def command_available_using_which?(command)
     @command_executor.command_available_using_which?(command)
+  end
+
+  # QR code generator helper
+  def qr_code_generator
+    @qr_code_generator ||= Helpers::QrCodeGenerator.new
   end
 
   def debug_method_entry(method_name, binding = nil, param_names = nil)
