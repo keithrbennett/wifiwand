@@ -5,14 +5,22 @@ require_relative '../../../lib/wifi-wand/models/mac_os_model'
 module WifiWand
   describe MacOsModel, :os_mac do
     
-    # Mock network connectivity tester to prevent real network calls during non-disruptive tests
+    # Prevent accidental Keychain UI prompts in all tests (both disruptive and non-disruptive)
     before(:each) do
+      allow_any_instance_of(WifiWand::MacOsModel)
+        .to receive(:run_os_command)
+        .with(/security\s+find-generic-password/)
+        .and_raise(WifiWand::CommandExecutor::OsCommandError.new(44, 'security', ''))
+
+      # Mock network connectivity tester to prevent real network calls during non-disruptive tests
       # Check if current test or any parent group is marked as disruptive
       example_disruptive = RSpec.current_example&.metadata[:disruptive]
       group_disruptive = RSpec.current_example&.example_group&.metadata[:disruptive]
       is_disruptive = example_disruptive || group_disruptive
       
-      unless is_disruptive
+      unless is_disruptive || RSpec.current_example&.metadata[:keychain_integration]
+        # Avoid macOS Keychain prompts during non-disruptive tests
+        allow_any_instance_of(WifiWand::MacOsModel).to receive(:preferred_network_password).and_return(nil)
         # Ensure initialization doesn’t fail due to interface detection during non-disruptive tests
         allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_return('en0')
 
@@ -670,6 +678,24 @@ module WifiWand
           error = WifiWand::CommandExecutor::OsCommandError.new(99, "security", "strange failure")
           allow(model).to receive(:run_os_command).and_raise(error)
           expect { model._preferred_network_password("TestNet") }.to raise_error(WifiWand::KeychainError)
+        end
+      end
+
+      describe 'preferred_network_password command integration', :keychain_integration do
+        it 'invokes security find-generic-password with correct arguments and handles not-found' do
+          model = create_mac_os_test_model
+          ssid = 'TestNet'
+
+          # Ensure the network is considered preferred so wrapper calls the private method
+          allow(model).to receive(:preferred_networks).and_return([ssid])
+
+          expected_cmd = %Q{security find-generic-password -D "AirPort network password" -a #{Shellwords.shellescape(ssid)} -w 2>&1}
+          # Expect exact command, but avoid real execution by raising "not found" (exit 44)
+          expect(model).to receive(:run_os_command).with(expected_cmd).and_raise(
+            WifiWand::CommandExecutor::OsCommandError.new(44, 'security', '')
+          )
+
+          expect(model.preferred_network_password(ssid)).to be_nil
         end
       end
 

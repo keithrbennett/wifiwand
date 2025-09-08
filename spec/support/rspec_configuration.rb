@@ -33,6 +33,33 @@ module RSpecConfiguration
     
     # Include test helper methods
     config.include(TestHelpers)
+
+    # Prevent accidental macOS Keychain UI prompts in tests on macOS
+    config.before(:each) do |example|
+      begin
+        if defined?(WifiWand::MacOsModel) && ($compatible_os_tag == :os_mac)
+          # By default, stub the high-level helper to avoid Keychain access from indirect paths
+          unless example.metadata[:keychain_integration]
+            allow_any_instance_of(WifiWand::MacOsModel)
+              .to receive(:preferred_network_password)
+              .and_return(nil)
+          end
+
+          allow_any_instance_of(WifiWand::MacOsModel)
+            .to receive(:run_os_command)
+            .and_wrap_original do |m, *args|
+              cmd = args.first.to_s
+              if cmd.match?(/\bsecurity\s+find-generic-password\b/)
+                raise WifiWand::CommandExecutor::OsCommandError.new(44, 'security', '')
+              else
+                m.call(*args)
+              end
+            end
+        end
+      rescue => _e
+        # If stubbing fails for any reason, do not break the suite
+      end
+    end
     
     setup_test_suite_hooks(config)
     setup_network_state_management(config)
