@@ -4,6 +4,7 @@ require_relative '../../../lib/wifi-wand/models/ubuntu_model'
 module WifiWand
 
 describe UbuntuModel, :os_ubuntu do
+  let!(:subject) { create_ubuntu_test_model }
   
   # Mock network connectivity tester to prevent real network calls during non-disruptive tests
   before(:each) do
@@ -23,7 +24,7 @@ describe UbuntuModel, :os_ubuntu do
     end
   end
 
-  subject { create_ubuntu_test_model }
+
 
   # Constants for common patterns
   WIFI_INTERFACE_REGEX = /wl[a-z0-9]+/
@@ -194,6 +195,58 @@ describe UbuntuModel, :os_ubuntu do
           .and_return('')
         
         expect(subject.mac_address).to be_nil
+      end
+    end
+
+    describe '#connection_security_type' do
+      let(:network_name) { 'TestNetwork' }
+      let(:nmcli_security_output) do
+        "TestNetwork:WPA2\nOtherNetwork:WPA1 WPA2\nOpenNetwork:\nWEPNetwork:WEP"
+      end
+
+      before(:each) do
+        allow(subject).to receive(:_connected_network_name).and_return(network_name)
+      end
+
+      [
+        ['WPA2',                  'TestNetwork:WPA2',      'WPA2'],
+        ['WPA3',                  'TestNetwork:WPA3',      'WPA3'],
+        ['WPA',                   'TestNetwork:WPA',       'WPA'],
+        ['WPA1',                  'TestNetwork:WPA1',      'WPA'],
+        ['WEP',                   'TestNetwork:WEP',       'WEP'],
+        ['Mixed WPA',             'TestNetwork:WPA1 WPA2', 'WPA2'],
+        ['empty security (open)', 'TestNetwork:',          nil],
+        ['unknown security',      'TestNetwork:UNKNOWN',   nil]
+      ].each do |description, nmcli_line, expected|
+        it "returns #{expected || 'nil'} for #{description}" do
+          allow(subject).to receive(:run_os_command)
+            .with('nmcli -t -f SSID,SECURITY dev wifi list', false)
+            .and_return(nmcli_line)
+          
+          expect(subject.connection_security_type).to eq(expected)
+        end
+      end
+
+      it 'returns nil when not connected to any network' do
+        allow(subject).to receive(:_connected_network_name).and_return(nil)
+        
+        expect(subject.connection_security_type).to be_nil
+      end
+
+      it 'returns nil when network not found in scan results' do
+        allow(subject).to receive(:run_os_command)
+          .with('nmcli -t -f SSID,SECURITY dev wifi list', false)
+          .and_return('OtherNetwork:WPA2')
+        
+        expect(subject.connection_security_type).to be_nil
+      end
+
+      it 'returns nil when nmcli command fails' do
+        allow(subject).to receive(:run_os_command)
+          .with('nmcli -t -f SSID,SECURITY dev wifi list', false)
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'Command failed'))
+        
+        expect(subject.connection_security_type).to be_nil
       end
     end
 
@@ -731,4 +784,5 @@ describe UbuntuModel, :os_ubuntu do
     end
   end
 end
+
 end

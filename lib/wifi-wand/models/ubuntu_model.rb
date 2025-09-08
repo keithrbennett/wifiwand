@@ -191,15 +191,20 @@ class UbuntuModel < BaseModel
     # The output can be like "SSID:WPA2" or "SSID:WPA1 WPA2", so we just grab the part after the first colon.
     security_type = network_line.split(':')[1..-1].join(':').strip
 
-    case security_type
-    when /WPA3/i, /WPA2/i, /WPA1/i, /WPA/i
+    case canonical_security_type_from(security_type)
+    when 'WPA3', 'WPA2', 'WPA'
       "802-11-wireless-security.psk"
-    when /WEP/i
+    when 'WEP'
       "802-11-wireless-security.wep-key0"
     else
-      # Unsupported or open network (which shouldn't happen if a password is provided).
+      # Unsupported, enterprise, or open network (shouldn't need password).
       nil
     end
+  end
+
+  # Preferred, clearer name for security parameter query
+  def security_parameter(ssid)
+    get_security_parameter(ssid)
   end
 
   # Finds the best connection profile for a given SSID.
@@ -427,6 +432,32 @@ class UbuntuModel < BaseModel
     rescue Errno::ENOENT
       nil
     end
+  end
+
+  # Gets the security type of the currently connected network.
+  # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP", "None", or nil if not connected/not found
+  def connection_security_type
+    debug_method_entry(__method__)
+    
+    network_name = _connected_network_name
+    return nil unless network_name
+    
+    # Use the terse, machine-readable output to get the security protocol.
+    cmd = "nmcli -t -f SSID,SECURITY dev wifi list"
+    begin
+      output = run_os_command(cmd, false)
+    rescue WifiWand::CommandExecutor::OsCommandError
+      return nil # Can't scan, return nil
+    end
+
+    network_line = output.split("\n").find { |line| line.start_with?("#{network_name}:") }
+    return nil unless network_line
+
+    # The output can be like "SSID:WPA2" or "SSID:WPA1 WPA2", so we just grab the part after the first colon.
+    security_type = network_line.split(':')[1..-1].join(':').strip
+
+    # Normalize via shared logic (returns nil for open/enterprise/unknown)
+    canonical_security_type_from(security_type)
   end
 
   end

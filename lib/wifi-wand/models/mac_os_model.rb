@@ -63,6 +63,12 @@ class MacOsModel < BaseModel
     end
   end
 
+  # Preferred, clearer name for the Wi‑Fi service query.
+  # Kept alongside detect_wifi_service_name for backward compatibility.
+  def wifi_service_name
+    detect_wifi_service_name
+  end
+
   # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
   # This may not detect WiFi ports with nonstandard names, such as USB WiFi devices.
   def detect_wifi_interface_using_networksetup
@@ -96,6 +102,7 @@ class MacOsModel < BaseModel
   def detect_wifi_interface
     cmd = 'system_profiler -json SPNetworkDataType'
     json_text = run_os_command(cmd)
+    return nil if json_text.nil? || json_text.strip.empty?
     net_data = JSON.parse(json_text)
     nets = net_data['SPNetworkDataType']
     
@@ -370,20 +377,7 @@ class MacOsModel < BaseModel
   end
 
 
-  # Parses output like the text below into a hash:
-  # SSID: Pattara211
-  # MCS: 5
-  # channel: 7
-  def colon_output_to_hash(output)
-    lines = output.split("\n")
-    lines.each_with_object({}) do |line, new_hash|
-      key, value = line.split(': ')
-      key = key.strip
-      value.strip! if value
-      new_hash[key] = value
-    end
-  end
-  private :colon_output_to_hash
+  
 
 
   def nameservers_using_scutil
@@ -454,7 +448,9 @@ class MacOsModel < BaseModel
     begin
       cmd = "sw_vers -productVersion"
       output = run_os_command(cmd)
-      output.chomp
+      version = output.strip
+      return nil if version.empty?
+      version
     rescue => e
       if verbose_mode
         puts "Could not detect macOS version: #{e.message}."
@@ -521,5 +517,36 @@ class MacOsModel < BaseModel
       raise "Failed to parse system_profiler output: #{e.message}"
     end
   end
+
+  # Gets the security type of the currently connected network.
+  # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP", or nil if not connected/not found
+  def connection_security_type
+    network_name = _connected_network_name
+    return nil unless network_name
+    
+    data = airport_data
+    inner_key = 'spairport_airport_local_wireless_networks'
+    
+    # Get the networks data from the airport information
+    networks = data['SPAirPortDataType']
+         &.detect { |h| h.key?('spairport_airport_interfaces') }
+         &.dig('spairport_airport_interfaces')
+         &.detect { |h| h['_name'] == wifi_interface }
+         &.dig(inner_key)
+    
+    return nil unless networks
+    
+    # Find the network we're connected to
+    network = networks.detect { |net| net['_name'] == network_name }
+    return nil unless network
+    
+    # Extract security information
+    security_info = network['spairport_security_mode']
+    return nil unless security_info
+    
+    canonical_security_type_from(security_info)
+  end
+
+  public :connection_security_type
 end
 end

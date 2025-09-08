@@ -1,10 +1,12 @@
 require 'json'
 require 'net/http'
+require 'shellwords'
 require 'socket'
 require 'tempfile'
 require 'uri'
 require_relative 'helpers/command_output_formatter'
 require_relative 'helpers/resource_manager'
+require_relative 'helpers/qr_code_generator'
 require_relative '../errors'
 require_relative '../services/command_executor'
 require_relative '../services/network_connectivity_tester'
@@ -114,6 +116,7 @@ class BaseModel
   %i[
     default_interface
     detect_wifi_interface
+    connection_security_type
     is_wifi_interface?
     mac_address
     nameservers
@@ -341,6 +344,11 @@ class BaseModel
     resource_manager.available_resources_help
   end
 
+  # QR code generator helper
+  def qr_code_generator
+    @qr_code_generator ||= Helpers::QrCodeGenerator.new
+  end
+
   # Network State Management for Testing
   # These methods help capture and restore network state during disruptive tests
   
@@ -361,8 +369,42 @@ class BaseModel
 
     @connection_manager.last_connection_used_saved_password?
   end
+
+  # Generates a QR code for the currently connected WiFi network
+  # @return [String] The filename of the generated QR code PNG file
+  # @raise [WifiWand::Error] If not connected to a network or qrencode is not available
+  def generate_qr_code(filespec = nil)
+    debug_method_entry(__method__)
+    qr_code_generator.generate(self, filespec)
+  end
   
   private
+
+  # Normalizes a raw security descriptor string from OS tools to
+  # one of: "WPA3", "WPA2", "WPA", "WEP", or nil (unknown/open/enterprise).
+  # This centralizes regex handling across OS implementations.
+  def canonical_security_type_from(security_text)
+    return nil if security_text.nil?
+
+    text = security_text.to_s.strip
+    return nil if text.empty?
+
+    # Exclude enterprise/EAP networks which are not representable with PSK/WEP
+    return nil if text.match?(/802\.?1x|enterprise/i)
+
+    case text
+    when /WPA3/i
+      'WPA3'
+    when /WPA2/i
+      'WPA2'
+    when /WPA1/i, /WPA(?!\d)/i
+      'WPA'
+    when /WEP/i
+      'WEP'
+    else
+      nil
+    end
+  end
 
   def connected_network_password
     debug_method_entry(__method__)
@@ -372,6 +414,11 @@ class BaseModel
 
   def command_available_using_which?(command)
     @command_executor.command_available_using_which?(command)
+  end
+
+  # QR code generator helper
+  def qr_code_generator
+    @qr_code_generator ||= Helpers::QrCodeGenerator.new
   end
 
   def debug_method_entry(method_name, binding = nil, param_names = nil)

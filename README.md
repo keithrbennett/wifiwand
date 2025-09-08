@@ -85,6 +85,7 @@ of[f]                     - turns WiFi off
 pa[ssword] network-name   - password for preferred network name
 pr[ef_nets]               - preferred (saved) networks
 q[uit]                    - exits this program (interactive shell mode only) (same as 'x')
+qr [filespec|'-']         - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats
 ro[pen]                   - open web resources: 'cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page)
 s[tatus]                  - status line (WiFi, Network, TCP, DNS, Internet)
 t[ill]                    - wait until Internet connection reaches desired state:
@@ -216,6 +217,9 @@ wifi-wand pr           # prints preferred networks
 wifi-wand cy           # cycles the WiFi off and on
 wifi-wand co a-network a-password # connects to a network requiring a password
 wifi-wand co a-network            # connects to a network _not_ requiring a password
+wifi-wand qr          # generate PNG file: <SSID>-qr-code.png
+wifi-wand qr wifi.svg # generate SVG file: wifi.svg
+wifi-wand qr -        # print ANSI QR to terminal
 wifi-wand t on && say "Internet connected" # Play audible message when Internet becomes connected
 ```
 
@@ -311,6 +315,23 @@ Connected!
 ```
 
 
+### Generate Wi‑Fi QR Codes
+
+You can create QR codes for the currently connected network to share credentials quickly:
+
+- Default file output (PNG): `wifi-wand qr` → `<SSID>-qr-code.png`
+- Custom filespec: `wifi-wand qr wifi.png`
+- Alternate formats via filespec:
+  - `.svg` → SVG output (uses `qrencode -t SVG`)
+  - `.eps` → EPS output (uses `qrencode -t EPS`)
+- Text (stdout): `wifi-wand qr -` prints an ANSI QR directly to the terminal
+
+Notes:
+- Requires `qrencode` to be installed (macOS: `brew install qrencode`, Ubuntu: `sudo apt install qrencode`).
+- When a target file already exists, wifi-wand prompts before overwriting in interactive terminals; in non-interactive use, it errors instead.
+- For PDF, generate an SVG first and convert with a separate tool (e.g., `rsvg-convert`, `inkscape`, or ImageMagick’s `magick`).
+
+
 ### Public IP Information
 
 The information hash will normally include information about the public IP address.
@@ -328,7 +349,7 @@ open that page in your browser for you.
 ### Password Lookup Oddity
 
 You may find it odd (I did, anyway) that on macOS even if you issue the password command 
-(`mac_wifi password a-network-name`) using sudo, you will still be prompted 
+(`wifi-wand password a-network-name`) using sudo, you will still be prompted 
 with a graphical dialog for both a user id and password. This is no doubt
 for better security, but it's unfortunate in that it makes it impossible to fully automate this task.
 

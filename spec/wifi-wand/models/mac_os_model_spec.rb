@@ -5,14 +5,25 @@ require_relative '../../../lib/wifi-wand/models/mac_os_model'
 module WifiWand
   describe MacOsModel, :os_mac do
     
-    # Mock network connectivity tester to prevent real network calls during non-disruptive tests
+    # Prevent accidental Keychain UI prompts in all tests (both disruptive and non-disruptive)
     before(:each) do
+      allow_any_instance_of(WifiWand::MacOsModel)
+        .to receive(:run_os_command)
+        .with(/security\s+find-generic-password/)
+        .and_raise(WifiWand::CommandExecutor::OsCommandError.new(44, 'security', ''))
+
+      # Mock network connectivity tester to prevent real network calls during non-disruptive tests
       # Check if current test or any parent group is marked as disruptive
       example_disruptive = RSpec.current_example&.metadata[:disruptive]
       group_disruptive = RSpec.current_example&.example_group&.metadata[:disruptive]
       is_disruptive = example_disruptive || group_disruptive
       
-      unless is_disruptive
+      unless is_disruptive || RSpec.current_example&.metadata[:keychain_integration]
+        # Avoid macOS Keychain prompts during non-disruptive tests
+        allow_any_instance_of(WifiWand::MacOsModel).to receive(:preferred_network_password).and_return(nil)
+        # Ensure initialization doesn’t fail due to interface detection during non-disruptive tests
+        allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_return('en0')
+
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:connected_to_internet?).and_return(true)
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?).and_return(true)
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
@@ -406,20 +417,7 @@ module WifiWand
         end
       end
 
-      describe '#colon_output_to_hash' do
-        it 'parses colon-separated output correctly' do
-          test_cases = [
-            ["SSID: TestNetwork\nMCS: 5\nchannel: 7", {"SSID" => "TestNetwork", "MCS" => "5", "channel" => "7"}],
-            ["key: value\nother: data", {"key" => "value", "other" => "data"}],
-            ["single_line: only", {"single_line" => "only"}],
-            ["", {}]
-          ]
-
-          test_cases.each do |input, expected|
-            expect(model.send(:colon_output_to_hash, input)).to eq(expected)
-          end
-        end
-      end
+      
 
       describe '#_ip_address' do
         it 'handles different ipconfig responses' do
@@ -613,6 +611,12 @@ module WifiWand
       end
 
       describe '#detect_wifi_interface' do
+        # Restore original method behavior for these specific tests
+        before(:each) do
+          allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_call_original
+        end
+        # Provide a valid interface during initialization to avoid init failures in this block
+        subject(:model) { create_mac_os_test_model(wifi_interface: 'en0') }
         let(:system_profiler_output) do
           {
             "SPNetworkDataType" => [
@@ -677,6 +681,24 @@ module WifiWand
         end
       end
 
+      describe 'preferred_network_password command integration', :keychain_integration do
+        it 'invokes security find-generic-password with correct arguments and handles not-found' do
+          model = create_mac_os_test_model
+          ssid = 'TestNet'
+
+          # Ensure the network is considered preferred so wrapper calls the private method
+          allow(model).to receive(:preferred_networks).and_return([ssid])
+
+          expected_cmd = %Q{security find-generic-password -D "AirPort network password" -a #{Shellwords.shellescape(ssid)} -w 2>&1}
+          # Expect exact command, but avoid real execution by raising "not found" (exit 44)
+          expect(model).to receive(:run_os_command).with(expected_cmd).and_raise(
+            WifiWand::CommandExecutor::OsCommandError.new(44, 'security', '')
+          )
+
+          expect(model.preferred_network_password(ssid)).to be_nil
+        end
+      end
+
       describe '#macos_version' do
         it 'handles version detection failure gracefully' do
           # Allow all other commands to execute normally
@@ -690,6 +712,10 @@ module WifiWand
       end
 
       describe '#macos_version (real system)', :os_mac do
+        # For these real-system checks, allow actual OS command execution
+        before(:each) do
+          allow_any_instance_of(WifiWand::MacOsModel).to receive(:run_os_command).and_call_original
+        end
         it 'returns a non-empty semantic version on macOS' do
           real_model = create_mac_os_test_model
           v = real_model.macos_version
@@ -932,6 +958,106 @@ module WifiWand
           expect(model).to receive(:run_swift_command).with('WifiNetworkConnector', 'TestNetwork')
           
           model.os_level_connect_using_swift("TestNetwork")
+        end
+      end
+
+      describe '#connection_security_type' do
+        let(:network_name) { 'TestNetwork' }
+        let(:wifi_interface) { 'en0' }
+        
+        before(:each) do
+          allow(model).to receive(:_connected_network_name).and_return(network_name)
+          allow(model).to receive(:wifi_interface).and_return(wifi_interface)
+        end
+
+        [
+          ['WPA2', 'WPA2'],
+          ['WPA3', 'WPA3'], 
+          ['WPA', 'WPA'],
+          ['WPA1', 'WPA'],
+          ['WEP', 'WEP'],
+          ['Unknown Security', nil]
+        ].each do |security_mode, expected_result|
+          it "returns #{expected_result || 'nil'} for #{security_mode}" do
+            airport_data = {
+              'SPAirPortDataType' => [{
+                'spairport_airport_interfaces' => [{
+                  '_name' => wifi_interface,
+                  'spairport_airport_local_wireless_networks' => [{
+                    '_name' => network_name,
+                    'spairport_security_mode' => security_mode
+                  }]
+                }]
+              }]
+            }
+            
+            allow(model).to receive(:airport_data).and_return(airport_data)
+            
+            expect(model.connection_security_type).to eq(expected_result)
+          end
+        end
+
+        it 'returns nil when not connected to any network' do
+          allow(model).to receive(:_connected_network_name).and_return(nil)
+          
+          expect(model.connection_security_type).to be_nil
+        end
+
+        it 'returns nil when airport data is unavailable' do
+          allow(model).to receive(:airport_data).and_return({})
+          
+          expect(model.connection_security_type).to be_nil
+        end
+
+        it 'returns nil when wifi interface not found in airport data' do
+          airport_data = {
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name' => 'other_interface',
+                'spairport_airport_local_wireless_networks' => []
+              }]
+            }]
+          }
+          
+          allow(model).to receive(:airport_data).and_return(airport_data)
+          
+          expect(model.connection_security_type).to be_nil
+        end
+
+        it 'returns nil when connected network not found in scan results' do
+          airport_data = {
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name' => wifi_interface,
+                'spairport_airport_local_wireless_networks' => [{
+                  '_name' => 'OtherNetwork',
+                  'spairport_security_mode' => 'WPA2'
+                }]
+              }]
+            }]
+          }
+          
+          allow(model).to receive(:airport_data).and_return(airport_data)
+          
+          expect(model.connection_security_type).to be_nil
+        end
+
+        it 'returns nil when security mode information is missing' do
+          airport_data = {
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name' => wifi_interface,
+                'spairport_airport_local_wireless_networks' => [{
+                  '_name' => network_name
+                  # No spairport_security_mode key
+                }]
+              }]
+            }]
+          }
+          
+          allow(model).to receive(:airport_data).and_return(airport_data)
+          
+          expect(model.connection_security_type).to be_nil
         end
       end
 

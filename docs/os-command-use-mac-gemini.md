@@ -1,181 +1,183 @@
-# macOS OS Command Use
-### os-command-use-mac-gemini.md
-### 2025-08-26 12:00:00 UTC
+# OS Command Usage for macOS
 
-This document outlines the shell commands used by `wifi-wand` on the macOS operating system.
+### os-command-use-mac-gemini.md
+
+### 2025-09-09T21:22:00Z
+
+This document details the shell commands used by `wifi-wand` on the macOS operating system.
+
+## Network Management on macOS
+
+On macOS, `wifi-wand` uses a variety of tools to manage network settings. The primary tool is `networksetup`, but it also uses `system_profiler` for detailed information, `security` for keychain access, and `ifconfig` for some interface-level actions. For connecting and disconnecting, it prefers to use a modern Swift-based helper utility that interacts with the CoreWLAN framework directly.
+
+- **`networksetup`**: A versatile command for configuring network services, including Wi-Fi power, preferred networks, and DNS settings.
+- **`system_profiler`**: Provides detailed hardware and software information in JSON format. It is used to get a comprehensive list of available networks and their properties, though it can be slower than other methods.
+- **`security`**: The command-line interface to the macOS Keychain. It is used to securely retrieve stored Wi-Fi passwords.
+- **Swift Helpers**: Custom Swift scripts (`WifiNetworkConnector`, `WifiNetworkDisconnector`) are used for a more reliable and modern connection and disconnection experience.
+
+---
 
 ## `networksetup`
 
-`networksetup` is the primary command-line tool for configuring network settings in macOS.
-
 ### `networksetup -listallhardwareports`
 
-*   **Description:** Lists all hardware ports to find the name of the Wi-Fi service (e.g., "Wi-Fi", "AirPort").
+*   **Description:** Lists all hardware ports to dynamically detect the name of the Wi-Fi service (e.g., "Wi-Fi" or "AirPort").
 *   **Dynamic Values:** None.
-*   **Base Model Method(s):** `detect_wifi_service_name`, `detect_wifi_interface_using_networksetup`
-*   **CLI Command(s):** (Internal use)
+*   **Base Model Method:** `detect_wifi_service_name`
+*   **CLI Commands:** All (during initialization).
 
 ### `networksetup -listpreferredwirelessnetworks <interface>`
 
 *   **Description:** Lists the preferred (saved) wireless networks for a given interface.
 *   **Dynamic Values:** `interface`
-*   **Base Model Method(s):** `preferred_networks`
-*   **CLI Command(s):** `pr` (preferred networks)
+*   **Base Model Method:** `preferred_networks`
+*   **CLI Commands:** `pr`, `f`
 
 ### `networksetup -getairportpower <interface>`
 
-*   **Description:** Checks if the Wi-Fi radio for the specified interface is on.
+*   **Description:** Checks if the Wi-Fi radio is currently powered on.
 *   **Dynamic Values:** `interface`
-*   **Base Model Method(s):** `wifi_on?`
-*   **CLI Command(s):** `w` (status)
+*   **Base Model Method:** `wifi_on?`
+*   **CLI Commands:** `w`, `i`, `a`, `s`, `cy`
 
-### `networksetup -setairportpower <interface> on`
+### `networksetup -setairportpower <interface> [on|off]`
 
-*   **Description:** Turns the Wi-Fi radio on for the specified interface.
-*   **Dynamic Values:** `interface`
-*   **Base Model Method(s):** `wifi_on`
-*   **CLI Command(s):** `on`
+*   **Description:** Turns the Wi-Fi radio on or off.
+*   **Dynamic Values:** `interface`, `on` or `off`.
+*   **Base Model Methods:** `wifi_on`, `wifi_off`
+*   **CLI Commands:** `on`, `of`, `cy`
 
-### `networksetup -setairportpower <interface> off`
+### `networksetup -setairportnetwork <interface> <network> [password]`
 
-*   **Description:** Turns the Wi-Fi radio off for the specified interface.
-*   **Dynamic Values:** `interface`
-*   **Base Model Method(s):** `wifi_off`
-*   **CLI Command(s):** `of`
+*   **Description:** (Fallback Method) Connects to a Wi-Fi network.
+*   **Dynamic Values:** `interface`, `network`, `password`.
+*   **Base Model Method:** `_connect` (via `os_level_connect_using_networksetup`)
+*   **CLI Commands:** `co`
 
-### `networksetup -setairportnetwork <interface> <network_name> [password]`
+### `sudo networksetup -removepreferredwirelessnetwork <interface> <network>`
 
-*   **Description:** Connects to a Wi-Fi network. This is a fallback method.
-*   **Dynamic Values:** `interface`, `network_name`, `password`
-*   **Base Model Method(s):** `os_level_connect_using_networksetup`
-*   **CLI Command(s):** `co` (connect)
+*   **Description:** Removes a network from the list of preferred networks. Requires `sudo`.
+*   **Dynamic Values:** `interface`, `network`.
+*   **Base Model Method:** `remove_preferred_network`
+*   **CLI Commands:** `f`
 
-### `sudo networksetup -removepreferredwirelessnetwork <interface> <network_name>`
+### `networksetup -setdnsservers <service> [servers|empty]`
 
-*   **Description:** Removes a network from the preferred networks list.
-*   **Dynamic Values:** `interface`, `network_name`
-*   **Base Model Method(s):** `remove_preferred_network`
-*   **CLI Command(s):** `f` (forget)
+*   **Description:** Sets or clears the DNS servers for a network service.
+*   **Dynamic Values:** `service`, DNS server IPs.
+*   **Base Model Method:** `set_nameservers`
+*   **CLI Commands:** `na`
 
-### `networksetup -setdnsservers <service_name> <dns_servers|empty>`
+### `networksetup -getdnsservers <service>`
 
-*   **Description:** Sets or clears the DNS servers for a given network service.
-*   **Dynamic Values:** `service_name`, `dns_servers`
-*   **Base Model Method(s):** `set_nameservers`
-*   **CLI Command(s):** `na` (nameservers)
+*   **Description:** Retrieves the configured DNS servers for a service.
+*   **Dynamic Values:** `service`.
+*   **Base Model Method:** `nameservers_using_networksetup`
+*   **CLI Commands:** `na` (as a fallback)
 
-### `networksetup -getdnsservers <service_name>`
-
-*   **Description:** Gets the currently configured DNS servers for a network service.
-*   **Dynamic Values:** `service_name`
-*   **Base Model Method(s):** `nameservers_using_networksetup`
-*   **CLI Command(s):** `na` (nameservers)
+---
 
 ## `system_profiler`
 
-`system_profiler` provides detailed reports about the system's hardware and software.
-
 ### `system_profiler -json SPNetworkDataType`
 
-*   **Description:** Gets detailed network information in JSON format to detect the Wi-Fi interface name (e.g., en0).
+*   **Description:** Gathers detailed information about all network interfaces.
 *   **Dynamic Values:** None.
-*   **Base Model Method(s):** `detect_wifi_interface`
-*   **CLI Command(s):** (Internal use)
+*   **Base Model Method:** `detect_wifi_interface`
+*   **CLI Commands:** All (during initialization).
 
 ### `system_profiler -json SPAirPortDataType`
 
-*   **Description:** Gets detailed Wi-Fi information, including available networks and the current connection.
+*   **Description:** Gathers detailed Wi-Fi information, including available and connected networks.
 *   **Dynamic Values:** None.
-*   **Base Model Method(s):** `_available_network_names`, `_connected_network_name`
-*   **CLI Command(s):** `a` (available networks), `ne` (network name)
+*   **Base Model Methods:** `_available_network_names`, `_connected_network_name`, `connection_security_type`
+*   **CLI Commands:** `a`, `ne`, `i`, `s`, `qr`
+
+---
 
 ## `security`
 
-The `security` command provides tools for managing keys, certificates, and passwords in the keychain.
+### `security find-generic-password -D "AirPort network password" -a <network> -w`
 
-### `security find-generic-password -D "AirPort network password" -a <network_name> -w`
+*   **Description:** Retrieves a stored Wi-Fi password from the user's Keychain.
+*   **Dynamic Values:** `network`.
+*   **Base Model Method:** `_preferred_network_password`
+*   **CLI Commands:** `pa`, `qr` (indirectly)
 
-*   **Description:** Retrieves the stored password for a preferred Wi-Fi network from the keychain.
-*   **Dynamic Values:** `network_name`
-*   **Base Model Method(s):** `_preferred_network_password`
-*   **CLI Command(s):** `pa` (password)
+---
 
-## `ifconfig`
+## Swift Helpers
 
-`ifconfig` is used for network interface configuration.
+### `swift WifiNetworkConnector.swift <network> [password]`
 
-### `ipconfig getifaddr <interface>`
-
-*   **Description:** Gets the IP address for the specified interface.
-*   **Dynamic Values:** `interface`
-*   **Base Model Method(s):** `_ip_address`
-*   **CLI Command(s):** `i` (info)
-
-### `ifconfig <interface> | awk '/ether/{print $2}'`
-
-*   **Description:** Gets the MAC address for the specified interface.
-*   **Dynamic Values:** `interface`
-*   **Base Model Method(s):** `mac_address`
-*   **CLI Command(s):** `i` (info)
-
-### `sudo ifconfig <interface> disassociate`
-
-*   **Description:** Disconnects from the current Wi-Fi network. This is a fallback method.
-*   **Dynamic Values:** `interface`
-*   **Base Model Method(s):** `_disconnect`
-*   **CLI Command(s):** `d` (disconnect)
-
-## `swift`
-
-`swift` is used to execute Swift code for more modern macOS interactions.
-
-### `swift WifiNetworkConnector.swift <network_name> [password]`
-
-*   **Description:** Connects to a Wi-Fi network using a Swift script that leverages the CoreWLAN framework.
-*   **Dynamic Values:** `network_name`, `password`
-*   **Base Model Method(s):** `os_level_connect_using_swift`
-*   **CLI Command(s):** `co` (connect)
+*   **Description:** (Primary Method) Connects to a Wi-Fi network using the CoreWLAN framework.
+*   **Dynamic Values:** `network`, `password`.
+*   **Base Model Method:** `_connect` (via `os_level_connect_using_swift`)
+*   **CLI Commands:** `co`
 
 ### `swift WifiNetworkDisconnector.swift`
 
-*   **Description:** Disconnects from the current Wi-Fi network using a Swift script.
+*   **Description:** (Primary Method) Disconnects from the current Wi-Fi network.
 *   **Dynamic Values:** None.
-*   **Base Model Method(s):** `_disconnect`
-*   **CLI Command(s):** `d` (disconnect)
+*   **Base Model Method:** `_disconnect`
+*   **CLI Commands:** `d`
+
+### `swift -e 'import CoreWLAN'`
+
+*   **Description:** Checks if Swift and the CoreWLAN framework are available.
+*   **Dynamic Values:** None.
+*   **Base Model Method:** `swift_and_corewlan_present?`
+*   **CLI Commands:** `co`, `d` (to determine connection/disconnection strategy)
+
+---
 
 ## Other Commands
 
-### `open -a <application_name>`
+### `ipconfig getifaddr <interface>`
 
-*   **Description:** Opens a specified application.
-*   **Dynamic Values:** `application_name`
-*   **Base Model Method(s):** `open_application`
-*   **CLI Command(s):** `ro` (open resource)
+*   **Description:** Gets the IP address for a given interface.
+*   **Dynamic Values:** `interface`.
+*   **Base Model Method:** `_ip_address`
+*   **CLI Commands:** `i`
 
-### `open <resource_url>`
+### `ifconfig <interface> | awk '/ether/{print $2}'`
 
-*   **Description:** Opens a URL in the default web browser.
-*   **Dynamic Values:** `resource_url`
-*   **Base Model Method(s):** `open_resource`
-*   **CLI Command(s):** `ro` (open resource)
+*   **Description:** Gets the MAC address for an interface.
+*   **Dynamic Values:** `interface`.
+*   **Base Model Method:** `mac_address`
+*   **CLI Commands:** `i`
+
+### `[sudo] ifconfig <interface> disassociate`
+
+*   **Description:** (Fallback Method) Disconnects the interface from its current network.
+*   **Dynamic Values:** `interface`.
+*   **Base Model Method:** `_disconnect`
+*   **CLI Commands:** `d`
 
 ### `scutil --dns`
 
-*   **Description:** Retrieves DNS information from the System Configuration framework.
+*   **Description:** (Primary Method) Retrieves the system's current DNS configuration.
 *   **Dynamic Values:** None.
-*   **Base Model Method(s):** `nameservers_using_scutil`
-*   **CLI Command(s):** `na` (nameservers)
+*   **Base Model Method:** `nameservers_using_scutil`
+*   **CLI Commands:** `na`
 
-### `route -n get default | grep 'interface:' | awk '{print $2}'`
+### `open [-a <application>|<resource_url>]`
 
-*   **Description:** Determines the default network interface used for internet traffic.
+*   **Description:** Opens an application or a URL/file.
+*   **Dynamic Values:** `application_name`, `resource_url`.
+*   **Base Model Methods:** `open_application`, `open_resource`
+*   **CLI Commands:** `ro`
+
+### `route -n get default | ...`
+
+*   **Description:** Finds the network interface for the default route.
 *   **Dynamic Values:** None.
-*   **Base Model Method(s):** `default_interface`
-*   **CLI Command(s):** `i` (info)
+*   **Base Model Method:** `default_interface`
+*   **CLI Commands:** `i`
 
 ### `sw_vers -productVersion`
 
-*   **Description:** Detects the current macOS version.
+*   **Description:** Detects the current macOS version number.
 *   **Dynamic Values:** None.
-*   **Base Model Method(s):** `detect_macos_version`
-*   **CLI Command(s):** (Internal use)
+*   **Base Model Method:** `detect_macos_version`
+*   **CLI Commands:** All (during initialization).
