@@ -18,7 +18,8 @@
 # Notes
 # - Requires the 'qrencode' tool to be installed and available on PATH.
 # - For PDF output, generate SVG first and convert with a separate tool
-#   (e.g., rsvg-convert/inkscape/convert), as qrencode doesn’t emit PDF.
+#   (e.g., rsvg-convert/inkscape, or ImageMagick’s `magick`),
+#   as qrencode doesn’t emit PDF.
 
 require 'shellwords'
 

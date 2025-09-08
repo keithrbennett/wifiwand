@@ -329,7 +329,7 @@ You can create QR codes for the currently connected network to share credentials
 Notes:
 - Requires `qrencode` to be installed (macOS: `brew install qrencode`, Ubuntu: `sudo apt install qrencode`).
 - When a target file already exists, wifi-wand prompts before overwriting in interactive terminals; in non-interactive use, it errors instead.
-- For PDF, generate an SVG first and convert with a separate tool (e.g., `rsvg-convert`, `inkscape`, or `convert`).
+- For PDF, generate an SVG first and convert with a separate tool (e.g., `rsvg-convert`, `inkscape`, or ImageMagick’s `magick`).
 
 
 ### Public IP Information
