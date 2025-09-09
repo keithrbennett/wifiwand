@@ -709,6 +709,10 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:run_os_command)
           .with(/nmcli radio wifi$/, anything)
           .and_return('enabled')
+        # Mock _connected_network_name call
+        allow(subject).to receive(:run_os_command)
+          .with("nmcli -t -f active,ssid device wifi | egrep '^yes' | cut -d\\: -f2", false)
+          .and_return('TestNetwork')
         allow(subject).to receive(:run_os_command)
           .with(/nmcli connection modify .* ipv4\.dns ""/, false)
           .and_return('')

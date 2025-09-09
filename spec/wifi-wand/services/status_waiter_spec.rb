@@ -51,7 +51,7 @@ describe WifiWand::StatusWaiter do
           call_count <= 2  # Simulate wifi turning off after 2 checks
         end
         allow(waiter).to receive(:sleep)  # Mock sleep to speed up test
-        expect(waiter.wait_for(:off, WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
+        expect(waiter.wait_for(:off, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
       end
     end
 
@@ -72,7 +72,7 @@ describe WifiWand::StatusWaiter do
           call_count > 2  # Simulate connection after 2 checks
         end
         allow(waiter).to receive(:sleep)  # Mock sleep to speed up test
-        expect(waiter.wait_for(:conn, WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
+        expect(waiter.wait_for(:conn, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
       end
     end
 
@@ -93,7 +93,7 @@ describe WifiWand::StatusWaiter do
           call_count <= 2  # Simulate disconnection after 2 checks
         end
         allow(waiter).to receive(:sleep)  # Mock sleep to speed up test
-        expect(waiter.wait_for(:disc, WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
+        expect(waiter.wait_for(:disc, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
       end
     end
 
@@ -119,7 +119,7 @@ describe WifiWand::StatusWaiter do
         allow(verbose_waiter).to receive(:sleep)  # Mock sleep
         
         expect {
-          verbose_waiter.wait_for(:on, nil, WifiWand::TimingConstants::FAST_TEST_INTERVAL)
+          verbose_waiter.wait_for(:on, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)
         }.to output(/StatusWaiter \(on\): starting, timeout: never, interval: #{WifiWand::TimingConstants::FAST_TEST_INTERVAL}s/).to_stdout
       end
 
@@ -140,7 +140,7 @@ describe WifiWand::StatusWaiter do
         allow(verbose_waiter).to receive(:sleep)
         
         expect {
-          verbose_waiter.wait_for(:on, WifiWand::TimingConstants::FAST_TEST_INTERVAL)
+          verbose_waiter.wait_for(:on, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)
         }.to output(/StatusWaiter \(on\): wait time \(seconds\):/).to_stdout
       end
     end
@@ -163,7 +163,7 @@ describe WifiWand::StatusWaiter do
         allow(verbose_waiter).to receive(:sleep)
         
         expect {
-          verbose_waiter.wait_for(:on, 10)  # Use longer timeout to ensure it doesn't timeout
+          verbose_waiter.wait_for(:on, timeout_in_secs: 10)  # Use longer timeout to ensure it doesn't timeout
         }.to output(/StatusWaiter \(on\): wait time \(seconds\): 2\.5/).to_stdout
       end
     end

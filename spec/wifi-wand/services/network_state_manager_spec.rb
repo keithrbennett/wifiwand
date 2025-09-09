@@ -120,7 +120,7 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
       
       expect(mock_model).to receive(:wifi_on)
-      expect(mock_model).to receive(:till).with(:on, WifiWand::TimingConstants::WIFI_STATE_CHANGE_WAIT)
+      expect(mock_model).to receive(:till).with(:on, timeout_in_secs: WifiWand::TimingConstants::WIFI_STATE_CHANGE_WAIT)
       
       state_manager.restore_network_state(wifi_off_state)
     end
@@ -130,7 +130,7 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:wifi_on?).and_return(true)
       
       expect(mock_model).to receive(:wifi_off)
-      expect(mock_model).to receive(:till).with(:off, WifiWand::TimingConstants::WIFI_STATE_CHANGE_WAIT)
+      expect(mock_model).to receive(:till).with(:off, timeout_in_secs: WifiWand::TimingConstants::WIFI_STATE_CHANGE_WAIT)
       expect(mock_model).not_to receive(:connect)
       
       state_manager.restore_network_state(wifi_off_state)
@@ -143,7 +143,7 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:preferred_network_password).with('TestNetwork').and_return('fallback_pass')
       
       expect(mock_model).to receive(:connect).with('TestNetwork', 'fallback_pass')
-      expect(mock_model).to receive(:till).with(:conn, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT)
+      expect(mock_model).to receive(:till).with(:conn, timeout_in_secs: WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT)
       
       state_manager.restore_network_state(state_without_password)
     end

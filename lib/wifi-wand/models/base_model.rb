@@ -299,10 +299,16 @@ class BaseModel
   #        a default will be provided
   #
   # Connected is defined as being able to connect to an external web site.
-  def till(target_status, timeout_in_secs = nil, wait_interval_in_secs = nil)
+  def till(target_status, timeout_in_secs: nil, wait_interval_in_secs: nil,
+           stringify_permitted_values_in_error_msg: false)
     debug_method_entry(__method__, binding, %i{target_status timeout_in_secs wait_interval_in_secs})
 
-    @status_waiter.wait_for(target_status, timeout_in_secs, wait_interval_in_secs)
+    @status_waiter.wait_for(
+      target_status,
+      timeout_in_secs: timeout_in_secs,
+      wait_interval_in_secs: wait_interval_in_secs,
+      stringify_permitted_values_in_error_msg: stringify_permitted_values_in_error_msg
+    )
   end
 
 

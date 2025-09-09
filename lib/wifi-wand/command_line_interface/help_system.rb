@@ -9,7 +9,7 @@ module WifiWand
       def help_text
         resource_help = model ? model.resource_manager.open_resources.help_string : "[resources unavailable]"
         
-        "
+        %Q{
 Command Line Switches     [wifi-wand version #{WifiWand::VERSION} at https://github.com/keithrbennett/wifiwand]
 ---------------------
 -o {i,j,k,p,y}            - when not in shell mode, outputs data in the following formats: inspect, JSON, pretty JSON, puts, YAML
@@ -39,9 +39,11 @@ q[uit]                    - exits this program (interactive shell mode only) (sa
 qr [filespec|'-']         - generate QR for current Wi‑Fi; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats
 ro[pen]                   - open web resources: #{resource_help}
 s[tatus]                  - status line (WiFi, Network, TCP, DNS, Internet)
-t[ill]                    - wait until Internet connection reaches desired state:
-                            'on'/:on (connected), 'off'/:off (disconnected), 'conn'/:conn (connected), 'disc'/:disc (disconnected)
-                            Optional: wait interval between checks in seconds (default: #{WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL})
+t[ill]                    - wait until state is reached:
+                            Usage: till conn|disc|on|off [timeout_secs] [interval_secs]
+                            conn/disc = Internet connected?/disconnected; on/off = Wi‑Fi power state
+                            Defaults: timeout = wait indefinitely; interval = #{WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL}
+                            Examples: "till conn 20"  "till off 30 0.5"
 w[ifi_on]                 - is the WiFi on?
 x[it]                     - exits this program (interactive shell mode only) (same as 'q')
 
@@ -49,7 +51,7 @@ When in interactive shell mode:
   * remember to quote string literals.
   * for pry commands, use prefix `%`, e.g. `%ls`.
 
-"
+}
       end
 
       def print_help

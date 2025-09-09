@@ -14,7 +14,8 @@ module WifiWand
     #        if nil (default), waits indefinitely
     # @param wait_interval_in_secs sleeps this interval between retries; if nil or absent,
     #        a default will be provided
-    def wait_for(target_status, timeout_in_secs = nil, wait_interval_in_secs = nil)
+    def wait_for(target_status, timeout_in_secs: nil, wait_interval_in_secs: nil,
+                 stringify_permitted_values_in_error_msg: false)
       wait_interval_in_secs ||= TimingConstants::DEFAULT_WAIT_INTERVAL
       message_prefix = "StatusWaiter (#{target_status}):"
 
@@ -33,7 +34,12 @@ module WifiWand
       finished_predicate = finished_predicates[target_status]
 
       if finished_predicate.nil?
-        raise ArgumentError, "Option must be one of #{finished_predicates.keys.inspect}. Was: #{target_status.inspect}"
+        if stringify_permitted_values_in_error_msg
+          allowed = finished_predicates.keys.map(&:to_s).join(', ')
+          raise ArgumentError, "Option must be one of [#{allowed}]. Was: #{target_status}"
+        else
+          raise ArgumentError, "Option must be one of #{finished_predicates.keys.inspect}. Was: #{target_status.inspect}"
+        end
       end
 
       if finished_predicate.call

@@ -173,8 +173,15 @@ class CommandLineInterface
 
   def cmd_t(*options)
     target_status = options[0].to_sym
-    wait_interval_in_secs = (options[1] ? Float(options[1]) : nil)
-    model.till(target_status, wait_interval_in_secs)
+    timeout_in_secs = (options[1] ? Float(options[1]) : nil)
+    interval_in_secs = (options[2] ? Float(options[2]) : nil)
+    # Pass CLI-friendly error formatting in non-interactive mode only.
+    model.till(
+      target_status,
+      timeout_in_secs: timeout_in_secs,
+      wait_interval_in_secs: interval_in_secs,
+      stringify_permitted_values_in_error_msg: !interactive_mode
+    )
   end
 
   def cmd_w

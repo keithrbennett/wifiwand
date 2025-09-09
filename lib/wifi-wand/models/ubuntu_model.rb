@@ -49,7 +49,7 @@ class UbuntuModel < BaseModel
   def wifi_on
     return if wifi_on?
     run_os_command("nmcli radio wifi on")
-    till(:on, WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
+    till(:on, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
     wifi_on? ? nil : raise(WifiEnableError.new)
   rescue WifiWand::WaitTimeoutError
     raise WifiEnableError.new
@@ -58,7 +58,7 @@ class UbuntuModel < BaseModel
   def wifi_off
     return unless wifi_on?
     run_os_command("nmcli radio wifi off")
-    till(:off, WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
+    till(:off, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
     wifi_on? ? raise(WifiDisableError.new) : nil
   rescue WifiWand::WaitTimeoutError
     raise WifiDisableError.new

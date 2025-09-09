@@ -490,12 +490,22 @@ describe WifiWand::CommandLineInterface do
   describe 'timing command' do
     describe '#cmd_t (till)' do
       it 'calls model till method with target status' do
-        expect(mock_model).to receive(:till).with(:on, nil)
+        expect(mock_model).to receive(:till).with(
+          :on,
+          timeout_in_secs: nil,
+          wait_interval_in_secs: nil,
+          stringify_permitted_values_in_error_msg: true
+        )
         subject.cmd_t('on')
       end
       
       it 'calls model till method with target status and wait interval' do
-        expect(mock_model).to receive(:till).with(:connected, 2.5)
+        expect(mock_model).to receive(:till).with(
+          :connected,
+          timeout_in_secs: 2.5,
+          wait_interval_in_secs: nil,
+          stringify_permitted_values_in_error_msg: true
+        )
         subject.cmd_t('connected', '2.5')
       end
     end
