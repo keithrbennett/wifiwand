@@ -215,7 +215,7 @@ module WifiWand
             subject.set_nameservers(test_nameservers)
 
             # Poll until the new nameservers appear
-            wait_for(description: "nameservers to be set") do
+            wait_for(timeout: 20, interval: 0.5, description: "nameservers to be set") do
               (test_nameservers - subject.nameservers).empty?
             end
 
@@ -228,7 +228,7 @@ module WifiWand
             subject.set_nameservers(alternate_nameservers)
 
             # Wait for the new ones to be applied
-            wait_for(description: "alternate nameservers to be set") do
+            wait_for(timeout: 20, interval: 0.5, description: "alternate nameservers to be set") do
               subject.nameservers.include?(alternate_nameservers.first)
             end
             expect(subject.nameservers).to include(alternate_nameservers.first)
@@ -681,7 +681,8 @@ module WifiWand
         end
       end
 
-      describe 'preferred_network_password command integration', :keychain_integration do
+      # Runs early to surface any auth prompts before the long suite.
+      describe 'preferred_network_password command integration', :keychain_integration, :needs_sudo_access do
         it 'invokes security find-generic-password with correct arguments and handles not-found' do
           model = create_mac_os_test_model
           ssid = 'TestNet'
