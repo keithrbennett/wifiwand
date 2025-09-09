@@ -31,7 +31,7 @@ class CommandLineInterface
       wifi_interface: options.wifi_interface
     })
 
-    @model = OperatingSystems.create_model_for_current_os(model_options)
+    @model = WifiWand.create_model(model_options)
     @interactive_mode = !!(options.interactive_mode)
     run_shell if @interactive_mode
   end

@@ -256,13 +256,12 @@ of preferred networks, so you might want to suppress their output:
 
 #### Using the Models Without the Command Line Interface
 
-The code has been structured so that you can call the models
-from your own Ruby code, bypassing the command line interface.
-Here is an example of how to do that:
+The code has been structured so that you can call the models from your own Ruby code,
+bypassing the command line interface. Use the convenience factory `WifiWand.create_model`:
 
 ```ruby
 require 'wifi-wand'
-model = WifiWand::OperatingSystems.create_model_for_current_os
+model = WifiWand.create_model
 puts model.available_network_names.to_yaml # etc...
 ```
 
@@ -274,6 +273,17 @@ model = WifiWand::MacOsModel.new  # For macOS
 # or
 model = WifiWand::UbuntuModel.new  # For Ubuntu
 puts model.available_network_names.to_yaml # etc...
+```
+
+You can also pass options to `create_model` (e.g., to enable verbose mode or set a specific interface):
+
+```ruby
+require 'wifi-wand'
+require 'ostruct'
+
+options = OpenStruct.new(verbose: true, wifi_interface: 'en0')
+model = WifiWand.create_model(options)
+puts model.wifi_info
 ```
 
 

@@ -85,6 +85,20 @@ describe WifiWand::CommandLineInterface do
       cli = described_class.new(options)
       expect(cli.interactive_mode).to be(true)
     end
+
+    it 'uses WifiWand.create_model to build the model with derived options' do
+      # Ensure create_model is called and returns our mock model
+      expect(WifiWand)
+        .to receive(:create_model) do |model_options|
+          expect(model_options).to be_a(OpenStruct)
+          expect(model_options.verbose).to eq(options.verbose)
+          expect(model_options.wifi_interface).to eq(options.wifi_interface)
+          mock_model
+        end
+
+      cli = described_class.new(options)
+      expect(cli.model).to eq(mock_model)
+    end
   end
 
   describe 'command validation' do
