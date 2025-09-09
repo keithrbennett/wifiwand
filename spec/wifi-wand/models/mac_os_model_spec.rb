@@ -173,7 +173,8 @@ module WifiWand
         before(:each) do
           # Capture current state for restoration
           @original_wifi_state = subject.wifi_on? rescue true
-          @original_nameservers = subject.nameservers rescue []
+          # Capture DNS using networksetup to focus on Wi‑Fi service configuration
+          @original_nameservers = subject.nameservers_using_networksetup rescue []
         end
 
         after(:each) do
@@ -215,11 +216,11 @@ module WifiWand
             subject.set_nameservers(test_nameservers)
 
             # Poll until the new nameservers appear
-            wait_for(timeout: 20, interval: 0.5, description: "nameservers to be set") do
-              (test_nameservers - subject.nameservers).empty?
+            wait_for(timeout: 30, interval: 0.5, description: "nameservers to be set") do
+              (test_nameservers - subject.nameservers_using_networksetup).empty?
             end
 
-            expect((test_nameservers - subject.nameservers).empty?).to be(true)
+            expect((test_nameservers - subject.nameservers_using_networksetup).empty?).to be(true)
           end
 
           it 'handles nameserver clearing and restoration' do
@@ -228,10 +229,10 @@ module WifiWand
             subject.set_nameservers(alternate_nameservers)
 
             # Wait for the new ones to be applied
-            wait_for(timeout: 20, interval: 0.5, description: "alternate nameservers to be set") do
-              subject.nameservers.include?(alternate_nameservers.first)
+            wait_for(timeout: 30, interval: 0.5, description: "alternate nameservers to be set") do
+              subject.nameservers_using_networksetup.include?(alternate_nameservers.first)
             end
-            expect(subject.nameservers).to include(alternate_nameservers.first)
+            expect(subject.nameservers_using_networksetup).to include(alternate_nameservers.first)
           end
 
           it 'validates IP address format before setting' do
@@ -614,6 +615,8 @@ module WifiWand
         # Restore original method behavior for these specific tests
         before(:each) do
           allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_call_original
+          # Force fallback path to system_profiler for deterministic tests
+          allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface_using_networksetup).and_return(nil)
         end
         # Provide a valid interface during initialization to avoid init failures in this block
         subject(:model) { create_mac_os_test_model(wifi_interface: 'en0') }

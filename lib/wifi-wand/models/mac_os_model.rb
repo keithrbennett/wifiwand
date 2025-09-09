@@ -102,20 +102,28 @@ class MacOsModel < BaseModel
   end
 
   # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
+  # Prefer the faster networksetup path and fall back to system_profiler if needed.
   # This may not detect WiFi ports with nonstandard names, such as USB WiFi devices.
   def detect_wifi_interface
+    begin
+      iface = detect_wifi_interface_using_networksetup
+      return iface if iface && !iface.to_s.empty?
+    rescue => _e
+      # Fall through to system_profiler fallback
+    end
+
     cmd = 'system_profiler -json SPNetworkDataType'
     json_text = run_os_command(cmd)
     return nil if json_text.nil? || json_text.strip.empty?
     net_data = JSON.parse(json_text)
     nets = net_data['SPNetworkDataType']
-    
+
     return nil if nets.nil? || nets.empty?
-    
+
     # Use dynamic service name detection
     service_name = detect_wifi_service_name
-    wifi = nets.detect { |net| net['_name'] == service_name}
-    
+    wifi = nets.detect { |net| net['_name'] == service_name }
+
     wifi ? wifi['interface'] : nil
   end
 
