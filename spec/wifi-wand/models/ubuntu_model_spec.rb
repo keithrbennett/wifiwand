@@ -717,6 +717,9 @@ describe UbuntuModel, :os_ubuntu do
           .with(/nmcli connection modify .* ipv4\.dns ""/, false)
           .and_return('')
         allow(subject).to receive(:run_os_command)
+          .with(/nmcli connection modify .* ipv4\.ignore-auto-dns no/, false)
+          .and_return('')
+        allow(subject).to receive(:run_os_command)
           .with(/nmcli connection up/, false)
           .and_return('')
         

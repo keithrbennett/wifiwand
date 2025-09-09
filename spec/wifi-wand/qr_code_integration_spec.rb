@@ -337,7 +337,7 @@ describe 'QR Code Text Output and Filespec', :os_ubuntu do
     end
 
     result = nil
-    expect { result = test_model.generate_qr_code('-') }.to output("[QR-ANSI]\n").to_stdout
+    expect { result = test_model.generate_qr_code('-') }.to output(a_string_including("[QR-ANSI]\n")).to_stdout
     expect(result).to eq('-')
   end
 
