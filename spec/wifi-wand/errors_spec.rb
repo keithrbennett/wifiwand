@@ -105,8 +105,20 @@ module WifiWand
           }
         },
         {
-          method: :preferred_network_password, args: ['NonExistentNetwork'], error: PreferredNetworkNotFoundError,
-          before: -> { allow(model).to receive(:preferred_networks).and_return([]) }
+          method: :preferred_network_password, args: ['__WIFIWAND_TEST_NON_EXISTENT_NETWORK__'], error: PreferredNetworkNotFoundError,
+          before: -> {
+            # Ensure membership check fails regardless of underlying OS/network state
+            allow(model).to receive(:has_preferred_network?).and_return(false)
+            allow_any_instance_of(model.class).to receive(:has_preferred_network?).and_return(false)
+
+            # Ensure our test exercises the real wrapper method, not a global stub
+            # Only un-stub on macOS where the global stub is applied
+            if defined?($compatible_os_tag) && $compatible_os_tag == :os_mac
+              allow_any_instance_of(WifiWand::MacOsModel)
+                .to receive(:preferred_network_password)
+                .and_call_original
+            end
+          }
         },
         {
           method: :wifi_on, args: [], error: WifiEnableError,

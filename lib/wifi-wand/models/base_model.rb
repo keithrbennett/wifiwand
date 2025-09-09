@@ -283,11 +283,17 @@ class BaseModel
   def preferred_network_password(preferred_network_name)
     debug_method_entry(__method__, binding, :preferred_network_name)
     preferred_network_name = preferred_network_name.to_s
-    if preferred_networks.include?(preferred_network_name)
+    if has_preferred_network?(preferred_network_name)
       _preferred_network_password(preferred_network_name)
     else
       raise PreferredNetworkNotFoundError.new(preferred_network_name)
     end
+  end
+
+  # Returns true if the given network name exists in the preferred networks list.
+  # Extracted for easier testing and overriding/mocking.
+  def has_preferred_network?(network_name)
+    preferred_networks.include?(network_name.to_s)
   end
 
 

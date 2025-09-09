@@ -13,11 +13,15 @@ class MacOsModel < BaseModel
   # Apple currently supports macOS 12+ as of 2024
   MIN_SUPPORTED_OS_VERSION = "12.0"
 
-  attr_reader :macos_version
+  # Lazily detected macOS version to avoid OS calls during initialization
+  def macos_version
+    @macos_version ||= detect_macos_version
+  end
 
   def initialize(options = OpenStruct.new)
     super
-    @macos_version = detect_macos_version
+    # Defer macOS version detection until first needed to minimize incidental OS calls
+    @macos_version = nil
   end
 
   def self.os_id
@@ -461,13 +465,14 @@ class MacOsModel < BaseModel
 
   # Validates that the current macOS version is supported
   def validate_macos_version
-    return unless @macos_version
+    version = macos_version
+    return unless version
     
-    unless supported_version?(@macos_version)
-      raise UnsupportedSystemError.new("macOS #{MIN_SUPPORTED_OS_VERSION}", @macos_version)
+    unless supported_version?(version)
+      raise UnsupportedSystemError.new("macOS #{MIN_SUPPORTED_OS_VERSION}", version)
     end
     
-    puts "macOS #{@macos_version} detected and supported" if verbose_mode
+    puts "macOS #{version} detected and supported" if verbose_mode
   end
 
   # Checks if the current version meets the minimum supported version
