@@ -333,7 +333,23 @@ class BaseModel
   # in the form of a hash.
   # You may need to enclose this call in a begin/rescue.
   def public_ip_address_info
-    JSON.parse(`curl -s ipinfo.io`)
+    uri = URI.parse('https://ipinfo.io/json')
+
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = (uri.scheme == 'https')
+    # Explicit, conservative timeouts to avoid blocking
+    http.open_timeout = 3
+    http.read_timeout = 3
+    http.write_timeout = 3 if http.respond_to?(:write_timeout=)
+
+    request = Net::HTTP::Get.new(uri.request_uri)
+    response = http.request(request)
+
+    unless response.is_a?(Net::HTTPSuccess)
+      raise WifiWand::PublicIPLookupError.new(response.code, response.message)
+    end
+
+    JSON.parse(response.body)
   end
 
 
