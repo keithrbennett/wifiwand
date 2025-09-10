@@ -82,6 +82,11 @@ bundle install
 bundle exec rspec
 ```
 
+### CI Safety Defaults
+
+- In Continuous Integration environments (`ENV['CI']` present), all tests tagged `:disruptive` are automatically excluded to prevent modifying host network state.
+- The macOS authentication preflight (described below) is also disabled in CI.
+
 ### Automatic OS Detection
 
 The test suite automatically detects the current operating system and runs only compatible tests:
@@ -120,6 +125,14 @@ bundle exec rspec
 | `:disruptive` | Tests that modify system state or network connections | ❌ Excluded by default |
 | `:os_ubuntu`  | Ubuntu-specific tests                                 | See OS Filtering      |
 | `:os_mac`     | macOS-specific tests                                  | See OS Filtering      |
+
+### Sudo/Keychain Ordering
+
+- Tests tagged `:needs_sudo_access` (for example, those that invoke `sudo networksetup ...`) are ordered to run first across the entire suite to surface authentication prompts early.
+- On macOS (non‑CI), the suite performs a brief preflight before tests begin:
+  - Warm the `sudo` timestamp (`sudo -v`).
+  - Attempt a harmless `sudo networksetup -removepreferredwirelessnetwork <iface> non_existent_network_123` to front‑load any prompt.
+  - If a current SSID is available and a TTY is present, a preferred network password lookup is attempted to surface any Keychain prompt early (see Keychain stubbing below).
 
 ## Verbose Testing Mode
 
@@ -240,6 +253,12 @@ if config.inclusion_filter.rules.empty? && config.exclusion_filter.rules.empty?
   end
 end
 ```
+
+Additional important configuration:
+
+- Sudo‑first ordering: examples and groups tagged `:needs_sudo_access` are scheduled at the start of the run.
+- macOS preflight (non‑CI only): warms `sudo` and front‑loads a harmless `networksetup` command; attempts an optional Keychain lookup.
+- macOS Keychain stubbing: by default, the suite stubs preferred password reads to avoid GUI prompts. Real Keychain access is not performed in normal runs.
 
 The OS detection:
 - Evaluates once per test run (efficient)
@@ -408,6 +427,8 @@ bundle exec rspec --format documentation
 bundle exec rspec --tag disruptive
 ```
 
+Note: In CI (`ENV['CI']` present), disruptive tests are always skipped.
+
 ### 3. Full Test Suite
 ```bash
 # Before committing or deploying
@@ -461,6 +482,8 @@ nmcli device status
 ```bash
 sudo bundle exec rspec
 ```
+
+On macOS, authentication prompts are surfaced at the start of the suite when possible (non‑CI). Tests that need sudo are also ordered first.
 
 #### NetworkManager Issues
 **Problem**: Tests interact with NetworkManager
@@ -526,6 +549,18 @@ Example CI configuration focus:
 - name: Run safe tests
   run: bundle exec rspec
 ```
+
+The CI job intentionally skips all tests tagged `:disruptive` to avoid modifying the network stack of the runner.
+
+## macOS Specifics
+
+### Keychain Access in Tests
+
+- By default, tests do not perform real Keychain reads for preferred Wi‑Fi passwords. The suite stubs these calls to avoid GUI prompts and non‑determinism.
+
+### Interface Detection Performance
+
+- macOS interface detection prefers the fast `networksetup -listallhardwareports` path, falling back to `system_profiler` when needed. This improves test performance without changing behavior.
 
 
 ## Best Practices

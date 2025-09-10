@@ -15,7 +15,7 @@ module WifiWand
       {
         wifi_enabled: @model.wifi_on?,
         network_name: @model.connected_network_name,
-        network_password: connected_network_password,
+        network_password: connected_network_password_if_safe,
         interface: @model.wifi_interface
       }
     end
@@ -45,7 +45,11 @@ module WifiWand
           return :already_connected if @model.wifi_on? == state[:wifi_enabled] && @model.connected_network_name == state[:network_name]
 
           # Try to reconnect with saved password or current password
-          password = state[:network_password] || @model.preferred_network_password(state[:network_name])
+          password = state[:network_password]
+          if password.nil?
+            # Fallback to preferred network password unless doing a risky macOS Keychain lookup
+            password = @model.preferred_network_password(state[:network_name]) unless macos_keychain_risky?
+          end
           @model.connect(state[:network_name], password)
           @model.till(:conn, timeout_in_secs: TimingConstants::NETWORK_CONNECTION_WAIT)
         end
@@ -60,10 +64,30 @@ module WifiWand
     end
     
     private
-    
+
     def connected_network_password
       return nil unless @model.connected_network_name
       @model.preferred_network_password(@model.connected_network_name)
+    end
+
+    # Only attempt to fetch a password when interactive to avoid GUI keychain prompts
+    # in non-interactive environments (e.g., RSpec/CI).
+    def connected_network_password_if_safe
+      begin
+        return nil if macos_keychain_risky?
+        connected_network_password
+      rescue
+        nil
+      end
+    end
+
+    def interactive_session?
+      $stdin.tty?
+    end
+
+    def macos_keychain_risky?
+      # Only consider it risky (GUI prompt) when using the real macOS model without a TTY
+      defined?(WifiWand::MacOsModel) && @model.is_a?(WifiWand::MacOsModel) && !interactive_session?
     end
   end
 end

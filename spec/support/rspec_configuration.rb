@@ -23,13 +23,85 @@ module RSpecConfiguration
     end
     
     # Run sudo tests first to get authentication prompts out of the way early
-    config.register_ordering(:sudo_first) do |examples|
-      sudo_examples, other_examples = examples.partition { |ex| ex.metadata[:needs_sudo_access] }
+    # Apply to both example lists and example group lists
+    sudo_partition = ->(items) do
+      items.partition do |it|
+        it.metadata[:needs_sudo_access] || (
+          it.respond_to?(:examples) && it.examples.any? { |ex| ex.metadata[:needs_sudo_access] }
+        )
+      end
+    end
+
+    config.register_ordering(:sudo_first) do |items|
+      sudo_items, other_items = sudo_partition.(items)
+      sudo_items + other_items
+    end
+
+    config.register_ordering(:groups) do |groups|
+      sudo_groups, other_groups = sudo_partition.(groups)
+      sudo_groups + other_groups
+    end
+
+    config.register_ordering(:examples) do |examples|
+      sudo_examples, other_examples = sudo_partition.(examples)
       sudo_examples + other_examples
     end
-    
-    # Use the custom ordering for disruptive tests
+
+    # Use the custom ordering for the entire suite (examples and groups)
     config.order = :sudo_first
+
+    # Keep a global nudge as well, though :groups/:examples should be sufficient
+    config.register_ordering(:global) do |items|
+      sudo_items, other_items = sudo_partition.(items)
+      sudo_items + other_items
+    end
+
+    # Pre-flight authentication for macOS to surface prompts at suite start
+    config.before(:suite) do
+      # Never attempt auth/network preflight in CI
+      next if ENV['CI']
+      begin
+        if defined?($compatible_os_tag) && $compatible_os_tag == :os_mac
+          # Warm up sudo timestamp first (no-op if already cached)
+          system('sudo -v')
+
+          # Build a model to query current state
+          model = begin
+            NetworkStateManager.model
+          rescue
+            nil
+          end
+
+          if model
+            # Trigger Keychain password lookup early (if connected)
+            ssid = begin
+              model.connected_network_name
+            rescue
+              nil
+            end
+            if ssid && $stdout.tty?
+              begin
+                model.preferred_network_password(ssid)
+              rescue
+                # Ignore – purpose is just to trigger any auth prompt upfront
+              end
+            end
+
+            # Trigger a harmless sudo networksetup operation early
+            iface = begin
+              model.wifi_interface
+            rescue
+              'en0'
+            end
+            system("sudo networksetup -removepreferredwirelessnetwork #{iface} non_existent_network_123 >/dev/null 2>&1 || true")
+          end
+        end
+      rescue
+        # Never fail the suite due to preflight convenience
+      end
+    end
+
+    # (Removed preferred network password logging per project decision)
     
     # Include test helper methods
     config.include(TestHelpers)
@@ -71,6 +143,12 @@ module RSpecConfiguration
   private
 
   def self.configure_disruptive_test_filtering(config)
+    # In CI, never run disruptive tests that change host network state
+    if ENV['CI']
+      config.filter_run_excluding :disruptive => true
+      return
+    end
+
     case ENV['RSPEC_DISRUPTIVE_TESTS']
     when 'only'
       config.filter_run_including :disruptive => true
