@@ -245,7 +245,7 @@ class UbuntuModel < BaseModel
   public
 
   def remove_preferred_network(network_name)
-    puts "Entered #{self.class}##{__method__} with #{network_name}" if verbose_mode
+    debug_method_entry(__method__, binding, :network_name)
 
     # Check if the network exists first
     existing_networks = preferred_networks
@@ -352,8 +352,7 @@ class UbuntuModel < BaseModel
           require 'ipaddr'
           IPAddr.new(ns).ipv4?
           true
-        rescue => e
-          puts e
+        rescue
           false
         end
       end

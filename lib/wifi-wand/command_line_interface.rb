@@ -25,10 +25,13 @@ class CommandLineInterface
 
   def initialize(options)
     @options = options
+    @output_io = options.output_io || $stdout
+    @error_io  = options.error_io  || $stderr
 
     model_options = OpenStruct.new({
       verbose:        options.verbose,
-      wifi_interface: options.wifi_interface
+      wifi_interface: options.wifi_interface,
+      output_io:      @output_io
     })
 
     @model = WifiWand.create_model(model_options)
@@ -43,7 +46,7 @@ class CommandLineInterface
   # Asserts that a command has been passed on the command line.
   def validate_command_line
     if ARGV.empty?
-      puts "Syntax is: #{File.basename($0)} [options] command [command_options]. #{help_hint}"
+      @error_io.puts "Syntax is: #{File.basename($0)} [options] command [command_options]. #{help_hint}"
       exit(-1)
     end
   end
@@ -91,7 +94,7 @@ class CommandLineInterface
     
     # Show message if we used a saved password
     if model.last_connection_used_saved_password? && !interactive_mode
-      puts "Using saved password for '#{network}'. Use 'forget #{network}' if you need to use a different password."
+      @output_io.puts "Using saved password for '#{network}'. Use 'forget #{network}' if you need to use a different password."
     end
   end
 
@@ -189,9 +192,36 @@ class CommandLineInterface
   end
 
   def cmd_qr(filespec = nil)
-    result = model.generate_qr_code(filespec)
-    return nil if filespec == '-' # previous call already output the QR code to stdout
-    handle_output(result, -> { "QR code generated: #{result}" })
+    begin
+      # Support shell-friendly aliases for ANSI/stdout output: '-', :-, :ansi, :stdout
+      ansi_flag = case filespec
+                  when :'-' then true
+                  else
+                    filespec.to_s.downcase == '-' || filespec.to_s.downcase == 'ansi' || filespec.to_s.downcase == 'stdout'
+                  end
+
+      result = model.generate_qr_code(ansi_flag ? '-' : filespec)
+      if ansi_flag
+        # When '-' is passed, the model returns the ANSI QR text. Print it here without adding extra newline.
+        @output_io.print result
+        return nil
+      end
+      handle_output(result, -> { "QR code generated: #{result}" })
+    rescue WifiWand::Error => e
+      if e.message.include?("already exists") && $stdin.tty?
+        @output_io.print "Output file exists. Overwrite? [y/N]: "
+        answer = $stdin.gets&.strip&.downcase
+        if %w[y yes].include?(answer)
+          result = model.generate_qr_code(filespec, overwrite: true)
+          handle_output(result, -> { "QR code generated: #{result}" })
+        else
+          # user declined overwrite; no output
+          nil
+        end
+      else
+        raise
+      end
+    end
   end
 
   # ===== OTHER COMMANDS =====
@@ -207,8 +237,13 @@ class CommandLineInterface
 
   def cmd_s
     status_data = model.status_line_data
-    handle_output(status_data, -> { status_line(status_data) })
-    status_data
+    if interactive_mode
+      @output_io.puts status_line(status_data)
+      nil
+    else
+      handle_output(status_data, -> { status_line(status_data) })
+      status_data
+    end
   end
 
   def cmd_x
@@ -218,14 +253,18 @@ class CommandLineInterface
   # Use macOS 'open' command line utility
   def cmd_ro(*resource_codes)
     if resource_codes.empty?
-      puts model.available_resources_help
+      if interactive_mode
+        return model.available_resources_help
+      else
+        @output_io.puts model.available_resources_help
+      end
       return
     end
 
     result = model.open_resources_by_codes(*resource_codes)
     
     unless result[:invalid_codes].empty?
-      puts model.resource_manager.invalid_codes_error(result[:invalid_codes])
+      @error_io.puts model.resource_manager.invalid_codes_error(result[:invalid_codes])
     end
     
     nil
@@ -242,8 +281,8 @@ class CommandLineInterface
       # in ARGV is the commands and their options.
       process_command_line
     rescue WifiWand::BadCommandError => error
-      puts error.to_s
-      puts help_hint
+      @error_io.puts error.to_s
+      @error_io.puts help_hint
       exit(-1)
     end
   end
@@ -259,7 +298,7 @@ class CommandLineInterface
       else
         output = human_readable_string_producer.call
       end
-      puts output unless output.to_s.empty?
+      @output_io.puts output unless output.to_s.empty?
     end
   end
 end

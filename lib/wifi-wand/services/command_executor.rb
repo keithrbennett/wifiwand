@@ -3,13 +3,14 @@ require_relative '../models/helpers/command_output_formatter'
 module WifiWand
   class CommandExecutor
     
-    def initialize(verbose: false)
+    def initialize(verbose: false, output: $stdout)
       @verbose = verbose
+      @output = output
     end
 
     def run_os_command(command, raise_on_error = true)
       if @verbose
-        puts CommandOutputFormatter.command_attempt_as_string(command)
+        @output.puts CommandOutputFormatter.command_attempt_as_string(command)
       end
 
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -19,8 +20,8 @@ module WifiWand
       status_string = "Exit code: #{status.exitstatus} (#{status.success? ? 'success' : 'error'})"
 
       if @verbose
-        puts "#{status_string}, Duration: #{'%.4f' % [Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time]} seconds -- #{Time.now.iso8601}"
-        puts CommandOutputFormatter.command_result_as_string(output)
+        @output.puts "#{status_string}, Duration: #{'%.4f' % [Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time]} seconds -- #{Time.now.iso8601}"
+        @output.puts CommandOutputFormatter.command_result_as_string(output)
       end
 
       if $?.exitstatus != 0 && raise_on_error
@@ -37,7 +38,7 @@ module WifiWand
     def try_os_command_until(command, stop_condition, max_tries = 100)
 
       report_attempt_count = ->(attempt_count) do
-        puts "Command was executed #{attempt_count} time(s)." if @verbose
+        @output.puts "Command was executed #{attempt_count} time(s)." if @verbose
       end
 
       max_tries.times do |n|

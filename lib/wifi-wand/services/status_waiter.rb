@@ -3,9 +3,10 @@ require_relative '../timing_constants'
 module WifiWand
   class StatusWaiter
     
-    def initialize(model, verbose: false)
+    def initialize(model, verbose: false, output: $stdout)
       @model = model
       @verbose = verbose
+      @output = output
     end
 
     # Waits for the Internet connection to be in the desired state.
@@ -21,7 +22,7 @@ module WifiWand
 
       if @verbose
         timeout_display = timeout_in_secs ? "#{timeout_in_secs}s" : "never"
-        puts "#{message_prefix} starting, timeout: #{timeout_display}, interval: #{wait_interval_in_secs}s"
+        @output.puts "#{message_prefix} starting, timeout: #{timeout_display}, interval: #{wait_interval_in_secs}s"
       end
 
       finished_predicates = {
@@ -43,10 +44,10 @@ module WifiWand
       end
 
       if finished_predicate.call
-        puts "#{message_prefix} completed without needing to wait" if @verbose
+        @output.puts "#{message_prefix} completed without needing to wait" if @verbose
         return nil
       else
-        puts "#{message_prefix} First attempt failed, entering waiting loop" if @verbose
+        @output.puts "#{message_prefix} First attempt failed, entering waiting loop" if @verbose
       end
 
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -56,11 +57,11 @@ module WifiWand
           raise WaitTimeoutError.new(target_status, timeout_in_secs)
         end
 
-        puts "#{message_prefix} checking predicate..." if @verbose
+        @output.puts "#{message_prefix} checking predicate..." if @verbose
         if finished_predicate.call
           if @verbose
             end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-            puts "#{message_prefix} wait time (seconds): #{end_time - start_time}"
+            @output.puts "#{message_prefix} wait time (seconds): #{end_time - start_time}"
           end
           return nil
         end

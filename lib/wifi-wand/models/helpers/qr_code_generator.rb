@@ -26,7 +26,7 @@ require 'shellwords'
 module WifiWand
   module Helpers
     class QrCodeGenerator
-      def generate(model, filespec = nil)
+      def generate(model, filespec = nil, overwrite: false)
         ensure_qrencode_available!(model)
 
         network_name = require_connected_network_name(model)
@@ -37,7 +37,7 @@ module WifiWand
         return run_qrencode_text!(model, qr_string) if filespec == '-'
 
         filename  = filespec && !filespec.empty? ? filespec : build_filename(network_name)
-        confirm_overwrite!(filename)
+        confirm_overwrite!(filename, overwrite: overwrite)
         run_qrencode_file!(model, filename, qr_string)
         filename
       end
@@ -100,18 +100,21 @@ module WifiWand
         "#{safe}-qr-code.png"
       end
 
-      def confirm_overwrite!(filename)
+      def confirm_overwrite!(filename, overwrite: false)
         return unless File.exist?(filename)
 
-        if $stdin.tty?
-          print "File '#{filename}' already exists. Overwrite? [y/N]: "
-          answer = $stdin.gets&.strip&.downcase
-          unless %w[y yes].include?(answer)
-            raise WifiWand::Error.new('QR code generation cancelled: file exists and overwrite not confirmed')
+        if overwrite
+          begin
+            File.delete(filename)
+          rescue
+            # If deletion fails, fall through to raising a user-facing error
+            raise WifiWand::Error.new("QR code output file '#{filename}' already exists and could not be overwritten.")
           end
-        else
-          raise WifiWand::Error.new("QR code output file '#{filename}' already exists. Delete the file first or run interactively to confirm overwrite.")
+          return
         end
+
+        # No overwrite: raise and let the client decide how to proceed
+        raise WifiWand::Error.new("QR code output file '#{filename}' already exists. Delete the file first or confirm overwrite in the client.")
       end
 
       def run_qrencode_file!(model, filename, qr_string)
@@ -124,7 +127,7 @@ module WifiWand
         ].compact.join(' ')
         begin
           model.run_os_command(cmd)
-          puts "QR code generated: #{filename}" if model.verbose_mode
+          model.output_io.puts "QR code generated: #{filename}" if model.verbose_mode
         rescue WifiWand::CommandExecutor::OsCommandError => e
           raise WifiWand::Error.new("Failed to generate QR code: #{e.message}")
         end
@@ -134,8 +137,8 @@ module WifiWand
         cmd = "qrencode -t ANSI #{Shellwords.shellescape(qr_string)}"
         begin
           output = model.run_os_command(cmd)
-          print output
-          '-'
+          # Return the ANSI QR text to the caller; do not print here.
+          output
         rescue WifiWand::CommandExecutor::OsCommandError => e
           raise WifiWand::Error.new("Failed to generate QR code: #{e.message}")
         end

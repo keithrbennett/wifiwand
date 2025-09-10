@@ -138,6 +138,7 @@ module WifiWand
     # @param options [OpenStruct] optional configuration.
     #   * :verbose (Boolean) - Enable verbose output for debugging.
     #   * :wifi_interface (String) - Specify the Wi-Fi interface to use.
+    #   * :output_io (IO) - Destination for verbose/debug output from the model and its services (defaults to $stdout).
     def initialize(options = OpenStruct.new)
       @model = WifiWand::OperatingSystems.create_model_for_current_os(options)
     rescue NoSupportedOSError

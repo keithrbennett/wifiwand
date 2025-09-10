@@ -3,9 +3,10 @@ require_relative '../timing_constants'
 module WifiWand
   class NetworkStateManager
     
-    def initialize(model, verbose: false)
+    def initialize(model, verbose: false, output: $stdout)
       @model = model
       @verbose = verbose
+      @output = output
     end
 
     # Network State Management for Testing
@@ -21,7 +22,7 @@ module WifiWand
     end
     
     def restore_network_state(state, fail_silently: false)
-      puts "restore_network_state: #{state} called" if @verbose
+      @output.puts "restore_network_state: #{state} called" if @verbose
       return :no_state_to_restore unless state
       
       begin
@@ -54,12 +55,9 @@ module WifiWand
           @model.till(:conn, timeout_in_secs: TimingConstants::NETWORK_CONNECTION_WAIT)
         end
       rescue => e
-        if fail_silently
-          $stderr.puts "Warning: Could not restore network state: #{e.message}"
-          $stderr.puts "You may need to manually reconnect to: #{state[:network_name]}" if state[:network_name]
-        else
-          raise
-        end
+        raise unless fail_silently
+        # Fail silently as requested; do not print or return sentinel values.
+        nil
       end
     end
     

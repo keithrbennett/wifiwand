@@ -12,8 +12,9 @@ require_relative 'services/command_executor'
 
 module WifiWand
 class Main
-  def initialize(output_stream = $stdout)
+  def initialize(output_stream = $stdout, error_stream = $stderr)
     @output_stream = output_stream
+    @error_stream = error_stream
   end
 
   # Parses the command line with Ruby's internal 'optparse'.
@@ -43,7 +44,7 @@ class Main
         choice = v[0].downcase
 
         unless formatters.keys.include?(choice)
-          @output_stream.puts <<~MESSAGE
+          @error_stream.puts <<~MESSAGE
 
             Output format "#{choice}" not in list of available formats (#{formatters.keys.join(', ')}).
 
@@ -70,6 +71,9 @@ class Main
     options = parse_command_line
 
     begin
+      # Ensure CLI and model share the main's output stream for verbose logs and prints
+      options.output_io = @output_stream
+      options.error_io  = @error_stream
       WifiWand::CommandLineInterface.new(options).call
     rescue => e
       handle_error(e, options.verbose)
@@ -82,7 +86,7 @@ class Main
     case error
     when WifiWand::CommandExecutor::OsCommandError
       # Show the helpful command error message and details but not the stack trace
-      @output_stream.puts <<~MESSAGE
+      @error_stream.puts <<~MESSAGE
 
         Error: #{error.text}
         Command failed: #{error.command}
@@ -90,7 +94,7 @@ class Main
       MESSAGE
     when WifiWand::Error
       # Custom WiFi-related errors already have user-friendly messages
-      @output_stream.puts "Error: #{error.message}"
+      @error_stream.puts "Error: #{error.message}"
     else
       # Unknown errors - show message but not stack trace unless verbose
       if verbose_mode
@@ -103,7 +107,7 @@ class Main
       else
         message = "Error: #{error.message}"
       end
-      @output_stream.puts message
+      @error_stream.puts message
     end
   end
 end

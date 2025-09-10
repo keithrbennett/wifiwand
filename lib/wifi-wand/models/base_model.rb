@@ -19,6 +19,7 @@ module WifiWand
 class BaseModel
 
   attr_accessor :wifi_interface, :verbose_mode, :command_executor, :connectivity_tester, :state_manager, :status_waiter, :connection_manager
+  attr_reader :output_io
 
   def self.create_model(options = OpenStruct.new)
     instance = new(options)
@@ -33,10 +34,11 @@ class BaseModel
   def initialize(options)
     @options = options
     @verbose_mode = options.verbose
-    @command_executor = CommandExecutor.new(verbose: @verbose_mode)
-    @connectivity_tester = NetworkConnectivityTester.new(verbose: @verbose_mode)
-    @state_manager = NetworkStateManager.new(self, verbose: @verbose_mode)
-    @status_waiter = StatusWaiter.new(self, verbose: @verbose_mode)
+    @output_io = options.output_io || $stdout
+    @command_executor = CommandExecutor.new(verbose: @verbose_mode, output: @output_io)
+    @connectivity_tester = NetworkConnectivityTester.new(verbose: @verbose_mode, output: @output_io)
+    @state_manager = NetworkStateManager.new(self, verbose: @verbose_mode, output: @output_io)
+    @status_waiter = StatusWaiter.new(self, verbose: @verbose_mode, output: @output_io)
     @connection_manager = ConnectionManager.new(self, verbose: @verbose_mode)
   end
 
@@ -215,17 +217,17 @@ class BaseModel
           sleep(0.5)
           info['public_ip'] = public_ip_address_info
         rescue => retry_error
-          # Still failed - silently degrade (don't spam stdout)
-          $stderr.puts "Warning: Could not obtain public IP info: #{retry_error.class}" if @verbose_mode
+          # Still failed - silently degrade
+          output_io.puts "Warning: Could not obtain public IP info: #{retry_error.class}" if @verbose_mode
           info['public_ip'] = nil
         end
       rescue JSON::ParserError
         # Service returned invalid JSON - try alternate approach
-        $stderr.puts "Warning: Public IP service returned invalid data" if @verbose_mode
+        output_io.puts "Warning: Public IP service returned invalid data" if @verbose_mode
         info['public_ip'] = nil  
       rescue => e
         # Other errors - log if verbose, gracefully degrade
-        $stderr.puts "Warning: Public IP lookup failed: #{e.class}" if @verbose_mode
+        output_io.puts "Warning: Public IP lookup failed: #{e.class}" if @verbose_mode
         info['public_ip'] = nil
       end
     end
@@ -401,9 +403,9 @@ class BaseModel
   # Generates a QR code for the currently connected WiFi network
   # @return [String] The filename of the generated QR code PNG file
   # @raise [WifiWand::Error] If not connected to a network or qrencode is not available
-  def generate_qr_code(filespec = nil)
+  def generate_qr_code(filespec = nil, overwrite: false)
     debug_method_entry(__method__)
-    qr_code_generator.generate(self, filespec)
+    qr_code_generator.generate(self, filespec, overwrite: overwrite)
   end
   
   private
@@ -458,7 +460,7 @@ class BaseModel
       values = param_names.map { |name| binding.local_variable_get(name) }
       s << "(#{values.map(&:to_s).map(&:inspect).join(', ')})"
     end
-    puts s
+    output_io.puts s
   end
 end
 end

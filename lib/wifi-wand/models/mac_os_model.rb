@@ -317,11 +317,11 @@ class MacOsModel < BaseModel
         run_swift_command('WifiNetworkDisconnector')
         return nil
       rescue => e
-        puts "Swift/CoreWLAN disconnect failed: #{e.message}. Falling back to ifconfig..." if verbose_mode
+        output_io.puts "Swift/CoreWLAN disconnect failed: #{e.message}. Falling back to ifconfig..." if verbose_mode
         # Fall through to ifconfig fallback
       end
     else
-      puts "Swift/CoreWLAN not available. Using ifconfig..." if verbose_mode
+      output_io.puts "Swift/CoreWLAN not available. Using ifconfig..." if verbose_mode
     end
     
     # Fallback to ifconfig (disassociate from current network)
@@ -359,8 +359,7 @@ class MacOsModel < BaseModel
         begin
           IPAddr.new(ns).ipv4?
           true
-        rescue => e
-          puts e
+        rescue
           false
         end
       end
@@ -428,16 +427,16 @@ class MacOsModel < BaseModel
       if verbose_mode
         case e.exitstatus
         when 127
-          puts "Swift command not found (exit code #{e.exitstatus}). Install Xcode Command Line Tools."
+          output_io.puts "Swift command not found (exit code #{e.exitstatus}). Install Xcode Command Line Tools."
         when 1
-          puts "CoreWLAN framework not available (exit code #{e.exitstatus}). Install Xcode."
+          output_io.puts "CoreWLAN framework not available (exit code #{e.exitstatus}). Install Xcode."
         else
-          puts "Swift/CoreWLAN check failed with exit code #{e.exitstatus}: #{e.text.strip}"
+          output_io.puts "Swift/CoreWLAN check failed with exit code #{e.exitstatus}: #{e.text.strip}"
         end
       end
       false
     rescue => e
-      puts "Unexpected error checking Swift/CoreWLAN: #{e.message}" if verbose_mode
+      output_io.puts "Unexpected error checking Swift/CoreWLAN: #{e.message}" if verbose_mode
       false
     end
   end
@@ -465,7 +464,7 @@ class MacOsModel < BaseModel
       version
     rescue => e
       if verbose_mode
-        puts "Could not detect macOS version: #{e.message}."
+        output_io.puts "Could not detect macOS version: #{e.message}."
       end
       nil
     end
@@ -480,7 +479,7 @@ class MacOsModel < BaseModel
       raise UnsupportedSystemError.new("macOS #{MIN_SUPPORTED_OS_VERSION}", version)
     end
     
-    puts "macOS #{version} detected and supported" if verbose_mode
+    output_io.puts "macOS #{version} detected and supported" if verbose_mode
   end
 
   # Checks if the current version meets the minimum supported version
@@ -505,7 +504,7 @@ class MacOsModel < BaseModel
   def validate_os_preconditions
     # All core commands are built-in, just warn about optional ones
     unless command_available_using_which?("swift")
-      puts "Warning: Swift not available. Some advanced features may use fallback methods. Install with: xcode-select --install" if verbose_mode
+      output_io.puts "Warning: Swift not available. Some advanced features may use fallback methods. Install with: xcode-select --install" if verbose_mode
     end
     
     :ok
