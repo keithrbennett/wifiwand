@@ -1,4 +1,3 @@
-require 'wifi-wand'
 require 'awesome_print'
 require_relative 'operating_systems'
 require 'ostruct'
