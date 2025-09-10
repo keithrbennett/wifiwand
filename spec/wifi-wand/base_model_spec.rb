@@ -546,13 +546,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:public_ip_address_info).and_return({'ip' => '1.2.3.4'})
       
       result = subject.wifi_info
-      puts "DEBUG: internet_tcp_connectivity = #{result['internet_tcp_connectivity']}"
-      puts "DEBUG: dns_working = #{result['dns_working']}"
-      puts "DEBUG: internet_on = #{result['internet_on']}"
       
       # Test the connectivity method directly
       direct_result = subject.connected_to_internet?(result['internet_tcp_connectivity'], result['dns_working'])
-      puts "DEBUG: direct connected_to_internet? call result = #{direct_result}"
       
       expect(result['internet_tcp_connectivity']).to be false
       expect(result['internet_on']).to be false  # Should be false due to TCP failure
