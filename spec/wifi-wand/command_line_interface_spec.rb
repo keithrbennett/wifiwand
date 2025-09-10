@@ -39,7 +39,7 @@ describe WifiWand::CommandLineInterface do
   shared_examples 'simple command delegation' do |cmd_method, model_method|
     it "calls model #{model_method} method" do
       expect(mock_model).to receive(model_method)
-      subject.public_send(cmd_method)
+      silence_output { subject.public_send(cmd_method) }
     end
   end
 
@@ -57,7 +57,19 @@ describe WifiWand::CommandLineInterface do
       test_cases[:non_interactive_tests].each do |description, test_data|
         it description do
           allow(mock_model).to receive(model_method).and_return(test_data[:model_return])
-          expect { subject.public_send(cmd_method) }.to output(test_data[:expected_output]).to_stdout
+          
+          # Capture output without displaying it during test runs
+          captured_output = silence_output do |stdout, _stderr|
+            subject.public_send(cmd_method)
+            stdout.string
+          end
+          
+          # Support both string and regex expectations
+          if test_data[:expected_output].is_a?(Regexp)
+            expect(captured_output).to match(test_data[:expected_output])
+          else
+            expect(captured_output).to eq(test_data[:expected_output])
+          end
         end
       end
     end
@@ -653,7 +665,7 @@ describe WifiWand::CommandLineInterface do
       
       it 'calls generate_qr_code on the model' do
         expect(mock_model).to receive(:generate_qr_code).and_return('TestNetwork-qr-code.png')
-        subject.cmd_qr
+        silence_output { subject.cmd_qr }
       end
       end
 
@@ -663,7 +675,13 @@ describe WifiWand::CommandLineInterface do
         allow(cli).to receive(:puts)
         # Model is responsible for printing QR text in '-' mode
         expect(cli.model).to receive(:generate_qr_code).with('-') { puts "[QR-ANSI]"; '-' }
-        expect { cli.cmd_qr('-') }.to output("[QR-ANSI]\n").to_stdout
+        
+        # Capture output without displaying during test runs
+        captured_output = silence_output do |stdout, _stderr|
+          cli.cmd_qr('-')
+          stdout.string
+        end
+        expect(captured_output).to eq("[QR-ANSI]\n")
       end
     
     describe 'QR command in command registry' do

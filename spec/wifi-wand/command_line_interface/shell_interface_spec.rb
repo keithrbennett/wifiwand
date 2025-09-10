@@ -1,5 +1,6 @@
 require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/command_line_interface/shell_interface'
+require 'stringio'
 
 describe WifiWand::CommandLineInterface::ShellInterface do
   
@@ -101,14 +102,19 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       allow(subject).to receive(:require).with('pry')
       mock_pry_session
       
-      expect { subject.run_shell }.to output("For help, type 'h[Enter]' or 'help[Enter]'.\n").to_stdout
+      # Test the behavior and capture output while suppressing it during test runs
+      captured_output = silence_output do |stdout, _stderr|
+        subject.run_shell
+        stdout.string
+      end
+      expect(captured_output).to eq("For help, type 'h[Enter]' or 'help[Enter]'.\n")
     end
     
     it 'requires pry gem' do
       expect(subject).to receive(:require).with('pry')
       mock_pry_session
       
-      subject.run_shell
+      silence_output { subject.run_shell }
     end
   end
 end

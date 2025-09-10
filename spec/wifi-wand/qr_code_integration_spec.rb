@@ -181,7 +181,7 @@ describe 'QR Code Integration Tests', :os_ubuntu do
         end
 
         # Generate QR code
-        filename = test_model.generate_qr_code
+        filename = silence_output { test_model.generate_qr_code }
         expect(File.exist?(filename)).to be true
 
         # Decode and verify QR code content
@@ -235,7 +235,7 @@ describe 'QR Code Integration Tests', :os_ubuntu do
         end
       end
 
-      expect { test_model.generate_qr_code }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
+      expect { silence_output { test_model.generate_qr_code } }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
     end
   end
 
@@ -260,7 +260,7 @@ describe 'QR Code Integration Tests', :os_ubuntu do
         end
       end
 
-      filename = test_model.generate_qr_code
+      filename = silence_output { test_model.generate_qr_code }
       
       expect(File.exist?(filename)).to be true
       file_size = File.size(filename)
@@ -301,7 +301,7 @@ describe 'QR Code Integration Tests', :os_ubuntu do
           end
         end
 
-        filename = test_model.generate_qr_code
+        filename = silence_output { test_model.generate_qr_code }
         
         # Verify QR code can be decoded
         decoded_content = decode_qr_code(filename)
@@ -348,7 +348,7 @@ describe 'QR Code Text Output and Filespec', :os_ubuntu do
       ''
     end
 
-    result = test_model.generate_qr_code(filespec)
+    result = silence_output { test_model.generate_qr_code(filespec) }
     expect(result).to eq(filespec)
   end
 end

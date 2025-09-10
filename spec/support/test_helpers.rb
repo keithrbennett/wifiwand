@@ -56,7 +56,7 @@ module TestHelpers
     original_stderr = $stderr
     $stdout = StringIO.new
     $stderr = StringIO.new
-    yield
+    yield $stdout, $stderr
   ensure
     $stdout = original_stdout
     $stderr = original_stderr
