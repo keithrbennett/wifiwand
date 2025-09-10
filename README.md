@@ -254,37 +254,70 @@ of preferred networks, so you might want to suppress their output:
 => nil
 ```
 
-#### Using the Models Without the Command Line Interface
+### Using as a Library
 
-The code has been structured so that you can call the models from your own Ruby code,
-bypassing the command line interface. Use the convenience factory `WifiWand.create_model`:
+The `wifi-wand` gem can be used as a library in your own Ruby applications. The primary entry point for the library is the `WifiWand::Client` class.
 
-```ruby
-require 'wifi-wand'
-model = WifiWand.create_model
-puts model.available_network_names.to_yaml # etc...
-```
+#### Basic Usage
 
-Or for a specific OS:
+First, add the gem to your Gemfile or install it system-wide. Then, require it and create a new client:
 
 ```ruby
 require 'wifi-wand'
-model = WifiWand::MacOsModel.new  # For macOS
-# or
-model = WifiWand::UbuntuModel.new  # For Ubuntu
-puts model.available_network_names.to_yaml # etc...
+
+# Create a new client instance
+client = WifiWand::Client.new
+
+# You can now call methods on the client
+puts "WiFi is on: #{client.wifi_on?}"
+puts "Connected to: #{client.connected_network_name}"
+
+puts "\nAvailable Networks:"
+puts client.available_network_names.map { |n| "  - #{n}" }
 ```
 
-You can also pass options to `create_model` (e.g., to enable verbose mode or set a specific interface):
+#### Passing Options
+
+You can pass options to the client during initialization, such as `:verbose` to see underlying OS commands or `:wifi_interface` to specify a network interface.
 
 ```ruby
 require 'wifi-wand'
 require 'ostruct'
 
 options = OpenStruct.new(verbose: true, wifi_interface: 'en0')
-model = WifiWand.create_model(options)
-puts model.wifi_info
+client = WifiWand::Client.new(options)
+
+puts client.wifi_info
 ```
+
+#### Available Methods
+
+The `Client` object provides a comprehensive API for interacting with your Wi-Fi interface. All public methods on the underlying OS-specific models are delegated to the client. Key methods include:
+
+*   `available_network_names`
+*   `connect(ssid, password)`
+*   `connected_network_name`
+*   `connected_to?(ssid)`
+*   `connected_to_internet?`
+*   `cycle_network`
+*   `default_interface`
+*   `disconnect`
+*   `dns_working?`
+*   `generate_qr_code(filespec: nil)`
+*   `internet_tcp_connectivity?`
+*   `ip_address`
+*   `mac_address`
+*   `nameservers`
+*   `preferred_networks`
+*   `random_mac_address`
+*   `remove_preferred_networks(*ssids)`
+*   `status_line_data`
+*   `wifi_info`
+*   `wifi_off`
+*   `wifi_on`
+*   `wifi_on?`
+
+Please refer to the YARD documentation for a complete list of methods and their parameters.
 
 
 **More Examples**
