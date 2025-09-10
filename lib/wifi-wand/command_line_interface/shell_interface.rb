@@ -38,7 +38,8 @@ module WifiWand
         if interactive_mode
           exit(0)
         else
-          @error_io.puts "This command can only be run in shell mode."
+          io = @err_stream || $stderr
+          io.puts "This command can only be run in shell mode."
         end
       end
       

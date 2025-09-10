@@ -72,12 +72,11 @@ describe WifiWand::CommandExecutor do
     end
 
     it 'reports attempt count in verbose mode' do
-      verbose_executor = WifiWand::CommandExecutor.new(verbose: true)
+      io = StringIO.new
+      verbose_executor = WifiWand::CommandExecutor.new(verbose: true, output: io)
       condition = ->(_output) { true }  # Succeeds on first try
-      
-      expect {
-        verbose_executor.try_os_command_until('echo "test"', condition, 3)
-      }.to output(/Command was executed 1 time/).to_stdout
+      verbose_executor.try_os_command_until('echo "test"', condition, 3)
+      expect(io.string).to match(/Command was executed 1 time/)
     end
   end
 

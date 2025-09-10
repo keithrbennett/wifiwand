@@ -71,7 +71,12 @@ class ConnectionManager
     used_saved_password = false
     
     if password.nil? || password.empty?
-      if model.preferred_networks.include?(network_name)
+      begin
+        preferred = model.preferred_networks
+      rescue
+        preferred = []
+      end
+      if preferred.include?(network_name)
         begin
           saved_password = model.preferred_network_password(network_name)
           unless saved_password.nil? || saved_password.empty?

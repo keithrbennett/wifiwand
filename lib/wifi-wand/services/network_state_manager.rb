@@ -56,7 +56,8 @@ module WifiWand
         end
       rescue => e
         raise unless fail_silently
-        # Fail silently as requested; do not print or return sentinel values.
+        $stderr.puts "Warning: Could not restore network state: #{e.message}"
+        $stderr.puts "You may need to manually reconnect to: #{state[:network_name]}" if state[:network_name]
         nil
       end
     end

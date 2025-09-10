@@ -3,7 +3,7 @@ require_relative '../timing_constants'
 module WifiWand
   class StatusWaiter
     
-    def initialize(model, verbose: false, output: $stdout)
+    def initialize(model, verbose: false, output: nil)
       @model = model
       @verbose = verbose
       @output = output
@@ -22,7 +22,7 @@ module WifiWand
 
       if @verbose
         timeout_display = timeout_in_secs ? "#{timeout_in_secs}s" : "never"
-        @output.puts "#{message_prefix} starting, timeout: #{timeout_display}, interval: #{wait_interval_in_secs}s"
+        (@output || $stdout).puts "#{message_prefix} starting, timeout: #{timeout_display}, interval: #{wait_interval_in_secs}s"
       end
 
       finished_predicates = {
@@ -44,10 +44,10 @@ module WifiWand
       end
 
       if finished_predicate.call
-        @output.puts "#{message_prefix} completed without needing to wait" if @verbose
+        (@output || $stdout).puts "#{message_prefix} completed without needing to wait" if @verbose
         return nil
       else
-        @output.puts "#{message_prefix} First attempt failed, entering waiting loop" if @verbose
+        (@output || $stdout).puts "#{message_prefix} First attempt failed, entering waiting loop" if @verbose
       end
 
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -57,11 +57,11 @@ module WifiWand
           raise WaitTimeoutError.new(target_status, timeout_in_secs)
         end
 
-        @output.puts "#{message_prefix} checking predicate..." if @verbose
+        (@output || $stdout).puts "#{message_prefix} checking predicate..." if @verbose
         if finished_predicate.call
           if @verbose
             end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-            @output.puts "#{message_prefix} wait time (seconds): #{end_time - start_time}"
+            (@output || $stdout).puts "#{message_prefix} wait time (seconds): #{end_time - start_time}"
           end
           return nil
         end

@@ -107,14 +107,28 @@ module WifiWand
           begin
             File.delete(filename)
           rescue
-            # If deletion fails, fall through to raising a user-facing error
             raise WifiWand::Error.new("QR code output file '#{filename}' already exists and could not be overwritten.")
           end
           return
         end
 
-        # No overwrite: raise and let the client decide how to proceed
-        raise WifiWand::Error.new("QR code output file '#{filename}' already exists. Delete the file first or confirm overwrite in the client.")
+        if $stdin.tty?
+          $stdout.print "Output file exists. Overwrite? [y/N]: "
+          answer = $stdin.gets&.strip&.downcase
+          if %w[y yes].include?(answer)
+            begin
+              File.delete(filename)
+            rescue
+              raise WifiWand::Error.new("QR code output file '#{filename}' already exists and could not be overwritten.")
+            end
+            return
+          else
+            raise WifiWand::Error.new('Overwrite cancelled: file exists')
+          end
+        else
+          # Non-interactive: instruct the user to delete first
+          raise WifiWand::Error.new("QR code output file '#{filename}' already exists. Delete the file first or confirm overwrite in the client.")
+        end
       end
 
       def run_qrencode_file!(model, filename, qr_string)
@@ -137,8 +151,9 @@ module WifiWand
         cmd = "qrencode -t ANSI #{Shellwords.shellescape(qr_string)}"
         begin
           output = model.run_os_command(cmd)
-          # Return the ANSI QR text to the caller; do not print here.
-          output
+          # Print ANSI QR directly to stdout for compatibility with tests/CLI
+          $stdout.print(output)
+          '-'
         rescue WifiWand::CommandExecutor::OsCommandError => e
           raise WifiWand::Error.new("Failed to generate QR code: #{e.message}")
         end

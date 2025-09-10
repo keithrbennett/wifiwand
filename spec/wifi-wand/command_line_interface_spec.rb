@@ -122,8 +122,13 @@ describe WifiWand::CommandLineInterface do
     describe '#validate_command_line' do
       specify 'validation exits with error when no command is provided' do
         stub_const('ARGV', [])
-        expect(subject).to receive(:exit).with(-1)
-        expect { subject.validate_command_line }.to output(/Syntax is:/).to_stdout
+        err_stream = StringIO.new
+        opts = options.dup
+        opts.err_stream = err_stream
+        cli = described_class.new(opts)
+        expect(cli).to receive(:exit).with(-1)
+        cli.validate_command_line
+        expect(err_stream.string).to match(/Syntax is:/)
       end
 
       specify 'validation does not exit when command is provided' do
@@ -309,7 +314,7 @@ describe WifiWand::CommandLineInterface do
           .with(['invalid1', 'invalid2'])
           .and_return("Invalid resource codes: 'invalid1', 'invalid2'")
         
-        expect { subject.cmd_ro('invalid1', 'invalid2') }.to output("Invalid resource codes: 'invalid1', 'invalid2'\n").to_stdout
+        expect { subject.cmd_ro('invalid1', 'invalid2') }.to output("Invalid resource codes: 'invalid1', 'invalid2'\n").to_stderr
       end
 
       it 'handles mixed valid and invalid codes' do
@@ -323,7 +328,7 @@ describe WifiWand::CommandLineInterface do
           .with(['invalid'])
           .and_return("Invalid resource code: 'invalid'")
         
-        expect { subject.cmd_ro('ipw', 'invalid') }.to output("Invalid resource code: 'invalid'\n").to_stdout
+        expect { subject.cmd_ro('ipw', 'invalid') }.to output("Invalid resource code: 'invalid'\n").to_stderr
       end
     end
   end
@@ -544,15 +549,24 @@ describe WifiWand::CommandLineInterface do
 
       it 'outputs status line when not empty' do
         allow(mock_model).to receive(:status_line_data).and_return(status_data)
-        allow(subject).to receive(:status_line).with(status_data).and_return('WiFi: ON | Network: "TestNet"')
-        expect { subject.cmd_s }.to output("WiFi: ON | Network: \"TestNet\"
-").to_stdout
+        out_stream = StringIO.new
+        opts = options.dup
+        opts.out_stream = out_stream
+        cli = described_class.new(opts)
+        allow(cli).to receive(:status_line).with(status_data).and_return('WiFi: ON | Network: "TestNet"')
+        cli.cmd_s
+        expect(out_stream.string).to eq("WiFi: ON | Network: \"TestNet\"\n")
       end
       
       it 'outputs nothing when status line is empty' do
         allow(mock_model).to receive(:status_line_data).and_return(status_data)
-        allow(subject).to receive(:status_line).with(status_data).and_return('')
-        expect { subject.cmd_s }.not_to output.to_stdout
+        out_stream = StringIO.new
+        opts = options.dup
+        opts.out_stream = out_stream
+        cli = described_class.new(opts)
+        allow(cli).to receive(:status_line).with(status_data).and_return('')
+        cli.cmd_s
+        expect(out_stream.string).to eq("")
       end
     end
     
@@ -606,7 +620,6 @@ describe WifiWand::CommandLineInterface do
     before do
       allow(subject).to receive(:validate_command_line)
       allow(subject).to receive(:process_command_line).and_return('command_result')
-      allow(subject).to receive(:puts)
       allow(subject).to receive(:exit)
       allow(subject).to receive(:help_hint).and_return('Type help for usage')
     end
@@ -620,13 +633,18 @@ describe WifiWand::CommandLineInterface do
     
     it 'handles BadCommandError with error message and help hint' do
       error = WifiWand::BadCommandError.new('Invalid command')
-      allow(subject).to receive(:process_command_line).and_raise(error)
-      
-      expect(subject).to receive(:puts).with('Invalid command')
-      expect(subject).to receive(:puts).with('Type help for usage')
-      expect(subject).to receive(:exit).with(-1)
-      
-      subject.call
+      # Rebuild CLI with a captured err_stream for this test
+      err_stream = StringIO.new
+      opts = options.dup
+      opts.err_stream = err_stream
+      cli = described_class.new(opts)
+      allow(cli).to receive(:validate_command_line)
+      allow(cli).to receive(:help_hint).and_return('Type help for usage')
+      allow(cli).to receive(:process_command_line).and_raise(error)
+      expect(cli).to receive(:exit).with(-1)
+      cli.call
+      expect(err_stream.string).to include('Invalid command')
+      expect(err_stream.string).to include('Type help for usage')
     end
   end
   
@@ -672,16 +690,13 @@ describe WifiWand::CommandLineInterface do
       it "prints QR text directly when filespec is '-'" do
         cli = described_class.new(options)
         allow(cli).to receive(:run_shell)
-        allow(cli).to receive(:puts)
-        # Model is responsible for printing QR text in '-' mode
-        expect(cli.model).to receive(:generate_qr_code).with('-') { puts "[QR-ANSI]"; '-' }
-        
-        # Capture output without displaying during test runs
-        captured_output = silence_output do |stdout, _stderr|
+        # Model prints ANSI and returns '-'
+        expect(cli.model).to receive(:generate_qr_code).with('-') { $stdout.print "[QR-ANSI]\n"; '-' }
+        output = silence_output do |stdout, _stderr|
           cli.cmd_qr('-')
           stdout.string
         end
-        expect(captured_output).to eq("[QR-ANSI]\n")
+        expect(output).to eq("[QR-ANSI]\n")
       end
     
     describe 'QR command in command registry' do

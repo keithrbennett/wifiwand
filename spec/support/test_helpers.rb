@@ -19,11 +19,11 @@ module TestHelpers
 
   # Helper method to create specific OS models with verbose configuration
   def create_ubuntu_test_model(options = {})
-    WifiWand::UbuntuModel.create_model(merge_verbose_options(options))
+    WifiWand::UbuntuModel.new(merge_verbose_options(options))
   end
 
   def create_mac_os_test_model(options = {})
-    WifiWand::MacOsModel.create_model(merge_verbose_options(options))
+    WifiWand::MacOsModel.new(merge_verbose_options(options))
   end
 
   def wait_for(timeout: 5, interval: 0.1, description: "condition")

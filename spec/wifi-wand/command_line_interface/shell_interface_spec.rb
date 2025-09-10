@@ -76,7 +76,7 @@ describe WifiWand::CommandLineInterface::ShellInterface do
     
     it 'prints error message when not in interactive mode' do
       subject.interactive_mode = false
-      expect { subject.quit }.to output(/This command can only be run in shell mode/).to_stdout
+      expect { subject.quit }.to output(/This command can only be run in shell mode/).to_stderr
     end
   end
 

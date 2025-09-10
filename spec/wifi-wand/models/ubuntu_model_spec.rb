@@ -4,7 +4,7 @@ require_relative '../../../lib/wifi-wand/models/ubuntu_model'
 module WifiWand
 
 describe UbuntuModel, :os_ubuntu do
-  let!(:subject) { create_ubuntu_test_model }
+  let(:subject) { create_ubuntu_test_model }
   
   # Mock network connectivity tester to prevent real network calls during non-disruptive tests
   before(:each) do

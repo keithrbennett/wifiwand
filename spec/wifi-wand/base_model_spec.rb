@@ -529,11 +529,16 @@ describe 'Common WiFi Model Behavior (All OS)' do
         stdout_capture = StringIO.new
         $stderr = stderr_capture
         $stdout = stdout_capture
+        # Ensure model prints route to this captured stdout
+        original_output_io = test_model.instance_variable_get(:@output_io) rescue nil
+        test_model.instance_variable_set(:@output_io, $stdout) if defined?(test_model)
         
         begin
           yield
-          stderr_capture.string
+          # Warnings now route to model.output_io (stdout); return stdout contents
+          stdout_capture.string
         ensure
+          test_model.instance_variable_set(:@output_io, original_output_io) if defined?(test_model)
           $stderr = original_stderr
           $stdout = original_stdout
         end

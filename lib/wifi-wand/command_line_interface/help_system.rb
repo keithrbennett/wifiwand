@@ -55,13 +55,12 @@ When in interactive shell mode:
       end
 
       def print_help
-        if respond_to?(:interactive_mode) && interactive_mode
-          # In interactive mode, continue to print to the console directly
-          puts help_text
-        else
-          # Non-interactive: use configured output stream
-          @output_io.puts help_text
-        end
+        dest = if respond_to?(:interactive_mode) && interactive_mode
+                 $stdout
+               else
+                 @out_stream || $stdout
+               end
+        dest.puts help_text
       end
 
       def help_hint

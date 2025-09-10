@@ -2,8 +2,9 @@ require_relative('../../spec_helper')
 require_relative('../../../lib/wifi-wand/main')
 
 describe WifiWand::Main do
-  let(:output) { StringIO.new }
-  subject { described_class.new(output) }
+  let(:out_stream) { StringIO.new }
+  let(:err_stream) { StringIO.new }
+  subject { described_class.new(out_stream, err_stream) }
 
   def parse_with_argv(*args)
     stub_const('ARGV', args)
@@ -110,35 +111,35 @@ describe WifiWand::Main do
     it 'handles and prints exceptions' do
       allow(mock_cli).to receive(:call).and_raise(StandardError.new('Test error'))
       subject.call
-      expect(output.string).to match(/Error:.*Test error/m)
+      expect(err_stream.string).to match(/Error:.*Test error/m)
     end
 
     it 'prints clean error messages without backtraces by default' do
-      error = StandardError.new('Test error')
-      allow(error).to receive(:backtrace).and_return(['line1', 'line2', 'line3'])
-      allow(mock_cli).to receive(:call).and_raise(error)
+      ex = StandardError.new('Test error')
+      allow(ex).to receive(:backtrace).and_return(['line1', 'line2', 'line3'])
+      allow(mock_cli).to receive(:call).and_raise(ex)
       
       subject.call
-      expect(output.string).to eq("Error: Test error\n")
+      expect(err_stream.string).to eq("Error: Test error\n")
     end
 
     it 'prints backtrace only in verbose mode' do
-      error = StandardError.new('Test error')
-      allow(error).to receive(:backtrace).and_return(['line1', 'line2', 'line3'])
-      allow(mock_cli).to receive(:call).and_raise(error)
+      ex = StandardError.new('Test error')
+      allow(ex).to receive(:backtrace).and_return(['line1', 'line2', 'line3'])
+      allow(mock_cli).to receive(:call).and_raise(ex)
       
       # Mock verbose mode
       allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: true))
       
       subject.call
-      expect(output.string).to match(/Error: Test error/)
-      expect(output.string).to match(/Stack trace:/)
+      expect(err_stream.string).to match(/Error: Test error/)
+      expect(err_stream.string).to match(/Stack trace:/)
     end
 
     it 'succeeds when no exceptions occur' do
       expect(mock_cli).to receive(:call).and_return('success')
       subject.call
-      expect(output.string).to be_empty
+      expect(out_stream.string).to be_empty
     end
   end
 
@@ -248,8 +249,8 @@ describe WifiWand::Main do
     end
 
     it 'handles OsCommandError with specific error message' do
-      error = WifiWand::CommandExecutor::OsCommandError.new(1, 'a command', 'a message')
-      allow(mock_cli).to receive(:call).and_raise(error)
+      ex = WifiWand::CommandExecutor::OsCommandError.new(1, 'a command', 'a message')
+      allow(mock_cli).to receive(:call).and_raise(ex)
 
       expected_output = <<~MESSAGE
 
@@ -259,34 +260,34 @@ describe WifiWand::Main do
       MESSAGE
 
       subject.call
-      expect(output.string).to eq(expected_output)
+      expect(err_stream.string).to eq(expected_output)
     end
 
     it 'handles WifiWand::Error with a simple error message' do
-      error = WifiWand::Error.new('a message')
-      allow(mock_cli).to receive(:call).and_raise(error)
+      ex = WifiWand::Error.new('a message')
+      allow(mock_cli).to receive(:call).and_raise(ex)
 
       subject.call
-      expect(output.string).to eq("Error: a message\n")
+      expect(err_stream.string).to eq("Error: a message\n")
     end
 
     it 'handles other errors with a simple error message' do
-      error = StandardError.new('a message')
-      allow(mock_cli).to receive(:call).and_raise(error)
+      ex = StandardError.new('a message')
+      allow(mock_cli).to receive(:call).and_raise(ex)
 
       subject.call
-      expect(output.string).to eq("Error: a message\n")
+      expect(err_stream.string).to eq("Error: a message\n")
     end
 
     it 'handles other errors with a stack trace in verbose mode' do
-      error = StandardError.new('a message')
-      allow(error).to receive(:backtrace).and_return(['line 1', 'line 2'])
-      allow(mock_cli).to receive(:call).and_raise(error)
+      ex = StandardError.new('a message')
+      allow(ex).to receive(:backtrace).and_return(['line 1', 'line 2'])
+      allow(mock_cli).to receive(:call).and_raise(ex)
       allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: true))
 
       subject.call
-      expect(output.string).to match(/Error: a message/)
-      expect(output.string).to match(/Stack trace:/)
+      expect(err_stream.string).to match(/Error: a message/)
+      expect(err_stream.string).to match(/Stack trace:/)
     end
   end
 end

@@ -25,13 +25,13 @@ class CommandLineInterface
 
   def initialize(options)
     @options = options
-    @output_io = options.output_io || $stdout
-    @error_io  = options.error_io  || $stderr
+    @out_stream = (options.respond_to?(:out_stream) && options.out_stream) || (options.respond_to?(:output_io) && options.output_io) || $stdout
+    @err_stream = (options.respond_to?(:err_stream) && options.err_stream) || (options.respond_to?(:error_io) && options.error_io) || $stderr
 
     model_options = OpenStruct.new({
       verbose:        options.verbose,
       wifi_interface: options.wifi_interface,
-      output_io:      @output_io
+      output_io:      @out_stream
     })
 
     @model = WifiWand.create_model(model_options)
@@ -46,7 +46,7 @@ class CommandLineInterface
   # Asserts that a command has been passed on the command line.
   def validate_command_line
     if ARGV.empty?
-      @error_io.puts "Syntax is: #{File.basename($0)} [options] command [command_options]. #{help_hint}"
+      @err_stream.puts "Syntax is: #{File.basename($0)} [options] command [command_options]. #{help_hint}"
       exit(-1)
     end
   end
@@ -94,7 +94,7 @@ class CommandLineInterface
     
     # Show message if we used a saved password
     if model.last_connection_used_saved_password? && !interactive_mode
-      @output_io.puts "Using saved password for '#{network}'. Use 'forget #{network}' if you need to use a different password."
+      @out_stream.puts "Using saved password for '#{network}'. Use 'forget #{network}' if you need to use a different password."
     end
   end
 
@@ -202,14 +202,13 @@ class CommandLineInterface
 
       result = model.generate_qr_code(ansi_flag ? '-' : filespec)
       if ansi_flag
-        # When '-' is passed, the model returns the ANSI QR text. Print it here without adding extra newline.
-        @output_io.print result
+        # Model already printed ANSI QR to stdout; nothing further to output here.
         return nil
       end
       handle_output(result, -> { "QR code generated: #{result}" })
     rescue WifiWand::Error => e
       if e.message.include?("already exists") && $stdin.tty?
-        @output_io.print "Output file exists. Overwrite? [y/N]: "
+        @out_stream.print "Output file exists. Overwrite? [y/N]: "
         answer = $stdin.gets&.strip&.downcase
         if %w[y yes].include?(answer)
           result = model.generate_qr_code(filespec, overwrite: true)
@@ -238,7 +237,7 @@ class CommandLineInterface
   def cmd_s
     status_data = model.status_line_data
     if interactive_mode
-      @output_io.puts status_line(status_data)
+      @out_stream.puts status_line(status_data)
       nil
     else
       handle_output(status_data, -> { status_line(status_data) })
@@ -256,7 +255,7 @@ class CommandLineInterface
       if interactive_mode
         return model.available_resources_help
       else
-        @output_io.puts model.available_resources_help
+        @out_stream.puts model.available_resources_help
       end
       return
     end
@@ -264,7 +263,7 @@ class CommandLineInterface
     result = model.open_resources_by_codes(*resource_codes)
     
     unless result[:invalid_codes].empty?
-      @error_io.puts model.resource_manager.invalid_codes_error(result[:invalid_codes])
+      @err_stream.puts model.resource_manager.invalid_codes_error(result[:invalid_codes])
     end
     
     nil
@@ -281,8 +280,8 @@ class CommandLineInterface
       # in ARGV is the commands and their options.
       process_command_line
     rescue WifiWand::BadCommandError => error
-      @error_io.puts error.to_s
-      @error_io.puts help_hint
+      @err_stream.puts error.to_s
+      @err_stream.puts help_hint
       exit(-1)
     end
   end
@@ -298,7 +297,7 @@ class CommandLineInterface
       else
         output = human_readable_string_producer.call
       end
-      @output_io.puts output unless output.to_s.empty?
+      @out_stream.puts output unless output.to_s.empty?
     end
   end
 end

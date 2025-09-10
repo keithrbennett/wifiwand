@@ -78,8 +78,8 @@ RSpec.describe WifiWand::Client do
     end
 
     it 'delegates #generate_qr_code to the model' do
-      allow(mock_model).to receive(:generate_qr_code).with(filespec: 'test.png').and_return('test.png')
-      expect(client.generate_qr_code(filespec: 'test.png')).to eq('test.png')
+      allow(mock_model).to receive(:generate_qr_code).with('test.png').and_return('test.png')
+      expect(client.generate_qr_code('test.png')).to eq('test.png')
     end
 
   end
