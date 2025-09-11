@@ -9,6 +9,7 @@ require 'rspec'
 require_relative '../lib/wifi-wand'
 require_relative 'network_state_manager'
 require_relative 'support/rspec_configuration'
+require_relative 'support/matchers'
 
 $stdout.sync = true # Essential for test suite output to be in the correct order.
 

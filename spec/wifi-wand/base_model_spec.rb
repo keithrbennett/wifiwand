@@ -58,11 +58,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#default_interface' do
     it 'returns string or nil for default route interface' do
-      result = subject.default_interface
-      expect(result).to be_a(String).or(be_nil)
-      if result
-        expect(result).to match(/\A[a-zA-Z0-9]+\z/)
-      end
+      expect(subject.default_interface).to be_nil_or_a_string_matching(/\A[a-zA-Z0-9]+\z/)
     end
   end
 
@@ -97,47 +93,31 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#available_network_names' do
     it 'returns array or nil for available networks' do
-      result = subject.available_network_names
-      expect(result).to be_a(Array).or(be_nil)
-      if result
-        expect(result).to all(be_a(String))
-      end
+      expect(subject.available_network_names).to be_nil_or_an_array_of_strings
     end
   end
 
   describe '#connected_network_name' do
     it 'returns string or nil for connected network' do
-      expect(subject.connected_network_name).to be_a(String).or(be_nil)
+      expect(subject.connected_network_name).to be_nil_or_a_string
     end
   end
 
   describe '#ip_address' do
     it 'returns string or nil for IP address' do
-      result = subject.ip_address
-      expect(result).to be_a(String).or(be_nil)
-      if result
-        expect(result).to match(/\A(\d{1,3}\.){3}\d{1,3}\z/)
-      end
+      expect(subject.ip_address).to be_nil_or_a_string_matching(/\A(\d{1,3}\.){3}\d{1,3}\z/)
     end
   end
 
   describe '#mac_address' do
     it 'returns string or nil for MAC address' do
-      result = subject.mac_address
-      expect(result).to be_a(String).or(be_nil)
-      if result
-        expect(result).to match(/\A[0-9a-f]{2}(:[0-9a-f]{2}){5}\z/)
-      end
+      expect(subject.mac_address).to be_nil_or_a_string_matching(/\A[0-9a-f]{2}(:[0-9a-f]{2}){5}\z/)
     end
   end
 
   describe '#nameservers' do
     it 'returns array of nameserver addresses' do
-      result = subject.nameservers
-      expect(result).to be_a(Array).or(be_nil)
-      if result && !result.empty?
-        expect(result).to all(match(/\A(\d{1,3}\.){3}\d{1,3}\z/))
-      end
+      expect(subject.nameservers).to be_nil_or_an_array_of_ip_addresses
     end
   end
 
@@ -207,7 +187,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'disconnects from network and handles subsequent calls gracefully', :needs_sudo_access => (WifiWand::OperatingSystems.current_id == :mac) do
       subject.wifi_on
       
-      # Ensure we're connected first (may need to connect to a network if not already)
+      # Ensure we\'re connected first (may need to connect to a network if not already)
       if subject.connected_network_name.nil?
         skip "No network connection available for disconnect test"
       end
@@ -216,7 +196,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       subject.disconnect
       expect(subject.connected_network_name).to be_nil
       
-      # Test calling disconnect again doesn't raise error
+      # Test calling disconnect again doesn\'t raise error
       expect { subject.disconnect }.not_to raise_error
     end
   end
@@ -296,11 +276,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   describe '#available_network_names', :disruptive do
     it 'can list available networks' do
       subject.wifi_on
-      result = subject.available_network_names
-      expect(result).to be_a(Array).or(be_nil)
-      if result
-        expect(result).to all(be_a(String))
-      end
+      expect(subject.available_network_names).to be_nil_or_an_array_of_strings
     end
   end
 
@@ -321,7 +297,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'can get wifi interface' do
-      expect(subject.wifi_interface).to be_a(String).or(be_nil)
+      expect(subject.wifi_interface).to be_nil_or_a_string
     end
 
     it 'can get wifi info' do
@@ -471,7 +447,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     
     it 'calls NotImplementedError for dynamically defined required methods' do
       # Test the NotImplementedError by calling the method directly on BaseModel
-      base_model_instance = WifiWand::BaseModel.allocate  # Don't call initialize
+      base_model_instance = WifiWand::BaseModel.allocate  # Don\'t call initialize
       
       expect {
         base_model_instance.default_interface
@@ -513,7 +489,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         allow(model).to receive(:nameservers).and_return(['8.8.8.8'])
         allow(model).to receive(:internet_tcp_connectivity?).and_return(true)
         allow(model).to receive(:dns_working?).and_return(true)
-        allow(model).to receive(:sleep)  # Don't actually sleep
+        allow(model).to receive(:sleep)  # Don\'t actually sleep
         
         model.init_wifi_interface
         model
@@ -826,9 +802,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     context 'special character escaping' do
       [
-        ['Network;With;Semicolons', 'password,with,commas', 'WIFI:T:WPA;S:Network\\;With\\;Semicolons;P:password\\,with\\,commas;H:false;;'],
-        ['Network:With:Colons', 'password:with:colons', 'WIFI:T:WPA;S:Network\\:With\\:Colons;P:password\\:with\\:colons;H:false;;'],
-        ['Network\\With\\Backslashes', 'pass\\word', 'WIFI:T:WPA;S:Network\\\\With\\\\Backslashes;P:pass\\\\word;H:false;;'],
+        ['Network;With;Semicolons', 'password,with,commas', 'WIFI:T:WPA;S:Network\;With\;Semicolons;P:password\,with\,commas;H:false;;'],
+        ['Network:With:Colons', 'password:with:colons', 'WIFI:T:WPA;S:Network\:With\:Colons;P:password\:with\:colons;H:false;;'],
+        ['Network\With\Backslashes', 'pass\word', 'WIFI:T:WPA;S:Network\\With\\Backslashes;P:pass\\word;H:false;;'],
         ['Regular-Network_Name', 'regularPassword123', 'WIFI:T:WPA;S:Regular-Network_Name;P:regularPassword123;H:false;;']
       ].each do |test_network, test_password, expected_qr_string|
         it "properly escapes special characters in '#{test_network}' / '#{test_password}'" do
@@ -837,7 +813,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
           
           subject.generate_qr_code
           
-          safe_network_name = test_network.gsub(/[^\w\-_]/, '_')
+          safe_network_name = test_network.gsub(/[^\\w\-_]/, '_')
           expected_filename = "#{safe_network_name}-qr-code.png"
           
           expect(subject).to have_received(:run_os_command)
