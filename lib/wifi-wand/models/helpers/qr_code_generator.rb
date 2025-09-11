@@ -92,7 +92,15 @@ module WifiWand
       end
 
       def escape_field(value)
-        value.to_s.gsub(/[;,:\\]/) { |char| "\\#{char}" }
+        # Prefix a single backslash before ; , : and double for backslash itself
+        value.to_s.gsub(/[;,:\\]/) do |char|
+          case char
+          when ';' then '\\;'
+          when ',' then '\\,'
+          when ':' then '\\:'
+          when '\\' then '\\\\'
+          end
+        end
       end
 
       def build_filename(network_name)
