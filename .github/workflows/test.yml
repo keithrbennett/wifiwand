@@ -1,0 +1,37 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, add-ubuntu ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        ruby-version: ['2.7', '3.0', '3.1', '3.2', '3.3']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby ${{ matrix.ruby-version }}
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby-version }}
+        bundler-cache: true
+    
+    - name: Run tests
+      run: bundle exec rspec
+      env:
+        # Only run safe tests in CI (no network modifications)
+        RSPEC_DISRUPTIVE_TESTS: exclude
+    
+    - name: Upload coverage reports
+      uses: codecov/codecov-action@v3
+      if: matrix.ruby-version == '3.3'
+      with:
+        files: ./coverage/coverage.xml
+        fail_ci_if_error: false
