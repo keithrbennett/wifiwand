@@ -804,7 +804,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       [
         ['Network;With;Semicolons', 'password,with,commas', 'WIFI:T:WPA;S:Network\;With\;Semicolons;P:password\,with\,commas;H:false;;'],
         ['Network:With:Colons', 'password:with:colons', 'WIFI:T:WPA;S:Network\:With\:Colons;P:password\:with\:colons;H:false;;'],
-        ['Network\With\Backslashes', 'pass\word', 'WIFI:T:WPA;S:Network\\With\\Backslashes;P:pass\\word;H:false;;'],
+        ['Network\With\Backslashes', 'pass\word', 'WIFI:T:WPA;S:Network\\\\With\\\\Backslashes;P:pass\\\\word;H:false;;'],
         ['Regular-Network_Name', 'regularPassword123', 'WIFI:T:WPA;S:Regular-Network_Name;P:regularPassword123;H:false;;']
       ].each do |test_network, test_password, expected_qr_string|
         it "properly escapes special characters in '#{test_network}' / '#{test_password}'" do
@@ -813,7 +813,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
           
           subject.generate_qr_code
           
-          safe_network_name = test_network.gsub(/[^\\w\-_]/, '_')
+          safe_network_name = test_network.gsub(/[^\w\-_]/, '_')
           expected_filename = "#{safe_network_name}-qr-code.png"
           
           expect(subject).to have_received(:run_os_command)
