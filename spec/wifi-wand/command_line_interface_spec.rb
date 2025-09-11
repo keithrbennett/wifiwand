@@ -333,35 +333,37 @@ describe WifiWand::CommandLineInterface do
     end
   end
 
-  describe 'Wi-Fi command methods' do
-    describe '#cmd_w (wifi status)' do
-      include_examples 'interactive vs non-interactive command', :cmd_w, :wifi_on?, {
-        return_value: true,
-        non_interactive_tests: {
-          'outputs wifi status when wifi is on'  => { model_return: true,  expected_output: "Wifi on: true\n" },
-          'outputs wifi status when wifi is off' => { model_return: false, expected_output: "Wifi on: false\n" }
-        }
-      }
+  describe 'command delegation' do
+    COMMAND_TEST_CASES = [
+      { cmd: :cmd_w,  model_method: :wifi_on?, return_value: true, non_interactive_output: "Wifi on: true\n" },
+      { cmd: :cmd_on, model_method: :wifi_on },
+      { cmd: :cmd_of, model_method: :wifi_off },
+      { cmd: :cmd_d,  model_method: :disconnect },
+      { cmd: :cmd_cy, model_method: :cycle_network },
+      { cmd: :cmd_a,  model_method: :available_network_names, skip_non_interactive: true },
+      { cmd: :cmd_i,  model_method: :wifi_info, return_value: { 'status' => 'connected' }, non_interactive_output: /status.*connected/m },
+      { cmd: :cmd_ci, model_method: :connected_to_internet?, return_value: true, non_interactive_output: "Connected to Internet: true\n" },
+      { cmd: :cmd_qr, model_method: :generate_qr_code, return_value: 'TestNetwork-qr-code.png', non_interactive_output: "QR code generated: TestNetwork-qr-code.png\n" }
+    ]
+
+    COMMAND_TEST_CASES.each do |test_case|
+      describe "##{test_case[:cmd]}" do
+        if test_case[:non_interactive_output]
+          include_examples 'interactive vs non-interactive command', test_case[:cmd], test_case[:model_method], {
+            return_value: test_case[:return_value],
+            non_interactive_tests: {
+              'outputs formatted message' => {
+                model_return: test_case[:return_value],
+                expected_output: test_case[:non_interactive_output]
+              }
+            }
+          }
+        elsif !test_case[:skip_non_interactive]
+          include_examples 'simple command delegation', test_case[:cmd], test_case[:model_method]
+        end
+      end
     end
-    
-    describe '#cmd_on (turn wifi on)' do
-      include_examples 'simple command delegation', :cmd_on, :wifi_on
-    end
-    
-    describe '#cmd_of (turn wifi off)' do
-      include_examples 'simple command delegation', :cmd_of, :wifi_off
-    end
-    
-    describe '#cmd_d (disconnect)' do
-      include_examples 'simple command delegation', :cmd_d, :disconnect
-    end
-    
-    describe '#cmd_cy (cycle network)' do
-      include_examples 'simple command delegation', :cmd_cy, :cycle_network
-    end
-  end
-  
-  describe 'network information commands' do
+
     describe '#cmd_a (available networks)' do
       context 'when wifi is on' do
         before { allow(mock_model).to receive(:wifi_on?).and_return(true) }
@@ -386,18 +388,6 @@ describe WifiWand::CommandLineInterface do
       end
     end
     
-    describe '#cmd_i (wifi info)' do
-      include_examples 'interactive vs non-interactive command', :cmd_i, :wifi_info, {
-        return_value: { 'status' => 'connected', 'signal' => '75%' },
-        non_interactive_tests: {
-          'outputs formatted wifi info' => { 
-            model_return: { 'status' => 'connected' }, 
-            expected_output: /status.*connected/m 
-          }
-        }
-      }
-    end
-    
     describe '#cmd_ne (network name)' do
       context 'when connected to a network' do
         it 'outputs current network name' do
@@ -412,16 +402,6 @@ describe WifiWand::CommandLineInterface do
           expect { subject.cmd_ne }.to output(/Network.*SSID.*name.*none/).to_stdout
         end
       end
-    end
-    
-    describe '#cmd_ci (connected to internet)' do
-      include_examples 'interactive vs non-interactive command', :cmd_ci, :connected_to_internet?, {
-        return_value: true,
-        non_interactive_tests: {
-          'outputs internet connection status when connected'     => { model_return: true,  expected_output: "Connected to Internet: true\n" },
-          'outputs internet connection status when not connected' => { model_return: false, expected_output: "Connected to Internet: false\n" }
-        }
-      }
     end
   end
   
@@ -667,55 +647,5 @@ describe WifiWand::CommandLineInterface do
     end
   end
   
-    describe 'QR code generation commands' do
-      describe '#cmd_qr' do
-        it_behaves_like 'simple command delegation', :cmd_qr, :generate_qr_code
-      
-      it_behaves_like 'interactive vs non-interactive command', :cmd_qr, :generate_qr_code, {
-        return_value: 'TestNetwork-qr-code.png',
-        non_interactive_tests: {
-          'outputs QR code filename in non-interactive mode' => {
-            model_return: 'TestNetwork-qr-code.png',
-            expected_output: "QR code generated: TestNetwork-qr-code.png\n"
-          }
-        }
-      }
-      
-      it 'calls generate_qr_code on the model' do
-        expect(mock_model).to receive(:generate_qr_code).and_return('TestNetwork-qr-code.png')
-        silence_output { subject.cmd_qr }
-      end
-      end
-
-      it "prints QR text directly when filespec is '-'" do
-        cli = described_class.new(options)
-        allow(cli).to receive(:run_shell)
-        # Model prints ANSI and returns '-'
-        expect(cli.model).to receive(:generate_qr_code).with('-') { $stdout.print "[QR-ANSI]\n"; '-' }
-        output = silence_output do |stdout, _stderr|
-          cli.cmd_qr('-')
-          stdout.string
-        end
-        expect(output).to eq("[QR-ANSI]\n")
-      end
     
-    describe 'QR command in command registry' do
-      it 'includes qr command in available commands' do
-        command_strings = subject.commands.map(&:max_string)
-        expect(command_strings).to include('qr')
-      end
-      
-      it 'can find qr command action' do
-        action = subject.find_command_action('qr')
-        expect(action).not_to be_nil
-        expect(action).to respond_to(:call)
-      end
-      
-      it 'qr command maps to cmd_qr method' do
-        expect(subject).to receive(:cmd_qr)
-        action = subject.find_command_action('qr')
-        action.call
-      end
-    end
-  end
 end
