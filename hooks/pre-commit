@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Pre-commit hook to run unit tests before allowing commit
+# Only runs safe (non-disruptive) tests to avoid modifying network state
+
+echo "Running unit tests before commit..."
+
+# Run the safe tests (default behavior)
+bundle exec rspec
+
+# Check if tests passed
+if [ $? -ne 0 ]; then
+    echo "❌ Unit tests failed. Commit aborted."
+    echo "Fix the failing tests and try again."
+    exit 1
+fi
+
+echo "✅ All tests passed. Proceeding with commit."
+exit 0

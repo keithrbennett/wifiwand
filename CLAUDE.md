@@ -48,6 +48,9 @@ COVERAGE_STRICT=true bundle exec rspec
 # Install dependencies
 bundle install
 
+# Set up git hooks (run once after cloning)
+bin/setup-hooks
+
 # Build gem locally
 gem build wifi-wand.gemspec
 
@@ -224,6 +227,23 @@ expect(result).to match(CYAN_TEXT_REGEX)
 ```
 
 Apply these patterns proactively when creating new test files to ensure consistency across the codebase.
+
+## Git Hooks
+
+The repository includes git hooks to maintain code quality:
+
+### Pre-commit Hook
+- Automatically runs `bundle exec rspec` (safe tests) before each commit
+- Prevents commits if tests fail
+- Installed via `bin/setup-hooks` script
+
+### Setup for New Developers
+```bash
+# After cloning the repository, run:
+bin/setup-hooks
+```
+
+This copies hooks from the tracked `hooks/` directory to `.git/hooks/` and makes them executable.
 
 ## Code Conventions
 

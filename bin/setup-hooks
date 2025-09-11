@@ -1,0 +1,23 @@
+#!/bin/bash
+
+# Script to set up git hooks from the tracked hooks/ directory
+# Run this script after cloning the repository to enable git hooks
+
+echo "Setting up git hooks..."
+
+# Ensure .git/hooks directory exists
+mkdir -p .git/hooks
+
+# Copy hooks from tracked directory to .git/hooks
+for hook in hooks/*; do
+    if [ -f "$hook" ]; then
+        hook_name=$(basename "$hook")
+        echo "Installing $hook_name hook..."
+        cp "$hook" ".git/hooks/$hook_name"
+        chmod +x ".git/hooks/$hook_name"
+    fi
+done
+
+echo "✅ Git hooks installed successfully!"
+echo "The following hooks are now active:"
+ls -la .git/hooks/ | grep -v sample | grep -E '^-rwx'
