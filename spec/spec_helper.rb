@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Set environment variable to enable faster timeouts during tests
 ENV['RSPEC_RUNNING'] = 'true'
 

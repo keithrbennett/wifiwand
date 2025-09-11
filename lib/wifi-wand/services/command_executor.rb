@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../models/helpers/command_output_formatter'
 
 module WifiWand

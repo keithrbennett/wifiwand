@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # Base class for classes identifying a supported operating system.
 
 require_relative '../errors'

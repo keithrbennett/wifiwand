@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 # QrCodeGenerator
 # ----------------
 # Generates Wi‑Fi QR codes for the currently connected network.

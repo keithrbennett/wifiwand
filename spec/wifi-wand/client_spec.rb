@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'spec_helper'
 require 'wifi-wand/client'
 require 'wifi-wand/errors'

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module WifiWand
   # Base error class - keep for backward compatibility
   class Error < RuntimeError; end

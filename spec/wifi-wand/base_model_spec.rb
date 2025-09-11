@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../lib/wifi-wand/operating_systems'
 require_relative '../../lib/wifi-wand/models/ubuntu_model'
 require_relative '../../lib/wifi-wand/models/mac_os_model'

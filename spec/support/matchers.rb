@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 RSpec::Matchers.define :be_nil_or_a_string do
   match { |actual| actual.nil? || actual.is_a?(String) }
   failure_message { |actual| "expected that #{actual.inspect} would be a String or nil" }

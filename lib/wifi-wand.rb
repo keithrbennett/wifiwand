@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'wifi-wand/version'
 require_relative 'wifi-wand/client'
 

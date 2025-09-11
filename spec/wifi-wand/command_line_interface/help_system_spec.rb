@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/command_line_interface/help_system'
 require_relative '../../../lib/wifi-wand/version'

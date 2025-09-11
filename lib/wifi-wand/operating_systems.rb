@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'errors'
 require_relative 'os/base_os'
 require_relative 'os/mac_os'

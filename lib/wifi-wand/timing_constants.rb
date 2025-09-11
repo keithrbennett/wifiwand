@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 module WifiWand
   module TimingConstants
     # Default wait intervals for status polling

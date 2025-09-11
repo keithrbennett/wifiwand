@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../lib/wifi-wand/operating_systems'
 
 module WifiWand

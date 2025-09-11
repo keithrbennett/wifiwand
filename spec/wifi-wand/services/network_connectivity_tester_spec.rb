@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../../spec_helper'
 require 'stringio'
 require_relative '../../../lib/wifi-wand/services/network_connectivity_tester'

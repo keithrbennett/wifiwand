@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative '../network_state_manager'
 require_relative 'test_helpers'
 require_relative 'os_filtering'

@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require 'awesome_print'
 require_relative 'operating_systems'
 require 'ostruct'
