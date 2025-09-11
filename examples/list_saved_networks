@@ -1,0 +1,36 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+require 'wifi-wand'
+
+# Struct to hold network information
+NetworkInfo = Struct.new(:name, :password)
+
+def saved_networks_with_passwords
+  client = WifiWand::Client.new
+  networks = client.preferred_networks
+  
+  # Create an array of NetworkInfo objects
+  network_data = networks.map do |network_name|
+    password = client.model.preferred_network_password(network_name)
+    NetworkInfo.new(network_name, password)
+  end
+
+  network_data.sort_by { |info| info.name.downcase }
+end
+
+if __FILE__ == $0
+  # Call the method and let errors propagate
+  network_list = saved_networks_with_passwords
+
+  name_max_width = network_list.map(&:name).map(&:length).max
+  pw_max_width   = network_list.map(&:password).compact.map(&:length).max
+  line_max_width = name_max_width + 4 + pw_max_width
+  format_string  = "%-#{name_max_width}s    %s\n"
+  puts '-' * line_max_width
+  printf(format_string, 'Name', 'Password')
+  puts '-' * line_max_width
+  network_list.each do |info|
+    printf(format_string, info.name, info.password)
+  end
+end
