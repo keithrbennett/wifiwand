@@ -47,6 +47,12 @@ class BaseModel
     @connection_manager = ConnectionManager.new(self, verbose: @verbose_mode)
   end
 
+  # Returns a symbol identifying the operating system for this model
+  # Examples: :mac, :ubuntu
+  def os
+    self.class.os_id
+  end
+
   def init
     init_wifi_interface
     self

@@ -95,6 +95,15 @@ RSpec.describe WifiWand::Client do
     end
   end
 
+  describe '#os' do
+    let(:client) { described_class.new(options) }
+
+    it 'delegates to the model and returns a symbol' do
+      allow(mock_model).to receive(:os).and_return(:mac)
+      expect(client.os).to eq(:mac)
+    end
+  end
+
   describe 'method delegation' do
     let(:client) { described_class.new(options) }
 

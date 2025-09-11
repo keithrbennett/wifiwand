@@ -5,14 +5,14 @@ require 'wifi-wand'
 
 # Struct to hold network information
 NetworkInfo = Struct.new(:name, :password)
+CLIENT = WifiWand::Client.new
 
 def saved_networks_with_passwords
-  client = WifiWand::Client.new
   networks = client.preferred_networks
   
   # Create an array of NetworkInfo objects
   network_data = networks.map do |network_name|
-    password = client.model.preferred_network_password(network_name)
+    password = CLIENT.model.preferred_network_password(network_name)
     NetworkInfo.new(network_name, password)
   end
 
@@ -20,7 +20,15 @@ def saved_networks_with_passwords
 end
 
 if __FILE__ == $0
-  # Call the method and let errors propagate
+
+  if CLIENT.os == :mac
+    puts <<~MESSAGE
+      This script will work on macOS but will be maddeningly tedious. macOS requires authenticating
+      on each password retrieval, even running with sudo!!! Switch to Ubuntu! :)
+    MESSAGE
+  end
+
+    # Call the method and let errors propagate
   network_list = saved_networks_with_passwords
 
   name_max_width = network_list.map(&:name).map(&:length).max

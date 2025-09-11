@@ -27,6 +27,7 @@ module WifiWand
       :ip_address,
       :mac_address,
       :nameservers,
+      :os, # currently :mac or :ubuntu
       :preferred_networks,
       :random_mac_address,
       :remove_preferred_networks,
