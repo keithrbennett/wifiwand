@@ -499,8 +499,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     shared_context 'verbose test model setup' do
+      let(:captured_output) { StringIO.new }
+      
       let(:test_model) do
-        model_options = OpenStruct.new(verbose: true, wifi_interface: nil)
+        model_options = OpenStruct.new(verbose: true, wifi_interface: nil, output_io: captured_output)
         model = subject.class.new(model_options)
         
         # Mock the necessary methods for wifi_info to work
@@ -520,28 +522,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
         
         model.init_wifi_interface
         model
-      end
-
-      def capture_stderr_and_run(&block)
-        original_stderr = $stderr
-        original_stdout = $stdout
-        stderr_capture = StringIO.new
-        stdout_capture = StringIO.new
-        $stderr = stderr_capture
-        $stdout = stdout_capture
-        # Ensure model prints route to this captured stdout
-        original_output_io = test_model.instance_variable_get(:@output_io) rescue nil
-        test_model.instance_variable_set(:@output_io, $stdout) if defined?(test_model)
-        
-        begin
-          yield
-          # Warnings now route to model.output_io (stdout); return stdout contents
-          stdout_capture.string
-        ensure
-          test_model.instance_variable_set(:@output_io, original_output_io) if defined?(test_model)
-          $stderr = original_stderr
-          $stdout = original_stdout
-        end
       end
     end
     
