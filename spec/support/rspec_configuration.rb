@@ -56,14 +56,25 @@ module RSpecConfiguration
       sudo_items + other_items
     end
 
-    # Pre-flight authentication for macOS to surface prompts at suite start
+    # Pre-flight authentication for macOS to surface prompts only when needed
     config.before(:suite) do
       # Never attempt auth/network preflight in CI
       next if ENV['CI']
       begin
-        if defined?($compatible_os_tag) && $compatible_os_tag == :os_mac
-          # Warm up sudo timestamp first (no-op if already cached)
-          system('sudo -v')
+        # Determine which examples RSpec will actually run after filters
+        examples_to_run = if RSpec.world.respond_to?(:filtered_examples)
+                            RSpec.world.filtered_examples.values.flatten
+                          else
+                            []
+                          end
+
+        disruptive_tests_will_run = examples_to_run.any? { |ex| ex.metadata[:disruptive] }
+        sudo_tests_will_run       = examples_to_run.any? { |ex| ex.metadata[:needs_sudo_access] }
+
+        # Only preflight on macOS when disruptive tests are scheduled to run
+        if defined?($compatible_os_tag) && $compatible_os_tag == :os_mac && disruptive_tests_will_run
+          # Warm up sudo timestamp only if sudo-tagged disruptive tests will run (no-op if already cached)
+          system('sudo -v') if sudo_tests_will_run
 
           # Build a model to query current state
           model = begin
@@ -74,26 +85,30 @@ module RSpecConfiguration
 
           if model
             # Trigger Keychain password lookup early (if connected)
-            ssid = begin
-              model.connected_network_name
-            rescue
-              nil
-            end
-            if ssid && $stdout.tty?
-              begin
-                model.preferred_network_password(ssid)
+            if disruptive_tests_will_run
+              ssid = begin
+                model.connected_network_name
               rescue
-                # Ignore – purpose is just to trigger any auth prompt upfront
+                nil
+              end
+              if ssid && $stdout.tty?
+                begin
+                  model.preferred_network_password(ssid)
+                rescue
+                  # Ignore – purpose is just to trigger any auth prompt upfront
+                end
               end
             end
 
-            # Trigger a harmless sudo networksetup operation early
-            iface = begin
-              model.wifi_interface
-            rescue
-              'en0'
+            # Trigger a harmless sudo networksetup operation early only when sudo-tagged disruptive tests will run
+            if sudo_tests_will_run
+              iface = begin
+                model.wifi_interface
+              rescue
+                'en0'
+              end
+              system("sudo networksetup -removepreferredwirelessnetwork #{iface} non_existent_network_123 >/dev/null 2>&1 || true")
             end
-            system("sudo networksetup -removepreferredwirelessnetwork #{iface} non_existent_network_123 >/dev/null 2>&1 || true")
           end
         end
       rescue
