@@ -11,6 +11,32 @@ RSpec.describe WifiWand::Client do
     allow(WifiWand::OperatingSystems).to receive(:create_model_for_current_os).and_return(mock_model)
   end
 
+  describe '#verbose_mode' do
+    let(:client) { described_class.new(options) }
+
+    it 'reads the verbose mode from the model when called without args' do
+      allow(mock_model).to receive(:verbose_mode).and_return(true)
+      expect(client.verbose_mode).to be(true)
+      expect(mock_model).to have_received(:verbose_mode)
+    end
+
+    it 'sets the verbose mode on the model when passed a boolean' do
+      expect(mock_model).to receive(:verbose_mode=).with(true).and_return(true)
+      client.verbose_mode(true)
+
+      allow(mock_model).to receive(:verbose_mode).and_return(true)
+      expect(client.verbose_mode).to be(true)
+    end
+
+    it 'coerces non-boolean values to boolean when setting' do
+      expect(mock_model).to receive(:verbose_mode=).with(false)
+      client.verbose_mode(nil)
+
+      expect(mock_model).to receive(:verbose_mode=).with(true)
+      client.verbose_mode('yes')
+    end
+  end
+
   describe '#initialize' do
     it 'creates a model instance for the current OS' do
       client = described_class.new(options)

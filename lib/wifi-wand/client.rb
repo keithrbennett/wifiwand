@@ -145,5 +145,20 @@ module WifiWand
       raise # Re-raise the original error so library consumers can handle it.
     end
 
+    # Gets or sets verbose mode for the underlying model.
+    #
+    # If called with no argument, returns the current verbose mode.
+    # If called with a boolean argument, sets the verbose mode on the model.
+    #
+    # @param value [Boolean, nil] Optional boolean to enable/disable verbose mode.
+    # @return [Boolean] The current verbose mode after any change.
+    def verbose_mode(value = :__no_value_provided)
+      if value == :__no_value_provided
+        @model.verbose_mode
+      else
+        @model.verbose_mode = !!value
+      end
+    end
+
   end
 end
