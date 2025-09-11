@@ -8,7 +8,7 @@ NetworkInfo = Struct.new(:name, :password)
 CLIENT = WifiWand::Client.new
 
 def saved_networks_with_passwords
-  networks = client.preferred_networks
+  networks = CLIENT.preferred_networks
   
   # Create an array of NetworkInfo objects
   network_data = networks.map do |network_name|
