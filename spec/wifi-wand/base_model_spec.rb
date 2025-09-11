@@ -502,7 +502,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       let(:captured_output) { StringIO.new }
       
       let(:test_model) do
-        model_options = OpenStruct.new(verbose: true, wifi_interface: nil, output_io: captured_output)
+        model_options = OpenStruct.new(verbose: true, wifi_interface: nil, out_stream: captured_output)
         model = subject.class.new(model_options)
         
         # Mock the necessary methods for wifi_info to work
@@ -580,12 +580,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
             .and_raise(Errno::ETIMEDOUT)
             .twice
           
-          stderr_output = capture_stderr_and_run do
-            result = test_model.wifi_info
-            expect(result['public_ip']).to be_nil
-          end
-          
-          expect(stderr_output).to match(/Warning: Could not obtain public IP info/)
+          result = test_model.wifi_info
+          expect(result['public_ip']).to be_nil
+          expect(captured_output.string).to match(/Warning: Could not obtain public IP info/)
         end
         
         it 'handles JSON parsing errors' do
@@ -593,12 +590,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
           allow(test_model).to receive(:public_ip_address_info)
             .and_raise(JSON::ParserError, 'Invalid JSON')
           
-          stderr_output = capture_stderr_and_run do
-            result = test_model.wifi_info
-            expect(result['public_ip']).to be_nil
-          end
-          
-          expect(stderr_output).to match(/Warning: Public IP service returned invalid data/)
+          result = test_model.wifi_info
+          expect(result['public_ip']).to be_nil
+          expect(captured_output.string).to match(/Warning: Public IP service returned invalid data/)
         end
         
         it 'handles other exceptions' do
@@ -606,12 +600,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
           allow(test_model).to receive(:public_ip_address_info)
             .and_raise(RuntimeError, 'Unknown error')
           
-          stderr_output = capture_stderr_and_run do
-            result = test_model.wifi_info
-            expect(result['public_ip']).to be_nil
-          end
-          
-          expect(stderr_output).to match(/Warning: Public IP lookup failed: RuntimeError/)
+          result = test_model.wifi_info
+          expect(result['public_ip']).to be_nil
+          expect(captured_output.string).to match(/Warning: Public IP lookup failed: RuntimeError/)
         end
       end
     end

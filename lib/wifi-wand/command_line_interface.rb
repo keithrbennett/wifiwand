@@ -25,13 +25,13 @@ class CommandLineInterface
 
   def initialize(options)
     @options = options
-    @out_stream = (options.respond_to?(:out_stream) && options.out_stream) || (options.respond_to?(:output_io) && options.output_io) || $stdout
-    @err_stream = (options.respond_to?(:err_stream) && options.err_stream) || (options.respond_to?(:error_io) && options.error_io) || $stderr
+    @out_stream = (options.respond_to?(:out_stream) && options.out_stream) || $stdout
+    @err_stream = (options.respond_to?(:err_stream) && options.err_stream) || $stderr
 
     model_options = OpenStruct.new({
       verbose:        options.verbose,
       wifi_interface: options.wifi_interface,
-      output_io:      @out_stream
+      out_stream:     @out_stream
     })
 
     @model = WifiWand.create_model(model_options)

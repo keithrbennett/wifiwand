@@ -74,9 +74,6 @@ class Main
       # Ensure CLI and model share the main's output streams
       options.out_stream = @out_stream
       options.err_stream = @err_stream
-      # Backward compatibility for older option keys
-      options.output_io = @out_stream
-      options.error_io  = @err_stream
       WifiWand::CommandLineInterface.new(options).call
     rescue => e
       handle_error(e, options.verbose)

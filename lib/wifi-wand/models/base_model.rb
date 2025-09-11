@@ -19,7 +19,7 @@ module WifiWand
 class BaseModel
 
   attr_accessor :wifi_interface, :verbose_mode, :command_executor, :connectivity_tester, :state_manager, :status_waiter, :connection_manager
-  attr_reader :output_io
+  attr_reader :out_stream
 
   def self.create_model(options = OpenStruct.new)
     instance = new(options)
@@ -34,11 +34,12 @@ class BaseModel
   def initialize(options)
     @options = options
     @verbose_mode = options.verbose
-    @output_io = options.output_io || $stdout
-    @command_executor = CommandExecutor.new(verbose: @verbose_mode, output: @output_io)
-    @connectivity_tester = NetworkConnectivityTester.new(verbose: @verbose_mode, output: @output_io)
-    @state_manager = NetworkStateManager.new(self, verbose: @verbose_mode, output: @output_io)
-    @status_waiter = StatusWaiter.new(self, verbose: @verbose_mode, output: @output_io)
+    # Output stream for verbose/debug output
+    @out_stream = (options.respond_to?(:out_stream) && options.out_stream) || $stdout
+    @command_executor = CommandExecutor.new(verbose: @verbose_mode, output: @out_stream)
+    @connectivity_tester = NetworkConnectivityTester.new(verbose: @verbose_mode, output: @out_stream)
+    @state_manager = NetworkStateManager.new(self, verbose: @verbose_mode, output: @out_stream)
+    @status_waiter = StatusWaiter.new(self, verbose: @verbose_mode, output: @out_stream)
     @connection_manager = ConnectionManager.new(self, verbose: @verbose_mode)
   end
 
@@ -218,16 +219,16 @@ class BaseModel
           info['public_ip'] = public_ip_address_info
         rescue => retry_error
           # Still failed - silently degrade
-          output_io.puts "Warning: Could not obtain public IP info: #{retry_error.class}" if @verbose_mode
+          out_stream.puts "Warning: Could not obtain public IP info: #{retry_error.class}" if @verbose_mode
           info['public_ip'] = nil
         end
       rescue JSON::ParserError
         # Service returned invalid JSON - try alternate approach
-        output_io.puts "Warning: Public IP service returned invalid data" if @verbose_mode
+        out_stream.puts "Warning: Public IP service returned invalid data" if @verbose_mode
         info['public_ip'] = nil  
       rescue => e
         # Other errors - log if verbose, gracefully degrade
-        output_io.puts "Warning: Public IP lookup failed: #{e.class}" if @verbose_mode
+        out_stream.puts "Warning: Public IP lookup failed: #{e.class}" if @verbose_mode
         info['public_ip'] = nil
       end
     end
@@ -460,7 +461,7 @@ class BaseModel
       values = param_names.map { |name| binding.local_variable_get(name) }
       s << "(#{values.map(&:to_s).map(&:inspect).join(', ')})"
     end
-    output_io.puts s
+    out_stream.puts s
   end
 end
 end

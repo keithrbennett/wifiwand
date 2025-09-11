@@ -141,7 +141,7 @@ module WifiWand
         ].compact.join(' ')
         begin
           model.run_os_command(cmd)
-          model.output_io.puts "QR code generated: #{filename}" if model.verbose_mode
+          model.out_stream.puts "QR code generated: #{filename}" if model.verbose_mode
         rescue WifiWand::CommandExecutor::OsCommandError => e
           raise WifiWand::Error.new("Failed to generate QR code: #{e.message}")
         end
