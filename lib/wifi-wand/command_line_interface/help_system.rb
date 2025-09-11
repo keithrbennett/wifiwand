@@ -36,7 +36,7 @@ of[f]                     - turns WiFi off
 pa[ssword] network-name   - password for preferred network name
 pr[ef_nets]               - preferred (saved) networks
 q[uit]                    - exits this program (interactive shell mode only) (same as 'x')
-qr [filespec|'-']         - generate QR for current Wi‑Fi; default PNG file <SSID>-qr-code.png; '-' (or ':-' / ':ansi') prints ANSI QR to stdout; '.svg'/' .eps' use those formats
+qr [filespec|'-']         - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' (or ':-' / ':ansi') prints ANSI QR to stdout; '.svg'/' .eps' use those formats
 ro[pen]                   - open web resources: #{resource_help}
 s[tatus]                  - status line (WiFi, Network, TCP, DNS, Internet)
 t[ill]                    - wait until state is reached:
