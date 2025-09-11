@@ -308,6 +308,7 @@ The `Client` object provides a comprehensive API for interacting with your Wi-Fi
 *   `ip_address`
 *   `mac_address`
 *   `nameservers`
+*   `os` — returns the current OS identifier as a symbol (`:mac`, `:ubuntu`)
 *   `preferred_networks`
 *   `random_mac_address`
 *   `remove_preferred_networks(*ssids)`
