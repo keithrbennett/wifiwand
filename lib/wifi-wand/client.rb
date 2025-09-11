@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'forwardable'
+require 'ostruct'
 require_relative 'errors'
 require_relative 'operating_systems'
 
@@ -137,11 +138,12 @@ module WifiWand
 
     # Initializes a new Client.
     #
-    # @param options [OpenStruct] optional configuration.
+    # @param options [OpenStruct, Hash] optional configuration.
     #   * :verbose (Boolean) - Enable verbose output for debugging.
     #   * :wifi_interface (String) - Specify the Wi-Fi interface to use.
     #   * :out_stream (IO) - Destination for verbose/debug output from the model and its services (defaults to $stdout).
-    def initialize(options = OpenStruct.new)
+    def initialize(options = {})
+      options = OpenStruct.new(options) if options.is_a?(Hash)
       @model = WifiWand::OperatingSystems.create_model_for_current_os(options)
     rescue NoSupportedOSError
       raise # Re-raise the original error so library consumers can handle it.

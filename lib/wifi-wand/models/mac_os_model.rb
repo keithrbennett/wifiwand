@@ -20,7 +20,7 @@ class MacOsModel < BaseModel
     @macos_version ||= detect_macos_version
   end
 
-  def initialize(options = OpenStruct.new)
+  def initialize(options = {})
     super
     # Defer macOS version detection until first needed to minimize incidental OS calls
     @macos_version = nil

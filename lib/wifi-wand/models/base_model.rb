@@ -23,7 +23,8 @@ class BaseModel
   attr_accessor :wifi_interface, :verbose_mode, :command_executor, :connectivity_tester, :state_manager, :status_waiter, :connection_manager
   attr_reader :out_stream
 
-  def self.create_model(options = OpenStruct.new)
+  def self.create_model(options = {})
+    options = OpenStruct.new(options) if options.is_a?(Hash)
     instance = new(options)
     instance.init if current_os_matches_this_model?
     instance
@@ -33,7 +34,8 @@ class BaseModel
     WifiWand::OperatingSystems.current_os&.id == os_id
   end
 
-  def initialize(options)
+  def initialize(options = {})
+    options = OpenStruct.new(options) if options.is_a?(Hash)
     @options = options
     @verbose_mode = options.verbose
     # Output stream for verbose/debug output

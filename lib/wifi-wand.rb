@@ -10,8 +10,8 @@ require_relative 'wifi-wand/client'
 module WifiWand
   # Creates a model instance for the current operating system.
   # Delegates to WifiWand::OperatingSystems.create_model_for_current_os.
-  # @param options [OpenStruct] options including :verbose and :wifi_interface
-  def self.create_model(options = OpenStruct.new)
+  # @param options [OpenStruct, Hash] options including :verbose and :wifi_interface
+  def self.create_model(options = {})
     require_relative 'wifi-wand/operating_systems'
     WifiWand::OperatingSystems.create_model_for_current_os(options)
   end

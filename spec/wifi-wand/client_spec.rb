@@ -40,10 +40,30 @@ RSpec.describe WifiWand::Client do
   end
 
   describe '#initialize' do
-    it 'creates a model instance for the current OS' do
+    it 'creates a model instance for the current OS with OpenStruct options' do
       client = described_class.new(options)
       expect(client.model).to eq(mock_model)
       expect(WifiWand::OperatingSystems).to have_received(:create_model_for_current_os).with(options)
+    end
+
+    it 'creates a model instance for the current OS with Hash options' do
+      hash_options = { verbose: true, wifi_interface: 'wlan0' }
+      client = described_class.new(hash_options)
+      expect(client.model).to eq(mock_model)
+      # Verify that Hash was converted to OpenStruct before passing to create_model_for_current_os
+      expect(WifiWand::OperatingSystems).to have_received(:create_model_for_current_os) do |arg|
+        expect(arg).to be_a(OpenStruct)
+        expect(arg.verbose).to eq(true)
+        expect(arg.wifi_interface).to eq('wlan0')
+      end
+    end
+
+    it 'accepts empty Hash as default options' do
+      client = described_class.new
+      expect(client.model).to eq(mock_model)
+      expect(WifiWand::OperatingSystems).to have_received(:create_model_for_current_os) do |arg|
+        expect(arg).to be_a(OpenStruct)
+      end
     end
 
     it 're-raises NoSupportedOSError if no OS is detected' do

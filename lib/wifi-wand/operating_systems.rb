@@ -43,7 +43,8 @@ class OperatingSystems
       current_os&.display_name
     end
 
-    def create_model_for_current_os(options = OpenStruct.new)
+    def create_model_for_current_os(options = {})
+      options = OpenStruct.new(options) if options.is_a?(Hash)
       current_os_instance = current_os
       raise NoSupportedOSError.new unless current_os_instance
       current_os_instance.create_model(options)

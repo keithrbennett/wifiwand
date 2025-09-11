@@ -9,7 +9,7 @@ module WifiWand
 
 class UbuntuModel < BaseModel
 
-  def initialize(options = OpenStruct.new)
+  def initialize(options = {})
     super
   end
 

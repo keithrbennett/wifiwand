@@ -29,6 +29,30 @@ describe 'BaseModel Resource Management' do
   end
   
   let(:model) { model_class.new(OpenStruct.new(verbose: false)) }
+
+  describe 'initialization with options' do
+    it 'accepts OpenStruct options' do
+      options = OpenStruct.new(verbose: true, wifi_interface: 'wlan0')
+      test_model = model_class.new(options)
+      expect(test_model.verbose_mode).to eq(true)
+    end
+
+    it 'accepts Hash options and converts to OpenStruct internally' do
+      hash_options = { verbose: true, wifi_interface: 'wlan0' }
+      test_model = model_class.new(hash_options)
+      expect(test_model.verbose_mode).to eq(true)
+    end
+
+    it 'accepts empty Hash as default options' do
+      test_model = model_class.new({})
+      expect(test_model.verbose_mode).to be_falsy
+    end
+
+    it 'uses empty Hash as default when no options provided' do
+      test_model = model_class.new
+      expect(test_model.verbose_mode).to be_falsy
+    end
+  end
   
   describe 'resource manager delegation' do
     before do
