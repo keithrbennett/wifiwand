@@ -154,11 +154,8 @@ class CommandLineInterface
   def cmd_pa(network)
     password = model.preferred_network_password(network)
     human_readable_string_producer = -> do
-      <<~MESSAGE
-        Preferred network "#{network}" {
-          password ? "stored password is \"#{password}\"." : "has no stored password."
-        }
-      MESSAGE
+      %Q{Preferred network "#{network}" } +
+        (password ? %Q{stored password is "#{password}".} : 'has no stored password.')
     end
     handle_output(password, human_readable_string_producer)
   end
