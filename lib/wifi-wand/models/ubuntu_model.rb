@@ -406,12 +406,20 @@ class UbuntuModel < BaseModel
       output = run_os_command("nmcli connection show #{Shellwords.shellescape(connection_name)}", false)
       
       # Extract DNS servers from connection configuration
-      # Look for both static configuration (ipv4.dns[1]:) and active DNS (IP4.DNS[1]:)
+      # Look for both configured DNS (ipv4.dns[1]:) and runtime DNS (IP4.DNS[1]:)
       # Format examples:
-      #   ipv4.dns[1]:                        1.1.1.1    (manually configured)
-      #   IP4.DNS[1]:                         192.168.3.1 (from DHCP/router)
+      #   ipv4.dns[1]:                        1.1.1.1    (static configuration)
+      #   IP4.DNS[1]:                         192.168.3.1 (active/runtime state)
+      # Note: ipv4.dns is documented in NetworkManager official docs, IP4.DNS observed in practice
+
+      ip_version_pattern = /(?i)ip(?:v4|4)/     # Matches 'ipv4' or 'ip4'
+      dns_field_pattern = /\.dns\[\d+\]:/       # Matches '.dns[N]:'
+
+      # Use .source to get the raw pattern, ensuring flags apply uniformly to the new regex.
+      dns_line_pattern = /#{ip_version_pattern.source}#{dns_field_pattern.source}/i
+      
       dns_lines = output.split("\n").select do |line|
-        line.match?(/ip4\.dns\[\d+\]:/i)
+        line.match?(dns_line_pattern)
       end
       
       nameservers = dns_lines.map do |line|
