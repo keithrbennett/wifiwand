@@ -1,10 +1,16 @@
 # frozen_string_literal: true
 
-require_relative '../spec_helper'
+# QR Code Overwrite Confirmation (unit)
+# Exercises all overwrite branches without calling external tools:
+# - overwrite: true (success and deletion failure)
+# - interactive TTY yes/no
+# - non-interactive error guidance
+
+require_relative '../../../spec_helper'
 require 'fileutils'
 
-describe 'QR Code Overwrite Confirmation', :os_ubuntu do
-  let(:model) { create_ubuntu_test_model }
+describe 'QR Code Overwrite Confirmation' do
+  let(:model) { create_test_model }
   let(:ssid) { 'TestNetwork' }
   let(:password) { 'password123' }
   let(:security) { 'WPA2' }
@@ -30,11 +36,10 @@ describe 'QR Code Overwrite Confirmation', :os_ubuntu do
     allow($stdin).to receive(:tty?).and_return(true)
     allow($stdin).to receive(:gets).and_return("y\n")
 
+    # Ensure we delete the file before invoking qrencode
+    expect(File).to receive(:delete).with(filename).ordered.and_call_original
     # Ensure qrencode is invoked (but do not actually run it)
-    expect(model).to receive(:run_os_command) do |cmd, *_rest|
-      expect(cmd).to start_with("qrencode -o #{filename} ")
-      ''
-    end
+    expect(model).to receive(:run_os_command).with(a_string_starting_with("qrencode -o #{filename} ")).ordered.and_return('')
 
     result = nil
     silence_output do
@@ -66,5 +71,32 @@ describe 'QR Code Overwrite Confirmation', :os_ubuntu do
     expect {
       silence_output { model.generate_qr_code }
     }.to raise_error(WifiWand::Error, /already exists.*Delete the file first/i)
+  end
+
+  it 'deletes and proceeds when overwrite: true' do
+    File.write(filename, 'old')
+
+    expect(File).to receive(:delete).with(filename).ordered.and_call_original
+    expect(model).to receive(:run_os_command).with(a_string_starting_with("qrencode -o #{filename} ")).ordered.and_return('')
+
+    result = nil
+    silence_output { result = model.generate_qr_code(nil, overwrite: true) }
+    expect(result).to eq(filename)
+    # We only assert command args and delete call in unit tests.
+    # File recreation is the responsibility of qrencode (covered in integration tests).
+    expect(File.exist?(filename)).to be false
+  end
+
+  it 'raises an error if deletion fails when overwrite: true' do
+    File.write(filename, 'old')
+
+    allow(File).to receive(:exist?).with(filename).and_return(true)
+    allow(File).to receive(:delete).with(filename).and_raise(StandardError.new('cannot delete'))
+
+    expect(model).not_to receive(:run_os_command)
+
+    expect {
+      silence_output { model.generate_qr_code(nil, overwrite: true) }
+    }.to raise_error(WifiWand::Error, /could not be overwritten/)
   end
 end
