@@ -21,7 +21,7 @@ end
 
 if __FILE__ == $0
 
-  if CLIENT.os == :mac
+  if CLIENT.mac?
     puts <<~MESSAGE
       This script will work on macOS but will be maddeningly tedious. macOS requires authenticating
       on each password retrieval, even running with sudo!!! Switch to Ubuntu! :)

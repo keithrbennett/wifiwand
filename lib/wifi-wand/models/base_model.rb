@@ -53,6 +53,15 @@ class BaseModel
     self.class.os_id
   end
 
+  # Convenience OS predicates
+  def mac?
+    os == :mac
+  end
+
+  def ubuntu?
+    os == :ubuntu
+  end
+
   def init
     init_wifi_interface
     self

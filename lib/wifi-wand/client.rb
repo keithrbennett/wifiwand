@@ -25,6 +25,7 @@ module WifiWand
       :generate_qr_code,
       :internet_tcp_connectivity?,
       :ip_address,
+      :mac?,
       :mac_address,
       :nameservers,
       :os, # currently :mac or :ubuntu
@@ -32,6 +33,7 @@ module WifiWand
       :random_mac_address,
       :remove_preferred_networks,
       :status_line_data,
+      :ubuntu?,
       :wifi_info,
       :wifi_off,
       :wifi_on,
