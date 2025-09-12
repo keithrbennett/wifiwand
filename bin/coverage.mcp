@@ -129,14 +129,6 @@ RESULTSET_CANDIDATES = [
 module CovUtil
   module_function
 
-  LOGFILE = File.expand_path("~/coverage_mcp.log")
-
-  def log(msg)
-    File.open(LOGFILE, "a") do |f|
-      f.puts "[#{Time.now}] #{msg}"
-    end
-  end
-
   def find_resultset(root)
     if (env = ENV["SIMPLECOV_RESULTSET"]) && !env.empty?
       path = File.absolute_path(env, root)
@@ -150,8 +142,6 @@ module CovUtil
 
   # returns { abs_path => {"lines" => [hits|nil,...]} }
   def load_latest_coverage(root)
-    log "#{__method__} called with root=#{root}"
-
     rs = find_resultset(root)
     raw = JSON.parse(File.read(rs))
     _suite, data = raw.max_by { |_k, v| (v["timestamp"] || v["created_at"] || 0).to_i }
@@ -160,7 +150,6 @@ module CovUtil
   end
 
   def lookup_lines(cov, file_abs)
-    log "#{__method__} called with file_abs=#{file_abs}"
     if (h = cov[file_abs]) && h["lines"].is_a?(Array)
       return h["lines"]
     end
@@ -181,7 +170,6 @@ module CovUtil
   end
 
   def summary(arr)
-    log "#{__method__} called with arr.length=#{arr.length}"
     total = 0
     covered = 0
     arr.each do |hits|
@@ -194,7 +182,6 @@ module CovUtil
   end
 
   def uncovered(arr)
-    log "#{__method__} called with arr.length=#{arr.length}"
     out = []
     arr.each_with_index do |hits, i|
       next if hits.nil?
@@ -204,7 +191,6 @@ module CovUtil
   end
 
   def detailed(arr)
-    log "#{__method__} called with arr.length=#{arr.length}"
     rows = []
     arr.each_with_index do |hits, i|
       next if hits.nil?
