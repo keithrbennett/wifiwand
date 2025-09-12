@@ -1,0 +1,7 @@
+# ~/.codex/config.toml
+
+[mcp_servers.ruby_coverage]
+command = "/home/kbennett/code/wifiwand/primary/bin/coverage.mcp"
+args = []
+# Optional: pin where to read coverage from
+# env = { SIMPLECOV_RESULTSET = "/home/kbennett/code/wifiwand/primary/coverage/.resultset.json" }
