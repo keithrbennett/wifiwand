@@ -294,6 +294,14 @@ describe WifiWand::CommandLineInterface do
         expect { subject.cmd_ro }.to output("Available resources help text\n").to_stdout
       end
 
+      it 'returns help text directly in interactive mode with no arguments' do
+        help_text = 'Available resources help text'
+        allow(interactive_cli.model).to receive(:available_resources_help).and_return(help_text)
+        
+        result = interactive_cli.cmd_ro
+        expect(result).to eq(help_text)
+      end
+
       it 'opens valid resources and reports success' do
         opened_resources = [
           double('resource', code: 'ipw', description: 'What is My IP'),
@@ -331,6 +339,89 @@ describe WifiWand::CommandLineInterface do
           .and_return("Invalid resource code: 'invalid'")
         
         expect { subject.cmd_ro('ipw', 'invalid') }.to output("Invalid resource code: 'invalid'\n").to_stderr
+      end
+    end
+  end
+
+  describe 'QR code generation edge cases' do
+    describe '#cmd_qr' do
+      context 'with symbol argument for ANSI output' do
+        it 'handles :"-" symbol for ANSI output and returns nil' do
+          allow(mock_model).to receive(:generate_qr_code).with('-').and_return('-')
+          result = subject.cmd_qr(:'-')
+          expect(result).to be_nil
+        end
+      end
+
+      context 'file overwrite scenarios' do
+        let(:filename) { 'test.png' }
+        let(:file_exists_error) { WifiWand::Error.new("File #{filename} already exists") }
+        
+        before do
+          # First call always fails with file exists error
+          allow(mock_model).to receive(:generate_qr_code).with(filename).and_raise(file_exists_error)
+          allow($stdin).to receive(:tty?).and_return(true)
+        end
+
+        shared_examples 'user confirms overwrite' do |user_input|
+          it "proceeds with overwrite when user enters '#{user_input.strip}'" do
+            allow(mock_model).to receive(:generate_qr_code).with(filename, overwrite: true).and_return(filename)
+            allow($stdin).to receive(:gets).and_return(user_input)
+            
+            expect { subject.cmd_qr(filename) }.to output(/QR code generated: #{filename}/).to_stdout
+          end
+        end
+
+        shared_examples 'user declines overwrite' do |user_input|
+          it "returns nil when user enters '#{user_input.strip}'" do
+            allow($stdin).to receive(:gets).and_return(user_input)
+            
+            result = subject.cmd_qr(filename)
+            expect(result).to be_nil
+          end
+        end
+
+        it 'prompts for overwrite confirmation when file exists' do
+          allow(mock_model).to receive(:generate_qr_code).with(filename, overwrite: true).and_return(filename)
+          allow($stdin).to receive(:gets).and_return("y\n")
+          
+          expect { subject.cmd_qr(filename) }.to output(/Output file exists. Overwrite\? \[y\/N\]: /).to_stdout
+        end
+
+        include_examples 'user confirms overwrite', "y\n"
+        include_examples 'user confirms overwrite', "yes\n"
+        include_examples 'user declines overwrite', "n\n"
+        include_examples 'user declines overwrite', "\n"
+
+        it 're-raises non-overwrite errors' do
+          # Reset mock for different error
+          allow(mock_model).to receive(:generate_qr_code).with('other.png').and_raise(
+            WifiWand::Error.new("Network connection failed")
+          )
+          
+          expect { subject.cmd_qr('other.png') }.to raise_error(WifiWand::Error, "Network connection failed")
+        end
+      end
+    end
+  end
+
+  describe 'status command interactive mode' do
+    describe '#cmd_s' do
+      context 'in interactive mode' do
+        it 'outputs status line to out_stream and returns nil' do
+          status_data = { wifi_on: true, network_name: 'TestNet' }
+          out_stream = StringIO.new
+          interactive_opts = interactive_options.dup
+          interactive_opts.out_stream = out_stream
+          cli = described_class.new(interactive_opts)
+          
+          allow(cli.model).to receive(:status_line_data).and_return(status_data)
+          allow(cli).to receive(:status_line).with(status_data).and_return('WiFi: ON | Network: "TestNet"')
+          
+          result = cli.cmd_s
+          expect(result).to be_nil
+          expect(out_stream.string).to eq("WiFi: ON | Network: \"TestNet\"\n")
+        end
       end
     end
   end
