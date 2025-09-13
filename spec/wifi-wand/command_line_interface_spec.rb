@@ -356,6 +356,25 @@ describe WifiWand::CommandLineInterface do
         end
       end
 
+      context 'non-interactive stdout mode' do
+        it "prints ANSI via model and returns nil" do
+          # Model handles printing when delivery_mode is :print; CLI should not add extra output
+          allow(mock_model).to receive(:generate_qr_code).with('-', delivery_mode: :print) do
+            $stdout.print("[QR-ANSI]\n")
+            '-'
+          end
+
+          result = nil
+          captured = silence_output do |stdout, _stderr|
+            result = subject.cmd_qr('-')
+            stdout.string
+          end
+
+          expect(result).to be_nil
+          expect(captured).to eq("[QR-ANSI]\n")
+        end
+      end
+
       context 'file overwrite scenarios' do
         let(:filename) { 'test.png' }
         let(:file_exists_error) { WifiWand::Error.new("File #{filename} already exists") }

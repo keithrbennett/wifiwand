@@ -39,6 +39,17 @@ describe 'QR Code Generator (unit)' do
     expect(result).to eq('-')
   end
 
+  it "returns ANSI QR string without printing when delivery_mode is :return" do
+    expect(model).to receive(:run_os_command) do |cmd, *_|
+      expect(cmd).to start_with('qrencode -t ANSI ')
+      "[QR-ANSI]\n"
+    end
+
+    result = nil
+    expect { result = model.generate_qr_code('-', delivery_mode: :return) }.not_to output.to_stdout
+    expect(result).to eq("[QR-ANSI]\n")
+  end
+
   [
     { filespec: 'out.svg', flag: '-t SVG' },
     { filespec: 'out.eps', flag: '-t EPS' }
