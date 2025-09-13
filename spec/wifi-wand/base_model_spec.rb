@@ -428,6 +428,60 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
+  describe 'OS helpers' do
+    it 'returns os_id and mac?/ubuntu? reflect os' do
+      test_class = Class.new(WifiWand::BaseModel) do
+        def self.os_id = :mac
+        # implement required underscore methods to satisfy inherited verification
+        def _available_network_names; []; end
+        def _connected_network_name; nil; end
+        def _connect(_n, _p); nil; end
+        def _disconnect; nil; end
+        def _ip_address; nil; end
+        def _preferred_network_password(_n); nil; end
+      end
+
+      inst = test_class.allocate # skip initialize internals
+      expect(inst.os).to eq(:mac)
+      expect(inst.mac?).to be true
+      expect(inst.ubuntu?).to be false
+    end
+  end
+
+  describe '#public_ip_address_info error handling' do
+    it 'raises PublicIPLookupError when response is not success' do
+      # Ensure we call the real implementation, not the suite-wide stub
+      allow(subject).to receive(:public_ip_address_info).and_call_original
+
+      # Minimal Net::HTTP stubs
+      response = instance_double('Net::HTTPResponse', code: '500', message: 'Internal Server Error')
+      # Make the response not be a Net::HTTPSuccess for any class check
+      allow(response).to receive(:is_a?).and_return(false)
+
+      http = instance_double('Net::HTTP')
+      allow(http).to receive(:use_ssl=)
+      allow(http).to receive(:open_timeout=)
+      allow(http).to receive(:read_timeout=)
+      allow(http).to receive(:respond_to?).with(:write_timeout=).and_return(true)
+      allow(http).to receive(:write_timeout=)
+      allow(http).to receive(:request).and_return(response)
+      allow(Net::HTTP).to receive(:new).and_return(http)
+
+      expect {
+        subject.public_ip_address_info
+      }.to raise_error(WifiWand::PublicIPLookupError, /HTTP error fetching public IP info: 500 Internal Server Error/)
+    end
+  end
+
+  describe 'private helpers' do
+    it 'memoizes private qr_code_generator helper' do
+      first = subject.send(:qr_code_generator)
+      second = subject.send(:qr_code_generator)
+      expect(first).to be_a(WifiWand::Helpers::QrCodeGenerator)
+      expect(second).to equal(first)
+    end
+  end
+
   describe 'subclass method validation' do
     it 'raises NotImplementedError for unimplemented required methods' do
       # Create an incomplete subclass for testing

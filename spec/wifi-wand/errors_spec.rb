@@ -69,6 +69,7 @@ module WifiWand
         { klass: NoSupportedOSError,            args: [],                             message: "No supported operating system detected. WifiWand supports macOS and Ubuntu Linux" },
         { klass: PreferredNetworkNotFoundError, args: ['MyNet'],                      message: "Network 'MyNet' not in preferred networks list" },
         { klass: ConfigurationError,            args: ['A config is wrong'],          message: 'A config is wrong' },
+        { klass: KeychainError,                 args: ['custom keychain error'],      message: 'custom keychain error' },
         { klass: BadCommandError,               args: ['This is a bad command'],      message: 'This is a bad command' },
       ]
 
@@ -85,6 +86,21 @@ module WifiWand
 
         method_not_impl_error = BaseOs::MethodNotImplementedError.new
         expect(method_not_impl_error.to_s).to include('must be implemented in, and called on, a subclass')
+      end
+    end
+
+    # Additional unit tests for error classes with branching behavior
+    describe PublicIPLookupError do
+      it 'formats message when HTTP status is provided' do
+        err = PublicIPLookupError.new('503', 'Service Unavailable')
+        expect(err.message).to include('HTTP error fetching public IP info: 503 Service Unavailable')
+        expect(err.status_code).to eq('503')
+        expect(err.status_message).to eq('Service Unavailable')
+      end
+
+      it 'uses a generic message when no status is provided' do
+        err = PublicIPLookupError.new
+        expect(err.message).to eq('Public IP lookup failed')
       end
     end
 

@@ -58,6 +58,17 @@ describe WifiWand::CommandLineInterface::HelpSystem do
     it 'prints the help text to stdout' do
       expect { subject.print_help }.to output(subject.help_text).to_stdout
     end
+
+    it 'uses $stdout explicitly when interactive_mode is true' do
+      # Subject does not define interactive_mode; define it here for this example
+      subject.define_singleton_method(:interactive_mode) { true }
+      # Set an @out_stream to ensure it is not used when interactive
+      out_io = StringIO.new
+      subject.instance_variable_set(:@out_stream, out_io)
+
+      expect { subject.print_help }.to output(subject.help_text).to_stdout
+      expect(out_io.string).to eq("")
+    end
   end
 
   describe '#help_hint' do

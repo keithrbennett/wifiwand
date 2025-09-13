@@ -160,6 +160,15 @@ describe WifiWand::ConnectionManager do
       expect(subject.last_connection_used_saved_password?).to be false
     end
   end
+
+  describe 'resolve_password edge cases' do
+    it 'treats preferred networks as empty when preferred_networks raises' do
+      allow(mock_model).to receive(:preferred_networks).and_raise(StandardError, 'boom')
+      password, used_saved = subject.send(:resolve_password, 'AnyNet', nil)
+      expect(password).to be_nil
+      expect(used_saved).to be false
+    end
+  end
   
   describe 'integration with real model' do
     subject { create_test_model }

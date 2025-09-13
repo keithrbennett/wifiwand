@@ -196,4 +196,23 @@ describe WifiWand::NetworkStateManager do
       }.to output(/restore_network_state: .* called/).to_stdout
     end
   end
+
+  describe 'private helpers' do
+    it 'interactive_session? reflects $stdin.tty?' do
+      manager = WifiWand::NetworkStateManager.new(mock_model)
+      allow($stdin).to receive(:tty?).and_return(true)
+      expect(manager.send(:interactive_session?)).to be true
+      allow($stdin).to receive(:tty?).and_return(false)
+      expect(manager.send(:interactive_session?)).to be false
+    end
+
+    it 'connected_network_password_if_safe rescues and returns nil on error' do
+      manager = WifiWand::NetworkStateManager.new(mock_model)
+      # Avoid macOS keychain risk branch
+      allow(manager).to receive(:macos_keychain_risky?).and_return(false)
+      # Force the internal password lookup to raise
+      allow(manager).to receive(:connected_network_password).and_raise(StandardError, 'oops')
+      expect(manager.send(:connected_network_password_if_safe)).to be_nil
+    end
+  end
 end

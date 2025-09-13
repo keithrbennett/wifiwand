@@ -99,4 +99,19 @@ describe 'QR Code Overwrite Confirmation' do
       silence_output { model.generate_qr_code(nil, overwrite: true) }
     }.to raise_error(WifiWand::Error, /could not be overwritten/)
   end
+
+  it 'raises an error if deletion fails after interactive confirmation' do
+    File.write(filename, 'old')
+
+    allow($stdin).to receive(:tty?).and_return(true)
+    allow($stdin).to receive(:gets).and_return("y\n")
+    allow(File).to receive(:exist?).with(filename).and_return(true)
+    allow(File).to receive(:delete).with(filename).and_raise(StandardError.new('cannot delete'))
+
+    expect(model).not_to receive(:run_os_command)
+
+    expect {
+      silence_output { model.generate_qr_code }
+    }.to raise_error(WifiWand::Error, /could not be overwritten/)
+  end
 end

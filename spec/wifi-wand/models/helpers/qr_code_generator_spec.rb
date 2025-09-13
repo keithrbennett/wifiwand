@@ -50,6 +50,15 @@ describe 'QR Code Generator (unit)' do
     expect(result).to eq("[QR-ANSI]\n")
   end
 
+  it "raises WifiWand::Error when ANSI generation command fails" do
+    expect(model).to receive(:run_os_command)
+      .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'qrencode', 'boom'))
+
+    expect {
+      silence_output { model.generate_qr_code('-', delivery_mode: :print) }
+    }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
+  end
+
   it "uses provided password without querying system password" do
     provided_password = 'provided123'
 

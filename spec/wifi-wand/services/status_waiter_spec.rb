@@ -105,6 +105,12 @@ describe WifiWand::StatusWaiter do
           waiter.wait_for(:invalid_status)
         }.to raise_error(ArgumentError, /Option must be one of/)
       end
+
+      it 'can stringify permitted values in error message' do
+        expect {
+          waiter.wait_for(:bogus, stringify_permitted_values_in_error_msg: true)
+        }.to raise_error(ArgumentError, /Option must be one of \[conn, disc, on, off\]/)
+      end
     end
 
 
@@ -167,6 +173,17 @@ describe WifiWand::StatusWaiter do
         expect {
           verbose_waiter.wait_for(:on, timeout_in_secs: 10)  # Use longer timeout to ensure it doesn't timeout
         }.to output(/StatusWaiter \(on\): wait time \(seconds\): 2\.5/).to_stdout
+      end
+    end
+
+    context 'with timeout' do
+      it 'raises WaitTimeoutError when timeout elapses' do
+        allow(mock_model).to receive(:wifi_on?).and_return(false)
+        allow(mock_model).to receive(:connected_to_internet?).and_return(false)
+
+        expect {
+          waiter.wait_for(:on, timeout_in_secs: 0)
+        }.to raise_error(WifiWand::WaitTimeoutError)
       end
     end
   end

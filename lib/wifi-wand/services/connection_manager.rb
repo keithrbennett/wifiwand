@@ -69,30 +69,48 @@ class ConnectionManager
     network_name == model.connected_network_name
   end
   
+  # Determines the password to use for a connection attempt.
+  #
+  # Behavior:
+  # - If a non-empty `password` is provided by the caller, it is used as-is and
+  #   `used_saved_password` is false.
+  # - Otherwise, when `network_name` is present in the model's preferred networks,
+  #   the method attempts to fetch a saved password via
+  #   `model.preferred_network_password(network_name)`. If a non-empty saved
+  #   password is found, it is returned and `used_saved_password` is true.
+  # - Failures while reading preferred networks or retrieving the saved password
+  #   are treated as non-fatal: they are rescued and the method falls back to
+  #   returning `[nil, false]`.
+  #
+  # @param network_name [String] The SSID to connect to (already normalized).
+  # @param password [String, nil] Optional user-provided password; when present,
+  #   it takes precedence over any saved password.
+  # @return [Array<(String,nil), Boolean>] A two-element array of
+  #   `[resolved_password, used_saved_password]`, where `resolved_password` may be
+  #   nil when no password could be determined.
   def resolve_password(network_name, password)
-    used_saved_password = false
-    
-    if password.nil? || password.empty?
+    password_provided = password && password.length > 0
+    return [password, false] if password_provided
+
+    begin
+      preferred = model.preferred_networks
+    rescue
+      preferred = []
+    end
+
+    if preferred.include?(network_name)
       begin
-        preferred = model.preferred_networks
-      rescue
-        preferred = []
-      end
-      if preferred.include?(network_name)
-        begin
-          saved_password = model.preferred_network_password(network_name)
-          unless saved_password.nil? || saved_password.empty?
-            password = saved_password
-            used_saved_password = true
-          end
-        rescue
-          # If we can't get the saved password, continue without one
-          # This could happen due to keychain access issues, etc.
+        saved_password = model.preferred_network_password(network_name)
+        unless saved_password.nil? || saved_password.empty?
+          return [saved_password, true]
         end
+      rescue
+        # If we can't get the saved password, continue without one
+        # This could happen due to keychain access issues, etc.
       end
     end
-    
-    [password, used_saved_password]
+
+    [nil, false]
   end
   
   def perform_connection(network_name, password)

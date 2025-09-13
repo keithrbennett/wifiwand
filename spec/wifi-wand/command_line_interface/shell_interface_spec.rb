@@ -118,5 +118,29 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       
       silence_output { subject.run_shell }
     end
+
+    it 'configures an exception handler that prints the exception message' do
+      # Capture handler proc assigned by run_shell
+      captured_handler = nil
+
+      pry_config = double('pry_config')
+      allow(pry_config).to receive(:command_prefix=)
+      allow(pry_config).to receive(:print=)
+      allow(pry_config).to receive(:exception_handler=) { |proc| captured_handler = proc }
+      pry_class = double('Pry', config: pry_config)
+      stub_const('Pry', pry_class)
+
+      allow(subject).to receive(:require).with('pry')
+      mock_binding = double('binding', pry: nil)
+      allow(subject).to receive(:binding).and_return(mock_binding)
+
+      silence_output { subject.run_shell }
+
+      # Call the captured handler and assert it prints exception message
+      io = StringIO.new
+      ex = RuntimeError.new('boom')
+      captured_handler.call(io, ex, nil)
+      expect(io.string).to include('boom')
+    end
   end
 end
