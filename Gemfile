@@ -6,5 +6,4 @@ git_source(:github) {|repo_name| "https://github.com/#{repo_name}" }
 gemspec
 
 group :development, :test do
-  gem "mcp", "~> 0.2" if RUBY_VERSION >= "3.2"
 end
