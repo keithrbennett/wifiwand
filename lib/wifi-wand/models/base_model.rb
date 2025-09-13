@@ -423,9 +423,9 @@ class BaseModel
   # Generates a QR code for the currently connected WiFi network
   # @return [String] The filename of the generated QR code PNG file
   # @raise [WifiWand::Error] If not connected to a network or qrencode is not available
-  def generate_qr_code(filespec = nil, overwrite: false)
+  def generate_qr_code(filespec = nil, overwrite: false, delivery_mode: :print)
     debug_method_entry(__method__)
-    qr_code_generator.generate(self, filespec, overwrite: overwrite)
+    qr_code_generator.generate(self, filespec, overwrite: overwrite, delivery_mode: delivery_mode)
   end
   
   private

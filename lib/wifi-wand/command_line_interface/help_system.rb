@@ -38,7 +38,7 @@ of[f]                     - turns WiFi off
 pa[ssword] network-name   - password for preferred network name
 pr[ef_nets]               - preferred (saved) networks
 q[uit]                    - exits this program (interactive shell mode only) (same as 'x')
-qr [filespec|'-']         - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' (or ':-' / ':ansi') prints ANSI QR to stdout; '.svg'/' .eps' use those formats
+qr [filespec|'-']         - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats
 ro[pen]                   - open web resources: #{resource_help}
 s[tatus]                  - status line (WiFi, Network, TCP, DNS, Internet)
 t[ill]                    - wait until state is reached:
@@ -52,6 +52,7 @@ x[it]                     - exits this program (interactive shell mode only) (sa
 When in interactive shell mode:
   * remember to quote string literals.
   * for pry commands, use prefix `%`, e.g. `%ls`.
+  * To display the QR code in the shell, pass the string returned by `qr :-` to `puts`. Ex: `puts(qr :-)`
 
 }
       end

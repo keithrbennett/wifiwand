@@ -192,19 +192,20 @@ class CommandLineInterface
 
   def cmd_qr(filespec = nil)
     begin
-      # Support shell-friendly aliases for ANSI/stdout output: '-', :-, :ansi, :stdout
-      ansi_flag = case filespec
-                  when :'-' then true
-                  else
-                    filespec.to_s.downcase == '-' || filespec.to_s.downcase == 'ansi' || filespec.to_s.downcase == 'stdout'
-                  end
+      # Normalize destination and determine if stdout ('-') is requested
+      spec = filespec.nil? ? nil : filespec.to_s
+      to_stdout = (spec == '-')
 
-      result = model.generate_qr_code(ansi_flag ? '-' : filespec)
-      if ansi_flag
-        # Model already printed ANSI QR to stdout; nothing further to output here.
-        return nil
+      if to_stdout
+        # Interactive shell returns the ANSI string (so users can `puts(qr :-)`),
+        # while non-interactive prints ANSI to stdout and returns nil for CLI UX.
+        # In shell, we return the string; non-interactive prints and returns nil
+        result = model.generate_qr_code('-', delivery_mode: (interactive_mode ? :return : :print))
+        return interactive_mode ? result : nil
+      else
+        result = model.generate_qr_code(filespec)
+        handle_output(result, -> { "QR code generated: #{result}" })
       end
-      handle_output(result, -> { "QR code generated: #{result}" })
     rescue WifiWand::Error => e
       if e.message.include?("already exists") && $stdin.tty?
         @out_stream.print "Output file exists. Overwrite? [y/N]: "

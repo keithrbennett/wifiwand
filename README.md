@@ -103,6 +103,7 @@ x[it]                     - exits this program (interactive shell mode only) (sa
 When in interactive shell mode:
   * remember to quote string literals.
   * for pry commands, use prefix `%`, e.g. `%ls`.
+  * To display the QR code in the shell, pass the string returned by `qr :-` to `puts`. Ex: `puts(qr :-)`
 ```
 
 ### Pretty Output
@@ -233,7 +234,7 @@ wifi-wand t on && say "Internet connected" # Play audible message when Internet 
 
 The `pry` shell used by wifi_wand outputs the last evaluated value in the terminal session.
 The `awesome_print` gem is used to format that output nicely.
-As with other REPL's, command return values can also be used in expressions, passed to methods,
+As with other shells, command return values can also be used in expressions, passed to methods,
 saved in variables, etc. In this example, the value returned by the WiFi-wand command is saved
 in the local variable `local_ip`.
 

@@ -18,27 +18,31 @@
 #   model.generate_qr_code('-')           # prints ANSI QR to stdout
 #
 # Notes
-# - Requires the 'qrencode' tool to be installed and available on PATH.
+# - Requires the 'Add command_line_interface_spec.rb test coverage.qrencode' tool to be installed and available on PATH.
 # - For PDF output, generate SVG first and convert with a separate tool
 #   (e.g., rsvg-convert/inkscape, or ImageMagick’s `magick`),
 #   as qrencode doesn’t emit PDF.
+# - In shell (REPL), when filespec is '-', this returns the ANSI QR string; call `puts` on it to render.
 
 require 'shellwords'
 
 module WifiWand
   module Helpers
     class QrCodeGenerator
-      def generate(model, filespec = nil, overwrite: false)
+      def generate(model, filespec = nil, overwrite: false, delivery_mode: :print)
         ensure_qrencode_available!(model)
 
         network_name = require_connected_network_name(model)
         password     = connected_password_for(model)
         security     = model.connection_security_type
 
-        qr_string = build_wifi_qr_string(network_name, password, security)
-        return run_qrencode_text!(model, qr_string) if filespec == '-'
+        # Normalize filespec for robust API (support symbols as '-' too)
+        spec = filespec.nil? ? nil : filespec.to_s
 
-        filename  = filespec && !filespec.empty? ? filespec : build_filename(network_name)
+        qr_string = build_wifi_qr_string(network_name, password, security)
+        return run_qrencode_text!(model, qr_string, delivery_mode: delivery_mode) if spec == '-'
+
+        filename  = spec && !spec.empty? ? spec : build_filename(network_name)
         confirm_overwrite!(filename, overwrite: overwrite)
         run_qrencode_file!(model, filename, qr_string)
         filename
@@ -157,13 +161,17 @@ module WifiWand
         end
       end
 
-      def run_qrencode_text!(model, qr_string)
+      def run_qrencode_text!(model, qr_string, delivery_mode: :print)
         cmd = "qrencode -t ANSI #{Shellwords.shellescape(qr_string)}"
         begin
           output = model.run_os_command(cmd)
-          # Print ANSI QR directly to stdout for compatibility with tests/CLI
-          $stdout.print(output)
-          '-'
+          if delivery_mode.to_sym == :return
+            output
+          else
+            # Print ANSI QR directly to stdout for compatibility with tests/CLI
+            $stdout.print(output)
+            '-'
+          end
         rescue WifiWand::CommandExecutor::OsCommandError => e
           raise WifiWand::Error.new("Failed to generate QR code: #{e.message}")
         end

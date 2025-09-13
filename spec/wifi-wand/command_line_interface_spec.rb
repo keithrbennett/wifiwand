@@ -346,10 +346,13 @@ describe WifiWand::CommandLineInterface do
   describe 'QR code generation edge cases' do
     describe '#cmd_qr' do
       context 'with symbol argument for ANSI output' do
-        it 'handles :"-" symbol for ANSI output and returns nil' do
-          allow(mock_model).to receive(:generate_qr_code).with('-').and_return('-')
-          result = subject.cmd_qr(:'-')
-          expect(result).to be_nil
+        it 'returns ANSI string in interactive mode and does not print' do
+          ansi_content = "[QR-ANSI]\nLINE2\n"
+          allow(interactive_cli.model).to receive(:generate_qr_code)
+            .with('-', delivery_mode: :return).and_return(ansi_content)
+
+          expect { @result = interactive_cli.cmd_qr(:'-') }.not_to output.to_stdout
+          expect(@result).to eq(ansi_content)
         end
       end
 
