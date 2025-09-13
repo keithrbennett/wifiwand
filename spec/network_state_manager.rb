@@ -14,7 +14,6 @@ module NetworkStateManager
         puts <<~MESSAGE
 
           Captured network state for restoration: #{@network_state[:network_name]}
-          Note: On macOS, you may be prompted for keychain access permissions.
 
         MESSAGE
       end

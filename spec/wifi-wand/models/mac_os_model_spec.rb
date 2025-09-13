@@ -138,7 +138,7 @@ module WifiWand
         end
 
         describe '#disconnect' do
-          it 'disconnects from current network' do
+          it 'disconnects from current network', :needs_sudo_access do
             expect { subject.disconnect }.not_to raise_error
             expect { subject.disconnect }.not_to raise_error
           end
@@ -485,10 +485,10 @@ module WifiWand
         end
       end
 
-      describe '#set_nameservers' do
-        it 'handles different nameserver configurations' do
-          test_cases = [
-            [["8.8.8.8", "1.1.1.1"], "8.8.8.8 1.1.1.1"],
+        describe '#set_nameservers' do
+          it 'handles different nameserver configurations' do
+            test_cases = [
+              [["8.8.8.8", "1.1.1.1"], "8.8.8.8 1.1.1.1"],
             [["192.168.1.1"], "192.168.1.1"],
             [:clear, "empty"]
           ]
@@ -687,7 +687,7 @@ module WifiWand
       end
 
       # Runs early to surface any auth prompts before the long suite.
-      describe 'preferred_network_password command integration', :keychain_integration, :needs_sudo_access do
+      describe 'preferred_network_password command integration', :keychain_integration do
         it 'invokes security find-generic-password with correct arguments and handles not-found' do
           model = create_mac_os_test_model
           ssid = 'TestNet'

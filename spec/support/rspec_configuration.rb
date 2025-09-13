@@ -24,29 +24,30 @@ module RSpecConfiguration
       meta[:slow] = true if meta[:disruptive]
     end
     
-    # Run sudo tests first to get authentication prompts out of the way early
-    # Apply to both example lists and example group lists
-    sudo_partition = ->(items) do
+    # Run auth-related tests first to get authentication prompts out of the way early
+    # Consider both sudo-requiring tests and keychain integration tests
+    auth_partition = ->(items) do
       items.partition do |it|
-        it.metadata[:needs_sudo_access] || (
-          it.respond_to?(:examples) && it.examples.any? { |ex| ex.metadata[:needs_sudo_access] }
+        needs_auth = it.metadata[:needs_sudo_access] || it.metadata[:keychain_integration]
+        needs_auth || (
+          it.respond_to?(:examples) && it.examples.any? { |ex| ex.metadata[:needs_sudo_access] || ex.metadata[:keychain_integration] }
         )
       end
     end
 
     config.register_ordering(:sudo_first) do |items|
-      sudo_items, other_items = sudo_partition.(items)
-      sudo_items + other_items
+      auth_items, other_items = auth_partition.(items)
+      auth_items + other_items
     end
 
     config.register_ordering(:groups) do |groups|
-      sudo_groups, other_groups = sudo_partition.(groups)
-      sudo_groups + other_groups
+      auth_groups, other_groups = auth_partition.(groups)
+      auth_groups + other_groups
     end
 
     config.register_ordering(:examples) do |examples|
-      sudo_examples, other_examples = sudo_partition.(examples)
-      sudo_examples + other_examples
+      auth_examples, other_examples = auth_partition.(examples)
+      auth_examples + other_examples
     end
 
     # Use the custom ordering for the entire suite (examples and groups)
@@ -54,8 +55,8 @@ module RSpecConfiguration
 
     # Keep a global nudge as well, though :groups/:examples should be sufficient
     config.register_ordering(:global) do |items|
-      sudo_items, other_items = sudo_partition.(items)
-      sudo_items + other_items
+      auth_items, other_items = auth_partition.(items)
+      auth_items + other_items
     end
 
     # Pre-flight authentication for macOS to surface prompts only when needed
@@ -72,10 +73,11 @@ module RSpecConfiguration
 
         disruptive_tests_will_run = examples_to_run.any? { |ex| ex.metadata[:disruptive] }
         sudo_tests_will_run       = examples_to_run.any? { |ex| ex.metadata[:needs_sudo_access] }
+        keychain_tests_will_run   = examples_to_run.any? { |ex| ex.metadata[:keychain_integration] }
 
-        # Only preflight on macOS when disruptive tests are scheduled to run
-        if defined?($compatible_os_tag) && $compatible_os_tag == :os_mac && disruptive_tests_will_run
-          # Warm up sudo timestamp only if sudo-tagged disruptive tests will run (no-op if already cached)
+        # Preflight on macOS when any auth-relevant tests will run
+        if defined?($compatible_os_tag) && $compatible_os_tag == :os_mac && (disruptive_tests_will_run || sudo_tests_will_run || keychain_tests_will_run)
+          # Warm up sudo timestamp only if sudo-tagged tests will run (no-op if already cached)
           system('sudo -v') if sudo_tests_will_run
 
           # Build a model to query current state
@@ -86,14 +88,16 @@ module RSpecConfiguration
           end
 
           if model
-            # Trigger Keychain password lookup early (if connected)
-            if disruptive_tests_will_run
+            # Only front‑load Keychain lookup when disruptive tests are scheduled, 
+            # or when explicitly opted in via RSPEC_KEYCHAIN_PREFLIGHT=true
+            keychain_prefight_enabled = (disruptive_tests_will_run && keychain_tests_will_run) || ENV['RSPEC_KEYCHAIN_PREFLIGHT'] == 'true'
+            if keychain_prefight_enabled
               ssid = begin
                 model.connected_network_name
               rescue
                 nil
               end
-              if ssid && $stdout.tty?
+              if ssid
                 begin
                   model.preferred_network_password(ssid)
                 rescue
@@ -102,7 +106,7 @@ module RSpecConfiguration
               end
             end
 
-            # Trigger a harmless sudo networksetup operation early only when sudo-tagged disruptive tests will run
+            # Trigger a harmless sudo networksetup operation early only when sudo-tagged tests will run
             if sudo_tests_will_run
               iface = begin
                 model.wifi_interface
@@ -110,6 +114,21 @@ module RSpecConfiguration
                 'en0'
               end
               system("sudo networksetup -removepreferredwirelessnetwork #{iface} non_existent_network_123 >/dev/null 2>&1 || true")
+            end
+          end
+          
+          # Keep sudo timestamp alive during the suite to avoid later prompts
+          if sudo_tests_will_run
+            begin
+              $sudo_keepalive_thread = Thread.new do
+                loop do
+                  # Non-interactive refresh; no prompt if credentials expire
+                  system('sudo -n -v >/dev/null 2>&1')
+                  sleep 60
+                end
+              end
+            rescue
+              # If threading fails for any reason, don't break the suite
             end
           end
         end
@@ -325,6 +344,15 @@ module RSpecConfiguration
 
     # Attempt final restoration at the end of test suite
     config.after(:suite) do
+      # Stop sudo keepalive if started
+      begin
+        if defined?($sudo_keepalive_thread) && $sudo_keepalive_thread&.alive?
+          $sudo_keepalive_thread.kill
+        end
+      rescue
+        # ignore
+      end
+
       # Only restore if we actually captured state
       if $network_state_captured
         network_state = NetworkStateManager.network_state
