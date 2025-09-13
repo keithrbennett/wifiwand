@@ -349,7 +349,7 @@ describe WifiWand::CommandLineInterface do
         it 'returns ANSI string in interactive mode and does not print' do
           ansi_content = "[QR-ANSI]\nLINE2\n"
           allow(interactive_cli.model).to receive(:generate_qr_code)
-            .with('-', delivery_mode: :return).and_return(ansi_content)
+            .with('-', hash_including(delivery_mode: :return, password: nil)).and_return(ansi_content)
 
           expect { @result = interactive_cli.cmd_qr(:'-') }.not_to output.to_stdout
           expect(@result).to eq(ansi_content)
@@ -359,7 +359,7 @@ describe WifiWand::CommandLineInterface do
       context 'non-interactive stdout mode' do
         it "prints ANSI via model and returns nil" do
           # Model handles printing when delivery_mode is :print; CLI should not add extra output
-          allow(mock_model).to receive(:generate_qr_code).with('-', delivery_mode: :print) do
+          allow(mock_model).to receive(:generate_qr_code).with('-', hash_including(delivery_mode: :print, password: nil)) do
             $stdout.print("[QR-ANSI]\n")
             '-'
           end
@@ -381,13 +381,13 @@ describe WifiWand::CommandLineInterface do
         
         before do
           # First call always fails with file exists error
-          allow(mock_model).to receive(:generate_qr_code).with(filename).and_raise(file_exists_error)
+          allow(mock_model).to receive(:generate_qr_code).with(filename, hash_including(password: nil)).and_raise(file_exists_error)
           allow($stdin).to receive(:tty?).and_return(true)
         end
 
         shared_examples 'user confirms overwrite' do |user_input|
           it "proceeds with overwrite when user enters '#{user_input.strip}'" do
-            allow(mock_model).to receive(:generate_qr_code).with(filename, overwrite: true).and_return(filename)
+            allow(mock_model).to receive(:generate_qr_code).with(filename, hash_including(overwrite: true, password: nil)).and_return(filename)
             allow($stdin).to receive(:gets).and_return(user_input)
             
             expect { subject.cmd_qr(filename) }.to output(/QR code generated: #{filename}/).to_stdout
@@ -404,7 +404,7 @@ describe WifiWand::CommandLineInterface do
         end
 
         it 'prompts for overwrite confirmation when file exists' do
-          allow(mock_model).to receive(:generate_qr_code).with(filename, overwrite: true).and_return(filename)
+          allow(mock_model).to receive(:generate_qr_code).with(filename, hash_including(overwrite: true, password: nil)).and_return(filename)
           allow($stdin).to receive(:gets).and_return("y\n")
           
           expect { subject.cmd_qr(filename) }.to output(/Output file exists. Overwrite\? \[y\/N\]: /).to_stdout
@@ -417,7 +417,7 @@ describe WifiWand::CommandLineInterface do
 
         it 're-raises non-overwrite errors' do
           # Reset mock for different error
-          allow(mock_model).to receive(:generate_qr_code).with('other.png').and_raise(
+          allow(mock_model).to receive(:generate_qr_code).with('other.png', hash_including(password: nil)).and_raise(
             WifiWand::Error.new("Network connection failed")
           )
           

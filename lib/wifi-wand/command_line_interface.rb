@@ -190,7 +190,7 @@ class CommandLineInterface
     handle_output(on, -> { "Wifi on: #{on}" })
   end
 
-  def cmd_qr(filespec = nil)
+  def cmd_qr(filespec = nil, password = nil)
     begin
       # Normalize destination and determine if stdout ('-') is requested
       spec = filespec.nil? ? nil : filespec.to_s
@@ -200,10 +200,10 @@ class CommandLineInterface
         # Interactive shell returns the ANSI string (so users can `puts(qr :-)`),
         # while non-interactive prints ANSI to stdout and returns nil for CLI UX.
         # In shell, we return the string; non-interactive prints and returns nil
-        result = model.generate_qr_code('-', delivery_mode: (interactive_mode ? :return : :print))
+        result = model.generate_qr_code('-', delivery_mode: (interactive_mode ? :return : :print), password: password)
         return interactive_mode ? result : nil
       else
-        result = model.generate_qr_code(filespec)
+        result = model.generate_qr_code(filespec, password: password)
         handle_output(result, -> { "QR code generated: #{result}" })
       end
     rescue WifiWand::Error => e
@@ -211,7 +211,7 @@ class CommandLineInterface
         @out_stream.print "Output file exists. Overwrite? [y/N]: "
         answer = $stdin.gets&.strip&.downcase
         if %w[y yes].include?(answer)
-          result = model.generate_qr_code(filespec, overwrite: true)
+          result = model.generate_qr_code(filespec, overwrite: true, password: password)
           handle_output(result, -> { "QR code generated: #{result}" })
         else
           # user declined overwrite; no output

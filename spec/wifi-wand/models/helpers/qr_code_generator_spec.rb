@@ -50,6 +50,22 @@ describe 'QR Code Generator (unit)' do
     expect(result).to eq("[QR-ANSI]\n")
   end
 
+  it "uses provided password without querying system password" do
+    provided_password = 'provided123'
+
+    # Ensure generator does not try to fetch stored password when one is given
+    expect(model).not_to receive(:connected_network_password)
+
+    expect(model).to receive(:run_os_command) do |cmd, *_|
+      expect(cmd).to include('qrencode ')
+      expect(cmd).to include(" -o TestNetwork-qr-code.png ")
+      expect(cmd).to include('P:provided123')
+      ''
+    end
+
+    silence_output { model.generate_qr_code(nil, password: provided_password) }
+  end
+
   [
     { filespec: 'out.svg', flag: '-t SVG' },
     { filespec: 'out.eps', flag: '-t EPS' }

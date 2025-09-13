@@ -29,11 +29,12 @@ require 'shellwords'
 module WifiWand
   module Helpers
     class QrCodeGenerator
-      def generate(model, filespec = nil, overwrite: false, delivery_mode: :print)
+      def generate(model, filespec = nil, overwrite: false, delivery_mode: :print, password: nil)
         ensure_qrencode_available!(model)
 
         network_name = require_connected_network_name(model)
-        password     = connected_password_for(model)
+        # If no password is provided, fetch the saved password from the system (may require auth on macOS)
+        password     = password || connected_password_for(model)
         security     = model.connection_security_type
 
         # Normalize filespec for robust API (support symbols as '-' too)
