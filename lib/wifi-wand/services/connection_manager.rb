@@ -98,7 +98,11 @@ class ConnectionManager
   def perform_connection(network_name, password)
     model.wifi_on
     model._connect(network_name, password)
-    model.till(:conn)
+    begin
+      model.till(:conn, timeout_in_secs: WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT)
+    rescue WifiWand::WaitTimeoutError
+      # Allow verification step to decide success/failure based on actual state
+    end
   end
   
   def store_saved_password_usage(used_saved_password)

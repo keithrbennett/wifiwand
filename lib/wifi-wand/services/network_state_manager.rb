@@ -14,14 +14,15 @@ module WifiWand
     # Network State Management for Testing
     # These methods help capture and restore network state during disruptive tests
     
-    def capture_network_state
+  def capture_network_state
       {
         wifi_enabled: @model.wifi_on?,
         network_name: @model.connected_network_name,
-        network_password: connected_network_password_if_safe,
+        # Avoid Keychain lookups during test runs on macOS
+        network_password: (avoid_keychain_for_model? ? nil : connected_network_password_if_safe),
         interface: @model.wifi_interface
       }
-    end
+  end
     
     def restore_network_state(state, fail_silently: false)
       @output.puts "restore_network_state: #{state} called" if @verbose
@@ -50,11 +51,22 @@ module WifiWand
           # Try to reconnect with saved password or current password
           password = state[:network_password]
           if password.nil?
-            # Fallback to preferred network password unless doing a risky macOS Keychain lookup
-            password = @model.preferred_network_password(state[:network_name]) unless macos_keychain_risky?
+            # During test runs on macOS, avoid fetching from Keychain; skip reconnect to prevent prompts.
+            if avoid_keychain_for_model?
+              return
+            else
+              # Fallback to preferred network password unless doing a risky macOS Keychain lookup
+              password = @model.preferred_network_password(state[:network_name]) unless macos_keychain_risky?
+            end
           end
-          @model.connect(state[:network_name], password)
-          @model.till(:conn, timeout_in_secs: TimingConstants::NETWORK_CONNECTION_WAIT)
+          if password
+            @model.connect(state[:network_name], password)
+            @model.till(:conn, timeout_in_secs: TimingConstants::NETWORK_CONNECTION_WAIT)
+          else
+            # Attempt connect without explicit password; may succeed if OS has saved credentials
+            @model.connect(state[:network_name], nil)
+            @model.till(:conn, timeout_in_secs: TimingConstants::NETWORK_CONNECTION_WAIT)
+          end
         end
       rescue => e
         raise unless fail_silently
@@ -89,6 +101,11 @@ module WifiWand
     def macos_keychain_risky?
       # Only consider it risky (GUI prompt) when using the real macOS model without a TTY
       defined?(WifiWand::MacOsModel) && @model.is_a?(WifiWand::MacOsModel) && !interactive_session?
+    end
+
+    def avoid_keychain_for_model?
+      # Avoid Keychain prompts during RSpec runs on macOS by default
+      defined?(WifiWand::MacOsModel) && @model.is_a?(WifiWand::MacOsModel) && ENV['RSPEC_RUNNING'] == 'true'
     end
   end
 end
