@@ -32,10 +32,8 @@ begin
   networks = client.available_network_names
 
   if networks&.any?
-    puts "   Found #{networks.count} networks. Showing top 5:"
-    networks.first(5).each do |ssid|
-      puts "     - #{ssid}"
-    end
+    puts "   Found #{networks.count} networks (in descending order of signal strength):\n\n"
+    networks.each { |ssid| puts "     - #{ssid}" }
   else
     puts "   No networks found. Ensure your Wi-Fi is enabled."
   end
