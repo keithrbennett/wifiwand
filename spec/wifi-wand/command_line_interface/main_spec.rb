@@ -95,7 +95,7 @@ describe WifiWand::Main do
     
     before(:each) do
       # Mock the command line parsing to avoid complex setup
-      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: false))
+      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: false, interactive_mode: false))
       # Mock CLI creation to avoid OS detection
       allow(WifiWand::CommandLineInterface).to receive(:new).and_return(mock_cli)
     end
@@ -110,30 +110,30 @@ describe WifiWand::Main do
       subject.call
     end
 
-    it 'handles and prints exceptions' do
+    it 'handles and prints exceptions and exits with code 1' do
       allow(mock_cli).to receive(:call).and_raise(StandardError.new('Test error'))
-      subject.call
+      expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
       expect(err_stream.string).to match(/Error:.*Test error/m)
     end
 
-    it 'prints clean error messages without backtraces by default' do
+    it 'prints clean error messages without backtraces by default and exits with code 1' do
       ex = StandardError.new('Test error')
       allow(ex).to receive(:backtrace).and_return(['line1', 'line2', 'line3'])
       allow(mock_cli).to receive(:call).and_raise(ex)
       
-      subject.call
+      expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
       expect(err_stream.string).to eq("Error: Test error\n")
     end
 
-    it 'prints backtrace only in verbose mode' do
+    it 'prints backtrace only in verbose mode and exits with code 1' do
       ex = StandardError.new('Test error')
       allow(ex).to receive(:backtrace).and_return(['line1', 'line2', 'line3'])
       allow(mock_cli).to receive(:call).and_raise(ex)
       
       # Mock verbose mode
-      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: true))
+      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: true, interactive_mode: false))
       
-      subject.call
+      expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
       expect(err_stream.string).to match(/Error: Test error/)
       expect(err_stream.string).to match(/Stack trace:/)
     end
@@ -246,11 +246,11 @@ describe WifiWand::Main do
     let(:mock_cli) { double('CommandLineInterface') }
 
     before(:each) do
-      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: false))
+      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: false, interactive_mode: false))
       allow(WifiWand::CommandLineInterface).to receive(:new).and_return(mock_cli)
     end
 
-    it 'handles OsCommandError with specific error message' do
+    it 'handles OsCommandError with specific error message and exits with code 1' do
       ex = WifiWand::CommandExecutor::OsCommandError.new(1, 'a command', 'a message')
       allow(mock_cli).to receive(:call).and_raise(ex)
 
@@ -261,35 +261,50 @@ describe WifiWand::Main do
         Exit code: 1
       MESSAGE
 
-      subject.call
+      expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
       expect(err_stream.string).to eq(expected_output)
     end
 
-    it 'handles WifiWand::Error with a simple error message' do
+    it 'handles WifiWand::Error with a simple error message and exits with code 1' do
       ex = WifiWand::Error.new('a message')
       allow(mock_cli).to receive(:call).and_raise(ex)
 
-      subject.call
+      expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
       expect(err_stream.string).to eq("Error: a message\n")
     end
 
-    it 'handles other errors with a simple error message' do
+    it 'handles other errors with a simple error message and exits with code 1' do
       ex = StandardError.new('a message')
       allow(mock_cli).to receive(:call).and_raise(ex)
 
-      subject.call
+      expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
       expect(err_stream.string).to eq("Error: a message\n")
     end
 
-    it 'handles other errors with a stack trace in verbose mode' do
+    it 'handles other errors with a stack trace in verbose mode and exits with code 1' do
       ex = StandardError.new('a message')
       allow(ex).to receive(:backtrace).and_return(['line 1', 'line 2'])
       allow(mock_cli).to receive(:call).and_raise(ex)
-      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: true))
+      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: true, interactive_mode: false))
 
-      subject.call
+      expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
       expect(err_stream.string).to match(/Error: a message/)
       expect(err_stream.string).to match(/Stack trace:/)
+    end
+  end
+
+  describe 'help flag behavior' do
+    it 'prints help without initializing the model and exits successfully' do
+      # Ensure create_model is not called when help is requested
+      expect(WifiWand).not_to receive(:create_model)
+
+      stub_const('ARGV', ['--help'])
+      out_stream = StringIO.new
+      err_stream = StringIO.new
+      main = described_class.new(out_stream, err_stream)
+
+      expect { main.call }.not_to raise_error
+      expect(out_stream.string).to include('Command Line Switches')
     end
   end
 end

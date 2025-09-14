@@ -39,14 +39,14 @@ pa[ssword] network-name   - password for preferred network name
 pr[ef_nets]               - preferred (saved) networks
 q[uit]                    - exits this program (interactive shell mode only) (same as 'x')
 qr [filespec|'-'] [password]
-                         - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats; optional password avoids macOS auth prompt
+                          - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats; optional password avoids macOS auth prompt
 ro[pen]                   - open web resources: #{resource_help}
 s[tatus]                  - status line (WiFi, Network, TCP, DNS, Internet)
 t[ill]                    - wait until state is reached:
                             Usage: till conn|disc|on|off [timeout_secs] [interval_secs]
                             conn/disc = Internet connected?/disconnected; on/off = Wi‑Fi power state
                             Defaults: timeout = wait indefinitely; interval = #{WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL}
-                            Examples: "till conn 20"  "till off 30 0.5"
+                            Examples: "till off 20"  "till off 30 0.5"
 w[ifi_on]                 - is the WiFi on?
 x[it]                     - exits this program (interactive shell mode only) (same as 'q')
 

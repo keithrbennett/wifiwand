@@ -36,8 +36,13 @@ class CommandLineInterface
       out_stream:     @out_stream
     })
 
-    @model = WifiWand.create_model(model_options)
+    # Skip model initialization when help was explicitly requested in non-interactive mode,
+    # so that `--help` works even on systems without Wi‑Fi hardware or permissions.
     @interactive_mode = !!(options.interactive_mode)
+    help_requested = options.respond_to?(:help_requested) && options.help_requested
+    skip_model_init = help_requested && !@interactive_mode
+
+    @model = skip_model_init ? nil : WifiWand.create_model(model_options)
     run_shell if @interactive_mode
   end
 

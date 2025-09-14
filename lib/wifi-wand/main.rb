@@ -62,6 +62,7 @@ class Main
       end
 
       parser.on("-h", "--help", "Show help") do |_help_requested|
+        options.help_requested = true
         ARGV << 'h' # pass on the request to the command processor
       end
     end.parse!
@@ -79,6 +80,8 @@ class Main
       WifiWand::CommandLineInterface.new(options).call
     rescue => e
       handle_error(e, options.verbose)
+      # In non-interactive CLI mode, ensure failures return a non-zero exit code
+      exit(1) unless options.interactive_mode
     end
   end
 
