@@ -30,7 +30,7 @@ module WifiWand
   module Helpers
     class QrCodeGenerator
       def generate(model, filespec = nil, overwrite: false, delivery_mode: :print, password: nil)
-        ensure_qrencode_available!(model)
+        ensure_qrencode_available(model)
 
         network_name = require_connected_network_name(model)
         # If no password is provided, fetch the saved password from the system (may require auth on macOS)
@@ -41,17 +41,17 @@ module WifiWand
         spec = filespec.nil? ? nil : filespec.to_s
 
         qr_string = build_wifi_qr_string(network_name, password, security)
-        return run_qrencode_text!(model, qr_string, delivery_mode: delivery_mode) if spec == '-'
+        return run_qrencode_text(model, qr_string, delivery_mode: delivery_mode) if spec == '-'
 
         filename  = spec && !spec.empty? ? spec : build_filename(network_name)
-        confirm_overwrite!(filename, overwrite: overwrite)
-        run_qrencode_file!(model, filename, qr_string)
+        confirm_overwrite(filename, overwrite: overwrite)
+        run_qrencode_file(model, filename, qr_string)
         filename
       end
 
       private
 
-      def ensure_qrencode_available!(model)
+      def ensure_qrencode_available(model)
         available = model.send(:command_available_using_which?, 'qrencode')
         return if available
 
@@ -115,7 +115,7 @@ module WifiWand
         "#{safe}-qr-code.png"
       end
 
-      def confirm_overwrite!(filename, overwrite: false)
+      def confirm_overwrite(filename, overwrite: false)
         return unless File.exist?(filename)
 
         if overwrite
@@ -146,7 +146,7 @@ module WifiWand
         end
       end
 
-      def run_qrencode_file!(model, filename, qr_string)
+      def run_qrencode_file(model, filename, qr_string)
         type_flag = qr_type_flag_for(filename)
         cmd = [
           'qrencode',
@@ -162,7 +162,7 @@ module WifiWand
         end
       end
 
-      def run_qrencode_text!(model, qr_string, delivery_mode: :print)
+      def run_qrencode_text(model, qr_string, delivery_mode: :print)
         cmd = "qrencode -t ANSI #{Shellwords.shellescape(qr_string)}"
         begin
           output = model.run_os_command(cmd)
