@@ -4,6 +4,8 @@ require 'ostruct'
 require 'stringio'
 require_relative '../network_state_manager'
 require_relative '../../lib/wifi-wand/operating_systems'
+require_relative '../../lib/wifi-wand/models/ubuntu_model'
+require_relative '../../lib/wifi-wand/models/mac_os_model'
 
 module TestHelpers
   def restore_network_state
@@ -15,8 +17,25 @@ module TestHelpers
   end
 
   # Helper method to create models with verbose configuration
+  # Handles missing system commands gracefully for CI environments
   def create_test_model(options = {})
-    WifiWand::OperatingSystems.create_model_for_current_os(merge_verbose_options(options))
+    merged_options = merge_verbose_options(options)
+    current_os = WifiWand::OperatingSystems.current_os
+    raise WifiWand::NoSupportedOSError.new unless current_os
+
+    case current_os.id
+    when :ubuntu
+      model = WifiWand::UbuntuModel.new(merged_options)
+      # Mock command availability to prevent missing utility errors in CI
+      allow(model).to receive(:command_available_using_which?).and_return(true)
+      model.init
+      model
+    when :mac
+      # Mac models don't have the same command validation issues
+      WifiWand::MacOsModel.create_model(merged_options)
+    else
+      raise WifiWand::NoSupportedOSError.new
+    end
   end
 
   # Helper method to create specific OS models with verbose configuration

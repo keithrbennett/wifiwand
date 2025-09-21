@@ -2,8 +2,6 @@
 
 require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/services/connection_manager'
-require_relative '../../../lib/wifi-wand/models/ubuntu_model'
-require_relative '../../../lib/wifi-wand/models/mac_os_model'
 
 describe WifiWand::ConnectionManager do
   let(:mock_model) { double('model') }
@@ -172,25 +170,7 @@ describe WifiWand::ConnectionManager do
   end
   
   describe 'integration with real model' do
-    subject do
-      # Create model without initialization to avoid command validation
-      current_os = WifiWand::OperatingSystems.current_os
-      options = merge_verbose_options({})
-
-      case current_os.id
-      when :ubuntu
-        model = WifiWand::UbuntuModel.new(options)
-      when :mac
-        model = WifiWand::MacOsModel.new(options)
-      else
-        skip "Unsupported OS for this test"
-      end
-
-      # Mock system command availability to prevent missing utility errors in CI
-      allow(model).to receive(:command_available_using_which?).and_return(true)
-      model.init
-      model
-    end
+    subject { create_test_model }
 
     it 'can be accessed through model' do
       expect(subject.connection_manager).to be_a(described_class)
