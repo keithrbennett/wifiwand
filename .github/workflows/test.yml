@@ -5,6 +5,7 @@ on:
     branches: [ main, add-ubuntu ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   test:
