@@ -28,6 +28,9 @@ module TestHelpers
       model = WifiWand::UbuntuModel.new(merged_options)
       # Mock command availability to prevent missing utility errors in CI
       allow(model).to receive(:command_available_using_which?).and_return(true)
+      # Mock WiFi interface detection to prevent hardware detection failures in CI
+      # This can be overridden by individual tests that need to test interface detection failures
+      allow(model).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
       model.init
       model
     when :mac

@@ -180,9 +180,22 @@ module WifiWand
       # These tests are harder to make table-driven due to their complexity
       describe 'Complex initialization errors' do
         it 'raises WifiInterfaceError when no wifi interface detected during initialization' do
-          current_model_class = create_test_model.class
-          allow_any_instance_of(current_model_class).to receive(:detect_wifi_interface).and_return(nil)
-          expect { create_test_model }.to raise_error(WifiInterfaceError)
+          current_os = WifiWand::OperatingSystems.current_os
+          merged_options = merge_verbose_options({})
+
+          case current_os.id
+          when :ubuntu
+            model = WifiWand::UbuntuModel.new(merged_options)
+            allow(model).to receive(:command_available_using_which?).and_return(true)
+            allow(model).to receive(:detect_wifi_interface).and_return(nil)
+            expect { model.init }.to raise_error(WifiInterfaceError)
+          when :mac
+            model = WifiWand::MacOsModel.new(merged_options)
+            allow(model).to receive(:detect_wifi_interface).and_return(nil)
+            expect { model.init }.to raise_error(WifiInterfaceError)
+          else
+            skip "Test not applicable for current OS"
+          end
         end
 
         it 'raises InvalidInterfaceError when specified interface is invalid during initialization' do
