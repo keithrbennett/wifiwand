@@ -55,17 +55,11 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
   describe '#format_object' do
     let(:test_object) { { name: 'test', value: 123 } }
-    
-    [
-      { description: 'returns colorized awesome_inspect output with ANSI color codes when TTY', tty: true },
-      { description: 'returns plain awesome_inspect output without ANSI color codes when not TTY', tty: false }
-    ].each do |test_case|
-      it test_case[:description] do
-        allow($stdout).to receive(:tty?).and_return(test_case[:tty])
-        result = subject.format_object(test_object)
-        expect(result).to include('name', 'test', 'value', '123')
-        expect(result.match?(ANSI_COLOR_REGEX)).to eq(test_case[:tty])
-      end
+
+    it 'returns awesome_inspect formatted output' do
+      result = subject.format_object(test_object)
+      expect(result).to include('name', 'test', 'value', '123')
+      expect(result).to be_a(String)
     end
   end
 

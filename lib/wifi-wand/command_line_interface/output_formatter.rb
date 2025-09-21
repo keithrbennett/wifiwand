@@ -7,7 +7,7 @@ module WifiWand
     module OutputFormatter
       
       def format_object(object)
-        $stdout.tty? ? object.awesome_inspect : object.awesome_inspect(plain: true)
+        object.awesome_inspect
       end
 
       def colorize_text(text, color = nil)
