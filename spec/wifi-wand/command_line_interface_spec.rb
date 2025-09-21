@@ -698,7 +698,15 @@ describe WifiWand::CommandLineInterface do
       context 'in non-interactive mode' do
         context 'with post processor' do
           it 'uses post processor and outputs result' do
-            expect { cli_with_processor.send(:handle_output, test_data, human_readable_producer) }.to output("{KEY: \"VALUE\"}\n").to_stdout
+            # Accept both old Ruby format and new Ruby format
+            output = nil
+            expect {
+              silence_output do |stdout, _stderr|
+                cli_with_processor.send(:handle_output, test_data, human_readable_producer)
+                output = stdout.string
+              end
+            }.not_to raise_error
+            expect(output).to eq(%Q{{:KEY=>"VALUE"}\n}).or eq(%Q{{KEY: "VALUE"}\n})
           end
         end
         

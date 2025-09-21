@@ -249,7 +249,8 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       
       it 'applies the post processor' do
         result = subject.post_process(test_object)
-        expect(result).to eq('{KEY: "VALUE"}')
+        # Accept both old Ruby format and new Ruby format
+        expect(result).to eq(%q{{:KEY=>"VALUE"}}).or eq(%q{{KEY: "VALUE"}})
       end
     end
     
