@@ -22,7 +22,7 @@ class ConnectionManager
   # of each connect attempt and only set to true if a saved password is successfully 
   # used. If the connection fails, this flag may not accurately represent the 
   # most recent connection attempt's state.
-  def connect(network_name, password = nil)
+  def connect(network_name, password = nil, skip_saved_password_lookup: false)
     reset_connection_state
     
     network_name, password = normalize_inputs(network_name, password)
@@ -31,7 +31,7 @@ class ConnectionManager
     # If we're already connected to the desired network, no need to proceed
     return if already_connected?(network_name)
     
-    password, used_saved_password = resolve_password(network_name, password)
+    password, used_saved_password = resolve_password(network_name, password, skip_saved_password_lookup)
     
     perform_connection(network_name, password)
     store_saved_password_usage(used_saved_password)
@@ -88,7 +88,9 @@ class ConnectionManager
   # @return [Array<(String,nil), Boolean>] A two-element array of
   #   `[resolved_password, used_saved_password]`, where `resolved_password` may be
   #   nil when no password could be determined.
-  def resolve_password(network_name, password)
+  def resolve_password(network_name, password, skip_saved_password_lookup = false)
+    return [password, false] if skip_saved_password_lookup
+
     password_provided = password && password.length > 0
     return [password, false] if password_provided
 

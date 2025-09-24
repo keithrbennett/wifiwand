@@ -15,6 +15,60 @@ class MacOsModel < BaseModel
   # Apple currently supports macOS 12+ as of 2024
   MIN_SUPPORTED_OS_VERSION = "12.0"
 
+  WIFI_PORT_PATTERNS = [
+    /Wi[-\s]?Fi/i,
+    /Air[-\s]?Port/i,
+    /Wireless/i,
+    /WLAN/i
+  ].freeze
+
+  def fetch_hardware_ports
+    cmd = "networksetup -listallhardwareports"
+    output = run_os_command(cmd)
+
+    ports = []
+    current = {}
+
+    output.each_line do |line|
+      stripped = line.strip
+      next if stripped.empty?
+
+      if (match = stripped.match(/^Hardware Port:\s*(.+)$/))
+        ports << current if current[:device]
+        current = { name: match[1] }
+      elsif (match = stripped.match(/^Device:\s*(.+)$/))
+        current[:device] = match[1]
+      elsif (match = stripped.match(/^Ethernet Address:\s*(.+)$/))
+        current[:ethernet_address] = match[1]
+      end
+    end
+
+    ports << current if current[:device]
+    ports
+  end
+
+  def find_wifi_port(ports)
+    ports.find do |port|
+      name = port[:name].to_s
+      next false if name.empty?
+      WIFI_PORT_PATTERNS.any? { |pattern| pattern.match?(name) }
+    end
+  end
+
+  def detect_wifi_service_name_from_ports(ports)
+    wifi_port = find_wifi_port(ports)
+    return wifi_port[:name] if wifi_port && wifi_port[:name] && !wifi_port[:name].empty?
+
+    iface = @wifi_interface
+    if iface && !iface.empty?
+      match = ports.find { |port| port[:device] == iface && port[:name] && !port[:name].empty? }
+      return match[:name] if match
+    end
+
+    # Fall back to the common default even if not present in the output
+    'Wi-Fi'
+  end
+
   # Lazily detected macOS version to avoid OS calls during initialization
   def macos_version
     @macos_version ||= detect_macos_version
@@ -33,39 +87,8 @@ class MacOsModel < BaseModel
   # Detects the Wi-Fi service name dynamically (e.g., "Wi-Fi", "AirPort", etc.)
   def detect_wifi_service_name
     @wifi_service_name ||= begin
-      cmd = "networksetup -listallhardwareports"
-      lines = run_os_command(cmd).split("\n")
-      
-      # Look for common Wi-Fi service name patterns
-      wifi_patterns = [
-        /: Wi-Fi$/,           # Most common
-        /: AirPort$/,         # Older systems 
-        /: Wireless$/,        # Alternative naming
-        /: WiFi$/,            # Alternative spelling
-        /: WLAN$/             # Generic wireless LAN
-      ]
-      
-      wifi_service_line = lines.find do |line|
-        wifi_patterns.any? { |pattern| pattern.match(line) }
-      end
-      
-      if wifi_service_line
-        wifi_service_line.split(': ').last
-      else
-        # Fallback: look for the interface that matches our wifi_interface
-        wifi_iface = wifi_interface
-        lines.each_with_index do |line, index|
-          if line.include?("Device: #{wifi_iface}") && index > 0
-            prev_line = lines[index - 1]
-            if prev_line.start_with?("Hardware Port: ")
-              return prev_line.split(': ').last
-            end
-          end
-        end
-        
-        # Final fallback
-        "Wi-Fi"
-      end
+      ports = fetch_hardware_ports
+      detect_wifi_service_name_from_ports(ports)
     end
   end
 
@@ -78,29 +101,23 @@ class MacOsModel < BaseModel
   # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
   # This may not detect WiFi ports with nonstandard names, such as USB WiFi devices.
   def detect_wifi_interface_using_networksetup
+    ports = fetch_hardware_ports
+    service_name = detect_wifi_service_name_from_ports(ports)
 
-    cmd = "networksetup -listallhardwareports"
-    lines = run_os_command(cmd).split("\n")
-    # Produces something like this:
-    # Hardware Port: Wi-Fi
-    # Device: en0
-    # Ethernet Address: ac:bc:32:b9:a9:9d
-    #
-    # Hardware Port: Bluetooth PAN
-    # Device: en3
-    # Ethernet Address: ac:bc:32:b9:a9:9e
-
-    # Use dynamic service name detection instead of hardcoded "Wi-Fi"
-    service_name = detect_wifi_service_name
-    wifi_interface_line_num = (0...lines.size).detect do |index|
-      lines[index].end_with?(": #{service_name}")
+    if service_name && !service_name.empty?
+      @wifi_service_name = service_name
     end
 
-    if wifi_interface_line_num.nil?
-      raise WifiInterfaceError.new
-    else
-      lines[wifi_interface_line_num + 1].split(': ').last
+    wifi_port = ports.find do |port|
+      port[:name] == service_name && port[:device] && !port[:device].empty?
     end
+
+    wifi_port ||= find_wifi_port(ports)
+
+    iface = wifi_port && wifi_port[:device]
+    raise WifiInterfaceError.new if iface.nil? || iface.empty?
+
+    iface
   end
 
   # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
@@ -131,22 +148,32 @@ class MacOsModel < BaseModel
 
   # Returns the network names sorted in descending order of signal strength.
   def _available_network_names
+    iface = ensure_wifi_interface!
     data = airport_data
     inner_key = connected_network_name ? 'spairport_airport_other_local_wireless_networks' : 'spairport_airport_local_wireless_networks'
 
-    nets = data['SPAirPortDataType'] \
-       .detect { |h| h.key?('spairport_airport_interfaces') } \
-        ['spairport_airport_interfaces'] \
-       .detect { |h| h['_name'] == wifi_interface } \
-        [inner_key] \
-        .sort_by { |net| -net['spairport_signal_noise'].split('/').first.to_i }
-    nets.map { |h| h['_name']}.uniq
+    interfaces = data['SPAirPortDataType']
+      &.detect { |h| h.key?('spairport_airport_interfaces') }
+      &.fetch('spairport_airport_interfaces', [])
+
+    return [] unless interfaces
+
+    wifi_data = interfaces.detect { |h| h['_name'] == iface }
+    networks = wifi_data&.fetch(inner_key, [])
+    return [] unless networks
+
+    networks
+      .sort_by { |net| -net.fetch('spairport_signal_noise', '0/0').to_s.split('/').first.to_i }
+      .map { |h| h['_name'] }
+      .compact
+      .uniq
   end
 
 
   # Returns data pertaining to "preferred" networks, many/most of which will probably not be available.
   def preferred_networks
-    cmd = "networksetup -listpreferredwirelessnetworks #{Shellwords.shellescape(wifi_interface)}"
+    iface = ensure_wifi_interface!
+    cmd = "networksetup -listpreferredwirelessnetworks #{Shellwords.shellescape(iface)}"
     lines = run_os_command(cmd).split("\n")
     # Produces something like this, unsorted, and with leading tabs:
     # Preferred networks on en0:
@@ -175,7 +202,8 @@ class MacOsModel < BaseModel
 
   # Returns true if WiFi is on, else false.
   def wifi_on?
-    cmd = "networksetup -getairportpower #{Shellwords.shellescape(wifi_interface)}"
+    iface = ensure_wifi_interface!
+    cmd = "networksetup -getairportpower #{Shellwords.shellescape(iface)}"
     output = run_os_command(cmd)
     output.chomp.match?(/\): On$/)
   end
@@ -185,7 +213,8 @@ class MacOsModel < BaseModel
   def wifi_on
     return if wifi_on?
 
-    cmd = "networksetup -setairportpower #{Shellwords.shellescape(wifi_interface)} on"
+    iface = ensure_wifi_interface!
+    cmd = "networksetup -setairportpower #{Shellwords.shellescape(iface)} on"
     run_os_command(cmd)
     wifi_on? ? nil : raise(WifiEnableError.new)
   end
@@ -195,7 +224,8 @@ class MacOsModel < BaseModel
   def wifi_off
     return unless wifi_on?
 
-    cmd = "networksetup -setairportpower #{Shellwords.shellescape(wifi_interface)} off"
+    iface = ensure_wifi_interface!
+    cmd = "networksetup -setairportpower #{Shellwords.shellescape(iface)} off"
     run_os_command(cmd)
 
     wifi_on? ? raise(WifiDisableError.new) : nil
@@ -204,7 +234,8 @@ class MacOsModel < BaseModel
 
   # This method is called by BaseModel#connect to do the OS-specific connection logic.
   def os_level_connect_using_networksetup(network_name, password = nil)
-    command = "networksetup -setairportnetwork #{Shellwords.shellescape(wifi_interface)} #{Shellwords.shellescape(network_name)}"
+    iface = ensure_wifi_interface!
+    command = "networksetup -setairportnetwork #{Shellwords.shellescape(iface)} #{Shellwords.shellescape(network_name)}"
     if password
       command << ' ' << Shellwords.shellescape(password)
     end
@@ -269,7 +300,8 @@ class MacOsModel < BaseModel
   # Returns the IP address assigned to the WiFi interface, or nil if none.
   def _ip_address
     begin
-      cmd = "ipconfig getifaddr #{Shellwords.shellescape(wifi_interface)}"
+      iface = ensure_wifi_interface!
+      cmd = "ipconfig getifaddr #{Shellwords.shellescape(iface)}"
       run_os_command(cmd).chomp
     rescue WifiWand::CommandExecutor::OsCommandError => error
       if error.exitstatus == 1
@@ -283,7 +315,8 @@ class MacOsModel < BaseModel
 
   def remove_preferred_network(network_name)
     network_name = network_name.to_s
-    cmd = "sudo networksetup -removepreferredwirelessnetwork " + Shellwords.shellescape(wifi_interface) + " " + Shellwords.shellescape(network_name)
+    iface = ensure_wifi_interface!
+    cmd = "sudo networksetup -removepreferredwirelessnetwork " + Shellwords.shellescape(iface) + " " + Shellwords.shellescape(network_name)
     run_os_command(cmd)
   end
 
@@ -294,9 +327,9 @@ class MacOsModel < BaseModel
     airport_data = data.dig("SPAirPortDataType", 0, "spairport_airport_interfaces")
     return nil unless airport_data
 
-    wifi_interface = detect_wifi_interface # e.g. "en0"
+    iface = ensure_wifi_interface!
     wifi_interface_data = airport_data.find do |interface|
-      interface["_name"] == wifi_interface
+      interface["_name"] == iface
     end
 
     # Handle interface not found
@@ -328,11 +361,12 @@ class MacOsModel < BaseModel
     
     # Fallback to ifconfig (disassociate from current network)
     begin
-      cmd = "sudo ifconfig #{Shellwords.shellescape(wifi_interface)} disassociate"
+      iface = ensure_wifi_interface!
+      cmd = "sudo ifconfig #{Shellwords.shellescape(iface)} disassociate"
       run_os_command(cmd, false)
     rescue WifiWand::CommandExecutor::OsCommandError
       # If sudo ifconfig fails, try without sudo (may work on some systems)
-      cmd = "ifconfig #{Shellwords.shellescape(wifi_interface)} disassociate"
+      cmd = "ifconfig #{Shellwords.shellescape(iface)} disassociate"
       run_os_command(cmd, false)
     end
     nil
@@ -340,7 +374,8 @@ class MacOsModel < BaseModel
 
 
   def mac_address
-    cmd = "ifconfig #{Shellwords.shellescape(wifi_interface)} | awk '/ether/{print $2}'"
+    iface = ensure_wifi_interface!
+    cmd = "ifconfig #{Shellwords.shellescape(iface)} | awk '/ether/{print $2}'"
     run_os_command(cmd).chomp
   end
 
@@ -514,6 +549,8 @@ class MacOsModel < BaseModel
     run_os_command(command)
   end
 
+  private :fetch_hardware_ports, :find_wifi_port, :detect_wifi_service_name_from_ports
+
   private
 
   def airport_data
@@ -534,12 +571,13 @@ class MacOsModel < BaseModel
     
     data = airport_data
     inner_key = 'spairport_airport_local_wireless_networks'
-    
+
     # Get the networks data from the airport information
+    iface = ensure_wifi_interface!
     networks = data['SPAirPortDataType']
          &.detect { |h| h.key?('spairport_airport_interfaces') }
          &.dig('spairport_airport_interfaces')
-         &.detect { |h| h['_name'] == wifi_interface }
+         &.detect { |h| h['_name'] == iface }
          &.dig(inner_key)
     
     return nil unless networks

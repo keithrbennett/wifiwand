@@ -10,8 +10,8 @@ module WifiWand
     STATUS_WAIT_TIMEOUT_SHORT = 5
     
     # NetworkStateManager wait intervals
-    WIFI_STATE_CHANGE_WAIT = 0.05  # Wait for WiFi on/off state changes
-    NETWORK_CONNECTION_WAIT = 0.25  # Wait for network connection establishment
+    WIFI_STATE_CHANGE_WAIT = 5.0   # Wait for WiFi on/off state changes (was 0.05)
+    NETWORK_CONNECTION_WAIT = 10.0 # Wait for network connection establishment (was 0.25)
     
     # NetworkConnectivityTester timeouts
     TCP_CONNECTION_TIMEOUT = ENV['RSPEC_RUNNING'] ? 0.1 : 2      # Individual TCP connection timeout

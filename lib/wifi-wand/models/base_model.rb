@@ -89,6 +89,23 @@ class BaseModel
     self
   end
 
+  # Ensures the WiFi interface has been initialized before it is used.
+  # Lazily runs the standard initialization flow the first time an interface
+  # is required, allowing callers that skip `init` to still function.
+  def ensure_wifi_interface!
+    return @wifi_interface if @wifi_interface && !@wifi_interface.empty?
+    return @wifi_interface if @initializing_wifi_interface
+
+    begin
+      @initializing_wifi_interface = true
+      init_wifi_interface
+    ensure
+      @initializing_wifi_interface = false
+    end
+
+    @wifi_interface
+  end
+
   # @return array of nameserver IP addresses from /etc/resolv.conf, or nil if not found
   # This is the fallback method that works on most Unix-like systems
   def nameservers_using_resolv_conf
@@ -98,6 +115,8 @@ class BaseModel
       nil
     end
   end
+
+  protected :ensure_wifi_interface!
 
   # Define methods that must be implemented by subclasses in order to be called successfully:
   def self.define_subclass_required_method(method_name)
@@ -285,9 +304,9 @@ class BaseModel
 
   # Connects to the passed network name, optionally with password.
   # Delegates to ConnectionManager for complex connection logic.
-  def connect(network_name, password = nil)
+  def connect(network_name, password = nil, skip_saved_password_lookup: false)
     debug_method_entry(__method__, binding, %i{network_name password})
-    @connection_manager.connect(network_name, password)
+    @connection_manager.connect(network_name, password, skip_saved_password_lookup: skip_saved_password_lookup)
   end
 
 
