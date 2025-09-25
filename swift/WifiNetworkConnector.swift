@@ -35,6 +35,8 @@ func connectToNetwork(ssid: String, password: String?) -> Bool {
             print("Error: Connection timeout")
         case -3903: // Authentication failed
             print("Error: Authentication failed - might require captive portal login")
+        case -3900: // Generic CoreWLAN error - often keychain/auth related
+            print("Error: CoreWLAN generic error - possible keychain access or authentication issue")
         default:
             print("Error connecting: \(error.localizedDescription) (code: \(error.code))")
         }
