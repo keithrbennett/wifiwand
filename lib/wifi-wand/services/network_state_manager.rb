@@ -15,11 +15,25 @@ module WifiWand
     # These methods help capture and restore network state during disruptive tests
     
     def capture_network_state
+      network_name = @model.connected_network_name
+      
+      # Always attempt to capture password for consistent restoration
+      # If we're capturing network state, we should have the password available
+      # for reliable restoration without repeated keychain prompts
+      network_password = if network_name
+        begin
+          connected_network_password
+        rescue
+          nil
+        end
+      else
+        nil
+      end
+      
       {
         wifi_enabled: @model.wifi_on?,
-        network_name: @model.connected_network_name,
-        # Avoid Keychain lookups during test runs on macOS
-        network_password: (avoid_keychain_for_model? ? nil : connected_network_password_if_safe),
+        network_name: network_name,
+        network_password: network_password,
         interface: @model.wifi_interface
       }
     end

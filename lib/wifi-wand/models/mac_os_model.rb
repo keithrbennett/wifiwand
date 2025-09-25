@@ -235,11 +235,22 @@ class MacOsModel < BaseModel
   # This method is called by BaseModel#connect to do the OS-specific connection logic.
   def os_level_connect_using_networksetup(network_name, password = nil)
     iface = ensure_wifi_interface!
-    command = "networksetup -setairportnetwork #{Shellwords.shellescape(iface)} #{Shellwords.shellescape(network_name)}"
-    if password
-      command << ' ' << Shellwords.shellescape(password)
+    command = "networksetup -setairportnetwork #{Shellwords.shellescape(iface)} #{Shellwords.shellescape(network_name)}" \
+              + (password ? (' ' + Shellwords.shellescape(password)) : '')
+    output = run_os_command(command)
+    output_text = output.to_s
+
+    # networksetup returns exit code 0 even on failure, so check output text
+    failure_signatures = [
+      /Failed to join network/i,
+      /Error: -3900/,
+      /Could not connect/i,
+      /Could not find network/i
+    ]
+
+    if failure_signatures.any? { |pattern| output_text.match?(pattern) }
+      raise WifiWand::CommandExecutor::OsCommandError.new(1, 'networksetup', output_text.strip)
     end
-    run_os_command(command)
   end
 
   def os_level_connect_using_swift(network_name, password = nil)
@@ -250,10 +261,25 @@ class MacOsModel < BaseModel
 
   def _connect(network_name, password = nil)
     if swift_and_corewlan_present?
-      os_level_connect_using_swift(network_name, password)
-    else
-      os_level_connect_using_networksetup(network_name, password)
+      begin
+        os_level_connect_using_swift(network_name, password)
+        return
+      rescue WifiWand::CommandExecutor::OsCommandError => e
+        # Specific error codes that indicate we should try networksetup instead
+        # -3900: Generic CoreWLAN error
+        # -3905: Network not found via CoreWLAN
+        if e.text.include?('code: -3900') || e.text.include?('code: -3905') || e.text.downcase.include?('network not found')
+          out_stream.puts "Swift/CoreWLAN failed (#{e.text.strip}). Trying networksetup fallback..." if verbose_mode
+        else
+          # For other errors, re-raise as they may indicate real problems
+          raise
+        end
+      rescue => e
+        out_stream.puts "Swift/CoreWLAN failed: #{e.message}. Trying networksetup fallback..." if verbose_mode
+      end
     end
+
+    os_level_connect_using_networksetup(network_name, password)
   end
 
 
