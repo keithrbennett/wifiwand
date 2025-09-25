@@ -88,10 +88,21 @@ module RSpecConfiguration
           end
 
           if model
-            # Only front‑load Keychain lookup when disruptive tests are scheduled, 
-            # or when explicitly opted in via RSPEC_KEYCHAIN_PREFLIGHT=true
-            keychain_prefight_enabled = (disruptive_tests_will_run && keychain_tests_will_run) || ENV['RSPEC_KEYCHAIN_PREFLIGHT'] == 'true'
-            if keychain_prefight_enabled
+            # Capture network state during preflight when authentication is available
+            # This ensures we have the password before test stubbing begins
+            if disruptive_tests_will_run
+              begin
+                # Capture network state with authentication available
+                NetworkStateManager.capture_state
+              rescue => e
+                # Log but don't fail the suite
+                puts "Warning: Could not capture network state during preflight: #{e.message}"
+              end
+            end
+            
+            # Additional keychain preflight for keychain integration tests
+            # Only when explicitly enabled and no disruptive tests (to avoid double auth)
+            if ENV['RSPEC_KEYCHAIN_PREFLIGHT'] == 'true' && !disruptive_tests_will_run
               ssid = begin
                 model.connected_network_name
               rescue
@@ -322,18 +333,6 @@ module RSpecConfiguration
           end
         end
         
-        # Mark that network state should be captured, but don't capture it yet
-        $network_state_should_be_captured = true
-      else
-        $network_state_should_be_captured = false
-      end
-    end
-    
-    # Capture network state only when the first disruptive test actually runs
-    config.before(:each, :disruptive) do
-      if $network_state_should_be_captured && !$network_state_captured
-        NetworkStateManager.capture_state
-        $network_state_captured = true
       end
     end
     
@@ -353,8 +352,15 @@ module RSpecConfiguration
         # ignore
       end
 
-      # Only restore if we actually captured state
-      if $network_state_captured
+      # Only restore if disruptive tests ran (check the same way as preflight)
+      examples_to_run = if RSpec.world.respond_to?(:filtered_examples)
+                          RSpec.world.filtered_examples.values.flatten
+                        else
+                          []
+                        end
+      disruptive_tests_ran = examples_to_run.any? { |ex| ex.metadata[:disruptive] }
+      
+      if disruptive_tests_ran
         network_state = NetworkStateManager.network_state
         if network_state && network_state[:network_name]
           puts "\n#{"=" * 60}"
