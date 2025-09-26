@@ -41,10 +41,7 @@ describe 'QR Code Overwrite Confirmation' do
     # Ensure qrencode is invoked (but do not actually run it)
     expect(model).to receive(:run_os_command).with(a_string_starting_with("qrencode -o #{filename} ")).ordered.and_return('')
 
-    result = nil
-    silence_output do
-      result = model.generate_qr_code
-    end
+    result = silence_output { model.generate_qr_code }
     expect(result).to eq(filename)
   end
 
@@ -79,8 +76,7 @@ describe 'QR Code Overwrite Confirmation' do
     expect(File).to receive(:delete).with(filename).ordered.and_call_original
     expect(model).to receive(:run_os_command).with(a_string_starting_with("qrencode -o #{filename} ")).ordered.and_return('')
 
-    result = nil
-    silence_output { result = model.generate_qr_code(nil, overwrite: true) }
+    result = silence_output { model.generate_qr_code(nil, overwrite: true) }
     expect(result).to eq(filename)
     # We only assert command args and delete call in unit tests.
     # File recreation is the responsibility of qrencode (covered in integration tests).

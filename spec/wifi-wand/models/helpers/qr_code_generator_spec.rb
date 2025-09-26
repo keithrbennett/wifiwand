@@ -86,8 +86,7 @@ describe 'QR Code Generator (unit)' do
         ''
       end
 
-      result = nil
-      silence_output { result = model.generate_qr_code(tc[:filespec]) }
+      result = silence_output { model.generate_qr_code(tc[:filespec]) }
       expect(result).to eq(tc[:filespec])
     end
   end

@@ -390,7 +390,11 @@ describe WifiWand::CommandLineInterface do
             allow(mock_model).to receive(:generate_qr_code).with(filename, hash_including(overwrite: true, password: nil)).and_return(filename)
             allow($stdin).to receive(:gets).and_return(user_input)
             
-            expect { subject.cmd_qr(filename) }.to output(/QR code generated: #{filename}/).to_stdout
+            captured = silence_output do |stdout, _stderr|
+              subject.cmd_qr(filename)
+              stdout.string
+            end
+            expect(captured).to match(/QR code generated: #{filename}/)
           end
         end
 
@@ -407,7 +411,11 @@ describe WifiWand::CommandLineInterface do
           allow(mock_model).to receive(:generate_qr_code).with(filename, hash_including(overwrite: true, password: nil)).and_return(filename)
           allow($stdin).to receive(:gets).and_return("y\n")
           
-          expect { subject.cmd_qr(filename) }.to output(/Output file exists. Overwrite\? \[y\/N\]: /).to_stdout
+          captured = silence_output do |stdout, _stderr|
+            subject.cmd_qr(filename)
+            stdout.string
+          end
+          expect(captured).to match(/Output file exists. Overwrite\? \[y\/N\]: /)
         end
 
         include_examples 'user confirms overwrite', "y\n"

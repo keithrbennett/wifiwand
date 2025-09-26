@@ -27,13 +27,13 @@ class CommandLineInterface
 
   def initialize(options)
     @options = options
-    @out_stream = (options.respond_to?(:out_stream) && options.out_stream) || $stdout
+    @original_out_stream = (options.respond_to?(:out_stream) && options.out_stream)
     @err_stream = (options.respond_to?(:err_stream) && options.err_stream) || $stderr
 
     model_options = OpenStruct.new({
       verbose:        options.verbose,
       wifi_interface: options.wifi_interface,
-      out_stream:     @out_stream
+      out_stream:     out_stream
     })
 
     # Skip model initialization when help was explicitly requested in non-interactive mode,
@@ -48,6 +48,11 @@ class CommandLineInterface
 
   def verbose_mode
     options.verbose
+  end
+
+  # Dynamic output stream that respects current $stdout (for test silence_output compatibility)
+  def out_stream
+    @original_out_stream || $stdout
   end
 
   # Asserts that a command has been passed on the command line.
@@ -101,7 +106,7 @@ class CommandLineInterface
     
     # Show message if we used a saved password
     if model.last_connection_used_saved_password? && !interactive_mode
-      @out_stream.puts "Using saved password for '#{network}'. Use 'forget #{network}' if you need to use a different password."
+      out_stream.puts "Using saved password for '#{network}'. Use 'forget #{network}' if you need to use a different password."
     end
   end
 
@@ -213,7 +218,7 @@ class CommandLineInterface
       end
     rescue WifiWand::Error => e
       if e.message.include?("already exists") && $stdin.tty?
-        @out_stream.print "Output file exists. Overwrite? [y/N]: "
+        out_stream.print "Output file exists. Overwrite? [y/N]: "
         answer = $stdin.gets&.strip&.downcase
         if %w[y yes].include?(answer)
           result = model.generate_qr_code(filespec, overwrite: true, password: password)
@@ -242,7 +247,7 @@ class CommandLineInterface
   def cmd_s
     status_data = model.status_line_data
     if interactive_mode
-      @out_stream.puts status_line(status_data)
+      out_stream.puts status_line(status_data)
       nil
     else
       handle_output(status_data, -> { status_line(status_data) })
@@ -260,7 +265,7 @@ class CommandLineInterface
       if interactive_mode
         return model.available_resources_help
       else
-        @out_stream.puts model.available_resources_help
+        out_stream.puts model.available_resources_help
       end
       return
     end
@@ -302,7 +307,7 @@ class CommandLineInterface
       else
         output = human_readable_string_producer.call
       end
-      @out_stream.puts output unless output.to_s.empty?
+      out_stream.puts output unless output.to_s.empty?
     end
   end
 end

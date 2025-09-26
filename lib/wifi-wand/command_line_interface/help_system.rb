@@ -62,7 +62,7 @@ When in interactive shell mode:
         dest = if respond_to?(:interactive_mode) && interactive_mode
                  $stdout
                else
-                 @out_stream || $stdout
+                 respond_to?(:out_stream) ? out_stream : ($stdout)
                end
         dest.puts help_text
       end

@@ -30,8 +30,17 @@ module WifiWand
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?).and_return(true)
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
         
-        # Mock OS command execution to prevent real system calls (Mac commands would fail on non-Mac anyway)
-        allow_any_instance_of(WifiWand::MacOsModel).to receive(:run_os_command).and_return('')
+        # Stub Keychain lookup to avoid prompts; let other commands run normally
+        allow_any_instance_of(WifiWand::MacOsModel)
+          .to receive(:run_os_command)
+                .and_wrap_original do |original, cmd, *args|
+          if cmd =~ /security\s+find-generic-password/
+            raise WifiWand::CommandExecutor::OsCommandError.new(44, cmd, '')
+          else
+            original.call(cmd, *args)
+          end
+        end
+
         allow_any_instance_of(WifiWand::MacOsModel).to receive(:till).and_return(nil)
       end
     end
@@ -713,11 +722,11 @@ module WifiWand
           allow_any_instance_of(WifiWand::MacOsModel)
             .to receive(:run_os_command).with("sw_vers -productVersion").and_raise(StandardError.new("Command failed"))
           failing_model = create_mac_os_test_model
-          expect(failing_model.macos_version).to be_nil
+          silence_output { expect(failing_model.macos_version).to be_nil }
         end
       end
 
-      describe '#macos_version (real system)', :os_mac do
+      describe '#macos_version (real system)', :os_mac, :disruptive do
         # For these real-system checks, allow actual OS command execution
         before(:each) do
           allow_any_instance_of(WifiWand::MacOsModel).to receive(:run_os_command).and_call_original
@@ -739,7 +748,6 @@ module WifiWand
 
       describe '#_disconnect' do
         it 'falls back to ifconfig after Swift failure and returns nil' do
-          model.verbose_mode = true
           allow(model).to receive(:swift_and_corewlan_present?).and_return(true)
           allow(model).to receive(:run_swift_command).and_raise(StandardError.new("swift failed"))
           allow(model).to receive(:wifi_interface).and_return("en0")
@@ -749,42 +757,31 @@ module WifiWand
           # Fallback without sudo succeeds
           expect(model).to receive(:run_os_command).with("ifconfig en0 disassociate", false).and_return("")
 
-          silence_output do
-            expect(model._disconnect).to be_nil
-          end
+          expect(model._disconnect).to be_nil
         end
 
         it 'uses ifconfig path when Swift not available' do
-          model.verbose_mode = true
           allow(model).to receive(:swift_and_corewlan_present?).and_return(false)
           allow(model).to receive(:wifi_interface).and_return("en0")
 
           expect(model).to receive(:run_os_command).with("sudo ifconfig en0 disassociate", false).and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, "ifconfig", ""))
           expect(model).to receive(:run_os_command).with("ifconfig en0 disassociate", false).and_return("")
 
-          silence_output do
-            expect(model._disconnect).to be_nil
-          end
+          expect(model._disconnect).to be_nil
         end
       end
 
       describe '#swift_and_corewlan_present?' do
         it 'handles unexpected errors gracefully and returns false' do
-          model.verbose_mode = true
           allow(model).to receive(:run_os_command).and_raise(StandardError.new("unexpected"))
-          silence_output do
-            expect(model.swift_and_corewlan_present?).to be(false)
-          end
+          expect(model.swift_and_corewlan_present?).to be(false)
         end
       end
 
       describe '#validate_os_preconditions' do
         it 'warns when swift is unavailable and returns :ok' do
-          model.verbose_mode = true
           allow(model).to receive(:command_available_using_which?).with("swift").and_return(false)
-          silence_output do
-            expect(model.validate_os_preconditions).to eq(:ok)
-          end
+          expect(model.validate_os_preconditions).to eq(:ok)
         end
       end
 

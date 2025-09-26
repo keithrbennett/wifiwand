@@ -21,7 +21,6 @@ module WifiWand
 class BaseModel
 
   attr_accessor :wifi_interface, :verbose_mode, :command_executor, :connectivity_tester, :state_manager, :status_waiter, :connection_manager
-  attr_reader :out_stream
 
   def self.create_model(options = {})
     options = OpenStruct.new(options) if options.is_a?(Hash)
@@ -38,13 +37,18 @@ class BaseModel
     options = OpenStruct.new(options) if options.is_a?(Hash)
     @options = options
     @verbose_mode = options.verbose
-    # Output stream for verbose/debug output
-    @out_stream = (options.respond_to?(:out_stream) && options.out_stream) || $stdout
-    @command_executor = CommandExecutor.new(verbose: @verbose_mode, output: @out_stream)
-    @connectivity_tester = NetworkConnectivityTester.new(verbose: @verbose_mode, output: @out_stream)
-    @state_manager = NetworkStateManager.new(self, verbose: @verbose_mode, output: @out_stream)
-    @status_waiter = StatusWaiter.new(self, verbose: @verbose_mode, output: @out_stream)
+    # Store the original output stream option, but use a dynamic method for out_stream
+    @original_out_stream = (options.respond_to?(:out_stream) && options.out_stream)
+    @command_executor = CommandExecutor.new(verbose: @verbose_mode, output: out_stream)
+    @connectivity_tester = NetworkConnectivityTester.new(verbose: @verbose_mode, output: out_stream)
+    @state_manager = NetworkStateManager.new(self, verbose: @verbose_mode, output: out_stream)
+    @status_waiter = StatusWaiter.new(self, verbose: @verbose_mode, output: out_stream)
     @connection_manager = ConnectionManager.new(self, verbose: @verbose_mode)
+  end
+
+  # Dynamic output stream that respects current $stdout (for test silence_output compatibility)
+  def out_stream
+    @original_out_stream || $stdout
   end
 
   # Returns a symbol identifying the operating system for this model

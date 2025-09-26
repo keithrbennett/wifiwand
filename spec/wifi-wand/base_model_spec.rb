@@ -816,7 +816,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
           allow(subject).to receive(:command_available_using_which?).with('qrencode').and_return(false)
           allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: os_id))
           
-          expect { subject.generate_qr_code }.to raise_error(WifiWand::Error, /#{Regexp.escape(expected_command)}/)
+        expect { silence_output { subject.generate_qr_code } }.to raise_error(WifiWand::Error, /#{Regexp.escape(expected_command)}/)
         end
       end
 
@@ -824,7 +824,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         allow(subject).to receive(:command_available_using_which?).with('qrencode').and_return(false)
         allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: :unknown))
         
-        expect { subject.generate_qr_code }.to raise_error(WifiWand::Error, /install qrencode using your system package manager/)
+        expect { silence_output { subject.generate_qr_code } }.to raise_error(WifiWand::Error, /install qrencode using your system package manager/)
       end
     end
 
@@ -832,7 +832,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       it 'raises error when not connected to any network' do
         allow(subject).to receive(:connected_network_name).and_return(nil)
         
-        expect { subject.generate_qr_code }.to raise_error(WifiWand::Error, /Not connected to any WiFi network/)
+        expect { silence_output { subject.generate_qr_code } }.to raise_error(WifiWand::Error, /Not connected to any WiFi network/)
       end
     end
 
@@ -848,7 +848,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
           allow(subject).to receive(:connection_security_type).and_return(input_security)
           expected_qr_string = "WIFI:T:#{expected_qr_security};S:TestNetwork;P:test_password;H:false;;"
           
-          subject.generate_qr_code
+          silence_output { subject.generate_qr_code }
           
           expect(subject).to have_received(:run_os_command)
             .with("qrencode -o TestNetwork-qr-code.png #{Shellwords.shellescape(expected_qr_string)}")
@@ -867,7 +867,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
           allow(subject).to receive(:connected_network_name).and_return(test_network)
           allow(subject).to receive(:connected_network_password).and_return(test_password)
           
-          subject.generate_qr_code
+          silence_output { subject.generate_qr_code }
           
           safe_network_name = test_network.gsub(/[^\w\-_]/, '_')
           expected_filename = "#{safe_network_name}-qr-code.png"
@@ -888,7 +888,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         it "generates safe filename for '#{input_name}'" do
           allow(subject).to receive(:connected_network_name).and_return(input_name)
           
-          result = subject.generate_qr_code
+          result = silence_output { subject.generate_qr_code }
           
           expect(result).to eq(expected_filename)
         end
@@ -901,7 +901,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         allow(subject).to receive(:connection_security_type).and_return(nil)
         expected_qr_string = 'WIFI:T:;S:TestNetwork;P:;H:false;;'
         
-        result = subject.generate_qr_code
+        result = silence_output { subject.generate_qr_code }
         
         expect(subject).to have_received(:run_os_command)
           .with("qrencode -o TestNetwork-qr-code.png #{Shellwords.shellescape(expected_qr_string)}")
@@ -914,7 +914,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         allow(subject).to receive(:run_os_command)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'qrencode', 'Command failed'))
         
-        expect { subject.generate_qr_code }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
+        expect { silence_output { subject.generate_qr_code } }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
       end
     end
   end

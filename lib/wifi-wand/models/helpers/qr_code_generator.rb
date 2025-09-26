@@ -44,7 +44,7 @@ module WifiWand
         return run_qrencode_text(model, qr_string, delivery_mode: delivery_mode) if spec == '-'
 
         filename  = spec && !spec.empty? ? spec : build_filename(network_name)
-        confirm_overwrite(filename, overwrite: overwrite)
+        confirm_overwrite(filename, overwrite: overwrite, output_stream: model.out_stream)
         run_qrencode_file(model, filename, qr_string)
         filename
       end
@@ -115,7 +115,7 @@ module WifiWand
         "#{safe}-qr-code.png"
       end
 
-      def confirm_overwrite(filename, overwrite: false)
+      def confirm_overwrite(filename, overwrite: false, output_stream: $stdout)
         return unless File.exist?(filename)
 
         if overwrite
@@ -128,7 +128,7 @@ module WifiWand
         end
 
         if $stdin.tty?
-          $stdout.print "Output file exists. Overwrite? [y/N]: "
+          output_stream.print "Output file exists. Overwrite? [y/N]: "
           answer = $stdin.gets&.strip&.downcase
           if %w[y yes].include?(answer)
             begin
