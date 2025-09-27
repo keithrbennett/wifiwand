@@ -216,9 +216,13 @@ module WifiWand
 
         keychain_error_test_cases.each do |test_case|
           it "raises #{test_case[:error]} for exit code #{test_case[:exit_code]}" do
-            allow(mac_model).to receive(:run_os_command).with(/security find-generic-password/).and_raise(
-              WifiWand::CommandExecutor::OsCommandError.new(test_case[:exit_code], "security", test_case[:message])
-            )
+            allow(mac_model).to receive(:run_os_command) do |command|
+              if command.to_s.match?(/\bsecurity\s+find-generic-password\b/)
+                raise WifiWand::CommandExecutor::OsCommandError.new(test_case[:exit_code], 'security', test_case[:message])
+              end
+
+              'Wi-Fi Power (en0): On'
+            end
             expect { mac_model.send(:_preferred_network_password, 'TestNetwork') }.to raise_error(test_case[:error])
           end
         end

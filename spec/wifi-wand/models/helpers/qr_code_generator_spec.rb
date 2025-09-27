@@ -16,6 +16,7 @@ describe 'QR Code Generator (unit)' do
   let(:security) { 'WPA2' }
 
   before(:each) do
+    model.verbose_mode = false
     allow(model).to receive(:command_available_using_which?).with('qrencode').and_return(true)
     allow(model).to receive(:connected_network_name).and_return(ssid)
     allow(model).to receive(:connection_security_type).and_return(security)

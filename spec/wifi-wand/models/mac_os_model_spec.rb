@@ -9,11 +9,6 @@ module WifiWand
     
     # Prevent accidental Keychain UI prompts in all tests (both disruptive and non-disruptive)
     before(:each) do
-      allow_any_instance_of(WifiWand::MacOsModel)
-        .to receive(:run_os_command)
-        .with(/security\s+find-generic-password/)
-        .and_raise(WifiWand::CommandExecutor::OsCommandError.new(44, 'security', ''))
-
       # Mock network connectivity tester to prevent real network calls during non-disruptive tests
       # Check if current test or any parent group is marked as disruptive
       example_disruptive = RSpec.current_example&.metadata[:disruptive]
@@ -29,19 +24,7 @@ module WifiWand
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:connected_to_internet?).and_return(true)
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?).and_return(true)
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
-        
-        # Stub Keychain lookup to avoid prompts; let other commands run normally
-        allow_any_instance_of(WifiWand::MacOsModel)
-          .to receive(:run_os_command)
-                .and_wrap_original do |original, cmd, *args|
-          if cmd =~ /security\s+find-generic-password/
-            raise WifiWand::CommandExecutor::OsCommandError.new(44, cmd, '')
-          else
-            original.call(cmd, *args)
-          end
-        end
 
-        allow_any_instance_of(WifiWand::MacOsModel).to receive(:till).and_return(nil)
       end
     end
     
@@ -706,11 +689,19 @@ module WifiWand
 
           expected_cmd = %Q{security find-generic-password -D "AirPort network password" -a #{Shellwords.shellescape(ssid)} -w 2>&1}
           # Expect exact command, but avoid real execution by raising "not found" (exit 44)
-          expect(model).to receive(:run_os_command).with(expected_cmd).and_raise(
-            WifiWand::CommandExecutor::OsCommandError.new(44, 'security', '')
-          )
+          call_sequence = []
+          allow(model).to receive(:run_os_command) do |command|
+            call_sequence << command
+
+            if command == expected_cmd
+              raise WifiWand::CommandExecutor::OsCommandError.new(44, 'security', '')
+            else
+              'Wi-Fi Power (en0): On'
+            end
+          end
 
           expect(model.preferred_network_password(ssid)).to be_nil
+          expect(call_sequence).to include(expected_cmd)
         end
       end
 
