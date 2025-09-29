@@ -501,7 +501,7 @@ class BaseModel
     param_names = Array(param_names) # force to array if passed a single symbol
     if param_names
       values = param_names.map { |name| binding.local_variable_get(name) }
-      s << "(#{values.map(&:to_s).map(&:inspect).join(', ')})"
+      s += "(#{values.map(&:to_s).map(&:inspect).join(', ')})"
     end
     out_stream.puts s
   end

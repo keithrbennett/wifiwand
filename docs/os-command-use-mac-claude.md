@@ -42,7 +42,7 @@ macOS WiFi management uses `networksetup` as the primary interface for configura
 - Description: Check if WiFi radio is enabled (returns pattern ending with "): On" or "): Off")
 - Dynamic values: `{interface}` - WiFi interface name from `wifi_interface`
 - Base model method(s): `wifi_on?`
-- CLI commands: `w` (wifi status), and internal checks in most WiFi operations
+    - CLI commands: `w` (wifi status), and internal checks in most WiFi operations
 
 **`networksetup -setairportpower {interface} on`**
 - Description: Enables WiFi radio for specified interface
