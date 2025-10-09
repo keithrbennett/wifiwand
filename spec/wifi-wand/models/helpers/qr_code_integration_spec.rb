@@ -120,7 +120,7 @@ describe 'QR Code Integration Tests' do
         password: nil,
         security_type: nil,
         expected: {
-          'T' => '',
+          'T' => 'nopass',
           'S' => 'FreeWiFi',
           'P' => '',
           'H' => 'false'

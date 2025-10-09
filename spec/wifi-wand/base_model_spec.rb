@@ -842,7 +842,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         ['WPA2', 'WPA'], 
         ['WPA3', 'WPA'],
         ['WEP',  'WEP'],
-        [nil,    '']
+        [nil,    'WPA']
       ].each do |input_security, expected_qr_security|
         it "generates correct QR string for #{input_security || 'open network'}" do
           allow(subject).to receive(:connection_security_type).and_return(input_security)
@@ -853,6 +853,16 @@ describe 'Common WiFi Model Behavior (All OS)' do
           expect(subject).to have_received(:run_os_command)
             .with("qrencode -o TestNetwork-qr-code.png #{Shellwords.shellescape(expected_qr_string)}")
         end
+      end
+
+      it 'defaults to WPA when security type is unknown but password exists' do
+        allow(subject).to receive(:connection_security_type).and_return('RSN')
+        expected_qr_string = 'WIFI:T:WPA;S:TestNetwork;P:test_password;H:false;;'
+
+        silence_output { subject.generate_qr_code }
+
+        expect(subject).to have_received(:run_os_command)
+          .with("qrencode -o TestNetwork-qr-code.png #{Shellwords.shellescape(expected_qr_string)}")
       end
     end
 
@@ -899,7 +909,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       it 'generates QR code for open network (no password)' do
         allow(subject).to receive(:connected_network_password).and_return(nil)
         allow(subject).to receive(:connection_security_type).and_return(nil)
-        expected_qr_string = 'WIFI:T:;S:TestNetwork;P:;H:false;;'
+        expected_qr_string = 'WIFI:T:nopass;S:TestNetwork;P:;H:false;;'
         
         result = silence_output { subject.generate_qr_code }
         

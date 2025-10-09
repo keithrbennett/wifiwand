@@ -78,8 +78,8 @@ module WifiWand
       end
 
       def build_wifi_qr_string(network_name, password, security_type)
-        qr_security = map_security_for_qr(security_type)
-        qr_password = password || ''
+        qr_password = password.to_s
+        qr_security = map_security_for_qr(security_type, !qr_password.empty?)
 
         escaped_ssid     = escape_field(network_name)
         escaped_password = escape_field(qr_password)
@@ -87,14 +87,14 @@ module WifiWand
         "WIFI:T:#{qr_security};S:#{escaped_ssid};P:#{escaped_password};H:false;;"
       end
 
-      def map_security_for_qr(security_type)
+      def map_security_for_qr(security_type, password_present)
         case security_type
         when 'WPA', 'WPA2', 'WPA3'
           'WPA'
         when 'WEP'
           'WEP'
         else
-          '' # Open network
+          password_present ? 'WPA' : 'nopass'
         end
       end
 
