@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
     "changelog_uri"   => "https://github.com/keithrbennett/wifiwand/blob/main/RELEASE_NOTES.md"
   }
 
-  spec.files         = `git ls-files`.split($/)
+  spec.files         = Dir.chdir(File.expand_path(__dir__)) { `git ls-files -z`.split("\x0") }
   spec.bindir        = 'exe'
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
 
