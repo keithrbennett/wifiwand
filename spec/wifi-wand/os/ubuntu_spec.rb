@@ -18,55 +18,52 @@ describe Ubuntu do
   describe '#current_os_is_this_os?' do
     detection_scenarios = [
       {
-        name: 'detects Ubuntu via /etc/os-release',
+        name: 'detects Ubuntu via /etc/os-release with ID=ubuntu',
         os_release_exists: true,
-        os_release_content: "ID=ubuntu\n",
-        lsb_release_result: false,
+        os_release_content: "ID=ubuntu\nID_LIKE=debian\n",
         proc_version_exists: false,
-        host_os: 'linux-gnu',
         expected: true
       },
       {
-        name: 'detects Ubuntu via lsb_release command',
-        os_release_exists: false,
-        lsb_release_result: true,
+        name: 'detects Ubuntu derivatives via ID_LIKE=ubuntu',
+        os_release_exists: true,
+        os_release_content: "ID=linuxmint\nID_LIKE=ubuntu\n",
         proc_version_exists: false,
-        host_os: 'linux-gnu',
         expected: true
       },
       {
-        name: 'detects Ubuntu via /proc/version',
+        name: 'detects Ubuntu derivatives via ID_LIKE="ubuntu debian"',
+        os_release_exists: true,
+        os_release_content: "ID=pop\nID_LIKE=\"ubuntu debian\"\n",
+        proc_version_exists: false,
+        expected: true
+      },
+      {
+        name: 'detects Ubuntu via /proc/version when os-release absent',
         os_release_exists: false,
-        lsb_release_result: false,
         proc_version_exists: true,
         proc_version_content: "Linux version 5.4.0-74-generic #83-Ubuntu",
-        host_os: 'linux-gnu',
         expected: true
       },
       {
-        name: 'falls back to Linux detection via RbConfig',
-        os_release_exists: false,
-        lsb_release_result: false,
+        name: 'returns false for Debian (ID=debian without ubuntu in ID_LIKE)',
+        os_release_exists: true,
+        os_release_content: "ID=debian\n",
         proc_version_exists: false,
-        host_os: 'linux-gnu',
-        expected: true
-      },
-      {
-        name: 'returns false on non-Linux system',
-        os_release_exists: false,
-        lsb_release_result: false,
-        proc_version_exists: false,
-        host_os: 'darwin',
         expected: false
       },
       {
-        name: 'falls back when os-release is not Ubuntu',
+        name: 'returns false for Fedora',
         os_release_exists: true,
-        os_release_content: "ID=debian\n",
-        lsb_release_result: false,
+        os_release_content: "ID=fedora\nID_LIKE=\"rhel fedora\"\n",
         proc_version_exists: false,
-        host_os: 'linux-gnu',
-        expected: true
+        expected: false
+      },
+      {
+        name: 'returns false when no Ubuntu indicators found',
+        os_release_exists: false,
+        proc_version_exists: false,
+        expected: false
       }
     ]
 
@@ -74,21 +71,17 @@ describe Ubuntu do
       it scenario[:name] do
         allow(File).to receive(:exist?).and_call_original
         allow(File).to receive(:read).and_call_original
-        
+
         allow(File).to receive(:exist?).with('/etc/os-release').and_return(scenario[:os_release_exists])
         if scenario[:os_release_exists] && scenario[:os_release_content]
           allow(File).to receive(:read).with('/etc/os-release').and_return(scenario[:os_release_content])
         end
-        
-        allow(subject).to receive(:system).with('lsb_release -i 2>/dev/null | grep -q "Ubuntu"').and_return(scenario[:lsb_release_result])
-        
+
         allow(File).to receive(:exist?).with('/proc/version').and_return(scenario[:proc_version_exists])
         if scenario[:proc_version_exists] && scenario[:proc_version_content]
           allow(File).to receive(:read).with('/proc/version').and_return(scenario[:proc_version_content])
         end
-        
-        stub_const('RbConfig::CONFIG', { 'host_os' => scenario[:host_os] })
-        
+
         expect(subject.current_os_is_this_os?).to be scenario[:expected]
       end
     end

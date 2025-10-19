@@ -11,13 +11,23 @@ class Ubuntu < BaseOs
   end
 
   def current_os_is_this_os?
-    # Check for Ubuntu using multiple detection methods
-    return true if File.exist?('/etc/os-release') && File.read('/etc/os-release').include?('ID=ubuntu')
-    return true if system('lsb_release -i 2>/dev/null | grep -q "Ubuntu"')
+    # Check /etc/os-release for Ubuntu or Ubuntu-based systems
+    if File.exist?('/etc/os-release')
+      content = File.read('/etc/os-release')
+
+      # Direct Ubuntu match (official Ubuntu and flavors)
+      return true if content.match?(/^ID=ubuntu$/m)
+
+      # Ubuntu derivative match (Linux Mint, Pop!_OS, elementary OS, etc.)
+      # These systems have ID=something_else but ID_LIKE contains "ubuntu"
+      return true if content.match?(/^ID_LIKE=.*ubuntu/m)
+    end
+
+    # Fallback: check /proc/version for Ubuntu signature
     return true if File.exist?('/proc/version') && File.read('/proc/version').include?('Ubuntu')
-    
-    # Fallback: check if it's Linux (though this might be too broad)
-    !! /linux/.match(RbConfig::CONFIG["host_os"].downcase)
+
+    # Not Ubuntu or Ubuntu-based
+    false
   end
 
   def create_model(options)
