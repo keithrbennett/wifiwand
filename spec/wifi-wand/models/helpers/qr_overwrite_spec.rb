@@ -18,7 +18,7 @@ describe 'QR Code Overwrite Confirmation' do
 
   before(:each) do
     # Stub environment and dependencies
-    allow(model).to receive(:command_available_using_which?).with('qrencode').and_return(true)
+    allow(model).to receive(:command_available?).with('qrencode').and_return(true)
     allow(model).to receive(:connected_network_name).and_return(ssid)
     allow(model).to receive(:connection_security_type).and_return(security)
     allow(model).to receive(:connected_network_password).and_return(password)

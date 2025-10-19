@@ -485,8 +485,8 @@ class BaseModel
     preferred_network_password(connected_network_name)
   end
 
-  def command_available_using_which?(command)
-    @command_executor.command_available_using_which?(command)
+  def command_available?(command)
+    @command_executor.command_available?(command)
   end
 
   # QR code generator helper

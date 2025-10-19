@@ -157,8 +157,8 @@ module WifiWand
         {
           method: :validate_os_preconditions, args: [], error: CommandNotFoundError, os_tag: :os_ubuntu,
           before: -> {
-            allow(model).to receive(:command_available_using_which?).with("iw").and_return(false)
-            allow(model).to receive(:command_available_using_which?).with("nmcli").and_return(false)
+            allow(model).to receive(:command_available?).with("iw").and_return(false)
+            allow(model).to receive(:command_available?).with("nmcli").and_return(false)
           }
         },
       ]
@@ -186,7 +186,7 @@ module WifiWand
           case current_os.id
           when :ubuntu
             model = WifiWand::UbuntuModel.new(merged_options)
-            allow(model).to receive(:command_available_using_which?).and_return(true)
+            allow(model).to receive(:command_available?).and_return(true)
             allow(model).to receive(:detect_wifi_interface).and_return(nil)
             expect { model.init }.to raise_error(WifiInterfaceError)
           when :mac

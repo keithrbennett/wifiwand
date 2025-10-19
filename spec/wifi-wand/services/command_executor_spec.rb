@@ -82,15 +82,33 @@ describe WifiWand::CommandExecutor do
     end
   end
 
-  describe '#command_available_using_which?' do
+  describe '#command_available?' do
     let(:executor) { WifiWand::CommandExecutor.new(verbose: false) }
 
     it 'returns true for available commands' do
-      expect(executor.command_available_using_which?('echo')).to be true
+      expect(executor.command_available?('echo')).to be true
     end
 
     it 'returns false for unavailable commands' do
-      expect(executor.command_available_using_which?('nonexistent_command_12345')).to be false
+      expect(executor.command_available?('nonexistent_command_12345')).to be false
+    end
+
+    it 'checks executable files in PATH directories' do
+      # Mock ENV['PATH'] to test the implementation
+      allow(ENV).to receive(:[]).with('PATH').and_return('/usr/bin:/bin')
+      allow(File).to receive(:executable?).and_return(false)
+      allow(File).to receive(:directory?).and_return(false)
+      allow(File).to receive(:executable?).with('/usr/bin/test_cmd').and_return(true)
+
+      expect(executor.command_available?('test_cmd')).to be true
+    end
+
+    it 'excludes directories even if marked executable' do
+      allow(ENV).to receive(:[]).with('PATH').and_return('/usr/bin')
+      allow(File).to receive(:executable?).with('/usr/bin/test_dir').and_return(true)
+      allow(File).to receive(:directory?).with('/usr/bin/test_dir').and_return(true)
+
+      expect(executor.command_available?('test_dir')).to be false
     end
   end
 

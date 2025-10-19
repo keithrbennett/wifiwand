@@ -55,8 +55,14 @@ module WifiWand
       nil
     end
 
-    def command_available_using_which?(command)
-      !`which #{command} 2>/dev/null`.empty?
+    # Checks if a command is available in the system PATH.
+    # @param command [String] the command name to search for (e.g., 'git', 'nmcli')
+    # @return [Boolean] true if the command exists and is executable
+    def command_available?(command)
+      ENV['PATH'].split(File::PATH_SEPARATOR).any? do |path|
+        executable = File.join(path, command)
+        File.executable?(executable) && !File.directory?(executable)
+      end
     end
 
     class OsCommandError < RuntimeError

@@ -771,7 +771,7 @@ module WifiWand
 
       describe '#validate_os_preconditions' do
         it 'warns when swift is unavailable and returns :ok' do
-          allow(model).to receive(:command_available_using_which?).with("swift").and_return(false)
+          allow(model).to receive(:command_available?).with("swift").and_return(false)
           expect(model.validate_os_preconditions).to eq(:ok)
         end
       end

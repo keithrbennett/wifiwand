@@ -205,31 +205,31 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#validate_os_preconditions' do
       it 'returns :ok when all required commands are available' do
-        allow(subject).to receive(:command_available_using_which?).with('iw').and_return(true)
-        allow(subject).to receive(:command_available_using_which?).with('nmcli').and_return(true)
+        allow(subject).to receive(:command_available?).with('iw').and_return(true)
+        allow(subject).to receive(:command_available?).with('nmcli').and_return(true)
         
         expect(subject.validate_os_preconditions).to eq(:ok)
       end
 
       it 'raises CommandNotFoundError when iw is missing' do
-        allow(subject).to receive(:command_available_using_which?).with('iw').and_return(false)
-        allow(subject).to receive(:command_available_using_which?).with('nmcli').and_return(true)
+        allow(subject).to receive(:command_available?).with('iw').and_return(false)
+        allow(subject).to receive(:command_available?).with('nmcli').and_return(true)
         
         expect { subject.validate_os_preconditions }
           .to raise_error(WifiWand::CommandNotFoundError, /iw.*install.*sudo apt install iw/)
       end
 
       it 'raises CommandNotFoundError when nmcli is missing' do
-        allow(subject).to receive(:command_available_using_which?).with('iw').and_return(true)
-        allow(subject).to receive(:command_available_using_which?).with('nmcli').and_return(false)
+        allow(subject).to receive(:command_available?).with('iw').and_return(true)
+        allow(subject).to receive(:command_available?).with('nmcli').and_return(false)
         
         expect { subject.validate_os_preconditions }
           .to raise_error(WifiWand::CommandNotFoundError, /nmcli.*install.*sudo apt install network-manager/)
       end
 
       it 'raises CommandNotFoundError when both commands are missing' do
-        allow(subject).to receive(:command_available_using_which?).with('iw').and_return(false)
-        allow(subject).to receive(:command_available_using_which?).with('nmcli').and_return(false)
+        allow(subject).to receive(:command_available?).with('iw').and_return(false)
+        allow(subject).to receive(:command_available?).with('nmcli').and_return(false)
         
         expect { subject.validate_os_preconditions }
           .to raise_error(WifiWand::CommandNotFoundError, /iw.*nmcli/)

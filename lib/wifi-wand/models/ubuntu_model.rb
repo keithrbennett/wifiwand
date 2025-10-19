@@ -21,8 +21,8 @@ class UbuntuModel < BaseModel
     missing_commands = []
     
     # Check for critical commands
-    missing_commands << "iw (install: sudo apt install iw)" unless command_available_using_which?("iw")
-    missing_commands << "nmcli (install: sudo apt install network-manager)" unless command_available_using_which?("nmcli")
+    missing_commands << "iw (install: sudo apt install iw)" unless command_available?("iw")
+    missing_commands << "nmcli (install: sudo apt install network-manager)" unless command_available?("nmcli")
     
     unless missing_commands.empty?
       raise CommandNotFoundError.new(missing_commands)

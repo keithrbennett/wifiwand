@@ -795,7 +795,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     let(:expected_filename) { 'TestNetwork-qr-code.png' }
 
     before(:each) do
-      allow(subject).to receive(:command_available_using_which?).with('qrencode').and_return(true)
+      allow(subject).to receive(:command_available?).with('qrencode').and_return(true)
       allow(subject).to receive(:connected_network_name).and_return(network_name)
       allow(subject).to receive(:connected_network_password).and_return(network_password)
       allow(subject).to receive(:connection_security_type).and_return(security_type)
@@ -813,7 +813,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         [:mac, 'brew install qrencode']
       ].each do |os_id, expected_command|
         it "raises error with correct install command for #{os_id}" do
-          allow(subject).to receive(:command_available_using_which?).with('qrencode').and_return(false)
+          allow(subject).to receive(:command_available?).with('qrencode').and_return(false)
           allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: os_id))
           
         expect { silence_output { subject.generate_qr_code } }.to raise_error(WifiWand::Error, /#{Regexp.escape(expected_command)}/)
@@ -821,7 +821,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
 
       it 'raises error with generic message for unknown OS' do
-        allow(subject).to receive(:command_available_using_which?).with('qrencode').and_return(false)
+        allow(subject).to receive(:command_available?).with('qrencode').and_return(false)
         allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: :unknown))
         
         expect { silence_output { subject.generate_qr_code } }.to raise_error(WifiWand::Error, /install qrencode using your system package manager/)

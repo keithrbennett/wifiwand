@@ -113,7 +113,7 @@ module WifiWand
         if described_class.current_os
           # Mock system command availability for CI environments
           if described_class.current_os.class.name.include?('Ubuntu')
-            allow_any_instance_of(WifiWand::UbuntuModel).to receive(:command_available_using_which?).and_return(true)
+            allow_any_instance_of(WifiWand::UbuntuModel).to receive(:command_available?).and_return(true)
             allow_any_instance_of(WifiWand::UbuntuModel).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
           end
 
@@ -138,7 +138,7 @@ module WifiWand
 
           # Mock system command availability and interface detection for CI environments
           if described_class.current_os.class.name.include?('Ubuntu')
-            allow_any_instance_of(WifiWand::UbuntuModel).to receive(:command_available_using_which?).and_return(true)
+            allow_any_instance_of(WifiWand::UbuntuModel).to receive(:command_available?).and_return(true)
             allow_any_instance_of(WifiWand::UbuntuModel).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
           elsif described_class.current_os.class.name.include?('MacOs')
             allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_return('en0')

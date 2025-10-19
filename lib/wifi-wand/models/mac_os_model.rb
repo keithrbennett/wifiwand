@@ -560,7 +560,7 @@ class MacOsModel < BaseModel
 
   def validate_os_preconditions
     # All core commands are built-in, just warn about optional ones
-    unless command_available_using_which?("swift")
+    unless command_available?("swift")
       out_stream.puts "Warning: Swift not available. Some advanced features may use fallback methods. Install with: xcode-select --install" if verbose_mode
     end
     

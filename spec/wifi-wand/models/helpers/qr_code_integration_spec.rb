@@ -167,7 +167,7 @@ describe 'QR Code Integration Tests' do
     test_cases.each do |test_case|
       it "creates valid QR code for #{test_case[:name]}" do
         # Setup model mocks to prevent real system calls
-        allow(test_model).to receive(:command_available_using_which?).with('qrencode').and_return(true)
+        allow(test_model).to receive(:command_available?).with('qrencode').and_return(true)
         allow(test_model).to receive(:connected_network_name).and_return(test_case[:network_name])
         allow(test_model).to receive(:connected_network_password).and_return(test_case[:password])
         allow(test_model).to receive(:connection_security_type).and_return(test_case[:security_type])
@@ -223,7 +223,7 @@ describe 'QR Code Integration Tests' do
 
   describe 'QR Code Error Handling' do
     it 'handles qrencode command failure gracefully' do
-      allow(test_model).to receive(:command_available_using_which?).with('qrencode').and_return(true)
+      allow(test_model).to receive(:command_available?).with('qrencode').and_return(true)
       allow(test_model).to receive(:connected_network_name).and_return('TestNetwork')
       allow(test_model).to receive(:connected_network_password).and_return('password')
       allow(test_model).to receive(:connection_security_type).and_return('WPA2')
@@ -248,7 +248,7 @@ describe 'QR Code Integration Tests' do
 
   describe 'QR Code File Properties' do
     it 'creates QR codes with reasonable file sizes' do
-      allow(test_model).to receive(:command_available_using_which?).with('qrencode').and_return(true)
+      allow(test_model).to receive(:command_available?).with('qrencode').and_return(true)
       allow(test_model).to receive(:connected_network_name).and_return('TestNetwork')
       allow(test_model).to receive(:connected_network_password).and_return('password123')
       allow(test_model).to receive(:connection_security_type).and_return('WPA2')
@@ -289,7 +289,7 @@ describe 'QR Code Integration Tests' do
       ]
 
       configurations.each do |config|
-        allow(test_model).to receive(:command_available_using_which?).with('qrencode').and_return(true)
+        allow(test_model).to receive(:command_available?).with('qrencode').and_return(true)
         allow(test_model).to receive(:connected_network_name).and_return(config[:ssid])
         allow(test_model).to receive(:connected_network_password).and_return(config[:password])
         allow(test_model).to receive(:connection_security_type).and_return(config[:security])
