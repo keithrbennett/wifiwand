@@ -869,32 +869,45 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#set_nameservers' do
       let(:valid_nameservers) { ['8.8.8.8', '8.8.4.4'] }
-      
+
       it 'sets valid nameservers' do
         subject.wifi_on
+
+        unless subject.connected_network_name
+          skip 'Skipping: no active WiFi connection available'
+        end
+
         result = subject.set_nameservers(valid_nameservers)
         expect(result).to eq(valid_nameservers)
       end
 
       it 'clears nameservers with :clear' do
         # Mock nmcli commands to avoid real system calls and stderr output
+        connection_name = 'TestNetwork'
+
+        # Mock wifi_on? check
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli radio wifi$/, anything)
+          .with(%w[nmcli radio wifi], anything)
           .and_return('enabled')
+
         # Mock _connected_network_name call
         allow(subject).to receive(:run_os_command)
-          .with("nmcli -t -f active,ssid device wifi | egrep '^yes' | cut -d\\: -f2", false)
-          .and_return('TestNetwork')
+          .with(%w[nmcli -t -f active,ssid device wifi], false)
+          .and_return("yes:#{connection_name}")
+
+        # Mock the clear DNS commands
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli connection modify .* ipv4\.dns ""/, false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''], false)
           .and_return('')
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli connection modify .* ipv4\.ignore-auto-dns no/, false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
           .and_return('')
+
+        # Mock connection restart
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli connection up/, false)
+          .with(['nmcli', 'connection', 'up', connection_name], false)
           .and_return('')
-        
+
         result = subject.set_nameservers(:clear)
         expect(result).to eq(:clear)
       end
