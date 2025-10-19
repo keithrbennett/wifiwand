@@ -37,7 +37,7 @@ describe UbuntuModel, :os_ubuntu do
     describe '#wifi_on and #wifi_off failure paths' do
       it 'raises WifiEnableError when WiFi remains disabled after enable attempt' do
         allow(subject).to receive(:wifi_on?).and_return(false, false)
-        allow(subject).to receive(:run_os_command).with('nmcli radio wifi on').and_return('')
+        allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi on]).and_return('')
         allow(subject).to receive(:till).with(:on, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT).and_return(nil)
 
         expect { subject.wifi_on }.to raise_error(WifiWand::WifiEnableError)
@@ -45,7 +45,7 @@ describe UbuntuModel, :os_ubuntu do
 
       it 'raises WifiDisableError when WiFi remains enabled after disable attempt' do
         allow(subject).to receive(:wifi_on?).and_return(true, true)
-        allow(subject).to receive(:run_os_command).with('nmcli radio wifi off').and_return('')
+        allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi off]).and_return('')
         allow(subject).to receive(:till).with(:off, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT).and_return(nil)
 
         expect { subject.wifi_off }.to raise_error(WifiWand::WifiDisableError)
@@ -74,30 +74,29 @@ describe UbuntuModel, :os_ubuntu do
       it 'modifies existing profile when password changed and security is known' do
         setup_connect_test(profile_name: 'SSID1', old_password: 'oldpass', security_param: '802-11-wireless-security.psk')
 
-        expect(subject).to receive(:run_os_command).with(/nmcli connection modify SSID1 802-11-wireless-security\.psk newpass/).and_return('')
-        expect(subject).to receive(:run_os_command).with(/nmcli connection up SSID1/).and_return('')
+        expect(subject).to receive(:run_os_command).with(%w[nmcli connection modify SSID1 802-11-wireless-security.psk newpass]).and_return('')
+        expect(subject).to receive(:run_os_command).with(%w[nmcli connection up SSID1]).and_return('')
         expect { subject._connect('SSID1', 'newpass') }.not_to raise_error
       end
 
       it 'falls back to direct connect when security cannot be determined' do
         setup_connect_test(profile_name: 'SSID2', old_password: 'oldpass', security_param: nil)
 
-        expect(subject).to receive(:run_os_command).with(/nmcli dev wifi connect SSID2 password newpass/).and_return('')
-        expect(subject).not_to receive(:run_os_command).with(/nmcli connection up/)
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SSID2 password newpass]).and_return('')
         expect { subject._connect('SSID2', 'newpass') }.not_to raise_error
       end
 
       it 'brings up existing profile when connecting without password' do
         setup_connect_test(profile_name: 'SSID3')
 
-        expect(subject).to receive(:run_os_command).with(/nmcli connection up SSID3/).and_return('')
+        expect(subject).to receive(:run_os_command).with(%w[nmcli connection up SSID3]).and_return('')
         expect { subject._connect('SSID3') }.not_to raise_error
       end
 
       it 're-raises non-network-not-found errors from nmcli' do
         setup_connect_test
 
-        expect(subject).to receive(:run_os_command).with(/nmcli dev wifi connect SSID4/)
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SSID4 password pw])
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(2, 'nmcli dev wifi connect', 'Other failure'))
 
         expect { subject._connect('SSID4', 'pw') }.to raise_error(WifiWand::CommandExecutor::OsCommandError, /Other failure/)
@@ -106,19 +105,19 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#get_security_parameter and #security_parameter' do
       it 'returns nil when nmcli scan fails' do
-        expect(subject).to receive(:run_os_command).with('nmcli -t -f SSID,SECURITY dev wifi list', false)
+        expect(subject).to receive(:run_os_command).with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'scan failed'))
         expect(subject.send(:get_security_parameter, 'Any')).to be_nil
       end
 
       it 'returns nil for unsupported/enterprise/open security types' do
-        expect(subject).to receive(:run_os_command).with('nmcli -t -f SSID,SECURITY dev wifi list', false)
+        expect(subject).to receive(:run_os_command).with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
           .and_return('CorpNet:802.1X')
         expect(subject.send(:get_security_parameter, 'CorpNet')).to be_nil
       end
 
       it 'delegates via #security_parameter and returns PSK param for WPA2' do
-        expect(subject).to receive(:run_os_command).with('nmcli -t -f SSID,SECURITY dev wifi list', false)
+        expect(subject).to receive(:run_os_command).with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
           .and_return('HomeNet:WPA2')
         expect(subject.send(:security_parameter, 'HomeNet')).to eq('802-11-wireless-security.psk')
       end
@@ -126,7 +125,7 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#find_best_profile_for_ssid' do
       it 'returns nil when listing connections fails' do
-        expect(subject).to receive(:run_os_command).with('nmcli -t -f NAME,TIMESTAMP connection show', false)
+        expect(subject).to receive(:run_os_command).with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'list failed'))
         expect(subject.send(:find_best_profile_for_ssid, 'Any')).to be_nil
       end
@@ -141,7 +140,7 @@ describe UbuntuModel, :os_ubuntu do
 
       it 'deletes existing preferred network and returns nil' do
         allow(subject).to receive(:preferred_networks).and_return(['Home'])
-        expect(subject).to receive(:run_os_command).with('nmcli connection delete Home')
+        expect(subject).to receive(:run_os_command).with(%w[nmcli connection delete Home])
         expect(subject.remove_preferred_network('Home')).to be_nil
       end
     end
@@ -149,7 +148,7 @@ describe UbuntuModel, :os_ubuntu do
     describe '#_disconnect' do
       it 'returns nil when disconnect succeeds' do
         allow(subject).to receive(:wifi_interface).and_return('wlan0')
-        expect(subject).to receive(:run_os_command).with('nmcli dev disconnect wlan0').and_return('')
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev disconnect wlan0]).and_return('')
         expect(subject.send(:_disconnect)).to be_nil
       end
     end
@@ -171,14 +170,14 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#open_resource' do
       it 'invokes xdg-open on the given URL' do
-        expect(subject).to receive(:run_os_command).with(/xdg-open https:\/\/example\.com/).and_return('')
+        expect(subject).to receive(:run_os_command).with(['xdg-open', 'https://example.com']).and_return('')
         subject.open_resource('https://example.com')
       end
     end
 
     describe '#default_interface' do
       it 'returns nil when ip route command fails' do
-        expect(subject).to receive(:run_os_command).with(/ip route show default/, false)
+        expect(subject).to receive(:run_os_command).with(%w[ip route show default], false)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'ip route show default', 'failed'))
         expect(subject.default_interface).to be_nil
       end
@@ -192,12 +191,12 @@ describe UbuntuModel, :os_ubuntu do
           IP4.DNS[2]:                      9.9.9.9
           some.other:                      value
         OUT
-        expect(subject).to receive(:run_os_command).with(/nmcli connection show ConnX/, false).and_return(nmcli_output)
+        expect(subject).to receive(:run_os_command).with(['nmcli', 'connection', 'show', 'ConnX'], false).and_return(nmcli_output)
         expect(subject.send(:nameservers_from_connection, 'ConnX')).to eq(['1.1.1.1', '9.9.9.9'])
       end
 
       it 'returns empty array when nmcli connection show fails' do
-        expect(subject).to receive(:run_os_command).with(/nmcli connection show ConnY/, false)
+        expect(subject).to receive(:run_os_command).with(['nmcli', 'connection', 'show', 'ConnY'], false)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli connection show', 'failed'))
         expect(subject.send(:nameservers_from_connection, 'ConnY')).to eq([])
       end
@@ -269,9 +268,9 @@ describe UbuntuModel, :os_ubuntu do
       it 'returns list of saved network profiles' do
         nmcli_output = "TestNetwork-1\nTestNetwork-2\nWired connection 1"
         allow(subject).to receive(:run_os_command)
-          .with("nmcli -t -f NAME connection show")
+          .with(%w[nmcli -t -f NAME connection show])
           .and_return(nmcli_output)
-        
+
         result = subject.preferred_networks
         expect(result).to be_an(Array)
         expect(result).to include('TestNetwork-1', 'TestNetwork-2', 'Wired connection 1')
@@ -279,18 +278,18 @@ describe UbuntuModel, :os_ubuntu do
 
       it 'returns empty array when no connections exist' do
         allow(subject).to receive(:run_os_command)
-          .with("nmcli -t -f NAME connection show")
+          .with(%w[nmcli -t -f NAME connection show])
           .and_return('')
-        
+
         expect(subject.preferred_networks).to eq([])
       end
 
       it 'filters out empty lines from output' do
         nmcli_output = "TestNetwork\n\n\nWired connection\n"
         allow(subject).to receive(:run_os_command)
-          .with("nmcli -t -f NAME connection show")
+          .with(%w[nmcli -t -f NAME connection show])
           .and_return(nmcli_output)
-        
+
         result = subject.preferred_networks
         expect(result).to eq(['TestNetwork', 'Wired connection'])
       end
@@ -314,56 +313,56 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#_ip_address' do
       it 'returns IP address from interface' do
-        ip_output = "192.168.1.100"
+        ip_output = "2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000\n    inet 192.168.1.100/24 brd 192.168.1.255 scope global dynamic noprefixroute wlp3s0"
         wifi_interface = 'wlp3s0'
-        
+
         allow(subject).to receive(:wifi_interface).and_return(wifi_interface)
         allow(subject).to receive(:run_os_command)
-          .with(/ip -4 addr show #{Regexp.escape(wifi_interface)}.*awk.*cut/, false)
+          .with(['ip', '-4', 'addr', 'show', wifi_interface], false)
           .and_return(ip_output)
-        
+
         expect(subject.send(:_ip_address)).to eq('192.168.1.100')
       end
 
       it 'returns nil when no IP address assigned' do
         allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
         allow(subject).to receive(:run_os_command)
-          .with(/ip -4 addr show/, false)
+          .with(['ip', '-4', 'addr', 'show', 'wlp3s0'], false)
           .and_return('')
-        
+
         expect(subject.send(:_ip_address)).to be_nil
       end
 
       it 'handles multiple IP addresses by returning first' do
-        ip_output = "192.168.1.100\n10.0.0.50"
+        ip_output = "2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP>\n    inet 192.168.1.100/24 brd 192.168.1.255 scope global\n    inet 10.0.0.50/24 brd 10.0.0.255 scope global secondary"
         allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
         allow(subject).to receive(:run_os_command)
-          .with(/ip -4 addr show/, false)
+          .with(['ip', '-4', 'addr', 'show', 'wlp3s0'], false)
           .and_return(ip_output)
-        
+
         expect(subject.send(:_ip_address)).to eq('192.168.1.100')
       end
     end
 
     describe '#mac_address' do
       it 'returns MAC address of wifi interface' do
-        mac_output = "aa:bb:cc:dd:ee:ff"
+        mac_output = "2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP mode DORMANT group default qlen 1000\n    link/ether aa:bb:cc:dd:ee:ff brd ff:ff:ff:ff:ff:ff"
         wifi_interface = 'wlp3s0'
-        
+
         allow(subject).to receive(:wifi_interface).and_return(wifi_interface)
         allow(subject).to receive(:run_os_command)
-          .with(/ip link show #{Regexp.escape(wifi_interface)}.*grep ether.*awk/, false)
+          .with(['ip', 'link', 'show', wifi_interface], false)
           .and_return(mac_output)
-        
+
         expect(subject.mac_address).to eq('aa:bb:cc:dd:ee:ff')
       end
 
       it 'returns nil when no MAC address found' do
         allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
         allow(subject).to receive(:run_os_command)
-          .with(/ip link show/, false)
+          .with(['ip', 'link', 'show', 'wlp3s0'], false)
           .and_return('')
-        
+
         expect(subject.mac_address).to be_nil
       end
     end
@@ -390,51 +389,51 @@ describe UbuntuModel, :os_ubuntu do
       ].each do |description, nmcli_line, expected|
         it "returns #{expected || 'nil'} for #{description}" do
           allow(subject).to receive(:run_os_command)
-            .with('nmcli -t -f SSID,SECURITY dev wifi list', false)
+            .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
             .and_return(nmcli_line)
-          
+
           expect(subject.connection_security_type).to eq(expected)
         end
       end
 
       it 'returns nil when not connected to any network' do
         allow(subject).to receive(:_connected_network_name).and_return(nil)
-        
+
         expect(subject.connection_security_type).to be_nil
       end
 
       it 'returns nil when network not found in scan results' do
         allow(subject).to receive(:run_os_command)
-          .with('nmcli -t -f SSID,SECURITY dev wifi list', false)
+          .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
           .and_return('OtherNetwork:WPA2')
-        
+
         expect(subject.connection_security_type).to be_nil
       end
 
       it 'returns nil when nmcli command fails' do
         allow(subject).to receive(:run_os_command)
-          .with('nmcli -t -f SSID,SECURITY dev wifi list', false)
+          .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'Command failed'))
-        
+
         expect(subject.connection_security_type).to be_nil
       end
     end
 
     describe '#default_interface' do
       it 'returns interface from default route' do
-        route_output = "default via 192.168.1.1 dev wlp3s0"
+        route_output = "default via 192.168.1.1 dev wlp3s0 proto dhcp metric 600"
         allow(subject).to receive(:run_os_command)
-          .with(/ip route show default.*awk/, false)
+          .with(%w[ip route show default], false)
           .and_return(route_output)
-        
-        expect(subject.default_interface).to match(WIFI_INTERFACE_REGEX)
+
+        expect(subject.default_interface).to eq('wlp3s0')
       end
 
       it 'returns nil when no default route exists' do
         allow(subject).to receive(:run_os_command)
-          .with(/ip route show default/, false)
+          .with(%w[ip route show default], false)
           .and_return('')
-        
+
         expect(subject.default_interface).to be_nil
       end
     end
@@ -443,17 +442,17 @@ describe UbuntuModel, :os_ubuntu do
     describe '#wifi_on?' do
       it 'correctly detects wifi enabled state' do
         allow(subject).to receive(:run_os_command)
-          .with(NMCLI_RADIO_CMD, false)
+          .with(%w[nmcli radio wifi], false)
           .and_return('enabled')
-        
+
         expect(subject.wifi_on?).to be(true)
       end
 
       it 'correctly detects wifi disabled state' do
         allow(subject).to receive(:run_os_command)
-          .with(NMCLI_RADIO_CMD, false)
+          .with(%w[nmcli radio wifi], false)
           .and_return('disabled')
-        
+
         expect(subject.wifi_on?).to be(false)
       end
     end
@@ -463,12 +462,12 @@ describe UbuntuModel, :os_ubuntu do
         nmcli_output = "TestNet1:75\nStrongNet:90\nWeakNet:25\nTestNet2:80"
         # Mock wifi_on? check that happens in BaseModel#available_network_names
         allow(subject).to receive(:run_os_command)
-          .with(NMCLI_RADIO_CMD, false)
+          .with(%w[nmcli radio wifi], false)
           .and_return('enabled')
         allow(subject).to receive(:run_os_command)
-          .with('nmcli -t -f SSID,SIGNAL dev wifi list')
+          .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
           .and_return(nmcli_output)
-        
+
         result = subject.available_network_names
         expect(result).to eq(['StrongNet', 'TestNet2', 'TestNet1', 'WeakNet'])
       end
@@ -476,12 +475,12 @@ describe UbuntuModel, :os_ubuntu do
       it 'removes duplicate network names' do
         nmcli_output = "TestNet:75\nTestNet:80\nOtherNet:90"
         allow(subject).to receive(:run_os_command)
-          .with(NMCLI_RADIO_CMD, false)
+          .with(%w[nmcli radio wifi], false)
           .and_return('enabled')
         allow(subject).to receive(:run_os_command)
-          .with('nmcli -t -f SSID,SIGNAL dev wifi list')
+          .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
           .and_return(nmcli_output)
-        
+
         result = subject.available_network_names
         expect(result).to eq(['OtherNet', 'TestNet'])
       end
@@ -490,12 +489,12 @@ describe UbuntuModel, :os_ubuntu do
         # Note: empty SSIDs show up as lines starting with ':' (colon)
         nmcli_output = "TestNet:75\n:80\nOtherNet:90\n:60"
         allow(subject).to receive(:run_os_command)
-          .with(NMCLI_RADIO_CMD, false)
+          .with(%w[nmcli radio wifi], false)
           .and_return('enabled')
         allow(subject).to receive(:run_os_command)
-          .with('nmcli -t -f SSID,SIGNAL dev wifi list')
+          .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
           .and_return(nmcli_output)
-        
+
         result = subject.available_network_names
         # The implementation currently doesn't filter empty SSIDs, so let's test actual behavior
         expect(result).to eq(['OtherNet', '', 'TestNet'])
@@ -562,19 +561,20 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#_connected_network_name' do
       it 'returns name of currently connected network' do
-        nmcli_output = 'MyHomeNetwork'
+        nmcli_output = "yes:MyHomeNetwork\nno:OtherNetwork"
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli -t -f active,ssid device wifi.*egrep.*cut/, false)
+          .with(%w[nmcli -t -f active,ssid device wifi], false)
           .and_return(nmcli_output)
-        
+
         expect(subject.send(:_connected_network_name)).to eq('MyHomeNetwork')
       end
 
       it 'returns nil when not connected to any network' do
+        nmcli_output = "no:Network1\nno:Network2"
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli -t -f active,ssid device wifi.*egrep.*cut/, false)
-          .and_return('')
-        
+          .with(%w[nmcli -t -f active,ssid device wifi], false)
+          .and_return(nmcli_output)
+
         expect(subject.send(:_connected_network_name)).to be_nil
       end
     end
@@ -584,9 +584,9 @@ describe UbuntuModel, :os_ubuntu do
         it 'detects WPA2 security and returns correct parameter' do
           wifi_list_output = "MyNetwork:WPA2"
           allow(subject).to receive(:run_os_command)
-            .with('nmcli -t -f SSID,SECURITY dev wifi list', false)
+            .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
             .and_return(wifi_list_output)
-          
+
           result = subject.send(:get_security_parameter, 'MyNetwork')
           expect(result).to eq('802-11-wireless-security.psk')
         end
@@ -594,9 +594,9 @@ describe UbuntuModel, :os_ubuntu do
         it 'detects WEP security and returns correct parameter' do
           wifi_list_output = "MyNetwork:WEP"
           allow(subject).to receive(:run_os_command)
-            .with('nmcli -t -f SSID,SECURITY dev wifi list', false)
+            .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
             .and_return(wifi_list_output)
-          
+
           result = subject.send(:get_security_parameter, 'MyNetwork')
           expect(result).to eq('802-11-wireless-security.wep-key0')
         end
@@ -604,9 +604,9 @@ describe UbuntuModel, :os_ubuntu do
         it 'returns nil when network not found in scan' do
           wifi_list_output = "OtherNetwork:WPA2"
           allow(subject).to receive(:run_os_command)
-            .with('nmcli -t -f SSID,SECURITY dev wifi list', false)
+            .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
             .and_return(wifi_list_output)
-          
+
           expect(subject.send(:get_security_parameter, 'NonExistent')).to be_nil
         end
       end
@@ -616,9 +616,9 @@ describe UbuntuModel, :os_ubuntu do
           # Mock the actual command that gets all profiles with name and timestamp
           connection_output = "MyNetwork-1:1672574400\nMyNetwork-2:1672660200\nOtherNetwork:1672547800"
           allow(subject).to receive(:run_os_command)
-            .with('nmcli -t -f NAME,TIMESTAMP connection show', false)
+            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
             .and_return(connection_output)
-            
+
           result = subject.send(:find_best_profile_for_ssid, 'MyNetwork')
           expect(result).to eq('MyNetwork-2')  # Most recent profile
         end
@@ -626,29 +626,29 @@ describe UbuntuModel, :os_ubuntu do
         it 'returns nil when no profile exists for SSID' do
           connection_output = "MyNetwork-1:1672574400\nOtherNetwork:1672547800"
           allow(subject).to receive(:run_os_command)
-            .with('nmcli -t -f NAME,TIMESTAMP connection show', false)
+            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
             .and_return(connection_output)
-          
+
           expect(subject.send(:find_best_profile_for_ssid, 'NonExistent')).to be_nil
         end
       end
 
       describe '#_preferred_network_password' do
         it 'retrieves stored password for connection profile' do
-          password_output = 'my-secret-password'
+          password_output = '802-11-wireless-security.psk:    my-secret-password'
           allow(subject).to receive(:run_os_command)
-            .with("nmcli --show-secrets connection show MyProfile | grep '802-11-wireless-security.psk:' | cut -d':' -f2-", false)
+            .with(%w[nmcli --show-secrets connection show MyProfile], false)
             .and_return(password_output)
-          
+
           result = subject.send(:_preferred_network_password, 'MyProfile')
-          expect(result).to eq(password_output)
+          expect(result).to eq('my-secret-password')
         end
 
         it 'returns nil when no password is stored' do
           allow(subject).to receive(:run_os_command)
-            .with("nmcli --show-secrets connection show MyProfile | grep '802-11-wireless-security.psk:' | cut -d':' -f2-", false)
+            .with(%w[nmcli --show-secrets connection show MyProfile], false)
             .and_return('')
-          
+
           expect(subject.send(:_preferred_network_password, 'MyProfile')).to be_nil
         end
       end
@@ -674,12 +674,12 @@ describe UbuntuModel, :os_ubuntu do
     describe '#wifi_off' do
       it 'raises WifiDisableError when command succeeds but wifi remains on' do
         # Mock specific command calls to avoid real system calls
-        allow(subject).to receive(:run_os_command).with(/nmcli radio wifi off/, anything).and_return('')
-        allow(subject).to receive(:run_os_command).with(/nmcli radio wifi$/, anything).and_return('enabled')
-        
+        allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi off], anything).and_return('')
+        allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi], anything).and_return('enabled')
+
         # Mock the till method to immediately raise WaitTimeoutError (which wifi_off catches and converts to WifiDisableError)
         allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:off, 5))
-        
+
         expect { subject.wifi_off }.to raise_error(WifiWand::WifiDisableError)
       end
     end
@@ -689,12 +689,12 @@ describe UbuntuModel, :os_ubuntu do
         # Mock wifi_interface, wifi_on? check, and disconnect command
         allow(subject).to receive(:wifi_interface).and_return('wlan0')
         allow(subject).to receive(:run_os_command)
-          .with('nmcli radio wifi', false)
+          .with(%w[nmcli radio wifi], false)
           .and_return('enabled')  # wifi_on? returns true
         allow(subject).to receive(:run_os_command)
-          .with('nmcli dev disconnect wlan0')
+          .with(%w[nmcli dev disconnect wlan0])
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli dev disconnect wlan0', 'Device disconnect failed'))
-        
+
         expect { subject.disconnect }.to raise_error(WifiWand::CommandExecutor::OsCommandError, /Device disconnect failed/)
       end
 
@@ -702,12 +702,12 @@ describe UbuntuModel, :os_ubuntu do
         # Mock wifi_interface, wifi_on? check, and disconnect command
         allow(subject).to receive(:wifi_interface).and_return('wlan0')
         allow(subject).to receive(:run_os_command)
-          .with('nmcli radio wifi', false)
+          .with(%w[nmcli radio wifi], false)
           .and_return('enabled')  # wifi_on? returns true
         allow(subject).to receive(:run_os_command)
-          .with('nmcli dev disconnect wlan0')
+          .with(%w[nmcli dev disconnect wlan0])
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(6, 'nmcli dev disconnect wlan0', 'Device not connected'))
-        
+
         expect { subject.disconnect }.not_to raise_error
       end
     end
@@ -731,14 +731,14 @@ describe UbuntuModel, :os_ubuntu do
 
       it 'handles nmcli connection modify failures' do
         connection_name = 'MyHomeNetwork'
-        
+
         allow(subject).to receive(:_connected_network_name).and_return(connection_name)
-        
+
         # Mock nmcli connection modify to fail without calling real commands
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli connection modify.*#{connection_name}.*ipv4\.dns/, false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8'], false)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli connection modify', 'Connection modify failed'))
-        
+
         expect { subject.set_nameservers(['8.8.8.8']) }
           .to raise_error(WifiWand::CommandExecutor::OsCommandError, /Connection modify failed/)
       end
@@ -757,9 +757,9 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:wifi_on?).and_return(true)
         # Mock the specific command to fail
         allow(subject).to receive(:run_os_command)
-          .with('nmcli -t -f SSID,SIGNAL dev wifi list')
+          .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli -t -f SSID,SIGNAL dev wifi list', 'Scan failed'))
-        
+
         expect { subject.available_network_names }.to raise_error(WifiWand::CommandExecutor::OsCommandError, /Scan failed/)
       end
     end
@@ -778,10 +778,12 @@ describe UbuntuModel, :os_ubuntu do
     describe '#_connect' do
       it 'raises error for non-existent network' do
         # Mock nmcli to simulate network not found scenario without real commands
+        allow(subject).to receive(:_connected_network_name).and_return(nil)
+        allow(subject).to receive(:find_best_profile_for_ssid).and_return(nil)
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli dev wifi connect non_existent_network_123/)
+          .with(%w[nmcli dev wifi connect non_existent_network_123])
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(10, 'nmcli dev wifi connect', 'No network with SSID "non_existent_network_123" found'))
-        
+
         expect { subject._connect('non_existent_network_123') }.to raise_error(WifiWand::NetworkNotFoundError)
       end
 
@@ -793,9 +795,9 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:find_best_profile_for_ssid).and_return(nil)
         # Mock the actual connection attempt that will be made
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli dev wifi connect.*password/)
+          .with(%w[nmcli dev wifi connect TestNetwork password wrong_password])
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect', 'Connection activation failed'))
-        
+
         # Use a specific test network name instead of relying on available networks
         expect { subject._connect('TestNetwork', 'wrong_password') }
           .to raise_error(WifiWand::NetworkNotFoundError)

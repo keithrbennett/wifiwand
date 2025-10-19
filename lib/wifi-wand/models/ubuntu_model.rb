@@ -33,24 +33,26 @@ class UbuntuModel < BaseModel
 
   def detect_wifi_interface
     debug_method_entry(__method__)
+    # Use shell for pipe operations (grep and cut)
     cmd = "iw dev | grep Interface | cut -d' ' -f2"
     interfaces = run_os_command(cmd).split("\n")
     interfaces.first
   end
 
   def is_wifi_interface?(interface)
+    # Redirect stderr to /dev/null - requires shell
     output = run_os_command("iw dev #{Shellwords.shellescape(interface)} info 2>/dev/null", false)
     !output.empty?
   end
 
   def wifi_on?
-    output = run_os_command("nmcli radio wifi", false)
+    output = run_os_command(['nmcli', 'radio', 'wifi'], false)
     output.match?(/enabled/)
   end
 
   def wifi_on
     return if wifi_on?
-    run_os_command("nmcli radio wifi on")
+    run_os_command(['nmcli', 'radio', 'wifi', 'on'])
     till(:on, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
     wifi_on? ? nil : raise(WifiEnableError.new)
   rescue WifiWand::WaitTimeoutError
@@ -59,7 +61,7 @@ class UbuntuModel < BaseModel
 
   def wifi_off
     return unless wifi_on?
-    run_os_command("nmcli radio wifi off")
+    run_os_command(['nmcli', 'radio', 'wifi', 'off'])
     till(:off, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
     wifi_on? ? raise(WifiDisableError.new) : nil
   rescue WifiWand::WaitTimeoutError
@@ -69,23 +71,26 @@ class UbuntuModel < BaseModel
   def _available_network_names
     debug_method_entry(__method__)
 
-    output = run_os_command("nmcli -t -f SSID,SIGNAL dev wifi list")
+    output = run_os_command(['nmcli', '-t', '-f', 'SSID,SIGNAL', 'dev', 'wifi', 'list'])
     networks_with_signal = output.split("\n").map(&:strip).reject(&:empty?)
-    
+
     # Parse SSID and signal strength, then sort by signal (descending)
     networks = networks_with_signal.map do |line|
-      ssid, signal = line.split(':')
+      ssid, signal = line.split(':', 2)  # Limit to 2 parts in case SSID contains colons
       [ssid, signal.to_i]
     end.sort_by { |_, signal| -signal }.map { |ssid, _| ssid }
-    
+
     networks.uniq
   end
 
   def _connected_network_name
     debug_method_entry(__method__)
-    cmd = %q{nmcli -t -f active,ssid device wifi | egrep '^yes' | cut -d\: -f2}
-    output = run_os_command(cmd, false)
-    output.empty? ? nil : output.strip
+    output = run_os_command(['nmcli', '-t', '-f', 'active,ssid', 'device', 'wifi'], false)
+    active_line = output.split("\n").find { |line| line.start_with?('yes:') }
+    return nil unless active_line
+
+    # Extract SSID after the first colon (limit to 2 parts in case SSID contains colons)
+    active_line.split(':', 2).last&.strip
   end
 
   def _connect(network_name, password = nil)
@@ -132,30 +137,28 @@ class UbuntuModel < BaseModel
           if password != _preferred_network_password(profile)
             security_param = get_security_parameter(network_name)
             if security_param
-              modify_cmd = "nmcli connection modify #{Shellwords.shellescape(profile)} #{security_param} #{Shellwords.shellescape(password)}"
-              run_os_command(modify_cmd)
+              run_os_command(['nmcli', 'connection', 'modify', profile, security_param, password])
             else
               # Fallback if security type can't be determined (e.g. out of range).
-              run_os_command("nmcli dev wifi connect #{Shellwords.shellescape(network_name)} password #{Shellwords.shellescape(password)}")
+              run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
               return # The connect command already activates.
             end
           end
           # Always bring the connection up.
-          run_os_command("nmcli connection up #{Shellwords.shellescape(profile)}")
+          run_os_command(['nmcli', 'connection', 'up', profile])
         else
           # No profile exists, create a new one.
-          connect_cmd = "nmcli dev wifi connect #{Shellwords.shellescape(network_name)} password #{Shellwords.shellescape(password)}"
-          run_os_command(connect_cmd)
+          run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
         end
       else
         # Case 3: No password provided.
         profile = find_best_profile_for_ssid(network_name)
         if profile
           # Profile exists, try to bring it up with stored settings.
-          run_os_command("nmcli connection up #{Shellwords.shellescape(profile)}")
+          run_os_command(['nmcli', 'connection', 'up', profile])
         else
           # No profile exists, try to connect to it as an open network.
-          run_os_command("nmcli dev wifi connect #{Shellwords.shellescape(network_name)}")
+          run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name])
         end
       end
     rescue WifiWand::CommandExecutor::OsCommandError => e
@@ -180,9 +183,8 @@ class UbuntuModel < BaseModel
     debug_method_entry(__method__, binding, :ssid)
 
     # Use the terse, machine-readable output to get the security protocol.
-    cmd = "nmcli -t -f SSID,SECURITY dev wifi list"
     begin
-      output = run_os_command(cmd, false)
+      output = run_os_command(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false)
     rescue WifiWand::CommandExecutor::OsCommandError
       return nil # Can't scan, so can't determine the type.
     end
@@ -191,7 +193,8 @@ class UbuntuModel < BaseModel
     return nil unless network_line
 
     # The output can be like "SSID:WPA2" or "SSID:WPA1 WPA2", so we just grab the part after the first colon.
-    security_type = network_line.split(':')[1..-1].join(':').strip
+    # Use limit of 2 to handle SSIDs with colons
+    security_type = network_line.split(':', 2).last&.strip
 
     case canonical_security_type_from(security_type)
     when 'WPA3', 'WPA2', 'WPA'
@@ -221,16 +224,16 @@ class UbuntuModel < BaseModel
     # The output is a colon-separated string, e.g., "MySSID:1678886400"
     debug_method_entry(__method__, binding, :ssid)
 
-    cmd = "nmcli -t -f NAME,TIMESTAMP connection show"
     begin
-      output = run_os_command(cmd, false)
+      output = run_os_command(['nmcli', '-t', '-f', 'NAME,TIMESTAMP', 'connection', 'show'], false)
     rescue WifiWand::CommandExecutor::OsCommandError
       # If the command fails for any reason, we can't find profiles.
       return nil
     end
 
     profiles = output.split("\n").map do |line|
-      name, timestamp = line.split(':')
+      # Limit to 2 parts in case profile name contains colons
+      name, timestamp = line.split(':', 2)
       # We only care about profiles whose names start with the SSID,
       # to catch "MySSID" and "MySSID 1", etc.
       if name.start_with?(ssid)
@@ -252,15 +255,15 @@ class UbuntuModel < BaseModel
     # Check if the network exists first
     existing_networks = preferred_networks
     return nil unless existing_networks.include?(network_name)
-    
-    run_os_command("nmcli connection delete #{Shellwords.shellescape(network_name)}")
+
+    run_os_command(['nmcli', 'connection', 'delete', network_name])
     nil
   end
 
   def preferred_networks
     debug_method_entry(__method__)
 
-    output = run_os_command("nmcli -t -f NAME connection show")
+    output = run_os_command(['nmcli', '-t', '-f', 'NAME', 'connection', 'show'])
     connections = output.split("\n").map(&:strip).reject(&:empty?)
     connections.sort
   end
@@ -268,36 +271,40 @@ class UbuntuModel < BaseModel
   def _preferred_network_password(preferred_network_name)
     debug_method_entry(__method__, binding, :preferred_network_name)
 
-    cmd = [
-      "nmcli --show-secrets connection show #{Shellwords.shellescape(preferred_network_name)}",
-      "grep '802-11-wireless-security.psk:'",
-      "cut -d':' -f2-"
-    ].join(' | ')
-    output = run_os_command(cmd, false)
-    output.empty? ? nil : output.strip
+    output = run_os_command(['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name], false)
+    psk_line = output.split("\n").find { |line| line.include?('802-11-wireless-security.psk:') }
+    return nil unless psk_line
+
+    # Extract everything after the first colon
+    password = psk_line.split(':', 2).last&.strip
+    password.empty? ? nil : password
   end
 
   def _ip_address
     debug_method_entry(__method__)
 
-    cmd = "ip -4 addr show #{Shellwords.shellescape(wifi_interface)} | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1"
-    output = run_os_command(cmd, false)
-    output.empty? ? nil : output.split("\n").first&.strip
+    output = run_os_command(['ip', '-4', 'addr', 'show', wifi_interface], false)
+    inet_line = output.split("\n").find { |line| line.include?('inet ') }
+    return nil unless inet_line
+
+    # Extract the inet address (e.g., "192.168.1.5/24" -> "192.168.1.5")
+    inet_line.split.each do |token|
+      return token.split('/').first if token.include?('/')
+    end
+    nil
   end
 
   def mac_address
-  # def mac_address(new_mac_address = nil)
-  #   if new_mac_address
-  #     raise InvalidMacAddressError.new(new_mac_address) unless valid_mac_address?(new_mac_address)
-  #     run_os_command("sudo ip link set dev #{Shellwords.shellescape(wifi_interface)} down")
-  #     run_os_command("sudo ip link set dev #{Shellwords.shellescape(wifi_interface)} address #{Shellwords.shellescape(new_mac_address)}")
-  #     run_os_command("sudo ip link set dev #{Shellwords.shellescape(wifi_interface)} up")
-  #   end
     debug_method_entry(__method__)
 
-    cmd = "ip link show #{Shellwords.shellescape(wifi_interface)} | grep ether | awk '{print $2}'"
-    output = run_os_command(cmd, false)
-    output.empty? ? nil : output.strip
+    output = run_os_command(['ip', 'link', 'show', wifi_interface], false)
+    ether_line = output.split("\n").find { |line| line.include?('ether') }
+    return nil unless ether_line
+
+    # Extract MAC address (field after 'link/ether')
+    tokens = ether_line.split
+    ether_index = tokens.index('link/ether')
+    ether_index ? tokens[ether_index + 1] : nil
   end
 
   def _disconnect
@@ -306,7 +313,7 @@ class UbuntuModel < BaseModel
     interface = wifi_interface
     return nil unless interface
     begin
-      run_os_command("nmcli dev disconnect #{Shellwords.shellescape(interface)}")
+      run_os_command(['nmcli', 'dev', 'disconnect', interface])
     rescue WifiWand::CommandExecutor::OsCommandError => e
       # It's normal for disconnect to fail if there's no active connection
       # Common scenarios: device not active, not connected to any network
@@ -345,8 +352,8 @@ class UbuntuModel < BaseModel
 
     if nameservers == :clear
       # Clear custom DNS and use automatic DNS from router/DHCP
-      run_os_command("nmcli connection modify #{Shellwords.shellescape(current_connection)} ipv4.dns \"\"", false)
-      run_os_command("nmcli connection modify #{Shellwords.shellescape(current_connection)} ipv4.ignore-auto-dns no", false)
+      run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.dns', ''], false)
+      run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns', 'no'], false)
     else
       # Validate IP addresses
       bad_addresses = nameservers.reject do |ns|
@@ -365,12 +372,12 @@ class UbuntuModel < BaseModel
 
       # Set custom DNS servers and ignore automatic DNS from router/DHCP
       dns_string = nameservers.join(' ')
-      run_os_command("nmcli connection modify #{Shellwords.shellescape(current_connection)} ipv4.dns \"#{dns_string}\"", false)
-      run_os_command("nmcli connection modify #{Shellwords.shellescape(current_connection)} ipv4.ignore-auto-dns yes", false)
+      run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.dns', dns_string], false)
+      run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns', 'yes'], false)
     end
-    
+
     # Restart the connection to apply DNS changes
-    run_os_command("nmcli connection up #{Shellwords.shellescape(current_connection)}", false)
+    run_os_command(['nmcli', 'connection', 'up', current_connection], false)
     
     nameservers
   end
@@ -378,7 +385,7 @@ class UbuntuModel < BaseModel
   def open_resource(resource_url)
     debug_method_entry(__method__, binding, :resource_url)
 
-    run_os_command("xdg-open #{Shellwords.shellescape(resource_url)}")
+    run_os_command(['xdg-open', resource_url])
   end
 
   # Returns the network interface used for default internet route on Linux
@@ -386,12 +393,13 @@ class UbuntuModel < BaseModel
     debug_method_entry(__method__)
 
     begin
-      output = run_os_command("ip route show default | awk '{print $5}'", false)
+      output = run_os_command(['ip', 'route', 'show', 'default'], false)
       return nil if output.empty?
-      
-      # Take the first interface if multiple are returned
-      interfaces = output.split("\n").map(&:strip).reject(&:empty?)
-      interfaces.first
+
+      # Extract interface name (5th field in: "default via 192.168.1.1 dev wlp0s20f3 ...")
+      tokens = output.split("\n").first&.split
+      dev_index = tokens&.index('dev')
+      dev_index ? tokens[dev_index + 1] : nil
     rescue WifiWand::CommandExecutor::OsCommandError
       nil
     end
@@ -401,9 +409,9 @@ class UbuntuModel < BaseModel
   # This is the NetworkManager connection-based approach for getting DNS
   def nameservers_from_connection(connection_name)
     debug_method_entry(__method__, binding, :connection_name)
-    
+
     begin
-      output = run_os_command("nmcli connection show #{Shellwords.shellescape(connection_name)}", false)
+      output = run_os_command(['nmcli', 'connection', 'show', connection_name], false)
       
       # Extract DNS servers from connection configuration
       # Look for both configured DNS (ipv4.dns[1]:) and runtime DNS (IP4.DNS[1]:)
@@ -447,14 +455,12 @@ class UbuntuModel < BaseModel
   # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP", "None", or nil if not connected/not found
   def connection_security_type
     debug_method_entry(__method__)
-    
+
     network_name = _connected_network_name
     return nil unless network_name
-    
-    # Use the terse, machine-readable output to get the security protocol.
-    cmd = "nmcli -t -f SSID,SECURITY dev wifi list"
+
     begin
-      output = run_os_command(cmd, false)
+      output = run_os_command(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false)
     rescue WifiWand::CommandExecutor::OsCommandError
       return nil # Can't scan, return nil
     end
@@ -462,8 +468,9 @@ class UbuntuModel < BaseModel
     network_line = output.split("\n").find { |line| line.start_with?("#{network_name}:") }
     return nil unless network_line
 
-    # The output can be like "SSID:WPA2" or "SSID:WPA1 WPA2", so we just grab the part after the first colon.
-    security_type = network_line.split(':')[1..-1].join(':').strip
+    # The output can be like "SSID:WPA2" or "SSID:WPA1 WPA2"
+    # Use limit of 2 to handle SSIDs with colons
+    security_type = network_line.split(':', 2).last&.strip
 
     # Normalize via shared logic (returns nil for open/enterprise/unknown)
     canonical_security_type_from(security_type)
