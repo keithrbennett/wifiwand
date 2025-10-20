@@ -326,6 +326,11 @@ module WifiWand
     # Non-disruptive tests for core functionality
     context 'core functionality' do
       subject(:model) { create_mac_os_test_model }
+      let(:success_result) do
+        WifiWand::CommandExecutor::OsCommandResult.new(
+          stdout: "", stderr: "", combined_output: "", exitstatus: 0, command: "", duration: 0.1
+        )
+      end
 
       describe '#os_id' do
         it 'returns mac symbol' do
@@ -928,15 +933,19 @@ module WifiWand
       describe '#os_level_connect_using_networksetup' do
         it 'constructs networksetup command with password' do
           allow(model).to receive(:wifi_interface).and_return("en0")
-          expect(model).to receive(:run_os_command).with(["networksetup", "-setairportnetwork", "en0", "TestNetwork", "password123"])
-          
+          expect(model).to receive(:run_os_command)
+            .with(["networksetup", "-setairportnetwork", "en0", "TestNetwork", "password123"])
+            .and_return(success_result)
+
           model.os_level_connect_using_networksetup("TestNetwork", "password123")
         end
 
         it 'constructs networksetup command without password' do
           allow(model).to receive(:wifi_interface).and_return("en0")
-          expect(model).to receive(:run_os_command).with(["networksetup", "-setairportnetwork", "en0", "TestNetwork"])
-          
+          expect(model).to receive(:run_os_command)
+            .with(["networksetup", "-setairportnetwork", "en0", "TestNetwork"])
+            .and_return(success_result)
+
           model.os_level_connect_using_networksetup("TestNetwork")
         end
       end
