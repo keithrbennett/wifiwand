@@ -30,8 +30,9 @@ describe 'QR Code Generator (unit)' do
   end
 
   it "prints ANSI QR to stdout when filespec is '-' and returns '-'" do
-    expect(model).to receive(:run_os_command) do |cmd, *_|
-      expect(cmd).to start_with('qrencode -t ANSI ')
+    expect(model).to receive(:run_os_command) do |cmd|
+      expect(cmd).to be_an(Array)
+      expect(cmd[0..2]).to eq(%w[qrencode -t ANSI])
       command_result(stdout: "[QR-ANSI]\n")
     end
 
@@ -41,8 +42,9 @@ describe 'QR Code Generator (unit)' do
   end
 
   it "returns ANSI QR string without printing when delivery_mode is :return" do
-    expect(model).to receive(:run_os_command) do |cmd, *_|
-      expect(cmd).to start_with('qrencode -t ANSI ')
+    expect(model).to receive(:run_os_command) do |cmd|
+      expect(cmd).to be_an(Array)
+      expect(cmd[0..2]).to eq(%w[qrencode -t ANSI])
       command_result(stdout: "[QR-ANSI]\n")
     end
 
@@ -66,10 +68,12 @@ describe 'QR Code Generator (unit)' do
     # Ensure generator does not try to fetch stored password when one is given
     expect(model).not_to receive(:connected_network_password)
 
-    expect(model).to receive(:run_os_command) do |cmd, *_|
-      expect(cmd).to include('qrencode ')
-      expect(cmd).to include(" -o TestNetwork-qr-code.png ")
-      expect(cmd).to include('P:provided123')
+    expect(model).to receive(:run_os_command) do |cmd|
+      expect(cmd).to be_an(Array)
+      expect(cmd).to include('qrencode')
+      expect(cmd).to include('-o')
+      expect(cmd).to include('TestNetwork-qr-code.png')
+      expect(cmd.last).to include('P:provided123')
       command_result(stdout: '')
     end
 
@@ -77,13 +81,17 @@ describe 'QR Code Generator (unit)' do
   end
 
   [
-    { filespec: 'out.svg', flag: '-t SVG' },
-    { filespec: 'out.eps', flag: '-t EPS' }
+    { filespec: 'out.svg', type: 'SVG' },
+    { filespec: 'out.eps', type: 'EPS' }
   ].each do |tc|
-    it "uses #{tc[:flag]} flag when filespec ends with #{File.extname(tc[:filespec])}" do
-      expect(model).to receive(:run_os_command) do |cmd, *_|
-        expect(cmd).to include(" #{tc[:flag]} ")
-        expect(cmd).to include(" -o #{tc[:filespec]} ")
+    it "uses -t #{tc[:type]} flag when filespec ends with #{File.extname(tc[:filespec])}" do
+      expect(model).to receive(:run_os_command) do |cmd|
+        expect(cmd).to be_an(Array)
+        expect(cmd).to include('qrencode')
+        expect(cmd).to include('-t')
+        expect(cmd).to include(tc[:type])
+        expect(cmd).to include('-o')
+        expect(cmd).to include(tc[:filespec])
         command_result(stdout: '')
       end
 

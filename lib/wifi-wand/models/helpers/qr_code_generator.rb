@@ -24,8 +24,6 @@
 #   as qrencode doesn’t emit PDF.
 # - In shell (REPL), when filespec is '-', this returns the ANSI QR string; call `puts` on it to render.
 
-require 'shellwords'
-
 module WifiWand
   module Helpers
     class QrCodeGenerator
@@ -147,13 +145,8 @@ module WifiWand
       end
 
       def run_qrencode_file(model, filename, qr_string)
-        type_flag = qr_type_flag_for(filename)
-        cmd = [
-          'qrencode',
-          type_flag,
-          '-o', Shellwords.shellescape(filename),
-          Shellwords.shellescape(qr_string)
-        ].compact.join(' ')
+        type_flags = qr_type_flag_for(filename)
+        cmd = ['qrencode'] + type_flags + ['-o', filename, qr_string]
         begin
           model.run_os_command(cmd)
           model.out_stream.puts "QR code generated: #{filename}" if model.verbose_mode
@@ -163,7 +156,7 @@ module WifiWand
       end
 
       def run_qrencode_text(model, qr_string, delivery_mode: :print)
-        cmd = "qrencode -t ANSI #{Shellwords.shellescape(qr_string)}"
+        cmd = %w[qrencode -t ANSI] + [qr_string]
         begin
           result = model.run_os_command(cmd)
           output = result.stdout
@@ -181,9 +174,9 @@ module WifiWand
 
       def qr_type_flag_for(filename)
         case File.extname(filename).downcase
-        when '.svg' then '-t SVG'
-        when '.eps' then '-t EPS'
-        else nil # default PNG
+        when '.svg' then %w[-t SVG]
+        when '.eps' then %w[-t EPS]
+        else [] # default PNG (no type flag needed)
         end
       end
     end

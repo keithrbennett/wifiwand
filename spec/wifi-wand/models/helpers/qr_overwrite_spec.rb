@@ -39,7 +39,11 @@ describe 'QR Code Overwrite Confirmation' do
     # Ensure we delete the file before invoking qrencode
     expect(File).to receive(:delete).with(filename).ordered.and_call_original
     # Ensure qrencode is invoked (but do not actually run it)
-    expect(model).to receive(:run_os_command).with(a_string_starting_with("qrencode -o #{filename} ")).ordered.and_return(command_result(stdout: ''))
+    expect(model).to receive(:run_os_command) do |cmd|
+      expect(cmd).to be_an(Array)
+      expect(cmd[0..2]).to eq(['qrencode', '-o', filename])
+      command_result(stdout: '')
+    end
 
     result = silence_output { model.generate_qr_code }
     expect(result).to eq(filename)
@@ -74,7 +78,11 @@ describe 'QR Code Overwrite Confirmation' do
     File.write(filename, 'old')
 
     expect(File).to receive(:delete).with(filename).ordered.and_call_original
-    expect(model).to receive(:run_os_command).with(a_string_starting_with("qrencode -o #{filename} ")).ordered.and_return(command_result(stdout: ''))
+    expect(model).to receive(:run_os_command) do |cmd|
+      expect(cmd).to be_an(Array)
+      expect(cmd[0..2]).to eq(['qrencode', '-o', filename])
+      command_result(stdout: '')
+    end
 
     result = silence_output { model.generate_qr_code(nil, overwrite: true) }
     expect(result).to eq(filename)

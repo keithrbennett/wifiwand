@@ -847,11 +847,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
         it "generates correct QR string for #{input_security || 'open network'}" do
           allow(subject).to receive(:connection_security_type).and_return(input_security)
           expected_qr_string = "WIFI:T:#{expected_qr_security};S:TestNetwork;P:test_password;H:false;;"
-          
+
           silence_output { subject.generate_qr_code }
-          
+
           expect(subject).to have_received(:run_os_command)
-            .with("qrencode -o TestNetwork-qr-code.png #{Shellwords.shellescape(expected_qr_string)}")
+            .with(%w[qrencode -o TestNetwork-qr-code.png] + [expected_qr_string])
         end
       end
 
@@ -862,7 +862,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         silence_output { subject.generate_qr_code }
 
         expect(subject).to have_received(:run_os_command)
-          .with("qrencode -o TestNetwork-qr-code.png #{Shellwords.shellescape(expected_qr_string)}")
+          .with(%w[qrencode -o TestNetwork-qr-code.png] + [expected_qr_string])
       end
     end
 
@@ -876,14 +876,14 @@ describe 'Common WiFi Model Behavior (All OS)' do
         it "properly escapes special characters in '#{test_network}' / '#{test_password}'" do
           allow(subject).to receive(:connected_network_name).and_return(test_network)
           allow(subject).to receive(:connected_network_password).and_return(test_password)
-          
+
           silence_output { subject.generate_qr_code }
-          
+
           safe_network_name = test_network.gsub(/[^\w\-_]/, '_')
           expected_filename = "#{safe_network_name}-qr-code.png"
-          
+
           expect(subject).to have_received(:run_os_command)
-            .with("qrencode -o #{Shellwords.shellescape(expected_filename)} #{Shellwords.shellescape(expected_qr_string)}")
+            .with(['qrencode', '-o', expected_filename, expected_qr_string])
         end
       end
     end
@@ -910,11 +910,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
         allow(subject).to receive(:connected_network_password).and_return(nil)
         allow(subject).to receive(:connection_security_type).and_return(nil)
         expected_qr_string = 'WIFI:T:nopass;S:TestNetwork;P:;H:false;;'
-        
+
         result = silence_output { subject.generate_qr_code }
-        
+
         expect(subject).to have_received(:run_os_command)
-          .with("qrencode -o TestNetwork-qr-code.png #{Shellwords.shellescape(expected_qr_string)}")
+          .with(%w[qrencode -o TestNetwork-qr-code.png] + [expected_qr_string])
         expect(result).to eq('TestNetwork-qr-code.png')
       end
     end
