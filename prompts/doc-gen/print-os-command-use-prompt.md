@@ -41,6 +41,7 @@ Create or modify a markdown file with the information I will describe below.
 
 More:
 
-* You probably only need to look at the lib/**/*.rb files.
+* All commands should pass through the BaseModel#run_os_command method.
+* You probably only need to look at the lib/**/*.rb files for calls to that method (not spec).
 * If the file already exists, note and follow the existing format.
   As much as possible, we don't want to have git diffs that are not relevant to the content.
