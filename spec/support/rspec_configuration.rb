@@ -61,9 +61,10 @@ module RSpecConfiguration
         examples_to_run = RSpecConfiguration.get_examples_to_run
         test_types = RSpecConfiguration.analyze_test_types(examples_to_run)
         
+        RSpecConfiguration.handle_network_state_capture(test_types[:disruptive])
+
         if RSpecConfiguration.macos_and_auth_tests_will_run?(test_types)
           RSpecConfiguration.handle_sudo_preflight(test_types[:sudo])
-          RSpecConfiguration.handle_network_state_capture(test_types[:disruptive])
           RSpecConfiguration.handle_keychain_preflight(test_types[:disruptive])
         end
       rescue
