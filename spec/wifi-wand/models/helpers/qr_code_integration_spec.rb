@@ -179,12 +179,8 @@ describe 'QR Code Integration Tests' do
         
         # Don't mock run_os_command - let it create real QR code files
         allow(test_model).to receive(:run_os_command) do |cmd|
-          if cmd.start_with?('qrencode')
-            system(cmd)
-            ''
-          else
-            ''
-          end
+          system(cmd) if cmd.start_with?('qrencode')
+          command_result(stdout: '')
         end
 
         # Generate QR code
@@ -238,7 +234,7 @@ describe 'QR Code Integration Tests' do
         if cmd.start_with?('qrencode')
           raise WifiWand::CommandExecutor::OsCommandError.new(1, cmd, 'Simulated qrencode failure')
         else
-          ''
+          command_result(stdout: '')
         end
       end
 

@@ -141,7 +141,7 @@ module WifiWand
         {
           method: :wifi_on, args: [], error: WifiEnableError,
           before: -> {
-            allow(model).to receive(:run_os_command).and_return(true)
+            allow(model).to receive(:run_os_command).and_return(command_result(stdout: ''))
             allow(model).to receive(:wifi_on?).and_return(false)
             allow(model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:on, 5))
           }
@@ -149,7 +149,7 @@ module WifiWand
         {
           method: :wifi_off, args: [], error: WifiDisableError,
           before: -> {
-            allow(model).to receive(:run_os_command).and_return(true)
+            allow(model).to receive(:run_os_command).and_return(command_result(stdout: ''))
             allow(model).to receive(:wifi_on?).and_return(true)
             allow(model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:off, 5))
           }

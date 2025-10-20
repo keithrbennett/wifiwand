@@ -165,7 +165,8 @@ module WifiWand
       def run_qrencode_text(model, qr_string, delivery_mode: :print)
         cmd = "qrencode -t ANSI #{Shellwords.shellescape(qr_string)}"
         begin
-          output = model.run_os_command(cmd)
+          result = model.run_os_command(cmd)
+          output = result.stdout
           if delivery_mode.to_sym == :return
             output
           else

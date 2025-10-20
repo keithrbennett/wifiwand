@@ -37,7 +37,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       
       # Mock low-level OS command execution to prevent real system calls
       # but allow higher-level methods to be called for testing
-      allow(subject).to receive(:run_os_command).and_return('')
+      allow(subject).to receive(:run_os_command).and_return(command_result(stdout: ''))
       allow(subject).to receive(:till).and_return(nil)
     end
   end
@@ -799,7 +799,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:connected_network_name).and_return(network_name)
       allow(subject).to receive(:connected_network_password).and_return(network_password)
       allow(subject).to receive(:connection_security_type).and_return(security_type)
-      allow(subject).to receive(:run_os_command).and_return('')
+      allow(subject).to receive(:run_os_command).and_return(command_result(stdout: ''))
       
       # Mock all methods that could make real system calls
       allow(subject).to receive(:preferred_networks).and_return([network_name])

@@ -35,18 +35,18 @@ class UbuntuModel < BaseModel
     debug_method_entry(__method__)
     # Use shell for pipe operations (grep and cut)
     cmd = "iw dev | grep Interface | cut -d' ' -f2"
-    interfaces = run_os_command(cmd).split("\n")
+    interfaces = run_os_command(cmd).stdout.split("\n")
     interfaces.first
   end
 
   def is_wifi_interface?(interface)
     # Redirect stderr to /dev/null - requires shell
-    output = run_os_command("iw dev #{Shellwords.shellescape(interface)} info 2>/dev/null", false)
+    output = run_os_command("iw dev #{Shellwords.shellescape(interface)} info 2>/dev/null", false).stdout
     !output.empty?
   end
 
   def wifi_on?
-    output = run_os_command(['nmcli', 'radio', 'wifi'], false)
+    output = run_os_command(['nmcli', 'radio', 'wifi'], false).stdout
     output.match?(/enabled/)
   end
 
@@ -71,7 +71,7 @@ class UbuntuModel < BaseModel
   def _available_network_names
     debug_method_entry(__method__)
 
-    output = run_os_command(['nmcli', '-t', '-f', 'SSID,SIGNAL', 'dev', 'wifi', 'list'])
+    output = run_os_command(['nmcli', '-t', '-f', 'SSID,SIGNAL', 'dev', 'wifi', 'list']).stdout
     networks_with_signal = output.split("\n").map(&:strip).reject(&:empty?)
 
     # Parse SSID and signal strength, then sort by signal (descending)
@@ -85,7 +85,7 @@ class UbuntuModel < BaseModel
 
   def _connected_network_name
     debug_method_entry(__method__)
-    output = run_os_command(['nmcli', '-t', '-f', 'active,ssid', 'device', 'wifi'], false)
+    output = run_os_command(['nmcli', '-t', '-f', 'active,ssid', 'device', 'wifi'], false).stdout
     active_line = output.split("\n").find { |line| line.start_with?('yes:') }
     return nil unless active_line
 
@@ -184,7 +184,7 @@ class UbuntuModel < BaseModel
 
     # Use the terse, machine-readable output to get the security protocol.
     begin
-      output = run_os_command(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false)
+      output = run_os_command(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false).stdout
     rescue WifiWand::CommandExecutor::OsCommandError
       return nil # Can't scan, so can't determine the type.
     end
@@ -225,7 +225,7 @@ class UbuntuModel < BaseModel
     debug_method_entry(__method__, binding, :ssid)
 
     begin
-      output = run_os_command(['nmcli', '-t', '-f', 'NAME,TIMESTAMP', 'connection', 'show'], false)
+      output = run_os_command(['nmcli', '-t', '-f', 'NAME,TIMESTAMP', 'connection', 'show'], false).stdout
     rescue WifiWand::CommandExecutor::OsCommandError
       # If the command fails for any reason, we can't find profiles.
       return nil
@@ -263,7 +263,7 @@ class UbuntuModel < BaseModel
   def preferred_networks
     debug_method_entry(__method__)
 
-    output = run_os_command(['nmcli', '-t', '-f', 'NAME', 'connection', 'show'])
+    output = run_os_command(['nmcli', '-t', '-f', 'NAME', 'connection', 'show']).stdout
     connections = output.split("\n").map(&:strip).reject(&:empty?)
     connections.sort
   end
@@ -271,7 +271,7 @@ class UbuntuModel < BaseModel
   def _preferred_network_password(preferred_network_name)
     debug_method_entry(__method__, binding, :preferred_network_name)
 
-    output = run_os_command(['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name], false)
+    output = run_os_command(['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name], false).stdout
     psk_line = output.split("\n").find { |line| line.include?('802-11-wireless-security.psk:') }
     return nil unless psk_line
 
@@ -283,7 +283,7 @@ class UbuntuModel < BaseModel
   def _ip_address
     debug_method_entry(__method__)
 
-    output = run_os_command(['ip', '-4', 'addr', 'show', wifi_interface], false)
+    output = run_os_command(['ip', '-4', 'addr', 'show', wifi_interface], false).stdout
     inet_line = output.split("\n").find { |line| line.include?('inet ') }
     return nil unless inet_line
 
@@ -297,7 +297,7 @@ class UbuntuModel < BaseModel
   def mac_address
     debug_method_entry(__method__)
 
-    output = run_os_command(['ip', 'link', 'show', wifi_interface], false)
+    output = run_os_command(['ip', 'link', 'show', wifi_interface], false).stdout
     ether_line = output.split("\n").find { |line| line.include?('ether') }
     return nil unless ether_line
 
@@ -393,7 +393,7 @@ class UbuntuModel < BaseModel
     debug_method_entry(__method__)
 
     begin
-      output = run_os_command(['ip', 'route', 'show', 'default'], false)
+      output = run_os_command(['ip', 'route', 'show', 'default'], false).stdout
       return nil if output.empty?
 
       # Extract interface name (5th field in: "default via 192.168.1.1 dev wlp0s20f3 ...")
@@ -411,7 +411,7 @@ class UbuntuModel < BaseModel
     debug_method_entry(__method__, binding, :connection_name)
 
     begin
-      output = run_os_command(['nmcli', 'connection', 'show', connection_name], false)
+      output = run_os_command(['nmcli', 'connection', 'show', connection_name], false).stdout
       
       # Extract DNS servers from connection configuration
       # Look for both configured DNS (ipv4.dns[1]:) and runtime DNS (IP4.DNS[1]:)
@@ -460,7 +460,7 @@ class UbuntuModel < BaseModel
     return nil unless network_name
 
     begin
-      output = run_os_command(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false)
+      output = run_os_command(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false).stdout
     rescue WifiWand::CommandExecutor::OsCommandError
       return nil # Can't scan, return nil
     end

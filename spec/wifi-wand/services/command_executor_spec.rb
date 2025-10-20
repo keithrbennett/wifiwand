@@ -10,7 +10,9 @@ describe WifiWand::CommandExecutor do
       let(:executor) { WifiWand::CommandExecutor.new(verbose: false) }
 
       it 'executes commands successfully' do
-        expect(executor.run_os_command('echo "test"').strip).to eq('test')
+        result = executor.run_os_command('echo "test"')
+        expect(result).to be_a(WifiWand::CommandExecutor::OsCommandResult)
+        expect(result.stdout.strip).to eq('test')
       end
 
       it 'raises OsCommandError on command failure when raise_on_error is true' do
@@ -19,14 +21,16 @@ describe WifiWand::CommandExecutor do
         }.to raise_error(WifiWand::CommandExecutor::OsCommandError)
       end
 
-      it 'returns output without raising on command failure when raise_on_error is false' do
-        expect(executor.run_os_command('false', false)).to be_a(String)
+      it 'returns result without raising on command failure when raise_on_error is false' do
+        result = executor.run_os_command('false', false)
+        expect(result).to be_a(WifiWand::CommandExecutor::OsCommandResult)
+        expect(result.exitstatus).not_to eq(0)
       end
 
       it 'captures both stdout and stderr' do
         result = executor.run_os_command('bash -c \'echo "stdout"; echo "stderr" >&2\'', false)
-        expect(result).to include('stdout')
-        expect(result).to include('stderr')
+        expect(result.stdout).to include('stdout')
+        expect(result.stderr).to include('stderr')
       end
     end
 
@@ -55,14 +59,21 @@ describe WifiWand::CommandExecutor do
       # Mock the run_os_command to include the iteration number in output
       allow(executor).to receive(:run_os_command) do |command|
         call_count += 1
-        "attempt #{call_count}"
+        WifiWand::CommandExecutor::OsCommandResult.new(
+          stdout: "attempt #{call_count}",
+          stderr: '',
+          combined_output: "attempt #{call_count}",
+          exitstatus: 0,
+          command: command,
+          duration: 0.0
+        )
       end
-      
+
       condition = ->(output) { 
         # Succeed on second try
         output.include?('attempt 2')
       }
-      
+
       result = executor.try_os_command_until('echo "test"', condition, 5)
       expect(result.strip).to eq('attempt 2')  # Should succeed on second try
       expect(call_count).to eq(2)  # Should have been called exactly twice
@@ -119,6 +130,8 @@ describe WifiWand::CommandExecutor do
       expect(error.exitstatus).to eq(1)
       expect(error.command).to eq('false')
       expect(error.text).to eq('command failed')
+      expect(error.result).to be_a(WifiWand::CommandExecutor::OsCommandResult)
+      expect(error.result.combined_output).to eq('command failed')
     end
 
     it 'provides readable string representation' do

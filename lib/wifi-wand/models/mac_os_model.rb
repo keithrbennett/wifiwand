@@ -23,7 +23,7 @@ class MacOsModel < BaseModel
   ].freeze
 
   def fetch_hardware_ports
-    output = run_os_command(%w[networksetup -listallhardwareports])
+    output = run_os_command(%w[networksetup -listallhardwareports]).stdout
 
     ports = []
     current = {}
@@ -130,7 +130,7 @@ class MacOsModel < BaseModel
       # Fall through to system_profiler fallback
     end
 
-    json_text = run_os_command(%w[system_profiler -json SPNetworkDataType])
+    json_text = run_os_command(%w[system_profiler -json SPNetworkDataType]).stdout
     return nil if json_text.nil? || json_text.strip.empty?
     net_data = JSON.parse(json_text)
     nets = net_data['SPNetworkDataType']
@@ -171,7 +171,7 @@ class MacOsModel < BaseModel
   # Returns data pertaining to "preferred" networks, many/most of which will probably not be available.
   def preferred_networks
     iface = ensure_wifi_interface!
-    lines = run_os_command(['networksetup', '-listpreferredwirelessnetworks', iface]).split("\n")
+    lines = run_os_command(['networksetup', '-listpreferredwirelessnetworks', iface]).stdout.split("\n")
     # Produces something like this, unsorted, and with leading tabs:
     # Preferred networks on en0:
     #         LibraryWiFi
@@ -199,7 +199,7 @@ class MacOsModel < BaseModel
   # Returns true if WiFi is on, else false.
   def wifi_on?
     iface = ensure_wifi_interface!
-    output = run_os_command(['networksetup', '-getairportpower', iface])
+    output = run_os_command(['networksetup', '-getairportpower', iface]).stdout
     output.chomp.match?(/\): On$/)
   end
 
@@ -230,8 +230,8 @@ class MacOsModel < BaseModel
     iface = ensure_wifi_interface!
     args = ['networksetup', '-setairportnetwork', iface, network_name]
     args << password if password
-    output = run_os_command(args)
-    output_text = output.to_s
+    result = run_os_command(args)
+    output_text = result.combined_output
 
     # networksetup returns exit code 0 even on failure, so check output text
     failure_signatures = [
@@ -284,7 +284,7 @@ class MacOsModel < BaseModel
   #     raise an error
   def _preferred_network_password(preferred_network_name)
     begin
-      return run_os_command(['security', 'find-generic-password', '-D', 'AirPort network password', '-a', preferred_network_name, '-w']).chomp
+      return run_os_command(['security', 'find-generic-password', '-D', 'AirPort network password', '-a', preferred_network_name, '-w']).stdout.chomp
     rescue WifiWand::CommandExecutor::OsCommandError => error
       case error.exitstatus
       when 44
@@ -319,7 +319,7 @@ class MacOsModel < BaseModel
   def _ip_address
     begin
       iface = ensure_wifi_interface!
-      run_os_command(['ipconfig', 'getifaddr', iface]).chomp
+      run_os_command(['ipconfig', 'getifaddr', iface]).stdout.chomp
     rescue WifiWand::CommandExecutor::OsCommandError => error
       if error.exitstatus == 1
         nil
@@ -389,7 +389,7 @@ class MacOsModel < BaseModel
 
   def mac_address
     iface = ensure_wifi_interface!
-    output = run_os_command(['ifconfig', iface])
+    output = run_os_command(['ifconfig', iface]).stdout
     ether_line = output.split("\n").find { |line| line.include?('ether') }
     return nil unless ether_line
 
@@ -442,7 +442,7 @@ class MacOsModel < BaseModel
 
 
   def nameservers_using_scutil
-    output = run_os_command(%w[scutil --dns])
+    output = run_os_command(%w[scutil --dns]).stdout
     nameserver_lines = output.split("\n").grep(/^\s*nameserver\[/).uniq
     nameserver_lines.map { |line| line.split(' : ').last.strip }
   end
@@ -450,7 +450,7 @@ class MacOsModel < BaseModel
 
   def nameservers_using_networksetup
     service_name = detect_wifi_service_name
-    output = run_os_command(['networksetup', '-getdnsservers', service_name])
+    output = run_os_command(['networksetup', '-getdnsservers', service_name]).stdout
     if output == "There aren't any DNS Servers set on #{service_name}.\n"
       output = ''
     end
@@ -489,7 +489,7 @@ class MacOsModel < BaseModel
   # Returns the network interface used for default internet route on macOS
   def default_interface
     begin
-      output = run_os_command(%w[route -n get default], false)
+      output = run_os_command(%w[route -n get default], false).stdout
       return nil if output.empty?
 
       # Find line containing 'interface:' and extract value
@@ -506,7 +506,7 @@ class MacOsModel < BaseModel
   # Detects the current macOS version
   def detect_macos_version
     begin
-      output = run_os_command(%w[sw_vers -productVersion])
+      output = run_os_command(%w[sw_vers -productVersion]).stdout
       version = output.strip
       return nil if version.empty?
       version
@@ -568,7 +568,7 @@ class MacOsModel < BaseModel
   private
 
   def airport_data
-    json_text = run_os_command(%w[system_profiler -json SPAirPortDataType])
+    json_text = run_os_command(%w[system_profiler -json SPAirPortDataType]).stdout
     begin
       JSON.parse(json_text)
     rescue JSON::ParserError => e
