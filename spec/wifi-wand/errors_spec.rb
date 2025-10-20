@@ -208,6 +208,9 @@ module WifiWand
       describe 'macOS specific errors', :os_mac do
         let(:mac_model) { create_mac_os_test_model }
 
+        # These tests ensure the application gracefully handles specific failures from the external `security` command-line tool
+        # when accessing the macOS Keychain. By mapping distinct exit codes to user-friendly errors, we make the application
+        # more robust and provide clearer feedback to the user.
         keychain_error_test_cases = [
           { error: KeychainAccessDeniedError, exit_code: 45, message: 'access denied' },
           { error: KeychainAccessCancelledError, exit_code: 128, message: 'user cancelled' },
@@ -216,12 +219,19 @@ module WifiWand
 
         keychain_error_test_cases.each do |test_case|
           it "raises #{test_case[:error]} for exit code #{test_case[:exit_code]}" do
-            allow(mac_model).to receive(:run_os_command) do |command|
-              if command.to_s.match?(/\bsecurity\s+find-generic-password\b/)
-                raise WifiWand::CommandExecutor::OsCommandError.new(test_case[:exit_code], 'security', test_case[:message])
+            # This mock intercepts calls to `run_os_command` to simulate `security` command failures.
+            allow(mac_model).to receive(:run_os_command) do |*args|
+              command = args.first
+
+              # For any command other than `security`, return a default success-like string to prevent
+              # unrelated test failures. This is an early return, making the mock's intent clearer.
+              unless command.is_a?(Array) && command.first == 'security'
+                next 'Wi-Fi Power (en0): On'
               end
 
-              'Wi-Fi Power (en0): On'
+              # When the `security` command is called, simulate its failure by raising an
+              # OsCommandError with the specific exit code for the current test case.
+              raise WifiWand::CommandExecutor::OsCommandError.new(test_case[:exit_code], 'security', test_case[:message])
             end
             expect { mac_model.send(:_preferred_network_password, 'TestNetwork') }.to raise_error(test_case[:error])
           end
