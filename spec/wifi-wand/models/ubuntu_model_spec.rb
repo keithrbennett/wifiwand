@@ -155,16 +155,31 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#nameservers with active connection' do
       it 'returns connection-specific nameservers when present' do
-        allow(subject).to receive(:_connected_network_name).and_return('Conn1')
+        allow(subject).to receive(:active_connection_profile_name).and_return('Conn1')
+        allow(subject).to receive(:_connected_network_name).and_return('SSID-Conn1')
         expect(subject).to receive(:nameservers_from_connection).with('Conn1').and_return(['1.1.1.1'])
         expect(subject.nameservers).to eq(['1.1.1.1'])
       end
 
+      it 'prefers the active profile name over the SSID when resolving DNS' do
+        allow(subject).to receive(:active_connection_profile_name).and_return('RenamedProfile')
+        allow(subject).to receive(:_connected_network_name).and_return('SSID-RenamedProfile')
+        expect(subject).to receive(:nameservers_from_connection).with('RenamedProfile').and_return(['9.9.9.9'])
+        expect(subject.nameservers).to eq(['9.9.9.9'])
+      end
+
       it 'falls back to resolv.conf when connection has no DNS' do
-        allow(subject).to receive(:_connected_network_name).and_return('Conn2')
+        allow(subject).to receive(:active_connection_profile_name).and_return('Conn2')
         expect(subject).to receive(:nameservers_from_connection).with('Conn2').and_return([])
         expect(subject).to receive(:nameservers_using_resolv_conf).and_return(['9.9.9.9'])
         expect(subject.nameservers).to eq(['9.9.9.9'])
+      end
+
+      it 'uses SSID as a fallback when profile name is unavailable' do
+        allow(subject).to receive(:active_connection_profile_name).and_return(nil)
+        allow(subject).to receive(:_connected_network_name).and_return('FallbackSSID')
+        expect(subject).to receive(:nameservers_from_connection).with('FallbackSSID').and_return(['4.4.4.4'])
+        expect(subject.nameservers).to eq(['4.4.4.4'])
       end
     end
 
@@ -523,39 +538,64 @@ describe UbuntuModel, :os_ubuntu do
       it 'successfully sets custom nameservers' do
         nameservers = ['8.8.8.8', '1.1.1.1']
         connection_name = 'MyHomeNetwork'
-        
-        allow(subject).to receive(:_connected_network_name).and_return(connection_name)
+
+        allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+        allow(subject).to receive(:nameservers_from_connection).with(connection_name).and_return(nameservers)
         # Mock the connection-based DNS commands
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli connection modify.*#{connection_name}.*ipv4\.dns.*8\.8\.8\.8 1\.1\.1\.1/, false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', nameservers.join(' ')], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli connection modify.*#{connection_name}.*ipv4\.ignore-auto-dns yes/, false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli connection up.*#{connection_name}/, false)
+          .with(['nmcli', 'connection', 'up', connection_name], false)
           .and_return(command_result(stdout: ''))
-        
+
         result = subject.set_nameservers(nameservers)
         expect(result).to eq(nameservers)
       end
 
       it 'successfully clears nameservers' do
         connection_name = 'MyHomeNetwork'
-        
-        allow(subject).to receive(:_connected_network_name).and_return(connection_name)
+
+        allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+        allow(subject).to receive(:nameservers_from_connection).with(connection_name).and_return([])
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli connection modify.*#{connection_name}.*ipv4\.dns ""/, false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli connection modify.*#{connection_name}.*ipv4\.ignore-auto-dns no/, false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(/nmcli connection up.*#{connection_name}/, false)
+          .with(['nmcli', 'connection', 'up', connection_name], false)
           .and_return(command_result(stdout: ''))
-        
+
         result = subject.set_nameservers(:clear)
         expect(result).to eq(:clear)
+      end
+
+      it 'uses the active profile when it differs from the SSID' do
+        profile_name = 'Office Profile'
+        ssid_name = 'OfficeWiFi'
+        nameservers = ['4.4.4.4']
+
+        allow(subject).to receive(:active_connection_profile_name).and_return(profile_name)
+        allow(subject).to receive(:_connected_network_name).and_return(ssid_name)
+        allow(subject).to receive(:nameservers_from_connection).with(profile_name).and_return(nameservers)
+
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', profile_name, 'ipv4.dns', nameservers.join(' ')], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', profile_name, 'ipv4.ignore-auto-dns', 'yes'], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'up', profile_name], false)
+          .and_return(command_result(stdout: ''))
+
+        result = subject.set_nameservers(nameservers)
+        expect(result).to eq(nameservers)
       end
     end
 
@@ -576,6 +616,32 @@ describe UbuntuModel, :os_ubuntu do
           .and_return(command_result(stdout: nmcli_output))
 
         expect(subject.send(:_connected_network_name)).to be_nil
+      end
+    end
+
+    describe '#active_connection_profile_name' do
+      it 'parses the active profile from nmcli dev show output' do
+        allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
+        nmcli_output = "GENERAL.CONNECTION:Office Profile\nGENERAL.DEVICE:wlp3s0"
+        expect(subject).to receive(:run_os_command)
+          .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', 'wlp3s0'], false)
+          .and_return(command_result(stdout: nmcli_output))
+
+        expect(subject.active_connection_profile_name).to eq('Office Profile')
+      end
+
+      it 'returns nil when wifi interface cannot be determined' do
+        allow(subject).to receive(:wifi_interface).and_return(nil)
+        expect(subject.active_connection_profile_name).to be_nil
+      end
+
+      it 'returns nil when nmcli lookup fails' do
+        allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
+        expect(subject).to receive(:run_os_command)
+          .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', 'wlp3s0'], false)
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(10, 'nmcli', 'failed'))
+
+        expect(subject.active_connection_profile_name).to be_nil
       end
     end
 
@@ -717,8 +783,8 @@ describe UbuntuModel, :os_ubuntu do
         invalid_nameservers = ['invalid.ip', '256.256.256.256']
         connection_name = 'MyHomeNetwork'
         
-        allow(subject).to receive(:_connected_network_name).and_return(connection_name)
-        
+        allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+
         # Capture stdout to suppress the "invalid address:" output from IP validation
         original_stdout = $stdout
         $stdout = StringIO.new
@@ -732,7 +798,7 @@ describe UbuntuModel, :os_ubuntu do
       it 'handles nmcli connection modify failures' do
         connection_name = 'MyHomeNetwork'
 
-        allow(subject).to receive(:_connected_network_name).and_return(connection_name)
+        allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
 
         # Mock nmcli connection modify to fail without calling real commands
         allow(subject).to receive(:run_os_command)
@@ -745,6 +811,7 @@ describe UbuntuModel, :os_ubuntu do
 
       it 'handles cases when no active connection exists' do
         # Mock no active connection
+        allow(subject).to receive(:active_connection_profile_name).and_return(nil)
         allow(subject).to receive(:_connected_network_name).and_return(nil)
         
         expect { subject.set_nameservers(['8.8.8.8']) }.to raise_error(WifiWand::WifiInterfaceError, /No active Wi-Fi connection/)
@@ -853,16 +920,19 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#remove_preferred_network' do
       it 'removes a preferred network' do
-        networks = subject.preferred_networks
-        if networks.any?
-          network = networks.first
-          expect { subject.remove_preferred_network(network) }.not_to raise_error
-        else
-          pending 'No preferred networks available to remove'
-        end
+        connection_name = 'SavedProfile'
+
+        allow(subject).to receive(:preferred_networks).and_return([connection_name])
+        expect(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'delete', connection_name])
+          .and_return(command_result(stdout: ''))
+
+        expect { subject.remove_preferred_network(connection_name) }.not_to raise_error
       end
 
       it 'handles removal of non-existent network' do
+        allow(subject).to receive(:preferred_networks).and_return([])
+
         expect { subject.remove_preferred_network('non_existent_network_123') }.not_to raise_error
       end
     end
@@ -890,10 +960,8 @@ describe UbuntuModel, :os_ubuntu do
           .with(%w[nmcli radio wifi], anything)
           .and_return(command_result(stdout: 'enabled'))
 
-        # Mock _connected_network_name call
-        allow(subject).to receive(:run_os_command)
-          .with(%w[nmcli -t -f active,ssid device wifi], false)
-          .and_return(command_result(stdout: "yes:#{connection_name}"))
+        # Mock active profile lookup
+        allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
 
         # Mock the clear DNS commands
         allow(subject).to receive(:run_os_command)

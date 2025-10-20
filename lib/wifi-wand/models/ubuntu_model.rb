@@ -325,15 +325,14 @@ class UbuntuModel < BaseModel
 
   def nameservers
     debug_method_entry(__method__)
-    
-    # First try to get DNS from the active connection profile
-    # This shows the configured DNS for the current Wi-Fi network
-    current_connection = _connected_network_name
+
+    # Prefer the active NetworkManager profile when querying DNS
+    current_connection = active_connection_profile_name || _connected_network_name
     if current_connection
       connection_nameservers = nameservers_from_connection(current_connection)
       return connection_nameservers unless connection_nameservers.empty?
     end
-    
+
     # Fallback to system resolver if no connection-specific DNS
     nameservers_using_resolv_conf || []
   end
@@ -347,7 +346,7 @@ class UbuntuModel < BaseModel
     debug_method_entry(__method__, binding, :nameservers)
 
     # Get the current active Wi-Fi connection name
-    current_connection = _connected_network_name
+    current_connection = active_connection_profile_name || _connected_network_name
     raise WifiInterfaceError.new("No active Wi-Fi connection to configure DNS for.") unless current_connection
 
     if nameservers == :clear
@@ -386,6 +385,25 @@ class UbuntuModel < BaseModel
     debug_method_entry(__method__, binding, :resource_url)
 
     run_os_command(['xdg-open', resource_url])
+  end
+
+  def active_connection_profile_name
+    debug_method_entry(__method__)
+
+    interface = wifi_interface
+    return nil unless interface
+
+    begin
+      output = run_os_command(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', interface], false).stdout
+    rescue WifiWand::CommandExecutor::OsCommandError
+      return nil
+    end
+
+    line = output.split("\n").find { |row| row.start_with?('GENERAL.CONNECTION:') }
+    return nil unless line
+
+    profile = line.split(':', 2).last&.strip
+    profile&.empty? ? nil : profile
   end
 
   # Returns the network interface used for default internet route on Linux
