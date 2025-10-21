@@ -24,7 +24,7 @@ describe WifiWand::NetworkConnectivityTester do
 
       it 'formats endpoints as host:port pairs separated by commas' do
         tester.tcp_connectivity?
-        expect(output.string).to match(/1\.1\.1\.1:53.*8\.8\.8\.8:53.*208\.67\.222\.222:53/)
+        expect(output.string).to match(/1\.1\.1\.1:443.*8\.8\.8\.8:443.*208\.67\.222\.222:443/)
       end
     end
 
@@ -54,6 +54,29 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       it 'returns true when at least one endpoint succeeds' do
+        expect(tester.tcp_connectivity?).to be true
+      end
+    end
+
+    context 'when some ports are blocked but others remain open' do
+      let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
+
+      before do
+        allow(tester).to receive(:tcp_test_endpoints).and_return([
+          { host: '1.1.1.1', port: 53 },
+          { host: '1.1.1.1', port: 443 }
+        ])
+
+        allow(Socket).to receive(:tcp) do |host, port, connect_timeout:, &block|
+          if port == 53
+            raise Errno::ECONNREFUSED
+          else
+            block ? block.call : true
+          end
+        end
+      end
+
+      it 'still reports connectivity when an alternate port succeeds' do
         expect(tester.tcp_connectivity?).to be true
       end
     end
