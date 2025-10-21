@@ -97,16 +97,7 @@ class BaseModel
   # Lazily runs the standard initialization flow the first time an interface
   # is required, allowing callers that skip `init` to still function.
   def ensure_wifi_interface!
-    return @wifi_interface if @wifi_interface && !@wifi_interface.empty?
-    return @wifi_interface if @initializing_wifi_interface
-
-    begin
-      @initializing_wifi_interface = true
-      init_wifi_interface
-    ensure
-      @initializing_wifi_interface = false
-    end
-
+    init_wifi_interface unless @wifi_interface && !@wifi_interface.empty?
     @wifi_interface
   end
 
