@@ -3,9 +3,13 @@
 require_relative '../errors'
 
 module WifiWand
-  
+
 class ConnectionManager
   
+  MAX_NETWORK_NAME_LENGTH = 32
+  MAX_PASSWORD_LENGTH = 63
+  CONTROL_CHAR_PATTERN = /[\p{Cntrl}]/
+
   attr_reader :model, :verbose_mode
   
   def initialize(model, verbose: false)
@@ -54,9 +58,42 @@ class ConnectionManager
     @last_connection_used_saved_password = nil
   end
   
+  # Normalizes and validates connection inputs.
+  #
+  # Accepted input types:
+  # - Network name: String or Symbol (required, max 32 printable characters)
+  # - Password: String, Symbol, or nil (optional WPA/WPA2/3 pre-shared key up to 63 characters)
+  #
+  # Symbols are converted to Strings, nil passwords are preserved, and control characters
+  # are rejected to avoid sending malformed SSIDs.
+  #
+  # @param network_name [String, Symbol] SSID or network name to connect to.
+  # @param password [String, Symbol, nil] Optional pre-shared key.
+  # @raise [InvalidNetworkNameError] when the network name is missing or malformed.
+  # @raise [InvalidNetworkPasswordError] when the password is not a String/Symbol or exceeds 63 chars.
+  # @return [Array(String, String,nil)] normalized `[network_name, password]`.
   def normalize_inputs(network_name, password)
-    # Allow symbols and anything responding to to_s for user convenience
-    [network_name&.to_s, password&.to_s]
+    normalized_network_name = normalize_scalar_input(
+      value: network_name,
+      allow_nil: false,
+      max_length: MAX_NETWORK_NAME_LENGTH,
+      field_label: 'Network name',
+      error_class: InvalidNetworkNameError,
+      blank_message: 'Network name cannot be empty',
+      control_char_message: 'Network name cannot contain control characters'
+    )
+
+    normalized_password = normalize_scalar_input(
+      value: password,
+      allow_nil: true,
+      max_length: MAX_PASSWORD_LENGTH,
+      field_label: 'Password',
+      error_class: InvalidNetworkPasswordError,
+      blank_message: nil,
+      control_char_message: nil
+    )
+
+    [normalized_network_name, normalized_password]
   end
   
   def validate_network_name(network_name)
@@ -136,6 +173,38 @@ class ConnectionManager
       error_detail = actual_network_name ? "connected to '#{actual_network_name}' instead" : "unable to connect to any network"
       raise NetworkConnectionError.new(network_name, error_detail)
     end
+  end
+
+  def normalize_scalar_input(value:, allow_nil:, max_length:, field_label:, error_class:, blank_message:, control_char_message:)
+    if value.nil?
+      return nil if allow_nil
+      reason = blank_message || "#{field_label} is required"
+      raise error_class.new(nil, reason)
+    end
+
+    unless value.is_a?(String) || value.is_a?(Symbol)
+      raise error_class.new(value, "#{field_label} must be a String or Symbol")
+    end
+
+    string_value = value.to_s
+
+    if string_value.empty?
+      if allow_nil
+        return string_value
+      elsif blank_message
+        raise error_class.new(string_value, blank_message)
+      end
+    end
+
+    if string_value.length > max_length
+      raise error_class.new(string_value, "#{field_label} cannot exceed #{max_length} characters")
+    end
+
+    if control_char_message && string_value.match?(CONTROL_CHAR_PATTERN)
+      raise error_class.new(string_value, control_char_message)
+    end
+
+    string_value
   end
 end
 end

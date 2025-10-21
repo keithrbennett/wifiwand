@@ -57,6 +57,7 @@ module WifiWand
         { klass: InvalidIPAddressError,         args: ['999.999.999.999'],            message: "Invalid IP address(es): 999.999.999.999" },
         { klass: InvalidIPAddressError,         args: [['1.2.3.4.5', 'abc']],         message: "Invalid IP address(es): 1.2.3.4.5, abc" },
         { klass: InvalidNetworkNameError,       args: ['MyNet'],                      message: "Invalid network name: 'MyNet'. Network name cannot be empty" },
+        { klass: InvalidNetworkPasswordError,   args: ['secret', 'Password cannot exceed 63 characters'], message: "Invalid network password: Password cannot exceed 63 characters" },
         { klass: InvalidInterfaceError,         args: ['eth0'],                       message: "'eth0' is not a valid WiFi interface" },
         { klass: UnsupportedSystemError,        args: [],                             message: "Unsupported system" },
         { klass: UnsupportedSystemError,        args: ['macOS 12.0', 'macOS 11.0'],   message: "Unsupported system. Requires macOS 12.0 or later, found macOS 11.0" },

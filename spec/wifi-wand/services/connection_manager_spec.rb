@@ -29,6 +29,71 @@ describe WifiWand::ConnectionManager do
     end
   end
 
+  describe '#normalize_inputs' do
+    it 'converts symbol network names and passwords to strings' do
+      network_name, password = subject.send(:normalize_inputs, :CafeWifi, :secret_pass)
+      expect(network_name).to eq('CafeWifi')
+      expect(password).to eq('secret_pass')
+    end
+
+    it 'allows unusual unicode characters in the network name' do
+      unicode_name = "ネットワーク✨" # final char is an emoji
+      network_name, password = subject.send(:normalize_inputs, unicode_name, nil)
+      expect(network_name).to eq(unicode_name)
+      expect(password).to be_nil
+    end
+
+    it 'raises for network names longer than 32 characters' do
+      long_name = 'A' * 33
+      expect { subject.send(:normalize_inputs, long_name, nil) }
+        .to raise_error(WifiWand::InvalidNetworkNameError, /cannot exceed 32 characters/)
+    end
+
+    it 'raises for network names containing control characters' do
+      control_chars = ["\x00", "\n", "\t", "\r", "\x1B"]
+      control_chars.each do |char|
+        invalid_name = "bad#{char}name"
+        expect { subject.send(:normalize_inputs, invalid_name, nil) }
+          .to raise_error(WifiWand::InvalidNetworkNameError, /control characters/), "control char #{char.inspect}"
+      end
+    end
+
+    it 'raises when network name type is not String or Symbol' do
+      expect { subject.send(:normalize_inputs, 123, nil) }
+        .to raise_error(WifiWand::InvalidNetworkNameError, /String or Symbol/)
+    end
+
+    it 'raises for passwords longer than 63 characters' do
+      long_password = 'p' * 64
+      expect { subject.send(:normalize_inputs, 'ValidNetwork', long_password) }
+        .to raise_error(WifiWand::InvalidNetworkPasswordError, /exceed 63 characters/)
+    end
+
+    it 'allows passwords exactly 63 characters long' do
+      max_password = 'p' * 63
+      network_name, password = subject.send(:normalize_inputs, 'ValidNetwork', max_password)
+      expect(network_name).to eq('ValidNetwork')
+      expect(password).to eq(max_password)
+    end
+
+    it 'raises when password type is not String or Symbol' do
+      expect { subject.send(:normalize_inputs, 'ValidNetwork', [:array]) }
+        .to raise_error(WifiWand::InvalidNetworkPasswordError, /String or Symbol/)
+    end
+
+    it 'allows empty strings for passwords' do
+      network_name, password = subject.send(:normalize_inputs, 'ValidNetwork', '')
+      expect(network_name).to eq('ValidNetwork')
+      expect(password).to eq('')
+    end
+
+    it 'returns nil password when password input is nil' do
+      network_name, password = subject.send(:normalize_inputs, 'ValidNetwork', nil)
+      expect(network_name).to eq('ValidNetwork')
+      expect(password).to be_nil
+    end
+  end
+
   describe '#connect' do
     context 'with invalid network name' do
       it 'raises InvalidNetworkNameError for nil network name' do

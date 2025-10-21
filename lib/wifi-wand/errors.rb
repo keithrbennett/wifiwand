@@ -92,8 +92,22 @@ module WifiWand
   end
   
   class InvalidNetworkNameError < Error
-    def initialize(network_name)
-      super("Invalid network name: '#{network_name}'. Network name cannot be empty")
+    attr_reader :network_name, :reason
+
+    def initialize(network_name, reason = 'Network name cannot be empty')
+      @network_name = network_name
+      @reason = reason
+      display_name = network_name.to_s
+      super("Invalid network name: '#{display_name}'. #{reason}")
+    end
+  end
+  
+  class InvalidNetworkPasswordError < Error
+    attr_reader :reason
+
+    def initialize(_password = nil, reason = 'Password is invalid')
+      @reason = reason
+      super("Invalid network password: #{reason}")
     end
   end
   
