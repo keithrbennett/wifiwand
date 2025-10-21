@@ -430,9 +430,10 @@ class MacOsModel < BaseModel
     if nameservers == :clear
       run_os_command(['networksetup', '-setdnsservers', service_name, 'empty'])
     else
+      # Validate IP addresses (accept both IPv4 and IPv6)
       bad_addresses = nameservers.reject do |ns|
         begin
-          IPAddr.new(ns).ipv4?
+          IPAddr.new(ns)  # Valid if IPAddr can parse it (IPv4 or IPv6)
           true
         rescue
           false

@@ -381,15 +381,17 @@ class UbuntuModel < BaseModel
     raise WifiInterfaceError.new("No active Wi-Fi connection to configure DNS for.") unless current_connection
 
     if nameservers == :clear
-      # Clear custom DNS and use automatic DNS from router/DHCP
+      # Clear custom DNS and use automatic DNS from router/DHCP (both IPv4 and IPv6)
       run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.dns', ''], false)
       run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns', 'no'], false)
+      run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv6.dns', ''], false)
+      run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv6.ignore-auto-dns', 'no'], false)
     else
-      # Validate IP addresses
+      # Validate IP addresses (accept both IPv4 and IPv6)
       bad_addresses = nameservers.reject do |ns|
         begin
           require 'ipaddr'
-          IPAddr.new(ns).ipv4?
+          IPAddr.new(ns)  # Valid if IPAddr can parse it (IPv4 or IPv6)
           true
         rescue
           false
@@ -400,15 +402,28 @@ class UbuntuModel < BaseModel
         raise InvalidIPAddressError.new(bad_addresses)
       end
 
+      # Separate IPv4 and IPv6 addresses
+      ipv4_servers, ipv6_servers = nameservers.partition { |ns| IPAddr.new(ns).ipv4? }
+
       # Set custom DNS servers and ignore automatic DNS from router/DHCP
-      dns_string = nameservers.join(' ')
-      run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.dns', dns_string], false)
-      run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns', 'yes'], false)
+      # Configure IPv4 DNS if any IPv4 addresses provided
+      if ipv4_servers.any?
+        ipv4_dns_string = ipv4_servers.join(' ')
+        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.dns', ipv4_dns_string], false)
+        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns', 'yes'], false)
+      end
+
+      # Configure IPv6 DNS if any IPv6 addresses provided
+      if ipv6_servers.any?
+        ipv6_dns_string = ipv6_servers.join(' ')
+        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv6.dns', ipv6_dns_string], false)
+        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv6.ignore-auto-dns', 'yes'], false)
+      end
     end
 
     # Restart the connection to apply DNS changes
     run_os_command(['nmcli', 'connection', 'up', current_connection], false)
-    
+
     nameservers
   end
 

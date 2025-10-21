@@ -501,6 +501,23 @@ module WifiWand
             end
           end
 
+        it 'accepts IPv6 DNS addresses' do
+          ipv6_test_cases = [
+            { input: ["2606:4700:4700::1111", "2606:4700:4700::1001"],
+              expected_args: ["2606:4700:4700::1111", "2606:4700:4700::1001"] },
+            { input: ["2001:4860:4860::8888"],
+              expected_args: ["2001:4860:4860::8888"] },
+            { input: ["8.8.8.8", "2606:4700:4700::1111"],
+              expected_args: ["8.8.8.8", "2606:4700:4700::1111"] }
+          ]
+
+          ipv6_test_cases.each do |tc|
+            allow(model).to receive(:detect_wifi_service_name).and_return("Wi-Fi")
+            expect(model).to receive(:run_os_command).with(['networksetup', '-setdnsservers', 'Wi-Fi'] + tc[:input])
+            expect(model.set_nameservers(tc[:input])).to eq(tc[:input])
+          end
+        end
+
         it 'validates IP addresses and raises error for invalid ones' do
           invalid_nameservers = ["8.8.8.8", "invalid.ip", "1.1.1.1"]
           silence_output do
@@ -1091,13 +1108,13 @@ module WifiWand
       end
 
       describe '#set_nameservers IP validation edge cases' do
-        it 'identifies mixed valid and invalid IP addresses' do
-          mixed_ips = ["8.8.8.8", "invalid.ip", "1.1.1.1", "999.999.999.999"]
-          
+        it 'identifies mixed valid and invalid IP addresses (IPv4 and IPv6)' do
+          mixed_ips = ["8.8.8.8", "invalid.ip", "2606:4700:4700::1111", "1.1.1.1", "999.999.999.999"]
+
           silence_output do
             expect { model.set_nameservers(mixed_ips) }.to raise_error(WifiWand::InvalidIPAddressError) do |error|
               expect(error.invalid_addresses).to include("invalid.ip", "999.999.999.999")
-              expect(error.invalid_addresses).not_to include("8.8.8.8", "1.1.1.1")
+              expect(error.invalid_addresses).not_to include("8.8.8.8", "1.1.1.1", "2606:4700:4700::1111")
             end
           end
         end
@@ -1105,8 +1122,8 @@ module WifiWand
         it 'handles IP validation exceptions gracefully' do
           # Mock IPAddr to raise exception for specific input
           allow(IPAddr).to receive(:new).with("problematic.ip").and_raise(StandardError.new("Parse error"))
-          allow(IPAddr).to receive(:new).with("8.8.8.8").and_return(double(ipv4?: true))
-          
+          allow(IPAddr).to receive(:new).with("8.8.8.8").and_call_original
+
           problematic_ips = ["8.8.8.8", "problematic.ip"]
           silence_output do
             expect { model.set_nameservers(problematic_ips) }.to raise_error(WifiWand::InvalidIPAddressError)

@@ -622,11 +622,18 @@ describe UbuntuModel, :os_ubuntu do
 
         allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
         allow(subject).to receive(:nameservers_from_connection).with(connection_name).and_return([])
+        # Expect both IPv4 and IPv6 clear commands
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'connection', 'up', connection_name], false)
@@ -657,6 +664,83 @@ describe UbuntuModel, :os_ubuntu do
 
         result = subject.set_nameservers(nameservers)
         expect(result).to eq(nameservers)
+      end
+
+      it 'accepts and configures IPv6 DNS addresses' do
+        ipv6_nameservers = ['2606:4700:4700::1111', '2606:4700:4700::1001']
+        connection_name = 'MyHomeNetwork'
+
+        allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+        allow(subject).to receive(:nameservers_from_connection).with(connection_name).and_return(ipv6_nameservers)
+
+        # Expect IPv6 DNS commands
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ipv6_nameservers.join(' ')], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'up', connection_name], false)
+          .and_return(command_result(stdout: ''))
+
+        result = subject.set_nameservers(ipv6_nameservers)
+        expect(result).to eq(ipv6_nameservers)
+      end
+
+      it 'accepts mixed IPv4 and IPv6 DNS addresses' do
+        mixed_nameservers = ['8.8.8.8', '2606:4700:4700::1111', '1.1.1.1']
+        connection_name = 'MyHomeNetwork'
+
+        allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+        allow(subject).to receive(:nameservers_from_connection).with(connection_name).and_return(mixed_nameservers)
+
+        # Expect both IPv4 and IPv6 DNS commands
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8 1.1.1.1'], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', '2606:4700:4700::1111'], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'up', connection_name], false)
+          .and_return(command_result(stdout: ''))
+
+        result = subject.set_nameservers(mixed_nameservers)
+        expect(result).to eq(mixed_nameservers)
+      end
+
+      it 'clears both IPv4 and IPv6 nameservers when :clear is specified' do
+        connection_name = 'MyHomeNetwork'
+
+        allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+        allow(subject).to receive(:nameservers_from_connection).with(connection_name).and_return([])
+
+        # Expect both IPv4 and IPv6 clear commands
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'up', connection_name], false)
+          .and_return(command_result(stdout: ''))
+
+        result = subject.set_nameservers(:clear)
+        expect(result).to eq(:clear)
       end
     end
 
