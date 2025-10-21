@@ -236,14 +236,34 @@ class MacOsModel < BaseModel
     # networksetup returns exit code 0 even on failure, so check output text
     failure_signatures = [
       /Failed to join network/i,
-      /Error: -3900/,
+      /Error:\s*-3900/,
       /Could not connect/i,
       /Could not find network/i
     ]
 
     if failure_signatures.any? { |pattern| output_text.match?(pattern) }
+      auth_signatures = [
+        /invalid password/i,
+        /incorrect password/i,
+        /authentication (?:failed|timeout|timed out)/i,
+        /802\.1x authentication failed/i,
+        /password required/i
+      ]
+
+      if auth_signatures.any? { |pattern| output_text.match?(pattern) }
+        reason = extract_auth_failure_reason(output_text)
+        raise NetworkAuthenticationError.new(network_name, reason)
+      end
+
       raise WifiWand::CommandExecutor::OsCommandError.new(1, 'networksetup', output_text.strip)
     end
+  end
+
+  def extract_auth_failure_reason(output_text)
+    lines = output_text.to_s.lines.map(&:strip).reject(&:empty?)
+    filtered = lines.reject { |line| line.match?(/Failed to join network/i) }
+    reason = filtered.join(' ')
+    reason.empty? ? output_text.to_s.strip : reason
   end
 
   def os_level_connect_using_swift(network_name, password = nil)
@@ -563,7 +583,7 @@ class MacOsModel < BaseModel
     run_os_command(['swift', swift_filespec] + args)
   end
 
-  private :fetch_hardware_ports, :find_wifi_port, :detect_wifi_service_name_from_ports
+  private :fetch_hardware_ports, :find_wifi_port, :detect_wifi_service_name_from_ports, :extract_auth_failure_reason
 
   private
 

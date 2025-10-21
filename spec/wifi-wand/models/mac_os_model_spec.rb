@@ -948,6 +948,21 @@ module WifiWand
 
           model.os_level_connect_using_networksetup("TestNetwork")
         end
+
+        it 'raises NetworkAuthenticationError with reason when password is invalid' do
+          allow(model).to receive(:wifi_interface).and_return("en0")
+          failure_output = "Failed to join network TestNetwork.\nReason: Invalid password."
+          allow(model).to receive(:run_os_command)
+            .with(["networksetup", "-setairportnetwork", "en0", "TestNetwork", "badpass"])
+            .and_return(command_result(stdout: failure_output))
+
+          expect do
+            model.os_level_connect_using_networksetup("TestNetwork", "badpass")
+          end.to raise_error(WifiWand::NetworkAuthenticationError) do |error|
+            expect(error.reason).to eq("Reason: Invalid password.")
+            expect(error.message).to include("Invalid password")
+          end
+        end
       end
 
       describe '#os_level_connect_using_swift' do
