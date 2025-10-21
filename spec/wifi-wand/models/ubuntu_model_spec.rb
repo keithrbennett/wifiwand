@@ -93,13 +93,67 @@ describe UbuntuModel, :os_ubuntu do
         expect { subject._connect('SSID3') }.not_to raise_error
       end
 
-      it 're-raises non-network-not-found errors from nmcli' do
+      it 'raises NetworkNotFoundError when network not in range' do
         setup_connect_test
 
         expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SSID4 password pw])
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(2, 'nmcli dev wifi connect', 'Other failure'))
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(10, 'nmcli dev wifi connect', 'Error: No network with SSID \'SSID4\' found'))
 
-        expect { subject._connect('SSID4', 'pw') }.to raise_error(WifiWand::CommandExecutor::OsCommandError, /Other failure/)
+        expect { subject._connect('SSID4', 'pw') }.to raise_error(WifiWand::NetworkNotFoundError, /SSID4/)
+      end
+
+      it 'raises NetworkAuthenticationError when password is wrong (secrets required)' do
+        setup_connect_test
+
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SecureNet password wrongpass])
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect', 'Error: Connection activation failed: Secrets were required, but not provided'))
+
+        expect { subject._connect('SecureNet', 'wrongpass') }.to raise_error(WifiWand::NetworkAuthenticationError, /SecureNet/)
+      end
+
+      it 'raises NetworkAuthenticationError when authentication fails' do
+        setup_connect_test
+
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SecureNet password badpass])
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect', 'Error: Connection activation failed: (53) authentication failed'))
+
+        expect { subject._connect('SecureNet', 'badpass') }.to raise_error(WifiWand::NetworkAuthenticationError, /SecureNet/)
+      end
+
+      it 'raises NetworkAuthenticationError for error code 7 (secrets issue)' do
+        setup_connect_test
+
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SecureNet password invalid])
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(7, 'nmcli dev wifi connect', 'Error: Connection activation failed: (7) No secrets provided'))
+
+        expect { subject._connect('SecureNet', 'invalid') }.to raise_error(WifiWand::NetworkAuthenticationError, /SecureNet/)
+      end
+
+      it 'raises WifiInterfaceError when no suitable device found' do
+        setup_connect_test
+
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SSID5])
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(5, 'nmcli dev wifi connect', 'Error: No suitable device found'))
+
+        expect { subject._connect('SSID5') }.to raise_error(WifiWand::WifiInterfaceError)
+      end
+
+      it 'raises NetworkConnectionError for generic activation failures (out of range)' do
+        setup_connect_test
+
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect WeakSignal])
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect', 'Error: Connection activation failed'))
+
+        expect { subject._connect('WeakSignal') }.to raise_error(WifiWand::NetworkConnectionError, /out of range/)
+      end
+
+      it 're-raises unknown errors from nmcli' do
+        setup_connect_test
+
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SSID6 password pw])
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(2, 'nmcli dev wifi connect', 'Unknown system failure'))
+
+        expect { subject._connect('SSID6', 'pw') }.to raise_error(WifiWand::CommandExecutor::OsCommandError, /Unknown system failure/)
       end
     end
 
@@ -849,8 +903,8 @@ describe UbuntuModel, :os_ubuntu do
       end
     end
 
-    describe '#_connect' do
-      it 'raises error for non-existent network' do
+    describe '#_connect error scenarios' do
+      it 'raises NetworkNotFoundError for non-existent network' do
         # Mock nmcli to simulate network not found scenario without real commands
         allow(subject).to receive(:_connected_network_name).and_return(nil)
         allow(subject).to receive(:find_best_profile_for_ssid).and_return(nil)
@@ -861,7 +915,7 @@ describe UbuntuModel, :os_ubuntu do
         expect { subject._connect('non_existent_network_123') }.to raise_error(WifiWand::NetworkNotFoundError)
       end
 
-      it 'handles connection activation failures' do
+      it 'raises NetworkConnectionError for generic connection activation failures' do
         # Mock various paths that _connect might take without real commands
         # Mock connection check
         allow(subject).to receive(:_connected_network_name).and_return(nil)
@@ -869,15 +923,15 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:find_best_profile_for_ssid).and_return(nil)
         # Mock the actual connection attempt that will be made
         allow(subject).to receive(:run_os_command)
-          .with(%w[nmcli dev wifi connect TestNetwork password wrong_password])
+          .with(%w[nmcli dev wifi connect TestNetwork password test_password])
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect', 'Connection activation failed'))
 
-        # Use a specific test network name instead of relying on available networks
-        expect { subject._connect('TestNetwork', 'wrong_password') }
-          .to raise_error(WifiWand::NetworkNotFoundError)
+        # Generic activation failed should now raise NetworkConnectionError (out of range)
+        expect { subject._connect('TestNetwork', 'test_password') }
+          .to raise_error(WifiWand::NetworkConnectionError, /out of range/)
       end
 
-      it 'handles security parameter detection failures' do
+      it 'handles security parameter detection failures gracefully' do
         # Mock get_security_parameter to return nil (detection failure)
         allow(subject).to receive(:get_security_parameter).and_return(command_result(stdout: nil))
         # Mock the fallback connection attempt to avoid real network connection
@@ -886,7 +940,7 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:run_os_command)
           .with(/nmcli dev wifi connect.*password/)
           .and_return(command_result(stdout: ''))  # Simulate successful connection
-        
+
         # Should fall back to direct connection attempt without actually connecting
         expect { subject._connect('TestNetwork', 'test_password') }
           .not_to raise_error

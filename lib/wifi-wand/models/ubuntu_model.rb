@@ -164,13 +164,42 @@ class UbuntuModel < BaseModel
         end
       end
     rescue WifiWand::CommandExecutor::OsCommandError => e
-      # The nmcli command failed. Check if it was because the network was not found.
-      if e.message.match?(/No network with SSID/i) || e.message.match?(/Connection activation failed/i)
+      # The nmcli command failed. Determine the specific failure reason.
+      error_text = e.text || e.message || ''
+
+      # Check for network not found errors
+      if error_text.match?(/No network with SSID/i)
         raise WifiWand::NetworkNotFoundError.new(network_name)
-      else
-        # Re-raise the original error if it's for a different reason.
-        raise e
       end
+
+      # Check for authentication/password errors
+      # These patterns indicate wrong password or missing credentials
+      if [
+        /Secrets were required/i,
+        /802-11-wireless-security.*No secrets/i,
+        /authentication.*failed/i,
+        /Connection activation failed.*\(7\)/i
+      ].any? { |pattern| error_text.match?(pattern) }
+        raise WifiWand::NetworkAuthenticationError.new(network_name)
+      end
+
+      # Check for device-related errors
+      if [
+        /No suitable device found/i,
+        /Device.*not found/i
+      ].any? { |pattern| error_text.match?(pattern) }
+        raise WifiWand::WifiInterfaceError.new(wifi_interface)
+      end
+
+      # Generic connection activation failed - could indicate network out of range
+      # or temporarily unavailable (not the same as "not found")
+      if error_text.match?(/Connection activation failed/i)
+        raise WifiWand::NetworkConnectionError.new(network_name,
+          "Network may be out of range or temporarily unavailable")
+      end
+
+      # Re-raise the original error if it doesn't match known patterns
+      raise e
     end
   end
 

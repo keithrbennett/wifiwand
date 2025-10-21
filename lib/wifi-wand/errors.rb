@@ -28,13 +28,30 @@ module WifiWand
   end
   
   class NetworkConnectionError < Error
+    attr_reader :network_name, :reason
+
     def initialize(network_name, reason = nil)
+      @network_name = network_name
+      @reason = reason
       msg = "Failed to connect to network '#{network_name}'"
       msg += ": #{reason}" if reason
       super(msg)
     end
   end
-  
+
+  class NetworkAuthenticationError < Error
+    attr_reader :network_name, :reason
+
+    def initialize(network_name, reason = nil)
+      @network_name = network_name
+      @reason = reason
+      msg = "Authentication failed for network '#{network_name}'"
+      msg += ": #{reason}" if reason
+      msg += ". Please verify the password is correct" unless reason&.include?("password")
+      super(msg)
+    end
+  end
+
 
   # === WIFI HARDWARE ERRORS ===
   
