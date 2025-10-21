@@ -260,10 +260,12 @@ class MacOsModel < BaseModel
   end
 
   def extract_auth_failure_reason(output_text)
-    lines = output_text.to_s.lines.map(&:strip).reject(&:empty?)
+    return '' if output_text.nil?
+
+    lines = output_text.lines.map(&:strip).reject(&:empty?)
     filtered = lines.reject { |line| line.match?(/Failed to join network/i) }
     reason = filtered.join(' ')
-    reason.empty? ? output_text.to_s.strip : reason
+    reason.empty? ? output_text.strip : reason
   end
 
   def os_level_connect_using_swift(network_name, password = nil)
