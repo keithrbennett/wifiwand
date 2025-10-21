@@ -23,7 +23,8 @@ module WifiWand
       network_password = if network_name
         begin
           connected_network_password
-        rescue
+        rescue => e
+          @output.puts "Warning: Failed to retrieve password for #{network_name}: #{e.message}" if @verbose
           nil
         end
       else
@@ -60,7 +61,13 @@ module WifiWand
         # Restore network connection if one existed
         if state[:network_name] && state[:wifi_enabled]
           # If we are already connected to the original network, no need to proceed
-          return :already_connected if @model.wifi_on? == state[:wifi_enabled] && @model.connected_network_name == state[:network_name]
+          begin
+            current_network = @model.connected_network_name
+            return :already_connected if @model.wifi_on? == state[:wifi_enabled] && current_network == state[:network_name]
+          rescue => e
+            # If we can't determine current network, proceed with connection attempt
+            @output.puts "Warning: Unable to query current network (#{e.message}), proceeding with connection attempt" if @verbose
+          end
 
           password_to_use = state[:network_password]
           password_to_use = nil if password_to_use.respond_to?(:empty?) && password_to_use.empty?
@@ -72,7 +79,11 @@ module WifiWand
           rescue WifiWand::WaitTimeoutError => wait_error
             begin
               actual_network = @model.connected_network_name
-            rescue
+              if @verbose
+                @output.puts "Warning: Connection timeout - expected #{state[:network_name].inspect}, currently connected to #{actual_network.inspect}"
+              end
+            rescue => name_error
+              @output.puts "Warning: Connection timeout and failed to query current network: #{name_error.message}" if @verbose
               actual_network = nil
             end
 
@@ -96,38 +107,12 @@ module WifiWand
       @model.preferred_network_password(@model.connected_network_name)
     end
 
-    # Only attempt to fetch a password when interactive to avoid GUI keychain prompts
-    # in non-interactive environments (e.g., RSpec/CI).
-    def connected_network_password_if_safe
-      begin
-        return nil if macos_keychain_risky?
-        connected_network_password
-      rescue
-        nil
-      end
-    end
-
-    def interactive_session?
-      $stdin.tty?
-    end
-
-    def macos_keychain_risky?
-      # Only consider it risky (GUI prompt) when using the real macOS model without a TTY
-      defined?(WifiWand::MacOsModel) && @model.is_a?(WifiWand::MacOsModel) && !interactive_session?
-    end
-
-    def avoid_keychain_for_model?
-      return false unless defined?(WifiWand::MacOsModel) && @model.is_a?(WifiWand::MacOsModel)
-      return false unless ENV['RSPEC_RUNNING'] == 'true'
-
-      macos_keychain_risky?
-    end
-
     def fallback_password_for(network_name)
       return nil unless network_name
 
       @model.preferred_network_password(network_name)
-    rescue
+    rescue => e
+      @output.puts "Warning: Failed to retrieve fallback password for #{network_name}: #{e.message}" if @verbose
       nil
     end
   end
