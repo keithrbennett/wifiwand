@@ -252,28 +252,35 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#detect_wifi_interface' do
       it 'returns first wireless interface from iw dev output' do
-        # Mock the actual command output after grep and cut processing
-        iw_output = "wlp3s0\nwlan1"
+        iw_output = <<~IW_OUTPUT
+          phy#0
+              Interface wlp3s0
+              type managed
+          phy#1
+              Interface wlan1
+              type managed
+        IW_OUTPUT
+
         allow(subject).to receive(:run_os_command)
-          .with("iw dev | grep Interface | cut -d' ' -f2")
+          .with(['iw', 'dev'])
           .and_return(command_result(stdout: iw_output))
-        
+
         expect(subject.detect_wifi_interface).to eq('wlp3s0')
       end
 
       it 'returns nil when no interfaces found' do
         allow(subject).to receive(:run_os_command)
-          .with("iw dev | grep Interface | cut -d' ' -f2")
-          .and_return(command_result(stdout: ''))
-        
+          .with(['iw', 'dev'])
+          .and_return(command_result(stdout: "phy#0\n    type managed"))
+
         expect(subject.detect_wifi_interface).to be_nil
       end
 
       it 'handles command failures gracefully' do
         allow(subject).to receive(:run_os_command)
-          .with("iw dev | grep Interface | cut -d' ' -f2")
+          .with(['iw', 'dev'])
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'iw dev', 'Command failed'))
-        
+
         expect { subject.detect_wifi_interface }
           .to raise_error(WifiWand::CommandExecutor::OsCommandError)
       end

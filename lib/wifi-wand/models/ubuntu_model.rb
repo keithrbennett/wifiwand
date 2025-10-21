@@ -33,10 +33,12 @@ class UbuntuModel < BaseModel
 
   def detect_wifi_interface
     debug_method_entry(__method__)
-    # Use shell for pipe operations (grep and cut)
-    cmd = "iw dev | grep Interface | cut -d' ' -f2"
-    interfaces = run_os_command(cmd).stdout.split("\n")
-    interfaces.first
+    interface_line = run_os_command(['iw', 'dev'])
+      .stdout
+      .lines
+      .map(&:strip)
+      .detect { |line| line.start_with?('Interface') }
+    interface_line ? interface_line.split[1] : nil
   end
 
   def is_wifi_interface?(interface)
