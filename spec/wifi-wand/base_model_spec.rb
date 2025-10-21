@@ -704,13 +704,34 @@ describe 'Common WiFi Model Behavior (All OS)' do
       mac = subject.random_mac_address
       expect(mac).to match(/\A[0-9a-f]{2}(:[0-9a-f]{2}){5}\z/)
     end
-    
+
     it 'generates different addresses on successive calls' do
       mac1 = subject.random_mac_address
       mac2 = subject.random_mac_address
-      
+
       # Very unlikely to be the same (1 in 2^48 chance)
       expect(mac1).not_to eq(mac2)
+    end
+
+    it 'generates locally administered unicast MAC addresses' do
+      # Generate multiple addresses to ensure consistency
+      10.times do
+        mac = subject.random_mac_address
+        first_byte = mac[0..1].to_i(16)
+
+        # Check that multicast bit (bit 0) is cleared (0)
+        multicast_bit = first_byte & 0x01
+        expect(multicast_bit).to eq(0), "MAC #{mac} has multicast bit set"
+
+        # Check that locally administered bit (bit 1) is set (1)
+        locally_administered_bit = (first_byte & 0x02) >> 1
+        expect(locally_administered_bit).to eq(1), "MAC #{mac} does not have locally administered bit set"
+
+        # Verify the pattern: first byte should be xxxxxx10 where x can be 0 or 1
+        # This means the first byte should match the pattern where bits 0-1 are 10
+        expected_pattern = first_byte & 0x03
+        expect(expected_pattern).to eq(2), "MAC #{mac} first byte #{first_byte.to_s(16)} does not match locally administered unicast pattern"
+      end
     end
   end
 

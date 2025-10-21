@@ -391,6 +391,10 @@ class BaseModel
 
   def random_mac_address
     bytes = Array.new(6) { rand(256) }
+    # Ensure first byte is locally administered unicast:
+    # - Clear multicast bit (bit 0) with mask 0xFE
+    # - Set locally administered bit (bit 1) with OR 0x02
+    bytes[0] = (bytes[0] & 0xFE) | 0x02
     chars = bytes.map { |b| "%02x" % b }
     chars.join(':')
   end
