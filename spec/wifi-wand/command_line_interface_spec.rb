@@ -401,8 +401,8 @@ describe WifiWand::CommandLineInterface do
         shared_examples 'user declines overwrite' do |user_input|
           it "returns nil when user enters '#{user_input.strip}'" do
             allow($stdin).to receive(:gets).and_return(user_input)
-            
-            result = subject.cmd_qr(filename)
+
+            result = silence_output { subject.cmd_qr(filename) }
             expect(result).to be_nil
           end
         end
