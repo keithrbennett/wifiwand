@@ -163,6 +163,14 @@ describe WifiWand::ConnectionManager do
         subject.connect('SavedNetwork', 'manual_password')
         expect(subject.last_connection_used_saved_password?).to be false
       end
+
+      it "treats empty string password as an explicit no-password request" do
+        expect(mock_model).not_to receive(:preferred_network_password)
+        expect(mock_model).to receive(:_connect).with('SavedNetwork', nil)
+
+        subject.connect('SavedNetwork', '')
+        expect(subject.last_connection_used_saved_password?).to be false
+      end
       
       it 'handles keychain access errors gracefully', :os_mac do
         allow(mock_model).to receive(:preferred_network_password).and_raise(StandardError, 'Keychain access denied')

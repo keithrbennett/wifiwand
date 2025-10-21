@@ -111,6 +111,9 @@ class ConnectionManager
   # Behavior:
   # - If a non-empty `password` is provided by the caller, it is used as-is and
   #   `used_saved_password` is false.
+  # - If the caller provides an empty string (`''`), it is treated as an explicit
+  #   request to skip saved credentials and attempt the connection without a
+  #   password.
   # - Otherwise, when `network_name` is present in the model's preferred networks,
   #   the method attempts to fetch a saved password via
   #   `model.preferred_network_password(network_name)`. If a non-empty saved
@@ -127,6 +130,11 @@ class ConnectionManager
   #   nil when no password could be determined.
   def resolve_password(network_name, password, skip_saved_password_lookup = false)
     return [password, false] if skip_saved_password_lookup
+
+    if password == ''
+      # Explicit request to connect without a password; bypass saved credentials
+      return [nil, false]
+    end
 
     password_provided = password && password.length > 0
     return [password, false] if password_provided

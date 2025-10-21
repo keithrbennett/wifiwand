@@ -50,6 +50,9 @@ wifi-wand co MyNetwork password
 # Connect to a WiFi network without password (if no password required or network is saved/preferred
 wifi-wand co MyNetwork
 
+# Force an open-network attempt even if a saved password exists
+wifi-wand co MyNetwork ''
+
 # Display detailed networking information
 wifi-wand i
 
