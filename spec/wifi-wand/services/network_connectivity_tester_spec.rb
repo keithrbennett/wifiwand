@@ -6,12 +6,6 @@ require_relative '../../../lib/wifi-wand/services/network_connectivity_tester'
 
 describe WifiWand::NetworkConnectivityTester do
   
-  # Mock time-based operations to eliminate delays in tests
-  before(:each) do
-    # Mock sleep to avoid real delays
-    allow_any_instance_of(Object).to receive(:sleep)
-  end
-  
   describe '#tcp_connectivity?' do
 
     context 'with verbose mode enabled' do
@@ -21,10 +15,6 @@ describe WifiWand::NetworkConnectivityTester do
       before do
         allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
         allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
-        
-        # Mock Process.clock_gettime to simulate immediate timeout for failure scenarios
-        start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(start_time, start_time + 10)
       end
 
       it 'outputs formatted endpoint list to stdout' do
@@ -42,16 +32,16 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
 
       before do
+        stub_const('WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT', 0.05)
+        stub_const('WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT', 0.01)
         # Mock Socket.tcp to always raise connection refused
         allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
-        
-        # Mock Process.clock_gettime to simulate immediate timeout for failure scenarios
-        start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(start_time, start_time + 10)
       end
 
       it 'returns false when all endpoints fail' do
-        expect(tester.tcp_connectivity?).to be false
+        # Timeout wrapper ensures test doesn't hang if there's a bug
+        result = Timeout.timeout(0.2) { tester.tcp_connectivity? }
+        expect(result).to be false
       end
     end
 
@@ -77,10 +67,6 @@ describe WifiWand::NetworkConnectivityTester do
 
       before do
         allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
-        
-        # Mock Process.clock_gettime to simulate immediate timeout for failure scenarios
-        start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(start_time, start_time + 10)
       end
 
       it 'outputs domain list to stdout' do
@@ -93,16 +79,16 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
 
       before do
+        stub_const('WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT', 0.05)
+        stub_const('WifiWand::TimingConstants::DNS_RESOLUTION_TIMEOUT', 0.01)
         # Mock IPSocket.getaddress to always raise socket error
         allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
-        
-        # Mock Process.clock_gettime to simulate immediate timeout for failure scenarios
-        start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(start_time, start_time + 10)
       end
 
       it 'returns false when all domains fail to resolve' do
-        expect(tester.dns_working?).to be false
+        # Timeout wrapper ensures test doesn't hang if there's a bug
+        result = Timeout.timeout(0.2) { tester.dns_working? }
+        expect(result).to be false
       end
     end
 

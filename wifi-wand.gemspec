@@ -33,6 +33,9 @@ Gem::Specification.new do |spec|
   # on last line of method:
   spec.add_dependency('pry', '~> 0.14', '>= 0.14.2')
 
+  # async provides clean fiber-based concurrency for network connectivity testing
+  spec.add_dependency('async', '~> 2.0')
+
   spec.add_development_dependency "rake", "~> 13.3.0", "< 14"
   spec.add_development_dependency "rspec", ">= 3.13.1", "< 4"
   spec.add_development_dependency "simplecov", "~> 0.22"
