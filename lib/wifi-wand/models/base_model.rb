@@ -490,10 +490,6 @@ class BaseModel
   end
 
   # QR code generator helper
-  def qr_code_generator
-    @qr_code_generator ||= Helpers::QrCodeGenerator.new
-  end
-
   def debug_method_entry(method_name, binding = nil, param_names = nil)
     return unless verbose_mode
 
