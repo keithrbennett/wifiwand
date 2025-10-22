@@ -22,6 +22,44 @@ class MacOsModel < BaseModel
     /WLAN/i
   ].freeze
 
+  CONNECTION_FAILURE_PATTERNS = [
+    /Failed to join network/i,
+    /Error:\s*-3900/,
+    /Could not connect/i,
+    /Could not find network/i
+  ].freeze
+
+  AUTHENTICATION_FAILURE_PATTERNS = [
+    /invalid password/i,
+    /incorrect password/i,
+    /authentication (?:failed|timeout|timed out)/i,
+    /802\.1x authentication failed/i,
+    /password required/i
+  ].freeze
+
+  # Keychain exit code handlers for password retrieval
+  # Exit codes and their meanings:
+  # 44  - Item not found in keychain
+  # 45  - User denied access to keychain
+  # 128 - User cancelled keychain access dialog
+  # 51  - Keychain access attempted in non-interactive mode
+  # 25  - Invalid keychain search parameters
+  # 1   - General error (could be "not found" or other issues)
+  KEYCHAIN_EXIT_CODE_HANDLERS = {
+    44 => ->(network_name, _error) { nil }, # Item not found - no password stored
+    45 => ->(network_name, _error) { raise KeychainAccessDeniedError.new(network_name) },
+    128 => ->(network_name, _error) { raise KeychainAccessCancelledError.new(network_name) },
+    51 => ->(network_name, _error) { raise KeychainNonInteractiveError.new(network_name) },
+    25 => ->(network_name, _error) { raise KeychainError.new("Invalid keychain search parameters for network '#{network_name}'") },
+    1 => ->(network_name, error) {
+      if error.text.include?("could not be found")
+        nil
+      else
+        raise KeychainError.new("Keychain error accessing password for network '#{network_name}': #{error.text.strip}")
+      end
+    }
+  }.freeze
+
   def fetch_hardware_ports
     output = run_os_command(%w[networksetup -listallhardwareports]).stdout
 
@@ -148,23 +186,18 @@ class MacOsModel < BaseModel
   def _available_network_names
     iface = ensure_wifi_interface!
     data = airport_data
-    inner_key = connected_network_name ? 'spairport_airport_other_local_wireless_networks' : 'spairport_airport_local_wireless_networks'
 
-    interfaces = data['SPAirPortDataType']
-      &.detect { |h| h.key?('spairport_airport_interfaces') }
-      &.fetch('spairport_airport_interfaces', [])
-
+    interfaces = find_airport_interfaces(data)
     return [] unless interfaces
 
-    wifi_data = interfaces.detect { |h| h['_name'] == iface }
-    networks = wifi_data&.fetch(inner_key, [])
+    wifi_data = find_wifi_interface_data(interfaces, iface)
+    return [] unless wifi_data
+
+    inner_key = network_list_key
+    networks = wifi_data.fetch(inner_key, [])
     return [] unless networks
 
-    networks
-      .sort_by { |net| -net.fetch('spairport_signal_noise', '0/0').to_s.split('/').first.to_i }
-      .map { |h| h['_name'] }
-      .compact
-      .uniq
+    sort_networks_by_signal_strength(networks)
   end
 
 
@@ -234,29 +267,7 @@ class MacOsModel < BaseModel
     output_text = result.combined_output
 
     # networksetup returns exit code 0 even on failure, so check output text
-    failure_signatures = [
-      /Failed to join network/i,
-      /Error:\s*-3900/,
-      /Could not connect/i,
-      /Could not find network/i
-    ]
-
-    if failure_signatures.any? { |pattern| output_text.match?(pattern) }
-      auth_signatures = [
-        /invalid password/i,
-        /incorrect password/i,
-        /authentication (?:failed|timeout|timed out)/i,
-        /802\.1x authentication failed/i,
-        /password required/i
-      ]
-
-      if auth_signatures.any? { |pattern| output_text.match?(pattern) }
-        reason = extract_auth_failure_reason(output_text)
-        raise NetworkAuthenticationError.new(network_name, reason)
-      end
-
-      raise WifiWand::CommandExecutor::OsCommandError.new(1, 'networksetup', output_text.strip)
-    end
+    check_connection_result(network_name, output_text)
   end
 
   def extract_auth_failure_reason(output_text)
@@ -308,31 +319,7 @@ class MacOsModel < BaseModel
     begin
       return run_os_command(['security', 'find-generic-password', '-D', 'AirPort network password', '-a', preferred_network_name, '-w']).stdout.chomp
     rescue WifiWand::CommandExecutor::OsCommandError => error
-      case error.exitstatus
-      when 44
-        # Item not found in keychain - network has no password stored
-        nil
-      when 45
-        raise KeychainAccessDeniedError.new(preferred_network_name)
-      when 128
-        raise KeychainAccessCancelledError.new(preferred_network_name)
-      when 51
-        raise KeychainNonInteractiveError.new(preferred_network_name)
-      when 25
-        raise KeychainError.new("Invalid keychain search parameters for network '#{preferred_network_name}'")
-      when 1
-        if error.text.include?("could not be found")
-          # Alternative way item not found might be reported
-          nil
-        else
-          raise KeychainError.new("Keychain error accessing password for network '#{preferred_network_name}': #{error.text.strip}")
-        end
-      else
-        # Unknown error - provide detailed information for debugging
-        error_msg = "Unknown keychain error (exit code #{error.exitstatus}) accessing password for network '#{preferred_network_name}'"
-        error_msg += ": #{error.text.strip}" unless error.text.empty?
-        raise KeychainError.new(error_msg)
-      end
+      handle_keychain_error(preferred_network_name, error)
     end
   end
 
@@ -589,6 +576,69 @@ class MacOsModel < BaseModel
   private :fetch_hardware_ports, :find_wifi_port, :detect_wifi_service_name_from_ports, :extract_auth_failure_reason
 
   private
+
+  # Helper methods for _preferred_network_password
+  def handle_keychain_error(network_name, error)
+    handler = KEYCHAIN_EXIT_CODE_HANDLERS[error.exitstatus]
+
+    if handler
+      handler.call(network_name, error)
+    else
+      # Unknown error - provide detailed information for debugging
+      error_msg = "Unknown keychain error (exit code #{error.exitstatus}) accessing password for network '#{network_name}'"
+      error_msg += ": #{error.text.strip}" unless error.text.empty?
+      raise KeychainError.new(error_msg)
+    end
+  end
+
+  # Helper methods for os_level_connect_using_networksetup
+  def check_connection_result(network_name, output_text)
+    return unless connection_failed?(output_text)
+
+    if authentication_failed?(output_text)
+      reason = extract_auth_failure_reason(output_text)
+      raise NetworkAuthenticationError.new(network_name, reason)
+    end
+
+    raise WifiWand::CommandExecutor::OsCommandError.new(1, 'networksetup', output_text.strip)
+  end
+
+  def connection_failed?(output_text)
+    CONNECTION_FAILURE_PATTERNS.any? { |pattern| output_text.match?(pattern) }
+  end
+
+  def authentication_failed?(output_text)
+    AUTHENTICATION_FAILURE_PATTERNS.any? { |pattern| output_text.match?(pattern) }
+  end
+
+  # Helper methods for _available_network_names
+  def find_airport_interfaces(data)
+    data['SPAirPortDataType']
+      &.detect { |h| h.key?('spairport_airport_interfaces') }
+      &.fetch('spairport_airport_interfaces', [])
+  end
+
+  def find_wifi_interface_data(interfaces, iface)
+    interfaces.detect { |h| h['_name'] == iface }
+  end
+
+  def network_list_key
+    connected_network_name ?
+      'spairport_airport_other_local_wireless_networks' :
+      'spairport_airport_local_wireless_networks'
+  end
+
+  def sort_networks_by_signal_strength(networks)
+    networks
+      .sort_by { |net| -extract_signal_strength(net) }
+      .map { |h| h['_name'] }
+      .compact
+      .uniq
+  end
+
+  def extract_signal_strength(network)
+    network.fetch('spairport_signal_noise', '0/0').to_s.split('/').first.to_i
+  end
 
   def airport_data
     json_text = run_os_command(%w[system_profiler -json SPAirPortDataType]).stdout
