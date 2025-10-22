@@ -98,4 +98,84 @@ module TestHelpers
     $stdout = original_stdout
     $stderr = original_stderr
   end
+
+  # Color assertion constants for testing TTY-aware output
+  ANSI_COLOR_REGEX = /\e\[\d+m/
+  GREEN_TEXT_REGEX = /\e\[32m.*\e\[0m/
+  RED_TEXT_REGEX = /\e\[31m.*\e\[0m/
+  YELLOW_TEXT_REGEX = /\e\[33m.*\e\[0m/
+  CYAN_TEXT_REGEX = /\e\[36m.*\e\[0m/
+
+  # Factory method for creating standard CLI mock model with common methods
+  def create_standard_mock_model(overrides = {})
+    defaults = {
+      verbose_mode: false,
+      wifi_on?: true,
+      wifi_off: nil,
+      wifi_on: nil,
+      available_network_names: ['TestNet1', 'TestNet2'],
+      wifi_info: {'status' => 'connected'},
+      connected_to_internet?: true,
+      connected_network_name: 'TestNetwork',
+      disconnect: nil,
+      connect: nil,
+      cycle_network: nil,
+      nameservers: ['8.8.8.8', '1.1.1.1'],
+      set_nameservers: nil,
+      preferred_networks: ['Network1', 'Network2'],
+      preferred_network_password: 'password123',
+      remove_preferred_networks: ['RemovedNet'],
+      till: nil,
+      last_connection_used_saved_password?: false,
+      available_resources_help: 'Available resources help text',
+      open_resources_by_codes: { opened_resources: [], invalid_codes: [] },
+      resource_manager: double('resource_manager', invalid_codes_error: 'Invalid codes'),
+      generate_qr_code: 'TestNetwork-qr-code.png'
+    }
+    double('model', defaults.merge(overrides))
+  end
+
+  # Factory method for creating mock OS with a model
+  def create_mock_os_with_model(model = nil)
+    model ||= create_standard_mock_model
+    double('os', create_model: model)
+  end
+
+  # Factory method for creating CLI options
+  def create_cli_options(overrides = {})
+    defaults = {
+      verbose: false,
+      wifi_interface: nil,
+      interactive_mode: false,
+      post_processor: nil
+    }
+    OpenStruct.new(defaults.merge(overrides))
+  end
+
+  # Helper for mocking Socket.tcp failures
+  def mock_socket_connection_failure
+    allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
+  end
+
+  # Helper for mocking Socket.tcp success
+  def mock_socket_connection_success
+    allow(Socket).to receive(:tcp).and_yield
+  end
+
+  # Helper for mocking IPSocket.getaddress failures
+  def mock_dns_resolution_failure
+    allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
+  end
+
+  # Helper for mocking IPSocket.getaddress success
+  def mock_dns_resolution_success(ip_address = '1.2.3.4')
+    allow(IPSocket).to receive(:getaddress).and_return(ip_address)
+  end
+
+  # Helper for stubbing short connectivity timeouts for fast tests
+  def stub_short_connectivity_timeouts
+    stub_const('WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT', 0.05)
+    stub_const('WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT', 0.01)
+    stub_const('WifiWand::TimingConstants::DNS_RESOLUTION_TIMEOUT', 0.01)
+  end
 end

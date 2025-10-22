@@ -4,37 +4,13 @@ require_relative '../spec_helper'
 require_relative '../../lib/wifi-wand/command_line_interface'
 
 describe WifiWand::CommandLineInterface do
+  include TestHelpers
 
-  # Mock the model to avoid real OS interactions during CLI tests
-  let(:mock_model) { 
-    double('model', 
-      verbose_mode: false,
-      wifi_on?: true,
-      wifi_off: nil,
-      wifi_on: nil,
-      available_network_names: ['TestNet1', 'TestNet2'],
-      wifi_info: {'status' => 'connected'},
-      connected_to_internet?: true,
-      connected_network_name: 'TestNetwork',
-      disconnect: nil,
-      connect: nil,
-      cycle_network: nil,
-      nameservers: ['8.8.8.8', '1.1.1.1'],
-      set_nameservers: nil,
-      preferred_networks: ['Network1', 'Network2'],
-      preferred_network_password: 'password123',
-      remove_preferred_networks: ['RemovedNet'],
-      till: nil,
-      last_connection_used_saved_password?: false,
-      available_resources_help: 'Available resources help text',
-      open_resources_by_codes: { opened_resources: [], invalid_codes: [] },
-      resource_manager: double('resource_manager', invalid_codes_error: 'Invalid codes'),
-      generate_qr_code: 'TestNetwork-qr-code.png'
-    ) 
-  }
-  let(:mock_os) { double('os', create_model: mock_model) }
-  let(:options) { OpenStruct.new(verbose: false, wifi_interface: nil, interactive_mode: false, post_processor: nil) }
-  let(:interactive_options) { OpenStruct.new(verbose: false, wifi_interface: nil, interactive_mode: true, post_processor: nil) }
+  # Use factory methods to create standard test fixtures
+  let(:mock_model) { create_standard_mock_model }
+  let(:mock_os) { create_mock_os_with_model(mock_model) }
+  let(:options) { create_cli_options }
+  let(:interactive_options) { create_cli_options(interactive_mode: true) }
   let(:interactive_cli) { described_class.new(interactive_options) }
 
   # Shared examples for command delegation testing
@@ -267,12 +243,10 @@ describe WifiWand::CommandLineInterface do
 
     it 'does not show message in interactive mode even when saved password is used' do
       network_name = 'SavedNetwork'
-      interactive_options = OpenStruct.new(verbose: false, wifi_interface: nil, interactive_mode: true)
-      interactive_cli = described_class.new(interactive_options)
-      
+
       allow(interactive_cli.model).to receive(:connect).with(network_name, nil)
       allow(interactive_cli.model).to receive(:last_connection_used_saved_password?).and_return(true)
-      
+
       # Should not output message in interactive mode
       expect { interactive_cli.cmd_co(network_name) }.not_to output(/Using saved password/).to_stdout
     end
@@ -693,7 +667,7 @@ describe WifiWand::CommandLineInterface do
       let(:test_data) { { key: 'value' } }
       let(:human_readable_producer) { -> { 'Human readable output' } }
       let(:processor) { ->(obj) { obj.to_s.upcase } }
-      let(:options_with_processor) { OpenStruct.new(verbose: false, wifi_interface: nil, interactive_mode: false, post_processor: processor) }
+      let(:options_with_processor) { create_cli_options(post_processor: processor) }
       let(:cli_with_processor) { described_class.new(options_with_processor) }
       
       context 'in interactive mode' do
@@ -761,7 +735,7 @@ describe WifiWand::CommandLineInterface do
   
   describe 'accessor methods' do
     describe '#verbose_mode' do
-      let(:verbose_options) { OpenStruct.new(verbose: true, wifi_interface: nil, interactive_mode: false, post_processor: nil) }
+      let(:verbose_options) { create_cli_options(verbose: true) }
       let(:verbose_cli) { described_class.new(verbose_options) }
       
       context 'when verbose option is true' do

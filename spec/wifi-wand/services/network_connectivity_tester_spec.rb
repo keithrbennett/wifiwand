@@ -5,7 +5,8 @@ require 'stringio'
 require_relative '../../../lib/wifi-wand/services/network_connectivity_tester'
 
 describe WifiWand::NetworkConnectivityTester do
-  
+  include TestHelpers
+
   describe '#tcp_connectivity?' do
 
     context 'with verbose mode enabled' do
@@ -13,7 +14,7 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: true, output: output) }
 
       before do
-        allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
+        mock_socket_connection_failure
         allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
       end
 
@@ -32,10 +33,8 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
 
       before do
-        stub_const('WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT', 0.05)
-        stub_const('WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT', 0.01)
-        # Mock Socket.tcp to always raise connection refused
-        allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
+        stub_short_connectivity_timeouts
+        mock_socket_connection_failure
       end
 
       it 'returns false when all endpoints fail' do
@@ -48,10 +47,7 @@ describe WifiWand::NetworkConnectivityTester do
     context 'with mocked success' do
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
 
-      before do
-        # Mock Socket.tcp to succeed (simulate successful connection)
-        allow(Socket).to receive(:tcp).and_yield
-      end
+      before { mock_socket_connection_success }
 
       it 'returns true when at least one endpoint succeeds' do
         expect(tester.tcp_connectivity?).to be true
@@ -88,9 +84,7 @@ describe WifiWand::NetworkConnectivityTester do
       let(:output) { StringIO.new }
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: true, output: output) }
 
-      before do
-        allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
-      end
+      before { mock_dns_resolution_failure }
 
       it 'outputs domain list to stdout' do
         tester.dns_working?
@@ -102,10 +96,8 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
 
       before do
-        stub_const('WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT', 0.05)
-        stub_const('WifiWand::TimingConstants::DNS_RESOLUTION_TIMEOUT', 0.01)
-        # Mock IPSocket.getaddress to always raise socket error
-        allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
+        stub_short_connectivity_timeouts
+        mock_dns_resolution_failure
       end
 
       it 'returns false when all domains fail to resolve' do
@@ -118,10 +110,7 @@ describe WifiWand::NetworkConnectivityTester do
     context 'with mocked success' do
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
 
-      before do
-        # Mock IPSocket.getaddress to succeed (simulate successful DNS resolution)
-        allow(IPSocket).to receive(:getaddress).and_return('1.2.3.4')
-      end
+      before { mock_dns_resolution_success }
 
       it 'returns true when at least one domain resolves' do
         expect(tester.dns_working?).to be true
