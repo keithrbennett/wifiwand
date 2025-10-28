@@ -6,6 +6,7 @@ require 'shellwords'
 require 'socket'
 require 'tempfile'
 require 'uri'
+require 'async'
 require_relative 'helpers/command_output_formatter'
 require_relative 'helpers/resource_manager'
 require_relative 'helpers/qr_code_generator'
@@ -275,19 +276,55 @@ class BaseModel
     wifi_on? ? (wifi_off; wifi_on) : (wifi_on; wifi_off)
   end
 
-  def status_line_data
+  # Builds a hash for the status command, yielding partial results as soon as
+  # they're known so callers can stream updates (e.g., DNS finishing before TCP).
+  # DNS and TCP checks run concurrently using fibers to shorten the perceived wait.
+  def status_line_data(progress_callback: nil)
     begin
-      tcp_working = internet_tcp_connectivity?
-      dns_working = dns_working?
-      {
+      partial = {
         wifi_on: wifi_on?,
-        network_name: connected_network_name,
-        tcp_working: tcp_working,
-        dns_working: dns_working,
-        internet_connected: connected_to_internet?(tcp_working, dns_working)
+        network_name: :pending,
+        tcp_working: nil,
+        dns_working: nil,
+        internet_connected: nil
       }
+      progress_callback&.call(partial.dup)
+
+      Async do |task|
+        ssid_task = task.async do
+          begin
+            connected_network_name
+          rescue StandardError
+            nil
+          end
+        end
+
+        dns_task = task.async do
+          dns_working?
+        end
+
+        tcp_task = task.async do
+          internet_tcp_connectivity?
+        end
+
+        dns_result = dns_task.wait
+        partial[:dns_working] = dns_result
+        progress_callback&.call(partial.dup)
+
+        partial[:network_name] = ssid_task.wait
+        progress_callback&.call(partial.dup)
+
+        tcp_result = tcp_task.wait
+        partial[:tcp_working] = tcp_result
+        partial[:internet_connected] = connected_to_internet?(tcp_result, dns_result)
+
+        final_data = partial.dup
+        progress_callback&.call(final_data)
+        final_data
+      end.wait
     rescue
-      nil # Return nil on failure
+      progress_callback&.call(nil)
+      nil
     end
   end
 

@@ -670,12 +670,8 @@ class MacOsModel < BaseModel
     return false unless current_network
 
     # On macOS, a network is hidden if it doesn't appear in the broadcast networks list
-    # but is still connected. We check the available networks list.
-    inner_key = connected_network_name ?
-      'spairport_airport_other_local_wireless_networks' :
-      'spairport_airport_local_wireless_networks'
-
-    broadcast_networks = wifi_interface_data[inner_key] || []
+    # but is still connected. We always check the complete list of visible networks.
+    broadcast_networks = wifi_interface_data['spairport_airport_local_wireless_networks'] || []
     network_in_broadcast_list = broadcast_networks.any? { |net| net['_name'] == network_name }
 
     # If the network we're connected to is not in the broadcast list, it's hidden

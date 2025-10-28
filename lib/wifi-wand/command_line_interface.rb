@@ -271,11 +271,65 @@ class CommandLineInterface
   end
 
   def cmd_s
-    status_data = model.status_line_data
+    progress_mode = status_progress_mode
+    current_snapshot = {
+      wifi_on: nil,
+      network_name: nil,
+      tcp_working: nil,
+      dns_working: nil,
+      internet_connected: nil
+    }
+    last_visible_length = 0
+    inline_progress_printed = false
+    saw_progress_error = false
+
+    progress_callback = if progress_mode == :inline
+      # Stream incremental updates so DNS/TCP results surface as soon as they complete.
+      lambda do |update|
+        if update.nil?
+          saw_progress_error = true
+          next
+        end
+
+        current_snapshot.merge!(update)
+        rendered = status_line(current_snapshot)
+
+        visible_length = strip_ansi(rendered).length
+        padding = [last_visible_length - visible_length, 0].max
+        padded_render = padding.zero? ? rendered : "#{rendered}#{' ' * padding}"
+
+        out_stream.print("\r#{padded_render}")
+        out_stream.flush if out_stream.respond_to?(:flush)
+
+        last_visible_length = visible_length
+        inline_progress_printed = true
+      end
+    end
+
+    # Seed the display so users see the WAIT placeholders instantly.
+    progress_callback&.call(current_snapshot.dup)
+
+    status_data = model.status_line_data(progress_callback: progress_callback)
+
+    if progress_mode == :inline
+      if inline_progress_printed
+        if saw_progress_error && status_data.nil?
+          out_stream.print("\r")
+          out_stream.puts status_line(nil)
+        else
+          out_stream.puts
+        end
+      else
+        rendered = status_line(status_data)
+        out_stream.puts(rendered) unless rendered.to_s.empty?
+      end
+    end
+
     if interactive_mode
-      out_stream.puts status_line(status_data)
+      out_stream.puts status_line(status_data) if progress_mode == :none
       nil
     else
+      return status_data unless progress_mode == :none
       handle_output(status_data, -> { status_line(status_data) })
       status_data
     end
@@ -323,6 +377,25 @@ class CommandLineInterface
   end
 
   private
+
+  # Determines how the status command should present progress updates.
+  # - Returns :none when output is being post-processed or the stream is non-TTY
+  #   to preserve machine-readable output.
+  # - Returns :inline when printing directly to an interactive terminal so we
+  #   can reuse the same line with carriage returns.
+  def status_progress_mode
+    return :none if options.post_processor
+
+    return :none unless out_stream.respond_to?(:tty?) && out_stream.tty?
+
+    :inline
+  end
+
+  # Strips ANSI escape codes from a string so we can measure visible length
+  # when padding inline terminal updates.
+  def strip_ansi(text)
+    text.to_s.gsub(/\e\[[\d;]*m/, '')
+  end
 
   def handle_output(data, human_readable_string_producer)
     if interactive_mode
