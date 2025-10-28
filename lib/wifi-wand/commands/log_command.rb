@@ -6,6 +6,29 @@ require_relative '../errors'
 require_relative '../timing_constants'
 
 module WifiWand
+  # LogCommand handles parsing and executing the 'log' subcommand.
+  #
+  # Responsibilities:
+  # - Parse command-line options using OptionParser
+  # - Validate option values (e.g., interval must be positive)
+  # - Create and configure EventLogger with parsed options
+  # - Handle output destination (stdout, file, or both)
+  #
+  # Options:
+  # - --interval N: Poll interval in seconds (default: 5)
+  # - --file [PATH]: Enable file logging (default filename: wifiwand-events.log)
+  # - --stdout: Additive flag to output to stdout (when combined with --file)
+  # - --hook PATH: Hook script path (reserved for future use)
+  # - --verbose: Enable verbose logging
+  #
+  # Output behavior:
+  # - Default: stdout only (no file)
+  # - --file: file only (disables stdout)
+  # - --file --stdout: both file and stdout
+  #
+  # Example usage:
+  #   command = LogCommand.new(model)
+  #   command.execute('--interval', '2', '--file', '--stdout')
   class LogCommand
     attr_reader :model, :output, :verbose
 

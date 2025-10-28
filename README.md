@@ -63,6 +63,17 @@ wifi-wand -s
 wifi-wand -v ...
 ```
 
+### Documentation
+
+For detailed information about specific features:
+
+- **[Event Logging (`log` command)](docs/LOGGING.md)** - Continuously monitor WiFi state changes, log events over time, and detect network issues
+- **[Status Command](docs/STATUS_COMMAND.md)** - Understand WiFi and connectivity status display
+- **[Info Command](docs/INFO_COMMAND.md)** - Get detailed network configuration and status information
+- **[Connectivity Checking (`ci` command)](docs/CONNECTIVITY_CHECKING.md)** - Check internet availability in scripts and automation
+- **[Testing Guide](docs/TESTING.md)** - Running tests, coverage reports, and test categories
+- **[DNS Configuration Guide](docs/DNS_Configuration_Guide.md)** - Managing nameservers and DNS settings
+
 ### Usage
 
 Available commands can be seen by using the `-h` (or `--help`) option:
@@ -86,6 +97,11 @@ f[orget] name1 [..name_n] - removes network-name(s) from the preferred (saved) n
                             in interactive mode, can be a single array of names, e.g. returned by `pref_nets`
 h[elp]                    - prints this help
 i[nfo]                    - a hash of detailed networking information
+lo[g]                     - start event logging (polls WiFi status, logs changes)
+                            options: --interval N (default 5 seconds), --file [PATH] (default: wifiwand-events.log),
+                                     --stdout (additive, outputs to both file and stdout), --hook PATH
+                            Logs events: WiFi on/off, network connect/disconnect, internet on/off
+                            Ctrl+C to stop (see docs/LOGGING.md for details)
 na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear,
                             or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
 ne[twork_name]            - name (SSID) of currently connected WiFi network
@@ -97,7 +113,8 @@ q[uit]                    - exits this program (interactive shell mode only) (sa
 qr [filespec|'-'] [password]
                          - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats; optional password avoids macOS auth prompt
 ro[pen]                   - open web resources: 'cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page)
-s[tatus]                  - status line (WiFi, Network, TCP, DNS, Internet)
+s[tatus]                  - status line (WiFi, Network, TCP, DNS, Internet) with real-time connectivity checks
+                            (see docs/STATUS_COMMAND.md for details on connectivity detection)
 t[ill]                    - wait until Internet connection reaches desired state:
                             'on'/:on (connected), 'off'/:off (disconnected), 'conn'/:conn (connected), 'disc'/:disc (disconnected)
                             Optional: wait interval between checks in seconds (default: 0.5)
@@ -232,6 +249,11 @@ wifi-wand qr          # generate PNG file: <SSID>-qr-code.png
 wifi-wand qr wifi.svg # generate SVG file: wifi.svg
 wifi-wand qr -        # print ANSI QR to terminal
 wifi-wand t on && say "Internet connected" # Play audible message when Internet becomes connected
+wifi-wand s           # display status (WiFi, Network, TCP, DNS, Internet)
+wifi-wand log         # monitor WiFi status changes in real-time (to terminal)
+wifi-wand log --file  # log WiFi events to wifiwand-events.log
+wifi-wand log --file --stdout        # log to file AND display in terminal
+wifi-wand log --interval 1 --file    # check every 1 second instead of default 5
 ```
 
 #### Interactive Shell Commands

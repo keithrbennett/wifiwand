@@ -4,6 +4,25 @@ require 'json'
 require_relative 'log_file_manager'
 
 module WifiWand
+  # EventLogger continuously monitors WiFi status and logs state changes.
+  #
+  # This service polls the WiFi model at regular intervals and emits events
+  # when meaningful state changes are detected (e.g., WiFi turned on/off,
+  # network connected/disconnected, internet became available/unavailable).
+  #
+  # Architecture:
+  # 1. Maintains previous state to detect changes
+  # 2. Polls status_line_data() at configurable intervals
+  # 3. Compares current state with previous state
+  # 4. Logs events only when state actually changes (no duplicate logging)
+  # 5. Handles Ctrl+C gracefully to close log files properly
+  #
+  # The event structure is designed to support future hook execution for
+  # automated responses to network state changes (notifications, reconnects, etc.)
+  #
+  # Example usage:
+  #   logger = EventLogger.new(model, interval: 5, output: $stdout)
+  #   logger.run  # Blocks until Ctrl+C is pressed
   class EventLogger
 
     EVENT_TYPES = {

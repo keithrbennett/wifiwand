@@ -3,6 +3,24 @@
 require 'fileutils'
 
 module WifiWand
+  # LogFileManager handles writing timestamped events to a log file.
+  #
+  # Responsibilities:
+  # - Opens log file in append mode (creates if doesn't exist)
+  # - Writes messages with timestamps
+  # - Flushes after each write to ensure data is written to disk
+  # - Closes file handle properly
+  # - Reports errors to stderr if issues occur
+  #
+  # Design notes:
+  # - Does NOT create parent directories (directory must exist)
+  # - File close errors are propagated to the caller (not silently swallowed)
+  # - Each write is flushed immediately for real-time log visibility
+  #
+  # Example usage:
+  #   manager = LogFileManager.new(log_file_path: 'events.log')
+  #   manager.write('[2025-10-28 14:30:00] WiFi ON')
+  #   manager.close
   class LogFileManager
 
     DEFAULT_LOG_FILE = 'wifiwand-events.log'
