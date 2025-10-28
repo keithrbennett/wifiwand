@@ -183,9 +183,35 @@ class CommandLineInterface
   end
 
   def cmd_t(*options)
+    # Validate that target status argument was provided
+    if options.empty? || options[0].nil?
+      raise WifiWand::ConfigurationError.new(
+        "Missing target status argument.\n" \
+        "Usage: till conn|disc|on|off [timeout_secs] [interval_secs]\n" \
+        "Examples: 'till off 20' or 'till conn 30 0.5'\n" \
+        "#{help_hint}"
+      )
+    end
+
     target_status = options[0].to_sym
-    timeout_in_secs = (options[1] ? Float(options[1]) : nil)
-    interval_in_secs = (options[2] ? Float(options[2]) : nil)
+
+    # Validate numeric arguments
+    begin
+      timeout_in_secs = (options[1] ? Float(options[1]) : nil)
+    rescue ArgumentError, TypeError
+      raise WifiWand::ConfigurationError.new(
+        "Invalid timeout value '#{options[1]}'. Timeout must be a number. #{help_hint}"
+      )
+    end
+
+    begin
+      interval_in_secs = (options[2] ? Float(options[2]) : nil)
+    rescue ArgumentError, TypeError
+      raise WifiWand::ConfigurationError.new(
+        "Invalid interval value '#{options[2]}'. Interval must be a number. #{help_hint}"
+      )
+    end
+
     # Pass CLI-friendly error formatting in non-interactive mode only.
     model.till(
       target_status,
@@ -283,15 +309,15 @@ class CommandLineInterface
 
   def call
     return if interactive_mode  # Shell already ran in constructor, nothing more to do
-    
+
     validate_command_line
     begin
       # By this time, the Main class has removed the command line options, and all that is left
       # in ARGV is the commands and their options.
       process_command_line
-    rescue WifiWand::BadCommandError => error
+    rescue WifiWand::BadCommandError, WifiWand::ConfigurationError => error
       @err_stream.puts error.to_s
-      @err_stream.puts help_hint
+      @err_stream.puts help_hint unless error.message.include?(help_hint)
       exit(-1)
     end
   end

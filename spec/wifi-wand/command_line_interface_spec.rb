@@ -592,7 +592,7 @@ describe WifiWand::CommandLineInterface do
         )
         subject.cmd_t('on')
       end
-      
+
       it 'calls model till method with target status and wait interval' do
         expect(mock_model).to receive(:till).with(
           :connected,
@@ -601,6 +601,59 @@ describe WifiWand::CommandLineInterface do
           stringify_permitted_values_in_error_msg: true
         )
         subject.cmd_t('connected', '2.5')
+      end
+
+      context 'argument validation' do
+        it 'raises ConfigurationError when no arguments provided' do
+          expect { subject.cmd_t }.to raise_error(WifiWand::ConfigurationError) do |error|
+            expect(error.message).to include('Missing target status argument')
+            expect(error.message).to include('Usage: till conn|disc|on|off')
+            expect(error.message).to include('Use')
+            expect(error.message).to include('help')
+          end
+        end
+
+        it 'raises ConfigurationError when first argument is nil' do
+          expect { subject.cmd_t(nil) }.to raise_error(WifiWand::ConfigurationError) do |error|
+            expect(error.message).to include('Missing target status argument')
+          end
+        end
+
+        it 'raises ConfigurationError when timeout is not numeric' do
+          expect { subject.cmd_t('on', 'invalid') }.to raise_error(WifiWand::ConfigurationError) do |error|
+            expect(error.message).to include('Invalid timeout value')
+            expect(error.message).to include('invalid')
+            expect(error.message).to include('must be a number')
+          end
+        end
+
+        it 'raises ConfigurationError when interval is not numeric' do
+          expect { subject.cmd_t('on', '10', 'bad_value') }.to raise_error(WifiWand::ConfigurationError) do |error|
+            expect(error.message).to include('Invalid interval value')
+            expect(error.message).to include('bad_value')
+            expect(error.message).to include('must be a number')
+          end
+        end
+
+        it 'accepts valid numeric timeout as string' do
+          expect(mock_model).to receive(:till).with(
+            :on,
+            timeout_in_secs: 30.0,
+            wait_interval_in_secs: nil,
+            stringify_permitted_values_in_error_msg: true
+          )
+          expect { subject.cmd_t('on', '30') }.not_to raise_error
+        end
+
+        it 'accepts valid numeric timeout and interval as strings' do
+          expect(mock_model).to receive(:till).with(
+            :off,
+            timeout_in_secs: 20.0,
+            wait_interval_in_secs: 0.5,
+            stringify_permitted_values_in_error_msg: true
+          )
+          expect { subject.cmd_t('off', '20', '0.5') }.not_to raise_error
+        end
       end
     end
   end
@@ -708,14 +761,14 @@ describe WifiWand::CommandLineInterface do
       allow(subject).to receive(:exit)
       allow(subject).to receive(:help_hint).and_return('Type help for usage')
     end
-    
+
     it 'validates command line and processes commands successfully' do
       expect(subject).to receive(:validate_command_line)
       expect(subject).to receive(:process_command_line)
-      
+
       subject.call
     end
-    
+
     it 'handles BadCommandError with error message and help hint' do
       error = WifiWand::BadCommandError.new('Invalid command')
       # Rebuild CLI with a captured err_stream for this test
@@ -730,6 +783,40 @@ describe WifiWand::CommandLineInterface do
       cli.call
       expect(err_stream.string).to include('Invalid command')
       expect(err_stream.string).to include('Type help for usage')
+    end
+
+    it 'handles ConfigurationError with error message' do
+      error = WifiWand::ConfigurationError.new('Missing required argument')
+      # Rebuild CLI with a captured err_stream for this test
+      err_stream = StringIO.new
+      opts = options.dup
+      opts.err_stream = err_stream
+      cli = described_class.new(opts)
+      allow(cli).to receive(:validate_command_line)
+      allow(cli).to receive(:help_hint).and_return('Type help for usage')
+      allow(cli).to receive(:process_command_line).and_raise(error)
+      expect(cli).to receive(:exit).with(-1)
+      cli.call
+      expect(err_stream.string).to include('Missing required argument')
+      expect(err_stream.string).to include('Type help for usage')
+    end
+
+    it 'does not duplicate help hint when error message already contains it' do
+      error_msg = "Missing required argument. Type help for usage"
+      error = WifiWand::ConfigurationError.new(error_msg)
+      # Rebuild CLI with a captured err_stream for this test
+      err_stream = StringIO.new
+      opts = options.dup
+      opts.err_stream = err_stream
+      cli = described_class.new(opts)
+      allow(cli).to receive(:validate_command_line)
+      allow(cli).to receive(:help_hint).and_return('Type help for usage')
+      allow(cli).to receive(:process_command_line).and_raise(error)
+      expect(cli).to receive(:exit).with(-1)
+      cli.call
+      # Count occurrences of the help hint - should only appear once
+      hint_count = err_stream.string.scan(/Type help for usage/).length
+      expect(hint_count).to eq(1)
     end
   end
   
