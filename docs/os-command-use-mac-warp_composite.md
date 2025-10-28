@@ -35,10 +35,10 @@ On macOS, `wifi-wand` uses a variety of tools to manage network settings:
 - **CLI Commands**: All WiFi operations (automatic interface detection)
 
 **`sw_vers -productVersion`**
-- **Description**: Detects current macOS version for compatibility validation (minimum: macOS 12.0 Monterey)
+- **Description**: Detects the current macOS version for diagnostics and logging
 - **Dynamic Values**: None
-- **Base Model Method(s)**: `detect_macos_version`, `validate_macos_version`
-- **CLI Commands**: Initialization (version checking)
+- **Base Model Method(s)**: `detect_macos_version`
+- **CLI Commands**: Initialization helpers
 
 ### Interface Validation
 
@@ -245,7 +245,7 @@ Network passwords are stored in the macOS keychain with specific error codes for
 WiFi service names vary across systems ("Wi-Fi", "AirPort", "Wireless", etc.), so the system dynamically detects the correct service name pattern during initialization.
 
 ### Version Compatibility
-Minimum supported macOS version is 12.0 (Monterey). The system validates compatibility on startup and provides clear error messages for unsupported versions.
+Wifi Wand relies on feature detection (e.g., CoreWLAN availability). Version lookups are recorded for diagnostics but no fixed minimum macOS release is enforced.
 
 ### DNS Hierarchy
 DNS resolution uses multiple sources with `scutil --dns` as the preferred method (most accurate) and `networksetup -getdnsservers` as fallback for compatibility.

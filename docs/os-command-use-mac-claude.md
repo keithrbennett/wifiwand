@@ -252,6 +252,6 @@ Important macOS-specific concepts for WiFi management:
 
 - **Dynamic Service Detection**: WiFi service names vary across systems ("Wi-Fi", "AirPort", "Wireless", etc.), so the system dynamically detects the correct service name pattern.
 
-- **Version Compatibility**: Minimum supported macOS version is 12.0 (Monterey). The system validates compatibility on startup.
+- **Version Compatibility**: Wifi Wand records the macOS version for diagnostics but relies on runtime capability checks instead of a fixed minimum release.
 
 - **DNS Hierarchy**: DNS resolution uses multiple sources with `scutil --dns` as the preferred method (most accurate) and `networksetup -getdnsservers` as fallback.

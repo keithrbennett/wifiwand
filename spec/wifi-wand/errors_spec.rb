@@ -59,8 +59,6 @@ module WifiWand
         { klass: InvalidNetworkNameError,       args: ['MyNet'],                      message: "Invalid network name: 'MyNet'. Network name cannot be empty" },
         { klass: InvalidNetworkPasswordError,   args: ['secret', 'Password cannot exceed 63 characters'], message: "Invalid network password: Password cannot exceed 63 characters" },
         { klass: InvalidInterfaceError,         args: ['eth0'],                       message: "'eth0' is not a valid WiFi interface" },
-        { klass: UnsupportedSystemError,        args: [],                             message: "Unsupported system" },
-        { klass: UnsupportedSystemError,        args: ['macOS 12.0', 'macOS 11.0'],   message: "Unsupported system. Requires macOS 12.0 or later, found macOS 11.0" },
         { klass: CommandNotFoundError,          args: ['iw'],                         message: "Missing required system command(s): iw" },
         { klass: CommandNotFoundError,          args: [['iw', 'nmcli']],              message: "Missing required system command(s): iw, nmcli" },
         { klass: KeychainAccessDeniedError,     args: ['MyNet'],                      message: "Keychain access denied for network 'MyNet'. Please grant access when prompted" },

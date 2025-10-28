@@ -118,16 +118,6 @@ module WifiWand
   end
 
   # === SYSTEM/PERMISSION ERRORS ===
-  class UnsupportedSystemError < Error
-    def initialize(required_version = nil, current_version = nil)
-      msg = "Unsupported system"
-      if required_version && current_version
-        msg += ". Requires #{required_version} or later, found #{current_version}"
-      end
-      super(msg)
-    end
-  end
-  
   class CommandNotFoundError < Error
     def initialize(commands)
       commands = Array(commands)

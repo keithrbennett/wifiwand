@@ -11,10 +11,6 @@ module WifiWand
 
 class MacOsModel < BaseModel
 
-  # Minimum supported macOS version (Monterey 12.0+)
-  # Apple currently supports macOS 12+ as of 2024
-  MIN_SUPPORTED_OS_VERSION = "12.0"
-
   WIFI_PORT_PATTERNS = [
     /Wi[-\s]?Fi/i,
     /Air[-\s]?Port/i,
@@ -527,37 +523,6 @@ class MacOsModel < BaseModel
       nil
     end
   end
-
-  # Validates that the current macOS version is supported
-  def validate_macos_version
-    version = macos_version
-    return unless version
-    
-    unless supported_version?(version)
-      raise UnsupportedSystemError.new("macOS #{MIN_SUPPORTED_OS_VERSION}", version)
-    end
-    
-    out_stream.puts "macOS #{version} detected and supported" if verbose_mode
-  end
-
-  # Checks if the current version meets the minimum supported version
-  def supported_version?(current_version)
-    return false unless current_version
-
-    # Convert to numeric arrays
-    version_string_to_num_array = ->(s) { s.split('.').map(&:to_i) }
-    current_parts = version_string_to_num_array.(current_version)
-    min_parts     = version_string_to_num_array.(MIN_SUPPORTED_OS_VERSION)
-    
-    # Determine max length for padding
-    max_length = [current_parts.length, min_parts.length].max
-    
-    # Pad array to max_length with zeros
-    pad_array = ->(arr) { arr + [0] * (max_length - arr.length) }
-    
-    (pad_array.(current_parts) <=> pad_array.(min_parts)) >= 0
-  end
-  private :supported_version?
 
   def validate_os_preconditions
     # All core commands are built-in, just warn about optional ones

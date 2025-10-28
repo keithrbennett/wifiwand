@@ -147,9 +147,9 @@ Notes:
 - CLI Command(s): `i` (info)
 
 ### `sw_vers -productVersion`
-- Description: Detects current macOS version for compatibility checks.
+- Description: Detects the current macOS version for diagnostics.
 - Dynamic Values: None
-- Base Model Method(s): `detect_macos_version`, `validate_macos_version`
+- Base Model Method(s): `detect_macos_version`
 - CLI Command(s): Internal
 
 ## App/URL Open
@@ -195,4 +195,3 @@ Requires `qrencode` to be installed (e.g., `brew install qrencode`).
 - Dynamic Values: None
 - Base Model Method(s): `BaseModel#public_ip_address_info` (used by `#wifi_info`)
 - CLI Command(s): `i` (info)
-
