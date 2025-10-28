@@ -57,6 +57,14 @@ describe WifiWand::EventLogger do
       logger = WifiWand::EventLogger.new(mock_model, log_file_manager: mock_log_file_manager)
       expect(logger.log_file_manager).to eq(mock_log_file_manager)
     end
+
+    it 'respects nil output (file-only mode, no stdout)' do
+      logger = WifiWand::EventLogger.new(mock_model, log_file_path: '/tmp/test.log', output: nil, log_file_manager: mock_log_file_manager)
+      expect(logger.output).to be_nil
+      # Verify log_message doesn't call puts when output is nil
+      expect { logger.send(:log_message, 'test message') }.not_to raise_error
+      expect(mock_log_file_manager).to have_received(:write).with('test message')
+    end
   end
 
   describe '#fetch_current_state' do

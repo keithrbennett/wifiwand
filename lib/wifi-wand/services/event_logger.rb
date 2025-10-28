@@ -37,12 +37,12 @@ module WifiWand
     attr_reader :model, :interval, :verbose, :hook_filespec, :output, :log_file_manager
 
     def initialize(model, interval: 5, verbose: false, hook_filespec: nil, log_file_path: nil,
-                   output: nil, log_file_manager: nil)
+                   output: $stdout, log_file_manager: nil)
       @model = model
       @interval = interval
       @verbose = verbose
       @hook_filespec = hook_filespec || File.expand_path('~/.config/wifi-wand/hooks/on-event')
-      @output = output || $stdout
+      @output = output
       # Only create LogFileManager if file logging is requested
       @log_file_manager = if log_file_manager
                             log_file_manager

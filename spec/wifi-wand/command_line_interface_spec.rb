@@ -749,6 +749,16 @@ describe WifiWand::CommandLineInterface do
         expect(mock_log_command).to receive(:execute)
         subject.cmd_log
       end
+
+      it 'passes output stream to LogCommand (file-only logic handled in execute)' do
+        # cmd_log always passes the output stream to LogCommand.
+        # LogCommand.execute then determines whether to use it based on --file/--stdout options.
+        # When --file is used without --stdout, LogCommand.execute passes nil to EventLogger.
+        mock_log_command = instance_double('WifiWand::LogCommand')
+        expect(WifiWand::LogCommand).to receive(:new).with(mock_model, output: subject.send(:out_stream), verbose: false).and_return(mock_log_command)
+        expect(mock_log_command).to receive(:execute).with('--file')
+        subject.cmd_log('--file')
+      end
     end
   end
   
