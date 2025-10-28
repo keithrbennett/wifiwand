@@ -19,15 +19,21 @@ module WifiWand
     
     # NetworkConnectivityTester timeouts
     # Integration tests stub out sockets, so 0.25s keeps specs fast while still
-    # tolerating async cleanup; production needs 2s to cover high-latency uplinks.
-    TCP_CONNECTION_TIMEOUT = ENV['RSPEC_RUNNING'] ? 0.25 : 2
-    # Same reasoning as above: short for mocked DNS, 2s for off-network scenarios.
-    DNS_RESOLUTION_TIMEOUT = ENV['RSPEC_RUNNING'] ? 0.25 : 2
-    # The overall window is wider because we allow one retry cycle. Tests finish
-    # quickly with 1s; production gets 2.5s to cover TCP + DNS + retry overhead.
-    OVERALL_CONNECTIVITY_TIMEOUT = ENV['RSPEC_RUNNING'] ? 1.0 : 2.5
+    # tolerating async cleanup; production needs longer timeouts to avoid flaky results
+    # on slow or degraded networks. Increased from 2s to 5s after observing intermittent
+    # internet on/off events during logging, which indicates connectivity checks were
+    # timing out due to network latency rather than actual connectivity loss.
+    TCP_CONNECTION_TIMEOUT = ENV['RSPEC_RUNNING'] ? 0.25 : 5
+    # Same reasoning as above: short for mocked DNS, 5s for slow DNS servers or high latency.
+    DNS_RESOLUTION_TIMEOUT = ENV['RSPEC_RUNNING'] ? 0.25 : 5
+    # The overall window is wider to accommodate both TCP and DNS checks with retries.
+    # Tests finish quickly with 1s; production gets 6s to cover TCP + DNS + latency.
+    OVERALL_CONNECTIVITY_TIMEOUT = ENV['RSPEC_RUNNING'] ? 1.0 : 6
     
     # Spec helper interval for rapid polling in deterministic unit tests.
     FAST_TEST_INTERVAL = 0.1
+
+    # Default polling interval for event logging (in seconds)
+    EVENT_LOG_POLLING_INTERVAL = 5
   end
 end

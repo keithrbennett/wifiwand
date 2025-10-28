@@ -1,0 +1,71 @@
+# frozen_string_literal: true
+
+require 'fileutils'
+
+module WifiWand
+  class LogFileManager
+
+    DEFAULT_LOG_FILE = 'wifiwand-events.log'
+
+    attr_reader :log_file_path, :output, :verbose
+
+    def initialize(log_file_path: nil, verbose: false, output: nil)
+      @log_file_path = log_file_path || DEFAULT_LOG_FILE
+      @verbose = verbose
+      @output = output || $stdout
+      @file_handle = nil
+      setup_log_file
+    end
+
+    # Write a formatted message to the log file
+    def write(message)
+      return unless @file_handle
+
+      begin
+        @file_handle.puts(message)
+        @file_handle.flush
+      rescue StandardError => e
+        log_error("Failed to write to log file: #{e.message}")
+      end
+    end
+
+    # Close the log file
+    def close
+      return unless @file_handle
+
+      @file_handle.close
+      @file_handle = nil
+    end
+
+    private
+
+    # Set up the log file (open file in append mode)
+    def setup_log_file
+      begin
+        open_log_file
+        log_message("Log file initialized at #{@log_file_path}") if @verbose
+      rescue StandardError => e
+        log_error("Failed to initialize log file: #{e.message}")
+      end
+    end
+
+    # Open the log file in append mode
+    def open_log_file
+      @file_handle = File.open(@log_file_path, 'a')
+    rescue StandardError => e
+      raise "Cannot open log file #{@log_file_path}: #{e.message}"
+    end
+
+    # Log a message to stdout
+    def log_message(message)
+      @output.puts(message) if @output
+      @output.flush if @output&.respond_to?(:flush)
+    end
+
+    # Log an error message to stderr
+    def log_error(message)
+      $stderr.puts("ERROR: #{message}")
+      $stderr.flush if $stderr.respond_to?(:flush)
+    end
+  end
+end

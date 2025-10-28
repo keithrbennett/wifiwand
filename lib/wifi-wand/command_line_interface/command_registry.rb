@@ -16,6 +16,7 @@ module WifiWand
             Command.new('f',   'forget',        -> (*options)  { cmd_f(*options)   }),
             Command.new('h',   'help',          -> (*_options) { cmd_h             }),
             Command.new('i',   'info',          -> (*_options) { cmd_i             }),
+            Command.new('lo',  'log',           -> (*options)  { cmd_log(*options) }),
             Command.new('na',  'nameservers',   -> (*options)  { cmd_na(*options)  }),
             Command.new('ne',  'network_name',  -> (*_options) { cmd_ne            }),
             Command.new('of',  'off',           -> (*_options) { cmd_of            }),

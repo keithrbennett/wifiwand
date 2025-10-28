@@ -30,6 +30,11 @@ f[orget] name1 [..name_n] - removes network-name(s) from the preferred (saved) n
                             in interactive mode, can be a single array of names, e.g. returned by `pref_nets`
 h[elp]                    - prints this help
 i[nfo]                    - a hash of detailed networking information
+lo[g]                     - start event logging (polls WiFi status, logs changes)
+                            options: --interval N (default 5 seconds), --file [PATH] (default: wifiwand-events.log),
+                                     --stdout (additive, outputs to both file and stdout), --hook PATH
+                            Logs events: WiFi on/off, network connect/disconnect, internet on/off
+                            Ctrl+C to stop
 na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear,
                             or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
 ne[twork_name]            - name (SSID) of currently connected WiFi network

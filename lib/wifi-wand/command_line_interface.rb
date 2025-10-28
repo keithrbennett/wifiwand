@@ -335,6 +335,12 @@ class CommandLineInterface
     end
   end
 
+  def cmd_log(*options)
+    require_relative 'commands/log_command'
+    command = WifiWand::LogCommand.new(model, output: out_stream, verbose: verbose_mode)
+    command.execute(*options)
+  end
+
   def cmd_x
     quit
   end
