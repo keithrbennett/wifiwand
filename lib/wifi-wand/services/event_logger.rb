@@ -43,11 +43,18 @@ module WifiWand
       @verbose = verbose
       @hook_filespec = hook_filespec || File.expand_path('~/.config/wifi-wand/hooks/on-event')
       @output = output || $stdout
-      @log_file_manager = log_file_manager || LogFileManager.new(
-        log_file_path: log_file_path,
-        verbose: @verbose,
-        output: @output
-      )
+      # Only create LogFileManager if file logging is requested
+      @log_file_manager = if log_file_manager
+                            log_file_manager
+                          elsif log_file_path
+                            LogFileManager.new(
+                              log_file_path: log_file_path,
+                              verbose: @verbose,
+                              output: @output
+                            )
+                          else
+                            nil
+                          end
       @previous_state = nil
       @running = false
     end
@@ -66,7 +73,7 @@ module WifiWand
           @previous_state = initial_state
         end
 
-        loop do
+        while @running
           current_state = fetch_current_state
 
           if current_state.nil?

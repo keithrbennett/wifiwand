@@ -99,7 +99,7 @@ h[elp]                    - prints this help
 i[nfo]                    - a hash of detailed networking information
 lo[g]                     - start event logging (polls WiFi status, logs changes)
                             options: --interval N (default 5 seconds), --file [PATH] (default: wifiwand-events.log),
-                                     --stdout (additive, outputs to both file and stdout), --hook PATH
+                                     --stdout (additive, outputs to both file and stdout), --hook PATH (reserved for future use)
                             Logs events: WiFi on/off, network connect/disconnect, internet on/off
                             Ctrl+C to stop (see docs/LOGGING.md for details)
 na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear,

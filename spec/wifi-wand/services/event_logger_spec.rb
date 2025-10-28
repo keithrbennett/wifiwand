@@ -43,8 +43,13 @@ describe WifiWand::EventLogger do
       expect(logger.hook_filespec).to eq('/custom/hook')
     end
 
-    it 'creates LogFileManager by default' do
+    it 'does not create LogFileManager when no file path specified (stdout-only mode)' do
       logger = WifiWand::EventLogger.new(mock_model, output: output)
+      expect(logger.log_file_manager).to be_nil
+    end
+
+    it 'creates LogFileManager when file path specified' do
+      logger = WifiWand::EventLogger.new(mock_model, log_file_path: '/tmp/test.log', output: output)
       expect(logger.log_file_manager).to be_a(WifiWand::LogFileManager)
     end
 

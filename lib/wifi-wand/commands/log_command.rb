@@ -40,13 +40,13 @@ module WifiWand
 
     # Execute the log command with the provided options
     def execute(*options)
-      interval, log_file_path, hook_filespec, output_to_stdout = parse_options(options)
+      interval, log_file_path, hook_filespec, output_to_stdout, verbose_flag = parse_options(options)
 
       # Create and run event logger
       logger = WifiWand::EventLogger.new(
         model,
         interval: interval,
-        verbose: verbose,
+        verbose: verbose_flag,
         hook_filespec: hook_filespec,
         log_file_path: log_file_path,
         output: (output_to_stdout ? output : nil)
@@ -59,12 +59,13 @@ module WifiWand
     private
 
     # Parse and validate command line options using OptionParser
-    # Returns: [interval, log_file_path, hook_filespec, output_to_stdout]
+    # Returns: [interval, log_file_path, hook_filespec, output_to_stdout, verbose]
     def parse_options(options)
       interval = TimingConstants::EVENT_LOG_POLLING_INTERVAL
       log_file_path = nil
       hook_filespec = nil
       output_to_stdout = true  # Default: stdout only
+      verbose_flag = @verbose  # Start with initialization value, override if --verbose specified
 
       parser = OptionParser.new do |opts|
         opts.on('--interval N', Float) do |v|
@@ -87,7 +88,8 @@ module WifiWand
         end
 
         opts.on('--verbose', '-v') do
-          # verbose mode is already set via initialization
+          # Enable verbose mode for logging output
+          verbose_flag = true
         end
       end
 
@@ -99,7 +101,7 @@ module WifiWand
         )
       end
 
-      [interval, log_file_path, hook_filespec, output_to_stdout]
+      [interval, log_file_path, hook_filespec, output_to_stdout, verbose_flag]
     end
 
     # Validate that interval is positive
