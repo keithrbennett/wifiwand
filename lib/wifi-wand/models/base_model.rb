@@ -150,12 +150,13 @@ class BaseModel
   end
 
   %i[
+    connection_security_type
     default_interface
     detect_wifi_interface
-    connection_security_type
     is_wifi_interface?
     mac_address
     nameservers
+    network_hidden?
     open_application
     open_resource
     preferred_networks

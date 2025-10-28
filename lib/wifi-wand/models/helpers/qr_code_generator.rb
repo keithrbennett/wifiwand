@@ -34,11 +34,12 @@ module WifiWand
         # If no password is provided, fetch the saved password from the system (may require auth on macOS)
         password     = password || connected_password_for(model)
         security     = model.connection_security_type
+        is_hidden    = model.network_hidden?
 
         # Normalize filespec for robust API (support symbols as '-' too)
         spec = filespec.nil? ? nil : filespec.to_s
 
-        qr_string = build_wifi_qr_string(network_name, password, security)
+        qr_string = build_wifi_qr_string(network_name, password, security, is_hidden)
         return run_qrencode_text(model, qr_string, delivery_mode: delivery_mode) if spec == '-'
 
         filename  = spec && !spec.empty? ? spec : build_filename(network_name)
@@ -75,14 +76,15 @@ module WifiWand
         model.send(:connected_network_password)
       end
 
-      def build_wifi_qr_string(network_name, password, security_type)
+      def build_wifi_qr_string(network_name, password, security_type, is_hidden = false)
         qr_password = password.to_s
         qr_security = map_security_for_qr(security_type, !qr_password.empty?)
 
         escaped_ssid     = escape_field(network_name)
         escaped_password = escape_field(qr_password)
+        hidden_flag      = is_hidden ? 'true' : 'false'
 
-        "WIFI:T:#{qr_security};S:#{escaped_ssid};P:#{escaped_password};H:false;;"
+        "WIFI:T:#{qr_security};S:#{escaped_ssid};P:#{escaped_password};H:#{hidden_flag};;"
       end
 
       def map_security_for_qr(security_type, password_present)

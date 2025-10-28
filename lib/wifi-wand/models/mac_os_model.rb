@@ -654,7 +654,7 @@ class MacOsModel < BaseModel
   def connection_security_type
     network_name = _connected_network_name
     return nil unless network_name
-    
+
     data = airport_data
     inner_key = 'spairport_airport_local_wireless_networks'
 
@@ -665,20 +665,58 @@ class MacOsModel < BaseModel
          &.dig('spairport_airport_interfaces')
          &.detect { |h| h['_name'] == iface }
          &.dig(inner_key)
-    
+
     return nil unless networks
-    
+
     # Find the network we're connected to
     network = networks.detect { |net| net['_name'] == network_name }
     return nil unless network
-    
+
     # Extract security information
     security_info = network['spairport_security_mode']
     return nil unless security_info
-    
+
     canonical_security_type_from(security_info)
   end
 
-  public :connection_security_type
+    # Checks if the currently connected network is a hidden network.
+  # A hidden network does not broadcast its SSID.
+  # @return [Boolean] true if connected to a hidden network, false otherwise
+  def network_hidden?
+    network_name = _connected_network_name
+    return false unless network_name
+
+    # Query the connection profile to check if it's marked as hidden
+    # On macOS, we can check this via networksetup or by examining if the network
+    # appears in the broadcast network list from system_profiler
+    data = airport_data
+    iface = ensure_wifi_interface!
+
+    # Get the current network information
+    wifi_interface_data = data['SPAirPortDataType']
+         &.detect { |h| h.key?('spairport_airport_interfaces') }
+         &.dig('spairport_airport_interfaces')
+         &.detect { |h| h['_name'] == iface }
+
+    return false unless wifi_interface_data
+
+    # Check if we have current network information
+    current_network = wifi_interface_data['spairport_current_network_information']
+    return false unless current_network
+
+    # On macOS, a network is hidden if it doesn't appear in the broadcast networks list
+    # but is still connected. We check the available networks list.
+    inner_key = connected_network_name ?
+      'spairport_airport_other_local_wireless_networks' :
+      'spairport_airport_local_wireless_networks'
+
+    broadcast_networks = wifi_interface_data[inner_key] || []
+    network_in_broadcast_list = broadcast_networks.any? { |net| net['_name'] == network_name }
+
+    # If the network we're connected to is not in the broadcast list, it's hidden
+    !network_in_broadcast_list
+  end
+
+  public :connection_security_type, :network_hidden?
 end
 end

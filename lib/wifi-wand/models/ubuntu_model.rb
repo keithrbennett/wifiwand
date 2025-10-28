@@ -540,5 +540,34 @@ class UbuntuModel < BaseModel
     canonical_security_type_from(security_type)
   end
 
+  # Checks if the currently connected network is a hidden network.
+  # A hidden network does not broadcast its SSID.
+  # @return [Boolean] true if connected to a hidden network, false otherwise
+  def network_hidden?
+    debug_method_entry(__method__)
+
+    network_name = _connected_network_name
+    return false unless network_name
+
+    # Get the active connection profile name
+    profile_name = active_connection_profile_name || network_name
+
+    begin
+      # Query the connection profile to check if it's marked as hidden
+      output = run_os_command(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name], false).stdout
+
+      # The output will be like "802-11-wireless.hidden:yes" or "802-11-wireless.hidden:no"
+      hidden_line = output.split("\n").find { |line| line.include?('802-11-wireless.hidden:') }
+      return false unless hidden_line
+
+      # Extract the value after the colon
+      hidden_value = hidden_line.split(':', 2).last&.strip
+      hidden_value == 'yes'
+    rescue WifiWand::CommandExecutor::OsCommandError
+      # If we can't get the connection info, assume it's not hidden
+      false
+    end
+  end
+
   end
 end

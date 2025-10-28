@@ -495,6 +495,67 @@ describe UbuntuModel, :os_ubuntu do
       end
     end
 
+    describe '#network_hidden?' do
+      let(:network_name) { 'TestNetwork' }
+      let(:profile_name) { 'TestNetwork' }
+
+      before(:each) do
+        allow(subject).to receive(:_connected_network_name).and_return(network_name)
+        allow(subject).to receive(:active_connection_profile_name).and_return(profile_name)
+      end
+
+      it 'returns true when connection profile has hidden=yes' do
+        hidden_output = "802-11-wireless.hidden:yes\n"
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name], false)
+          .and_return(command_result(stdout: hidden_output))
+
+        expect(subject.network_hidden?).to be true
+      end
+
+      it 'returns false when connection profile has hidden=no' do
+        visible_output = "802-11-wireless.hidden:no\n"
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name], false)
+          .and_return(command_result(stdout: visible_output))
+
+        expect(subject.network_hidden?).to be false
+      end
+
+      it 'returns false when not connected to any network' do
+        allow(subject).to receive(:_connected_network_name).and_return(nil)
+
+        expect(subject.network_hidden?).to be false
+      end
+
+      it 'returns false when hidden line is not found in output' do
+        other_output = "802-11-wireless.ssid:TestNetwork\n"
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name], false)
+          .and_return(command_result(stdout: other_output))
+
+        expect(subject.network_hidden?).to be false
+      end
+
+      it 'returns false when nmcli command fails' do
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name], false)
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'Command failed'))
+
+        expect(subject.network_hidden?).to be false
+      end
+
+      it 'uses network name when active connection profile is nil' do
+        allow(subject).to receive(:active_connection_profile_name).and_return(nil)
+        hidden_output = "802-11-wireless.hidden:yes\n"
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', network_name], false)
+          .and_return(command_result(stdout: hidden_output))
+
+        expect(subject.network_hidden?).to be true
+      end
+    end
+
     describe '#default_interface' do
       it 'returns interface from default route' do
         route_output = "default via 192.168.1.1 dev wlp3s0 proto dhcp metric 600"

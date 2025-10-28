@@ -1089,10 +1089,108 @@ module WifiWand
               }]
             }]
           }
-          
+
           allow(model).to receive(:airport_data).and_return(airport_data)
-          
+
           expect(model.connection_security_type).to be_nil
+        end
+      end
+
+      describe '#network_hidden?' do
+        let(:network_name) { 'TestNetwork' }
+        let(:wifi_interface) { 'en0' }
+
+        before(:each) do
+          allow(model).to receive(:_connected_network_name).and_return(network_name)
+          allow(model).to receive(:wifi_interface).and_return(wifi_interface)
+        end
+
+        it 'returns false when connected network appears in broadcast list' do
+          airport_data = {
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name' => wifi_interface,
+                'spairport_current_network_information' => {
+                  '_name' => network_name
+                },
+                'spairport_airport_local_wireless_networks' => [{
+                  '_name' => network_name,
+                  'spairport_signal_noise' => '50/10'
+                }]
+              }]
+            }]
+          }
+
+          allow(model).to receive(:airport_data).and_return(airport_data)
+          allow(model).to receive(:connected_network_name).and_return(network_name)
+
+          expect(model.network_hidden?).to be false
+        end
+
+        it 'returns true when connected network is not in broadcast list (hidden)' do
+          airport_data = {
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name' => wifi_interface,
+                'spairport_current_network_information' => {
+                  '_name' => network_name
+                },
+                'spairport_airport_local_wireless_networks' => [{
+                  '_name' => 'OtherNetwork',
+                  'spairport_signal_noise' => '40/10'
+                }]
+              }]
+            }]
+          }
+
+          allow(model).to receive(:airport_data).and_return(airport_data)
+          allow(model).to receive(:connected_network_name).and_return(network_name)
+
+          expect(model.network_hidden?).to be true
+        end
+
+        it 'returns false when not connected to any network' do
+          allow(model).to receive(:_connected_network_name).and_return(nil)
+
+          expect(model.network_hidden?).to be false
+        end
+
+        it 'returns false when airport data is unavailable' do
+          allow(model).to receive(:airport_data).and_return({})
+
+          expect(model.network_hidden?).to be false
+        end
+
+        it 'returns false when wifi interface not found in airport data' do
+          airport_data = {
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name' => 'other_interface',
+                'spairport_current_network_information' => {
+                  '_name' => network_name
+                }
+              }]
+            }]
+          }
+
+          allow(model).to receive(:airport_data).and_return(airport_data)
+
+          expect(model.network_hidden?).to be false
+        end
+
+        it 'returns false when current network information is missing' do
+          airport_data = {
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name' => wifi_interface
+                # No spairport_current_network_information
+              }]
+            }]
+          }
+
+          allow(model).to receive(:airport_data).and_return(airport_data)
+
+          expect(model.network_hidden?).to be false
         end
       end
 
