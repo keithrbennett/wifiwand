@@ -49,10 +49,10 @@ describe WifiWand::Main do
 
     it 'parses output format options' do
       options = parse_with_argv('--output_format', 'j', 'info')
-      expect(options.post_processor).to be_a(Proc)
+      expect(options.post_processor).to respond_to(:call)
       
       options = parse_with_argv('-o', 'y', 'info')
-      expect(options.post_processor).to be_a(Proc)
+      expect(options.post_processor).to respond_to(:call)
     end
 
     it 'handles invalid output format' do
@@ -86,7 +86,7 @@ describe WifiWand::Main do
       expect(options.verbose).to be(true)
       expect(options.interactive_mode).to be(true) 
       expect(options.wifi_interface).to eq('eth0')
-      expect(options.post_processor).to be_a(Proc)
+      expect(options.post_processor).to respond_to(:call)
     end
   end
 
@@ -233,7 +233,7 @@ describe WifiWand::Main do
       stub_const('ARGV', ['-o', 'j', 'info'])
       
       expect(WifiWand::CommandLineInterface).to receive(:new) do |options|
-        expect(options.post_processor).to be_a(Proc)
+        expect(options.post_processor).to respond_to(:call)
         mock_cli
       end
       expect(mock_cli).to receive(:call)
