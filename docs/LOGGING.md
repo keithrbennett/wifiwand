@@ -138,13 +138,25 @@ wifi-wand log --interval 0      # No wait, check again immediately (total: sever
 
 ### `--hook PATH`
 
-Path to a hook script for future integration (currently reserved for future use).
+Path to a hook script that will be executed when events occur.
 
-```bash
+```bashMinor doc fix.
 wifi-wand log --hook ~/.config/wifi-wand/hooks/on-event
 ```
 
-This option is designed for future functionality where hooks could execute custom actions when events occur. The event structure is ready for hook integration.
+When an event is detected (WiFi on/off, network connect/disconnect, internet available/unavailable), the specified hook script is executed with event data passed as JSON via stdin.
+
+**Default hook location:** `~/.config/wifi-wand/hooks/on-event`
+
+**Example hooks** are available in `examples/log-notification-hooks/`:
+- Desktop notifications (macOS, GNOME, KDE)
+- Syslog integration
+- JSON logging for analysis
+- Slack notifications
+- HTTP webhooks
+- Multi-hook composition
+
+See `examples/log-notification-hooks/README.md` for complete hook documentation and usage examples.
 
 ### `--verbose`, `-v`
 
@@ -300,18 +312,18 @@ tail -f /var/log/wifi-events.log | while read line; do
 done
 ```
 
-## Future: Hook Integration
+## Hook Integration
 
-The event logging infrastructure is designed with future hook execution in mind. When implemented, hooks will allow custom scripts to execute in response to specific events:
+The event logging system supports hook execution for custom automation. Hooks are scripts that execute in response to specific events:
 
 ```bash
 wifi-wand log --hook ~/.config/wifi-wand/hooks/on-event
 ```
 
-This would enable:
+Hook use cases:
 - Sending notifications when connectivity changes
-- Triggering automatic reconnection attempts
-- Logging events to external monitoring systems
+- Logging events to external monitoring systems (syslog, JSON files, webhooks)
 - Custom automation based on network state changes
+- Integration with desktop notification systems
 
-The event structure already supports JSON serialization for this future integration.
+The event structure uses JSON serialization to pass event data to hooks via stdin. See `examples/log-notification-hooks/` for working examples and `examples/log-notification-hooks/README.md` for detailed documentation on writing and using hooks.
