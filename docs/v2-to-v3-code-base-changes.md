@@ -103,9 +103,6 @@ This document summarizes the changes and improvements made in version 3.0 compar
 
 ## Test Coverage Enhancements
 
-- Added strict coverage enforcement with `COVERAGE_STRICT=true` environment variable
-  - Enforces minimum 80% overall coverage
-  - Enforces minimum 70% per-file coverage
 - Added branch coverage support with `COVERAGE_BRANCH=true` environment variable
 - Implemented coverage grouping by component (Models, Services, OS Detection, Core)
 - Created `CoverageConfig` module in `spec/support/coverage_config.rb`

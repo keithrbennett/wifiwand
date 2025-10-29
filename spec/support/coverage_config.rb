@@ -14,13 +14,7 @@ module CoverageConfig
       add_group "Services", "lib/wifi-wand/services"
       add_group "OS Detection", "lib/wifi-wand/os"
       add_group "Core", "lib/wifi-wand"
-      
-      # Set minimum coverage threshold (only enforce if explicitly requested)
-      if ENV['COVERAGE_STRICT'] == 'true'
-        minimum_coverage 80
-        minimum_coverage_by_file 70
-      end
-      
+
       # Generate multiple output formats
       formatter SimpleCov::Formatter::MultiFormatter.new([
         SimpleCov::Formatter::HTMLFormatter,

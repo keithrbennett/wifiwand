@@ -38,9 +38,6 @@ RSPEC_DISRUPTIVE_TESTS=include bundle exec rspec
 
 # Run tests with branch coverage enabled
 COVERAGE_BRANCH=true bundle exec rspec
-
-# Run tests with strict coverage enforcement (80% overall, 70% per file)
-COVERAGE_STRICT=true bundle exec rspec
 ```
 
 ### Development Setup
@@ -116,7 +113,6 @@ The CLI uses modular design with mixins:
 - HTML reports are saved to `coverage/index.html`
 - Coverage is grouped by component (Models, Services, OS Detection, Core)
 - Branch coverage can be enabled with `COVERAGE_BRANCH=true`
-- Strict coverage enforcement (80% overall, 70% per file) with `COVERAGE_STRICT=true`
 
 ### Test Refactoring Guidelines
 

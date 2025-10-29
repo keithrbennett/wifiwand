@@ -256,10 +256,9 @@ module RSpecConfiguration
       Verbose mode for WifiWand commands can be enabled by setting WIFIWAND_VERBOSE=true.
       Current environment setting: WIFIWAND_VERBOSE=#{ENV['WIFIWAND_VERBOSE'] || '[undefined]'}
 
-      Coverage tracking is enabled via SimpleCov. 
+      Coverage tracking is enabled via SimpleCov.
       HTML coverage report will be generated in coverage/index.html
       Enable branch coverage with COVERAGE_BRANCH=true
-      Enforce coverage thresholds with COVERAGE_STRICT=true
 
       #{'=' * 60}
 
