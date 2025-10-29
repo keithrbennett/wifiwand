@@ -2,7 +2,7 @@
 
 ### The Big Kahuna
 
-* **We now support Ubuntu and compatible Linux distributions in addition to macOS, with a uniform interface for both!!!**
+* **Added first-class Ubuntu (and compatible Linux) support alongside macOS, exposing a single unified interface across platforms.**
 
 ### Breaking Changes
 * `cycle_network` now toggles WiFi state twice regardless of starting state (on or off). Previously it unconditionally did off, then on.
@@ -14,7 +14,7 @@
 ### User Experience Improvements
 
 * Added support for `WIFIWAND_VERBOSE` environment variable to simulate `-v` flag. This is especially useful for testing.
-* Added a `status` command for displaying a 1-line network status summary.
+* Added a `status`/`s` command for displaying a 1-line network status summary.
 
 ### Architectural Improvements
 
@@ -66,8 +66,6 @@ cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
 * **Mock testing** - Removed real OS commands from non-disruptive unit tests
 
 This major release represents a complete rewrite focused on cross-platform support while maintaining backward compatibility for existing macOS users.
-
-* Added 's/status' status line command.
 
 
 ## v2.20.0
@@ -299,6 +297,5 @@ and `mac-wifi.rb` file.
 ## v1.0.0
 
 * First versioned release.
-
 
 
