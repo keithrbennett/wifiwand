@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'time'
 require_relative 'log_file_manager'
 
 module WifiWand
@@ -62,7 +63,7 @@ module WifiWand
     # Start polling loop. This method blocks until stop is called or Ctrl+C is pressed.
     def run
       @running = true
-      timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
+      timestamp = Time.now.utc.iso8601
       log_message("[#{timestamp}] Event logging started (polling every #{@interval}s)")
 
       begin
@@ -88,7 +89,7 @@ module WifiWand
           sleep(@interval)
         end
       rescue Interrupt
-        timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
+        timestamp = Time.now.utc.iso8601
         log_message("[#{timestamp}] Event logging stopped")
         @running = false
       ensure
@@ -98,7 +99,7 @@ module WifiWand
 
     # Log initial state at startup
     def log_initial_state(state)
-      timestamp = Time.now.strftime('%Y-%m-%d %H:%M:%S')
+      timestamp = Time.now.utc.iso8601
       message = "Current state: WiFi #{state[:wifi_on] ? 'ON' : 'OFF'}" +
                 (state[:network_name] ? ", connected to \"#{state[:network_name]}\"" : '') +
                 (state[:internet_connected] ? ", internet available" : '')
@@ -188,7 +189,7 @@ module WifiWand
 
     # Format event for human-readable output
     def format_event_message(event)
-      timestamp = event[:timestamp].strftime('%Y-%m-%d %H:%M:%S')
+      timestamp = event[:timestamp].utc.iso8601
       event_type = event[:type]
       details = event[:details]
 
@@ -224,10 +225,16 @@ module WifiWand
         event_json = JSON.generate(event)
         IO.popen([@hook_filespec], 'w') do |io|
           io.write(event_json)
-          io.close
+          io.close_write
+        end
+
+        # Check exit status
+        status = Process.last_status
+        if status && !status.success?
+          log_message("Hook execution failed (exit code: #{status.exitstatus}) at #{@hook_filespec}")
         end
       rescue StandardError => e
-        log_message("Hook execution failed: #{e.message}") if @verbose
+        log_message("Hook execution error: #{e.message}")
       end
     end
   end

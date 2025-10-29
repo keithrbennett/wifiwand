@@ -32,6 +32,13 @@ class HookTestSuite
     @tests_skipped = 0
   end
 
+  # Check if timeout command is available
+  def timeout_available?
+    system('which timeout > /dev/null 2>&1', out: File::NULL, err: File::NULL)
+  rescue StandardError
+    false
+  end
+
   def cleanup
     FileUtils.rm_rf(temp_dir)
   end
@@ -200,6 +207,11 @@ class HookTestSuite
 
     if ENV['WEBHOOK_URL'].nil?
       skip_test 'webhook hook', 'WEBHOOK_URL not set'
+      return
+    end
+
+    unless timeout_available?
+      skip_test 'webhook hook', 'timeout command not available (install GNU coreutils on macOS)'
       return
     end
 

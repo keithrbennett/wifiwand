@@ -1,10 +1,14 @@
 # frozen_string_literal: true
 
+require 'tempfile'
 require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/services/event_logger'
 require_relative '../../../lib/wifi-wand/services/log_file_manager'
 
 describe WifiWand::EventLogger do
+  # ISO-8601 timestamp format pattern: [YYYY-MM-DDTHH:MM:SSZ]
+  ISO8601_TIMESTAMP_PATTERN = '\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\]'
+
   let(:mock_model) do
     double('Model',
       status_line_data: {
@@ -349,61 +353,61 @@ describe WifiWand::EventLogger do
     it 'formats wifi_on event' do
       event = {
         type: :wifi_on,
-        timestamp: Time.new(2025, 10, 28, 14, 30, 45),
+        timestamp: Time.new(2025, 10, 28, 14, 30, 45, 0),
         details: {}
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/\[2025-10-28 14:30:45\] WiFi ON/)
+      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} WiFi ON/)
     end
 
     it 'formats wifi_off event' do
       event = {
         type: :wifi_off,
-        timestamp: Time.new(2025, 10, 28, 14, 31, 0),
+        timestamp: Time.new(2025, 10, 28, 14, 31, 0, 0),
         details: {}
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/\[2025-10-28 14:31:00\] WiFi OFF/)
+      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} WiFi OFF/)
     end
 
     it 'formats connected event with network name' do
       event = {
         type: :connected,
-        timestamp: Time.new(2025, 10, 28, 14, 31, 15),
+        timestamp: Time.new(2025, 10, 28, 14, 31, 15, 0),
         details: { network_name: 'MyNetwork' }
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/\[2025-10-28 14:31:15\] Connected to MyNetwork/)
+      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Connected to MyNetwork/)
     end
 
     it 'formats disconnected event with network name' do
       event = {
         type: :disconnected,
-        timestamp: Time.new(2025, 10, 28, 14, 32, 0),
+        timestamp: Time.new(2025, 10, 28, 14, 32, 0, 0),
         details: { network_name: 'MyNetwork' }
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/\[2025-10-28 14:32:00\] Disconnected from MyNetwork/)
+      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Disconnected from MyNetwork/)
     end
 
     it 'formats internet_on event' do
       event = {
         type: :internet_on,
-        timestamp: Time.new(2025, 10, 28, 14, 32, 30),
+        timestamp: Time.new(2025, 10, 28, 14, 32, 30, 0),
         details: {}
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/\[2025-10-28 14:32:30\] Internet available/)
+      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Internet available/)
     end
 
     it 'formats internet_off event' do
       event = {
         type: :internet_off,
-        timestamp: Time.new(2025, 10, 28, 14, 33, 0),
+        timestamp: Time.new(2025, 10, 28, 14, 33, 0, 0),
         details: {}
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/\[2025-10-28 14:33:00\] Internet unavailable/)
+      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Internet unavailable/)
     end
   end
 
@@ -422,7 +426,7 @@ describe WifiWand::EventLogger do
       }
 
       expect(logger).to receive(:log_message) do |message|
-        expect(message).to match(/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\] Current state: WiFi ON, connected to "HomeNetwork", internet available/)
+        expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi ON, connected to "HomeNetwork", internet available/)
       end
 
       logger.send(:log_initial_state, state)
@@ -438,7 +442,7 @@ describe WifiWand::EventLogger do
       }
 
       expect(logger).to receive(:log_message) do |message|
-        expect(message).to match(/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\] Current state: WiFi OFF/)
+        expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi OFF/)
       end
 
       logger.send(:log_initial_state, state)
@@ -454,7 +458,7 @@ describe WifiWand::EventLogger do
       }
 
       expect(logger).to receive(:log_message) do |message|
-        expect(message).to match(/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\] Current state: WiFi ON, connected to "TestNet"/)
+        expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi ON, connected to "TestNet"/)
       end
 
       logger.send(:log_initial_state, state)
@@ -470,7 +474,7 @@ describe WifiWand::EventLogger do
       }
 
       expect(logger).to receive(:log_message) do |message|
-        expect(message).to match(/\[\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\] Current state: WiFi ON/)
+        expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi ON/)
       end
 
       logger.send(:log_initial_state, state)
@@ -565,7 +569,7 @@ describe WifiWand::EventLogger do
       }
 
       # Expect IO.popen to be called with the hook path
-      allow(IO).to receive(:popen).and_yield(double('io', write: nil, close: nil))
+      allow(IO).to receive(:popen).and_yield(double('io', write: nil, close_write: nil))
 
       logger.send(:execute_hook, event)
 
@@ -584,7 +588,7 @@ describe WifiWand::EventLogger do
 
       allow(IO).to receive(:popen).and_raise(StandardError.new('Hook failed'))
 
-      expect(logger).to receive(:log_message).with(/Hook execution failed/)
+      expect(logger).to receive(:log_message).with(/Hook execution error/)
 
       logger.send(:execute_hook, { type: :wifi_on })
 
@@ -613,7 +617,7 @@ describe WifiWand::EventLogger do
         expect(parsed['type']).to eq('connected')
         expect(parsed['details']['network_name']).to eq('TestNet')
       end
-      expect(io_double).to receive(:close)
+      expect(io_double).to receive(:close_write)
 
       logger.send(:execute_hook, event)
 
@@ -637,7 +641,7 @@ describe WifiWand::EventLogger do
       io_double = double('io')
       allow(IO).to receive(:popen).and_yield(io_double)
       expect(io_double).to receive(:write)
-      expect(io_double).to receive(:close)
+      expect(io_double).to receive(:close_write)
 
       logger.send(:emit_event, :wifi_on, {}, {}, {})
 
