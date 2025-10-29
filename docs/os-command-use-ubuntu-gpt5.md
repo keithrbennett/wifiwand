@@ -252,3 +252,21 @@ Notes:
 - Base Model Method(s): `open_resource`
 - CLI Command(s): `ro`
 - Helpful Info: Delegates to the desktop environment; failures raise if the handler is missing or the URL is malformed.
+
+## `qrencode`
+
+`qrencode` generates QR codes so network credentials can be shared with other devices.
+
+### `qrencode -o <file> <wifi_qr_string>`
+- Description: Writes the Wi-Fi QR code to an image file (PNG by default, SVG/EPS when the extension matches).
+- Dynamic Values: `file`, `wifi_qr_string`
+- Base Model Method(s): `BaseModel#generate_qr_code` via `Helpers::QrCodeGenerator#run_qrencode_file`
+- CLI Command(s): `qr`
+- Helpful Info: Overwrite prompts occur before the command runs; ensure the `qrencode` package is installed (`sudo apt install qrencode`).
+
+### `qrencode -t ANSI <wifi_qr_string>`
+- Description: Prints the QR code as ANSI art for inline terminal display.
+- Dynamic Values: `wifi_qr_string`
+- Base Model Method(s): `BaseModel#generate_qr_code` via `Helpers::QrCodeGenerator#run_qrencode_text`
+- CLI Command(s): `qr -`
+- Helpful Info: Interactive shells return the ANSI string so callers can `puts` it; non-interactive runs stream the art directly to stdout.
