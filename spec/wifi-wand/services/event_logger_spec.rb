@@ -496,4 +496,154 @@ describe WifiWand::EventLogger do
       expect(logger.instance_variable_get(:@log_file_manager)).to be_nil
     end
   end
+
+  describe '#hook_exists?' do
+    it 'returns false when hook_filespec is nil' do
+      logger = WifiWand::EventLogger.new(mock_model, output: output, hook_filespec: nil)
+      expect(logger.send(:hook_exists?)).to be false
+    end
+
+    it 'returns false when hook file does not exist' do
+      logger = WifiWand::EventLogger.new(mock_model, output: output, hook_filespec: '/nonexistent/hook')
+      expect(logger.send(:hook_exists?)).to be false
+    end
+
+    it 'returns false when hook file exists but is not executable' do
+      # Create a temporary non-executable file
+      temp_file = Tempfile.new('hook')
+      temp_file.close
+      File.chmod(0o644, temp_file.path)
+
+      logger = WifiWand::EventLogger.new(mock_model, output: output, hook_filespec: temp_file.path)
+      expect(logger.send(:hook_exists?)).to be false
+
+      File.unlink(temp_file.path)
+    end
+
+    it 'returns true when hook file exists and is executable' do
+      # Create a temporary executable file
+      temp_file = Tempfile.new('hook')
+      temp_file.close
+      File.chmod(0o755, temp_file.path)
+
+      logger = WifiWand::EventLogger.new(mock_model, output: output, hook_filespec: temp_file.path)
+      expect(logger.send(:hook_exists?)).to be true
+
+      File.unlink(temp_file.path)
+    end
+  end
+
+  describe '#execute_hook' do
+    let(:logger) do
+      WifiWand::EventLogger.new(
+        mock_model,
+        output: output,
+        log_file_manager: mock_log_file_manager
+      )
+    end
+
+    it 'does not attempt execution if hook does not exist' do
+      logger.instance_variable_set(:@hook_filespec, '/nonexistent/hook')
+      expect(IO).not_to receive(:popen)
+      logger.send(:execute_hook, { type: :wifi_on })
+    end
+
+    it 'executes hook script with event JSON via stdin' do
+      # Create a temporary executable file
+      temp_file = Tempfile.new('hook')
+      temp_file.close
+      File.chmod(0o755, temp_file.path)
+
+      logger.instance_variable_set(:@hook_filespec, temp_file.path)
+
+      event = {
+        type: :internet_on,
+        timestamp: Time.now,
+        details: {},
+        previous_state: {},
+        current_state: {}
+      }
+
+      # Expect IO.popen to be called with the hook path
+      allow(IO).to receive(:popen).and_yield(double('io', write: nil, close: nil))
+
+      logger.send(:execute_hook, event)
+
+      expect(IO).to have_received(:popen).with([temp_file.path], 'w')
+
+      File.unlink(temp_file.path)
+    end
+
+    it 'handles hook execution errors gracefully' do
+      temp_file = Tempfile.new('hook')
+      temp_file.close
+      File.chmod(0o755, temp_file.path)
+
+      logger.instance_variable_set(:@hook_filespec, temp_file.path)
+      logger.instance_variable_set(:@verbose, true)
+
+      allow(IO).to receive(:popen).and_raise(StandardError.new('Hook failed'))
+
+      expect(logger).to receive(:log_message).with(/Hook execution failed/)
+
+      logger.send(:execute_hook, { type: :wifi_on })
+
+      File.unlink(temp_file.path)
+    end
+
+    it 'passes event as JSON to hook' do
+      temp_file = Tempfile.new('hook')
+      temp_file.close
+      File.chmod(0o755, temp_file.path)
+
+      logger.instance_variable_set(:@hook_filespec, temp_file.path)
+
+      event = {
+        type: :connected,
+        timestamp: Time.now,
+        details: { network_name: 'TestNet' },
+        previous_state: { network_name: nil },
+        current_state: { network_name: 'TestNet' }
+      }
+
+      io_double = double('io')
+      allow(IO).to receive(:popen).and_yield(io_double)
+      expect(io_double).to receive(:write) do |data|
+        parsed = JSON.parse(data)
+        expect(parsed['type']).to eq('connected')
+        expect(parsed['details']['network_name']).to eq('TestNet')
+      end
+      expect(io_double).to receive(:close)
+
+      logger.send(:execute_hook, event)
+
+      File.unlink(temp_file.path)
+    end
+  end
+
+  describe 'hook execution integration' do
+    it 'calls hook when event is emitted' do
+      # Create a temporary executable file
+      temp_file = Tempfile.new('hook')
+      temp_file.close
+      File.chmod(0o755, temp_file.path)
+
+      logger = WifiWand::EventLogger.new(
+        mock_model,
+        output: output,
+        hook_filespec: temp_file.path
+      )
+
+      io_double = double('io')
+      allow(IO).to receive(:popen).and_yield(io_double)
+      expect(io_double).to receive(:write)
+      expect(io_double).to receive(:close)
+
+      logger.send(:emit_event, :wifi_on, {}, {}, {})
+
+      expect(IO).to have_received(:popen)
+
+      File.unlink(temp_file.path)
+    end
+  end
 end

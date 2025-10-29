@@ -167,7 +167,6 @@ module WifiWand
     end
 
     # Create and process an event
-    # Structure is ready for future hook execution
     def emit_event(event_type, details, previous_state, current_state)
       event = {
         type: event_type,
@@ -178,9 +177,7 @@ module WifiWand
       }
 
       log_event(event)
-
-      # Hook execution would go here in the future:
-      # execute_hook(event) if hook_exists?
+      execute_hook(event) if hook_exists?
     end
 
     # Format and output an event
@@ -212,6 +209,26 @@ module WifiWand
       @output.puts(message) if @output
       @output.flush if @output&.respond_to?(:flush)
       @log_file_manager.write(message) if @log_file_manager
+    end
+
+    # Check if a hook script exists and is executable
+    def hook_exists?
+      File.executable?(@hook_filespec || '')
+    end
+
+    # Execute hook script with event data as JSON via stdin
+    def execute_hook(event)
+      return unless hook_exists?
+
+      begin
+        event_json = JSON.generate(event)
+        IO.popen([@hook_filespec], 'w') do |io|
+          io.write(event_json)
+          io.close
+        end
+      rescue StandardError => e
+        log_message("Hook execution failed: #{e.message}") if @verbose
+      end
     end
   end
 end

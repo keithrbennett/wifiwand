@@ -1,0 +1,21 @@
+{
+  "type": "disconnected",
+  "timestamp": "2025-10-29T14:45:10.345678Z",
+  "details": {
+    "network_name": "HomeNetwork"
+  },
+  "previous_state": {
+    "wifi_on": true,
+    "network_name": "HomeNetwork",
+    "tcp_working": true,
+    "dns_working": true,
+    "internet_connected": true
+  },
+  "current_state": {
+    "wifi_on": true,
+    "network_name": null,
+    "tcp_working": false,
+    "dns_working": false,
+    "internet_connected": false
+  }
+}

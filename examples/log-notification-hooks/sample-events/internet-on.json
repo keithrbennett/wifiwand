@@ -1,0 +1,19 @@
+{
+  "type": "internet_on",
+  "timestamp": "2025-10-29T14:46:05.456789Z",
+  "details": {},
+  "previous_state": {
+    "wifi_on": true,
+    "network_name": "HomeNetwork",
+    "tcp_working": false,
+    "dns_working": false,
+    "internet_connected": false
+  },
+  "current_state": {
+    "wifi_on": true,
+    "network_name": "HomeNetwork",
+    "tcp_working": true,
+    "dns_working": true,
+    "internet_connected": true
+  }
+}
