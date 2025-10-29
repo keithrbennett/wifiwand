@@ -63,7 +63,6 @@ module RSpecConfiguration
 
         if RSpecConfiguration.macos_and_auth_tests_will_run?(test_types)
           RSpecConfiguration.handle_sudo_preflight(test_types[:sudo])
-          RSpecConfiguration.handle_keychain_preflight(test_types[:disruptive])
         end
       rescue
         # Never fail the suite due to preflight issues
@@ -106,22 +105,6 @@ module RSpecConfiguration
       NetworkStateManager.capture_state
     rescue => e
       puts "Warning: Could not capture network state during preflight: #{e.message}"
-    end
-  end
-  
-  def self.handle_keychain_preflight(disruptive_tests_will_run)
-    return unless ENV['RSPEC_KEYCHAIN_PREFLIGHT'] == 'true' && !disruptive_tests_will_run
-    
-    model = NetworkStateManager.model rescue nil
-    return unless model
-    
-    ssid = model.connected_network_name rescue nil
-    return unless ssid
-    
-    begin
-      model.preferred_network_password(ssid)
-    rescue
-      # Ignore – purpose is just to trigger auth prompt upfront
     end
   end
   

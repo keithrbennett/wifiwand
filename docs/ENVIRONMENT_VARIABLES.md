@@ -53,12 +53,6 @@ Automatically set by RSpec when tests are running. Adjusts timeout values for be
 
 **Usage:** Internal use only - do not set manually.
 
-### `RSPEC_KEYCHAIN_PREFLIGHT`
-
-Controls macOS keychain access preflight check behavior.
-
-**Usage:** Internal test configuration - rarely needs manual adjustment.
-
 ## Coverage Variables
 
 ### `COVERAGE_BRANCH`

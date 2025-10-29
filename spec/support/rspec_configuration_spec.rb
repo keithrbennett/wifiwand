@@ -22,21 +22,13 @@ RSpec.describe RSpecConfiguration do
 
   let(:config_double) { PreflightConfigDouble.new }
 
-  # Ensure we never leak CI or OS state between examples. The real code treats
-  # CI as a hard skip for preflight work and relies on the global
-  # $compatible_os_tag that OS filtering sets up; the examples need stable
-  # values to exercise both branches.
+  # Ensure we never leak OS state between examples. The real code relies on the
+  # global $compatible_os_tag that OS filtering sets up; the examples need
+  # stable values to exercise both branches.
   around do |example|
-    original_ci = ENV.delete('CI')
     original_os_tag = defined?($compatible_os_tag) ? $compatible_os_tag : nil
 
     example.run
-
-    if original_ci
-      ENV['CI'] = original_ci
-    else
-      ENV.delete('CI')
-    end
 
     $compatible_os_tag = original_os_tag
   end
@@ -67,7 +59,7 @@ RSpec.describe RSpecConfiguration do
 
   # macOS still needs the original authentication steps, and we only want to
   # issue the network capture once for the suite. This ensures the refactor did
-  # not introduce duplicate calls and that the sudo/keychain paths remain gated
+  # not introduce duplicate calls and that the sudo path remains gated
   # behind macOS detection.
   it 'captures network state exactly once when disruptive auth tests run on macOS' do
     $compatible_os_tag = :os_mac
@@ -78,7 +70,6 @@ RSpec.describe RSpecConfiguration do
 
     expect(described_class).to receive(:handle_network_state_capture).with(true).once
     expect(described_class).to receive(:handle_sudo_preflight).with(true).and_return(nil)
-    expect(described_class).to receive(:handle_keychain_preflight).with(true).and_return(nil)
 
     run_preflight
   end
