@@ -55,12 +55,10 @@ module RSpecConfiguration
   # Configure preflight authentication to handle auth prompts early
   def self.configure_preflight_authentication(config)
     config.before(:suite) do
-      next if ENV['CI']  # Skip in CI environments
-      
       begin
         examples_to_run = RSpecConfiguration.get_examples_to_run
         test_types = RSpecConfiguration.analyze_test_types(examples_to_run)
-        
+
         RSpecConfiguration.handle_network_state_capture(test_types[:disruptive])
 
         if RSpecConfiguration.macos_and_auth_tests_will_run?(test_types)
@@ -260,6 +258,9 @@ module RSpecConfiguration
       HTML coverage report will be generated in coverage/index.html
       Enable branch coverage with COVERAGE_BRANCH=true
 
+      ⚠️  IMPORTANT: Never run disruptive tests in CI environments.
+      The default (RSPEC_DISRUPTIVE_TESTS unset) runs only safe tests.
+
       #{'=' * 60}
 
     MESSAGE
@@ -268,11 +269,6 @@ module RSpecConfiguration
   private
 
   def self.configure_disruptive_test_filtering(config)
-    if ENV['CI']
-      config.filter_run_excluding :disruptive => true
-      return
-    end
-
     case ENV['RSPEC_DISRUPTIVE_TESTS']
     when 'only'
       config.filter_run_including :disruptive => true

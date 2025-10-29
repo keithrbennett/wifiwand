@@ -82,10 +82,16 @@ bundle install
 bundle exec rspec
 ```
 
-### CI Safety Defaults
+### ⚠️ IMPORTANT: CI Configuration
 
-- In Continuous Integration environments (`ENV['CI']` present), all tests tagged `:disruptive` are automatically excluded to prevent modifying host network state.
-- The macOS authentication preflight (described below) is also disabled in CI.
+**DO NOT run disruptive tests in CI environments.**
+
+Disruptive tests will fail or cause problems in CI because:
+- CI runners typically lack WiFi hardware
+- Modifying network state will disrupt the CI server
+- CI runners may not be running a supported OS (macOS or Ubuntu)
+
+**The default behavior (`RSPEC_DISRUPTIVE_TESTS` unset) runs only safe, read-only tests.** Never set `RSPEC_DISRUPTIVE_TESTS=include` or `RSPEC_DISRUPTIVE_TESTS=only` in your CI configuration.
 
 ### Automatic OS Detection
 
