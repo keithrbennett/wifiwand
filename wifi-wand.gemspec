@@ -8,7 +8,7 @@ Gem::Specification.new do |spec|
   spec.description   = %q{A command line interface for managing WiFi on Mac and Ubuntu systems.}
   spec.summary       = %q{Cross-platform WiFi management utility}
   spec.homepage      = "https://github.com/keithrbennett/wifiwand"
-  spec.license       = "MIT"
+  spec.license       = "Apache-2.0"
 
   spec.metadata = {
     "source_code_uri" => "https://github.com/keithrbennett/wifiwand",
