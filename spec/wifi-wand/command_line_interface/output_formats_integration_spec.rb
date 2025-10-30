@@ -452,7 +452,7 @@ describe 'Output Format Integration Tests' do
     it 'returns raw data in interactive mode regardless of post_processor' do
       test_data = { 'network' => 'TestNet' }
 
-      options = parse_options('-o', 'j', '-s', 'i')
+      options = parse_options('-o', 'j', 'shell', 'i')
       cli = WifiWand::CommandLineInterface.new(options)
       allow(cli.model).to receive(:wifi_info).and_return(test_data)
 

@@ -184,7 +184,7 @@ case "$1" in
         ;;
     
     # Shell mode - pass through to real command (user can use demo commands inside)
-    "-s"|"--shell")
+    "shell")
         echo "Note: In shell mode, you can use this demo script by prefixing commands with:"
         echo "      .$(realpath "$0") [command]"
         echo "Starting real wifi-wand shell..."

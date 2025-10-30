@@ -31,12 +31,10 @@ describe WifiWand::Main do
       expect(options.verbose).to be_nil
     end
 
-    it 'parses shell/interactive mode flags' do
-      options = parse_with_argv('--shell')
+    it 'parses shell subcommand and removes it from ARGV' do
+      options = parse_with_argv('shell')
       expect(options.interactive_mode).to be(true)
-      
-      options = parse_with_argv('-s')
-      expect(options.interactive_mode).to be(true)
+      expect(ARGV).to be_empty
     end
 
     it 'parses wifi interface options' do
@@ -72,7 +70,7 @@ describe WifiWand::Main do
     end
 
     it 'removes parsed options from ARGV' do
-      stub_const('ARGV', ['-v', '--shell', '-p', 'wlan0', 'connect', 'TestNetwork'])
+      stub_const('ARGV', ['-v', '-p', 'wlan0', 'connect', 'TestNetwork'])
       subject.parse_command_line
       
       # OptionParser should remove the parsed flags, leaving just the command and args
@@ -80,13 +78,22 @@ describe WifiWand::Main do
     end
 
     it 'handles multiple flags together' do
-      stub_const('ARGV', ['-v', '-s', '-p', 'eth0', '--output_format', 'j', 'info'])
+      stub_const('ARGV', ['-v', '-p', 'eth0', '--output_format', 'j', 'info'])
       options = subject.parse_command_line
       
       expect(options.verbose).to be(true)
-      expect(options.interactive_mode).to be(true) 
       expect(options.wifi_interface).to eq('eth0')
       expect(options.post_processor).to respond_to(:call)
+    end
+
+    it 'handles shell subcommand alongside other flags' do
+      stub_const('ARGV', ['-v', '-p', 'eth0', 'shell'])
+      options = subject.parse_command_line
+
+      expect(options.verbose).to be(true)
+      expect(options.wifi_interface).to eq('eth0')
+      expect(options.interactive_mode).to be(true)
+      expect(ARGV).to be_empty
     end
 
     it 'prepends options from WIFIWAND_OPTS before CLI arguments' do
@@ -246,7 +253,7 @@ describe WifiWand::Main do
     end
 
     it 'parses arguments and executes CLI with correct options' do
-      stub_const('ARGV', ['-v', '--shell', '-p', 'wlan0', 'info'])
+      stub_const('ARGV', ['-v', '-p', 'wlan0', 'shell'])
       
       expect(WifiWand::CommandLineInterface).to receive(:new) do |options|
         expect(options.verbose).to be(true)

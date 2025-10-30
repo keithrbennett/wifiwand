@@ -29,8 +29,14 @@ However, the code encapsulates the OS-specific logic in model subclasses with id
 method names and argument lists, so that they present a unified interface for use in:
 
 * command line invocation (e.g. `wifi-wand co my-network my-password` to connect to a network)
-* interactive shell (REPL) sessions where the WiFi-wand methods are effectively DSL commands (`wifi-wand -s` to run in interactive mode)
+* interactive shell (REPL) sessions where the WiFi-wand methods are effectively DSL commands (`wifi-wand shell` to run in interactive mode)
 * other Ruby applications as a gem (library) (`require wifi-wand`)
+
+### ⚠️ Breaking Change: Interactive Shell
+
+The interactive shell is now a dedicated subcommand: run it with `wifi-wand shell`.
+The legacy `-s/--shell` option has been removed—update any scripts or aliases that
+still rely on the flag before upgrading.
 
 ### Quick Start
 
@@ -57,7 +63,7 @@ wifi-wand co MyNetwork ''
 wifi-wand i
 
 # Start interactive shell
-wifi-wand -s
+wifi-wand shell
 
 # Display underlying OS calls and their output
 wifi-wand -v ...
@@ -82,10 +88,16 @@ Available commands can be seen by using the `-h` (or `--help`) option:
 ```
 Command Line Switches     [wifi-wand version 3.0.0-alpha.1 at https://github.com/keithrbennett/wifiwand]
 ---------------------
--o {i,j,k,p,y}            - when not in shell mode, outputs data in the following formats: inspect, JSON, pretty JSON, puts, YAML
--p wifi_interface_name    - specify WiFi interface name (overrides auto-detection)
--s                        - run in shell mode (interactive pry REPL session)
--v                        - verbose mode (prints OS commands and their outputs)
+-h, --help                - show this help message
+-o, --output_format {i,j,k,p,y}
+                          - when not in shell mode, outputs data in the following formats: inspect, JSON, pretty JSON, puts, YAML
+-p, --wifi-interface interface_name
+                          - specify WiFi interface name (overrides auto-detection)
+-v, --[no-]verbose        - verbose mode (prints OS commands and their outputs)
+
+Subcommands
+-----------
+shell                     - start interactive shell (interactive pry REPL session)
 
 Commands
 --------
@@ -153,9 +165,9 @@ wifi-wand info          # Run once, show output, exit
 wifi-wand connect MyNet # Connect and exit
 ```
 
-**Interactive Shell Mode** (`-s` flag): Start a persistent Ruby session
+**Interactive Shell Mode** (`shell` subcommand): Start a persistent Ruby session
 ```bash
-wifi-wand -s            # Enter interactive mode
+wifi-wand shell         # Enter interactive mode
 [1] pry(#<WifiWandView>)> info
 [2] pry(#<WifiWandView>)> connect "MyNet"
 [3] pry(#<WifiWandView>)> cycle; connect "MyNet"
@@ -182,7 +194,7 @@ may override this app's commands.  For example:
 ```
 [1] pry(#<WifiWandView>)> x  # exit command, can be called as 'x', 'xi', or 'xit'
 $
-$ wifi-wand -s
+$ wifi-wand shell
 
 [1] pry(#<WifiWand::CommandLineInterface>)> x = :foo  # override it with a local variable
 :foo

@@ -31,10 +31,6 @@ class Main
         options.verbose = v
       end
 
-      parser.on("-s", "--shell", "Start interactive shell") do |v|
-        options.interactive_mode = true
-      end
-
       parser.on("-o", "--output_format FORMAT", "Format output data") do |v|
 
         formatters = {
@@ -71,6 +67,12 @@ class Main
     # This allows subcommands (like 'log') to have their own options that aren't parsed by the main parser.
     # .parse! would fail on unrecognized options like --file and --stdout that belong to subcommands.
     end.order!
+
+    if ARGV.first == 'shell'
+      options.interactive_mode = true
+      ARGV.shift
+    end
+
     options
   end
 

@@ -159,7 +159,7 @@ echo "networks are saved"
 
 ## Interactive Shell Usage
 
-In interactive shell mode (`wifi-wand -s`), you can use the full power of Ruby to work with info:
+In interactive shell mode (`wifi-wand shell`), you can use the full power of Ruby to work with info:
 
 ```ruby
 [1] pry(#<WifiWand::CommandLineInterface>)> data = info

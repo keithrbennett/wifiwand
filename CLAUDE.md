@@ -58,7 +58,7 @@ bundle exec exe/wifi-wand --help
 ### Interactive Testing
 ```bash
 # Start interactive shell for manual testing
-bundle exec exe/wifi-wand -s
+bundle exec exe/wifi-wand shell
 
 # Test with verbose mode to see underlying OS commands
 bundle exec exe/wifi-wand -v info

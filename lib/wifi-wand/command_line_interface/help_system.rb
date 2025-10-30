@@ -19,8 +19,11 @@ Command Line Switches     [wifi-wand version #{WifiWand::VERSION} at https://git
                           - when not in shell mode, outputs data in the following formats: inspect, JSON, pretty JSON, puts, YAML
 -p, --wifi-interface interface_name
                           - specify WiFi interface name (overrides auto-detection)
--s, --shell               - run in shell mode (interactive pry REPL session)
 -v, --[no-]verbose        - verbose mode (prints OS commands and their outputs)
+
+Subcommands
+-----------
+shell                     - start interactive shell (interactive pry REPL session)
 
 Commands
 --------

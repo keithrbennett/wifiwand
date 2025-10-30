@@ -149,7 +149,7 @@ wifi-wand a -o yaml
 
 **[Type and execute]**
 ```bash
-wifi-wand -s
+wifi-wand shell
 ```
 
 **[Sample Output]**
