@@ -98,11 +98,10 @@ module WifiWand
     end
 
     # Log initial state at startup
+    # Simplified to only show internet connectivity status
     def log_initial_state(state)
       timestamp = Time.now.utc.iso8601
-      message = "Current state: WiFi #{state[:wifi_on] ? 'ON' : 'OFF'}" +
-                (state[:network_name] ? ", connected to \"#{state[:network_name]}\"" : '') +
-                (state[:internet_connected] ? ", internet available" : '')
+      message = "Current state: Internet #{state[:internet_connected] ? 'available' : 'unavailable'}"
       log_message("[#{timestamp}] #{message}")
     end
 
@@ -122,9 +121,16 @@ module WifiWand
     private
 
     # Fetch current WiFi state from model
+    # Uses fast_connectivity? for quick outage detection optimized for continuous monitoring
     def fetch_current_state
       begin
-        @model.status_line_data
+        # Use fast connectivity check instead of full status_line_data
+        # This skips slow operations like system_profiler and DNS checks
+        # Returns in ~50-200ms typically, vs 5+ seconds for full check
+        internet_connected = @model.fast_connectivity?
+
+        # Return simplified state focused only on internet connectivity
+        { internet_connected: internet_connected }
       rescue StandardError => e
         log_message("Error fetching status: #{e.message}") if @verbose
         nil
@@ -132,35 +138,11 @@ module WifiWand
     end
 
     # Detect state changes and emit events
+    # Simplified to only track internet connectivity changes for fast outage detection
     def detect_and_emit_events(current_state)
       return if @previous_state.nil?
 
-      # Check WiFi on/off
-      if current_state[:wifi_on] != @previous_state[:wifi_on]
-        event_type = current_state[:wifi_on] ? :wifi_on : :wifi_off
-        emit_event(event_type, {}, @previous_state, current_state)
-      end
-
-      # Check network connection
-      prev_network = @previous_state[:network_name]
-      curr_network = current_state[:network_name]
-
-      # Only track non-pending states
-      if prev_network != :pending && curr_network != :pending
-        if prev_network != curr_network
-          if prev_network.nil? && curr_network
-            emit_event(:connected, { network_name: curr_network }, @previous_state, current_state)
-          elsif prev_network && curr_network.nil?
-            emit_event(:disconnected, { network_name: prev_network }, @previous_state, current_state)
-          elsif prev_network && curr_network
-            # Switched networks
-            emit_event(:disconnected, { network_name: prev_network }, @previous_state, current_state)
-            emit_event(:connected, { network_name: curr_network }, @previous_state, current_state)
-          end
-        end
-      end
-
-      # Check internet connection
+      # Check internet connection only (WiFi and network changes are not tracked)
       if current_state[:internet_connected] != @previous_state[:internet_connected]
         event_type = current_state[:internet_connected] ? :internet_on : :internet_off
         emit_event(event_type, {}, @previous_state, current_state)

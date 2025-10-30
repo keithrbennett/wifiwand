@@ -272,13 +272,9 @@ class CommandLineInterface
 
   def cmd_s
     progress_mode = status_progress_mode
-    current_snapshot = {
-      wifi_on: nil,
-      network_name: nil,
-      tcp_working: nil,
-      dns_working: nil,
-      internet_connected: nil
-    }
+    # Build initial snapshot with only the fields that will actually be populated
+    # Start with required fields, network_name is added by first update if model includes it
+    current_snapshot = { wifi_on: nil, internet_connected: nil }
     last_visible_length = 0
     inline_progress_printed = false
     saw_progress_error = false

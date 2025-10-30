@@ -24,6 +24,46 @@ module WifiWand
       tcp && dns
     end
 
+    # Fast connectivity check optimized for continuous monitoring (e.g., log command).
+    #
+    # This method provides a quick internet connectivity test that:
+    # - Uses only 3 geographically diverse TCP endpoints
+    # - Has a short 1-second timeout per endpoint
+    # - Returns immediately when first endpoint responds (~50-200ms typically)
+    # - Works globally including China (uses Baidu endpoint)
+    # - Skips DNS testing (often cached, less useful for real-time monitoring)
+    #
+    # Endpoints tested:
+    # - 1.1.1.1:443 (Cloudflare) - Fast globally except China
+    # - 8.8.8.8:443 (Google) - Fast globally except China
+    # - 180.76.76.76:443 (Baidu) - Fast in China, accessible globally
+    #
+    # @return [Boolean] true if any endpoint is reachable, false otherwise
+    #
+    # Performance:
+    # - Best case: ~50-200ms (when any endpoint responds quickly)
+    # - Worst case: ~1 second (when all endpoints timeout)
+    #
+    # This is ideal for the log command where speed matters more than thoroughness.
+    # Use connected_to_internet? for comprehensive checks in status/info commands.
+    #
+    def fast_connectivity?
+      fast_endpoints = [
+        { host: '1.1.1.1', port: 443 },     # Cloudflare
+        { host: '8.8.8.8', port: 443 },     # Google
+        { host: '180.76.76.76', port: 443 } # Baidu (China-friendly)
+      ]
+
+      if @verbose
+        endpoints_list = fast_endpoints.map { |e| "#{e[:host]}:#{e[:port]}" }.join(', ')
+        @output.puts "Fast connectivity check to: #{endpoints_list}"
+      end
+
+      run_parallel_checks(fast_endpoints, TimingConstants::FAST_CONNECTIVITY_TIMEOUT) do |endpoint|
+        attempt_fast_tcp_connection(endpoint)
+      end
+    end
+
     # Tests TCP connectivity to internet hosts (not localhost)
     def tcp_connectivity?
       test_endpoints = tcp_test_endpoints
@@ -60,6 +100,7 @@ module WifiWand
     # - Returns `false` if ALL checks fail OR the overall timeout is reached
     # - Each individual check runs with its own timeout (defined in the yielded block)
     # - All checks run concurrently within the overall timeout window
+    # - Tasks are cancelled as soon as first success is detected (true early exit)
     #
     # Implementation Details:
     # The async gem uses fibers (not threads) for lightweight concurrency. Fibers are:
@@ -91,7 +132,7 @@ module WifiWand
     #   end
     #
     # Performance Characteristics:
-    # - Best case: Returns immediately when first check succeeds
+    # - Best case: Returns immediately when first check succeeds (~50-200ms)
     # - Worst case: Waits `overall_timeout` seconds when all checks fail
     # - Memory: O(n) where n is number of items (one fiber per item)
     # - CPU: Minimal, as checks are I/O-bound
@@ -109,19 +150,22 @@ module WifiWand
           # It coordinates task execution and cleanup.
           barrier = Async::Barrier.new
 
-          # Shared array to collect results from all tasks.
+          # Flag to track if we've found a success (fiber-safe as explained below)
+          success_found = false
+
+          # Shared flag to track success status.
           #
-          # Thread-safety note: This plain array is safe without mutex protection because:
+          # Thread-safety note: This boolean flag is safe without mutex protection because:
           # 1. Async uses cooperative (not preemptive) multitasking with fibers
           # 2. Fibers only yield at explicit I/O operations, not during regular Ruby code
-          # 3. The `results << result` operation is atomic at the Ruby level
-          # 4. Each `<<` completes fully before another fiber can execute
+          # 3. Boolean assignment is atomic at the Ruby level
+          # 4. We only ever set it to true (never back to false), avoiding race conditions
+          # 5. The check-and-stop operation completes before another fiber can execute
           #
           # Execution flow:
-          #   Fiber A: I/O (yields) → I/O completes → results << true (atomic)
-          #   Fiber B: I/O (yields) → I/O completes → results << false (atomic)
-          # The `<<` operations never interleave because they don't contain yield points.
-          results = []
+          #   Fiber A: I/O (yields) → I/O completes → success_found = true (atomic) → barrier.stop
+          #   Fiber B: I/O (yields) → still running... → gets cancelled by barrier.stop
+          # The assignment and barrier.stop never interleave because they don't contain yield points.
 
           # Spawn a concurrent fiber for each item.
           # Each fiber runs independently and can succeed/fail without affecting others.
@@ -130,25 +174,31 @@ module WifiWand
               # Call the provided block with the item.
               # The block should return true on success, false on failure.
               result = yield(item)
-              # This append is fiber-safe (see thread-safety note above)
-              results << result
+
+              # If this check succeeded and we haven't found success yet, stop all tasks
+              if result && !success_found
+                success_found = true
+                # Stop barrier immediately - cancels remaining tasks
+                barrier.stop
+              end
+
               result
             rescue StandardError => e
               # Catch and log any unexpected errors from the check.
               # Return false to indicate this check failed.
               log_unexpected_error(e)
-              results << false
               false
             end
           end
 
-          # Wait for all tasks to complete.
-          # Barrier.wait blocks until all spawned tasks finish.
+          # Wait for either:
+          # - First success (barrier.stop called)
+          # - All tasks to complete (all failed)
+          # - Overall timeout (Async::TimeoutError raised)
           barrier.wait
 
-          # Check if ANY result is true.
-          # This returns true as soon as we find one successful check.
-          results.any?
+          # Return whether we found any successful check
+          success_found
         end
       rescue Async::TimeoutError
         # Overall timeout expired before any check succeeded.
@@ -186,6 +236,26 @@ module WifiWand
       end
     rescue StandardError => e
       @output.puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if @verbose
+      false
+    end
+
+    # Fast TCP connection attempt optimized for continuous monitoring.
+    #
+    # Similar to attempt_tcp_connection but with shorter timeout for speed.
+    # Used by fast_connectivity? method for quick outage detection.
+    #
+    # @param endpoint [Hash] Endpoint configuration with :host and :port keys
+    # @return [Boolean] true if connection succeeded, false otherwise
+    #
+    def attempt_fast_tcp_connection(endpoint)
+      Timeout.timeout(TimingConstants::FAST_TCP_CONNECTION_TIMEOUT) do
+        Socket.tcp(endpoint[:host], endpoint[:port], connect_timeout: TimingConstants::FAST_TCP_CONNECTION_TIMEOUT) do
+          @output.puts "Fast check: connected to #{endpoint[:host]}:#{endpoint[:port]}" if @verbose
+          true
+        end
+      end
+    rescue StandardError => e
+      @output.puts "Fast check: failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if @verbose
       false
     end
 

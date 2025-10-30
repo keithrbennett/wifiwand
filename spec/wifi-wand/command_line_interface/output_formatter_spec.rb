@@ -144,8 +144,6 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       {
         wifi_on: true,
         network_name: 'TestNetwork',
-        tcp_working: true,
-        dns_working: true,
         internet_connected: true
       }
     end
@@ -155,43 +153,50 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       
       it 'contains all status components with appropriate colors' do
         result = subject.status_line(status_data)
-        
+
         # Test logical content rather than exact formatting
         expect(result).to match(/WiFi.*YES/)
-        expect(result).to match(/Network.*TestNetwork/)
-        expect(result).to match(/TCP.*YES/)
-        expect(result).to match(/DNS.*YES/)
+        expect(result).to match(/Network.*TestNetwork/)  # network_name is included in test data
         expect(result).to match(/Internet.*YES/)
-        
+
         # Verify colorization is present
         expect(result).to match(GREEN_TEXT_REGEX)      # Green ON
         expect(result).to match(CYAN_TEXT_REGEX)       # Cyan network name
         expect(result).to match(GREEN_TEXT_REGEX)     # Green YES statuses
       end
+
+      it 'omits network field when not present in status data' do
+        data_without_network = {
+          wifi_on: true,
+          internet_connected: true
+        }
+        result = subject.status_line(data_without_network)
+
+        # Should not include Network field
+        expect(result).to match(/WiFi.*YES/)
+        expect(result).not_to match(/Network/)
+        expect(result).to match(/Internet.*YES/)
+      end
       
       hash_key_map = {
         wifi_on?: :wifi_on,
         connected_network_name: :network_name,
-        internet_tcp_connectivity?: :tcp_working,
-        dns_working?: :dns_working,
         connected_to_internet?: :internet_connected
       }
 
       {
-        'WiFi off'         => { mock_method: :wifi_on?,                   return_value: false, expected_pattern: /WiFi.*NO/,      expected_color: RED_TEXT_REGEX },
-        'no network'       => { mock_method: :connected_network_name,     return_value: nil,   expected_pattern: /Network.*none/, expected_color: YELLOW_TEXT_REGEX },
-        'TCP failure'      => { mock_method: :internet_tcp_connectivity?, return_value: false, expected_pattern: /TCP.*NO/,       expected_color: RED_TEXT_REGEX },
-        'DNS failure'      => { mock_method: :dns_working?,               return_value: false, expected_pattern: /DNS.*NO/,       expected_color: RED_TEXT_REGEX },
-        'Internet failure' => { mock_method: :connected_to_internet?,     return_value: false, expected_pattern: /Internet.*NO/,  expected_color: RED_TEXT_REGEX }
+        'WiFi off'         => { mock_method: :wifi_on?,                return_value: false, expected_pattern: /WiFi.*NO/,      expected_color: RED_TEXT_REGEX },
+        'no network'       => { mock_method: :connected_network_name,  return_value: nil,   expected_pattern: /Network.*none/, expected_color: YELLOW_TEXT_REGEX },
+        'Internet failure' => { mock_method: :connected_to_internet?,  return_value: false, expected_pattern: /Internet.*NO/,  expected_color: RED_TEXT_REGEX }
       }.each do |scenario, config|
         it "displays error status when #{scenario}" do
           data = status_data.clone
           target_key = hash_key_map[config[:mock_method]]
           new_value = config[:return_value]
           data[target_key] = new_value
-          
+
           result = subject.status_line(data)
-          
+
           expect(result).to match(config[:expected_pattern])
           expect(result).to match(config[:expected_color])
         end
@@ -210,15 +215,27 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       
       it 'contains all status components without color codes' do
         result = subject.status_line(status_data)
-        
+
         # Test logical content
         expect(result).to match(/WiFi.*YES/)
-        expect(result).to match(/Network.*TestNetwork/)
-        expect(result).to match(/TCP.*YES/)
-        expect(result).to match(/DNS.*YES/)
+        expect(result).to match(/Network.*TestNetwork/)  # network_name is included in test data
         expect(result).to match(/Internet.*YES/)
-        
+
         # Verify no color codes
+        expect(result).not_to match(ANSI_COLOR_REGEX)
+      end
+
+      it 'omits network field when not present in status data' do
+        data_without_network = {
+          wifi_on: true,
+          internet_connected: true
+        }
+        result = subject.status_line(data_without_network)
+
+        # Should not include Network field
+        expect(result).to match(/WiFi.*YES/)
+        expect(result).not_to match(/Network/)
+        expect(result).to match(/Internet.*YES/)
         expect(result).not_to match(ANSI_COLOR_REGEX)
       end
       

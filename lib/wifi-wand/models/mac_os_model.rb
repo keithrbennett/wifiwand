@@ -117,6 +117,13 @@ class MacOsModel < BaseModel
     :mac
   end
 
+  # Returns false because fetching the network name on macOS requires system_profiler,
+  # which takes 3+ seconds to execute. This makes the status command too slow for
+  # interactive use. Users should use the 'info' command when they need the network name.
+  def show_network_name_in_status?
+    false
+  end
+
   # Detects the Wi-Fi service name dynamically (e.g., "Wi-Fi", "AirPort", etc.)
   def detect_wifi_service_name
     @wifi_service_name ||= begin

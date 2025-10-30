@@ -739,28 +739,24 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'returns a hash with the correct keys' do
       data = subject.status_line_data
       expect(data).to be_a(Hash)
-      expect(data.keys).to contain_exactly(
-        :wifi_on,
-        :network_name,
-        :tcp_working,
-        :dns_working,
-        :internet_connected
-      )
+
+      # All models should have wifi_on and internet_connected
+      expect(data.keys).to include(:wifi_on, :internet_connected)
+
+      # network_name is only included if show_network_name_in_status? is true
+      expect(data.has_key?(:network_name)).to eq(subject.show_network_name_in_status?)
+
     end
 
     test_cases = {
       'when everything is working' => {
         wifi_on: true,
         network_name: 'TestNetwork',
-        tcp_working: true,
-        dns_working: true,
         internet_connected: true
       },
       'when wifi is off' => {
         wifi_on: false,
         network_name: nil,
-        tcp_working: false,
-        dns_working: false,
         internet_connected: false
       }
     }
@@ -769,12 +765,20 @@ describe 'Common WiFi Model Behavior (All OS)' do
       it "returns correct data #{context}" do
         allow(subject).to receive(:wifi_on?).and_return(expected_data[:wifi_on])
         allow(subject).to receive(:connected_network_name).and_return(expected_data[:network_name])
-        allow(subject).to receive(:internet_tcp_connectivity?).and_return(expected_data[:tcp_working])
-        allow(subject).to receive(:dns_working?).and_return(expected_data[:dns_working])
-        allow(subject).to receive(:connected_to_internet?).with(expected_data[:tcp_working], expected_data[:dns_working]).and_return(expected_data[:internet_connected])
+        allow(subject).to receive(:fast_connectivity?).and_return(expected_data[:internet_connected])
 
         data = subject.status_line_data
-        expect(data).to eq(expected_data)
+
+        # All models should return wifi_on and internet_connected
+        expect(data[:wifi_on]).to eq(expected_data[:wifi_on])
+        expect(data[:internet_connected]).to eq(expected_data[:internet_connected])
+
+        # network_name is only included if show_network_name_in_status? is true
+        if subject.show_network_name_in_status?
+          expect(data[:network_name]).to eq(expected_data[:network_name])
+        else
+          expect(data).not_to have_key(:network_name)
+        end
       end
     end
 
