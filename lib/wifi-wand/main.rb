@@ -5,6 +5,7 @@ require 'optparse'
 require 'ostruct'
 require 'stringio'
 require 'yaml'
+require 'shellwords'
 
 require_relative 'command_line_interface'
 require_relative 'operating_systems'
@@ -23,6 +24,7 @@ class Main
   # optparse removes what it processes from ARGV, which simplifies our command parsing.
   def parse_command_line
     options = OpenStruct.new
+    prepend_env_options
 
     OptionParser.new do |parser|
       parser.on("-v", "--[no-]verbose", "Run verbosely") do |v|
@@ -89,6 +91,18 @@ class Main
   end
 
   private
+
+  def prepend_env_options
+    raw_options = ENV['WIFIWAND_OPTS']
+    return if raw_options.nil? || raw_options.strip.empty?
+
+    env_args = Shellwords.shellsplit(raw_options)
+    return if env_args.empty?
+
+    ARGV.unshift(*env_args)
+  rescue ArgumentError => error
+    raise ConfigurationError.new("Invalid WIFIWAND_OPTS value: #{error.message}")
+  end
 
   def handle_error(error, verbose_mode)
     case error

@@ -73,7 +73,7 @@ For detailed information about specific features:
 - **[Connectivity Checking (`ci` command)](docs/CONNECTIVITY_CHECKING.md)** - Check internet availability in scripts and automation
 - **[Testing Guide](docs/TESTING.md)** - Running tests, coverage reports, and test categories
 - **[DNS Configuration Guide](docs/DNS_Configuration_Guide.md)** - Managing nameservers and DNS settings
-- **[Environment Variables Reference](docs/ENVIRONMENT_VARIABLES.md)** - Configuration via environment variables
+- **[Environment Variables Reference](docs/ENVIRONMENT_VARIABLES.md)** - Configuration via environment variables (including the `WIFIWAND_OPTS` default-options helper)
 
 ### Usage
 

@@ -88,6 +88,25 @@ describe WifiWand::Main do
       expect(options.wifi_interface).to eq('eth0')
       expect(options.post_processor).to respond_to(:call)
     end
+
+    it 'prepends options from WIFIWAND_OPTS before CLI arguments' do
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--verbose')
+      stub_const('ARGV', ['info'])
+
+      options = subject.parse_command_line
+
+      expect(options.verbose).to be(true)
+      expect(ARGV).to eq(['info'])
+    end
+
+    it 'raises a configuration error when WIFIWAND_OPTS cannot be parsed' do
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--verbose "')
+      stub_const('ARGV', ['info'])
+
+      expect { subject.parse_command_line }.to raise_error(WifiWand::ConfigurationError, /WIFIWAND_OPTS/)
+    end
   end
 
   describe '#call' do

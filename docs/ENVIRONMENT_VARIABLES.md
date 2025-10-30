@@ -20,6 +20,21 @@ WIFIWAND_VERBOSE=true wifi-wand info
 wifi-wand -v info
 ```
 
+### `WIFIWAND_OPTS`
+Prepend default command-line switches from the environment, parsed with shell-style quoting so complex values work just like they do in the shell.
+**Values:** Space-delimited options (e.g., `--output_format y`, `--verbose`)
+**Usage examples:**
+```bash
+export WIFIWAND_OPTS="--output_format y" # YAML
+wifi-wand info
+```
+
+```bash
+export WIFIWAND_OPTS="--verbose"
+wifi-wand status
+```
+**Note:** If the value contains unmatched quotes or otherwise cannot be parsed, wifi-wand aborts with a configuration error.
+
 ## Test Configuration Variables
 
 ### `RSPEC_DISRUPTIVE_TESTS`

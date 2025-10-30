@@ -14,6 +14,7 @@
 ### User Experience Improvements
 
 * Added support for `WIFIWAND_VERBOSE` environment variable to simulate `-v` flag. This is especially useful for testing.
+* Added `WIFIWAND_OPTS` environment variable to prepend default command-line options before parsing user input.
 * Added a `status`/`s` command for displaying a 1-line network status summary.
 
 ### Architectural Improvements
@@ -297,5 +298,4 @@ and `mac-wifi.rb` file.
 ## v1.0.0
 
 * First versioned release.
-
 
