@@ -57,6 +57,7 @@ This document summarizes the changes and improvements made in version 3.0 compar
   - Default: stdout only
   - `--file [PATH]`: log to file (default: `wifiwand-events.log`)
   - `--file --stdout`: output to both file and terminal
+  - When `--file` or `--hook` is used, stdout is silent unless `--stdout` is also supplied
 - Configurable polling interval with `--interval N` (default: 5 seconds)
 - Graceful shutdown with Ctrl+C
 - ISO-8601 timestamp format for all logged events

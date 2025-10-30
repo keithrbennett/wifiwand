@@ -146,7 +146,7 @@ describe WifiWand::LogCommand do
         )
       end
 
-      it 'makes stdout additive when combined with --file' do
+      it 'keeps stdout when explicitly combined with --file' do
         command = WifiWand::LogCommand.new(mock_model, output: output)
         command.execute('--file', '/tmp/test.log', '--stdout')
 
@@ -167,7 +167,23 @@ describe WifiWand::LogCommand do
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
-          hash_including(hook_filespec: '/custom/hook')
+          hash_including(
+            hook_filespec: '/custom/hook',
+            output: nil
+          )
+        )
+      end
+
+      it 'allows stdout when explicitly requested with hooks' do
+        command = WifiWand::LogCommand.new(mock_model, output: output)
+        command.execute('--hook', '/custom/hook', '--stdout')
+
+        expect(WifiWand::EventLogger).to have_received(:new).with(
+          mock_model,
+          hash_including(
+            hook_filespec: '/custom/hook',
+            output: output
+          )
         )
       end
     end

@@ -97,6 +97,8 @@ wifi-wand log --file --stdout
 wifi-wand off          # Watch the log show state change
 ```
 
+Remember: once you add `--file` or `--hook`, stdout is muted unless you include `--stdout`.
+
 ## Use Cases
 
 ### Displaying Status Repeatedly

@@ -86,7 +86,7 @@ Logs to the specified file path instead of stdout.
 
 ### Outputting to Both File and stdout
 
-To see events on the terminal while also saving them to a file:
+When you add any destination besides stdout, the command assumes you want to silence the console unless you opt back in. To see events on the terminal while also saving them to a file, include `--stdout` explicitly:
 
 ```bash
 wifi-wand log --file --stdout
@@ -113,10 +113,10 @@ When this option is used alone, output goes to file only (stdout is disabled).
 
 ### `--stdout`
 
-Additive flag that enables stdout output in addition to file output.
+Explicitly enables stdout output. Standard output is used by default, but it is disabled automatically once `--file` or `--hook` is specified unless `--stdout` is also provided.
 
-- Works with `--file` to output to both destinations
-- Default behavior when no output options are specified
+- Include after `--file` or `--hook` to keep seeing events in the terminal
+- Without any other destinations, stdout is already active by default
 
 ### `--interval N`
 
@@ -140,11 +140,13 @@ wifi-wand log --interval 0      # No wait, check again immediately (total: sever
 
 Path to a hook script that will be executed when events occur.
 
-```bashMinor doc fix.
+```bash
 wifi-wand log --hook ~/.config/wifi-wand/hooks/on-event
 ```
 
 When an event is detected (WiFi on/off, network connect/disconnect, internet available/unavailable), the specified hook script is executed with event data passed as JSON via stdin.
+
+**Note:** Using `--hook` disables stdout unless you also provide `--stdout`.
 
 **Default hook location:** `~/.config/wifi-wand/hooks/on-event`
 
