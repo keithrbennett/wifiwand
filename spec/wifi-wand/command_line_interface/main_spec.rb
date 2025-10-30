@@ -31,6 +31,13 @@ describe WifiWand::Main do
       expect(options.verbose).to be_nil
     end
 
+    %w[--no-v --no-verbose].each do |negation_flag|
+      it "handles verbose flag negation when -v is followed by #{negation_flag}" do
+        options = parse_with_argv('-v', negation_flag, 'info')
+        expect(options.verbose).to be(false)
+      end
+    end
+
     it 'parses shell subcommand and removes it from ARGV' do
       options = parse_with_argv('shell')
       expect(options.interactive_mode).to be(true)

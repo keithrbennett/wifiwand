@@ -94,6 +94,7 @@ Command Line Switches     [wifi-wand version 3.0.0-alpha.1 at https://github.com
 -p, --wifi-interface interface_name
                           - specify WiFi interface name (overrides auto-detection)
 -v, --[no-]verbose        - verbose mode (prints OS commands and their outputs)
+                            To disable: use --no-verbose or --no-v (short form negation like -v- is not supported)
 
 Subcommands
 -----------
@@ -154,8 +155,10 @@ In _interactive_ mode, you can call the usual Ruby methods (`to_json`, `to_yaml`
 
 ### Seeing the Underlying OS Commands and Output
 
-If you would like to see the OS commands and their output, 
+If you would like to see the OS commands and their output,
 you can do so by specifying "-v" (for _verbose_) on the command line.
+To disable verbose mode, use `--no-verbose` or `--no-v`
+(Ruby's OptionParser does not support short-form negations like `-v-`).
 
 ### Interactive Shell Mode vs Command Line Mode
 
