@@ -14,10 +14,13 @@ module WifiWand
         %Q{
 Command Line Switches     [wifi-wand version #{WifiWand::VERSION} at https://github.com/keithrbennett/wifiwand]
 ---------------------
--o {i,j,k,p,y}            - when not in shell mode, outputs data in the following formats: inspect, JSON, pretty JSON, puts, YAML
--p wifi_interface_name    - specify WiFi interface name (overrides auto-detection)
--s                        - run in shell mode (interactive pry REPL session)
--v                        - verbose mode (prints OS commands and their outputs)
+-h, --help                - show this help message
+-o, --output_format {i,j,k,p,y}
+                          - when not in shell mode, outputs data in the following formats: inspect, JSON, pretty JSON, puts, YAML
+-p, --wifi-interface interface_name
+                          - specify WiFi interface name (overrides auto-detection)
+-s, --shell               - run in shell mode (interactive pry REPL session)
+-v, --[no-]verbose        - verbose mode (prints OS commands and their outputs)
 
 Commands
 --------

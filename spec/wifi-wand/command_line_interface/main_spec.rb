@@ -100,6 +100,17 @@ describe WifiWand::Main do
       expect(ARGV).to eq(['info'])
     end
 
+    it 'allows explicit command-line flags to override WIFIWAND_OPTS defaults' do
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--verbose --wifi-interface en0')
+      stub_const('ARGV', ['--no-verbose', '--wifi-interface', 'en1', 'info'])
+
+      options = subject.parse_command_line
+
+      expect(options.verbose).to be(false)
+      expect(options.wifi_interface).to eq('en1')
+    end
+
     it 'raises a configuration error when WIFIWAND_OPTS cannot be parsed' do
       allow(ENV).to receive(:[]).and_call_original
       allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--verbose "')
