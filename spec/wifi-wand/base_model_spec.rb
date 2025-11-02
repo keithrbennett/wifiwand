@@ -28,6 +28,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:internet_tcp_connectivity?).and_return(true)
       allow(subject).to receive(:dns_working?).and_return(true)
       # Don't mock connected_to_internet? globally - let tests override it when needed
+      allow(subject).to receive(:fast_connectivity?).and_return(true)
       allow(subject).to receive(:public_ip_address_info).and_return({'ip' => '1.2.3.4'})
       
       # Also mock the underlying NetworkConnectivityTester to prevent real network calls
