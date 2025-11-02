@@ -90,9 +90,9 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
                 let details: [ScanNetworkInfo] = networks.map { network in
                     let security = HelperController.securityDescriptions(for: network)
                     return ScanNetworkInfo(
-                        ssid: network.ssid() ?? "<hidden>",
+                        ssid: network.ssid ?? "<hidden>",
                         rssi: network.rssiValue,
-                        channel: network.wlanChannel()?.channelNumber ?? -1,
+                        channel: network.wlanChannel?.channelNumber ?? -1,
                         security: security
                     )
                 }
@@ -127,25 +127,41 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
     }
 
     private func printJSON(_ dictionary: [String: String]) {
-        let data = try! JSONSerialization.data(withJSONObject: dictionary, options: [.prettyPrinted, .sortedKeys])
-        let string = String(data: data, encoding: .utf8)!
-        print(string)
+        if let data = try? JSONSerialization.data(withJSONObject: dictionary, options: [.prettyPrinted, .sortedKeys]),
+           let string = String(data: data, encoding: .utf8) {
+            print(string)
+        } else {
+            print("{\n  \"status\" : \"error\",\n  \"error\" : \"failed to serialize json\"\n}")
+        }
     }
 
     static private func securityDescriptions(for network: CWNetwork) -> [String] {
-        var values: [String] = []
         let mapping: [(CWSecurity, String)] = [
             (.none, "Open"),
-            (.wep, "WEP"),
+            (.dynamicWEP, "Dynamic WEP"),
+            (.WEP, "WEP"),
             (.wpaPersonal, "WPA"),
+            (.wpaPersonalMixed, "WPA (mixed)"),
             (.wpa2Personal, "WPA2"),
+            (.personal, "Personal"),
             (.wpa3Personal, "WPA3"),
+            (.wpa3Transition, "WPA3 Transition"),
             (.wpaEnterprise, "WPA Enterprise"),
+            (.wpaEnterpriseMixed, "WPA Enterprise (mixed)"),
             (.wpa2Enterprise, "WPA2 Enterprise"),
-            (.wpa3Enterprise, "WPA3 Enterprise")
+            (.enterprise, "Enterprise"),
+            (.wpa3Enterprise, "WPA3 Enterprise"),
+            (.OWE, "OWE"),
+            (.oweTransition, "OWE Transition"),
+            (.unknown, "Unknown")
         ]
+
+        var values: [String] = []
+        var seen = Set<String>()
+
         for (security, label) in mapping {
-            if network.supportsSecurity(security) {
+            if network.supportsSecurity(security) && !seen.contains(label) {
+                seen.insert(label)
                 values.append(label)
             }
         }

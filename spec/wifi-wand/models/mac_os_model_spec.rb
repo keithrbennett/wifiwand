@@ -798,6 +798,13 @@ module WifiWand
       end
 
       describe '#_available_network_names' do
+        let(:helper_double) do
+          instance_double(
+            WifiWand::MacOsWifiAuthHelper::Client,
+            connected_network_name: nil,
+            scan_networks: []
+          )
+        end
         let(:mock_airport_data) do
           {
             "SPAirPortDataType" => [{
@@ -813,6 +820,9 @@ module WifiWand
           }
         end
         before do
+          model.instance_variable_set(:@mac_helper_client, nil)
+          allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_double)
+          allow(model).to receive(:mac_helper_client).and_return(helper_double)
           allow(model).to receive(:ensure_wifi_interface!).and_return("en0")
         end
 
