@@ -127,15 +127,9 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
     }
 
     private func printJSON(_ dictionary: [String: String]) {
-        if let data = try? JSONSerialization.data(withJSONObject: dictionary, options: [.prettyPrinted, .sortedKeys]),
-           let string = String(data: data, encoding: .utf8) {
-            print(string)
-        } else {
-            print("{
-  "status" : "error",
-  "error" : "failed to serialize json"
-}")
-        }
+        let data = try! JSONSerialization.data(withJSONObject: dictionary, options: [.prettyPrinted, .sortedKeys])
+        let string = String(data: data, encoding: .utf8)!
+        print(string)
     }
 
     static private func securityDescriptions(for network: CWNetwork) -> [String] {

@@ -384,6 +384,50 @@ module WifiWand
           expect { model._ip_address }.to raise_error(WifiWand::CommandExecutor::OsCommandError)
         end
       end
+      describe '#_connected_network_name' do
+        let(:helper_double) { instance_double(WifiWand::MacOsWifiAuthHelper::Client) }
+
+        before do
+          model.instance_variable_set(:@mac_helper_client, nil)
+          allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_double)
+        end
+
+        it 'returns the helper-provided SSID when available' do
+          allow(helper_double).to receive(:connected_network_name).and_return('HelperSSID')
+
+          expect(model._connected_network_name).to eq('HelperSSID')
+        end
+
+        it 'falls back to airport data when helper returns nil' do
+          allow(helper_double).to receive(:connected_network_name).and_return(nil)
+          allow(model).to receive(:airport_data).and_return(
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name' => 'en0',
+                'spairport_current_network_information' => { '_name' => 'ProfilerNet' }
+              }]
+            }]
+          )
+          allow(model).to receive(:ensure_wifi_interface!).and_return('en0')
+
+          expect(model._connected_network_name).to eq('ProfilerNet')
+        end
+
+        it 'returns nil when helper returns nil and airport data is missing current network information' do
+          allow(helper_double).to receive(:connected_network_name).and_return(nil)
+          allow(model).to receive(:airport_data).and_return(
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name' => 'en0',
+                'spairport_current_network_information' => nil
+              }]
+            }]
+          )
+          allow(model).to receive(:ensure_wifi_interface!).and_return('en0')
+
+          expect(model._connected_network_name).to be_nil
+        end
+      end
 
       describe '#nameservers_using_networksetup' do
         it 'parses networksetup DNS output correctly' do
@@ -767,6 +811,9 @@ module WifiWand
               }]
             }]
           }
+        end
+        before do
+          allow(model).to receive(:ensure_wifi_interface!).and_return("en0")
         end
 
         it 'returns networks sorted by signal strength descending' do

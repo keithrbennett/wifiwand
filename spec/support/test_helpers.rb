@@ -41,6 +41,12 @@ module TestHelpers
         { name: 'Wi-Fi', device: 'en0', ethernet_address: '34:b1:eb:f3:b8:1c' },
         { name: 'Ethernet', device: 'en1', ethernet_address: 'aa:bb:cc:dd:ee:ff' }
       ])
+      helper_client = instance_double(
+        WifiWand::MacOsWifiAuthHelper::Client,
+        connected_network_name: nil,
+        scan_networks: []
+      )
+      allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_client)
       WifiWand::MacOsModel.create_model(merged_options)
     else
       raise WifiWand::NoSupportedOSError.new

@@ -6,6 +6,8 @@ require 'shellwords'
 
 require_relative 'base_model'
 require_relative '../errors'
+require_relative '../mac_os_wifi_auth_helper'
+
 
 module WifiWand
 
@@ -111,6 +113,7 @@ class MacOsModel < BaseModel
     super
     # Defer macOS version detection until first needed to minimize incidental OS calls
     @macos_version = nil
+    @mac_helper_client = nil
   end
 
   def self.os_id
@@ -187,6 +190,9 @@ class MacOsModel < BaseModel
 
   # Returns the network names sorted in descending order of signal strength.
   def _available_network_names
+    helper_networks = helper_available_network_names
+    return helper_networks if helper_networks
+
     iface = ensure_wifi_interface!
     data = airport_data
 
@@ -201,6 +207,25 @@ class MacOsModel < BaseModel
     return [] unless networks
 
     sort_networks_by_signal_strength(networks)
+  end
+
+  def helper_available_network_names
+    networks = mac_helper_client.scan_networks
+    return nil unless networks && !networks.empty?
+
+    names = []
+    seen = {}
+
+    networks.each do |network|
+      ssid = network['ssid'].to_s
+      next if ssid.empty? || ssid == '<hidden>'
+      next if seen[ssid]
+
+      seen[ssid] = true
+      names << ssid
+    end
+
+    names.empty? ? nil : names
   end
 
 
@@ -351,6 +376,9 @@ class MacOsModel < BaseModel
 
   # Returns the network currently connected to, or nil if none.
   def _connected_network_name
+    helper_name = mac_helper_client.connected_network_name
+    return helper_name if helper_name
+
     data = airport_data
     airport_data = data.dig("SPAirPortDataType", 0, "spairport_airport_interfaces")
     return nil unless airport_data
@@ -371,6 +399,13 @@ class MacOsModel < BaseModel
     current_network["_name"]
   end
 
+  def mac_helper_client
+    @mac_helper_client ||= WifiWand::MacOsWifiAuthHelper::Client.new(
+      out_stream_proc: -> { out_stream },
+      verbose_proc: -> { verbose_mode },
+      macos_version_proc: -> { macos_version }
+    )
+  end
 
   # Disconnects from the currently connected network. Does not turn off WiFi.
   def _disconnect
@@ -545,7 +580,11 @@ class MacOsModel < BaseModel
     run_os_command(['swift', swift_filespec] + args)
   end
 
-  private :fetch_hardware_ports, :find_wifi_port, :detect_wifi_service_name_from_ports, :extract_auth_failure_reason
+  private :detect_wifi_service_name_from_ports,
+          :extract_auth_failure_reason,
+          :fetch_hardware_ports,
+          :find_wifi_port,
+          :helper_available_network_names
 
   private
 
