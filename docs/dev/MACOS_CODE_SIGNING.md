@@ -1,0 +1,737 @@
+# macOS Code Signing and Notarization for wifi-wand Helper
+
+This document explains the code signing and notarization process for the `wifiwand-helper` macOS application bundle, why it's necessary, and how to use it as a gem maintainer.
+
+---
+
+## Table of Contents
+
+- [Background and Context](#background-and-context)
+- [Why Code Signing is Required](#why-code-signing-is-required)
+- [Development vs Distribution](#development-vs-distribution)
+- [Getting an Apple Developer ID](#getting-an-apple-developer-id)
+- [Managing Credentials with 1Password CLI (Recommended)](#managing-credentials-with-1password-cli-recommended)
+- [Signing and Notarization Workflow](#signing-and-notarization-workflow)
+- [Rake Tasks Reference](#rake-tasks-reference)
+- [Troubleshooting](#troubleshooting)
+- [FAQ](#faq)
+
+---
+
+## Background and Context
+
+### The macOS 15.x SSID Redaction Problem
+
+Starting with **macOS Sonoma (14.0)** and continuing in **macOS Sequoia (15.x)**, Apple introduced significant security changes to WiFi network information access:
+
+1. **SSID/BSSID redaction**: Command-line tools like `networksetup` and `system_profiler` now return `<redacted>` or empty values for WiFi network names
+2. **Location Services requirement**: The CoreWLAN framework (which provides programmatic WiFi access) now requires Location Services authorization to return unredacted SSID information
+3. **TCC (Transparency, Consent, and Control) enforcement**: macOS strictly manages which applications can access location data through the TCC database
+
+### Why wifi-wand Needs a Helper Application
+
+Because of these restrictions, `wifi-wand` cannot directly access WiFi information from Ruby. The solution is a native macOS helper application written in Swift that:
+
+- Uses the CoreWLAN framework to access WiFi interfaces
+- Requests Location Services authorization via CoreLocation
+- Returns unredacted SSID/BSSID information as JSON
+- Operates as a separate process that can be properly managed by TCC
+
+### The Authorization Mystery on macOS 15.6.1
+
+During development, we discovered unexpected behavior on **macOS 15.6.1**:
+
+- The helper receives `authorizedAlways` status (value 3) from CoreLocation
+- WiFi information is successfully retrieved without redaction
+- **However, no TCC database entry is created**
+- Authorization appears to be ephemeral/temporary, granted per-execution
+
+This behavior is inconsistent with documented macOS TCC requirements and may be:
+- A macOS 15.x bug or quirk
+- Temporary authorization for apps with proper Info.plist keys
+- Development mode behavior
+
+**Note:** wifi-wand now requires Developer ID signing for the helper. The temporary authorization observed above is not reliable enough for production use, and permission management requires persistent TCC entries that only proper code signing provides.
+
+**With Developer ID signing**, you get:
+- Persistent TCC entries are created
+- Users can manage permissions via System Settings
+- The helper works reliably across all macOS configurations
+- Professional deployment without Gatekeeper warnings
+
+---
+
+## Why Code Signing is Required
+
+### Code Signing Purposes
+
+Code signing serves multiple critical purposes:
+
+1. **Identity Verification**: Proves the app comes from a known developer
+2. **Integrity Protection**: Ensures the app hasn't been tampered with
+3. **TCC Registration**: Allows macOS to create persistent permission entries
+4. **Gatekeeper Approval**: Prevents "unidentified developer" warnings
+5. **Permission Management**: Enables users to control app permissions via System Settings
+
+### Developer ID Code Signing Required
+
+The wifiwand helper **requires** proper code signing with a Developer ID certificate. Ad-hoc signing (using `-` as the identity) does **not** work for this use case because:
+
+- ❌ Ad-hoc signing does not create persistent TCC database entries
+- ❌ Permission management rake tasks cannot function
+- ❌ Users cannot control permissions via System Settings
+- ❌ Helper authorization is unreliable
+
+**Developer ID Signing:**
+
+```bash
+codesign --sign "Developer ID Application: Your Name (TEAM123)" \
+  --options runtime \
+  --entitlements wifiwand-helper.entitlements \
+  --timestamp \
+  wifiwand-helper.app
+```
+
+**What you get:**
+- ✅ Identifies you as the developer
+- ✅ Can be notarized by Apple
+- ✅ Creates persistent TCC entries
+- ✅ No Gatekeeper warnings
+- ✅ Professional distribution
+- ✅ Permission management works correctly
+- ✅ Meets enterprise requirements
+
+**Requirements:**
+- Apple Developer Program membership ($99/year)
+- Developer ID Application certificate
+
+---
+
+## Development vs Distribution
+
+### For Development (End Users)
+
+When users install the `wifi-wand` gem, they receive a **pre-signed, pre-notarized** helper binary:
+
+1. Gem is installed via `gem install wifi-wand`
+2. Helper binary (already signed by you) is extracted to `~/Library/Application Support/WifiWand/`
+3. Helper works immediately with proper TCC support
+4. Users can manage permissions via System Settings → Privacy & Security → Location Services
+
+**Users never need to sign or compile anything.**
+
+### For Distribution (Gem Maintainer)
+
+As the gem maintainer, you perform signing and notarization **before releasing** a new gem version:
+
+```bash
+# 1. Sign with your Developer ID
+WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)" \
+  bundle exec rake dev:build_signed_helper
+
+# 2. Notarize with Apple
+APPLE_ID="you@example.com" \
+APPLE_TEAM_ID="TEAM123" \
+APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
+  bundle exec rake dev:notarize_helper
+
+# 3. Commit the signed binary
+git add libexec/macos/wifiwand-helper.app
+git commit -m "Update signed and notarized macOS helper"
+
+# 4. Build and release gem
+gem build wifi-wand.gemspec
+gem push wifi-wand-X.Y.Z.gem
+```
+
+The signed binary is committed to git and distributed with the gem.
+
+---
+
+## Getting an Apple Developer ID
+
+### Step 1: Join the Apple Developer Program
+
+1. Visit https://developer.apple.com/programs/
+2. Click "Enroll"
+3. Sign in with your Apple ID
+4. Pay the $99/year membership fee
+5. Wait for approval (usually 1-2 business days)
+
+### Step 2: Request a Developer ID Certificate
+
+#### Option A: Using Xcode (Recommended)
+
+1. Open Xcode
+2. Go to **Xcode → Settings → Accounts**
+3. Click **+** to add your Apple ID
+4. Select your account, click **Manage Certificates**
+5. Click **+** and choose **Developer ID Application**
+6. Certificate is automatically created and installed
+
+#### Option B: Using Keychain Access
+
+1. Open **Keychain Access** (Applications → Utilities)
+2. Go to **Keychain Access → Certificate Assistant → Request a Certificate from a Certificate Authority**
+3. Enter your email address
+4. Choose **Saved to disk**
+5. Save the Certificate Signing Request (CSR)
+6. Visit https://developer.apple.com/account/resources/certificates/add
+7. Choose **Developer ID Application**
+8. Upload your CSR
+9. Download and double-click the certificate to install
+
+### Step 3: Verify Your Certificate
+
+```bash
+# List all code signing identities
+security find-identity -v -p codesigning
+```
+
+You should see something like:
+```
+1) A1B2C3D4E5F6... "Developer ID Application: Your Name (TEAM123)"
+```
+
+Copy the full identity string (in quotes) for use with rake tasks.
+
+### Step 4: Create an App-Specific Password
+
+For notarization, you need an app-specific password:
+
+1. Visit https://appleid.apple.com
+2. Sign in with your Apple ID
+3. Go to **Security → App-Specific Passwords**
+4. Click **+** to generate a new password
+5. Enter a label (e.g., "wifi-wand notarization")
+6. Copy the generated password (format: `xxxx-xxxx-xxxx-xxxx`)
+
+---
+
+## Managing Credentials with 1Password CLI (Recommended)
+
+For better security and convenience, you can use [1Password CLI](https://developer.1password.com/docs/cli) to manage your signing credentials.
+
+### Benefits
+
+- **Security**: No plaintext credentials in shell history or environment
+- **Convenience**: One command instead of setting multiple environment variables
+- **Audit Trail**: 1Password logs all secret access
+- **Team Sharing**: Share credential references without exposing actual values
+- **No Git Exposure**: `.env.release` contains only references, safe to commit
+
+### Setup (One-time)
+
+#### 1. Install 1Password CLI
+
+```bash
+# macOS (Homebrew)
+brew install --cask 1password-cli
+
+# Or download from https://1password.com/downloads/command-line/
+```
+
+#### 2. Sign in to 1Password
+
+```bash
+# Sign in (first time)
+op signin
+
+# Or if already configured
+eval $(op signin)
+```
+
+#### 3. Create a 1Password Item
+
+Create an item in your vault with your signing credentials:
+
+1. Open 1Password
+2. Create a new item called **"WiFi-Wand Release"**
+3. Add these fields:
+   - **CODESIGN_IDENTITY**: `Developer ID Application: Your Name (TEAM123)`
+   - **APPLE_ID**: `you@example.com`
+   - **TEAM_ID**: `TEAM123`
+   - **APP_PASSWORD**: `xxxx-xxxx-xxxx-xxxx`
+4. Save to your vault (e.g., "Private")
+
+#### 4. Create `.env.release` File
+
+```bash
+# Copy the example
+cp .env.release.example .env.release
+
+# Edit if using a different vault name
+# Default vault is "Private"
+```
+
+The `.env.release` file contains 1Password references (safe to commit):
+
+```bash
+WIFIWAND_CODESIGN_IDENTITY=op://Private/WiFi-Wand Release/CODESIGN_IDENTITY
+WIFIWAND_APPLE_ID=op://Private/WiFi-Wand Release/APPLE_ID
+WIFIWAND_APPLE_TEAM_ID=op://Private/WiFi-Wand Release/TEAM_ID
+WIFIWAND_APPLE_APP_PASSWORD=op://Private/WiFi-Wand Release/APP_PASSWORD
+```
+
+### Usage
+
+#### Using Helper Scripts (Easiest)
+
+```bash
+# Sign the helper
+./scripts/sign-helper
+
+# Complete release workflow
+./scripts/release-helper
+```
+
+The scripts automatically use 1Password CLI if available, otherwise fall back to environment variables.
+
+#### Using `op run` Directly
+
+```bash
+# Sign only
+op run --env-file=.env.release -- bundle exec rake dev:build_signed_helper
+
+# Complete workflow (sign, test, notarize)
+op run --env-file=.env.release -- bundle exec rake dev:release_helper
+
+# Individual notarization
+op run --env-file=.env.release -- bundle exec rake dev:notarize_helper
+```
+
+#### How It Works
+
+1. **`op run`** reads `.env.release`
+2. Fetches actual values from your 1Password vault
+3. Sets environment variables with real values
+4. Runs the command (rake task)
+5. Command completes, variables disappear
+6. No secrets left in shell history or environment
+
+### Fallback to Direct Environment Variables
+
+If you don't use 1Password, you can still set environment variables directly:
+
+```bash
+export WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)"
+export WIFIWAND_APPLE_ID="you@example.com"
+export WIFIWAND_APPLE_TEAM_ID="TEAM123"
+export WIFIWAND_APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+
+bundle exec rake dev:release_helper
+```
+
+The rake tasks work identically with either approach.
+
+---
+
+## Signing and Notarization Workflow
+
+### Complete Release Workflow
+
+**Option 1: Using 1Password CLI (Recommended)**
+
+```bash
+# Single command with 1Password
+./scripts/release-helper
+
+# Or use op run directly
+op run --env-file=.env.release -- bundle exec rake dev:release_helper
+```
+
+**Option 2: Using Environment Variables**
+
+```bash
+# Set environment variables
+export WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)"
+export WIFIWAND_APPLE_ID="you@example.com"
+export WIFIWAND_APPLE_TEAM_ID="TEAM123"
+export WIFIWAND_APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+
+# Run complete workflow
+bundle exec rake dev:release_helper
+```
+
+**What this does:**
+1. ✅ Compiles the Swift helper
+2. ✅ Signs with your Developer ID
+3. ✅ Tests the signed binary
+4. ✅ Uploads to Apple for notarization
+5. ✅ Waits for approval (~2-5 minutes)
+6. ✅ Staples the notarization ticket
+7. ✅ Verifies everything works
+
+### Individual Steps (if needed)
+
+#### Step 1: Build and Sign
+
+```bash
+WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)" \
+  bundle exec rake dev:build_signed_helper
+```
+
+This compiles the helper and signs it with:
+- Your Developer ID certificate
+- Hardened Runtime enabled
+- Entitlements file applied
+- Secure timestamp
+
+#### Step 2: Test the Signed Helper
+
+```bash
+bundle exec rake dev:test_signed_helper
+```
+
+This verifies:
+- Code signature is valid
+- Bundle identifier is correct
+- Helper executes successfully
+- CoreWLAN returns unredacted WiFi info
+
+#### Step 3: Notarize with Apple
+
+```bash
+APPLE_ID="you@example.com" \
+APPLE_TEAM_ID="TEAM123" \
+APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
+  bundle exec rake dev:notarize_helper
+```
+
+This:
+- Creates a zip archive of the helper
+- Submits to Apple's notarization service
+- Waits for approval
+- Staples the notarization ticket to the app
+
+#### Step 4: Check Status
+
+```bash
+bundle exec rake dev:codesign_status
+```
+
+Shows:
+- Signature details
+- Verification status
+- Notarization status
+- Gatekeeper assessment
+
+### After Successful Notarization
+
+```bash
+# Commit the signed helper
+git add libexec/macos/wifiwand-helper.app
+git commit -m "Update signed and notarized macOS helper for version X.Y.Z"
+
+# Update version if needed
+# Edit lib/wifi-wand/version.rb
+
+# Build gem
+gem build wifi-wand.gemspec
+
+# Test the gem locally
+gem install wifi-wand-X.Y.Z.gem --local
+
+# Publish to RubyGems
+gem push wifi-wand-X.Y.Z.gem
+```
+
+---
+
+## Rake Tasks Reference
+
+All developer tasks are in the `dev:` namespace and are **not included in the distributed gem**.
+
+### `dev:build_signed_helper`
+
+**Purpose:** Compile and sign the helper with Developer ID
+
+**Environment Variables:**
+- `WIFIWAND_CODESIGN_IDENTITY` (required) - Your Developer ID certificate
+
+**Example:**
+```bash
+WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)" \
+  bundle exec rake dev:build_signed_helper
+```
+
+**Output:**
+- Compiled binary: `libexec/macos/wifiwand-helper.app/Contents/MacOS/wifiwand-helper`
+- Signed with Developer ID
+- Hardened Runtime enabled
+- Entitlements applied
+
+---
+
+### `dev:test_signed_helper`
+
+**Purpose:** Test the signed helper binary
+
+**Environment Variables:** None
+
+**Example:**
+```bash
+bundle exec rake dev:test_signed_helper
+```
+
+**Checks:**
+- Code signature validity
+- Bundle identifier
+- Helper execution
+- WiFi information retrieval
+
+---
+
+### `dev:notarize_helper`
+
+**Purpose:** Submit helper to Apple for notarization
+
+**Environment Variables:**
+- `APPLE_ID` (required) - Your Apple ID email
+- `APPLE_TEAM_ID` (required) - Your team ID (e.g., ABCD123456)
+- `APPLE_APP_PASSWORD` (required) - App-specific password
+
+**Example:**
+```bash
+APPLE_ID="you@example.com" \
+APPLE_TEAM_ID="ABCD123456" \
+APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
+  bundle exec rake dev:notarize_helper
+```
+
+**Process:**
+1. Creates zip archive
+2. Submits to Apple
+3. Polls for status (usually 2-5 minutes)
+4. Staples ticket on success
+
+---
+
+### `dev:release_helper`
+
+**Purpose:** Complete workflow (build, sign, test, notarize)
+
+**Environment Variables:**
+- `WIFIWAND_CODESIGN_IDENTITY` (required)
+- `APPLE_ID` (required)
+- `APPLE_TEAM_ID` (required)
+- `APPLE_APP_PASSWORD` (required)
+
+**Example:**
+```bash
+WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)" \
+APPLE_ID="you@example.com" \
+APPLE_TEAM_ID="ABCD123456" \
+APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
+  bundle exec rake dev:release_helper
+```
+
+**This is the recommended command for releases.**
+
+---
+
+### `dev:codesign_status`
+
+**Purpose:** Show current code signing and notarization status
+
+**Environment Variables:** None
+
+**Example:**
+```bash
+bundle exec rake dev:codesign_status
+```
+
+**Output:**
+- Signature details
+- Verification result
+- Notarization status
+- Gatekeeper assessment
+
+---
+
+## Troubleshooting
+
+### "No such bundle identifier" (tccutil error)
+
+**Symptom:**
+```
+tccutil: No such bundle identifier "com.wifiwand.helper"
+```
+
+**Cause:** Helper is not properly signed or bundle doesn't exist
+
+**Solution:**
+```bash
+# Recompile and sign
+bundle exec rake swift:compile_helper
+
+# Check signature
+codesign -dvv libexec/macos/wifiwand-helper.app
+```
+
+---
+
+### "Unable to find code signing identity"
+
+**Symptom:**
+```
+Error: Could not find code signing identity 'Developer ID Application: ...'
+```
+
+**Cause:** Certificate not installed or name incorrect
+
+**Solution:**
+```bash
+# List available identities
+security find-identity -v -p codesigning
+
+# Use exact name from output
+WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)" \
+  bundle exec rake dev:build_signed_helper
+```
+
+---
+
+### "Notarization failed - Invalid"
+
+**Symptom:**
+```
+status: Invalid
+```
+
+**Cause:** Helper not properly signed for notarization
+
+**Solution:**
+1. Ensure you're using Developer ID (not ad-hoc `-`)
+2. Verify hardened runtime is enabled
+3. Check entitlements are applied
+
+```bash
+# Rebuild with correct signing
+WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)" \
+  bundle exec rake dev:build_signed_helper
+
+# Verify before notarizing
+codesign -dvv libexec/macos/wifiwand-helper.app | grep runtime
+```
+
+---
+
+### "Helper returns <redacted> SSID"
+
+**Symptom:** Helper returns `null` or empty SSID/BSSID
+
+**Possible Causes:**
+1. Helper doesn't have Location Services permission
+2. Helper is not properly signed
+3. Location Services disabled system-wide
+
+**Solution:**
+```bash
+# Check TCC entry
+bundle exec rake mac:helper_location_permission_status
+
+# Grant permission
+bundle exec rake mac:helper_location_permission_allow
+
+# Check system Location Services
+open "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices"
+```
+
+---
+
+### "xcrun: error: unable to find utility 'notarytool'"
+
+**Symptom:** Notarization fails with `notarytool` not found
+
+**Cause:** Xcode Command Line Tools not installed or outdated
+
+**Solution:**
+```bash
+# Install or update Command Line Tools
+xcode-select --install
+
+# Or update via Software Update
+softwareupdate --install --all
+```
+
+---
+
+## FAQ
+
+### Do end users need an Apple Developer ID?
+
+**No.** End users install the pre-signed gem and never need to sign anything.
+
+### Why is the signed binary committed to git?
+
+So that users get a working, signed helper when they install the gem. Without this, users would need to compile and sign it themselves, which is impractical.
+
+### How often do I need to re-notarize?
+
+Every time you release a new gem version with an updated helper. The binary's hash changes with each compilation, requiring new notarization.
+
+### Can I use the same Developer ID for multiple projects?
+
+Yes. A single Developer ID certificate can sign unlimited applications.
+
+### Does the $99/year Apple Developer membership auto-renew?
+
+Yes, unless you disable auto-renewal in your Apple ID account settings.
+
+### What happens if my Developer ID certificate expires?
+
+- Your certificate expires after 5 years
+- Apps signed with expired certificates still work
+- You'll need to renew the certificate to sign new releases
+- Apple automatically creates a new certificate when the old one nears expiration
+
+### Can I distribute a debug/development build?
+
+No. wifi-wand requires properly signed helpers because:
+- Ad-hoc signing does not create TCC database entries
+- Permission management does not function without TCC entries
+- Users cannot control permissions
+- The helper's behavior is unreliable
+
+Always use your Developer ID certificate, even for development/testing, to ensure proper TCC integration.
+
+### How do I rotate my app-specific password?
+
+1. Revoke old password at https://appleid.apple.com
+2. Generate new password
+3. Update your environment variables
+4. Re-run notarization
+
+### What if Apple rejects notarization?
+
+Check the detailed logs:
+```bash
+# Get submission ID from failed output
+xcrun notarytool log SUBMISSION_ID \
+  --apple-id you@example.com \
+  --team-id TEAM123 \
+  --password xxxx-xxxx-xxxx-xxxx
+```
+
+Common issues:
+- Missing entitlements
+- Hardened runtime not enabled
+- Unsigned dependencies
+- Invalid Info.plist
+
+---
+
+## Additional Resources
+
+- [Apple Developer Documentation - Notarizing macOS Software](https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution)
+- [Apple Developer Documentation - Code Signing](https://developer.apple.com/support/code-signing/)
+- [Apple Developer Documentation - Hardened Runtime](https://developer.apple.com/documentation/security/hardened_runtime)
+- [TN3147: Code signing and notarizing issues](https://developer.apple.com/documentation/technotes/tn3147-resolving-common-notarization-issues)
+- [wifi-wand Repository](https://github.com/keithrbennett/wifiwand)
+
+---
+
+**Last Updated:** 2025-11-03
+**macOS Version:** Tested on macOS 15.6.1 (Sequoia)
+**Xcode Version:** Compatible with Xcode 15.0+
