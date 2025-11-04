@@ -738,6 +738,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#status_line_data' do
     it 'returns a hash with the correct keys' do
+      allow(subject).to receive(:fast_connectivity?).and_return(true)
+
       data = subject.status_line_data
       expect(data).to be_a(Hash)
 

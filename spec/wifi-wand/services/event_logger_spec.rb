@@ -42,8 +42,12 @@ describe WifiWand::EventLogger do
     end
 
     it 'creates LogFileManager when file path specified' do
-      logger = WifiWand::EventLogger.new(mock_model, log_file_path: '/tmp/test.log', output: output)
-      expect(logger.log_file_manager).to be_a(WifiWand::LogFileManager)
+      Dir.mktmpdir do |dir|
+        log_file_path = File.join(dir, 'test.log')
+        logger = WifiWand::EventLogger.new(mock_model, log_file_path: log_file_path, output: output)
+        expect(logger.log_file_manager).to be_a(WifiWand::LogFileManager)
+        logger.cleanup
+      end
     end
 
     it 'accepts custom LogFileManager' do
@@ -52,11 +56,19 @@ describe WifiWand::EventLogger do
     end
 
     it 'respects nil output (file-only mode, no stdout)' do
-      logger = WifiWand::EventLogger.new(mock_model, log_file_path: '/tmp/test.log', output: nil, log_file_manager: mock_log_file_manager)
-      expect(logger.output).to be_nil
-      # Verify log_message doesn't call puts when output is nil
-      expect { logger.send(:log_message, 'test message') }.not_to raise_error
-      expect(mock_log_file_manager).to have_received(:write).with('test message')
+      Dir.mktmpdir do |dir|
+        log_file_path = File.join(dir, 'test.log')
+        logger = WifiWand::EventLogger.new(
+          mock_model,
+          log_file_path: log_file_path,
+          output: nil,
+          log_file_manager: mock_log_file_manager
+        )
+        expect(logger.output).to be_nil
+        # Verify log_message doesn't call puts when output is nil
+        expect { logger.send(:log_message, 'test message') }.not_to raise_error
+        expect(mock_log_file_manager).to have_received(:write).with('test message')
+      end
     end
   end
 
