@@ -130,9 +130,8 @@ WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)" \
   bundle exec rake dev:build_signed_helper
 
 # 2. Notarize with Apple
-APPLE_ID="you@example.com" \
-APPLE_TEAM_ID="TEAM123" \
-APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
+WIFIWAND_APPLE_DEV_ID="you@example.com" \
+WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
   bundle exec rake dev:notarize_helper
 
 # 3. Commit the signed binary
@@ -193,9 +192,21 @@ You should see something like:
 1) A1B2C3D4E5F6... "Developer ID Application: Your Name (TEAM123)"
 ```
 
-Copy the full identity string (in quotes) for use with rake tasks.
+Copy the full identity string (in quotes) - you'll hardcode this in the next step.
 
-### Step 4: Create an App-Specific Password
+### Step 4: Update Hardcoded Public Values
+
+Once you have your Developer ID certificate, update the hardcoded values in `lib/wifi-wand/mac_helper_release.rb`:
+
+```ruby
+# Public signing credentials (visible in all signed binaries - no need to hide)
+APPLE_TEAM_ID = 'ABCD123456'  # ← Update this
+CODESIGN_IDENTITY = 'Developer ID Application: Your Name (ABCD123456)'  # ← Update this
+```
+
+These values are public (visible in all signed binaries via `codesign -dv`), so they don't need to be hidden in 1Password.
+
+### Step 5: Create an App-Specific Password
 
 For notarization, you need an app-specific password:
 
@@ -243,16 +254,16 @@ eval $(op signin)
 
 #### 3. Create a 1Password Item
 
-Create an item in your vault with your signing credentials:
+Create an item in your vault with your private credentials:
 
 1. Open 1Password
 2. Create a new item called **"WiFi-Wand Release"**
-3. Add these fields:
-   - **CODESIGN_IDENTITY**: `Developer ID Application: Your Name (TEAM123)`
-   - **APPLE_ID**: `you@example.com`
-   - **TEAM_ID**: `TEAM123`
-   - **APP_PASSWORD**: `xxxx-xxxx-xxxx-xxxx`
+3. Add these fields (private credentials only):
+   - **APPLE_DEV_ID**: `you@example.com` (your Apple Developer account email)
+   - **APPLE_DEV_PASSWORD**: `xxxx-xxxx-xxxx-xxxx` (app-specific password)
 4. Save to your vault (e.g., "Private")
+
+> **Note**: Team ID and codesign identity are **hardcoded** in `lib/wifi-wand/mac_helper_release.rb` (they're public values visible in signed binaries anyway - no need to hide them in 1Password). You'll update those hardcoded values when you receive your Apple Developer ID certificate.
 
 #### 4. Create `.env.release` File
 
@@ -267,27 +278,14 @@ cp .env.release.example .env.release
 The `.env.release` file contains 1Password references (safe to commit):
 
 ```bash
-WIFIWAND_CODESIGN_IDENTITY=op://Private/WiFi-Wand Release/CODESIGN_IDENTITY
-WIFIWAND_APPLE_ID=op://Private/WiFi-Wand Release/APPLE_ID
-WIFIWAND_APPLE_TEAM_ID=op://Private/WiFi-Wand Release/TEAM_ID
-WIFIWAND_APPLE_APP_PASSWORD=op://Private/WiFi-Wand Release/APP_PASSWORD
+# Private credentials only - team ID and codesign identity are hardcoded
+WIFIWAND_APPLE_DEV_ID=op://Private/WiFi-Wand Release/APPLE_DEV_ID
+WIFIWAND_APPLE_DEV_PASSWORD=op://Private/WiFi-Wand Release/APPLE_DEV_PASSWORD
 ```
 
 ### Usage
 
-#### Using Helper Scripts (Easiest)
-
-```bash
-# Sign the helper
-./scripts/sign-helper
-
-# Complete release workflow
-./scripts/release-helper
-```
-
-The scripts automatically use 1Password CLI if available, otherwise fall back to environment variables.
-
-#### Using `op run` Directly
+#### Using `op run` with 1Password CLI
 
 ```bash
 # Sign only
@@ -314,10 +312,9 @@ op run --env-file=.env.release -- bundle exec rake dev:notarize_helper
 If you don't use 1Password, you can still set environment variables directly:
 
 ```bash
-export WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)"
-export WIFIWAND_APPLE_ID="you@example.com"
-export WIFIWAND_APPLE_TEAM_ID="TEAM123"
-export WIFIWAND_APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+# Private credentials only - team ID and codesign identity are hardcoded in lib/wifi-wand/mac_helper_release.rb
+export WIFIWAND_APPLE_DEV_ID="you@example.com"
+export WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx"
 
 bundle exec rake dev:release_helper
 ```
@@ -333,21 +330,16 @@ The rake tasks work identically with either approach.
 **Option 1: Using 1Password CLI (Recommended)**
 
 ```bash
-# Single command with 1Password
-./scripts/release-helper
-
-# Or use op run directly
+# Complete workflow with 1Password
 op run --env-file=.env.release -- bundle exec rake dev:release_helper
 ```
 
 **Option 2: Using Environment Variables**
 
 ```bash
-# Set environment variables
-export WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)"
-export WIFIWAND_APPLE_ID="you@example.com"
-export WIFIWAND_APPLE_TEAM_ID="TEAM123"
-export WIFIWAND_APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+# Set private credentials (team ID and codesign identity are hardcoded in lib/wifi-wand/mac_helper_release.rb)
+export WIFIWAND_APPLE_DEV_ID="you@example.com"
+export WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx"
 
 # Run complete workflow
 bundle exec rake dev:release_helper
@@ -392,9 +384,8 @@ This verifies:
 #### Step 3: Notarize with Apple
 
 ```bash
-APPLE_ID="you@example.com" \
-APPLE_TEAM_ID="TEAM123" \
-APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
+WIFIWAND_APPLE_DEV_ID="you@example.com" \
+WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
   bundle exec rake dev:notarize_helper
 ```
 
@@ -487,15 +478,15 @@ bundle exec rake dev:test_signed_helper
 **Purpose:** Submit helper to Apple for notarization
 
 **Environment Variables:**
-- `APPLE_ID` (required) - Your Apple ID email
-- `APPLE_TEAM_ID` (required) - Your team ID (e.g., ABCD123456)
-- `APPLE_APP_PASSWORD` (required) - App-specific password
+- `WIFIWAND_APPLE_DEV_ID` (required) - Your Apple ID email
+- `WIFIWAND_APPLE_DEV_PASSWORD` (required) - App-specific password
+
+**Note:** Team ID is hardcoded in `lib/wifi-wand/mac_helper_release.rb` (it's a public value visible in signed binaries).
 
 **Example:**
 ```bash
-APPLE_ID="you@example.com" \
-APPLE_TEAM_ID="ABCD123456" \
-APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
+WIFIWAND_APPLE_DEV_ID="you@example.com" \
+WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
   bundle exec rake dev:notarize_helper
 ```
 
@@ -512,17 +503,17 @@ APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
 **Purpose:** Complete workflow (build, sign, test, notarize)
 
 **Environment Variables:**
-- `WIFIWAND_CODESIGN_IDENTITY` (required)
-- `APPLE_ID` (required)
-- `APPLE_TEAM_ID` (required)
-- `APPLE_APP_PASSWORD` (required)
+- `WIFIWAND_CODESIGN_IDENTITY` (required) - Your Developer ID certificate
+- `WIFIWAND_APPLE_DEV_ID` (required) - Your Apple ID email
+- `WIFIWAND_APPLE_DEV_PASSWORD` (required) - App-specific password
+
+**Note:** Team ID is hardcoded in `lib/wifi-wand/mac_helper_release.rb` (it's a public value visible in signed binaries).
 
 **Example:**
 ```bash
 WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)" \
-APPLE_ID="you@example.com" \
-APPLE_TEAM_ID="ABCD123456" \
-APPLE_APP_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
+WIFIWAND_APPLE_DEV_ID="you@example.com" \
+WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
   bundle exec rake dev:release_helper
 ```
 
