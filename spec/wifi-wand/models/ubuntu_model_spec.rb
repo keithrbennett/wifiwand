@@ -1176,6 +1176,12 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
           .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''], false)
+          .and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'], false)
+          .and_return(command_result(stdout: ''))
 
         # Mock connection restart
         allow(subject).to receive(:run_os_command)
