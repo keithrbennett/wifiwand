@@ -16,8 +16,13 @@ describe WifiWand::LogFileManager do
 
   describe 'initialization' do
     it 'creates an instance with default log file path' do
-      manager = WifiWand::LogFileManager.new
-      expect(manager.log_file_path).to eq(WifiWand::LogFileManager::DEFAULT_LOG_FILE)
+      Dir.mktmpdir do |dir|
+        Dir.chdir(dir) do
+          manager = WifiWand::LogFileManager.new
+          expect(manager.log_file_path).to eq(WifiWand::LogFileManager::DEFAULT_LOG_FILE)
+          manager.close
+        end
+      end
     end
 
     it 'creates an instance with custom log file path' do
