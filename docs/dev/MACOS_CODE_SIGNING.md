@@ -1,5 +1,7 @@
 # macOS Code Signing and Notarization for wifi-wand Helper
 
+> Audience: wifi-wand maintainers preparing signed and notarized helpers.
+
 This document explains the code signing and notarization process for the `wifiwand-helper` macOS application bundle, why it's necessary, and how to use it as a gem maintainer.
 
 ---

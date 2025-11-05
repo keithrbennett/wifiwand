@@ -101,7 +101,8 @@ module WifiWand
       FileUtils.mkdir_p(versioned_install_dir)
       FileUtils.rm_rf(installed_bundle_path)
       FileUtils.cp_r(source_bundle_path, installed_bundle_path)
-      compile_helper(source_swift_path, installed_executable_path, out_stream: out_stream)
+      FileUtils.chmod(0o755, installed_executable_path)
+      out_stream&.puts 'Helper bundle installed from pre-signed binary.' if out_stream
       write_manifest
     end
 
@@ -283,7 +284,7 @@ module WifiWand
         return if @location_warning_emitted
 
         stream = out_stream || $stdout
-        stream.puts('wifiwand helper: Location Services denied. Run `wifiwand mac authorize` to enable unredacted SSIDs.') if stream
+        stream.puts('wifiwand helper: Location Services denied. Run `bundle exec rake mac:helper_location_permission_allow` to enable unredacted SSIDs.') if stream
         @location_warning_emitted = true
       end
 

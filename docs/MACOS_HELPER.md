@@ -1,5 +1,7 @@
 # macOS Helper Application for wifi-wand
 
+> Audience: wifi-wand end users who need to install or troubleshoot the macOS helper.
+
 This document explains the native macOS helper application that wifi-wand uses to access WiFi information on macOS 14 (Sonoma) and later.
 
 ---
