@@ -26,9 +26,11 @@ This document explains the code signing and notarization process for the `wifiwa
 
 Starting with **macOS Sonoma (14.0)** and continuing in **macOS Sequoia (15.x)**, Apple introduced significant security changes to WiFi network information access:
 
-1. **SSID/BSSID redaction**: Command-line tools like `networksetup` and `system_profiler` now return `<redacted>` or empty values for WiFi network names
+1. **SSID/BSSID redaction by default**: Command-line tools like `networksetup` and `system_profiler` return `<redacted>` or empty values until the calling process has Location Services authorization.
 2. **Location Services requirement**: The CoreWLAN framework (which provides programmatic WiFi access) now requires Location Services authorization to return unredacted SSID information
 3. **TCC (Transparency, Consent, and Control) enforcement**: macOS strictly manages which applications can access location data through the TCC database
+
+Once a shell or application is granted Location Services access, the legacy tools resume returning real SSIDs—but that approval is scoped to the specific binary. Terminal.app might already be approved while `/usr/bin/ruby` (or your CI runner) is not, which is why the helper still matters.
 
 ### Why wifi-wand Needs a Helper Application
 

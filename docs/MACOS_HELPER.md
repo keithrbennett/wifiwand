@@ -44,7 +44,7 @@ The `wifiwand-helper` is a small native macOS application written in Swift that 
 
 ### The macOS Security Changes
 
-Starting with **macOS Sonoma (14.0)**, Apple introduced significant WiFi security restrictions:
+Starting with **macOS Sonoma (14.0)** (and continuing in Sequoia 15.x), Apple requires additional authorization before command-line tools can see WiFi metadata:
 
 #### Before macOS 14:
 ```bash
@@ -52,15 +52,16 @@ $ networksetup -getairportnetwork en0
 Current Wi-Fi Network: MyNetwork
 ```
 
-#### On macOS 14+:
+#### On macOS 14+ (before granting Location Services permission):
 ```bash
 $ networksetup -getairportnetwork en0
 Current Wi-Fi Network: <redacted>
 ```
+Once the calling process (for example, Terminal.app) is approved for Location Services, those tools return the full SSID again—but approval is scoped per executable. Your shell might work while `/usr/bin/ruby` (or a CI runner) is still blocked, which is why the helper remains necessary.
 
 ### What Changed?
 
-1. **SSID Redaction**: Command-line tools like `networksetup` and `system_profiler` now return `<redacted>` instead of actual WiFi network names
+1. **SSID Redaction by Default**: Command-line tools like `networksetup` and `system_profiler` return `<redacted>` or blank values until the calling process is granted Location Services access.
 
 2. **Location Services Requirement**: To access unredacted WiFi information, apps must:
    - Use Apple's CoreWLAN framework (not available from Ruby)
@@ -388,7 +389,7 @@ If you prefer not to use the helper (accepting that WiFi names will be redacted)
 export WIFIWAND_DISABLE_MAC_HELPER=1
 ```
 
-wifi-wand will fall back to traditional methods and show `<redacted>` for network names on macOS 14+.
+wifi-wand will fall back to traditional methods and will typically show `<redacted>` for network names on macOS 14+ unless the invoking process already has Location Services approval.
 
 ---
 
