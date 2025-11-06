@@ -78,17 +78,18 @@ class Main
 
 
   def call
-    options = parse_command_line
-
     begin
+      options = parse_command_line
       # Ensure CLI and model share the main's output streams
       options.out_stream = @out_stream
       options.err_stream = @err_stream
       WifiWand::CommandLineInterface.new(options).call
     rescue => e
-      handle_error(e, options.verbose)
+      # For option parsing errors, we don't have options.verbose yet, so default to false
+      verbose = !!options&.verbose
+      handle_error(e, verbose)
       # In non-interactive CLI mode, ensure failures return a non-zero exit code
-      exit(1) unless options.interactive_mode
+      exit(1) unless options&.interactive_mode
     end
   end
 
@@ -108,6 +109,14 @@ class Main
 
   def handle_error(error, verbose_mode)
     case error
+    when OptionParser::InvalidOption
+      # Clean error message for invalid command line options
+      @err_stream.puts <<~MESSAGE
+
+        Error: #{error.message}
+
+        Use -h or --help to see available options.
+      MESSAGE
     when WifiWand::CommandExecutor::OsCommandError
       # Show the helpful command error message and details but not the stack trace
       @err_stream.puts <<~MESSAGE
@@ -126,7 +135,7 @@ class Main
           Error: #{error.message}
 
           Stack trace:
-          #{error.backtrace.join("\n")} 
+          #{error.backtrace.join("\n")}
         MESSAGE
       else
         message = "Error: #{error.message}"
