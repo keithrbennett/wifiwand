@@ -8,9 +8,9 @@ require_relative 'mac_os_wifi_auth_helper'
 module WifiWand
   module MacHelperRelease
     # Public signing credentials (visible in all signed binaries - no need to hide)
-    # TODO: Update these values when you receive your Apple Developer ID certificate
-    APPLE_TEAM_ID = ENV.fetch('WIFIWAND_APPLE_TEAM_ID', 'YOUR_TEAM_ID_HERE')
-    CODESIGN_IDENTITY = ENV.fetch('WIFIWAND_CODESIGN_IDENTITY', 'Developer ID Application: Your Name (YOUR_TEAM_ID_HERE)')
+    APPLE_TEAM_ID = ENV.fetch('WIFIWAND_APPLE_TEAM_ID', '97P9SZU9GG')
+    CODESIGN_IDENTITY = ENV.fetch('WIFIWAND_CODESIGN_IDENTITY',
+      'Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)')
 
     # Message templates for output
     module Messages
