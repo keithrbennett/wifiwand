@@ -129,9 +129,8 @@ When users install the `wifi-wand` gem, they receive a **pre-signed, pre-notariz
 As the gem maintainer, you perform signing and notarization **before releasing** a new gem version:
 
 ```bash
-# 1. Sign with your Developer ID
-WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)" \
-  bundle exec rake dev:build_signed_helper
+# 1. Sign with your Developer ID (uses values from lib/wifi-wand/mac_helper_release.rb)
+bundle exec rake dev:build_signed_helper
 
 # 2. Notarize with Apple
 WIFIWAND_APPLE_DEV_ID="you@example.com" \
@@ -196,19 +195,19 @@ You should see something like:
 1) A1B2C3D4E5F6... "Developer ID Application: Your Name (TEAM123)"
 ```
 
-Copy the full identity string (in quotes) - you'll hardcode this in the next step.
+Copy the full identity string (inside the quotes) — you'll paste it into the `CODESIGN_IDENTITY` constant in `lib/wifi-wand/mac_helper_release.rb`. The 10-character suffix in parentheses is your Apple Team ID; confirm it matches the value shown on developer.apple.com because you'll set `APPLE_TEAM_ID` to that exact string.
 
 ### Step 4: Update Hardcoded Public Values
 
-Once you have your Developer ID certificate, update the hardcoded values in `lib/wifi-wand/mac_helper_release.rb`:
+Edit `lib/wifi-wand/mac_helper_release.rb` and replace the placeholders with your real values:
 
 ```ruby
 # Public signing credentials (visible in all signed binaries - no need to hide)
-APPLE_TEAM_ID = 'ABCD123456'  # ← Update this
-CODESIGN_IDENTITY = 'Developer ID Application: Your Name (ABCD123456)'  # ← Update this
+APPLE_TEAM_ID = 'TEAM123ABCD'
+CODESIGN_IDENTITY = 'Developer ID Application: Your Name (TEAM123ABCD)'
 ```
 
-These values are public (visible in all signed binaries via `codesign -dv`), so they don't need to be hidden in 1Password.
+These values are public (visible in all signed binaries via `codesign -dv`), so they don't need to be hidden in 1Password. Update them whenever you switch to a different Developer ID certificate.
 
 ### Step 5: Create an App-Specific Password
 
@@ -258,16 +257,18 @@ eval $(op signin)
 
 #### 3. Create a 1Password Item
 
-Create an item in your vault with your private credentials:
+Create a Secure Note (lets you mix text plus attachments) in your vault with your private credentials:
 
 1. Open 1Password
-2. Create a new item called **"WiFi-Wand Release"**
-3. Add these fields (private credentials only):
+2. Choose **Secure Note** as the item type
+3. Name it **"WiFi-Wand Release"**
+4. In the note body, add these fields (private credentials only):
    - **APPLE_DEV_ID**: `you@example.com` (your Apple Developer account email)
    - **APPLE_DEV_PASSWORD**: `xxxx-xxxx-xxxx-xxxx` (app-specific password)
-4. Save to your vault (e.g., "Private")
+5. Attach your exported `.p12` (or any other private signing files) to the same note so everything stays together
+6. Save to your vault (e.g., "Private")
 
-> **Note**: Team ID and codesign identity are **hardcoded** in `lib/wifi-wand/mac_helper_release.rb` (they're public values visible in signed binaries anyway - no need to hide them in 1Password). You'll update those hardcoded values when you receive your Apple Developer ID certificate.
+> **Note**: Team ID and codesign identity live directly in `lib/wifi-wand/mac_helper_release.rb`. They're public values (visible in signed binaries), so you only need to copy them into 1Password if it helps documentation or coordination.
 
 #### 4. Create `.env.release` File
 
@@ -282,7 +283,7 @@ cp .env.release.example .env.release
 The `.env.release` file contains 1Password references (safe to commit):
 
 ```bash
-# Private credentials only - team ID and codesign identity are hardcoded
+# Private credentials only - Team ID and identity live in lib/wifi-wand/mac_helper_release.rb
 WIFIWAND_APPLE_DEV_ID=op://Private/WiFi-Wand Release/APPLE_DEV_ID
 WIFIWAND_APPLE_DEV_PASSWORD=op://Private/WiFi-Wand Release/APPLE_DEV_PASSWORD
 ```
@@ -316,7 +317,7 @@ op run --env-file=.env.release -- bundle exec rake dev:notarize_helper
 If you don't use 1Password, you can still set environment variables directly:
 
 ```bash
-# Private credentials only - team ID and codesign identity are hardcoded in lib/wifi-wand/mac_helper_release.rb
+# Private credentials only - Team ID and identity live in lib/wifi-wand/mac_helper_release.rb
 export WIFIWAND_APPLE_DEV_ID="you@example.com"
 export WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx"
 
@@ -363,8 +364,7 @@ bundle exec rake dev:release_helper
 #### Step 1: Build and Sign
 
 ```bash
-WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)" \
-  bundle exec rake dev:build_signed_helper
+bundle exec rake dev:build_signed_helper
 ```
 
 This compiles the helper and signs it with:
@@ -439,15 +439,13 @@ All developer tasks are in the `dev:` namespace and are **not included in the di
 
 ### `dev:build_signed_helper`
 
-**Purpose:** Compile and sign the helper with Developer ID
+**Purpose:** Compile and sign the helper with Developer ID (uses the credentials in `lib/wifi-wand/mac_helper_release.rb`)
 
-**Environment Variables:**
-- `WIFIWAND_CODESIGN_IDENTITY` (required) - Your Developer ID certificate
+**Environment Variables:** None
 
 **Example:**
 ```bash
-WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)" \
-  bundle exec rake dev:build_signed_helper
+bundle exec rake dev:build_signed_helper
 ```
 
 **Output:**
@@ -507,7 +505,6 @@ WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
 **Purpose:** Complete workflow (build, sign, test, notarize)
 
 **Environment Variables:**
-- `WIFIWAND_CODESIGN_IDENTITY` (required) - Your Developer ID certificate
 - `WIFIWAND_APPLE_DEV_ID` (required) - Your Apple ID email
 - `WIFIWAND_APPLE_DEV_PASSWORD` (required) - App-specific password
 
@@ -515,7 +512,6 @@ WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
 
 **Example:**
 ```bash
-WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)" \
 WIFIWAND_APPLE_DEV_ID="you@example.com" \
 WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
   bundle exec rake dev:release_helper
@@ -580,9 +576,8 @@ Error: Could not find code signing identity 'Developer ID Application: ...'
 # List available identities
 security find-identity -v -p codesigning
 
-# Use exact name from output
-WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)" \
-  bundle exec rake dev:build_signed_helper
+# Use exact name from output (update CODESIGN_IDENTITY in lib/wifi-wand/mac_helper_release.rb)
+bundle exec rake dev:build_signed_helper
 ```
 
 ---
@@ -602,9 +597,8 @@ status: Invalid
 3. Check entitlements are applied
 
 ```bash
-# Rebuild with correct signing
-WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)" \
-  bundle exec rake dev:build_signed_helper
+# Rebuild with correct signing (after updating CODESIGN_IDENTITY in lib/wifi-wand/mac_helper_release.rb)
+bundle exec rake dev:build_signed_helper
 
 # Verify before notarizing
 codesign -dvv libexec/macos/wifiwand-helper.app | grep runtime

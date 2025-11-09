@@ -186,9 +186,9 @@ module WifiWand
         return unless identity.include?('YOUR_TEAM_ID_HERE') || identity.include?('Your Name')
 
         abort <<~ERROR
-          Error: WIFIWAND_CODESIGN_IDENTITY is not configured.
+          Error: CODESIGN_IDENTITY is not configured.
 
-          Please update the hardcoded values in lib/wifi-wand/mac_helper_release.rb:
+          Please update the values in lib/wifi-wand/mac_helper_release.rb:
             APPLE_TEAM_ID = 'TEAM123'
             CODESIGN_IDENTITY = 'Developer ID Application: Your Name (TEAM123)'
 
@@ -224,9 +224,9 @@ module WifiWand
 
       def self.verify_team_id_configured(team_id)
         abort <<~ERROR if team_id == 'YOUR_TEAM_ID_HERE'
-          Error: WIFIWAND_APPLE_TEAM_ID is not configured.
+          Error: APPLE_TEAM_ID is not configured.
 
-          Please update the hardcoded value in lib/wifi-wand/mac_helper_release.rb:
+          Please update the value in lib/wifi-wand/mac_helper_release.rb:
             APPLE_TEAM_ID = 'TEAM123'
 
           See docs/dev/MACOS_CODE_SIGNING.md for detailed instructions.
@@ -251,7 +251,7 @@ module WifiWand
           Usage (with 1Password CLI):
             op run --env-file=.env.release -- bundle exec rake dev:notarize_helper
 
-          Note: Team ID and codesign identity are now hardcoded in lib/wifi-wand/mac_helper_release.rb
+          Note: Team ID and codesign identity are hardcoded in lib/wifi-wand/mac_helper_release.rb
           (they're public values visible in signed binaries anyway).
 
           See docs/dev/MACOS_CODE_SIGNING.md for detailed instructions.
