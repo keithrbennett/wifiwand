@@ -55,6 +55,13 @@ This page is intentionally short so you can follow it during a release. When you
    op run --env-file=.env.release -- bundle exec rake dev:build_signed_helper
    ```
    - Confirms the helper builds, signs, and that your local keychain trusts the certificate.
+   - Run the helper once so macOS registers it with Location Services (either start `bundle exec rake dev:test_signed_helper` or run `bundle exec rake mac:helper_location_permission_allow`, which launches the helper just long enough to create the TCC entry).
+   - After the helper shows up under **System Settings → Privacy & Security → Location Services**, toggle it on to avoid the hidden prompt the first time the test task runs.
+
+6. **Follow the build task’s suggested next steps**
+   - Test the signed helper: `bundle exec rake dev:test_signed_helper`
+   - Notarize (credentials required): `op run --env-file=.env.release -- bundle exec rake dev:notarize_helper`
+   - Commit the updated `libexec/macos/wifiwand-helper.app` and proceed with gem build/release as usual
 
 You are now ready to ship signed helpers on demand.
 
@@ -99,9 +106,11 @@ Follow the same sequence each time you change the helper or cut a gem release.
    gem push wifi-wand-X.Y.Z.gem
    ```
 
-5. **If notarization fails**
-   - Re-run `dev:build_signed_helper` to ensure the bundle is clean.
-   - Use `xcrun notarytool log <submission-id>` for root-cause details (full instructions live in the context document).
+5. **If notarization stalls or fails**
+   - Check Apple’s queue: `bundle exec rake dev:notarization_history`
+   - For a specific submission, run `bundle exec SUBMISSION_ID=<uuid> rake dev:notarization_status`
+   - Pull the detailed log with `bundle exec SUBMISSION_ID=<uuid> rake dev:notarization_log`
+   - If the submission was rejected, rebuild the helper (`bundle exec rake dev:build_signed_helper`) before re-running the release flow.
 
 ---
 
@@ -109,5 +118,6 @@ Follow the same sequence each time you change the helper or cut a gem release.
 
 - Background, troubleshooting, and the rationale for each requirement: `docs/dev/MACOS_CODE_SIGNING_CONTEXT.md`
 - Rake task internals live alongside the tasks in `lib/wifi-wand/mac_helper_release.rb`.
+- Forget the commands? Run `bundle exec rake dev:help` for a quick reminder of the common `op run` invocations.
 
 Keeping this file short makes it easier to execute the release without rereading the entire history every time. Refer back to the context file whenever you need the “why.”

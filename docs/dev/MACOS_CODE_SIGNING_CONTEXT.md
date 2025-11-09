@@ -465,6 +465,8 @@ bundle exec rake dev:test_signed_helper
 - Helper execution
 - WiFi information retrieval
 
+> **Prerequisite:** macOS only lists `wifiwand-helper` in Location Services after the helper runs once (for example via `bundle exec rake mac:helper_location_permission_allow`). Make sure it appears under **System Settings → Privacy & Security → Location Services** and toggle it on before running the test to avoid a hidden prompt that makes the task appear stuck.
+
 ---
 
 ### `dev:notarize_helper`
@@ -529,6 +531,57 @@ bundle exec rake dev:codesign_status
 - Verification result
 - Notarization status
 - Gatekeeper assessment
+
+---
+
+### `dev:notarization_history`
+
+**Purpose:** Show the most recent notarization submissions tied to your Apple ID and team. Helpful when `dev:notarize_helper` appears to hang.
+
+**Environment Variables:**
+- `WIFIWAND_APPLE_DEV_ID` (required)
+- `WIFIWAND_APPLE_DEV_PASSWORD` (required)
+
+**Example:**
+```bash
+op run --env-file=.env.release -- bundle exec rake dev:notarization_history
+```
+
+**Output:** `xcrun notarytool history` table with submission IDs, dates, and states.
+
+---
+
+### `dev:notarization_status`
+
+**Purpose:** Show the current status for a specific submission ID (accepted, in progress, invalid, etc.).
+
+**Environment Variables:** Same as above, plus `SUBMISSION_ID=<uuid>` passed via the environment (you can also use `ID` or `NOTARY_ID` as shortcuts).
+
+**Example:**
+```bash
+op run --env-file=.env.release -- \
+  bundle exec SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
+  rake dev:notarization_status
+```
+
+**Output:** The detailed `xcrun notarytool status` report for that submission.
+
+---
+
+### `dev:notarization_log`
+
+**Purpose:** Fetch the full notarization log for a submission (useful when Apple rejects the upload).
+
+**Environment Variables:** Same as `dev:notarization_status`.
+
+**Example:**
+```bash
+op run --env-file=.env.release -- \
+  bundle exec SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
+  rake dev:notarization_log
+```
+
+**Output:** The JSON/diagnostic log Apple provides, streamed to stdout for easier debugging.
 
 ---
 

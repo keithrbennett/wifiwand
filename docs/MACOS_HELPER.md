@@ -86,6 +86,8 @@ A native Swift helper application that:
 
 ## Location Services Permissions
 
+> When installing the gem on macOS, wifi-wand prints a reminder pointing back to this document so you know how to grant Location Services access after the helper runs the first time.
+
 ### Why Location Services?
 
 Apple requires Location Services authorization to access WiFi SSIDs because:
@@ -112,6 +114,16 @@ The helper has **no access** to:
 - ❌ Connected devices
 
 **The helper only requests permission to see WiFi network names, not to track your location.**
+
+### When Does macOS Prompt?
+
+- The first wifi-wand command that needs WiFi details launches `wifiwand-helper`, and macOS immediately asks for Location Services access.
+- The dialog can appear behind other windows; if the command seems stuck, look for the prompt or open **System Settings → Privacy & Security → Location Services** to grant access manually once the helper appears there.
+- macOS does **not** list `wifiwand-helper` in Location Services until the helper has run at least once. If you prefer to grant permission before using wifi-wand interactively, run:
+  ```bash
+  bundle exec rake mac:helper_location_permission_allow
+  ```
+  This task starts the helper briefly so macOS can register it, then waits for you to click **Allow** (or you can flip the switch in System Settings afterwards).
 
 ---
 
@@ -143,7 +155,7 @@ rake mac:helper_location_permission_allow
 
 This will:
 1. Reset any existing permission decision
-2. Launch the helper
+2. Launch the helper (which causes macOS to list it under Location Services if this is the first run)
 3. Trigger the macOS permission prompt
 4. Wait for you to click "Allow"
 
@@ -180,7 +192,7 @@ You can also manage permissions via System Settings:
 
 1. Open **System Settings**
 2. Go to **Privacy & Security → Location Services**
-3. Scroll to find **wifiwand-helper** or **com.wifiwand.helper**
+3. Scroll to find **wifiwand-helper** or **com.wifiwand.helper** (the helper only appears here after it has run once—run any wifi-wand command that talks to WiFi or use `bundle exec rake mac:helper_location_permission_allow` to seed the entry)
 4. Toggle permission on/off
 
 ---
