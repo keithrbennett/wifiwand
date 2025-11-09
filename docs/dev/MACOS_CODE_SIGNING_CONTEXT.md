@@ -1,8 +1,6 @@
-# macOS Code Signing and Notarization for wifi-wand Helper
+# macOS Code Signing Context and Reference for wifi-wand
 
 > Audience: wifi-wand maintainers preparing signed and notarized helpers.
-
-This document explains the code signing and notarization process for the `wifiwand-helper` macOS application bundle, why it's necessary, and how to use it as a gem maintainer.
 
 ---
 
@@ -257,36 +255,30 @@ eval $(op signin)
 
 #### 3. Create a 1Password Item
 
-Create a Secure Note (lets you mix text plus attachments) in your vault with your private credentials:
+Create (or rename) a Secure Note in your vault. Keeping the item name lowercase with no spaces avoids escaping headaches later.
 
-1. Open 1Password
-2. Choose **Secure Note** as the item type
-3. Name it **"WiFi-Wand Release"**
-4. In the note body, add these fields (private credentials only):
-   - **APPLE_DEV_ID**: `you@example.com` (your Apple Developer account email)
-   - **APPLE_DEV_PASSWORD**: `xxxx-xxxx-xxxx-xxxx` (app-specific password)
-5. Attach your exported `.p12` (or any other private signing files) to the same note so everything stays together
-6. Save to your vault (e.g., "Private")
+1. Open 1Password.
+2. Choose **Secure Note** as the item type (or edit your existing note).
+3. Name it **`wifiwand-release`**.
+4. Add structured fields so the CLI can target them:
+   - **APPLE_DEV_ID** (type **Text**): `you@example.com`
+   - **APPLE_DEV_PASSWORD** (type **Password**): `xxxx-xxxx-xxxx-xxxx`
+5. Leave any additional narrative text or attachments (like `.p12` exports) in the same item as needed.
+6. Save to the vault you plan to reference (personal accounts usually default to **Personal**, shared accounts often use **Private**).
 
 > **Note**: Team ID and codesign identity live directly in `lib/wifi-wand/mac_helper_release.rb`. They're public values (visible in signed binaries), so you only need to copy them into 1Password if it helps documentation or coordination.
 
-#### 4. Create `.env.release` File
+#### 4. Edit `.env.release`
 
-```bash
-# Copy the example
-cp .env.release.example .env.release
-
-# Edit if using a different vault name
-# Default vault is "Private"
-```
-
-The `.env.release` file contains 1Password references (safe to commit):
+The repository now includes `.env.release` directly; treat it as the template plus configuration file. Open it and set the `op://` references to match your vault/item/field names. Example for a personal account:
 
 ```bash
 # Private credentials only - Team ID and identity live in lib/wifi-wand/mac_helper_release.rb
-WIFIWAND_APPLE_DEV_ID=op://Private/WiFi-Wand Release/APPLE_DEV_ID
-WIFIWAND_APPLE_DEV_PASSWORD=op://Private/WiFi-Wand Release/APPLE_DEV_PASSWORD
+WIFIWAND_APPLE_DEV_ID=op://Personal/wifiwand-release/APPLE_DEV_ID
+WIFIWAND_APPLE_DEV_PASSWORD=op://Personal/wifiwand-release/APPLE_DEV_PASSWORD
 ```
+
+If your vault is named differently (e.g., `Private` or a team-specific vault), change the path accordingly.
 
 ### Usage
 
