@@ -68,7 +68,7 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
     }
 
     private func executeCommand() {
-        guard let interface = CWWiFiClient.shared().interface() else {
+        guard let interface = obtainInterfaceWithRetry() else {
             printJSON(["status": "error", "error": "no Wi-Fi interface" ] )
             NSApp.terminate(nil)
             return
@@ -166,6 +166,22 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
             }
         }
         return values
+    }
+
+    private func obtainInterfaceWithRetry(attempts: Int = 5, initialDelay: TimeInterval = 0.05, maxDelay: TimeInterval = 0.2) -> CWInterface? {
+        // Interface discovery can briefly return nil while the adapter wakes up; retry for ~0.5s before failing.
+        var delay = initialDelay
+        for attempt in 0..<attempts {
+            if let interface = CWWiFiClient.shared().interface() {
+                return interface
+            }
+            let shouldRetry = attempt < attempts - 1
+            if shouldRetry {
+                Thread.sleep(forTimeInterval: delay)
+                delay = min(delay * 2, maxDelay)
+            }
+        }
+        return nil
     }
 }
 
