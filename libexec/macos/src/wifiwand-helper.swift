@@ -49,12 +49,12 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
     func applicationDidFinishLaunching(_ notification: Notification) {
         locationManager = CLLocationManager()
         locationManager?.delegate = self
-        locationManager?.requestAlwaysAuthorization()
+        locationManager?.requestWhenInUseAuthorization()
     }
 
     func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
         switch status {
-        case .authorizedAlways, .authorized:
+        case .authorizedAlways, .authorizedWhenInUse, .authorized:
             executeCommand()
         case .denied, .restricted:
             printJSON(["status": "error", "error": "location services denied"])
