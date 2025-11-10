@@ -9,15 +9,5 @@
 	-->
 	<key>com.apple.security.app-sandbox</key>
 	<false/>
-
-	<!--
-	Hardened Runtime entitlements required for notarization.
-	These allow the helper to work with Ruby's dynamic memory requirements.
-	-->
-	<key>com.apple.security.cs.allow-unsigned-executable-memory</key>
-	<true/>
-
-	<key>com.apple.security.cs.disable-library-validation</key>
-	<true/>
 </dict>
 </plist>
