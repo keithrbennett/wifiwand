@@ -8,6 +8,14 @@
     <string>com.wifiwand.helper</string>
     <key>CFBundleVersion</key>
     <string>1.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>3.0.0-alpha.1</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>14.0</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2025 Bennett Business Solutions, Inc. All rights reserved.</string>
     <key>CFBundleExecutable</key>
     <string>wifiwand-helper</string>
     <key>LSUIElement</key>
