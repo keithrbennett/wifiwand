@@ -89,11 +89,31 @@ module WifiWand
     # Installation and Compilation Methods
     # =====================================
 
+    # Verifies the helper installation is valid and not corrupted
+    #
+    # @return [Boolean] true if helper is properly installed and executable
+    def helper_installed_and_valid?
+      return false unless File.executable?(installed_executable_path)
+      return false unless File.exist?(File.join(installed_bundle_path, 'Contents', 'Info.plist'))
+
+      # Quick validation: try to execute with --version flag
+      stdout, _stderr, status = Open3.capture3(installed_executable_path, '--version', timeout: 2)
+      status.success? && !stdout.strip.empty?
+    rescue Errno::ENOENT, Timeout::Error
+      false
+    end
+
     def ensure_helper_installed(out_stream: $stdout)
-      return installed_bundle_path if File.executable?(installed_executable_path)
+      return installed_bundle_path if helper_installed_and_valid?
 
       out_stream&.puts 'Installing wifiwand macOS helper...'
       install_helper_bundle(out_stream: out_stream)
+
+      # Verify installation succeeded - if not, likely concurrent corruption
+      unless helper_installed_and_valid?
+        raise "Helper installation failed validation. If running multiple processes concurrently, try again."
+      end
+
       installed_bundle_path
     end
 
