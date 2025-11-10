@@ -170,11 +170,11 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
 }
 
 let arguments = CommandLine.arguments
-let commandIndex = arguments.firstIndex(of: "--command").flatMap { index -> HelperCommand in
+let parsedCommand = arguments.firstIndex(of: "--command").flatMap { index -> HelperCommand in
     let value = arguments.indices.contains(index + 1) ? arguments[index + 1] : nil
     return HelperCommand(argument: value)
 }
-let command = commandIndex ?? HelperCommand(argument: nil)
+let command = parsedCommand ?? HelperCommand(argument: nil)
 
 let app = NSApplication.shared
 let controller = HelperController(command: command)
