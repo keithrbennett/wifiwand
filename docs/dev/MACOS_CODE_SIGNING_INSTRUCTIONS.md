@@ -61,6 +61,7 @@ This page is intentionally short so you can follow it during a release. When you
 6. **Follow the build task’s suggested next steps**
    - Test the signed helper: `bundle exec rake dev:test_signed_helper`
    - Notarize (credentials required): `op run --env-file=.env.release -- bundle exec rake dev:notarize_helper`
+   - If the notarize task exits before stapling—even though Apple later accepts the submission—run `xcrun stapler staple libexec/macos/wifiwand-helper.app` yourself once `dev:notarization_status` reports `Accepted`
    - Commit the updated `libexec/macos/wifiwand-helper.app` and proceed with gem build/release as usual
 
 You are now ready to ship signed helpers on demand.
@@ -108,8 +109,8 @@ Follow the same sequence each time you change the helper or cut a gem release.
 
 5. **If notarization stalls or fails**
    - Check Apple’s queue: `bundle exec rake dev:notarization_history`
-   - For a specific submission, run `bundle exec SUBMISSION_ID=<uuid> rake dev:notarization_status`
-   - Pull the detailed log with `bundle exec SUBMISSION_ID=<uuid> rake dev:notarization_log`
+   - For a specific submission, run `bundle exec SUBMISSION_ID=<uuid> rake dev:notarization_status` (omit `SUBMISSION_ID` to automatically target the most recent submission). This command wraps `xcrun notarytool info`.
+   - Pull the detailed log with `bundle exec SUBMISSION_ID=<uuid> rake dev:notarization_log` (same auto-detection applies)
    - If the submission was rejected, rebuild the helper (`bundle exec rake dev:build_signed_helper`) before re-running the release flow.
 
 ---

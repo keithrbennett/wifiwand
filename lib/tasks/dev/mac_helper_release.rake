@@ -82,7 +82,12 @@ namespace :dev do
 end
 
 def fetch_submission_id
-  submission_id = ENV['SUBMISSION_ID'] || ENV['ID'] || ENV['NOTARY_ID']
-  abort 'Error: Provide SUBMISSION_ID=<notarytool-submission-id>.' if submission_id.to_s.empty?
-  submission_id
+  submission_id = ENV['SUBMISSION_ID']
+  return submission_id unless submission_id.to_s.empty?
+
+  auto_id = WifiWand::MacHelperRelease.latest_submission_id
+  abort 'Error: Provide SUBMISSION_ID=<notarytool-submission-id>.' unless auto_id
+
+  puts "Info: No submission ID provided; using latest notary submission #{auto_id}."
+  auto_id
 end

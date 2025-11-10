@@ -2,6 +2,7 @@
 
 require 'fileutils'
 require 'open3'
+require 'json'
 require 'rbconfig'
 require_relative 'mac_os_wifi_auth_helper'
 
@@ -288,15 +289,15 @@ module WifiWand
         puts message
       end
 
-      def self.run_notarytool(args, apple_id:, apple_password:, team_id:, failure_message:)
+      def self.run_notarytool(args, apple_id:, apple_password:, team_id:, failure_message:, suppress_output: false)
         command = ['xcrun', 'notarytool'] + args + [
           '--apple-id', apple_id,
           '--team-id', team_id,
           '--password', apple_password
         ]
         stdout, stderr, status = Open3.capture3(*command)
-        puts stdout unless stdout.empty?
-        puts stderr unless stderr.empty?
+        puts stdout unless stdout.empty? || suppress_output
+        puts stderr unless stderr.empty? || suppress_output
         abort(failure_message) unless status.success?
         stdout
       end
@@ -378,7 +379,7 @@ module WifiWand
       creds = fetch_notary_credentials!(command_hint: 'bundle exec rake dev:notarization_status SUBMISSION_ID=<uuid>')
       puts "Status for submission #{submission_id}:"
       Operations.run_notarytool(
-        ['status', submission_id],
+        ['info', submission_id],
         **creds,
         failure_message: 'Unable to fetch notarization status. Check the submission ID and try again.'
       )
@@ -393,6 +394,27 @@ module WifiWand
         **creds,
         failure_message: 'Unable to fetch notarization log. Check the submission ID and try again.'
       )
+    end
+
+    def latest_submission_id(preferred_status: 'In Progress')
+      creds = fetch_notary_credentials!(command_hint: 'bundle exec rake dev:notarization_history')
+      response = Operations.run_notarytool(
+        ['history', '--output-format', 'json'],
+        **creds,
+        failure_message: 'Unable to fetch notarization history.',
+        suppress_output: true
+      )
+      data = JSON.parse(response)
+      entries = data['history'] || []
+      return nil if entries.empty?
+      if preferred_status
+        entry = entries.find { |item| item['status'] == preferred_status }
+        return entry['id'] if entry && entry['id']
+      end
+      entries.first['id']
+    rescue JSON::ParserError => e
+      warn "Warning: unable to parse notarytool history JSON (#{e.message})."
+      nil
     end
 
     def release_helper

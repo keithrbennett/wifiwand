@@ -492,6 +492,11 @@ WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
 3. Polls for status (usually 2-5 minutes)
 4. Staples ticket on success
 
+If the task exits early (for example because `notarytool --wait` timed out) but you later confirm the submission shows `Accepted`, staple manually:
+```
+xcrun stapler staple libexec/macos/wifiwand-helper.app
+```
+
 ---
 
 ### `dev:release_helper`
@@ -553,18 +558,22 @@ op run --env-file=.env.release -- bundle exec rake dev:notarization_history
 
 ### `dev:notarization_status`
 
-**Purpose:** Show the current status for a specific submission ID (accepted, in progress, invalid, etc.).
+**Purpose:** Show the current status for a submission (accepted, in progress, invalid, etc.).
 
-**Environment Variables:** Same as above, plus `SUBMISSION_ID=<uuid>` passed via the environment (you can also use `ID` or `NOTARY_ID` as shortcuts).
+**Environment Variables:** Same as above. `SUBMISSION_ID=<uuid>` (or `ID`/`NOTARY_ID`) is optional—if omitted, the task automatically selects the newest submission from `notarytool history`, preferring one that is still `In Progress`.
 
 **Example:**
 ```bash
+# Auto-select most recent submission
+op run --env-file=.env.release -- bundle exec rake dev:notarization_status
+
+# Or specify an explicit ID
 op run --env-file=.env.release -- \
-  bundle exec SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
-  rake dev:notarization_status
+  env SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
+  bundle exec rake dev:notarization_status
 ```
 
-**Output:** The detailed `xcrun notarytool status` report for that submission.
+**Output:** The detailed `xcrun notarytool info` report for that submission.
 
 ---
 
@@ -572,13 +581,17 @@ op run --env-file=.env.release -- \
 
 **Purpose:** Fetch the full notarization log for a submission (useful when Apple rejects the upload).
 
-**Environment Variables:** Same as `dev:notarization_status`.
+**Environment Variables:** Same as `dev:notarization_status`; `SUBMISSION_ID` is optional and falls back to the latest submission if omitted.
 
 **Example:**
 ```bash
+# Auto-select most recent submission
+op run --env-file=.env.release -- bundle exec rake dev:notarization_log
+
+# Or specify an explicit ID
 op run --env-file=.env.release -- \
-  bundle exec SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
-  rake dev:notarization_log
+  env SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
+  bundle exec rake dev:notarization_log
 ```
 
 **Output:** The JSON/diagnostic log Apple provides, streamed to stdout for easier debugging.
