@@ -95,8 +95,25 @@ The CLI uses modular design with mixins:
 
 ### Key Models
 - **BaseModel** - common interface for all OS implementations
-- **MacOsModel** - macOS-specific WiFi operations using `networksetup`, `system_profiler`
+- **MacOsModel** - macOS-specific WiFi operations using `networksetup`, `system_profiler`, and optional Swift/CoreWLAN wrappers
 - **UbuntuModel** - Ubuntu-specific operations using `nmcli`, `iw`, `ip`
+
+### Swift/CoreWLAN Wrappers (macOS)
+
+The macOS model uses Swift scripts with the CoreWLAN framework for improved WiFi operations:
+
+**Location**: `swift/` directory
+- `WifiNetworkConnector.swift` - Connects to WiFi networks (preferred over `networksetup`)
+- `WifiNetworkDisconnector.swift` - Disconnects from networks (no sudo required)
+- `AvailableWifiNetworkLister.swift` - Legacy/unused (network listing uses `system_profiler` instead)
+
+**Fallback Strategy**:
+- Swift/CoreWLAN methods are attempted first when available
+- If Swift or CoreWLAN unavailable, automatically falls back to traditional utilities
+- Detection happens via `swift_and_corewlan_present?` method in `mac_os_model.rb:472`
+- Users can use wifi-wand without Xcode/Swift installed (reduced functionality)
+
+**Installation**: Users can install Swift/CoreWLAN support with `xcode-select --install`
 
 ## Testing Strategy
 
