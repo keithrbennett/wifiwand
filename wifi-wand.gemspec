@@ -40,4 +40,24 @@ Gem::Specification.new do |spec|
 
   # async provides clean fiber-based concurrency for network connectivity testing
   spec.add_dependency('async', '~> 2.0')
+
+  # Post-install message for macOS users about location permission setup
+  spec.post_install_message = if RbConfig::CONFIG['host_os'] =~ /darwin/i
+    <<~MESSAGE
+
+      ╔═══════════════════════════════════════════════════════════════════╗
+      ║  ⚠️  Important for macOS Users (10.15+)                           ║
+      ╚═══════════════════════════════════════════════════════════════════╝
+
+      wifi-wand requires location permission to access WiFi network names.
+
+      Run the one-time setup script:
+
+          wifi-wand-macos-setup
+
+      For more information, see: docs/MACOS_SETUP.md
+      or visit: https://github.com/keithrbennett/wifiwand/blob/main/docs/MACOS_SETUP.md
+
+    MESSAGE
+  end
 end
