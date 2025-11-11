@@ -18,8 +18,6 @@
     <string>Copyright © 2025 Bennett Business Solutions, Inc. All rights reserved.</string>
     <key>CFBundleExecutable</key>
     <string>wifiwand-helper</string>
-    <key>LSUIElement</key>
-    <true/>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>wifiwand needs location access while you use it to retrieve Wi-Fi network information.</string>
 </dict>
