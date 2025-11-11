@@ -1,0 +1,147 @@
+#!/usr/bin/env ruby
+
+# One-time setup script for macOS location permissions
+# This script registers the wifiwand-helper with macOS and opens System Settings
+# so users can manually grant location permission.
+
+require 'json'
+require 'open3'
+require_relative '../lib/wifi-wand/mac_os_wifi_auth_helper'
+
+# Check status before starting
+helper_path = WifiWand::MacOsWifiAuthHelper.installed_executable_path
+helper_installed = File.executable?(helper_path)
+helper_authorized = false
+permission_message = "Unknown"
+
+if helper_installed
+  stdout, stderr, status = Open3.capture3(helper_path, '--command', 'check-permission')
+  if status.success? && !stdout.strip.empty?
+    begin
+      result = JSON.parse(stdout)
+      helper_authorized = result['authorized']
+      permission_message = result['message']
+    rescue JSON::ParserError
+      permission_message = "Could not determine status"
+    end
+  else
+    permission_message = "Could not check status"
+  end
+end
+
+# If everything is already set up, exit early
+if helper_installed && helper_authorized
+  puts "✅ WifiWand macOS setup is complete! All requirements are satisfied."
+  puts "\nYou can use wifi-wand commands:"
+  puts "  wifi-wand a              # Show available networks"
+  puts "  wifi-wand info           # Show current connection info"
+  exit 0
+end
+
+# Setup is needed - show header and explanation
+puts <<~MSG
+  ╔══════════════════════════════════════════════════════════════════╗
+  ║         WifiWand macOS Location Permission Setup                 ║
+  ╚══════════════════════════════════════════════════════════════════╝
+
+  On macOS 10.15+, apps need location permission to access WiFi
+  network names (SSIDs). Without this permission, network names
+  appear as '<hidden>' or '<redacted>'.
+MSG
+
+# Display setup status
+puts "\n" + "=" * 70
+puts "Setup Status:"
+puts "=" * 70
+puts sprintf("  %-40s %s", "Helper installed:", helper_installed ? "✓ Yes" : "✗ No")
+if helper_installed
+  puts sprintf("  %-40s %s", "Location permission granted:", helper_authorized ? "✓ Yes" : "✗ No")
+  if !helper_authorized
+    puts sprintf("  %-40s %s", "Permission status:", permission_message)
+  end
+else
+  puts sprintf("  %-40s %s", "Location permission:", "(will check after installation)")
+end
+puts "=" * 70
+
+# Determine what needs to be done
+steps_needed = []
+steps_needed << "Install wifiwand-helper" unless helper_installed
+steps_needed << "Grant location permission" unless helper_authorized
+
+puts "\nSteps required:"
+steps_needed.each_with_index { |step, i| puts "  #{i + 1}. #{step}" }
+
+puts "\nPress ENTER to continue (or Ctrl-C to cancel)..."
+$stdin.gets
+
+begin
+  current_step = 0
+
+  # Step 1: Install helper if needed
+  unless helper_installed
+    current_step += 1
+    puts "\n[#{current_step}/#{steps_needed.length}] Installing wifiwand-helper..."
+    WifiWand::MacOsWifiAuthHelper.ensure_helper_installed(out_stream: $stdout)
+    helper_path = WifiWand::MacOsWifiAuthHelper.installed_executable_path
+
+    unless File.executable?(helper_path)
+      puts "\n❌ Error: Helper installation failed"
+      exit 1
+    end
+
+    puts "✓ Helper installed at: #{helper_path}"
+
+    # Re-check authorization after installation
+    # macOS may have restored previous permission
+    puts "\nChecking authorization status..."
+    stdout, stderr, status = Open3.capture3(helper_path, '--command', 'check-permission')
+    if status.success? && !stdout.strip.empty?
+      begin
+        helper_authorized = JSON.parse(stdout)['authorized']
+        puts "✓ Location permission already granted (restored by macOS)" if helper_authorized
+      rescue JSON::ParserError
+        # Continue with permission setup
+      end
+    end
+  end
+
+  # Step 2: Grant location permission if needed
+  unless helper_authorized
+    current_step += 1
+    puts "\n[#{current_step}/#{steps_needed.length}] Setting up location permission..."
+
+    # Open System Settings to Location Services
+    puts "Opening System Settings → Privacy & Security → Location Services..."
+    sleep 1  # Brief pause so user can read the message
+
+    system('open', 'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices')
+
+    puts <<~INSTRUCTIONS
+
+      ╔══════════════════════════════════════════════════════════════════╗
+      ║                 Manual Setup Instructions                        ║
+      ╚══════════════════════════════════════════════════════════════════╝
+
+      System Settings should now be open. Please follow these steps:
+
+      1. In the Location Services window, scroll down the list
+      2. Find 'wifiwand-helper' in the list of apps
+      3. Check the box next to 'wifiwand-helper' to enable location access
+      4. Close System Settings
+
+      Once enabled, run any wifi-wand command to verify it works:
+
+        wifi-wand a              # Show available networks
+        wifi-wand info           # Show current connection info
+
+      If you don't see 'wifiwand-helper' in the list, try running
+      this setup script again.
+
+    INSTRUCTIONS
+  end
+
+rescue => e
+  puts "\n❌ Error: #{e.message}"
+  exit 1
+end

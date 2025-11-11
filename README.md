@@ -18,6 +18,20 @@ Optional dependency for QR codes:
   - macOS: `brew install qrencode`
   - Ubuntu: `sudo apt install qrencode`
 
+---
+
+### ⚠️ Important for macOS Users (10.15+)
+
+**After installation, run the one-time setup script:**
+
+```bash
+wifi-wand-macos-setup
+```
+
+This grants location permission needed for WiFi network access. Without it, network names may appear as `<hidden>` or `<redacted>`. See the [macOS Setup Guide](docs/MACOS_SETUP.md) for details.
+
+---
+
 ### Description
 
 The `wifi-wand` gem enables the query and management 
