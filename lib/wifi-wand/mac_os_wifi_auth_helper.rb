@@ -241,13 +241,27 @@ module WifiWand
         version = macos_version
         return false unless version
 
-        Gem::Version.new(version) >= MINIMUM_HELPER_VERSION
+        sanitized_version = sanitize_version_string(version)
+        unless sanitized_version
+          log_verbose("macOS version '#{version}' does not match expected format")
+          return false
+        end
+
+        Gem::Version.new(sanitized_version) >= MINIMUM_HELPER_VERSION
       rescue ArgumentError => e
-        log_verbose("unable to parse macOS version '#{version}': #{e.message}")
+        log_verbose("unable to parse macOS version '#{sanitized_version || version}': #{e.message}")
         false
       end
 
       private
+
+      def sanitize_version_string(version)
+        return nil unless version
+
+        version_string = version.to_s.strip
+        match = version_string.match(/\d+(?:\.\d+)*/)
+        match&.[](0)
+      end
 
       def execute(command)
         return nil unless available?
