@@ -478,13 +478,24 @@ wifi-wand  connect  my-usual-network  its-password
 Starting in macOS version 14.4, the `airport` utility on which some of this project's
 functionality relies has been disabled and will presumably eventually be removed.
 
-The following tasks were restored by using Swift scripts:
-* listing names of all available networks
-* disconnecting from a network (with the added benefit that sudo access is no longer required)
+#### Swift/CoreWLAN Wrappers
 
-The following tasks were restored by using `networksetup`:
+To maintain functionality after airport deprecation, wifi-wand now uses Swift scripts with the CoreWLAN framework for several operations:
+
+* **Connecting to networks** - Uses `WifiNetworkConnector.swift` (preferred method, with automatic fallback to `networksetup`)
+* **Disconnecting from networks** - Uses `WifiNetworkDisconnector.swift` (with the added benefit that sudo access is no longer required, falls back to `ifconfig`)
+
+These Swift wrappers are **optional dependencies**. If Swift or CoreWLAN are not available (e.g., Xcode Command Line Tools not installed), wifi-wand automatically falls back to traditional command-line utilities (`networksetup`, `ifconfig`) with slightly reduced functionality.
+
+To install Swift and CoreWLAN support:
+```bash
+xcode-select --install
+```
+
+The following tasks were restored by using `networksetup` and `system_profiler`:
 * determining whether or not WiFi is on
 * the name of the currently connected network
+* listing names of all available networks
 
 The only remaining issue is that we were getting some extended information from airport for each available network. This extended information has now been removed in version 2.17.0.
 
