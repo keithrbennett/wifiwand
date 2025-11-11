@@ -1,4 +1,12 @@
 # frozen_string_literal: true
+# Manages the lifecycle of the macOS Wi-Fi helper app that runs privileged Swift code.
+# The module installs, compiles, and signs the helper bundle per WifiWand version so
+# network queries can bypass TCC redactions on Sonoma+ while remaining opt-in via env flag.
+# Entry points:
+#   * WifiWand::MacOsWifiAuthHelper.ensure_helper_installed -> installs/validates the helper bundle.
+#   * Client#connected_network_name -> runs the helper's `current-network` command and returns the SSID.
+#   * Client#scan_networks -> runs the helper's `scan-networks` command and returns network metadata.
+#   * Client#available? -> tells callers when the helper can safely be invoked on the current host.
 
 require 'fileutils'
 require 'json'
@@ -97,12 +105,15 @@ module WifiWand
       return false unless File.exist?(File.join(installed_bundle_path, 'Contents', 'Info.plist'))
 
       # Quick validation: try to execute with --version flag
-      stdout, _stderr, status = Open3.capture3(installed_executable_path, '--version', timeout: 2)
+      stdout, _stderr, status = Open3.capture3(installed_executable_path, '--version')
       status.success? && !stdout.strip.empty?
-    rescue Errno::ENOENT, Timeout::Error
+    rescue Errno::ENOENT
       false
     end
 
+    # Copies the pre-signed helper bundle into ~/Library and immediately re-validates it.
+    # Concurrent installs may briefly leave the bundle incomplete, so we trust the follow-up
+    # validation (and let callers retry) instead of attempting multiple installs here.
     def ensure_helper_installed(out_stream: $stdout)
       return installed_bundle_path if helper_installed_and_valid?
 
@@ -208,7 +219,6 @@ module WifiWand
         @verbose_proc = verbose_proc
         @macos_version_proc = macos_version_proc
         @location_warning_emitted = false
-        @installation_attempted = false
         @disabled = false
       end
 
@@ -270,9 +280,9 @@ module WifiWand
 
       def ensure_helper_installed
         return if File.executable?(helper_executable_path)
-        return if @installation_attempted
+        return if @disabled
 
-        @installation_attempted = true
+        log_verbose('helper not installed; running installer')
         WifiWand::MacOsWifiAuthHelper.ensure_helper_installed(out_stream: verbose? ? out_stream : nil)
       rescue StandardError => e
         emit_install_failure(e.message)
@@ -310,7 +320,7 @@ module WifiWand
 
       def emit_install_failure(detail)
         stream = out_stream || $stdout
-        stream.puts("wifiwand helper: failed to install helper (#{detail}).") if stream
+        stream.puts("wifiwand helper: failed to install helper (#{detail}). Helper disabled until the next run.") if stream
       end
 
       def log_verbose(message)
