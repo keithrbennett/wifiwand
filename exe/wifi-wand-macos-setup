@@ -15,7 +15,7 @@ helper_authorized = false
 permission_message = "Unknown"
 
 if helper_installed
-  stdout, stderr, status = Open3.capture3(helper_path, '--command', 'check-permission')
+  stdout, stderr, status = Open3.capture3(helper_path, 'check-permission')
   if status.success? && !stdout.strip.empty?
     begin
       result = JSON.parse(stdout)
@@ -95,7 +95,7 @@ begin
     # Re-check authorization after installation
     # macOS may have restored previous permission
     puts "\nChecking authorization status..."
-    stdout, stderr, status = Open3.capture3(helper_path, '--command', 'check-permission')
+    stdout, stderr, status = Open3.capture3(helper_path, 'check-permission')
     if status.success? && !stdout.strip.empty?
       begin
         helper_authorized = JSON.parse(stdout)['authorized']

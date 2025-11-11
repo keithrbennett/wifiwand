@@ -8,14 +8,7 @@ enum HelperCommand: String {
     case scanNetworks = "scan-networks"
     case requestPermission = "request-permission"
     case checkPermission = "check-permission"
-
-    init(argument: String?) {
-        if let argument, let command = HelperCommand(rawValue: argument) {
-            self = command
-        } else {
-            self = .currentNetwork
-        }
-    }
+    case help = "help"
 }
 
 struct CurrentNetworkResult: Codable {
@@ -58,6 +51,12 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Handle help command immediately
+        if command == .help {
+            printUsage()
+            exit(0)
+        }
+
         // For check-permission command, create location manager to get accurate status
         // but exit quickly via timeout instead of waiting for callbacks
         if command == .checkPermission {
@@ -271,8 +270,8 @@ Click 'Open Settings' to go there now.
                 let result = ScanResult(status: "error", interface: interface.interfaceName, networks: [], error: error.localizedDescription)
                 outputEncodable(result)
             }
-        case .requestPermission, .checkPermission:
-            // These commands are handled earlier in executeCommand()
+        case .requestPermission, .checkPermission, .help:
+            // These commands are handled earlier in applicationDidFinishLaunching()
             // They should never reach here
             return
         }
@@ -353,12 +352,43 @@ Click 'Open Settings' to go there now.
     }
 }
 
-let arguments = CommandLine.arguments
-let parsedCommand = arguments.firstIndex(of: "--command").flatMap { index -> HelperCommand in
-    let value = arguments.indices.contains(index + 1) ? arguments[index + 1] : nil
-    return HelperCommand(argument: value)
+// Print usage information
+func printUsage() {
+    let usage = """
+    wifiwand-helper - WiFi network query utility with location authorization
+
+    Usage:
+      wifiwand-helper <command>
+
+    Commands:
+      current-network     Get the currently connected WiFi network (SSID and BSSID)
+      scan-networks       Scan for available WiFi networks
+      check-permission    Check current location authorization status
+      request-permission  Request location permission with GUI prompts
+      help                Show this help message
+
+    Location Authorization:
+      macOS 10.15+ requires location permission to access WiFi network names.
+      Without permission, network names appear as '<hidden>'.
+    """
+    print(usage)
 }
-let command = parsedCommand ?? HelperCommand(argument: nil)
+
+let arguments = CommandLine.arguments
+
+// Get command (first non-flag argument)
+guard arguments.count > 1 else {
+    fputs("Error: No command specified\n\n", stderr)
+    printUsage()
+    exit(1)
+}
+
+let commandValue = arguments[1]
+guard let command = HelperCommand(rawValue: commandValue) else {
+    fputs("Error: Unknown command '\(commandValue)'\n\n", stderr)
+    printUsage()
+    exit(1)
+}
 
 let app = NSApplication.shared
 let controller = HelperController(command: command)

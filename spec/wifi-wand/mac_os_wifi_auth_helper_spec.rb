@@ -125,7 +125,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
 
       before do
         allow(Open3).to receive(:capture3)
-          .with('/tmp/helper', '--command', command)
+          .with('/tmp/helper', command)
           .and_return(['{"status":"ok","payload":1}', '', status])
       end
 

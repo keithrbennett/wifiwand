@@ -104,8 +104,8 @@ module WifiWand
       return false unless File.executable?(installed_executable_path)
       return false unless File.exist?(File.join(installed_bundle_path, 'Contents', 'Info.plist'))
 
-      # Quick validation: try to execute with --version flag
-      stdout, _stderr, status = Open3.capture3(installed_executable_path, '--version')
+      # Quick validation: try to execute with --help flag
+      stdout, _stderr, status = Open3.capture3(installed_executable_path, '--help')
       status.success? && !stdout.strip.empty?
     rescue Errno::ENOENT
       false
@@ -162,27 +162,9 @@ module WifiWand
       # Get the bundle path from the executable path
       bundle_path = executable_path.split('/Contents/MacOS/').first
 
-      # Require Developer ID - ad-hoc signing doesn't create TCC entries
-      identity = ENV['WIFIWAND_CODESIGN_IDENTITY']
-      unless identity
-        raise <<~ERROR
-          WIFIWAND_CODESIGN_IDENTITY environment variable not set.
-
-          The macOS helper requires proper code signing with a Developer ID certificate.
-          Ad-hoc signing does not create TCC (permission) database entries, making
-          permission management non-functional.
-
-          To sign the helper:
-            1. Get an Apple Developer ID certificate (see docs/dev/MACOS_CODE_SIGNING.md)
-            2. Set your identity:
-               export WIFIWAND_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAM123)"
-            3. Recompile the helper:
-               bundle exec rake swift:compile_helper
-
-          To find your identity:
-            security find-identity -v -p codesigning
-        ERROR
-      end
+      # Use environment variable or default to Keith's Developer ID
+      identity = ENV['WIFIWAND_CODESIGN_IDENTITY'] ||
+                 "Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)"
 
       # Path to entitlements file
       entitlements_path = File.expand_path('../../libexec/macos/wifiwand-helper.entitlements', __dir__)
@@ -269,7 +251,7 @@ module WifiWand
         ensure_helper_installed
         return nil if @disabled
 
-        stdout, stderr, status = Open3.capture3(helper_executable_path, '--command', command)
+        stdout, stderr, status = Open3.capture3(helper_executable_path, command)
         unless status.success?
           log_verbose("helper exited with status #{status.exitstatus}: #{stderr.strip}")
           return nil
