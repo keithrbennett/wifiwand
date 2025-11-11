@@ -477,6 +477,32 @@ The only remaining issue is that we were getting some extended information from 
 In addition, the extended information about the available networks (`ls_avail_nets`) has been removed in version 2.17.0.
 
 
+### macOS Helper Cleanup (macOS Sonoma+)
+
+On macOS Sonoma (14.0) and later, wifi-wand installs a native helper app to `~/Library/Application Support/WifiWand/<version>/` to provide unredacted WiFi information. Each gem version creates its own helper directory to support running multiple gem versions simultaneously.
+
+Over time, old helper versions may accumulate as you upgrade. Each helper is ~100-200KB, so this is rarely a concern, but you can clean them up if desired.
+
+**List installed helper versions:**
+```bash
+ls -la ~/Library/Application\ Support/WifiWand/
+```
+
+**Remove all helpers** (they will be reinstalled automatically when needed):
+```bash
+rm -rf ~/Library/Application\ Support/WifiWand/
+```
+
+**Remove specific old versions only:**
+```bash
+# Example: keep 3.0.0-alpha.1, remove all others
+cd ~/Library/Application\ Support/WifiWand/
+ls | grep -v "3.0.0-alpha.1" | xargs rm -rf
+```
+
+The helper will be automatically reinstalled the next time you run a wifi-wand command that requires it.
+
+
 ### License
 
 Apache 2 License (see LICENSE.txt)
