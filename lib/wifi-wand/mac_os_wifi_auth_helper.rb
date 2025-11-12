@@ -139,23 +139,51 @@ module WifiWand
 
     def compile_helper(source, destination, out_stream: $stdout)
       FileUtils.mkdir_p(File.dirname(destination))
+
+      # Compile for both architectures to create a universal binary
+      arm_binary = "#{destination}.arm64"
+      x86_binary = "#{destination}.x86_64"
+
+      out_stream&.puts 'Compiling for arm64 (Apple Silicon)...'
+      compile_for_arch(source, arm_binary, 'arm64-apple-macos14.0')
+
+      out_stream&.puts 'Compiling for x86_64 (Intel)...'
+      compile_for_arch(source, x86_binary, 'x86_64-apple-macos14.0')
+
+      # Create universal binary with lipo
+      out_stream&.puts 'Creating universal binary...'
+      command = ['lipo', '-create', arm_binary, x86_binary, '-output', destination]
+      stdout, stderr, status = Open3.capture3(*command)
+
+      unless status.success?
+        raise "Failed to create universal binary (status=#{status.exitstatus}): #{stderr.empty? ? stdout : stderr}"
+      end
+
+      # Clean up individual architecture binaries
+      FileUtils.rm_f([arm_binary, x86_binary])
+
+      FileUtils.chmod(0o755, destination)
+      out_stream&.puts 'Universal helper compiled successfully (arm64 + x86_64).'
+
+      # Code sign the helper bundle to enable proper TCC registration
+      sign_helper_bundle(destination, out_stream: out_stream)
+    end
+
+    def compile_for_arch(source, destination, target)
       command = [
         'swiftc',
         source,
+        '-target', target,
         '-framework', 'Cocoa',
         '-framework', 'CoreLocation',
         '-framework', 'CoreWLAN',
         '-o', destination
       ]
       stdout, stderr, status = Open3.capture3(*command)
-      unless status.success?
-        raise "Failed to compile WiFi helper (status=#{status.exitstatus}): #{stderr.empty? ? stdout : stderr}"
-      end
-      FileUtils.chmod(0o755, destination)
-      out_stream&.puts 'Helper compiled successfully.'
 
-      # Code sign the helper bundle to enable proper TCC registration
-      sign_helper_bundle(destination, out_stream: out_stream)
+      unless status.success?
+        raise "Failed to compile for #{target} (status=#{status.exitstatus}): #{stderr.empty? ? stdout : stderr}"
+      end
     end
 
     def sign_helper_bundle(executable_path, out_stream: $stdout)

@@ -23,6 +23,7 @@
 cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
 * The system automatically detects the OS and loads the appropriate model for that OS.
 * Extracted hardcoded data into YAML configuration files.
+* macOS helper application is now built as a universal binary supporting both Intel (x86_64) and Apple Silicon (arm64) architectures.
 
 ### Network Management & Reporting Improvements
 

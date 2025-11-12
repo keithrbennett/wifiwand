@@ -360,6 +360,7 @@ bundle exec rake dev:build_signed_helper
 ```
 
 This compiles the helper and signs it with:
+- Universal binary support (arm64 + x86_64 architectures)
 - Your Developer ID certificate
 - Hardened Runtime enabled
 - Entitlements file applied

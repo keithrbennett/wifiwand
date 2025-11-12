@@ -23,9 +23,9 @@ namespace :swift do
     helper.compile_helper(helper_source, helper_binary, out_stream: $stdout)
   end
 
-  desc 'Compile the wifiwand macOS helper bundle executable (requires WIFIWAND_CODESIGN_IDENTITY)'
+  desc 'Compile the wifiwand macOS helper bundle as universal binary for arm64+x86_64 (requires WIFIWAND_CODESIGN_IDENTITY)'
   task :compile_helper => helper_binary
 
-  desc 'Compile all Swift targets that require compilation (requires WIFIWAND_CODESIGN_IDENTITY)'
+  desc 'Compile all Swift targets that require compilation as universal binaries (requires WIFIWAND_CODESIGN_IDENTITY)'
   task :compile => [:compile_helper]
 end

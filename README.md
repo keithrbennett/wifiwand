@@ -478,7 +478,7 @@ wifi-wand  connect  my-usual-network  its-password
 Starting in macOS version 14.4, the `airport` utility on which some of this project's
 functionality relies has been disabled and will presumably eventually be removed.
 
-The following tasks were restored by using Swift scripts:
+The following tasks were restored by using Swift-based helper applications:
 * listing names of all available networks
 * disconnecting from a network (with the added benefit that sudo access is no longer required)
 
@@ -489,6 +489,8 @@ The following tasks were restored by using `networksetup`:
 The only remaining issue is that we were getting some extended information from airport for each available network. This extended information has now been removed in version 2.17.0.
 
 In addition, the extended information about the available networks (`ls_avail_nets`) has been removed in version 2.17.0.
+
+**Note:** The macOS helper application is distributed as a universal binary, supporting both Intel (x86_64) and Apple Silicon (arm64) processors on macOS 14.0 (Sonoma) and later.
 
 
 ### macOS Helper Cleanup (macOS Sonoma+)
