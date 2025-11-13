@@ -183,6 +183,31 @@ module WifiWand
         File.join(helper.source_bundle_path, 'Contents', 'MacOS', WifiWand::MacOsWifiAuthHelper::EXECUTABLE_NAME)
       end
 
+      def self.get_binary_architectures(binary_path)
+        stdout, _stderr, status = Open3.capture3('lipo', '-archs', binary_path)
+        return [] unless status.success?
+        stdout.strip.split
+      end
+
+      def self.verify_universal_binary(binary_path)
+        archs = get_binary_architectures(binary_path)
+        has_arm64 = archs.include?('arm64')
+        has_x86_64 = archs.include?('x86_64')
+
+        unless has_arm64 && has_x86_64
+          missing = []
+          missing << 'arm64' unless has_arm64
+          missing << 'x86_64' unless has_x86_64
+          puts "⚠ Warning: Binary is missing architectures: #{missing.join(', ')}"
+          puts "  Found: #{archs.join(', ')}"
+          puts "  This binary will not work on #{missing.include?('arm64') ? 'Apple Silicon' : 'Intel'} Macs."
+          return false
+        end
+
+        puts "✓ Universal binary confirmed (arm64 + x86_64)"
+        true
+      end
+
       def self.verify_identity_configured(identity)
         return unless identity.include?('YOUR_TEAM_ID_HERE') || identity.include?('Your Name')
 

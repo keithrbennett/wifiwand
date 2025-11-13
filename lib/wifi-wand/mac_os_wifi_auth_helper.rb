@@ -139,23 +139,48 @@ module WifiWand
 
     def compile_helper(source, destination, out_stream: $stdout)
       FileUtils.mkdir_p(File.dirname(destination))
-      command = [
-        'swiftc',
-        source,
-        '-framework', 'Cocoa',
-        '-framework', 'CoreLocation',
-        '-framework', 'CoreWLAN',
-        '-o', destination
-      ]
-      stdout, stderr, status = Open3.capture3(*command)
-      unless status.success?
-        raise "Failed to compile WiFi helper (status=#{status.exitstatus}): #{stderr.empty? ? stdout : stderr}"
+
+      # Build universal binary (ARM64 + x86_64) for compatibility with all Macs
+      arm64_binary = "#{destination}.arm64"
+      x86_64_binary = "#{destination}.x86_64"
+
+      begin
+        compile_architecture(source, arm64_binary, 'arm64-apple-macos11', 'ARM64')
+        compile_architecture(source, x86_64_binary, 'x86_64-apple-macos11', 'x86_64')
+        create_universal_binary(destination, arm64_binary, x86_64_binary)
+      ensure
+        FileUtils.rm_f([arm64_binary, x86_64_binary])
       end
+
       FileUtils.chmod(0o755, destination)
       out_stream&.puts 'Helper compiled successfully.'
 
       # Code sign the helper bundle to enable proper TCC registration
       sign_helper_bundle(destination, out_stream: out_stream)
+    end
+
+    def compile_architecture(source, output, target, arch_name)
+      command = [
+        'swiftc', source,
+        '-target', target,
+        '-framework', 'Cocoa',
+        '-framework', 'CoreLocation',
+        '-framework', 'CoreWLAN',
+        '-o', output
+      ]
+      stdout, stderr, status = Open3.capture3(*command)
+      return if status.success?
+
+      error_output = stderr.empty? ? stdout : stderr
+      raise "Failed to compile #{arch_name} binary (status=#{status.exitstatus}): #{error_output}"
+    end
+
+    def create_universal_binary(destination, *architecture_binaries)
+      stdout, stderr, status = Open3.capture3('lipo', '-create', '-output', destination, *architecture_binaries)
+      return if status.success?
+
+      error_output = stderr.empty? ? stdout : stderr
+      raise "Failed to create universal binary (status=#{status.exitstatus}): #{error_output}"
     end
 
     def sign_helper_bundle(executable_path, out_stream: $stdout)
