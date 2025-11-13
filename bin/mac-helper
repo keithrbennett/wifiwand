@@ -1,0 +1,249 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+#
+# Developer tool for building, signing, and notarizing the macOS helper.
+# Replaces rake dev:* tasks with a cleaner CLI interface.
+#
+# This script is NOT included in the distributed gem.
+# It's run by the gem maintainer before releasing a new version.
+# End users receive the pre-signed, pre-notarized helper binary.
+#
+
+require 'optparse'
+require 'pathname'
+
+# Add lib to load path
+lib_path = Pathname.new(__FILE__).dirname.parent.join('lib')
+$LOAD_PATH.unshift(lib_path) unless $LOAD_PATH.include?(lib_path.to_s)
+
+require 'wifi-wand/mac_helper_release'
+
+module MacHelperCLI
+  SUBCOMMANDS = {
+    'build' => 'Build and sign helper with Developer ID (for gem distribution)',
+    'test' => 'Test the signed helper binary',
+    'notarize' => 'Notarize the helper for distribution (requires Apple ID credentials)',
+    'release' => 'Complete release workflow: build, sign, test, notarize',
+    'status' => 'Show code signing status of helper',
+    'history' => 'Show recent notarization submissions (uses Apple ID credentials)',
+    'info' => 'Show notarization status for a submission (requires submission ID)',
+    'log' => 'Show notarization log for a submission (requires submission ID)',
+    'cancel' => 'Cancel a notarization submission (defaults to oldest queued submission)',
+    'help' => 'Show this help message'
+  }.freeze
+
+  class CLI
+    def initialize(args)
+      @args = args
+      @options = {
+        submission_id: nil,
+        order: nil,
+        pending_only: false
+      }
+    end
+
+    def run
+      subcommand = @args.shift
+
+      if subcommand.nil? || subcommand == 'help' || subcommand == '--help' || subcommand == '-h'
+        show_help
+        exit 0
+      end
+
+      unless SUBCOMMANDS.key?(subcommand)
+        warn "Error: Unknown subcommand '#{subcommand}'"
+        warn "Run 'bin/mac-helper help' for usage information."
+        exit 1
+      end
+
+      parse_options(subcommand)
+
+      # Check if we need to auto-wrap with op for commands that need credentials
+      if needs_credentials?(subcommand) && !has_credentials?
+        exec_with_op_wrap(subcommand)
+      end
+
+      execute_subcommand(subcommand)
+    end
+
+    private
+
+    def show_help
+      puts <<~HELP
+        Usage: bin/mac-helper <subcommand> [options]
+
+        Subcommands:
+      HELP
+
+      SUBCOMMANDS.each do |cmd, desc|
+        puts "  #{cmd.ljust(12)} #{desc}"
+      end
+
+      puts <<~HELP
+
+        Examples:
+
+          Build & sign:
+            bin/mac-helper build
+
+          Test:
+            bin/mac-helper test
+
+          Notarize (auto-wraps with op if credentials not set):
+            bin/mac-helper notarize
+
+          Full workflow:
+            bin/mac-helper release
+
+          Notarization history:
+            bin/mac-helper history
+
+          Notarization status (specific submission):
+            bin/mac-helper info --submission-id <uuid>
+
+          Notarization log (specific submission):
+            bin/mac-helper log --submission-id <uuid>
+
+          Cancel oldest queued notarization:
+            bin/mac-helper cancel
+
+          Cancel specific notarization:
+            bin/mac-helper cancel --submission-id <uuid>
+
+        Note: Commands requiring Apple credentials will automatically use bin/op-wrap
+        if WIFIWAND_APPLE_DEV_ID and WIFIWAND_APPLE_DEV_PASSWORD are not set.
+
+        Options:
+          --submission-id ID        Submission ID for info/log/cancel commands
+          --order asc|desc          Order for automatic submission selection (asc=oldest first, desc=latest first, default: desc)
+          --pending-only            Only select pending submissions for cancel command
+          --help, -h                Show this help message
+
+        Environment Variables (set via bin/op-wrap or manually):
+          WIFIWAND_APPLE_DEV_ID            Apple ID email (required for notarization commands)
+          WIFIWAND_APPLE_DEV_PASSWORD      App-specific password from appleid.apple.com (required for notarization commands)
+          WIFIWAND_OP_WRAP_BIN             Path to op-wrap script (default: bin/op-wrap)
+          WIFIWAND_CODESIGN_IDENTITY       Code signing identity (optional override)
+
+        See docs/dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md for the checklist and
+        docs/dev/MACOS_CODE_SIGNING_CONTEXT.md for the full background.
+      HELP
+    end
+
+    def parse_options(subcommand)
+      parser = OptionParser.new do |opts|
+        opts.banner = "Usage: bin/mac-helper #{subcommand} [options]"
+
+        opts.on('--submission-id ID', 'Submission ID for info/log/cancel commands') do |id|
+          @options[:submission_id] = id
+        end
+
+        opts.on('--order ORDER', %w[asc ascending desc descending], 'Order for automatic submission selection (asc=oldest first, desc=latest first)') do |order|
+          @options[:order] = order.to_sym
+        end
+
+        opts.on('--pending-only', 'Only select pending submissions') do
+          @options[:pending_only] = true
+        end
+
+        opts.on('-h', '--help', 'Show help for this subcommand') do
+          puts opts
+          exit 0
+        end
+      end
+
+      parser.parse!(@args)
+    rescue OptionParser::InvalidOption => e
+      warn "Error: #{e.message}"
+      warn "Run 'bin/mac-helper #{subcommand} --help' for usage information."
+      exit 1
+    end
+
+    def needs_credentials?(subcommand)
+      %w[notarize release history info log cancel].include?(subcommand)
+    end
+
+    def has_credentials?
+      ENV['WIFIWAND_APPLE_DEV_ID'] && ENV['WIFIWAND_APPLE_DEV_PASSWORD']
+    end
+
+    def exec_with_op_wrap(subcommand)
+      wrapper = ENV['WIFIWAND_OP_WRAP_BIN'] || File.expand_path('bin/op-wrap', Dir.pwd)
+
+      unless File.exist?(wrapper)
+        warn <<~ERROR
+          Error: Unable to locate op wrapper at #{wrapper}.
+          Ensure bin/op-wrap exists (or set WIFIWAND_OP_WRAP_BIN) and try again.
+        ERROR
+        exit 1
+      end
+
+      puts "Re-running #{subcommand} via #{File.basename(wrapper)}..."
+      exec('ruby', wrapper, $PROGRAM_NAME, subcommand, *@args)
+    rescue SystemCallError => e
+      warn "Error: unable to execute #{wrapper} for #{subcommand}: #{e.message}"
+      exit 1
+    end
+
+    def execute_subcommand(subcommand)
+      case subcommand
+      when 'build'
+        WifiWand::MacHelperRelease.build_signed_helper
+      when 'test'
+        WifiWand::MacHelperRelease.test_signed_helper
+      when 'notarize'
+        WifiWand::MacHelperRelease.notarize_helper
+      when 'release'
+        WifiWand::MacHelperRelease.release_helper
+      when 'status'
+        WifiWand::MacHelperRelease.codesign_status
+      when 'history'
+        WifiWand::MacHelperRelease.notarization_history
+      when 'info'
+        submission_id = fetch_submission_id(order: :desc, pending_only: false)
+        WifiWand::MacHelperRelease.notarization_status(submission_id)
+      when 'log'
+        submission_id = fetch_submission_id(order: :desc, pending_only: false)
+        WifiWand::MacHelperRelease.notarization_log(submission_id)
+      when 'cancel'
+        submission_id = fetch_submission_id(order: :asc, pending_only: true)
+        WifiWand::MacHelperRelease.cancel_notarization(submission_id)
+      end
+    rescue => e
+      warn "Error: #{e.message}"
+      warn e.backtrace.join("\n") if ENV['DEBUG']
+      exit 1
+    end
+
+    def fetch_submission_id(order:, pending_only:)
+      # Use provided submission ID if available
+      return @options[:submission_id] if @options[:submission_id] && !@options[:submission_id].empty?
+
+      # Override order if specified in options
+      order = @options[:order] if @options[:order]
+      pending_only = @options[:pending_only] if @options.key?(:pending_only)
+
+      # Auto-select from history
+      normalized_order = WifiWand::MacHelperRelease.normalize_submission_order(order)
+      auto_id = WifiWand::MacHelperRelease.select_submission_id(
+        order: normalized_order,
+        pending_only: pending_only
+      )
+
+      unless auto_id
+        warn 'Error: No submission ID provided and unable to auto-select from history.'
+        warn 'Provide --submission-id <uuid> or ensure there are submissions in history.'
+        exit 1
+      end
+
+      adjective = normalized_order == :asc ? 'oldest' : 'latest'
+      pending_msg = pending_only ? ' pending' : ''
+      puts "Info: No submission ID provided; using #{adjective}#{pending_msg} notary submission #{auto_id}."
+      auto_id
+    end
+  end
+end
+
+# Run the CLI
+MacHelperCLI::CLI.new(ARGV.dup).run

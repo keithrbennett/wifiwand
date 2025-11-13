@@ -10,7 +10,7 @@ This page is intentionally short so you can follow it during a release. When you
 
 - Active Apple Developer Program membership (the $99/year account you already use for Developer ID certificates).
 - Xcode Command Line Tools installed (`xcode-select --install`) so `codesign`, `notarytool`, etc. are available.
-- Ruby/Bundler environment that can run `bundle exec rake`.
+- Ruby environment that can run `bin/mac-helper` (no bundler required for the script itself).
 - Access to `lib/wifi-wand/mac_helper_release.rb` in the repo so you can update the public signing constants.
 
 ---
@@ -52,16 +52,16 @@ This page is intentionally short so you can follow it during a release. When you
 
 5. **Dry run the workflow once**
    ```bash
-   op run --env-file=.env.release -- bundle exec rake dev:build_signed_helper
+   bin/mac-helper build
    ```
    - Confirms the helper builds, signs, and that your local keychain trusts the certificate.
-   - Run the helper once so macOS registers it with Location Services (either start `bundle exec rake dev:test_signed_helper` or run `bundle exec rake mac:helper_location_permission_allow`, which launches the helper just long enough to create the TCC entry).
+   - Run the helper once so macOS registers it with Location Services (either start `bin/mac-helper test` or run `bundle exec rake mac:helper_location_permission_allow`, which launches the helper just long enough to create the TCC entry).
    - After the helper shows up under **System Settings → Privacy & Security → Location Services**, toggle it on to avoid the hidden prompt the first time the test task runs.
 
-6. **Follow the build task’s suggested next steps**
-   - Test the signed helper: `bundle exec rake dev:test_signed_helper`
-   - Notarize (credentials required): `op run --env-file=.env.release -- bundle exec rake dev:notarize_helper`
-   - If the notarize task exits before stapling—even though Apple later accepts the submission—run `xcrun stapler staple libexec/macos/wifiwand-helper.app` yourself once `dev:notarization_status` reports `Accepted`
+6. **Follow the build task's suggested next steps**
+   - Test the signed helper: `bin/mac-helper test`
+   - Notarize (credentials required): `bin/op-wrap bin/mac-helper notarize`
+   - If the notarize task exits before stapling—even though Apple later accepts the submission—run `xcrun stapler staple libexec/macos/wifiwand-helper.app` yourself once notarization status reports `Accepted`
    - Commit the updated `libexec/macos/wifiwand-helper.app` and proceed with gem build/release as usual
 
 You are now ready to ship signed helpers on demand.
@@ -78,7 +78,7 @@ Follow the same sequence each time you change the helper or cut a gem release.
 
 2. **Run the release automation (preferred path)**
    ```bash
-   op run --env-file=.env.release -- bundle exec rake dev:release_helper
+   bin/op-wrap bin/mac-helper release
    ```
    What it does:
    1. Builds the helper
@@ -88,14 +88,14 @@ Follow the same sequence each time you change the helper or cut a gem release.
 
    **Without 1Password?**
    ```bash
-   WIFIWAND_APPLE_DEV_ID="you@example.com" \
-   WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
-     bundle exec rake dev:release_helper
+   WIFIWAND_APPLE_DEV_ID=you@example.com \
+   WIFIWAND_APPLE_DEV_PASSWORD=xxxx-xxxx-xxxx-xxxx \
+     bin/mac-helper release
    ```
 
 3. **Spot-check when needed**
    ```bash
-   bundle exec rake dev:codesign_status
+   bin/mac-helper status
    ```
    Shows signature, hardened runtime, and notarization status.
 
@@ -108,32 +108,32 @@ Follow the same sequence each time you change the helper or cut a gem release.
    ```
 
 5. **If notarization stalls or fails**
-   - Check Apple’s queue: `bundle exec rake dev:notarization_history`
-   - For a specific submission, run `bundle exec WIFIWAND_SUBMISSION_ID=<uuid> rake dev:notarization_status` (omit `WIFIWAND_SUBMISSION_ID` to automatically target the most recent submission). This command wraps `xcrun notarytool info`.
-   - Pull the detailed log with `bundle exec WIFIWAND_SUBMISSION_ID=<uuid> rake dev:notarization_log` (same auto-detection applies)
-   - Cancel a stuck submission with `bundle exec rake dev:notarization_cancel` (only pending `In Progress` submissions can be removed; pass `WIFIWAND_SUBMISSION_ID=<uuid>` to target a specific one)
-   - If the submission was rejected, rebuild the helper (`bundle exec rake dev:build_signed_helper`) before re-running the release flow.
+   - Check Apple's queue: `bin/op-wrap bin/mac-helper history`
+   - For a specific submission, run `bin/op-wrap bin/mac-helper info --submission-id <uuid>` (omit `--submission-id` to automatically target the most recent submission). This command wraps `xcrun notarytool info`.
+   - Pull the detailed log with `bin/op-wrap bin/mac-helper log --submission-id <uuid>` (same auto-detection applies)
+   - Cancel a stuck submission with `bin/op-wrap bin/mac-helper cancel` (only pending `In Progress` submissions can be removed; pass `--submission-id <uuid>` to target a specific one, or use `--order asc --pending-only` to cancel oldest pending)
+   - If the submission was rejected, rebuild the helper (`bin/mac-helper build`) before re-running the release flow.
 
 ### Automatic 1Password wrapping
 
-Any `dev:` rake task that needs Apple credentials (notarize, release workflow, queue history/status/log/cancel) automatically re-execs itself via the `bin/op-wrap` helper:
+The `bin/mac-helper` script automatically re-execs itself via `bin/op-wrap` when it needs Apple credentials but `WIFIWAND_APPLE_DEV_ID` and `WIFIWAND_APPLE_DEV_PASSWORD` are not already set. This means you can run commands directly:
 
-```
-bin/op-wrap bundle exec rake <task>
+```bash
+# Automatically wraps with op-wrap if credentials not present:
+bin/mac-helper notarize
+bin/mac-helper release
 ```
 
-if `WIFIWAND_APPLE_DEV_ID` / `WIFIWAND_APPLE_DEV_PASSWORD` are not already present. You can customize the behavior (and use the wrapper manually) with:
+You can customize the behavior with these environment variables:
 
 - `WIFIWAND_OP_RUN_ENV` – override the 1Password env-file path (default: `.env.release`)
-- `WIFIWAND_OP_BIN` – override the `op` binary name/path the wrapper calls
+- `WIFIWAND_OP_BIN` – override the `op` binary name/path
 - `WIFIWAND_OP_WRAP_BIN` – point to a custom wrapper script (defaults to `bin/op-wrap`)
-- `WIFIWAND_OP_WRAP_SHELL` – shell used to launch the wrapper (default: `bash`)
-- `WIFIWAND_DISABLE_AUTO_OP_RUN=1` – disable auto-wrapping entirely (useful in CI where credentials are already exported)
 
-The helper sets `WIFIWAND_OP_RUN_ACTIVE=1` inside the re-exec so nested calls don’t loop. You can also invoke the wrapper directly for any ad-hoc command:
+Or invoke the wrapper explicitly:
 
-```
-bin/op-wrap bundle exec rake dev:notarization_history
+```bash
+bin/op-wrap bin/mac-helper history
 ```
 
 ---
@@ -141,7 +141,7 @@ bin/op-wrap bundle exec rake dev:notarization_history
 ## Need More Detail?
 
 - Background, troubleshooting, and the rationale for each requirement: `docs/dev/MACOS_CODE_SIGNING_CONTEXT.md`
-- Rake task internals live alongside the tasks in `lib/wifi-wand/mac_helper_release.rb`.
-- Forget the commands? Run `bundle exec rake dev:help` for a quick reminder of the common `op run` invocations.
+- Script implementation lives in `bin/mac-helper` (CLI) and `lib/wifi-wand/mac_helper_release.rb` (core logic).
+- Forget the commands? Run `bin/mac-helper help` for a quick reminder.
 
-Keeping this file short makes it easier to execute the release without rereading the entire history every time. Refer back to the context file whenever you need the “why.”
+Keeping this file short makes it easier to execute the release without rereading the entire history every time. Refer back to the context file whenever you need the "why."

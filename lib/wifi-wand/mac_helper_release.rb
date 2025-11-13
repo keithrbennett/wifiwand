@@ -30,8 +30,8 @@ module WifiWand
         ✓ Helper built and signed successfully!
 
         Next steps:
-          1. Test the signed helper: bundle exec rake dev:test_signed_helper
-          2. Notarize for distribution: bundle exec rake dev:notarize_helper
+          1. Test the signed helper: bin/mac-helper test
+          2. Notarize for distribution: bin/mac-helper notarize
       MSG
 
       TESTING_HEADER = <<~MSG
@@ -106,7 +106,7 @@ module WifiWand
           ✓ Helper is now signed and notarized!
 
           Next steps:
-            1. Test the notarized helper: bundle exec rake dev:test_signed_helper
+            1. Test the notarized helper: bin/mac-helper test
             2. Commit the signed helper: git add #{bundle_path}
             3. Build and release the gem: gem build wifi-wand.gemspec
         MSG
@@ -160,7 +160,7 @@ module WifiWand
       def self.bundle_not_found(bundle_path)
         <<~MSG
           Helper bundle not found at #{bundle_path}
-          Run: bundle exec rake swift:compile_helper
+          Run: bin/mac-helper build
         MSG
       end
 
@@ -234,7 +234,7 @@ module WifiWand
         ERROR
       end
 
-      def self.verify_credentials(apple_id, apple_password, command_hint: 'bundle exec rake dev:notarize_helper')
+      def self.verify_credentials(apple_id, apple_password, command_hint: 'bin/mac-helper notarize')
         return if apple_id && apple_password
 
         missing = []
@@ -245,25 +245,24 @@ module WifiWand
         abort <<~ERROR
           Error: Apple credentials not set (missing #{missing_list}).
 
-          Required environment variables (private credentials only):
+          Required environment variables:
             WIFIWAND_APPLE_DEV_ID       - Your Apple ID email (e.g., you@example.com)
             WIFIWAND_APPLE_DEV_PASSWORD - App-specific password from appleid.apple.com
 
-          Usage (direct environment variables):
+          Usage (with environment variables):
             WIFIWAND_APPLE_DEV_ID="you@example.com" \\
             WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \\
               #{command_hint}
 
-          Usage (with 1Password CLI references from .env.release):
-            op run --env-file=.env.release -- #{command_hint}
+          Usage (with 1Password CLI - recommended):
+            bin/op-wrap #{command_hint}
 
-          You can substitute your own secret-management workflow if preferred; the rake task only needs
-          the two environment variables set before it runs.
+          The script will automatically use bin/op-wrap if credentials are not set.
 
           Note: Team ID and codesign identity are hardcoded in lib/wifi-wand/mac_helper_release.rb
           (they're public values visible in signed binaries anyway).
 
-          See docs/dev/MACOS_CODE_SIGNING.md for detailed instructions.
+          See docs/dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md for detailed instructions.
         ERROR
       end
 
@@ -326,7 +325,7 @@ module WifiWand
       Operations.require_macos!(__method__.to_s)
       helper = WifiWand::MacOsWifiAuthHelper
       executable = Operations.helper_executable_path
-      abort "Helper not found at #{executable}. Run: bundle exec rake dev:build_signed_helper" unless File.exist?(executable)
+      abort "Helper not found at #{executable}. Run: bin/mac-helper build" unless File.exist?(executable)
 
       puts Messages::TESTING_HEADER
       system('codesign', '-dvv', helper.source_bundle_path)
@@ -338,7 +337,7 @@ module WifiWand
 
     def notarize_helper
       Operations.require_macos!(__method__.to_s)
-      creds = fetch_notary_credentials!(command_hint: 'bundle exec rake dev:notarize_helper')
+      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper notarize')
       apple_id = creds[:apple_id]
       apple_password = creds[:apple_password]
       team_id = creds[:team_id]
@@ -346,10 +345,10 @@ module WifiWand
       helper = WifiWand::MacOsWifiAuthHelper
       bundle_path = helper.source_bundle_path
       zip_path = "#{bundle_path}.zip"
-      abort "Helper bundle not found at #{bundle_path}. Run: bundle exec rake dev:build_signed_helper" unless File.exist?(bundle_path)
+      abort "Helper bundle not found at #{bundle_path}. Run: bin/mac-helper build" unless File.exist?(bundle_path)
 
       stdout, _stderr, status = Open3.capture3('codesign', '-dv', bundle_path)
-      abort "Error: Helper is ad-hoc signed. Must be signed with Developer ID.\nRun: bundle exec rake dev:build_signed_helper" if status.success? && stdout.include?('adhoc')
+      abort "Error: Helper is ad-hoc signed. Must be signed with Developer ID.\nRun: bin/mac-helper build" if status.success? && stdout.include?('adhoc')
 
       puts Messages.notarizing_header(bundle_path: bundle_path, apple_id: apple_id, team_id: team_id)
       Operations.create_zip(bundle_path, zip_path)
@@ -365,7 +364,7 @@ module WifiWand
     end
 
     def notarization_history
-      creds = fetch_notary_credentials!(command_hint: 'bundle exec rake dev:notarization_history')
+      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper history')
       puts 'Recent notarization submissions:'
       Operations.run_notarytool(
         ['history'],
@@ -375,8 +374,8 @@ module WifiWand
     end
 
     def notarization_status(submission_id)
-      abort 'Error: WIFIWAND_SUBMISSION_ID is required (pass WIFIWAND_SUBMISSION_ID=<uuid>).' unless submission_id && !submission_id.empty?
-      creds = fetch_notary_credentials!(command_hint: 'bundle exec rake dev:notarization_status WIFIWAND_SUBMISSION_ID=<uuid>')
+      abort 'Error: Submission ID is required. Use --submission-id <uuid> or let the script auto-select.' unless submission_id && !submission_id.empty?
+      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper info --submission-id <uuid>')
       puts "Status for submission #{submission_id}:"
       Operations.run_notarytool(
         ['info', submission_id],
@@ -386,8 +385,8 @@ module WifiWand
     end
 
     def notarization_log(submission_id)
-      abort 'Error: WIFIWAND_SUBMISSION_ID is required (pass WIFIWAND_SUBMISSION_ID=<uuid>).' unless submission_id && !submission_id.empty?
-      creds = fetch_notary_credentials!(command_hint: 'bundle exec rake dev:notarization_log WIFIWAND_SUBMISSION_ID=<uuid>')
+      abort 'Error: Submission ID is required. Use --submission-id <uuid> or let the script auto-select.' unless submission_id && !submission_id.empty?
+      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper log --submission-id <uuid>')
       puts "Log for submission #{submission_id}:"
       Operations.run_notarytool(
         ['log', submission_id],
@@ -397,8 +396,8 @@ module WifiWand
     end
 
     def cancel_notarization(submission_id)
-      abort 'Error: WIFIWAND_SUBMISSION_ID is required (pass WIFIWAND_SUBMISSION_ID=<uuid>).' unless submission_id && !submission_id.empty?
-      creds = fetch_notary_credentials!(command_hint: 'bundle exec rake dev:notarization_cancel WIFIWAND_SUBMISSION_ID=<uuid>')
+      abort 'Error: Submission ID is required. Use --submission-id <uuid> or let the script auto-select.' unless submission_id && !submission_id.empty?
+      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper cancel --submission-id <uuid>')
       puts "Canceling submission #{submission_id}..."
       Operations.run_notarytool(
         ['queue', 'remove', submission_id],
@@ -418,7 +417,7 @@ module WifiWand
 
     def select_submission_id(order:, pending_only: false)
       normalized_order = normalize_submission_order(order)
-      creds = fetch_notary_credentials!(command_hint: 'bundle exec rake dev:notarization_history')
+      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper history')
       response = Operations.run_notarytool(
         ['history', '--output-format', 'json'],
         **creds,
@@ -488,7 +487,7 @@ module WifiWand
       puts Messages::NOTARIZATION_STATUS_HEADER
       stdout, _stderr, status = Open3.capture3('spctl', '-a', '-vv', '-t', 'install', bundle_path)
       puts stdout
-      puts status.success? ? "✓ Helper is notarized and will run without Gatekeeper warnings" : stdout.include?('source=Notarized Developer ID') ? "✓ Helper is notarized" : "⚠ Helper is not notarized - users may see Gatekeeper warnings\n  Run: bundle exec rake dev:notarize_helper"
+      puts status.success? ? "✓ Helper is notarized and will run without Gatekeeper warnings" : stdout.include?('source=Notarized Developer ID') ? "✓ Helper is notarized" : "⚠ Helper is not notarized - users may see Gatekeeper warnings\n  Run: bin/mac-helper notarize"
     end
     def fetch_notary_credentials!(command_hint:)
       apple_id = ENV['WIFIWAND_APPLE_DEV_ID']
