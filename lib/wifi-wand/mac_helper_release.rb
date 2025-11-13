@@ -343,6 +343,10 @@ module WifiWand
 
       puts Messages.building_helper(source: source, destination: destination, identity: identity)
       helper.compile_helper(source, destination, out_stream: $stdout)
+
+      puts "\nVerifying binary architectures..."
+      Operations.verify_universal_binary(destination)
+
       puts Messages::HELPER_BUILT_SUCCESS
     end
 
@@ -355,6 +359,12 @@ module WifiWand
       puts Messages::TESTING_HEADER
       system('codesign', '-dvv', helper.source_bundle_path)
       puts
+
+      puts "Binary architectures:"
+      archs = Operations.get_binary_architectures(executable)
+      puts "  #{archs.join(', ')}"
+      puts
+
       Operations.verify_signature(helper.source_bundle_path)
       puts
       Operations.test_helper_execution(executable)
@@ -496,6 +506,7 @@ module WifiWand
       Operations.require_macos!(__method__.to_s)
       helper = WifiWand::MacOsWifiAuthHelper
       bundle_path = helper.source_bundle_path
+      executable_path = Operations.helper_executable_path
       unless File.exist?(bundle_path)
         puts Messages.bundle_not_found(bundle_path)
         exit 1
@@ -503,6 +514,15 @@ module WifiWand
 
       puts Messages.codesign_status_header
       system('codesign', '-dvv', bundle_path)
+
+      puts "\nBinary Architectures:"
+      puts "#{"-" * 60}"
+      archs = Operations.get_binary_architectures(executable_path)
+      if archs.include?('arm64') && archs.include?('x86_64')
+        puts "✓ Universal binary (#{archs.join(', ')})"
+      else
+        puts "⚠ Not universal: #{archs.join(', ')}"
+      end
 
       puts Messages::SIGNATURE_VERIFICATION_HEADER
       _stdout, stderr, status = Open3.capture3('codesign', '--verify', '--verbose', bundle_path)
