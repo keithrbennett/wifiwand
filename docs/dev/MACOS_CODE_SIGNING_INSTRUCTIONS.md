@@ -109,9 +109,32 @@ Follow the same sequence each time you change the helper or cut a gem release.
 
 5. **If notarization stalls or fails**
    - Check Apple’s queue: `bundle exec rake dev:notarization_history`
-   - For a specific submission, run `bundle exec SUBMISSION_ID=<uuid> rake dev:notarization_status` (omit `SUBMISSION_ID` to automatically target the most recent submission). This command wraps `xcrun notarytool info`.
-   - Pull the detailed log with `bundle exec SUBMISSION_ID=<uuid> rake dev:notarization_log` (same auto-detection applies)
+   - For a specific submission, run `bundle exec WIFIWAND_SUBMISSION_ID=<uuid> rake dev:notarization_status` (omit `WIFIWAND_SUBMISSION_ID` to automatically target the most recent submission). This command wraps `xcrun notarytool info`.
+   - Pull the detailed log with `bundle exec WIFIWAND_SUBMISSION_ID=<uuid> rake dev:notarization_log` (same auto-detection applies)
+   - Cancel a stuck submission with `bundle exec rake dev:notarization_cancel` (only pending `In Progress` submissions can be removed; pass `WIFIWAND_SUBMISSION_ID=<uuid>` to target a specific one)
    - If the submission was rejected, rebuild the helper (`bundle exec rake dev:build_signed_helper`) before re-running the release flow.
+
+### Automatic 1Password wrapping
+
+Any `dev:` rake task that needs Apple credentials (notarize, release workflow, queue history/status/log/cancel) automatically re-execs itself via the `bin/op-wrap` helper:
+
+```
+bin/op-wrap bundle exec rake <task>
+```
+
+if `WIFIWAND_APPLE_DEV_ID` / `WIFIWAND_APPLE_DEV_PASSWORD` are not already present. You can customize the behavior (and use the wrapper manually) with:
+
+- `WIFIWAND_OP_RUN_ENV` – override the 1Password env-file path (default: `.env.release`)
+- `WIFIWAND_OP_BIN` – override the `op` binary name/path the wrapper calls
+- `WIFIWAND_OP_WRAP_BIN` – point to a custom wrapper script (defaults to `bin/op-wrap`)
+- `WIFIWAND_OP_WRAP_SHELL` – shell used to launch the wrapper (default: `bash`)
+- `WIFIWAND_DISABLE_AUTO_OP_RUN=1` – disable auto-wrapping entirely (useful in CI where credentials are already exported)
+
+The helper sets `WIFIWAND_OP_RUN_ACTIVE=1` inside the re-exec so nested calls don’t loop. You can also invoke the wrapper directly for any ad-hoc command:
+
+```
+bin/op-wrap bundle exec rake dev:notarization_history
+```
 
 ---
 

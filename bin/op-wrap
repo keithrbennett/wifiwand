@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+OP_BIN=${WIFIWAND_OP_BIN:-op}
+ENV_FILE=${WIFIWAND_OP_RUN_ENV:-.env.release}
+
+if ! command -v "$OP_BIN" >/dev/null 2>&1; then
+  printf 'Error: 1Password CLI "%s" not found in PATH.\n' "$OP_BIN" >&2
+  printf 'Install op (https://developer.1password.com/docs/cli/) or set WIFIWAND_OP_BIN to its path.\n' >&2
+  exit 1
+fi
+
+if [[ $# -eq 0 ]]; then
+  printf 'Usage: %s <command> [args...]\n' "$0" >&2
+  printf 'Example: %s bundle exec rake dev:notarize_helper\n' "$0" >&2
+  exit 64
+fi
+
+exec "$OP_BIN" run "--env-file=${ENV_FILE}" -- "$@"

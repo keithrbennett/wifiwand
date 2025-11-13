@@ -469,6 +469,20 @@ bundle exec rake dev:test_signed_helper
 
 ---
 
+### Automatic 1Password wrapping
+
+Any task below that hits Apple’s notarization APIs will automatically re-run itself inside `bin/op-wrap bundle exec rake <task>` when the required credentials are missing. You can customize or disable this behavior with:
+
+- `WIFIWAND_OP_RUN_ENV` – override the `.env.release` path used by the wrapper
+- `WIFIWAND_OP_BIN` – override the `op` binary location/name invoked by the wrapper
+- `WIFIWAND_OP_WRAP_BIN` – point at a custom wrapper script (defaults to `bin/op-wrap`)
+- `WIFIWAND_OP_WRAP_SHELL` – shell used to launch the wrapper (default: `bash`)
+- `WIFIWAND_DISABLE_AUTO_OP_RUN=1` – skip the automatic re-exec entirely (useful when credentials are already exported)
+
+When the wrapper fires it sets `WIFIWAND_OP_RUN_ACTIVE=1` so nested helper calls don’t loop. You can run the wrapper directly for ad-hoc commands whenever you want the same behavior outside of rake (e.g., `bin/op-wrap bundle exec exe/wifi-wand shell`).
+
+---
+
 ### `dev:notarize_helper`
 
 **Purpose:** Submit helper to Apple for notarization
@@ -560,7 +574,7 @@ op run --env-file=.env.release -- bundle exec rake dev:notarization_history
 
 **Purpose:** Show the current status for a submission (accepted, in progress, invalid, etc.).
 
-**Environment Variables:** Same as above. `SUBMISSION_ID=<uuid>` (or `ID`/`NOTARY_ID`) is optional—if omitted, the task automatically selects the newest submission from `notarytool history`, preferring one that is still `In Progress`.
+**Environment Variables:** Same as above. `WIFIWAND_SUBMISSION_ID=<uuid>` (or `ID`/`NOTARY_ID`) is optional—if omitted, the task automatically selects the newest submission from `notarytool history`, preferring one that is still `In Progress`.
 
 **Example:**
 ```bash
@@ -569,7 +583,7 @@ op run --env-file=.env.release -- bundle exec rake dev:notarization_status
 
 # Or specify an explicit ID
 op run --env-file=.env.release -- \
-  env SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
+  env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
   bundle exec rake dev:notarization_status
 ```
 
@@ -581,7 +595,7 @@ op run --env-file=.env.release -- \
 
 **Purpose:** Fetch the full notarization log for a submission (useful when Apple rejects the upload).
 
-**Environment Variables:** Same as `dev:notarization_status`; `SUBMISSION_ID` is optional and falls back to the latest submission if omitted.
+**Environment Variables:** Same as `dev:notarization_status`; `WIFIWAND_SUBMISSION_ID` is optional and falls back to the latest submission if omitted.
 
 **Example:**
 ```bash
@@ -590,11 +604,32 @@ op run --env-file=.env.release -- bundle exec rake dev:notarization_log
 
 # Or specify an explicit ID
 op run --env-file=.env.release -- \
-  env SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
+  env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
   bundle exec rake dev:notarization_log
 ```
 
 **Output:** The JSON/diagnostic log Apple provides, streamed to stdout for easier debugging.
+
+---
+
+### `dev:notarization_cancel`
+
+**Purpose:** Remove a stuck notarization submission from Apple's queue (for example when you uploaded the wrong binary or want to re-submit). The task only targets submissions still marked `In Progress`.
+
+**Environment Variables:** Same as the other notary queue tasks. `WIFIWAND_SUBMISSION_ID=<uuid>` is optional—omit it to let the task auto-select the oldest candidate.
+
+**Example:**
+```bash
+# Cancel the oldest in-progress submission
+op run --env-file=.env.release -- bundle exec rake dev:notarization_cancel
+
+# Cancel a specific ID
+op run --env-file=.env.release -- \
+  env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
+  bundle exec rake dev:notarization_cancel
+```
+
+**Output:** The underlying `xcrun notarytool queue remove` response plus a confirmation message when the removal succeeds (or an error if no pending submissions remain).
 
 ---
 
@@ -755,7 +790,7 @@ Always use your Developer ID certificate, even for development/testing, to ensur
 Check the detailed logs:
 ```bash
 # Get submission ID from failed output
-xcrun notarytool log SUBMISSION_ID \
+xcrun notarytool log WIFIWAND_SUBMISSION_ID \
   --apple-id you@example.com \
   --team-id TEAM123 \
   --password xxxx-xxxx-xxxx-xxxx

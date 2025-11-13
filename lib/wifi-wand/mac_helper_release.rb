@@ -217,7 +217,7 @@ module WifiWand
 
       def self.test_helper_execution(executable)
         puts "Testing helper execution..."
-        stdout, stderr, status = Open3.capture3(executable, '--command', 'current-network')
+        stdout, stderr, status = Open3.capture3(executable, 'current-network')
         message = status.success? ? Messages.helper_executed_success(stdout) : Messages.helper_execution_failed(stderr)
         puts message
         exit 1 unless status.success?
@@ -375,8 +375,8 @@ module WifiWand
     end
 
     def notarization_status(submission_id)
-      abort 'Error: SUBMISSION_ID is required (pass SUBMISSION_ID=<uuid>).' unless submission_id && !submission_id.empty?
-      creds = fetch_notary_credentials!(command_hint: 'bundle exec rake dev:notarization_status SUBMISSION_ID=<uuid>')
+      abort 'Error: WIFIWAND_SUBMISSION_ID is required (pass WIFIWAND_SUBMISSION_ID=<uuid>).' unless submission_id && !submission_id.empty?
+      creds = fetch_notary_credentials!(command_hint: 'bundle exec rake dev:notarization_status WIFIWAND_SUBMISSION_ID=<uuid>')
       puts "Status for submission #{submission_id}:"
       Operations.run_notarytool(
         ['info', submission_id],
@@ -386,8 +386,8 @@ module WifiWand
     end
 
     def notarization_log(submission_id)
-      abort 'Error: SUBMISSION_ID is required (pass SUBMISSION_ID=<uuid>).' unless submission_id && !submission_id.empty?
-      creds = fetch_notary_credentials!(command_hint: 'bundle exec rake dev:notarization_log SUBMISSION_ID=<uuid>')
+      abort 'Error: WIFIWAND_SUBMISSION_ID is required (pass WIFIWAND_SUBMISSION_ID=<uuid>).' unless submission_id && !submission_id.empty?
+      creds = fetch_notary_credentials!(command_hint: 'bundle exec rake dev:notarization_log WIFIWAND_SUBMISSION_ID=<uuid>')
       puts "Log for submission #{submission_id}:"
       Operations.run_notarytool(
         ['log', submission_id],
@@ -396,7 +396,28 @@ module WifiWand
       )
     end
 
-    def latest_submission_id(preferred_status: 'In Progress')
+    def cancel_notarization(submission_id)
+      abort 'Error: WIFIWAND_SUBMISSION_ID is required (pass WIFIWAND_SUBMISSION_ID=<uuid>).' unless submission_id && !submission_id.empty?
+      creds = fetch_notary_credentials!(command_hint: 'bundle exec rake dev:notarization_cancel WIFIWAND_SUBMISSION_ID=<uuid>')
+      puts "Canceling submission #{submission_id}..."
+      Operations.run_notarytool(
+        ['queue', 'remove', submission_id],
+        **creds,
+        failure_message: 'Unable to cancel notarization request.'
+      )
+      puts "✓ Submission #{submission_id} removed from notary queue."
+    end
+
+    def latest_submission_id
+      select_submission_id(order: :desc)
+    end
+
+    def oldest_submission_id
+      select_submission_id(order: :asc)
+    end
+
+    def select_submission_id(order:, pending_only: false)
+      normalized_order = normalize_submission_order(order)
       creds = fetch_notary_credentials!(command_hint: 'bundle exec rake dev:notarization_history')
       response = Operations.run_notarytool(
         ['history', '--output-format', 'json'],
@@ -407,14 +428,34 @@ module WifiWand
       data = JSON.parse(response)
       entries = data['history'] || []
       return nil if entries.empty?
-      if preferred_status
-        entry = entries.find { |item| item['status'] == preferred_status }
-        return entry['id'] if entry && entry['id']
+
+      ordered_entries = case normalized_order
+                        when :asc
+                          entries.reverse
+                        else
+                          entries
+                        end
+
+      if pending_only
+        ordered_entries = ordered_entries.select { |item| item['status'] == 'In Progress' }
       end
-      entries.first['id']
+
+      entry = ordered_entries.first
+      entry && entry['id']
     rescue JSON::ParserError => e
       warn "Warning: unable to parse notarytool history JSON (#{e.message})."
       nil
+    end
+
+    def normalize_submission_order(order = :desc)
+      case order
+      when :asc, :ascending
+        :asc
+      when :desc, :descending
+        :desc
+      else
+        raise ArgumentError, "Invalid order: #{order.inspect}. Use :asc/:ascending or :desc/:descending"
+      end
     end
 
     def release_helper
