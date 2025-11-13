@@ -1,20 +1,40 @@
-#!/usr/bin/env bash
+#!/usr/bin/env ruby
+# frozen_string_literal: true
 
-set -euo pipefail
+#
+# Wrapper script for running commands with 1Password CLI environment injection.
+# Loads secrets from .env.release (or custom file) and passes them to your command.
+#
+# Usage:
+#   bin/op-wrap bundle exec rake dev:notarize_helper
+#   bin/op-wrap bin/mac-helper notarize
+#
 
-OP_BIN=${WIFIWAND_OP_BIN:-op}
-ENV_FILE=${WIFIWAND_OP_RUN_ENV:-.env.release}
+def find_op_command
+  ENV.fetch('WIFIWAND_OP_BIN', 'op')
+end
 
-if ! command -v "$OP_BIN" >/dev/null 2>&1; then
-  printf 'Error: 1Password CLI "%s" not found in PATH.\n' "$OP_BIN" >&2
-  printf 'Install op (https://developer.1password.com/docs/cli/) or set WIFIWAND_OP_BIN to its path.\n' >&2
+def check_op_available!(op_bin)
+  return if system("command -v #{op_bin} > /dev/null 2>&1")
+
+  warn "Error: 1Password CLI \"#{op_bin}\" not found in PATH."
+  warn "Install op (https://developer.1password.com/docs/cli/) or set WIFIWAND_OP_BIN to its path."
   exit 1
-fi
+end
 
-if [[ $# -eq 0 ]]; then
-  printf 'Usage: %s <command> [args...]\n' "$0" >&2
-  printf 'Example: %s bundle exec rake dev:notarize_helper\n' "$0" >&2
+def show_usage_and_exit
+  warn "Usage: #{$PROGRAM_NAME} <command> [args...]"
+  warn "Example: #{$PROGRAM_NAME} bundle exec rake dev:notarize_helper"
+  warn "Example: #{$PROGRAM_NAME} bin/mac-helper notarize"
   exit 64
-fi
+end
 
-exec "$OP_BIN" run "--env-file=${ENV_FILE}" -- "$@"
+# Main execution
+op_bin = find_op_command
+env_file = ENV.fetch('WIFIWAND_OP_RUN_ENV', '.env.release')
+
+check_op_available!(op_bin)
+show_usage_and_exit if ARGV.empty?
+
+# Execute the command with 1Password environment injection
+exec(op_bin, 'run', "--env-file=#{env_file}", '--', *ARGV)
