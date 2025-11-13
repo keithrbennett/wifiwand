@@ -27,7 +27,7 @@ Gem::Specification.new do |spec|
 
   spec.require_paths = ["lib"]
 
-  spec.required_ruby_version = ">= 2.7.0"
+  spec.required_ruby_version = ">= 3.2.0"
 
   spec.add_dependency('awesome_print', '>= 1.9.2', '< 2')
 
@@ -49,9 +49,22 @@ Gem::Specification.new do |spec|
       ║  ⚠️  Important for macOS Users (10.15+)                           ║
       ╚═══════════════════════════════════════════════════════════════════╝
 
-      wifi-wand requires location permission to access WiFi network names.
+      wifi-wand requires Ruby >= 3.2.0 and location permission.
 
-      Run the one-time setup script:
+      If you are using an older version, such as version 2.6 shipped with
+      macOS, the easiest way to install a modern Ruby is with Homebrew:
+
+          brew install ruby
+
+      Then add to your shell profile (~/.zshrc or ~/.bash_profile):
+
+          # Apple Silicon Macs:
+          export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+
+          # Intel Macs:
+          export PATH="/usr/local/opt/ruby/bin:$PATH"
+
+      After installing wifi-wand, run the one-time setup script:
 
           wifi-wand-macos-setup
 

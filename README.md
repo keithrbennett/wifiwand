@@ -4,6 +4,8 @@
 
 ### Installation
 
+**Requirements:** Ruby >= 3.2.0
+
 To install this software, run:
 
 `gem install wifi-wand`
@@ -11,6 +13,38 @@ To install this software, run:
 or, you may need to precede that command with `sudo` to install it system-wide:
 
 `sudo gem install wifi-wand`
+
+**Note for macOS users:** macOS ships with Ruby 2.6. If you get an installation error about Ruby version or the `traces` gem, install a modern Ruby. The simplest way is with Homebrew:
+
+```bash
+brew install ruby
+
+# Add to ~/.zshrc or ~/.bash_profile:
+# Apple Silicon Macs:
+export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+
+# Intel Macs:
+export PATH="/usr/local/opt/ruby/bin:$PATH"
+```
+
+<details>
+<summary><strong>Unsupported workaround for Ruby < 3.2</strong></summary>
+
+If you must use an older Ruby version (not supported), you can try modifying `wifi-wand.gemspec` before building:
+
+```ruby
+spec.required_ruby_version = ">= 2.7.0"    # change from ">= 3.2.0"
+spec.add_dependency('async', '~> 1.30')    # change from '~> 2.0'
+```
+
+Then build and install:
+```bash
+gem build wifi-wand.gemspec
+gem install wifi-wand-*.gem
+```
+
+Note: This configuration is not tested or supported. Use at your own risk.
+</details>
 
 Optional dependency for QR codes:
 
