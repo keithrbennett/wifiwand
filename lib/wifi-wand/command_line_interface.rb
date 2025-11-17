@@ -247,7 +247,7 @@ password: password)
       if e.message.include?('already exists') && $stdin.tty?
         out_stream.print 'Output file exists. Overwrite? [y/N]: '
         answer = $stdin.gets&.strip&.downcase
-        if %w[y yes].include?(answer)
+        if ['y', 'yes'].include?(answer)
           result = model.generate_qr_code(filespec, overwrite: true, password: password)
           handle_output(result, -> { "QR code generated: #{result}" })
         else

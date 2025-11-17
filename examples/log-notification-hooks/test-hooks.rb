@@ -329,7 +329,7 @@ class HookTestSuite
 
   def check_dependencies
     puts "\n#{CYAN}Checking dependencies...#{NC}"
-    %w[ruby].each do |cmd|
+    ['ruby'].each do |cmd|
       if system("which #{cmd} > /dev/null 2>&1")
         puts "#{GREEN}✓#{NC} #{cmd} installed"
       else

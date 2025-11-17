@@ -131,7 +131,7 @@ describe WifiWand::CommandLineInterface do
 
       specify 'substrings of commands can be substituted for the full command name' do
         # Partial string matching
-        actions = %w[conn connec connect].map { |s| subject.find_command_action(s) }
+        actions = ['conn', 'connec', 'connect'].map { |s| subject.find_command_action(s) }
 
         all_actions_identical = (actions.uniq.size == 1)
         expect(all_actions_identical).to eq(true)

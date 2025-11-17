@@ -130,7 +130,7 @@ module WifiWand
         if $stdin.tty?
           output_stream.print 'Output file exists. Overwrite? [y/N]: '
           answer = $stdin.gets&.strip&.downcase
-          if %w[y yes].include?(answer)
+          if ['y', 'yes'].include?(answer)
             begin
               File.delete(filename)
             rescue
@@ -158,7 +158,7 @@ module WifiWand
       end
 
       def run_qrencode_text(model, qr_string, delivery_mode: :print)
-        cmd = %w[qrencode -t ANSI] + [qr_string]
+        cmd = ['qrencode', '-t', 'ANSI'] + [qr_string]
         begin
           result = model.run_os_command(cmd)
           output = result.stdout
@@ -176,8 +176,8 @@ module WifiWand
 
       def qr_type_flag_for(filename)
         case File.extname(filename).downcase
-        when '.svg' then %w[-t SVG]
-        when '.eps' then %w[-t EPS]
+        when '.svg' then ['-t', 'SVG']
+        when '.eps' then ['-t', 'EPS']
         else [] # default PNG (no type flag needed)
         end
       end

@@ -33,7 +33,7 @@ describe 'QR Code Generator (unit)' do
   it "prints ANSI QR to stdout when filespec is '-' and returns '-'" do
     expect(model).to receive(:run_os_command) do |cmd|
       expect(cmd).to be_an(Array)
-      expect(cmd[0..2]).to eq(%w[qrencode -t ANSI])
+      expect(cmd[0..2]).to eq(['qrencode', '-t', 'ANSI'])
       command_result(stdout: "[QR-ANSI]\n")
     end
 
@@ -46,7 +46,7 @@ describe 'QR Code Generator (unit)' do
   it 'returns ANSI QR string without printing when delivery_mode is :return' do
     expect(model).to receive(:run_os_command) do |cmd|
       expect(cmd).to be_an(Array)
-      expect(cmd[0..2]).to eq(%w[qrencode -t ANSI])
+      expect(cmd[0..2]).to eq(['qrencode', '-t', 'ANSI'])
       command_result(stdout: "[QR-ANSI]\n")
     end
 
@@ -133,7 +133,7 @@ describe 'QR Code Generator (unit)' do
 
     expect(model).to receive(:run_os_command) do |cmd|
       expect(cmd).to be_an(Array)
-      expect(cmd[0..2]).to eq(%w[qrencode -t ANSI])
+      expect(cmd[0..2]).to eq(['qrencode', '-t', 'ANSI'])
       expect(cmd.last).to include('H:true')
       command_result(stdout: "[QR-ANSI]\n")
     end

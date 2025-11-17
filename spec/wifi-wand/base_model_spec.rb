@@ -892,7 +892,7 @@ id: :unknown))
           silence_output { subject.generate_qr_code }
 
           expect(subject).to have_received(:run_os_command)
-            .with(%w[qrencode -o TestNetwork-qr-code.png] + [expected_qr_string])
+            .with(['qrencode', '-o', 'TestNetwork-qr-code.png'] + [expected_qr_string])
         end
       end
 
@@ -903,7 +903,7 @@ id: :unknown))
         silence_output { subject.generate_qr_code }
 
         expect(subject).to have_received(:run_os_command)
-          .with(%w[qrencode -o TestNetwork-qr-code.png] + [expected_qr_string])
+          .with(['qrencode', '-o', 'TestNetwork-qr-code.png'] + [expected_qr_string])
       end
     end
 
@@ -959,7 +959,7 @@ id: :unknown))
         result = silence_output { subject.generate_qr_code }
 
         expect(subject).to have_received(:run_os_command)
-          .with(%w[qrencode -o TestNetwork-qr-code.png] + [expected_qr_string])
+          .with(['qrencode', '-o', 'TestNetwork-qr-code.png'] + [expected_qr_string])
         expect(result).to eq('TestNetwork-qr-code.png')
       end
     end

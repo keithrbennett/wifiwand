@@ -59,7 +59,7 @@ class MacOsModel < BaseModel
   }.freeze
 
   def fetch_hardware_ports
-    output = run_os_command(%w[networksetup -listallhardwareports]).stdout
+    output = run_os_command(['networksetup', '-listallhardwareports']).stdout
 
     ports = []
     current = {}
@@ -174,7 +174,7 @@ class MacOsModel < BaseModel
       # Fall through to system_profiler fallback
     end
 
-    json_text = run_os_command(%w[system_profiler -json SPNetworkDataType]).stdout
+    json_text = run_os_command(['system_profiler', '-json', 'SPNetworkDataType']).stdout
     return nil if json_text.nil? || json_text.strip.empty?
     net_data = JSON.parse(json_text)
     nets = net_data['SPNetworkDataType']
@@ -492,7 +492,7 @@ iface]).stdout.split("\n")
 
 
   def nameservers_using_scutil
-    output = run_os_command(%w[scutil --dns]).stdout
+    output = run_os_command(['scutil', '--dns']).stdout
     nameserver_lines = output.split("\n").grep(/^\s*nameserver\[/).uniq
     nameserver_lines.map { |line| line.split(' : ').last.strip }
   end
@@ -539,7 +539,7 @@ iface]).stdout.split("\n")
   # Returns the network interface used for default internet route on macOS
   def default_interface
     begin
-      output = run_os_command(%w[route -n get default], false).stdout
+      output = run_os_command(['route', '-n', 'get', 'default'], false).stdout
       return nil if output.empty?
 
       # Find line containing 'interface:' and extract value
@@ -556,7 +556,7 @@ iface]).stdout.split("\n")
   # Detects the current macOS version
   def detect_macos_version
     begin
-      output = run_os_command(%w[sw_vers -productVersion]).stdout
+      output = run_os_command(['sw_vers', '-productVersion']).stdout
       version = output.strip
       return nil if version.empty?
       version
@@ -654,7 +654,7 @@ iface]).stdout.split("\n")
   end
 
   def airport_data
-    json_text = run_os_command(%w[system_profiler -json SPAirPortDataType]).stdout
+    json_text = run_os_command(['system_profiler', '-json', 'SPAirPortDataType']).stdout
     begin
       JSON.parse(json_text)
     rescue JSON::ParserError => e
