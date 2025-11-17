@@ -1,0 +1,285 @@
+inherit_from: .rubocop_todo.yml
+
+inherit_mode:
+  merge:
+    - Exclude
+
+# RuboCop configuration for simplecov-mcp
+# Generated to match existing code style
+
+plugins:
+  - rubocop-rspec
+
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+  SuggestExtensions: false
+  Exclude:
+    - 'vendor/**/*'
+    - 'tmp/**/*'
+    - 'coverage/**/*'
+    - 'bin/**/*'
+    - 'node_modules/**/*'
+
+# ===== Layout & Formatting =====
+
+Layout/LineLength:
+  Max: 100
+  AllowedPatterns:
+    - '\s*#'  # Allow long comment lines
+    - '^\s*\#.*http'  # Allow URLs in comments
+
+Layout/EmptyLinesAroundClassBody:
+  EnforcedStyle: no_empty_lines
+
+Layout/EmptyLinesAroundModuleBody:
+  EnforcedStyle: no_empty_lines
+
+Layout/EmptyLinesAroundBlockBody:
+  EnforcedStyle: no_empty_lines
+
+Layout/SpaceInsideHashLiteralBraces:
+  EnforcedStyle: space
+
+Layout/SpaceInsideBlockBraces:
+  EnforcedStyle: space
+
+Layout/HashAlignment:
+  EnforcedHashRocketStyle: key
+  EnforcedColonStyle: key
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented
+
+Layout/FirstArrayElementIndentation:
+  EnforcedStyle: consistent
+
+Layout/FirstHashElementIndentation:
+  EnforcedStyle: consistent
+
+Layout/EndAlignment:
+  EnforcedStyleAlignWith: start_of_line
+
+Layout/ExtraSpacing:
+  AllowForAlignment: true
+
+Layout/TrailingWhitespace:
+  Enabled: true
+
+Layout/ParameterAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+Layout/ArgumentAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+Layout/MultilineMethodCallBraceLayout:
+  Enabled: false  # Disabled due to bug: miscalculates indentation, places closing paren at column 1 instead of aligning with method call
+
+# Layout cops we explicitly don't want enforced:
+
+Layout/ClosingHeredocIndentation:
+  Enabled: false  # Don't enforce heredoc closing delimiter indentation
+
+Layout/EmptyLines:
+  Enabled: false  # Allow multiple consecutive blank lines
+
+Layout/EmptyLinesAroundAccessModifier:
+  EnforcedStyle: around  # Require empty line before AND after private/protected/public
+
+Layout/IndentationConsistency:
+  EnforcedStyle: normal  # Use standard Ruby indentation (not Rails indented_internal_methods)
+
+# ===== Style =====
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: single_quotes
+
+Style/BlockDelimiters:
+  EnforcedStyle: line_count_based
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+
+Style/Documentation:
+  Enabled: false
+
+Style/ClassAndModuleChildren:
+  Enabled: false  # Allow both nested and compact module/class definitions
+
+Style/GuardClause:
+  Enabled: false  # Don't enforce guard clauses
+
+Style/IfUnlessModifier:
+  Enabled: false  # Allow both if/unless modifiers and multi-line forms
+
+Style/NumericPredicate:
+  Enabled: false  # Allow both .zero? and == 0
+
+Style/SymbolArray:
+  EnforcedStyle: brackets
+
+Style/WordArray:
+  EnforcedStyle: brackets
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: no_comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: no_comma
+
+Style/TrailingCommaInArguments:
+  EnforcedStyleForMultiline: no_comma
+
+Style/Lambda:
+  EnforcedStyle: literal
+
+Style/LambdaCall:
+  Enabled: false
+
+Style/RescueStandardError:
+  EnforcedStyle: implicit
+
+Style/RedundantReturn:
+  Enabled: true
+  AllowMultipleReturnValues: true
+
+Style/EmptyMethod:
+  EnforcedStyle: expanded
+
+Style/SingleLineMethods:
+  AllowIfMethodIsEmpty: false
+
+Style/MethodDefParentheses:
+  Enabled: false  # Allow both def foo and def foo()
+
+Style/ParenthesesAroundCondition:
+  AllowInMultilineConditions: true
+
+Style/RegexpLiteral:
+  EnforcedStyle: mixed
+  AllowInnerSlashes: true
+
+Style/PercentLiteralDelimiters:
+  PreferredDelimiters:
+    default: '()'
+    '%w': '[]'
+    '%W': '[]'
+    '%i': '[]'
+    '%I': '[]'
+
+Style/MultilineTernaryOperator:
+  Enabled: false  # Allow multiline ternary operators
+
+# ===== Metrics (All Disabled per request) =====
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/BlockLength:
+  Enabled: false
+
+Metrics/BlockNesting:
+  Enabled: false
+
+Metrics/ClassLength:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+Metrics/ModuleLength:
+  Enabled: false
+
+Metrics/ParameterLists:
+  Enabled: false
+
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+# ===== Lint =====
+
+Lint/SuppressedException:
+  AllowComments: true
+
+Lint/UnusedMethodArgument:
+  AllowUnusedKeywordArguments: true
+
+Lint/UnusedBlockArgument:
+  AllowUnusedKeywordArguments: true
+
+Lint/AmbiguousBlockAssociation:
+  Enabled: true
+  AllowedMethods:
+    - change
+    - not_change
+    - raise_error
+
+# ===== Naming =====
+
+Naming/PredicatePrefix:
+  Enabled: true
+  AllowedMethods:
+    - is_a?
+
+Naming/VariableNumber:
+  EnforcedStyle: normalcase
+
+Naming/AccessorMethodName:
+  Enabled: true
+
+Naming/MemoizedInstanceVariableName:
+  EnforcedStyleForLeadingUnderscores: optional
+
+# ===== Security =====
+
+Security/Eval:
+  Enabled: true
+
+Security/MarshalLoad:
+  Enabled: true
+
+Security/YAMLLoad:
+  Enabled: true
+
+# ===== RSpec specific cops =====
+
+RSpec/ExampleLength:
+  Enabled: false
+
+RSpec/MultipleExpectations:
+  Enabled: false
+
+RSpec/NestedGroups:
+  Enabled: false
+
+RSpec/DescribeClass:
+  Enabled: true
+  Exclude:
+    - 'spec/integration_spec.rb'
+    - 'spec/**/*_integration_spec.rb'
+
+RSpec/MultipleMemoizedHelpers:
+  Enabled: false
+
+RSpec/ContextWording:
+  Enabled: true
+  Prefixes:
+    - when
+    - with
+    - without
+    - if
+    - unless
+    - for
+
+RSpec/MessageSpies:
+  EnforcedStyle: receive
+
+RSpec/VerifiedDoubles:
+  Enabled: false  # Allow both verified and unverified doubles
