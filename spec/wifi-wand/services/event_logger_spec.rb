@@ -166,7 +166,8 @@ describe WifiWand::EventLogger do
         expect(event[:details]).to eq({ network_name: 'TestNet' })
       end
 
-      logger.send(:emit_event, :connected, { network_name: 'TestNet' }, previous_state, current_state)
+      logger.send(:emit_event, :connected, { network_name: 'TestNet' }, previous_state, 
+current_state)
     end
   end
 
@@ -289,7 +290,8 @@ describe WifiWand::EventLogger do
     end
 
     it 'returns false when hook file does not exist' do
-      logger = WifiWand::EventLogger.new(mock_model, output: output, hook_filespec: '/nonexistent/hook')
+      logger = WifiWand::EventLogger.new(mock_model, output: output, 
+hook_filespec: '/nonexistent/hook')
       expect(logger.send(:hook_exists?)).to be false
     end
 

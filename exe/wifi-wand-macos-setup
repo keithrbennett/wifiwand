@@ -115,7 +115,8 @@ begin
     puts 'Opening System Settings → Privacy & Security → Location Services...'
     sleep 1  # Brief pause so user can read the message
 
-    system('open', 'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices')
+    system('open', 
+'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices')
 
     puts <<~INSTRUCTIONS
 

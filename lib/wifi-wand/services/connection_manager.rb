@@ -35,7 +35,8 @@ class ConnectionManager
     # If we're already connected to the desired network, no need to proceed
     return if already_connected?(network_name)
 
-    password, used_saved_password = resolve_password(network_name, password, skip_saved_password_lookup)
+    password, used_saved_password = resolve_password(network_name, password, 
+skip_saved_password_lookup)
 
     perform_connection(network_name, password)
     store_saved_password_usage(used_saved_password)
@@ -183,7 +184,8 @@ class ConnectionManager
     end
   end
 
-  def normalize_scalar_input(value:, allow_nil:, max_length:, field_label:, error_class:, blank_message:, control_char_message:)
+  def normalize_scalar_input(value:, allow_nil:, max_length:, field_label:, error_class:, 
+blank_message:, control_char_message:)
     if value.nil?
       return nil if allow_nil
       reason = blank_message || "#{field_label} is required"

@@ -107,7 +107,8 @@ RSpec.describe WifiWand::BaseModel do
   describe 'debug-logged connectivity checks' do
     let(:model) { described_class.allocate }
     let(:output) { StringIO.new }
-    let(:tester) { double('tester', connected_to_internet?: true, tcp_connectivity?: true, dns_working?: true) }
+    let(:tester) {
+ double('tester', connected_to_internet?: true, tcp_connectivity?: true, dns_working?: true) }
 
     before do
       model.instance_variable_set(:@verbose_mode, true)

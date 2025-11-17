@@ -66,7 +66,8 @@ module WifiWand
                             id: :mock2,
                             display_name: 'Mock OS 2')
 
-          allow(described_class).to receive(:supported_operating_systems).and_return([mock_os1, mock_os2])
+          allow(described_class).to receive(:supported_operating_systems).and_return([mock_os1, 
+mock_os2])
 
           expect { described_class.current_os }.to raise_error(WifiWand::MultipleOSMatchError)
         end

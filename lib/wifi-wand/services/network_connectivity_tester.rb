@@ -73,7 +73,8 @@ module WifiWand
         @output.puts "Testing internet TCP connectivity to: #{endpoints_list}"
       end
 
-      run_parallel_checks(test_endpoints, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do |endpoint|
+      run_parallel_checks(test_endpoints, 
+TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do |endpoint|
         attempt_tcp_connection(endpoint)
       end
     end
@@ -229,7 +230,8 @@ module WifiWand
     #
     def attempt_tcp_connection(endpoint)
       Timeout.timeout(TimingConstants::TCP_CONNECTION_TIMEOUT) do
-        Socket.tcp(endpoint[:host], endpoint[:port], connect_timeout: TimingConstants::TCP_CONNECTION_TIMEOUT) do
+        Socket.tcp(endpoint[:host], endpoint[:port], 
+connect_timeout: TimingConstants::TCP_CONNECTION_TIMEOUT) do
           @output.puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}" if @verbose
           true
         end
@@ -249,7 +251,8 @@ module WifiWand
     #
     def attempt_fast_tcp_connection(endpoint)
       Timeout.timeout(TimingConstants::FAST_TCP_CONNECTION_TIMEOUT) do
-        Socket.tcp(endpoint[:host], endpoint[:port], connect_timeout: TimingConstants::FAST_TCP_CONNECTION_TIMEOUT) do
+        Socket.tcp(endpoint[:host], endpoint[:port], 
+connect_timeout: TimingConstants::FAST_TCP_CONNECTION_TIMEOUT) do
           @output.puts "Fast check: connected to #{endpoint[:host]}:#{endpoint[:port]}" if @verbose
           true
         end

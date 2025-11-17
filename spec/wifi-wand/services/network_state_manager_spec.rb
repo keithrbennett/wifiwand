@@ -188,35 +188,40 @@ describe WifiWand::NetworkStateManager do
 
     it 'handles WaitTimeoutError and queries current network name' do
       allow(mock_model).to receive(:wifi_on?).and_return(true)
-      allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork', 'ActualNetwork')
+      allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork', 
+'ActualNetwork')
       allow(mock_model).to receive(:preferred_network_password).and_return('testpass')
       allow(mock_model).to receive(:connect)
       allow(mock_model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:conn, 10))
 
       expect {
         state_manager.restore_network_state(valid_state)
-      }.to raise_error(WifiWand::NetworkConnectionError, /timed out waiting for connection; currently connected to "ActualNetwork"/)
+      }.to raise_error(WifiWand::NetworkConnectionError, 
+/timed out waiting for connection; currently connected to "ActualNetwork"/)
     end
 
     it 'handles WaitTimeoutError when querying network name fails' do
       allow(mock_model).to receive(:wifi_on?).and_return(true)
       # First call (line 63 - already_connected check) returns different network
       # Second call (line 75 - in rescue block) raises error
-      allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork', 'OtherNetwork').and_raise(StandardError.new('Network query failed'))
+      allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork', 
+'OtherNetwork').and_raise(StandardError.new('Network query failed'))
       allow(mock_model).to receive(:preferred_network_password).and_return('testpass')
       allow(mock_model).to receive(:connect)
       allow(mock_model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:conn, 10))
 
       expect {
         state_manager.restore_network_state(valid_state)
-      }.to raise_error(WifiWand::NetworkConnectionError, /timed out waiting for connection; currently connected to nil/)
+      }.to raise_error(WifiWand::NetworkConnectionError, 
+/timed out waiting for connection; currently connected to nil/)
     end
 
     it 'logs WaitTimeoutError details in verbose mode when network query succeeds' do
       output = StringIO.new
       verbose_manager = WifiWand::NetworkStateManager.new(mock_model, verbose: true, output: output)
       allow(mock_model).to receive(:wifi_on?).and_return(true)
-      allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork', 'ActualNetwork')
+      allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork', 
+'ActualNetwork')
       allow(mock_model).to receive(:preferred_network_password).and_return('testpass')
       allow(mock_model).to receive(:connect)
       allow(mock_model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:conn, 10))
@@ -233,7 +238,8 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:wifi_on?).and_return(true)
       # First call (line 63 - already_connected check) returns different network
       # Second call (line 75 - in rescue block) raises error
-      allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork', 'OtherNetwork').and_raise(StandardError.new('Network query failed'))
+      allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork', 
+'OtherNetwork').and_raise(StandardError.new('Network query failed'))
       allow(mock_model).to receive(:preferred_network_password).and_return('testpass')
       allow(mock_model).to receive(:connect)
       allow(mock_model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:conn, 10))

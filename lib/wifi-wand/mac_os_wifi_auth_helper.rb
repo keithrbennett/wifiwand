@@ -176,7 +176,8 @@ module WifiWand
     end
 
     def create_universal_binary(destination, *architecture_binaries)
-      stdout, stderr, status = Open3.capture3('lipo', '-create', '-output', destination, *architecture_binaries)
+      stdout, stderr, status = Open3.capture3('lipo', '-create', '-output', destination, 
+*architecture_binaries)
       return if status.success?
 
       error_output = stderr.empty? ? stdout : stderr
@@ -192,7 +193,8 @@ module WifiWand
                  'Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)'
 
       # Path to entitlements file
-      entitlements_path = File.expand_path('../../libexec/macos/wifiwand-helper.entitlements', __dir__)
+      entitlements_path = File.expand_path('../../libexec/macos/wifiwand-helper.entitlements', 
+__dir__)
 
       command = [
         'codesign',

@@ -236,7 +236,8 @@ class CommandLineInterface
         # Interactive shell returns the ANSI string (so users can `puts(qr :-)`),
         # while non-interactive prints ANSI to stdout and returns nil for CLI UX.
         # In shell, we return the string; non-interactive prints and returns nil
-        result = model.generate_qr_code('-', delivery_mode: (interactive_mode ? :return : :print), password: password)
+        result = model.generate_qr_code('-', delivery_mode: (interactive_mode ? :return : :print), 
+password: password)
         return interactive_mode ? result : nil
       else
         result = model.generate_qr_code(filespec, password: password)

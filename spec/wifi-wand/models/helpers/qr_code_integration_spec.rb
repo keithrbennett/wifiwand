@@ -232,13 +232,15 @@ describe 'QR Code Integration Tests' do
       # Mock qrencode to fail
       allow(test_model).to receive(:run_os_command) do |cmd|
         if cmd.is_a?(Array) && cmd[0] == 'qrencode'
-          raise WifiWand::CommandExecutor::OsCommandError.new(1, cmd.join(' '), 'Simulated qrencode failure')
+          raise WifiWand::CommandExecutor::OsCommandError.new(1, cmd.join(' '), 
+'Simulated qrencode failure')
         else
           command_result(stdout: '')
         end
       end
 
-      expect { silence_output { test_model.generate_qr_code } }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
+      expect { silence_output {
+ test_model.generate_qr_code } }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
     end
   end
 

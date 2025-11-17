@@ -18,7 +18,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
     # Use RSpec.current_example to get the current running example
     unless is_disruptive?
       allow(subject).to receive(:wifi_on?).and_return(true)
-      allow(subject).to receive(:available_network_names).and_return(['TestNetwork1', 'TestNetwork2'])
+      allow(subject).to receive(:available_network_names).and_return(['TestNetwork1', 
+'TestNetwork2'])
       allow(subject).to receive(:connected_network_name).and_return('TestNetwork1')
       allow(subject).to receive(:ip_address).and_return('192.168.1.100')
       allow(subject).to receive(:mac_address).and_return('aa:bb:cc:dd:ee:ff')
@@ -187,7 +188,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   describe '#disconnect', :disruptive do
-    it 'disconnects from network and handles subsequent calls gracefully', :needs_sudo_access => (WifiWand::OperatingSystems.current_id == :mac) do
+    it 'disconnects from network and handles subsequent calls gracefully', 
+:needs_sudo_access => (WifiWand::OperatingSystems.current_id == :mac) do
       subject.wifi_on
 
       # Ensure we\'re connected first (may need to connect to a network if not already)
@@ -470,7 +472,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       expect {
         subject.public_ip_address_info
-      }.to raise_error(WifiWand::PublicIPLookupError, /HTTP error fetching public IP info: 500 Internal Server Error/)
+      }.to raise_error(WifiWand::PublicIPLookupError, 
+/HTTP error fetching public IP info: 500 Internal Server Error/)
     end
   end
 
@@ -530,7 +533,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       let(:captured_output) { StringIO.new }
 
       let(:test_model) do
-        model_options = OpenStruct.new(verbose: true, wifi_interface: nil, out_stream: captured_output)
+        model_options = OpenStruct.new(verbose: true, wifi_interface: nil, 
+out_stream: captured_output)
         model = subject.class.new(model_options)
 
         # Mock the necessary methods for wifi_info to work
@@ -554,14 +558,16 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'handles internet_tcp_connectivity exceptions' do
-      allow(subject).to receive(:internet_tcp_connectivity?).and_raise(StandardError, 'Network error')
+      allow(subject).to receive(:internet_tcp_connectivity?).and_raise(StandardError, 
+'Network error')
       allow(subject).to receive(:dns_working?).and_return(true)
       allow(subject).to receive(:public_ip_address_info).and_return({'ip' => '1.2.3.4'})
 
       result = subject.wifi_info
 
       # Test the connectivity method directly
-      direct_result = subject.connected_to_internet?(result['internet_tcp_connectivity'], result['dns_working'])
+      direct_result = subject.connected_to_internet?(result['internet_tcp_connectivity'], 
+result['dns_working'])
 
       expect(result['internet_tcp_connectivity']).to be false
       expect(result['internet_on']).to be false  # Should be false due to TCP failure
@@ -658,7 +664,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#remove_preferred_networks' do
     before do
-      allow(subject).to receive(:preferred_networks).and_return(['Network1', 'Network2', 'Network3'])
+      allow(subject).to receive(:preferred_networks).and_return(['Network1', 'Network2', 
+'Network3'])
       allow(subject).to receive(:remove_preferred_network)
     end
 
@@ -843,7 +850,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       ].each do |os_id, expected_command|
         it "raises error with correct install command for #{os_id}" do
           allow(subject).to receive(:command_available?).with('qrencode').and_return(false)
-          allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: os_id))
+          allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', 
+id: os_id))
 
         expect { silence_output { subject.generate_qr_code } }.to raise_error(WifiWand::Error, /#{Regexp.escape(expected_command)}/)
         end
@@ -851,9 +859,12 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       it 'raises error with generic message for unknown OS' do
         allow(subject).to receive(:command_available?).with('qrencode').and_return(false)
-        allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: :unknown))
+        allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', 
+id: :unknown))
 
-        expect { silence_output { subject.generate_qr_code } }.to raise_error(WifiWand::Error, /install qrencode using your system package manager/)
+        expect { silence_output {
+ subject.generate_qr_code } }.to raise_error(WifiWand::Error, 
+/install qrencode using your system package manager/)
       end
     end
 
@@ -861,7 +872,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       it 'raises error when not connected to any network' do
         allow(subject).to receive(:connected_network_name).and_return(nil)
 
-        expect { silence_output { subject.generate_qr_code } }.to raise_error(WifiWand::Error, /Not connected to any WiFi network/)
+        expect { silence_output {
+ subject.generate_qr_code } }.to raise_error(WifiWand::Error, /Not connected to any WiFi network/)
       end
     end
 
@@ -897,10 +909,14 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     context 'special character escaping' do
       [
-        ['Network;With;Semicolons', 'password,with,commas', 'WIFI:T:WPA;S:Network\;With\;Semicolons;P:password\,with\,commas;H:false;;'],
-        ['Network:With:Colons', 'password:with:colons', 'WIFI:T:WPA;S:Network\:With\:Colons;P:password\:with\:colons;H:false;;'],
-        ['Network\With\Backslashes', 'pass\word', 'WIFI:T:WPA;S:Network\\\\With\\\\Backslashes;P:pass\\\\word;H:false;;'],
-        ['Regular-Network_Name', 'regularPassword123', 'WIFI:T:WPA;S:Regular-Network_Name;P:regularPassword123;H:false;;']
+        ['Network;With;Semicolons', 'password,with,commas', 
+'WIFI:T:WPA;S:Network\;With\;Semicolons;P:password\,with\,commas;H:false;;'],
+        ['Network:With:Colons', 'password:with:colons', 
+'WIFI:T:WPA;S:Network\:With\:Colons;P:password\:with\:colons;H:false;;'],
+        ['Network\With\Backslashes', 'pass\word', 
+'WIFI:T:WPA;S:Network\\\\With\\\\Backslashes;P:pass\\\\word;H:false;;'],
+        ['Regular-Network_Name', 'regularPassword123', 
+'WIFI:T:WPA;S:Regular-Network_Name;P:regularPassword123;H:false;;']
       ].each do |test_network, test_password, expected_qr_string|
         it "properly escapes special characters in '#{test_network}' / '#{test_password}'" do
           allow(subject).to receive(:connected_network_name).and_return(test_network)
@@ -953,7 +969,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
         allow(subject).to receive(:run_os_command)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'qrencode', 'Command failed'))
 
-        expect { silence_output { subject.generate_qr_code } }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
+        expect { silence_output {
+ subject.generate_qr_code } }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
       end
     end
   end

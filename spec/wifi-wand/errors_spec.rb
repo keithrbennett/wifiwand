@@ -45,31 +45,56 @@ module WifiWand
     # Unit tests for each error class to verify message formatting
     describe 'Unit tests for each error class' do
       error_test_cases = [
-        { klass: NetworkNotFoundError,          args: ['MyNet'],                      message: "Network 'MyNet' not found. No networks are currently available" },
-        { klass: NetworkNotFoundError,          args: ['MyNet', ['Net1', 'Net2']],    message: "Network 'MyNet' not found. Available networks: Net1, Net2" },
-        { klass: NetworkConnectionError,        args: ['MyNet'],                      message: "Failed to connect to network 'MyNet'" },
-        { klass: NetworkConnectionError,        args: ['MyNet', 'bad password'],      message: "Failed to connect to network 'MyNet': bad password" },
-        { klass: WifiInterfaceError,            args: ['en1'],                        message: "WiFi interface 'en1' not found. Ensure WiFi hardware is present and drivers are installed" },
-        { klass: WifiInterfaceError,            args: [],                             message: 'No WiFi interface found. Ensure WiFi hardware is present and drivers are installed' },
-        { klass: WifiEnableError,               args: [],                             message: 'WiFi could not be enabled. Check hardware and permissions' },
-        { klass: WifiDisableError,              args: [],                             message: 'WiFi could not be disabled. Check permissions' },
-        { klass: WaitTimeoutError,              args: ['connecting', 10],             message: 'Timed out after 10 seconds waiting for connecting' },
-        { klass: InvalidIPAddressError,         args: ['999.999.999.999'],            message: 'Invalid IP address(es): 999.999.999.999' },
-        { klass: InvalidIPAddressError,         args: [['1.2.3.4.5', 'abc']],         message: 'Invalid IP address(es): 1.2.3.4.5, abc' },
-        { klass: InvalidNetworkNameError,       args: ['MyNet'],                      message: "Invalid network name: 'MyNet'. Network name cannot be empty" },
-        { klass: InvalidNetworkPasswordError,   args: ['secret', 'Password cannot exceed 63 characters'], message: 'Invalid network password: Password cannot exceed 63 characters' },
-        { klass: InvalidInterfaceError,         args: ['eth0'],                       message: "'eth0' is not a valid WiFi interface" },
-        { klass: CommandNotFoundError,          args: ['iw'],                         message: 'Missing required system command(s): iw' },
-        { klass: CommandNotFoundError,          args: [['iw', 'nmcli']],              message: 'Missing required system command(s): iw, nmcli' },
-        { klass: KeychainAccessDeniedError,     args: ['MyNet'],                      message: "Keychain access denied for network 'MyNet'. Please grant access when prompted" },
-        { klass: KeychainAccessCancelledError,  args: ['MyNet'],                      message: "Keychain access cancelled for network 'MyNet'" },
-        { klass: KeychainNonInteractiveError,   args: ['MyNet'],                      message: "Cannot access keychain for network 'MyNet' in non-interactive environment" },
-        { klass: MultipleOSMatchError,          args: [['macOS', 'Ubuntu']],          message: 'Multiple OS matches found: macOS, Ubuntu. This should not happen' },
-        { klass: NoSupportedOSError,            args: [],                             message: 'No supported operating system detected. WifiWand supports macOS and Ubuntu Linux' },
-        { klass: PreferredNetworkNotFoundError, args: ['MyNet'],                      message: "Network 'MyNet' not in preferred networks list" },
-        { klass: ConfigurationError,            args: ['A config is wrong'],          message: 'A config is wrong' },
-        { klass: KeychainError,                 args: ['custom keychain error'],      message: 'custom keychain error' },
-        { klass: BadCommandError,               args: ['This is a bad command'],      message: 'This is a bad command' },
+        { klass: NetworkNotFoundError,          args: ['MyNet'],                      
+message: "Network 'MyNet' not found. No networks are currently available" },
+        { klass: NetworkNotFoundError,          args: ['MyNet', ['Net1', 'Net2']],    
+message: "Network 'MyNet' not found. Available networks: Net1, Net2" },
+        { klass: NetworkConnectionError,        args: ['MyNet'],                      
+message: "Failed to connect to network 'MyNet'" },
+        { klass: NetworkConnectionError,        args: ['MyNet', 'bad password'],      
+message: "Failed to connect to network 'MyNet': bad password" },
+        { klass: WifiInterfaceError,            args: ['en1'],                        
+message: "WiFi interface 'en1' not found. Ensure WiFi hardware is present and drivers are installed" },
+        { klass: WifiInterfaceError,            args: [],                             
+message: 'No WiFi interface found. Ensure WiFi hardware is present and drivers are installed' },
+        { klass: WifiEnableError,               args: [],                             
+message: 'WiFi could not be enabled. Check hardware and permissions' },
+        { klass: WifiDisableError,              args: [],                             
+message: 'WiFi could not be disabled. Check permissions' },
+        { klass: WaitTimeoutError,              args: ['connecting', 10],             
+message: 'Timed out after 10 seconds waiting for connecting' },
+        { klass: InvalidIPAddressError,         args: ['999.999.999.999'],            
+message: 'Invalid IP address(es): 999.999.999.999' },
+        { klass: InvalidIPAddressError,         args: [['1.2.3.4.5', 'abc']],         
+message: 'Invalid IP address(es): 1.2.3.4.5, abc' },
+        { klass: InvalidNetworkNameError,       args: ['MyNet'],                      
+message: "Invalid network name: 'MyNet'. Network name cannot be empty" },
+        { klass: InvalidNetworkPasswordError,   
+args: ['secret', 'Password cannot exceed 63 characters'], message: 'Invalid network password: Password cannot exceed 63 characters' },
+        { klass: InvalidInterfaceError,         args: ['eth0'],                       
+message: "'eth0' is not a valid WiFi interface" },
+        { klass: CommandNotFoundError,          args: ['iw'],                         
+message: 'Missing required system command(s): iw' },
+        { klass: CommandNotFoundError,          args: [['iw', 'nmcli']],              
+message: 'Missing required system command(s): iw, nmcli' },
+        { klass: KeychainAccessDeniedError,     args: ['MyNet'],                      
+message: "Keychain access denied for network 'MyNet'. Please grant access when prompted" },
+        { klass: KeychainAccessCancelledError,  args: ['MyNet'],                      
+message: "Keychain access cancelled for network 'MyNet'" },
+        { klass: KeychainNonInteractiveError,   args: ['MyNet'],                      
+message: "Cannot access keychain for network 'MyNet' in non-interactive environment" },
+        { klass: MultipleOSMatchError,          args: [['macOS', 'Ubuntu']],          
+message: 'Multiple OS matches found: macOS, Ubuntu. This should not happen' },
+        { klass: NoSupportedOSError,            args: [],                             
+message: 'No supported operating system detected. WifiWand supports macOS and Ubuntu Linux' },
+        { klass: PreferredNetworkNotFoundError, args: ['MyNet'],                      
+message: "Network 'MyNet' not in preferred networks list" },
+        { klass: ConfigurationError,            args: ['A config is wrong'],          
+message: 'A config is wrong' },
+        { klass: KeychainError,                 args: ['custom keychain error'],      
+message: 'custom keychain error' },
+        { klass: BadCommandError,               args: ['This is a bad command'],      
+message: 'This is a bad command' },
       ]
 
       error_test_cases.each do |test_case|
@@ -169,9 +194,11 @@ module WifiWand
 
           # Special case for methods that are not public
           if model.private_methods.include?(test_case[:method])
-            expect { model.send(test_case[:method], *test_case[:args]) }.to raise_error(test_case[:error])
+            expect {
+ model.send(test_case[:method], *test_case[:args]) }.to raise_error(test_case[:error])
           else
-            expect { model.public_send(test_case[:method], *test_case[:args]) }.to raise_error(test_case[:error])
+            expect {
+ model.public_send(test_case[:method], *test_case[:args]) }.to raise_error(test_case[:error])
           end
         end
       end
@@ -200,7 +227,8 @@ module WifiWand
         it 'raises InvalidInterfaceError when specified interface is invalid during initialization' do
           current_model_class = create_test_model.class
           allow_any_instance_of(current_model_class).to receive(:is_wifi_interface?).with('invalid_interface').and_return(false)
-          expect { create_test_model(wifi_interface: 'invalid_interface') }.to raise_error(InvalidInterfaceError)
+          expect {
+ create_test_model(wifi_interface: 'invalid_interface') }.to raise_error(InvalidInterfaceError)
         end
       end
 
@@ -230,9 +258,11 @@ module WifiWand
 
               # When the `security` command is called, simulate its failure by raising an
               # OsCommandError with the specific exit code for the current test case.
-              raise WifiWand::CommandExecutor::OsCommandError.new(test_case[:exit_code], 'security', test_case[:message])
+              raise WifiWand::CommandExecutor::OsCommandError.new(test_case[:exit_code], 
+'security', test_case[:message])
             end
-            expect { mac_model.send(:_preferred_network_password, 'TestNetwork') }.to raise_error(test_case[:error])
+            expect {
+ mac_model.send(:_preferred_network_password, 'TestNetwork') }.to raise_error(test_case[:error])
           end
         end
       end

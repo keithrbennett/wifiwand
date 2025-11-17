@@ -232,7 +232,8 @@ class MacOsModel < BaseModel
   # Returns data pertaining to "preferred" networks, many/most of which will probably not be available.
   def preferred_networks
     iface = ensure_wifi_interface!
-    lines = run_os_command(['networksetup', '-listpreferredwirelessnetworks', iface]).stdout.split("\n")
+    lines = run_os_command(['networksetup', '-listpreferredwirelessnetworks', 
+iface]).stdout.split("\n")
     # Produces something like this, unsorted, and with leading tabs:
     # Preferred networks on en0:
     #         LibraryWiFi
@@ -345,7 +346,8 @@ class MacOsModel < BaseModel
   #     raise an error
   def _preferred_network_password(preferred_network_name)
     begin
-      return run_os_command(['security', 'find-generic-password', '-D', 'AirPort network password', '-a', preferred_network_name, '-w']).stdout.chomp
+      return run_os_command(['security', 'find-generic-password', '-D', 'AirPort network password', 
+'-a', preferred_network_name, '-w']).stdout.chomp
     rescue WifiWand::CommandExecutor::OsCommandError => error
       handle_keychain_error(preferred_network_name, error)
     end

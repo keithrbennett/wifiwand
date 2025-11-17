@@ -78,7 +78,8 @@ module TestHelpers
   def is_disruptive?
     current_example = RSpec.current_example
     example_disruptive = current_example&.metadata&.fetch(:disruptive, nil)
-    group_disruptive = self.class.metadata[:disruptive] || self.class.parent_groups.any? { |group| group.metadata[:disruptive] }
+    group_disruptive = self.class.metadata[:disruptive] || self.class.parent_groups.any? { |group|
+ group.metadata[:disruptive] }
     example_disruptive || group_disruptive
   end
 

@@ -149,7 +149,8 @@ class UbuntuModel < BaseModel
               run_os_command(['nmcli', 'connection', 'modify', profile, security_param, password])
             else
               # Fallback if security type can't be determined (e.g. out of range).
-              run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
+              run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', 
+password])
               return # The connect command already activates.
             end
           end
@@ -222,7 +223,8 @@ class UbuntuModel < BaseModel
 
     # Use the terse, machine-readable output to get the security protocol.
     begin
-      output = run_os_command(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false).stdout
+      output = run_os_command(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], 
+false).stdout
     rescue WifiWand::CommandExecutor::OsCommandError
       return nil # Can't scan, so can't determine the type.
     end
@@ -263,7 +265,8 @@ class UbuntuModel < BaseModel
     debug_method_entry(__method__, binding, :ssid)
 
     begin
-      output = run_os_command(['nmcli', '-t', '-f', 'NAME,TIMESTAMP', 'connection', 'show'], false).stdout
+      output = run_os_command(['nmcli', '-t', '-f', 'NAME,TIMESTAMP', 'connection', 'show'], 
+false).stdout
     rescue WifiWand::CommandExecutor::OsCommandError
       # If the command fails for any reason, we can't find profiles.
       return nil
@@ -309,7 +312,8 @@ class UbuntuModel < BaseModel
   def _preferred_network_password(preferred_network_name)
     debug_method_entry(__method__, binding, :preferred_network_name)
 
-    output = run_os_command(['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name], false).stdout
+    output = run_os_command(
+['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name], false).stdout
     psk_line = output.split("\n").find { |line| line.include?('802-11-wireless-security.psk:') }
     return nil unless psk_line
 
@@ -390,9 +394,11 @@ class UbuntuModel < BaseModel
     if nameservers == :clear
       # Clear custom DNS and use automatic DNS from router/DHCP (both IPv4 and IPv6)
       run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.dns', ''], false)
-      run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns', 'no'], false)
+      run_os_command(
+['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns', 'no'], false)
       run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv6.dns', ''], false)
-      run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv6.ignore-auto-dns', 'no'], false)
+      run_os_command(
+['nmcli', 'connection', 'modify', current_connection, 'ipv6.ignore-auto-dns', 'no'], false)
     else
       # Validate IP addresses (accept both IPv4 and IPv6)
       bad_addresses = nameservers.reject do |ns|
@@ -416,15 +422,19 @@ class UbuntuModel < BaseModel
       # Configure IPv4 DNS if any IPv4 addresses provided
       if ipv4_servers.any?
         ipv4_dns_string = ipv4_servers.join(' ')
-        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.dns', ipv4_dns_string], false)
-        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns', 'yes'], false)
+        run_os_command(
+['nmcli', 'connection', 'modify', current_connection, 'ipv4.dns', ipv4_dns_string], false)
+        run_os_command(
+['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns', 'yes'], false)
       end
 
       # Configure IPv6 DNS if any IPv6 addresses provided
       if ipv6_servers.any?
         ipv6_dns_string = ipv6_servers.join(' ')
-        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv6.dns', ipv6_dns_string], false)
-        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv6.ignore-auto-dns', 'yes'], false)
+        run_os_command(
+['nmcli', 'connection', 'modify', current_connection, 'ipv6.dns', ipv6_dns_string], false)
+        run_os_command(
+['nmcli', 'connection', 'modify', current_connection, 'ipv6.ignore-auto-dns', 'yes'], false)
       end
     end
 
@@ -447,7 +457,8 @@ class UbuntuModel < BaseModel
     return nil unless interface
 
     begin
-      output = run_os_command(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', interface], false).stdout
+      output = run_os_command(
+['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', interface], false).stdout
     rescue WifiWand::CommandExecutor::OsCommandError
       return nil
     end
@@ -531,7 +542,8 @@ class UbuntuModel < BaseModel
     return nil unless network_name
 
     begin
-      output = run_os_command(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false).stdout
+      output = run_os_command(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], 
+false).stdout
     rescue WifiWand::CommandExecutor::OsCommandError
       return nil # Can't scan, return nil
     end
@@ -561,7 +573,8 @@ class UbuntuModel < BaseModel
 
     begin
       # Query the connection profile to check if it's marked as hidden
-      output = run_os_command(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name], false).stdout
+      output = run_os_command(
+['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name], false).stdout
 
       # The output will be like "802-11-wireless.hidden:yes" or "802-11-wireless.hidden:no"
       hidden_line = output.split("\n").find { |line| line.include?('802-11-wireless.hidden:') }

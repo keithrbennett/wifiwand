@@ -79,7 +79,9 @@ describe WifiWand::Helpers::ResourceManager do
 
     context 'with nil model' do
       it 'raises ArgumentError' do
-        expect { resource_manager.open_resources_by_codes(nil, 'ipw') }.to raise_error(ArgumentError, 'Model cannot be nil')
+        expect {
+ resource_manager.open_resources_by_codes(nil, 
+'ipw') }.to raise_error(ArgumentError, 'Model cannot be nil')
       end
     end
 
@@ -137,8 +139,10 @@ end
 describe WifiWand::Helpers::ResourceManager::OpenResources do
   let(:resources) do
     described_class.new([
-      WifiWand::Helpers::ResourceManager::OpenResource.new('test1', 'https://example1.com', 'Test Resource 1'),
-      WifiWand::Helpers::ResourceManager::OpenResource.new('test2', 'https://example2.com', 'Test Resource 2')
+      WifiWand::Helpers::ResourceManager::OpenResource.new('test1', 'https://example1.com', 
+'Test Resource 1'),
+      WifiWand::Helpers::ResourceManager::OpenResource.new('test2', 'https://example2.com', 
+'Test Resource 2')
     ])
   end
 
@@ -171,7 +175,8 @@ describe 'ResourceManager error handling and edge cases' do
     it 'raises error when YAML file is missing' do
       allow(resource_manager).to receive(:resource_file_path).and_return('/nonexistent/path/open_resources.yml')
 
-      expect { resource_manager.open_resources }.to raise_error(Errno::ENOENT, /Resource file not found/)
+      expect {
+ resource_manager.open_resources }.to raise_error(Errno::ENOENT, /Resource file not found/)
     end
 
     it 'raises error when YAML file has invalid structure' do
@@ -191,7 +196,8 @@ describe 'ResourceManager error handling and edge cases' do
 
       allow(resource_manager).to receive(:resource_file_path).and_return(invalid_yaml_path)
 
-      expect { resource_manager.open_resources }.to raise_error(ArgumentError, /must contain a 'resources' key/)
+      expect {
+ resource_manager.open_resources }.to raise_error(ArgumentError, /must contain a 'resources' key/)
 
       File.delete(invalid_yaml_path) if File.exist?(invalid_yaml_path)
     end

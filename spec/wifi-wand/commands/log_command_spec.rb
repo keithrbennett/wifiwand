@@ -219,7 +219,8 @@ describe WifiWand::LogCommand do
 
       it 'combines --interval, --file, --hook, and --stdout correctly' do
         command = WifiWand::LogCommand.new(mock_model, verbose: true, output: output)
-        command.execute('--interval', '3', '--file', '/tmp/test.log', '--hook', '/my/hook', '--stdout')
+        command.execute('--interval', '3', '--file', '/tmp/test.log', '--hook', '/my/hook', 
+'--stdout')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,

@@ -21,7 +21,8 @@ module WifiWand
 
 class BaseModel
 
-  attr_accessor :wifi_interface, :verbose_mode, :command_executor, :connectivity_tester, :state_manager, :status_waiter, :connection_manager
+  attr_accessor :wifi_interface, :verbose_mode, :command_executor, :connectivity_tester, 
+:state_manager, :status_waiter, :connection_manager
 
   def self.create_model(options = {})
     options = OpenStruct.new(options) if options.is_a?(Hash)
@@ -349,7 +350,8 @@ class BaseModel
   # Delegates to ConnectionManager for complex connection logic.
   def connect(network_name, password = nil, skip_saved_password_lookup: false)
     debug_method_entry(__method__, binding, %i{network_name password})
-    @connection_manager.connect(network_name, password, skip_saved_password_lookup: skip_saved_password_lookup)
+    @connection_manager.connect(network_name, password, 
+skip_saved_password_lookup: skip_saved_password_lookup)
   end
 
 
@@ -491,7 +493,8 @@ class BaseModel
   # @raise [WifiWand::Error] If not connected to a network or qrencode is not available
   def generate_qr_code(filespec = nil, overwrite: false, delivery_mode: :print, password: nil)
     debug_method_entry(__method__)
-    qr_code_generator.generate(self, filespec, overwrite: overwrite, delivery_mode: delivery_mode, password: password)
+    qr_code_generator.generate(self, filespec, overwrite: overwrite, delivery_mode: delivery_mode, 
+password: password)
   end
 
   private

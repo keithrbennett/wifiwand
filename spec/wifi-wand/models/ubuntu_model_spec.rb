@@ -37,7 +37,8 @@ describe UbuntuModel, :os_ubuntu do
     describe '#wifi_on and #wifi_off failure paths' do
       it 'raises WifiEnableError when WiFi remains disabled after enable attempt' do
         allow(subject).to receive(:wifi_on?).and_return(false, false)
-        allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi on]).and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi 
+on]).and_return(command_result(stdout: ''))
         allow(subject).to receive(:till).with(:on, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT).and_return(nil)
 
         expect { subject.wifi_on }.to raise_error(WifiWand::WifiEnableError)
@@ -45,7 +46,8 @@ describe UbuntuModel, :os_ubuntu do
 
       it 'raises WifiDisableError when WiFi remains enabled after disable attempt' do
         allow(subject).to receive(:wifi_on?).and_return(true, true)
-        allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi off]).and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi 
+off]).and_return(command_result(stdout: ''))
         allow(subject).to receive(:till).with(:off, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT).and_return(nil)
 
         expect { subject.wifi_off }.to raise_error(WifiWand::WifiDisableError)
@@ -54,7 +56,8 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#_connect early return and branches' do
       # Helper method to set up common _connect test mocking
-      def setup_connect_test(connected_network: nil, profile_name: nil, old_password: nil, security_param: nil)
+      def setup_connect_test(connected_network: nil, profile_name: nil, old_password: nil, 
+security_param: nil)
         allow(subject).to receive(:_connected_network_name).and_return(connected_network)
         if profile_name
           allow(subject).to receive(:find_best_profile_for_ssid).and_return(profile_name)
@@ -72,68 +75,89 @@ describe UbuntuModel, :os_ubuntu do
       end
 
       it 'modifies existing profile when password changed and security is known' do
-        setup_connect_test(profile_name: 'SSID1', old_password: 'oldpass', security_param: '802-11-wireless-security.psk')
+        setup_connect_test(profile_name: 'SSID1', old_password: 'oldpass', 
+security_param: '802-11-wireless-security.psk')
 
-        expect(subject).to receive(:run_os_command).with(%w[nmcli connection modify SSID1 802-11-wireless-security.psk newpass]).and_return(command_result(stdout: ''))
-        expect(subject).to receive(:run_os_command).with(%w[nmcli connection up SSID1]).and_return(command_result(stdout: ''))
+        expect(subject).to receive(:run_os_command).with(%w[nmcli connection modify SSID1 
+802-11-wireless-security.psk newpass]).and_return(command_result(stdout: ''))
+        expect(subject).to receive(:run_os_command).with(%w[nmcli connection up 
+SSID1]).and_return(command_result(stdout: ''))
         expect { subject._connect('SSID1', 'newpass') }.not_to raise_error
       end
 
       it 'falls back to direct connect when security cannot be determined' do
         setup_connect_test(profile_name: 'SSID2', old_password: 'oldpass', security_param: nil)
 
-        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SSID2 password newpass]).and_return(command_result(stdout: ''))
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SSID2 password 
+newpass]).and_return(command_result(stdout: ''))
         expect { subject._connect('SSID2', 'newpass') }.not_to raise_error
       end
 
       it 'brings up existing profile when connecting without password' do
         setup_connect_test(profile_name: 'SSID3')
 
-        expect(subject).to receive(:run_os_command).with(%w[nmcli connection up SSID3]).and_return(command_result(stdout: ''))
+        expect(subject).to receive(:run_os_command).with(%w[nmcli connection up 
+SSID3]).and_return(command_result(stdout: ''))
         expect { subject._connect('SSID3') }.not_to raise_error
       end
 
       it 'raises NetworkNotFoundError when network not in range' do
         setup_connect_test
 
-        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SSID4 password pw])
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(10, 'nmcli dev wifi connect', 'Error: No network with SSID \'SSID4\' found'))
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SSID4 password 
+pw])
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(10, 'nmcli dev wifi connect', 
+'Error: No network with SSID \'SSID4\' found'))
 
-        expect { subject._connect('SSID4', 'pw') }.to raise_error(WifiWand::NetworkNotFoundError, /SSID4/)
+        expect {
+ subject._connect('SSID4', 'pw') }.to raise_error(WifiWand::NetworkNotFoundError, /SSID4/)
       end
 
       it 'raises NetworkAuthenticationError when password is wrong (secrets required)' do
         setup_connect_test
 
-        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SecureNet password wrongpass])
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect', 'Error: Connection activation failed: Secrets were required, but not provided'))
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SecureNet 
+password wrongpass])
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect', 
+'Error: Connection activation failed: Secrets were required, but not provided'))
 
-        expect { subject._connect('SecureNet', 'wrongpass') }.to raise_error(WifiWand::NetworkAuthenticationError, /SecureNet/)
+        expect {
+ subject._connect('SecureNet', 
+'wrongpass') }.to raise_error(WifiWand::NetworkAuthenticationError, /SecureNet/)
       end
 
       it 'raises NetworkAuthenticationError when authentication fails' do
         setup_connect_test
 
-        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SecureNet password badpass])
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect', 'Error: Connection activation failed: (53) authentication failed'))
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SecureNet 
+password badpass])
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect', 
+'Error: Connection activation failed: (53) authentication failed'))
 
-        expect { subject._connect('SecureNet', 'badpass') }.to raise_error(WifiWand::NetworkAuthenticationError, /SecureNet/)
+        expect {
+ subject._connect('SecureNet', 
+'badpass') }.to raise_error(WifiWand::NetworkAuthenticationError, /SecureNet/)
       end
 
       it 'raises NetworkAuthenticationError for error code 7 (secrets issue)' do
         setup_connect_test
 
-        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SecureNet password invalid])
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(7, 'nmcli dev wifi connect', 'Error: Connection activation failed: (7) No secrets provided'))
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SecureNet 
+password invalid])
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(7, 'nmcli dev wifi connect', 
+'Error: Connection activation failed: (7) No secrets provided'))
 
-        expect { subject._connect('SecureNet', 'invalid') }.to raise_error(WifiWand::NetworkAuthenticationError, /SecureNet/)
+        expect {
+ subject._connect('SecureNet', 
+'invalid') }.to raise_error(WifiWand::NetworkAuthenticationError, /SecureNet/)
       end
 
       it 'raises WifiInterfaceError when no suitable device found' do
         setup_connect_test
 
         expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SSID5])
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(5, 'nmcli dev wifi connect', 'Error: No suitable device found'))
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(5, 'nmcli dev wifi connect', 
+'Error: No suitable device found'))
 
         expect { subject._connect('SSID5') }.to raise_error(WifiWand::WifiInterfaceError)
       end
@@ -142,36 +166,45 @@ describe UbuntuModel, :os_ubuntu do
         setup_connect_test
 
         expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect WeakSignal])
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect', 'Error: Connection activation failed'))
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect', 
+'Error: Connection activation failed'))
 
-        expect { subject._connect('WeakSignal') }.to raise_error(WifiWand::NetworkConnectionError, /out of range/)
+        expect {
+ subject._connect('WeakSignal') }.to raise_error(WifiWand::NetworkConnectionError, /out of range/)
       end
 
       it 're-raises unknown errors from nmcli' do
         setup_connect_test
 
-        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SSID6 password pw])
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(2, 'nmcli dev wifi connect', 'Unknown system failure'))
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SSID6 password 
+pw])
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(2, 'nmcli dev wifi connect', 
+'Unknown system failure'))
 
-        expect { subject._connect('SSID6', 'pw') }.to raise_error(WifiWand::CommandExecutor::OsCommandError, /Unknown system failure/)
+        expect {
+ subject._connect('SSID6', 
+'pw') }.to raise_error(WifiWand::CommandExecutor::OsCommandError, /Unknown system failure/)
       end
     end
 
     describe '#get_security_parameter and #security_parameter' do
       it 'returns nil when nmcli scan fails' do
-        expect(subject).to receive(:run_os_command).with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
+        expect(subject).to receive(:run_os_command).with(
+%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'scan failed'))
         expect(subject.send(:get_security_parameter, 'Any')).to be_nil
       end
 
       it 'returns nil for unsupported/enterprise/open security types' do
-        expect(subject).to receive(:run_os_command).with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
+        expect(subject).to receive(:run_os_command).with(
+%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
           .and_return(command_result(stdout: 'CorpNet:802.1X'))
         expect(subject.send(:get_security_parameter, 'CorpNet')).to be_nil
       end
 
       it 'delegates via #security_parameter and returns PSK param for WPA2' do
-        expect(subject).to receive(:run_os_command).with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
+        expect(subject).to receive(:run_os_command).with(
+%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
           .and_return(command_result(stdout: 'HomeNet:WPA2'))
         expect(subject.send(:security_parameter, 'HomeNet')).to eq('802-11-wireless-security.psk')
       end
@@ -179,7 +212,8 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#find_best_profile_for_ssid' do
       it 'returns nil when listing connections fails' do
-        expect(subject).to receive(:run_os_command).with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
+        expect(subject).to receive(:run_os_command).with(
+%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'list failed'))
         expect(subject.send(:find_best_profile_for_ssid, 'Any')).to be_nil
       end
@@ -202,7 +236,8 @@ describe UbuntuModel, :os_ubuntu do
     describe '#_disconnect' do
       it 'returns nil when disconnect succeeds' do
         allow(subject).to receive(:wifi_interface).and_return('wlan0')
-        expect(subject).to receive(:run_os_command).with(%w[nmcli dev disconnect wlan0]).and_return(command_result(stdout: ''))
+        expect(subject).to receive(:run_os_command).with(%w[nmcli dev disconnect 
+wlan0]).and_return(command_result(stdout: ''))
         expect(subject.send(:_disconnect)).to be_nil
       end
     end
@@ -239,7 +274,8 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#open_resource' do
       it 'invokes xdg-open on the given URL' do
-        expect(subject).to receive(:run_os_command).with(['xdg-open', 'https://example.com']).and_return(command_result(stdout: ''))
+        expect(subject).to receive(:run_os_command).with(['xdg-open', 
+'https://example.com']).and_return(command_result(stdout: ''))
         subject.open_resource('https://example.com')
       end
     end
@@ -247,7 +283,8 @@ describe UbuntuModel, :os_ubuntu do
     describe '#default_interface' do
       it 'returns nil when ip route command fails' do
         expect(subject).to receive(:run_os_command).with(%w[ip route show default], false)
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'ip route show default', 'failed'))
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'ip route show default', 
+'failed'))
         expect(subject.default_interface).to be_nil
       end
     end
@@ -260,13 +297,16 @@ describe UbuntuModel, :os_ubuntu do
           IP4.DNS[2]:                      9.9.9.9
           some.other:                      value
         OUT
-        expect(subject).to receive(:run_os_command).with(['nmcli', 'connection', 'show', 'ConnX'], false).and_return(command_result(stdout: nmcli_output))
+        expect(subject).to receive(:run_os_command).with(['nmcli', 'connection', 'show', 'ConnX'], 
+false).and_return(command_result(stdout: nmcli_output))
         expect(subject.send(:nameservers_from_connection, 'ConnX')).to eq(['1.1.1.1', '9.9.9.9'])
       end
 
       it 'returns empty array when nmcli connection show fails' do
-        expect(subject).to receive(:run_os_command).with(['nmcli', 'connection', 'show', 'ConnY'], false)
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli connection show', 'failed'))
+        expect(subject).to receive(:run_os_command).with(['nmcli', 'connection', 'show', 'ConnY'], 
+false)
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli connection show', 
+'failed'))
         expect(subject.send(:nameservers_from_connection, 'ConnY')).to eq([])
       end
     end
@@ -292,7 +332,8 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:command_available?).with('nmcli').and_return(false)
 
         expect { subject.validate_os_preconditions }
-          .to raise_error(WifiWand::CommandNotFoundError, /nmcli.*install.*sudo apt install network-manager/)
+          .to raise_error(WifiWand::CommandNotFoundError, 
+/nmcli.*install.*sudo apt install network-manager/)
       end
 
       it 'raises CommandNotFoundError when both commands are missing' do
@@ -507,7 +548,8 @@ describe UbuntuModel, :os_ubuntu do
       it 'returns true when connection profile has hidden=yes' do
         hidden_output = "802-11-wireless.hidden:yes\n"
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name], false)
+          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', 
+profile_name], false)
           .and_return(command_result(stdout: hidden_output))
 
         expect(subject.network_hidden?).to be true
@@ -516,7 +558,8 @@ describe UbuntuModel, :os_ubuntu do
       it 'returns false when connection profile has hidden=no' do
         visible_output = "802-11-wireless.hidden:no\n"
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name], false)
+          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', 
+profile_name], false)
           .and_return(command_result(stdout: visible_output))
 
         expect(subject.network_hidden?).to be false
@@ -531,7 +574,8 @@ describe UbuntuModel, :os_ubuntu do
       it 'returns false when hidden line is not found in output' do
         other_output = "802-11-wireless.ssid:TestNetwork\n"
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name], false)
+          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', 
+profile_name], false)
           .and_return(command_result(stdout: other_output))
 
         expect(subject.network_hidden?).to be false
@@ -539,7 +583,8 @@ describe UbuntuModel, :os_ubuntu do
 
       it 'returns false when nmcli command fails' do
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name], false)
+          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', 
+profile_name], false)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'Command failed'))
 
         expect(subject.network_hidden?).to be false
@@ -549,7 +594,8 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:active_connection_profile_name).and_return(nil)
         hidden_output = "802-11-wireless.hidden:yes\n"
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', network_name], false)
+          .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', 
+network_name], false)
           .and_return(command_result(stdout: hidden_output))
 
         expect(subject.network_hidden?).to be true
@@ -665,10 +711,12 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:nameservers_from_connection).with(connection_name).and_return(nameservers)
         # Mock the connection-based DNS commands
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', nameservers.join(' ')], false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', 
+nameservers.join(' ')], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'], false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 
+'yes'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'connection', 'up', connection_name], false)
@@ -688,13 +736,15 @@ describe UbuntuModel, :os_ubuntu do
           .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 
+'no'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'], false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 
+'no'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'connection', 'up', connection_name], false)
@@ -714,10 +764,12 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:nameservers_from_connection).with(profile_name).and_return(nameservers)
 
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', profile_name, 'ipv4.dns', nameservers.join(' ')], false)
+          .with(['nmcli', 'connection', 'modify', profile_name, 'ipv4.dns', 
+nameservers.join(' ')], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', profile_name, 'ipv4.ignore-auto-dns', 'yes'], false)
+          .with(['nmcli', 'connection', 'modify', profile_name, 'ipv4.ignore-auto-dns', 
+'yes'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'connection', 'up', profile_name], false)
@@ -736,10 +788,12 @@ describe UbuntuModel, :os_ubuntu do
 
         # Expect IPv6 DNS commands
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ipv6_nameservers.join(' ')], false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', 
+ipv6_nameservers.join(' ')], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'], false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 
+'yes'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'connection', 'up', connection_name], false)
@@ -758,16 +812,20 @@ describe UbuntuModel, :os_ubuntu do
 
         # Expect both IPv4 and IPv6 DNS commands
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8 1.1.1.1'], false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', 
+'8.8.8.8 1.1.1.1'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'], false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 
+'yes'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', '2606:4700:4700::1111'], false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', 
+'2606:4700:4700::1111'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'], false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 
+'yes'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'connection', 'up', connection_name], false)
@@ -788,13 +846,15 @@ describe UbuntuModel, :os_ubuntu do
           .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 
+'no'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'], false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 
+'no'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'connection', 'up', connection_name], false)
@@ -933,8 +993,10 @@ describe UbuntuModel, :os_ubuntu do
     describe '#wifi_on' do
       it 'raises WifiEnableError when command succeeds but wifi remains off' do
         # Mock specific command calls to avoid real system calls
-        allow(subject).to receive(:run_os_command).with(/nmcli radio wifi on/, anything).and_return(command_result(stdout: ''))
-        allow(subject).to receive(:run_os_command).with(/nmcli radio wifi$/, anything).and_return(command_result(stdout: 'disabled'))
+        allow(subject).to receive(:run_os_command).with(/nmcli radio wifi on/, 
+anything).and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command).with(/nmcli radio wifi$/, 
+anything).and_return(command_result(stdout: 'disabled'))
 
         # Mock the till method to immediately raise WaitTimeoutError (which wifi_on catches and converts to WifiEnableError)
         allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:on, 5))
@@ -946,8 +1008,10 @@ describe UbuntuModel, :os_ubuntu do
     describe '#wifi_off' do
       it 'raises WifiDisableError when command succeeds but wifi remains on' do
         # Mock specific command calls to avoid real system calls
-        allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi off], anything).and_return(command_result(stdout: ''))
-        allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi], anything).and_return(command_result(stdout: 'enabled'))
+        allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi off], 
+anything).and_return(command_result(stdout: ''))
+        allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi], 
+anything).and_return(command_result(stdout: 'enabled'))
 
         # Mock the till method to immediately raise WaitTimeoutError (which wifi_off catches and converts to WifiDisableError)
         allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:off, 5))
@@ -965,9 +1029,12 @@ describe UbuntuModel, :os_ubuntu do
           .and_return(command_result(stdout: 'enabled'))  # wifi_on? returns true
         allow(subject).to receive(:run_os_command)
           .with(%w[nmcli dev disconnect wlan0])
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli dev disconnect wlan0', 'Device disconnect failed'))
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli dev disconnect wlan0', 
+'Device disconnect failed'))
 
-        expect { subject.disconnect }.to raise_error(WifiWand::CommandExecutor::OsCommandError, /Device disconnect failed/)
+        expect {
+ subject.disconnect }.to raise_error(WifiWand::CommandExecutor::OsCommandError, 
+/Device disconnect failed/)
       end
 
       it 'handles exit status 6 as normal disconnect behavior' do
@@ -978,7 +1045,8 @@ describe UbuntuModel, :os_ubuntu do
           .and_return(command_result(stdout: 'enabled'))  # wifi_on? returns true
         allow(subject).to receive(:run_os_command)
           .with(%w[nmcli dev disconnect wlan0])
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(6, 'nmcli dev disconnect wlan0', 'Device not connected'))
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(6, 'nmcli dev disconnect wlan0', 
+'Device not connected'))
 
         expect { subject.disconnect }.not_to raise_error
       end
@@ -1009,7 +1077,8 @@ describe UbuntuModel, :os_ubuntu do
         # Mock nmcli connection modify to fail without calling real commands
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8'], false)
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli connection modify', 'Connection modify failed'))
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli connection modify', 
+'Connection modify failed'))
 
         expect { subject.set_nameservers(['8.8.8.8']) }
           .to raise_error(WifiWand::CommandExecutor::OsCommandError, /Connection modify failed/)
@@ -1020,7 +1089,9 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:active_connection_profile_name).and_return(nil)
         allow(subject).to receive(:_connected_network_name).and_return(nil)
 
-        expect { subject.set_nameservers(['8.8.8.8']) }.to raise_error(WifiWand::WifiInterfaceError, /No active Wi-Fi connection/)
+        expect {
+ subject.set_nameservers(['8.8.8.8']) }.to raise_error(WifiWand::WifiInterfaceError, 
+/No active Wi-Fi connection/)
       end
     end
 
@@ -1031,9 +1102,12 @@ describe UbuntuModel, :os_ubuntu do
         # Mock the specific command to fail
         allow(subject).to receive(:run_os_command)
           .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli -t -f SSID,SIGNAL dev wifi list', 'Scan failed'))
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 
+'nmcli -t -f SSID,SIGNAL dev wifi list', 'Scan failed'))
 
-        expect { subject.available_network_names }.to raise_error(WifiWand::CommandExecutor::OsCommandError, /Scan failed/)
+        expect {
+ subject.available_network_names }.to raise_error(WifiWand::CommandExecutor::OsCommandError, 
+/Scan failed/)
       end
     end
 
@@ -1055,7 +1129,8 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:find_best_profile_for_ssid).and_return(nil)
         allow(subject).to receive(:run_os_command)
           .with(%w[nmcli dev wifi connect non_existent_network_123])
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(10, 'nmcli dev wifi connect', 'No network with SSID "non_existent_network_123" found'))
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(10, 'nmcli dev wifi connect', 
+'No network with SSID "non_existent_network_123" found'))
 
         expect { subject._connect('non_existent_network_123') }.to raise_error(WifiWand::NetworkNotFoundError)
       end
@@ -1069,7 +1144,8 @@ describe UbuntuModel, :os_ubuntu do
         # Mock the actual connection attempt that will be made
         allow(subject).to receive(:run_os_command)
           .with(%w[nmcli dev wifi connect TestNetwork password test_password])
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect', 'Connection activation failed'))
+          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect', 
+'Connection activation failed'))
 
         # Generic activation failed should now raise NetworkConnectionError (out of range)
         expect { subject._connect('TestNetwork', 'test_password') }
@@ -1174,13 +1250,15 @@ describe UbuntuModel, :os_ubuntu do
           .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 
+'no'], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''], false)
           .and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command)
-          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'], false)
+          .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 
+'no'], false)
           .and_return(command_result(stdout: ''))
 
         # Mock connection restart

@@ -42,13 +42,16 @@ describe WifiWand::CommandLineInterface::ShellInterface do
   describe '#method_missing' do
     it 'attempts to execute commands via attempt_command_action' do
       # Mock the command execution
-      expect(subject).to receive(:attempt_command_action).with('invalid_command', 'arg1', 'arg2') do |&block|
+      expect(subject).to receive(:attempt_command_action).with('invalid_command', 'arg1', 
+'arg2') do |&block|
         block.call if block  # Call the error handler
         nil
       end
 
       # Should raise NoMethodError
-      expect { subject.invalid_command('arg1', 'arg2') }.to raise_error(NoMethodError, /is not a valid command or option/)
+      expect {
+ subject.invalid_command('arg1', 
+'arg2') }.to raise_error(NoMethodError, /is not a valid command or option/)
     end
 
     it 'does not interfere with known commands' do
@@ -60,12 +63,15 @@ describe WifiWand::CommandLineInterface::ShellInterface do
     end
 
     it 'prints error for unknown commands' do
-      expect { subject.unknown_command }.to raise_error(NoMethodError, /is not a valid command or option/)
+      expect {
+ subject.unknown_command }.to raise_error(NoMethodError, /is not a valid command or option/)
     end
 
     it 'suggests string literal usage for unknown commands' do
       # The suggestion is part of the error message in the current implementation
-      expect { subject.unknown_command }.to raise_error(NoMethodError, /If you intended it as an argument to a command, it may be invalid or need quotes./)
+      expect {
+ subject.unknown_command }.to raise_error(NoMethodError, 
+/If you intended it as an argument to a command, it may be invalid or need quotes./)
     end
   end
 

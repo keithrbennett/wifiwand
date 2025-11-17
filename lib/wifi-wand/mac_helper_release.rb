@@ -226,7 +226,8 @@ module WifiWand
       end
 
       def self.verify_identity_exists(identity)
-        stdout, _stderr, status = Open3.capture3('security', 'find-identity', '-v', '-p', 'codesigning')
+        stdout, _stderr, status = Open3.capture3('security', 'find-identity', '-v', '-p', 
+'codesigning')
         return if status.success? && stdout.include?(identity)
 
         abort "Error: Could not find code signing identity '#{identity}'\n\nRun: security find-identity -v -p codesigning"
@@ -293,7 +294,8 @@ module WifiWand
 
       def self.create_zip(bundle_path, zip_path)
         FileUtils.rm_f(zip_path)
-        _stdout, stderr, status = Open3.capture3('ditto', '-c', '-k', '--keepParent', bundle_path, zip_path)
+        _stdout, stderr, status = Open3.capture3('ditto', '-c', '-k', '--keepParent', bundle_path, 
+zip_path)
         abort "Failed to create zip: #{stderr}" unless status.success?
       end
 
@@ -313,7 +315,8 @@ module WifiWand
         puts message
       end
 
-      def self.run_notarytool(args, apple_id:, apple_password:, team_id:, failure_message:, suppress_output: false)
+      def self.run_notarytool(args, apple_id:, apple_password:, team_id:, failure_message:, 
+suppress_output: false)
         command = ['xcrun', 'notarytool'] + args + [
           '--apple-id', apple_id,
           '--team-id', team_id,
@@ -385,7 +388,8 @@ module WifiWand
       stdout, _stderr, status = Open3.capture3('codesign', '-dv', bundle_path)
       abort "Error: Helper is ad-hoc signed. Must be signed with Developer ID.\nRun: bin/mac-helper build" if status.success? && stdout.include?('adhoc')
 
-      puts Messages.notarizing_header(bundle_path: bundle_path, apple_id: apple_id, team_id: team_id)
+      puts Messages.notarizing_header(bundle_path: bundle_path, apple_id: apple_id, 
+team_id: team_id)
       Operations.create_zip(bundle_path, zip_path)
       puts Messages.zip_created(zip_path)
 

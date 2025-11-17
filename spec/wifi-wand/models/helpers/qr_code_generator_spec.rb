@@ -38,7 +38,8 @@ describe 'QR Code Generator (unit)' do
     end
 
     result = nil
-    expect { result = model.generate_qr_code('-') }.to output(a_string_including('[QR-ANSI]')).to_stdout
+    expect {
+ result = model.generate_qr_code('-') }.to output(a_string_including('[QR-ANSI]')).to_stdout
     expect(result).to eq('-')
   end
 
@@ -138,7 +139,8 @@ describe 'QR Code Generator (unit)' do
     end
 
     result = nil
-    expect { result = model.generate_qr_code('-') }.to output(a_string_including('[QR-ANSI]')).to_stdout
+    expect {
+ result = model.generate_qr_code('-') }.to output(a_string_including('[QR-ANSI]')).to_stdout
     expect(result).to eq('-')
   end
 

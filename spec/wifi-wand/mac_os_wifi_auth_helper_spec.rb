@@ -220,7 +220,8 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
     it 'disables the helper when installation raises an error' do
       expect(File).to receive(:executable?).with(helper_path).and_return(false)
       allow(client).to receive(:log_verbose)
-      expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed).and_raise(StandardError, 'boom')
+      expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed).and_raise(
+StandardError, 'boom')
 
       client.send(:ensure_helper_installed)
 
