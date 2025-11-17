@@ -58,7 +58,7 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
           cmd.action.call
         rescue
           nil
-        end
+        end # Ignore any errors, just need execution for coverage
       end
     end
 

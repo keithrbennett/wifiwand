@@ -184,9 +184,9 @@ module WifiWand
 
     # Output a message to the configured output stream and log file
     def log_message(message)
-      @output&.puts(message)
-      @output.flush if @output.respond_to?(:flush)
-      @log_file_manager&.write(message)
+      @output.puts(message) if @output
+      @output.flush if @output&.respond_to?(:flush)
+      @log_file_manager.write(message) if @log_file_manager
     end
 
     # Check if a hook script exists and is executable

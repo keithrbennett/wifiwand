@@ -136,15 +136,15 @@ describe 'Output Format Integration Tests' do
               expect(output).to eq('true')
             when :json
               parsed = JSON.parse(output)
-              expect(parsed).to be(true)
+              expect(parsed).to eq(true)
             when :pretty_json
               parsed = JSON.parse(output)
-              expect(parsed).to be(true)
+              expect(parsed).to eq(true)
             when :puts
               expect(output).to eq('true')
             when :yaml
               parsed = YAML.safe_load(output)
-              expect(parsed).to be(true)
+              expect(parsed).to eq(true)
             end
           end
 
@@ -161,15 +161,15 @@ describe 'Output Format Integration Tests' do
               expect(output).to eq('false')
             when :json
               parsed = JSON.parse(output)
-              expect(parsed).to be(false)
+              expect(parsed).to eq(false)
             when :pretty_json
               parsed = JSON.parse(output)
-              expect(parsed).to be(false)
+              expect(parsed).to eq(false)
             when :puts
               expect(output).to eq('false')
             when :yaml
               parsed = YAML.safe_load(output)
-              expect(parsed).to be(false)
+              expect(parsed).to eq(false)
             end
           end
         end

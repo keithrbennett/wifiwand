@@ -60,7 +60,7 @@ describe WifiWand::CommandLineInterface do
     # Mock OS detection to avoid real system calls
     allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(mock_os)
     # Prevent interactive shell from starting
-    allow_any_instance_of(described_class).to receive(:run_shell)
+    allow_any_instance_of(WifiWand::CommandLineInterface).to receive(:run_shell)
   end
 
 
@@ -135,10 +135,10 @@ describe WifiWand::CommandLineInterface do
         actions = ['conn', 'connec', 'connect'].map { |s| subject.find_command_action(s) }
 
         all_actions_identical = (actions.uniq.size == 1)
-        expect(all_actions_identical).to be(true)
+        expect(all_actions_identical).to eq(true)
 
         # must be callables (Proc, other object with 'call' method)
-        expect(all_actions_identical && actions.first.respond_to?(:call)).to be(true)
+        expect(all_actions_identical && actions.first.respond_to?(:call)).to eq(true)
       end
 
       specify 'invalid command strings will return nil' do
@@ -411,10 +411,10 @@ describe WifiWand::CommandLineInterface do
           expect(captured).to match(/Output file exists. Overwrite\? \[y\/N\]: /)
         end
 
-        it_behaves_like 'user confirms overwrite', "y\n"
-        it_behaves_like 'user confirms overwrite', "yes\n"
-        it_behaves_like 'user declines overwrite', "n\n"
-        it_behaves_like 'user declines overwrite', "\n"
+        include_examples 'user confirms overwrite', "y\n"
+        include_examples 'user confirms overwrite', "yes\n"
+        include_examples 'user declines overwrite', "n\n"
+        include_examples 'user declines overwrite', "\n"
 
         it 're-raises non-overwrite errors' do
           # Reset mock for different error
@@ -467,12 +467,12 @@ describe WifiWand::CommandLineInterface do
         non_interactive_output: "Connected to Internet: true\n" },
       { cmd: :cmd_qr, model_method: :generate_qr_code, return_value: 'TestNetwork-qr-code.png',
         non_interactive_output: "QR code generated: TestNetwork-qr-code.png\n" }
-    ].freeze
+    ]
 
     COMMAND_TEST_CASES.each do |test_case|
       describe "##{test_case[:cmd]}" do
         if test_case[:non_interactive_output]
-          it_behaves_like 'interactive vs non-interactive command', test_case[:cmd], test_case[:model_method], {
+          include_examples 'interactive vs non-interactive command', test_case[:cmd], test_case[:model_method], {
             return_value: test_case[:return_value],
             non_interactive_tests: {
               'outputs formatted message' => {
@@ -482,7 +482,7 @@ describe WifiWand::CommandLineInterface do
             }
           }
         elsif !test_case[:skip_non_interactive]
-          it_behaves_like 'simple command delegation', test_case[:cmd], test_case[:model_method]
+          include_examples 'simple command delegation', test_case[:cmd], test_case[:model_method]
         end
       end
     end
@@ -491,7 +491,7 @@ describe WifiWand::CommandLineInterface do
       context 'when wifi is on' do
         before { allow(mock_model).to receive(:wifi_on?).and_return(true) }
 
-        it_behaves_like 'interactive vs non-interactive command', :cmd_a, :available_network_names, {
+        include_examples 'interactive vs non-interactive command', :cmd_a, :available_network_names, {
           return_value: ['TestNet1', 'TestNet2'],
           non_interactive_tests: {
             'outputs formatted available networks message' => {
@@ -754,7 +754,7 @@ describe WifiWand::CommandLineInterface do
 
     describe '#cmd_log' do
       it 'delegates to LogCommand with no arguments' do
-        mock_log_command = instance_double(WifiWand::LogCommand)
+        mock_log_command = instance_double('WifiWand::LogCommand')
         expect(WifiWand::LogCommand).to receive(:new).with(mock_model,
           output: subject.send(:out_stream), verbose: false).and_return(mock_log_command)
         expect(mock_log_command).to receive(:execute)
@@ -762,7 +762,7 @@ describe WifiWand::CommandLineInterface do
       end
 
       it 'delegates to LogCommand with arguments' do
-        mock_log_command = instance_double(WifiWand::LogCommand)
+        mock_log_command = instance_double('WifiWand::LogCommand')
         expect(WifiWand::LogCommand).to receive(:new).with(mock_model,
           output: subject.send(:out_stream), verbose: false).and_return(mock_log_command)
         expect(mock_log_command).to receive(:execute).with('--interval', '2', '--file')
@@ -772,7 +772,7 @@ describe WifiWand::CommandLineInterface do
       it 'respects verbose flag from initialization' do
         verbose_opts = create_cli_options(verbose: true)
         verbose_cli = described_class.new(verbose_opts)
-        mock_log_command = instance_double(WifiWand::LogCommand)
+        mock_log_command = instance_double('WifiWand::LogCommand')
         expect(WifiWand::LogCommand).to receive(:new).with(verbose_cli.model,
           output: verbose_cli.send(:out_stream), verbose: true).and_return(mock_log_command)
         expect(mock_log_command).to receive(:execute)
@@ -781,7 +781,7 @@ describe WifiWand::CommandLineInterface do
 
       it 'does not create a log file by default (stdout-only)' do
         # This test ensures that the default behavior only outputs to stdout
-        mock_log_command = instance_double(WifiWand::LogCommand)
+        mock_log_command = instance_double('WifiWand::LogCommand')
         expect(WifiWand::LogCommand).to receive(:new) do |_model, output:, verbose:|
           expect(output).to eq(subject.send(:out_stream))
           mock_log_command
@@ -794,7 +794,7 @@ describe WifiWand::CommandLineInterface do
         # cmd_log always passes the output stream to LogCommand.
         # LogCommand.execute then determines whether to use it based on --file/--stdout options.
         # When --file is used without --stdout, LogCommand.execute passes nil to EventLogger.
-        mock_log_command = instance_double(WifiWand::LogCommand)
+        mock_log_command = instance_double('WifiWand::LogCommand')
         expect(WifiWand::LogCommand).to receive(:new).with(mock_model,
           output: subject.send(:out_stream), verbose: false).and_return(mock_log_command)
         expect(mock_log_command).to receive(:execute).with('--file')
@@ -848,9 +848,9 @@ describe WifiWand::CommandLineInterface do
   describe '#call (main entry point)' do
     before do
       allow(subject).to receive(:validate_command_line)
+      allow(subject).to receive(:process_command_line).and_return('command_result')
       allow(subject).to receive(:exit)
-      allow(subject).to receive_messages(process_command_line: 'command_result',
-        help_hint: 'Type help for usage')
+      allow(subject).to receive(:help_hint).and_return('Type help for usage')
     end
 
     it 'validates command line and processes commands successfully' do

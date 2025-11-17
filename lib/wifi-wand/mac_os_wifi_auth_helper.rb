@@ -134,7 +134,7 @@ module WifiWand
       FileUtils.rm_rf(installed_bundle_path)
       FileUtils.cp_r(source_bundle_path, installed_bundle_path)
       FileUtils.chmod(0o755, installed_executable_path)
-      out_stream&.puts 'Helper bundle installed from pre-signed binary.'
+      out_stream&.puts 'Helper bundle installed from pre-signed binary.' if out_stream
       write_manifest
     end
 
@@ -338,20 +338,20 @@ module WifiWand
         return if @location_warning_emitted
 
         stream = out_stream || $stdout
-        stream&.puts('wifiwand helper: Location Services denied. Run `bundle exec rake mac:helper_location_permission_allow` to enable unredacted SSIDs.')
+        stream.puts('wifiwand helper: Location Services denied. Run `bundle exec rake mac:helper_location_permission_allow` to enable unredacted SSIDs.') if stream
         @location_warning_emitted = true
       end
 
       def emit_install_failure(detail)
         stream = out_stream || $stdout
-        stream&.puts("wifiwand helper: failed to install helper (#{detail}). Helper disabled until the next run.")
+        stream.puts("wifiwand helper: failed to install helper (#{detail}). Helper disabled until the next run.") if stream
       end
 
       def log_verbose(message)
         return unless verbose?
 
         stream = out_stream || $stdout
-        stream&.puts("wifiwand helper: #{message}")
+        stream.puts("wifiwand helper: #{message}") if stream
       end
 
       def macos_version

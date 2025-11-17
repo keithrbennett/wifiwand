@@ -19,7 +19,7 @@ def saved_networks_with_passwords
   network_data.sort_by { |info| info.name.downcase }
 end
 
-if __FILE__ == $PROGRAM_NAME
+if __FILE__ == $0
 
   if CLIENT.mac?
     puts <<~MESSAGE

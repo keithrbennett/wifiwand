@@ -11,7 +11,8 @@ describe WifiWand::ConnectionManager do
 
   before do
     # Mock common model methods
-    allow(mock_model).to receive_messages(connected_network_name: nil, preferred_networks: [])
+    allow(mock_model).to receive(:connected_network_name).and_return(nil)
+    allow(mock_model).to receive(:preferred_networks).and_return([])
     allow(mock_model).to receive(:wifi_on)
     allow(mock_model).to receive(:_connect)
     allow(mock_model).to receive(:till)
@@ -215,8 +216,8 @@ describe WifiWand::ConnectionManager do
     end
 
     it 'tracks saved password usage correctly' do
-      allow(mock_model).to receive_messages(preferred_networks: ['SavedNetwork'],
-        preferred_network_password: 'saved_password')
+      allow(mock_model).to receive(:preferred_networks).and_return(['SavedNetwork'])
+      allow(mock_model).to receive(:preferred_network_password).and_return('saved_password')
       allow(mock_model).to receive(:connected_network_name).and_return(nil, 'SavedNetwork')
 
       subject.connect('SavedNetwork')
@@ -225,8 +226,8 @@ describe WifiWand::ConnectionManager do
 
     it 'resets flag on each connection attempt' do
       # First connection uses saved password
-      allow(mock_model).to receive_messages(preferred_networks: ['SavedNetwork'],
-        preferred_network_password: 'saved_password')
+      allow(mock_model).to receive(:preferred_networks).and_return(['SavedNetwork'])
+      allow(mock_model).to receive(:preferred_network_password).and_return('saved_password')
       allow(mock_model).to receive(:connected_network_name).and_return(nil, 'SavedNetwork')
 
       subject.connect('SavedNetwork')

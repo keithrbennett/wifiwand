@@ -6,7 +6,7 @@ module WifiWand
   describe OperatingSystems do
     describe 'instantiation' do
       it 'is prohibited' do
-        expect { described_class.new }.to raise_error(NoMethodError)
+        expect { OperatingSystems.new }.to raise_error(NoMethodError)
       end
     end
 

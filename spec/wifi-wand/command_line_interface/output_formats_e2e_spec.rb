@@ -129,11 +129,11 @@ describe 'Output Format End-to-End Tests' do
           when 'i'
             expect(output).to eq('true')
           when 'j', 'k'
-            expect(JSON.parse(output)).to be(true)
+            expect(JSON.parse(output)).to eq(true)
           when 'p'
             expect(output).to eq('true')
           when 'y'
-            expect(YAML.safe_load(output)).to be(true)
+            expect(YAML.safe_load(output)).to eq(true)
           end
         end
 
@@ -312,7 +312,8 @@ describe 'Output Format End-to-End Tests' do
       test_info = { 'network' => 'TestNet' }
       test_networks = ['Net1', 'Net2']
 
-      allow(mock_model).to receive_messages(wifi_info: test_info, preferred_networks: test_networks)
+      allow(mock_model).to receive(:wifi_info).and_return(test_info)
+      allow(mock_model).to receive(:preferred_networks).and_return(test_networks)
 
       options = parse_options('-o', 'j', 'info')
       cli = WifiWand::CommandLineInterface.new(options)
@@ -366,7 +367,7 @@ describe 'Output Format End-to-End Tests' do
       expect(parsed['string']).to be_a(String)
       expect(parsed['integer']).to be_a(Integer)
       expect(parsed['float']).to be_a(Float)
-      expect(parsed['boolean']).to be(true)
+      expect(parsed['boolean']).to eq(true)
       expect(parsed['null']).to be_nil
       expect(parsed['array']).to be_a(Array)
       expect(parsed['nested']).to be_a(Hash)

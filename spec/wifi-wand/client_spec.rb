@@ -6,7 +6,7 @@ require 'wifi-wand/errors'
 require 'ostruct'
 
 RSpec.describe WifiWand::Client do
-  let(:mock_model) { instance_double(WifiWand::MacOsModel) }
+  let(:mock_model) { instance_double('WifiWand::MacOsModel') }
   let(:options) { OpenStruct.new }
 
   before do
@@ -53,7 +53,7 @@ RSpec.describe WifiWand::Client do
       # Verify that Hash was converted to OpenStruct before passing to create_model_for_current_os
       expect(WifiWand::OperatingSystems).to have_received(:create_model_for_current_os) do |arg|
         expect(arg).to be_a(OpenStruct)
-        expect(arg.verbose).to be(true)
+        expect(arg.verbose).to eq(true)
         expect(arg.wifi_interface).to eq('wlan0')
       end
     end
@@ -144,13 +144,15 @@ RSpec.describe WifiWand::Client do
     let(:client) { described_class.new(options) }
 
     it 'mac? is true when os == :mac' do
-      allow(mock_model).to receive_messages(mac?: true, ubuntu?: false)
+      allow(mock_model).to receive(:mac?).and_return(true)
+      allow(mock_model).to receive(:ubuntu?).and_return(false)
       expect(client.mac?).to be(true)
       expect(client.ubuntu?).to be(false)
     end
 
     it 'ubuntu? is true when os == :ubuntu' do
-      allow(mock_model).to receive_messages(ubuntu?: true, mac?: false)
+      allow(mock_model).to receive(:ubuntu?).and_return(true)
+      allow(mock_model).to receive(:mac?).and_return(false)
       expect(client.ubuntu?).to be(true)
       expect(client.mac?).to be(false)
     end

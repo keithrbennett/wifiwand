@@ -37,7 +37,7 @@ module WifiWand
         is_hidden    = model.network_hidden?
 
         # Normalize filespec for robust API (support symbols as '-' too)
-        spec = filespec&.to_s
+        spec = filespec.nil? ? nil : filespec.to_s
 
         qr_string = build_wifi_qr_string(network_name, password, security, is_hidden)
         return run_qrencode_text(model, qr_string, delivery_mode: delivery_mode) if spec == '-'
@@ -62,15 +62,12 @@ module WifiWand
                           else
                             'install qrencode using your system package manager'
         end
-        raise WifiWand::Error, "Required operating system dependency 'qrencode' library not found. Use #{install_command} to install it."
+        raise WifiWand::Error.new("Required operating system dependency 'qrencode' library not found. Use #{install_command} to install it.")
       end
 
       def require_connected_network_name(model)
         name = model.connected_network_name
-        unless name
-          raise WifiWand::Error,
-            'Not connected to any WiFi network. Connect to a network first.'
-        end
+        raise WifiWand::Error.new('Not connected to any WiFi network. Connect to a network first.') unless name
 
         name
       end
@@ -126,7 +123,7 @@ module WifiWand
           begin
             File.delete(filename)
           rescue
-            raise WifiWand::Error, "QR code output file '#{filename}' already exists and could not be overwritten."
+            raise WifiWand::Error.new("QR code output file '#{filename}' already exists and could not be overwritten.")
           end
           return
         end
@@ -138,15 +135,15 @@ module WifiWand
             begin
               File.delete(filename)
             rescue
-              raise WifiWand::Error, "QR code output file '#{filename}' already exists and could not be overwritten."
+              raise WifiWand::Error.new("QR code output file '#{filename}' already exists and could not be overwritten.")
             end
             nil
           else
-            raise WifiWand::Error, 'Overwrite cancelled: file exists'
+            raise WifiWand::Error.new('Overwrite cancelled: file exists')
           end
         else
           # Non-interactive: instruct the user to delete first
-          raise WifiWand::Error, "QR code output file '#{filename}' already exists. Delete the file first or confirm overwrite in the client."
+          raise WifiWand::Error.new("QR code output file '#{filename}' already exists. Delete the file first or confirm overwrite in the client.")
         end
       end
 
@@ -157,7 +154,7 @@ module WifiWand
           model.run_os_command(cmd)
           model.out_stream.puts "QR code generated: #{filename}" if model.verbose_mode
         rescue WifiWand::CommandExecutor::OsCommandError => e
-          raise WifiWand::Error, "Failed to generate QR code: #{e.message}"
+          raise WifiWand::Error.new("Failed to generate QR code: #{e.message}")
         end
       end
 
@@ -174,7 +171,7 @@ module WifiWand
             '-'
           end
         rescue WifiWand::CommandExecutor::OsCommandError => e
-          raise WifiWand::Error, "Failed to generate QR code: #{e.message}"
+          raise WifiWand::Error.new("Failed to generate QR code: #{e.message}")
         end
       end
 

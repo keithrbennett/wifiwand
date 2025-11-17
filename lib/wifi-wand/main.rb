@@ -33,15 +33,15 @@ module WifiWand
 
         parser.on('-o', '--output_format FORMAT', 'Format output data') do |v|
           formatters = {
-            'i' => lambda(&:inspect),
-            'j' => lambda(&:to_json),
+            'i' => ->(object) { object.inspect },
+            'j' => ->(object) { object.to_json },
             'k' => ->(object) { JSON.pretty_generate(object) },
             'p' => ->(object) {
               sio = StringIO.new
               sio.puts(object)
               sio.string
             },
-            'y' => lambda(&:to_yaml)
+            'y' => ->(object) { object.to_yaml }
           }
 
           choice = v[0].downcase
@@ -52,7 +52,7 @@ module WifiWand
               Output format "#{choice}" not in list of available formats (#{formatters.keys.join(', ')}).
 
             MESSAGE
-            raise ConfigurationError, "Invalid output format '#{choice}'. Available formats: #{formatters.keys.join(', ')}"
+            raise ConfigurationError.new("Invalid output format '#{choice}'. Available formats: #{formatters.keys.join(', ')}")
           end
 
           options.post_processor = formatters[choice]
@@ -104,7 +104,7 @@ module WifiWand
 
       ARGV.unshift(*env_args)
     rescue ArgumentError => e
-      raise ConfigurationError, "Invalid WIFIWAND_OPTS value: #{e.message}"
+      raise ConfigurationError.new("Invalid WIFIWAND_OPTS value: #{e.message}")
     end
 
     def handle_error(error, verbose_mode)

@@ -189,7 +189,7 @@ describe 'ResourceManager error handling and edge cases' do
 
       expect { resource_manager.open_resources }.to raise_error(ArgumentError, /Invalid YAML/)
 
-      FileUtils.rm_f(invalid_yaml_path)
+      File.delete(invalid_yaml_path) if File.exist?(invalid_yaml_path)
     end
 
     it 'raises error when YAML file is missing resources key' do
@@ -202,7 +202,7 @@ describe 'ResourceManager error handling and edge cases' do
         resource_manager.open_resources
       end.to raise_error(ArgumentError, /must contain a 'resources' key/)
 
-      FileUtils.rm_f(invalid_yaml_path)
+      File.delete(invalid_yaml_path) if File.exist?(invalid_yaml_path)
     end
   end
 
@@ -223,7 +223,7 @@ describe 'ResourceManager error handling and edge cases' do
       expect(resource.url).to be_nil
       expect(resource.description).to be_nil
 
-      FileUtils.rm_f(incomplete_yaml_path)
+      File.delete(incomplete_yaml_path) if File.exist?(incomplete_yaml_path)
     end
   end
 end

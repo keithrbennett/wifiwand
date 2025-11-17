@@ -49,7 +49,7 @@ module WifiWand
 
       def format_boolean_status(value, true_char: '✅ YES', false_char: '❌ NO',
         pending_char: '⏳ WAIT')
-        value = !value.nil? unless value.nil? # convert non-Boolean non-nil values to true or false
+        value = !!value unless value.nil? # convert non-Boolean non-nil values to true or false
         char, color = case value
                       when nil
                         [pending_char, :yellow]

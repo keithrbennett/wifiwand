@@ -6,7 +6,7 @@ require_relative '../../../lib/wifi-wand/services/command_executor'
 describe WifiWand::CommandExecutor do
   describe '#run_os_command' do
     context 'with verbose mode disabled' do
-      let(:executor) { described_class.new(verbose: false) }
+      let(:executor) { WifiWand::CommandExecutor.new(verbose: false) }
 
       it 'executes commands successfully' do
         result = executor.run_os_command('echo "test"')
@@ -34,7 +34,7 @@ describe WifiWand::CommandExecutor do
     end
 
     context 'with verbose mode enabled' do
-      let(:executor) { described_class.new(verbose: true) }
+      let(:executor) { WifiWand::CommandExecutor.new(verbose: true) }
 
       it 'outputs command attempt and duration info' do
         expect do
@@ -45,7 +45,7 @@ describe WifiWand::CommandExecutor do
   end
 
   describe '#try_os_command_until' do
-    let(:executor) { described_class.new(verbose: false) }
+    let(:executor) { WifiWand::CommandExecutor.new(verbose: false) }
 
     it 'returns output when condition is met on first try' do
       condition = ->(output) { output.include?('success') }
@@ -85,7 +85,7 @@ describe WifiWand::CommandExecutor do
 
     it 'reports attempt count in verbose mode' do
       io = StringIO.new
-      verbose_executor = described_class.new(verbose: true, output: io)
+      verbose_executor = WifiWand::CommandExecutor.new(verbose: true, output: io)
       condition = ->(_output) { true } # Succeeds on first try
       verbose_executor.try_os_command_until('echo "test"', condition, 3)
       expect(io.string).to match(/Command was executed 1 time/)
@@ -93,7 +93,7 @@ describe WifiWand::CommandExecutor do
   end
 
   describe '#command_available?' do
-    let(:executor) { described_class.new(verbose: false) }
+    let(:executor) { WifiWand::CommandExecutor.new(verbose: false) }
 
     it 'returns true for available commands' do
       expect(executor.command_available?('echo')).to be true
@@ -106,7 +106,8 @@ describe WifiWand::CommandExecutor do
     it 'checks executable files in PATH directories' do
       # Mock ENV['PATH'] to test the implementation
       allow(ENV).to receive(:[]).with('PATH').and_return('/usr/bin:/bin')
-      allow(File).to receive_messages(executable?: false, directory?: false)
+      allow(File).to receive(:executable?).and_return(false)
+      allow(File).to receive(:directory?).and_return(false)
       allow(File).to receive(:executable?).with('/usr/bin/test_cmd').and_return(true)
 
       expect(executor.command_available?('test_cmd')).to be true
@@ -122,7 +123,7 @@ describe WifiWand::CommandExecutor do
   end
 
   describe WifiWand::CommandExecutor::OsCommandError do
-    let(:error) { described_class.new(1, 'false', 'command failed') }
+    let(:error) { WifiWand::CommandExecutor::OsCommandError.new(1, 'false', 'command failed') }
 
     it 'stores command execution details' do
       expect(error.exitstatus).to eq(1)

@@ -43,15 +43,15 @@ module WifiWand
     # 1   - General error (could be "not found" or other issues)
     KEYCHAIN_EXIT_CODE_HANDLERS = {
       44 => ->(_network_name, _error) {}, # Item not found - no password stored
-      45 => ->(network_name, _error) { raise KeychainAccessDeniedError, network_name },
-      128 => ->(network_name, _error) { raise KeychainAccessCancelledError, network_name },
-      51 => ->(network_name, _error) { raise KeychainNonInteractiveError, network_name },
-      25 => ->(network_name, _error) { raise KeychainError, "Invalid keychain search parameters for network '#{network_name}'" },
+      45 => ->(network_name, _error) { raise KeychainAccessDeniedError.new(network_name) },
+      128 => ->(network_name, _error) { raise KeychainAccessCancelledError.new(network_name) },
+      51 => ->(network_name, _error) { raise KeychainNonInteractiveError.new(network_name) },
+      25 => ->(network_name, _error) { raise KeychainError.new("Invalid keychain search parameters for network '#{network_name}'") },
       1 => ->(network_name, error) {
         if error.text.include?('could not be found')
           nil
         else
-          raise KeychainError, "Keychain error accessing password for network '#{network_name}': #{error.text.strip}"
+          raise KeychainError.new("Keychain error accessing password for network '#{network_name}': #{error.text.strip}")
         end
       }
     }.freeze
@@ -128,7 +128,7 @@ module WifiWand
 
     # Detects the Wi-Fi service name dynamically (e.g., "Wi-Fi", "AirPort", etc.)
     def detect_wifi_service_name
-      @detect_wifi_service_name ||= begin
+      @wifi_service_name ||= begin
         ports = fetch_hardware_ports
         detect_wifi_service_name_from_ports(ports)
       end
@@ -157,7 +157,7 @@ module WifiWand
       wifi_port ||= find_wifi_port(ports)
 
       iface = wifi_port && wifi_port[:device]
-      raise WifiInterfaceError if iface.nil? || iface.empty?
+      raise WifiInterfaceError.new if iface.nil? || iface.empty?
 
       iface
     end
@@ -266,7 +266,7 @@ module WifiWand
 
       iface = ensure_wifi_interface!
       run_os_command(['networksetup', '-setairportpower', iface, 'on'])
-      wifi_on? ? nil : raise(WifiEnableError)
+      wifi_on? ? nil : raise(WifiEnableError.new)
     end
 
     # Turns WiFi off.
@@ -276,7 +276,7 @@ module WifiWand
       iface = ensure_wifi_interface!
       run_os_command(['networksetup', '-setairportpower', iface, 'off'])
 
-      wifi_on? ? raise(WifiDisableError) : nil
+      wifi_on? ? raise(WifiDisableError.new) : nil
     end
 
     # This method is called by BaseModel#connect to do the OS-specific connection logic.
@@ -295,7 +295,7 @@ module WifiWand
       return '' if output_text.nil?
 
       lines = output_text.lines.map(&:strip).reject(&:empty?)
-      filtered = lines.grep_v(/Failed to join network/i)
+      filtered = lines.reject { |line| line.match?(/Failed to join network/i) }
       reason = filtered.join(' ')
       reason.empty? ? output_text.strip : reason
     end
@@ -447,7 +447,7 @@ module WifiWand
         end
 
         unless bad_addresses.empty?
-          raise InvalidIPAddressError, bad_addresses
+          raise InvalidIPAddressError.new(bad_addresses)
         end
 
         run_os_command(['networksetup', '-setdnsservers', service_name] + nameservers)
@@ -565,7 +565,7 @@ module WifiWand
         # Unknown error - provide detailed information for debugging
         error_msg = "Unknown keychain error (exit code #{error.exitstatus}) accessing password for network '#{network_name}'"
         error_msg += ": #{error.text.strip}" unless error.text.empty?
-        raise KeychainError, error_msg
+        raise KeychainError.new(error_msg)
       end
     end
 

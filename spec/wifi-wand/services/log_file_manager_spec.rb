@@ -11,14 +11,14 @@ describe WifiWand::LogFileManager do
   let(:output) { StringIO.new }
 
   after do
-    FileUtils.rm_rf(temp_dir)
+    FileUtils.remove_entry(temp_dir) if Dir.exist?(temp_dir)
   end
 
   describe 'initialization' do
     it 'creates an instance with default log file path' do
       Dir.mktmpdir do |dir|
         Dir.chdir(dir) do
-          manager = described_class.new
+          manager = WifiWand::LogFileManager.new
           expect(manager.log_file_path).to eq(WifiWand::LogFileManager::DEFAULT_LOG_FILE)
           manager.close
         end
@@ -26,24 +26,24 @@ describe WifiWand::LogFileManager do
     end
 
     it 'creates an instance with custom log file path' do
-      manager = described_class.new(log_file_path: log_file_path)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path)
       expect(manager.log_file_path).to eq(log_file_path)
     end
 
     it 'opens log file in append mode' do
-      manager = described_class.new(log_file_path: log_file_path)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path)
       expect(File.exist?(log_file_path)).to be true
       manager.close
     end
 
     it 'accepts verbose flag' do
-      manager = described_class.new(log_file_path: log_file_path, verbose: true)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path, verbose: true)
       expect(manager.verbose).to be true
       manager.close
     end
 
     it 'accepts output stream' do
-      manager = described_class.new(log_file_path: log_file_path, output: output)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path, output: output)
       expect(manager.output).to eq(output)
       manager.close
     end
@@ -51,7 +51,7 @@ describe WifiWand::LogFileManager do
 
   describe '#write' do
     it 'writes message to log file' do
-      manager = described_class.new(log_file_path: log_file_path)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path)
       manager.write('Test message')
       manager.close
 
@@ -60,7 +60,7 @@ describe WifiWand::LogFileManager do
     end
 
     it 'appends multiple messages' do
-      manager = described_class.new(log_file_path: log_file_path)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path)
       manager.write('Message 1')
       manager.write('Message 2')
       manager.write('Message 3')
@@ -76,7 +76,7 @@ describe WifiWand::LogFileManager do
       # Write initial content
       File.write(log_file_path, "Initial content\n")
 
-      manager = described_class.new(log_file_path: log_file_path)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path)
       manager.write('New message')
       manager.close
 
@@ -86,7 +86,7 @@ describe WifiWand::LogFileManager do
     end
 
     it 'handles write errors gracefully' do
-      manager = described_class.new(log_file_path: log_file_path)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path)
       manager.instance_variable_set(:@file_handle, nil) # Simulate closed file
 
       expect do
@@ -95,7 +95,7 @@ describe WifiWand::LogFileManager do
     end
 
     it 'flushes after each write' do
-      manager = described_class.new(log_file_path: log_file_path)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path)
       manager.write('Flushed message')
 
       # File should be readable immediately
@@ -108,7 +108,7 @@ describe WifiWand::LogFileManager do
 
   describe '#close' do
     it 'closes the file handle' do
-      manager = described_class.new(log_file_path: log_file_path)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path)
       file_handle = manager.instance_variable_get(:@file_handle)
       expect(file_handle.closed?).to be false
 
@@ -117,20 +117,20 @@ describe WifiWand::LogFileManager do
     end
 
     it 'sets file handle to nil after closing' do
-      manager = described_class.new(log_file_path: log_file_path)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path)
       manager.close
       file_handle = manager.instance_variable_get(:@file_handle)
       expect(file_handle).to be_nil
     end
 
     it 'handles multiple close calls gracefully' do
-      manager = described_class.new(log_file_path: log_file_path)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path)
       manager.close
       expect { manager.close }.not_to raise_error
     end
 
     it 'raises errors during close' do
-      manager = described_class.new(log_file_path: log_file_path)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path)
       file_handle = manager.instance_variable_get(:@file_handle)
       allow(file_handle).to receive(:close).and_raise(StandardError, 'Close error')
 
@@ -147,7 +147,7 @@ describe WifiWand::LogFileManager do
   describe 'error handling' do
     it 'handles permission errors gracefully when directory exists' do
       # Create a log file that should work
-      manager = described_class.new(log_file_path: log_file_path)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path)
       manager.close
 
       # Verify the file was created
@@ -157,7 +157,7 @@ describe WifiWand::LogFileManager do
 
   describe 'integration' do
     it 'creates a properly formatted log file with multiple entries' do
-      manager = described_class.new(log_file_path: log_file_path)
+      manager = WifiWand::LogFileManager.new(log_file_path: log_file_path)
 
       entries = [
         '[2025-10-28 14:30:15] WiFi ON',

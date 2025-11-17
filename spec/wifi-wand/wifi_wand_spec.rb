@@ -11,7 +11,7 @@ RSpec.describe WifiWand do
         .with(options)
         .and_return(:mock_model)
 
-      expect(described_class.create_model(options)).to eq(:mock_model)
+      expect(WifiWand.create_model(options)).to eq(:mock_model)
     end
 
     it 'delegates to OperatingSystems.create_model_for_current_os with Hash options' do
@@ -20,7 +20,7 @@ RSpec.describe WifiWand do
         .to receive(:create_model_for_current_os)
         .and_return(:mock_hash_model)
 
-      expect(described_class.create_model(hash_options)).to eq(:mock_hash_model)
+      expect(WifiWand.create_model(hash_options)).to eq(:mock_hash_model)
     end
 
     it 'delegates to OperatingSystems.create_model_for_current_os with default options' do
@@ -28,7 +28,7 @@ RSpec.describe WifiWand do
         .to receive(:create_model_for_current_os)
         .and_return(:default_mock_model)
 
-      expect(described_class.create_model).to eq(:default_mock_model)
+      expect(WifiWand.create_model).to eq(:default_mock_model)
     end
   end
 end

@@ -5,7 +5,7 @@ require 'yaml'
 module WifiWand
   module Helpers
     class ResourceManager
-      OpenResource = Struct.new(:code, :url, :description) do
+      class OpenResource < Struct.new(:code, :url, :description)
         def help_string
           "'#{code}' (#{description})"
         end

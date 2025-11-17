@@ -12,7 +12,7 @@ describe WifiWand::StatusWaiter do
     )
   end
 
-  let(:waiter) { described_class.new(mock_model, verbose: false) }
+  let(:waiter) { WifiWand::StatusWaiter.new(mock_model, verbose: false) }
 
   describe '#wait_for' do
     context 'with :on status' do
@@ -118,7 +118,7 @@ describe WifiWand::StatusWaiter do
 
 
     context 'with verbose mode enabled' do
-      let(:verbose_waiter) { described_class.new(mock_model, verbose: true) }
+      let(:verbose_waiter) { WifiWand::StatusWaiter.new(mock_model, verbose: true) }
 
       it 'logs waiting information when condition is not met initially' do
         call_count = 0
@@ -170,7 +170,7 @@ describe WifiWand::StatusWaiter do
         allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
           .and_return(start_time, end_time)
 
-        verbose_waiter = described_class.new(mock_model, verbose: true)
+        verbose_waiter = WifiWand::StatusWaiter.new(mock_model, verbose: true)
         allow(verbose_waiter).to receive(:sleep)
 
         expect do
@@ -181,7 +181,8 @@ describe WifiWand::StatusWaiter do
 
     context 'with timeout' do
       it 'raises WaitTimeoutError when timeout elapses' do
-        allow(mock_model).to receive_messages(wifi_on?: false, connected_to_internet?: false)
+        allow(mock_model).to receive(:wifi_on?).and_return(false)
+        allow(mock_model).to receive(:connected_to_internet?).and_return(false)
 
         expect do
           waiter.wait_for(:on, timeout_in_secs: 0)

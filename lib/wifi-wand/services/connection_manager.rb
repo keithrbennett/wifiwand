@@ -97,7 +97,7 @@ module WifiWand
 
     def validate_network_name(network_name)
       if network_name.nil? || network_name.empty?
-        raise InvalidNetworkNameError, network_name || ''
+        raise InvalidNetworkNameError.new(network_name || '')
       end
     end
 
@@ -135,7 +135,7 @@ module WifiWand
         return [nil, false]
       end
 
-      password_provided = password && !password.empty?
+      password_provided = password && password.length > 0
       return [password, false] if password_provided
 
       begin

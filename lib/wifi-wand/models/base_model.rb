@@ -80,7 +80,7 @@ module WifiWand
         if is_wifi_interface?(@options.wifi_interface)
           @wifi_interface = @options.wifi_interface
         else
-          raise InvalidInterfaceError, @options.wifi_interface
+          raise InvalidInterfaceError.new(@options.wifi_interface)
         end
       else
         @wifi_interface = detect_wifi_interface
@@ -88,7 +88,7 @@ module WifiWand
 
       # Validate that WiFi interface is a valid string
       if @wifi_interface.nil? || @wifi_interface.empty?
-        raise WifiInterfaceError
+        raise WifiInterfaceError.new
       end
 
       self
@@ -361,7 +361,7 @@ module WifiWand
       if has_preferred_network?(preferred_network_name)
         _preferred_network_password(preferred_network_name)
       else
-        raise PreferredNetworkNotFoundError, preferred_network_name
+        raise PreferredNetworkNotFoundError.new(preferred_network_name)
       end
     end
 
