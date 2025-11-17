@@ -85,7 +85,7 @@ class UbuntuModel < BaseModel
 
     # Parse SSID and signal strength, then sort by signal (descending)
     networks = networks_with_signal.map do |line|
-      ssid, signal = line.split(':', 2)  # Limit to 2 parts in case SSID contains colons
+      ssid, signal = line.split(':', 2) # Limit to 2 parts in case SSID contains colons
       [ssid, signal.to_i]
     end.sort_by { |_, signal| -signal }.map { |ssid, _| ssid }
 
@@ -404,7 +404,7 @@ false).stdout
       bad_addresses = nameservers.reject do |ns|
         begin
           require 'ipaddr'
-          IPAddr.new(ns)  # Valid if IPAddr can parse it (IPv4 or IPv6)
+          IPAddr.new(ns) # Valid if IPAddr can parse it (IPv4 or IPv6)
           true
         rescue
           false

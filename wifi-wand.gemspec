@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
     'changelog_uri'   => 'https://github.com/keithrbennett/wifiwand/blob/main/RELEASE_NOTES.md'
   }
 
-  spec.files         = Dir.chdir(File.expand_path(__dir__)) do
+  spec.files = Dir.chdir(File.expand_path(__dir__)) do
     `git ls-files -z`.split("\x0").reject do |f|
       # Exclude developer-only files (code signing docs, release rake tasks)
       f.match(%r{^(lib/tasks/dev|docs/dev)/})

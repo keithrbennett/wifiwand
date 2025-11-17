@@ -61,7 +61,7 @@ describe WifiWand::Main do
     end
 
     it 'handles invalid output format' do
-      stub_const('ARGV', ['-o', 'z', 'info'])  # 'z' is not a valid format
+      stub_const('ARGV', ['-o', 'z', 'info']) # 'z' is not a valid format
       expect { subject.parse_command_line }.to raise_error(WifiWand::ConfigurationError)
     end
 
@@ -239,11 +239,11 @@ interactive_mode: false))
       expect(result).to be_a(String)
       parsed_result = JSON.parse(result)
       expect(parsed_result).to eq(test_data)
-      expect(result).to include("\n")  # Pretty formatting includes newlines
+      expect(result).to include("\n") # Pretty formatting includes newlines
     end
 
     it 'creates StringIO processor' do
-      stub_const('ARGV', ['-o', 'p', 'info'])  # 'p' for puts via StringIO
+      stub_const('ARGV', ['-o', 'p', 'info']) # 'p' for puts via StringIO
       options = subject.parse_command_line
 
       processor = options.post_processor

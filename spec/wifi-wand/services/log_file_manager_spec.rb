@@ -87,7 +87,7 @@ describe WifiWand::LogFileManager do
 
     it 'handles write errors gracefully' do
       manager = WifiWand::LogFileManager.new(log_file_path: log_file_path)
-      manager.instance_variable_set(:@file_handle, nil)  # Simulate closed file
+      manager.instance_variable_set(:@file_handle, nil) # Simulate closed file
 
       expect {
         manager.write('Test message')

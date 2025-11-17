@@ -7,7 +7,7 @@ module OSFiltering
     # Auto-detect current OS and filter tests accordingly
     begin
       current_os = WifiWand::OperatingSystems.current_os
-      current_os_id = current_os.id  # This returns :mac or :ubuntu
+      current_os_id = current_os.id # This returns :mac or :ubuntu
       compatible_os_tag = "os_#{current_os_id}".to_sym
 
       # Store in global variable for use in before hooks

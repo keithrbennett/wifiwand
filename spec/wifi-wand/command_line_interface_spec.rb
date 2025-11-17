@@ -146,8 +146,8 @@ describe WifiWand::CommandLineInterface do
 
       specify 'minimum command lengths may be required' do
         # Minimum string length requirements
-        expect(subject.find_command_action('c')).to be_nil  # Too short
-        expect(subject.find_command_action('co')).not_to be_nil  # Minimum length
+        expect(subject.find_command_action('c')).to be_nil # Too short
+        expect(subject.find_command_action('co')).not_to be_nil # Minimum length
       end
     end
 

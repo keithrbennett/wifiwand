@@ -17,7 +17,7 @@ describe WifiWand::CommandExecutor do
 
       it 'raises OsCommandError on command failure when raise_on_error is true' do
         expect {
-          executor.run_os_command('false')  # Command that always fails
+          executor.run_os_command('false') # Command that always fails
         }.to raise_error(WifiWand::CommandExecutor::OsCommandError)
       end
 
@@ -75,19 +75,19 @@ describe WifiWand::CommandExecutor do
       }
 
       result = executor.try_os_command_until('echo "test"', condition, 5)
-      expect(result.strip).to eq('attempt 2')  # Should succeed on second try
-      expect(call_count).to eq(2)  # Should have been called exactly twice
+      expect(result.strip).to eq('attempt 2') # Should succeed on second try
+      expect(call_count).to eq(2) # Should have been called exactly twice
     end
 
     it 'returns nil when max_tries is reached without success' do
-      condition = ->(_output) { false }  # Never succeeds
+      condition = ->(_output) { false } # Never succeeds
       expect(executor.try_os_command_until('echo "fail"', condition, 2)).to be_nil
     end
 
     it 'reports attempt count in verbose mode' do
       io = StringIO.new
       verbose_executor = WifiWand::CommandExecutor.new(verbose: true, output: io)
-      condition = ->(_output) { true }  # Succeeds on first try
+      condition = ->(_output) { true } # Succeeds on first try
       verbose_executor.try_os_command_until('echo "test"', condition, 3)
       expect(io.string).to match(/Command was executed 1 time/)
     end

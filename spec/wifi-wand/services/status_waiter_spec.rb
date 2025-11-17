@@ -29,10 +29,10 @@ describe WifiWand::StatusWaiter do
         call_count = 0
         allow(mock_model).to receive(:wifi_on?) do
           call_count += 1
-          call_count > 2  # Simulate wifi turning on after 2 checks
+          call_count > 2 # Simulate wifi turning on after 2 checks
         end
-        allow(waiter).to receive(:sleep)  # Mock sleep to speed up test
-        expect(waiter.wait_for(:on)).to be_nil  # No timeout needed because `sleep` is mocked
+        allow(waiter).to receive(:sleep) # Mock sleep to speed up test
+        expect(waiter.wait_for(:on)).to be_nil # No timeout needed because `sleep` is mocked
       end
     end
 
@@ -50,9 +50,9 @@ describe WifiWand::StatusWaiter do
         call_count = 0
         allow(mock_model).to receive(:wifi_on?) do
           call_count += 1
-          call_count <= 2  # Simulate wifi turning off after 2 checks
+          call_count <= 2 # Simulate wifi turning off after 2 checks
         end
-        allow(waiter).to receive(:sleep)  # Mock sleep to speed up test
+        allow(waiter).to receive(:sleep) # Mock sleep to speed up test
         expect(waiter.wait_for(:off, 
 wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
       end
@@ -72,9 +72,9 @@ wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
         call_count = 0
         allow(mock_model).to receive(:connected_to_internet?) do
           call_count += 1
-          call_count > 2  # Simulate connection after 2 checks
+          call_count > 2 # Simulate connection after 2 checks
         end
-        allow(waiter).to receive(:sleep)  # Mock sleep to speed up test
+        allow(waiter).to receive(:sleep) # Mock sleep to speed up test
         expect(waiter.wait_for(:conn, 
 wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
       end
@@ -94,9 +94,9 @@ wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
         call_count = 0
         allow(mock_model).to receive(:connected_to_internet?) do
           call_count += 1
-          call_count <= 2  # Simulate disconnection after 2 checks
+          call_count <= 2 # Simulate disconnection after 2 checks
         end
-        allow(waiter).to receive(:sleep)  # Mock sleep to speed up test
+        allow(waiter).to receive(:sleep) # Mock sleep to speed up test
         expect(waiter.wait_for(:disc, 
 wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
       end
@@ -124,10 +124,10 @@ wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
         call_count = 0
         allow(mock_model).to receive(:wifi_on?) do
           call_count += 1
-          call_count > 1  # Will need to wait
+          call_count > 1 # Will need to wait
         end
 
-        allow(verbose_waiter).to receive(:sleep)  # Mock sleep
+        allow(verbose_waiter).to receive(:sleep) # Mock sleep
 
         expect {
           verbose_waiter.wait_for(:on, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)
@@ -174,7 +174,7 @@ wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
         allow(verbose_waiter).to receive(:sleep)
 
         expect {
-          verbose_waiter.wait_for(:on, timeout_in_secs: 10)  # Use longer timeout to ensure it doesn't timeout
+          verbose_waiter.wait_for(:on, timeout_in_secs: 10) # Use longer timeout to ensure it doesn't timeout
         }.to output(/StatusWaiter \(on\): wait time \(seconds\): 2\.5/).to_stdout
       end
     end

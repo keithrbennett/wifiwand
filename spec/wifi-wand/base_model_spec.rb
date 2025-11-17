@@ -507,7 +507,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     it 'calls NotImplementedError for dynamically defined required methods' do
       # Test the NotImplementedError by calling the method directly on BaseModel
-      base_model_instance = WifiWand::BaseModel.allocate  # Don\'t call initialize
+      base_model_instance = WifiWand::BaseModel.allocate # Don\'t call initialize
 
       expect {
         base_model_instance.default_interface
@@ -550,7 +550,7 @@ out_stream: captured_output)
         allow(model).to receive(:nameservers).and_return(['8.8.8.8'])
         allow(model).to receive(:internet_tcp_connectivity?).and_return(true)
         allow(model).to receive(:dns_working?).and_return(true)
-        allow(model).to receive(:sleep)  # Don\'t actually sleep
+        allow(model).to receive(:sleep) # Don\'t actually sleep
 
         model.init_wifi_interface
         model

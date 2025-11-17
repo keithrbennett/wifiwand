@@ -940,7 +940,7 @@ ipv6_nameservers.join(' ')], false)
             .and_return(command_result(stdout: connection_output))
 
           result = subject.send(:find_best_profile_for_ssid, 'MyNetwork')
-          expect(result).to eq('MyNetwork-2')  # Most recent profile
+          expect(result).to eq('MyNetwork-2') # Most recent profile
         end
 
         it 'returns nil when no profile exists for SSID' do
@@ -1014,7 +1014,7 @@ anything).and_return(command_result(stdout: 'enabled'))
         allow(subject).to receive(:wifi_interface).and_return('wlan0')
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'radio', 'wifi'], false)
-          .and_return(command_result(stdout: 'enabled'))  # wifi_on? returns true
+          .and_return(command_result(stdout: 'enabled')) # wifi_on? returns true
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'dev', 'disconnect', 'wlan0'])
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli dev disconnect wlan0', 
@@ -1030,7 +1030,7 @@ anything).and_return(command_result(stdout: 'enabled'))
         allow(subject).to receive(:wifi_interface).and_return(command_result(stdout: 'wlan0'))
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'radio', 'wifi'], false)
-          .and_return(command_result(stdout: 'enabled'))  # wifi_on? returns true
+          .and_return(command_result(stdout: 'enabled')) # wifi_on? returns true
         allow(subject).to receive(:run_os_command)
           .with(['nmcli', 'dev', 'disconnect', 'wlan0'])
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(6, 'nmcli dev disconnect wlan0', 
@@ -1104,7 +1104,7 @@ anything).and_return(command_result(stdout: 'enabled'))
         # Mock iw dev info to fail without real commands
         allow(subject).to receive(:run_os_command)
           .with(/iw dev .* info 2>\/dev\/null/, false)
-          .and_return(command_result(stdout: ''))  # When command fails with raise_on_error=false, it returns empty string
+          .and_return(command_result(stdout: '')) # When command fails with raise_on_error=false, it returns empty string
 
         expect(subject.is_wifi_interface?('wlan0')).to be(false)
       end
@@ -1148,7 +1148,7 @@ anything).and_return(command_result(stdout: 'enabled'))
         allow(subject).to receive(:find_best_profile_for_ssid).and_return(nil)
         allow(subject).to receive(:run_os_command)
           .with(/nmcli dev wifi connect.*password/)
-          .and_return(command_result(stdout: ''))  # Simulate successful connection
+          .and_return(command_result(stdout: '')) # Simulate successful connection
 
         # Should fall back to direct connection attempt without actually connecting
         expect { subject._connect('TestNetwork', 'test_password') }

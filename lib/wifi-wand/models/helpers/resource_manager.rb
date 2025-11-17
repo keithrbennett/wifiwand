@@ -39,7 +39,7 @@ module WifiWand
         invalid_codes = []
 
         resource_codes.each do |code|
-          code = code.to_s  # accommodate conversion from other types
+          code = code.to_s # accommodate conversion from other types
           resource = open_resources.find_by_code(code)
 
           if resource

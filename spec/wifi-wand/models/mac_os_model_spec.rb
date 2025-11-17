@@ -526,7 +526,7 @@ module WifiWand
       describe '#swift_and_corewlan_present?' do
         it 'detects Swift/CoreWLAN availability' do
           test_cases = [
-            [nil, true],  # Command succeeds
+            [nil, true], # Command succeeds
             [WifiWand::CommandExecutor::OsCommandError.new(127, 'swift', ''), false], # Swift not found
             [WifiWand::CommandExecutor::OsCommandError.new(1, 'swift', ''), false],   # CoreWLAN not available
             [WifiWand::CommandExecutor::OsCommandError.new(2, 'swift', ''), false]    # Other error

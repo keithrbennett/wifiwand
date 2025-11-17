@@ -42,7 +42,7 @@ module WifiWand
         qr_string = build_wifi_qr_string(network_name, password, security, is_hidden)
         return run_qrencode_text(model, qr_string, delivery_mode: delivery_mode) if spec == '-'
 
-        filename  = spec && !spec.empty? ? spec : build_filename(network_name)
+        filename = spec && !spec.empty? ? spec : build_filename(network_name)
         confirm_overwrite(filename, overwrite: overwrite, output_stream: model.out_stream)
         run_qrencode_file(model, filename, qr_string)
         filename

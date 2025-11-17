@@ -250,7 +250,7 @@ iface]).stdout.split("\n")
   def is_wifi_interface?(interface)
     begin
       run_os_command(['networksetup', '-listpreferredwirelessnetworks', interface])
-      true  # If command succeeds, it's a WiFi interface
+      true # If command succeeds, it's a WiFi interface
     rescue WifiWand::CommandExecutor::OsCommandError => e
       # Exit code 10 means not a WiFi interface
       e.exitstatus != 10
@@ -460,7 +460,7 @@ iface]).stdout.split("\n")
       # Validate IP addresses (accept both IPv4 and IPv6)
       bad_addresses = nameservers.reject do |ns|
         begin
-          IPAddr.new(ns)  # Valid if IPAddr can parse it (IPv4 or IPv6)
+          IPAddr.new(ns) # Valid if IPAddr can parse it (IPv4 or IPv6)
           true
         rescue
           false

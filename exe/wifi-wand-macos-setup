@@ -113,7 +113,7 @@ begin
 
     # Open System Settings to Location Services
     puts 'Opening System Settings → Privacy & Security → Location Services...'
-    sleep 1  # Brief pause so user can read the message
+    sleep 1 # Brief pause so user can read the message
 
     system('open', 
 'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices')

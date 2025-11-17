@@ -137,9 +137,9 @@ input: 'disconnected', expected_output: 'disconnected',           tty: false }
       method_name: :colorize_network_name,
       tests: {
         'colorizes quoted network names in cyan when TTY'                => { 
-input: 'Connected to "MyNetwork" successfully',     expected_output: "Connected to \e[36m\"MyNetwork\"\e[0m successfully", tty: true },
+input: 'Connected to "MyNetwork" successfully', expected_output: "Connected to \e[36m\"MyNetwork\"\e[0m successfully", tty: true },
         'colorizes multiple quoted network names when TTY'               => { 
-input: 'Networks: "Network1" and "Network2"',      expected_output: "Networks: \e[36m\"Network1\"\e[0m and \e[36m\"Network2\"\e[0m", tty: true },
+input: 'Networks: "Network1" and "Network2"', expected_output: "Networks: \e[36m\"Network1\"\e[0m and \e[36m\"Network2\"\e[0m", tty: true },
         'does not colorize unquoted text when TTY'                       => { 
 input: 'No quoted networks here',                   expected_output: 'No quoted networks here', tty: true, has_color: false },
         'handles empty quotes when TTY'                                  => { 
@@ -147,7 +147,7 @@ input: 'Empty network name: ""',                    expected_output: "Empty netw
         'returns plain text for quoted network names when not TTY'       => { 
 input: 'Connected to "MyNetwork" successfully',     expected_output: 'Connected to "MyNetwork" successfully', tty: false },
         'returns plain text for multiple quoted network names when not TTY' => { 
-input: 'Networks: "Network1" and "Network2"',  expected_output: 'Networks: "Network1" and "Network2"', tty: false }
+input: 'Networks: "Network1" and "Network2"', expected_output: 'Networks: "Network1" and "Network2"', tty: false }
       }
     }
   end
@@ -171,7 +171,7 @@ input: 'Signal strength: 85%',                       expected_output: 'Signal st
         'returns plain text for IP addresses when not TTY'           => { 
 input: 'IP: 192.168.1.1',                            expected_output: 'IP: 192.168.1.1', tty: false },
         'returns plain text for multiple values when not TTY'        => { 
-input: 'Signal: 75% on channel 11 at 192.168.1.1',  expected_output: 'Signal: 75% on channel 11 at 192.168.1.1', tty: false }
+input: 'Signal: 75% on channel 11 at 192.168.1.1', expected_output: 'Signal: 75% on channel 11 at 192.168.1.1', tty: false }
       }
     }
   end
@@ -193,13 +193,13 @@ input: 'Signal: 75% on channel 11 at 192.168.1.1',  expected_output: 'Signal: 75
 
         # Test logical content rather than exact formatting
         expect(result).to match(/WiFi.*YES/)
-        expect(result).to match(/Network.*TestNetwork/)  # network_name is included in test data
+        expect(result).to match(/Network.*TestNetwork/) # network_name is included in test data
         expect(result).to match(/Internet.*YES/)
 
         # Verify colorization is present
         expect(result).to match(GREEN_TEXT_REGEX)      # Green ON
         expect(result).to match(CYAN_TEXT_REGEX)       # Cyan network name
-        expect(result).to match(GREEN_TEXT_REGEX)     # Green YES statuses
+        expect(result).to match(GREEN_TEXT_REGEX) # Green YES statuses
       end
 
       it 'omits network field when not present in status data' do
@@ -258,7 +258,7 @@ expected_pattern: /Internet.*NO/,  expected_color: RED_TEXT_REGEX }
 
         # Test logical content
         expect(result).to match(/WiFi.*YES/)
-        expect(result).to match(/Network.*TestNetwork/)  # network_name is included in test data
+        expect(result).to match(/Network.*TestNetwork/) # network_name is included in test data
         expect(result).to match(/Internet.*YES/)
 
         # Verify no color codes

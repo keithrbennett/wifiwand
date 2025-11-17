@@ -281,8 +281,8 @@ describe 'QR Code Integration Tests' do
   describe 'QR Code Robustness' do
     it 'creates scannable QR codes for various WiFi configurations' do
       configurations = [
-        { ssid: 'Test', password: '', security: nil },           # Open
-        { ssid: 'A', password: '1', security: 'WPA2' },         # Minimal
+        { ssid: 'Test', password: '', security: nil }, # Open
+        { ssid: 'A', password: '1', security: 'WPA2' }, # Minimal
         { ssid: 'Test-Network_123', password: 'P@ssw0rd!', security: 'WPA3' }, # Complex
       ]
 

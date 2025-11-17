@@ -32,7 +32,7 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       attr_accessor :interactive_mode
 
       def initialize
-        @interactive_mode = true  # Default to interactive mode for testing
+        @interactive_mode = true # Default to interactive mode for testing
       end
     end
   end
@@ -44,7 +44,7 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       # Mock the command execution
       expect(subject).to receive(:attempt_command_action).with('invalid_command', 'arg1', 
 'arg2') do |&block|
-        block.call if block  # Call the error handler
+        block.call if block # Call the error handler
         nil
       end
 

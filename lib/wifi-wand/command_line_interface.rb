@@ -365,7 +365,7 @@ password: password)
   # ===== MAIN ENTRY POINT =====
 
   def call
-    return if interactive_mode  # Shell already ran in constructor, nothing more to do
+    return if interactive_mode # Shell already ran in constructor, nothing more to do
 
     validate_command_line
     begin

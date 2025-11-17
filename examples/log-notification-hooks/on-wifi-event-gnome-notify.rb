@@ -69,7 +69,7 @@ begin
     'notify-send',
     '--app-name=wifi-wand',
     "--icon=#{n.icon}",
-    '--expire-time=5000',  # 5 seconds
+    '--expire-time=5000', # 5 seconds
     n.summary,
     n.body
   )

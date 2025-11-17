@@ -67,7 +67,7 @@ begin
   system(
     'kdialog',
     '--passivepopup', "#{n.title}\n#{n.message}",
-    '5000',  # 5 second timeout
+    '5000', # 5 second timeout
     '--title', 'wifi-wand',
     '--icon', n.icon,
     out: '/dev/null',
