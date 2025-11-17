@@ -19,6 +19,7 @@ RSpec::Matchers.define :be_nil_or_an_array_of_ip_addresses do
   match do |actual|
     return true if actual.nil?
     return false unless actual.is_a?(Array)
+
     actual.all? { |i| i.is_a?(String) && i.match?(/\A(\d{1,3}\.){3}\d{1,3}\z/) }
   end
 

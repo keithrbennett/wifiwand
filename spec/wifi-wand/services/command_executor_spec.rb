@@ -4,7 +4,6 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/services/command_executor'
 
 describe WifiWand::CommandExecutor do
-
   describe '#run_os_command' do
     context 'with verbose mode disabled' do
       let(:executor) { WifiWand::CommandExecutor.new(verbose: false) }
@@ -16,9 +15,9 @@ describe WifiWand::CommandExecutor do
       end
 
       it 'raises OsCommandError on command failure when raise_on_error is true' do
-        expect {
+        expect do
           executor.run_os_command('false') # Command that always fails
-        }.to raise_error(WifiWand::CommandExecutor::OsCommandError)
+        end.to raise_error(WifiWand::CommandExecutor::OsCommandError)
       end
 
       it 'returns result without raising on command failure when raise_on_error is false' do
@@ -38,9 +37,9 @@ describe WifiWand::CommandExecutor do
       let(:executor) { WifiWand::CommandExecutor.new(verbose: true) }
 
       it 'outputs command attempt and duration info' do
-        expect {
+        expect do
           executor.run_os_command('echo "test"')
-        }.to output(/Command:.*echo "test".*Duration:.*seconds/m).to_stdout
+        end.to output(/Command:.*echo "test".*Duration:.*seconds/m).to_stdout
       end
     end
   end
@@ -158,10 +157,9 @@ describe WifiWand::CommandExecutor do
       require 'ostruct'
 
       # This tests the integration without actually running OS-specific code
-      expect {
+      expect do
         WifiWand::BaseModel.new(OpenStruct.new(verbose: false))
-      }.not_to raise_error
+      end.not_to raise_error
     end
-
   end
 end

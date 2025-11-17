@@ -4,8 +4,10 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/services/connection_manager'
 
 describe WifiWand::ConnectionManager do
-  let(:mock_model) { double('model') }
   subject { described_class.new(mock_model, verbose: false) }
+
+  let(:mock_model) { double('model') }
+
 
   before do
     # Mock common model methods
@@ -173,8 +175,8 @@ describe WifiWand::ConnectionManager do
       end
 
       it 'handles keychain access errors gracefully', :os_mac do
-        allow(mock_model).to receive(:preferred_network_password).and_raise(StandardError, 
-'Keychain access denied')
+        allow(mock_model).to receive(:preferred_network_password).and_raise(StandardError,
+          'Keychain access denied')
         expect(mock_model).to receive(:_connect).with('SavedNetwork', nil)
 
         subject.connect('SavedNetwork')
@@ -188,8 +190,9 @@ describe WifiWand::ConnectionManager do
       end
 
       it 'raises NetworkConnectionError when connected to wrong network' do
-        expect {
- subject.connect('TestNetwork') }.to raise_error(WifiWand::NetworkConnectionError) do |error|
+        expect do
+          subject.connect('TestNetwork')
+        end.to raise_error(WifiWand::NetworkConnectionError) do |error|
           expect(error.message).to include('TestNetwork')
           expect(error.message).to include('WrongNetwork')
         end
@@ -198,8 +201,9 @@ describe WifiWand::ConnectionManager do
       it 'raises NetworkConnectionError when no connection established' do
         allow(mock_model).to receive(:connected_network_name).and_return(nil, nil)
 
-        expect {
- subject.connect('TestNetwork') }.to raise_error(WifiWand::NetworkConnectionError) do |error|
+        expect do
+          subject.connect('TestNetwork')
+        end.to raise_error(WifiWand::NetworkConnectionError) do |error|
           expect(error.message).to include('unable to connect to any network')
         end
       end

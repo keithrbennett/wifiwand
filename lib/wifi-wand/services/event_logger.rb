@@ -25,12 +25,11 @@ module WifiWand
   #   logger = EventLogger.new(model, interval: 5, output: $stdout)
   #   logger.run  # Blocks until Ctrl+C is pressed
   class EventLogger
-
     EVENT_TYPES = {
       wifi_on: 'WiFi ON',
       wifi_off: 'WiFi OFF',
-      connected: 'Connected to %{network_name}',
-      disconnected: 'Disconnected from %{network_name}',
+      connected: 'Connected to %<network_name>s',
+      disconnected: 'Disconnected from %<network_name>s',
       internet_on: 'Internet available',
       internet_off: 'Internet unavailable'
     }.freeze
@@ -38,7 +37,7 @@ module WifiWand
     attr_reader :model, :interval, :verbose, :hook_filespec, :output, :log_file_manager
 
     def initialize(model, interval: 5, verbose: false, hook_filespec: nil, log_file_path: nil,
-                   output: $stdout, log_file_manager: nil)
+      output: $stdout, log_file_manager: nil)
       @model = model
       @interval = interval
       @verbose = verbose
@@ -46,16 +45,14 @@ module WifiWand
       @output = output
       # Only create LogFileManager if file logging is requested
       @log_file_manager = if log_file_manager
-                            log_file_manager
-                          elsif log_file_path
-                            LogFileManager.new(
-                              log_file_path: log_file_path,
-                              verbose: @verbose,
-                              output: @output
-                            )
-                          else
-                            nil
-                          end
+        log_file_manager
+      elsif log_file_path
+        LogFileManager.new(
+          log_file_path: log_file_path,
+          verbose: @verbose,
+          output: @output
+        )
+      end
       @previous_state = nil
       @running = false
     end
@@ -123,18 +120,16 @@ module WifiWand
     # Fetch current WiFi state from model
     # Uses fast_connectivity? for quick outage detection optimized for continuous monitoring
     def fetch_current_state
-      begin
-        # Use fast connectivity check instead of full status_line_data
-        # This skips slow operations like system_profiler and DNS checks
-        # Returns in ~50-200ms typically, vs 5+ seconds for full check
-        internet_connected = @model.fast_connectivity?
+      # Use fast connectivity check instead of full status_line_data
+      # This skips slow operations like system_profiler and DNS checks
+      # Returns in ~50-200ms typically, vs 5+ seconds for full check
+      internet_connected = @model.fast_connectivity?
 
-        # Return simplified state focused only on internet connectivity
-        { internet_connected: internet_connected }
-      rescue StandardError => e
-        log_message("Error fetching status: #{e.message}") if @verbose
-        nil
-      end
+      # Return simplified state focused only on internet connectivity
+      { internet_connected: internet_connected }
+    rescue => e
+      log_message("Error fetching status: #{e.message}") if @verbose
+      nil
     end
 
     # Detect state changes and emit events
@@ -215,7 +210,7 @@ module WifiWand
         if status && !status.success?
           log_message("Hook execution failed (exit code: #{status.exitstatus}) at #{@hook_filespec}")
         end
-      rescue StandardError => e
+      rescue => e
         log_message("Hook execution error: #{e.message}")
       end
     end

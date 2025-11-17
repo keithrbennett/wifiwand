@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
+
 #
 # WiFi event hook: Compound hook that runs multiple hooks
 #
@@ -28,7 +29,7 @@ require 'json'
 require 'fileutils'
 
 event_json = $stdin.read
-event = JSON.parse(event_json)
+JSON.parse(event_json)
 
 # Configuration
 hook_dir = ENV['WIFIWAND_MULTI_HOOK_DIR'] || '.'
@@ -93,7 +94,7 @@ hooks_to_run.each do |hook_name|
       warn "Hook failed: #{hook_name} (exit code: #{Process.last_status.exitstatus})"
       failed_hooks << hook_name
     end
-  rescue StandardError => e
+  rescue => e
     warn "Error running hook #{hook_name}: #{e.message}"
     failed_hooks << hook_name
   end

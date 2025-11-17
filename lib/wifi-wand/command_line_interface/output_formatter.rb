@@ -5,7 +5,6 @@ require 'awesome_print'
 module WifiWand
   class CommandLineInterface
     module OutputFormatter
-
       def format_object(object)
         object.awesome_inspect
       end
@@ -48,8 +47,8 @@ module WifiWand
         text.gsub(/\b\d+%|\b\d+\.\d+\.\d+\.\d+|\b\d+\b/) { |match| colorize_text(match, :blue) }
       end
 
-      def format_boolean_status(value, true_char: '✅ YES', false_char: '❌ NO', 
-pending_char: '⏳ WAIT')
+      def format_boolean_status(value, true_char: '✅ YES', false_char: '❌ NO',
+        pending_char: '⏳ WAIT')
         value = !!value unless value.nil? # convert non-Boolean non-nil values to true or false
         char, color = case value
                       when nil
@@ -58,7 +57,7 @@ pending_char: '⏳ WAIT')
                         [true_char, :green]
                       when false
                         [false_char, :red]
-                      end
+        end
 
         colorize_text(char, color)
       end
@@ -91,7 +90,6 @@ pending_char: '⏳ WAIT')
         result
       end
 
-
       # If a post-processor has been configured (e.g. YAML or JSON), use it.
       def post_process(object)
         post_processor ? post_processor.(object) : object
@@ -100,7 +98,6 @@ pending_char: '⏳ WAIT')
       def post_processor
         options.post_processor
       end
-
     end
   end
 end

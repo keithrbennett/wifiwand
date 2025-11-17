@@ -16,7 +16,7 @@ describe 'QR Code Overwrite Confirmation' do
   let(:password) { 'password123' }
   let(:security) { 'WPA2' }
 
-  before(:each) do
+  before do
     # Stub environment and dependencies
     allow(model).to receive(:command_available?).with('qrencode').and_return(true)
     allow(model).to receive(:connected_network_name).and_return(ssid)
@@ -68,9 +68,9 @@ describe 'QR Code Overwrite Confirmation' do
 
       expect(model).not_to receive(:run_os_command)
 
-      expect {
+      expect do
         silence_output { model.generate_qr_code(filename) }
-      }.to raise_error(WifiWand::Error, /cancelled: file exists/i)
+      end.to raise_error(WifiWand::Error, /cancelled: file exists/i)
     end
   end
 
@@ -82,9 +82,9 @@ describe 'QR Code Overwrite Confirmation' do
 
       expect(model).not_to receive(:run_os_command)
 
-      expect {
+      expect do
         silence_output { model.generate_qr_code(filename) }
-      }.to raise_error(WifiWand::Error, /already exists.*Delete the file first/i)
+      end.to raise_error(WifiWand::Error, /already exists.*Delete the file first/i)
     end
   end
 
@@ -116,9 +116,9 @@ describe 'QR Code Overwrite Confirmation' do
 
       expect(model).not_to receive(:run_os_command)
 
-      expect {
+      expect do
         silence_output { model.generate_qr_code(filename, overwrite: true) }
-      }.to raise_error(WifiWand::Error, /could not be overwritten/)
+      end.to raise_error(WifiWand::Error, /could not be overwritten/)
     end
   end
 
@@ -133,9 +133,9 @@ describe 'QR Code Overwrite Confirmation' do
 
       expect(model).not_to receive(:run_os_command)
 
-      expect {
+      expect do
         silence_output { model.generate_qr_code(filename) }
-      }.to raise_error(WifiWand::Error, /could not be overwritten/)
+      end.to raise_error(WifiWand::Error, /could not be overwritten/)
     end
   end
 end

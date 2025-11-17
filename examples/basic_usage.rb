@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
+
 #
 # examples/basic_usage.rb
 #
@@ -44,8 +45,6 @@ begin
   info = client.wifi_info
   puts "   - Default Interface: #{info['default_interface']}"
   puts "   - Internet Connected?: #{info['internet_on']}"
-
-
 rescue WifiWand::NoSupportedOSError
   puts "\nError: This system is not a supported operating system (macOS or Ubuntu)."
 rescue => e

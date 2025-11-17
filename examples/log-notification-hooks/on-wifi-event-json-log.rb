@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
+
 #
 # WiFi event hook: Log events as JSON to a file
 #
@@ -26,7 +27,7 @@ begin
 
   # Append event as JSON line
   File.open(log_file, 'a') { |f| f.puts(JSON.generate(event)) }
-rescue StandardError => e
+rescue => e
   warn "JSON log hook error: #{e.message}"
   exit 1
 end

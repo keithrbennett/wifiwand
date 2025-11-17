@@ -8,7 +8,6 @@ describe WifiWand::NetworkConnectivityTester do
   include TestHelpers
 
   describe '#tcp_connectivity?' do
-
     context 'with verbose mode enabled' do
       let(:output) { StringIO.new }
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: true, output: output) }
@@ -63,7 +62,7 @@ describe WifiWand::NetworkConnectivityTester do
           { host: '1.1.1.1', port: 443 }
         ])
 
-        allow(Socket).to receive(:tcp) do |host, port, connect_timeout:, &block|
+        allow(Socket).to receive(:tcp) do |_host, port, connect_timeout:, &block|
           if port == 53
             raise Errno::ECONNREFUSED
           else
@@ -79,7 +78,6 @@ describe WifiWand::NetworkConnectivityTester do
   end
 
   describe '#dns_working?' do
-
     context 'with verbose mode enabled' do
       let(:output) { StringIO.new }
       let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: true, output: output) }

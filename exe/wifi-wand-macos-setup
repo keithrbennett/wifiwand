@@ -15,7 +15,7 @@ helper_authorized = false
 permission_message = 'Unknown'
 
 if helper_installed
-  stdout, stderr, status = Open3.capture3(helper_path, 'check-permission')
+  stdout, _, status = Open3.capture3(helper_path, 'check-permission')
   if status.success? && !stdout.strip.empty?
     begin
       result = JSON.parse(stdout)
@@ -50,17 +50,17 @@ puts <<~MSG
 MSG
 
 # Display setup status
-puts "\n" + '=' * 70
+puts "\n" + ('=' * 70)
 puts 'Setup Status:'
 puts '=' * 70
-puts sprintf('  %-40s %s', 'Helper installed:', helper_installed ? '✓ Yes' : '✗ No')
+puts format('  %-40s %s', 'Helper installed:', helper_installed ? '✓ Yes' : '✗ No')
 if helper_installed
-  puts sprintf('  %-40s %s', 'Location permission granted:', helper_authorized ? '✓ Yes' : '✗ No')
-  if !helper_authorized
-    puts sprintf('  %-40s %s', 'Permission status:', permission_message)
+  puts format('  %-40s %s', 'Location permission granted:', helper_authorized ? '✓ Yes' : '✗ No')
+  unless helper_authorized
+    puts format('  %-40s %s', 'Permission status:', permission_message)
   end
 else
-  puts sprintf('  %-40s %s', 'Location permission:', '(will check after installation)')
+  puts format('  %-40s %s', 'Location permission:', '(will check after installation)')
 end
 puts '=' * 70
 
@@ -95,7 +95,7 @@ begin
     # Re-check authorization after installation
     # macOS may have restored previous permission
     puts "\nChecking authorization status..."
-    stdout, stderr, status = Open3.capture3(helper_path, 'check-permission')
+    stdout, _, status = Open3.capture3(helper_path, 'check-permission')
     if status.success? && !stdout.strip.empty?
       begin
         helper_authorized = JSON.parse(stdout)['authorized']
@@ -115,8 +115,8 @@ begin
     puts 'Opening System Settings → Privacy & Security → Location Services...'
     sleep 1 # Brief pause so user can read the message
 
-    system('open', 
-'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices')
+    system('open',
+      'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices')
 
     puts <<~INSTRUCTIONS
 
@@ -141,7 +141,6 @@ begin
 
     INSTRUCTIONS
   end
-
 rescue => e
   puts "\n❌ Error: #{e.message}"
   exit 1

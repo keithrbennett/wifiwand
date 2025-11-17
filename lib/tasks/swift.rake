@@ -24,8 +24,8 @@ namespace :swift do
   end
 
   desc 'Compile the wifiwand macOS helper bundle executable (requires WIFIWAND_CODESIGN_IDENTITY)'
-  task :compile_helper => helper_binary
+  task compile_helper: helper_binary
 
   desc 'Compile all Swift targets that require compilation (requires WIFIWAND_CODESIGN_IDENTITY)'
-  task :compile => [:compile_helper]
+  task compile: [:compile_helper]
 end

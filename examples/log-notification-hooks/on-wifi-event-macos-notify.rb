@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
+
 #
 # WiFi event hook: Send macOS system notifications
 #
@@ -58,8 +59,7 @@ begin
 
   system('terminal-notifier', '-message', n.message, '-title', n.title)
   exit Process.last_status.exitstatus
-
-rescue StandardError => e
+rescue => e
   warn "macOS notify hook error: #{e.message}"
   exit 1
 end

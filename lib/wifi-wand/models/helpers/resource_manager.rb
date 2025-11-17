@@ -5,7 +5,6 @@ require 'yaml'
 module WifiWand
   module Helpers
     class ResourceManager
-
       class OpenResource < Struct.new(:code, :url, :description)
         def help_string
           "'#{code}' (#{description})"
@@ -61,7 +60,7 @@ module WifiWand
       # Get error message for invalid codes
       def invalid_codes_error(invalid_codes)
         codes_string = invalid_codes.map { |code| "'#{code}'" }.join(', ')
-        "Invalid resource code#{invalid_codes.length > 1 ? 's' : ''}: #{codes_string}. Valid codes are:\n #{open_resources.help_string.gsub(',', "\n")}"
+        "Invalid resource code#{'s' if invalid_codes.length > 1}: #{codes_string}. Valid codes are:\n #{open_resources.help_string.gsub(',', "\n")}"
       end
 
       private
@@ -85,6 +84,7 @@ module WifiWand
 
         resources = data['resources'].map do |resource|
           next if resource.nil? || !resource.is_a?(Hash)
+
           OpenResource.new(resource['code'], resource['url'], resource['desc'])
         end.compact
 

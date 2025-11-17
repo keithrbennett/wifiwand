@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
+
 #
 # WiFi event hook: Send events via HTTP webhook
 #
@@ -19,7 +20,7 @@ require 'json'
 require 'net/http'
 require 'uri'
 
-webhook_url = ENV['WEBHOOK_URL']
+webhook_url = ENV.fetch('WEBHOOK_URL', nil)
 
 unless webhook_url
   warn 'Error: WEBHOOK_URL environment variable not set'
@@ -49,8 +50,7 @@ begin
   end
 
   exit 1 unless response.is_a?(Net::HTTPSuccess)
-
-rescue StandardError => e
+rescue => e
   warn "Webhook hook error: #{e.message}"
   exit 1
 end

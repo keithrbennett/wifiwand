@@ -6,12 +6,11 @@ require_relative '../timing_constants'
 module WifiWand
   class CommandLineInterface
     module HelpSystem
-
       # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.
       def help_text
         resource_help = model ? model.resource_manager.open_resources.help_string : '[resources unavailable]'
 
-        %Q{
+        %{
 Command Line Switches     [wifi-wand version #{WifiWand::VERSION} at https://github.com/keithrbennett/wifiwand]
 ---------------------
 -h, --help                - show this help message
@@ -71,10 +70,10 @@ When in interactive shell mode:
 
       def print_help
         dest = if respond_to?(:interactive_mode) && interactive_mode
-                 $stdout
-               else
-                 respond_to?(:out_stream) ? out_stream : ($stdout)
-               end
+          $stdout
+        else
+          respond_to?(:out_stream) ? out_stream : $stdout
+        end
         dest.puts help_text
       end
 

@@ -115,14 +115,14 @@ module WifiWand
       def self.workflow_starting
         <<~MSG
           Starting complete helper release workflow...
-          #{"=" * 60}
+          #{'=' * 60}
 
         MSG
       end
 
       WORKFLOW_SEPARATOR = <<~MSG
 
-        #{"=" * 60}
+        #{'=' * 60}
 
       MSG
 
@@ -138,23 +138,23 @@ module WifiWand
       def self.codesign_status_header
         <<~MSG
           Code Signing Status
-          #{"=" * 60}
+          #{'=' * 60}
 
           Signature Details:
-          #{"-" * 60}
+          #{'-' * 60}
         MSG
       end
 
       SIGNATURE_VERIFICATION_HEADER = <<~MSG
 
         Signature Verification:
-        #{"-" * 60}
+        #{'-' * 60}
       MSG
 
       NOTARIZATION_STATUS_HEADER = <<~MSG
 
         Notarization Status:
-        #{"-" * 60}
+        #{'-' * 60}
       MSG
 
       def self.bundle_not_found(bundle_path)
@@ -186,6 +186,7 @@ module WifiWand
       def self.get_binary_architectures(binary_path)
         stdout, _stderr, status = Open3.capture3('lipo', '-archs', binary_path)
         return [] unless status.success?
+
         stdout.strip.split
       end
 
@@ -226,8 +227,8 @@ module WifiWand
       end
 
       def self.verify_identity_exists(identity)
-        stdout, _stderr, status = Open3.capture3('security', 'find-identity', '-v', '-p', 
-'codesigning')
+        stdout, _stderr, status = Open3.capture3('security', 'find-identity', '-v', '-p',
+          'codesigning')
         return if status.success? && stdout.include?(identity)
 
         abort "Error: Could not find code signing identity '#{identity}'\n\nRun: security find-identity -v -p codesigning"
@@ -294,8 +295,8 @@ module WifiWand
 
       def self.create_zip(bundle_path, zip_path)
         FileUtils.rm_f(zip_path)
-        _stdout, stderr, status = Open3.capture3('ditto', '-c', '-k', '--keepParent', bundle_path, 
-zip_path)
+        _stdout, stderr, status = Open3.capture3('ditto', '-c', '-k', '--keepParent', bundle_path,
+          zip_path)
         abort "Failed to create zip: #{stderr}" unless status.success?
       end
 
@@ -315,8 +316,8 @@ zip_path)
         puts message
       end
 
-      def self.run_notarytool(args, apple_id:, apple_password:, team_id:, failure_message:, 
-suppress_output: false)
+      def self.run_notarytool(args, apple_id:, apple_password:, team_id:, failure_message:,
+        suppress_output: false)
         command = ['xcrun', 'notarytool'] + args + [
           '--apple-id', apple_id,
           '--team-id', team_id,
@@ -388,8 +389,8 @@ suppress_output: false)
       stdout, _stderr, status = Open3.capture3('codesign', '-dv', bundle_path)
       abort "Error: Helper is ad-hoc signed. Must be signed with Developer ID.\nRun: bin/mac-helper build" if status.success? && stdout.include?('adhoc')
 
-      puts Messages.notarizing_header(bundle_path: bundle_path, apple_id: apple_id, 
-team_id: team_id)
+      puts Messages.notarizing_header(bundle_path: bundle_path, apple_id: apple_id,
+        team_id: team_id)
       Operations.create_zip(bundle_path, zip_path)
       puts Messages.zip_created(zip_path)
 
@@ -472,7 +473,7 @@ team_id: team_id)
                           entries.reverse
                         else
                           entries
-                        end
+      end
 
       if pending_only
         ordered_entries = ordered_entries.select { |item| item['status'] == 'In Progress' }
@@ -520,7 +521,7 @@ team_id: team_id)
       system('codesign', '-dvv', bundle_path)
 
       puts "\nBinary Architectures:"
-      puts "#{"-" * 60}"
+      puts "#{'-' * 60}"
       archs = Operations.get_binary_architectures(executable_path)
       if archs.include?('arm64') && archs.include?('x86_64')
         puts "✓ Universal binary (#{archs.join(', ')})"
@@ -536,11 +537,16 @@ team_id: team_id)
       puts Messages::NOTARIZATION_STATUS_HEADER
       stdout, _stderr, status = Open3.capture3('spctl', '-a', '-vv', '-t', 'install', bundle_path)
       puts stdout
-      puts status.success? ? '✓ Helper is notarized and will run without Gatekeeper warnings' : stdout.include?('source=Notarized Developer ID') ? '✓ Helper is notarized' : "⚠ Helper is not notarized - users may see Gatekeeper warnings\n  Run: bin/mac-helper notarize"
+      puts if status.success?
+'✓ Helper is notarized and will run without Gatekeeper warnings'
+else
+stdout.include?('source=Notarized Developer ID') ? '✓ Helper is notarized' : "⚠ Helper is not notarized - users may see Gatekeeper warnings\n  Run: bin/mac-helper notarize"
+end
     end
+
     def fetch_notary_credentials!(command_hint:)
-      apple_id = ENV['WIFIWAND_APPLE_DEV_ID']
-      apple_password = ENV['WIFIWAND_APPLE_DEV_PASSWORD']
+      apple_id = ENV.fetch('WIFIWAND_APPLE_DEV_ID', nil)
+      apple_password = ENV.fetch('WIFIWAND_APPLE_DEV_PASSWORD', nil)
       team_id = APPLE_TEAM_ID
       Operations.verify_team_id_configured(team_id)
       Operations.verify_credentials(apple_id, apple_password, command_hint: command_hint)

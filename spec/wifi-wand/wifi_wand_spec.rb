@@ -32,4 +32,3 @@ RSpec.describe WifiWand do
     end
   end
 end
-

@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
+
 #
 # WiFi event hook: Send GNOME system notifications
 #
@@ -74,8 +75,7 @@ begin
     n.body
   )
   exit Process.last_status.exitstatus
-
-rescue StandardError => e
+rescue => e
   warn "GNOME notify hook error: #{e.message}"
   exit 1
 end

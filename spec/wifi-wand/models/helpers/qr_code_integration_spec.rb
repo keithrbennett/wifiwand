@@ -12,7 +12,6 @@ require 'fileutils'
 
 # Integration tests that create real QR code files and verify their contents
 describe 'QR Code Integration Tests' do
-
   before(:all) do
     # Check if required tools are available
     unless system('which qrencode > /dev/null 2>&1')
@@ -27,7 +26,7 @@ describe 'QR Code Integration Tests' do
   let(:test_model) { create_test_model }
   let(:temp_dir) { Dir.mktmpdir('qr_test') }
 
-  after(:each) do
+  after do
     # Clean up test files
     FileUtils.rm_rf(temp_dir) if Dir.exist?(temp_dir)
     Dir.glob('*-qr-code.png').each { |f| File.delete(f) }
@@ -65,9 +64,9 @@ describe 'QR Code Integration Tests' do
 
       # Unescape special characters
       unescaped_value = value.gsub('\\;', ';')
-                             .gsub('\\,', ',')
-                             .gsub('\\:', ':')
-                             .gsub('\\\\', '\\')
+        .gsub('\\,', ',')
+        .gsub('\\:', ':')
+        .gsub('\\\\', '\\')
 
       components[key] = unescaped_value
     end
@@ -232,15 +231,18 @@ describe 'QR Code Integration Tests' do
       # Mock qrencode to fail
       allow(test_model).to receive(:run_os_command) do |cmd|
         if cmd.is_a?(Array) && cmd[0] == 'qrencode'
-          raise WifiWand::CommandExecutor::OsCommandError.new(1, cmd.join(' '), 
-'Simulated qrencode failure')
+          raise WifiWand::CommandExecutor::OsCommandError.new(1, cmd.join(' '),
+            'Simulated qrencode failure')
         else
           command_result(stdout: '')
         end
       end
 
-      expect { silence_output {
- test_model.generate_qr_code } }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
+      expect do
+        silence_output do
+          test_model.generate_qr_code
+        end
+      end.to raise_error(WifiWand::Error, /Failed to generate QR code/)
     end
   end
 
@@ -283,7 +285,7 @@ describe 'QR Code Integration Tests' do
       configurations = [
         { ssid: 'Test', password: '', security: nil }, # Open
         { ssid: 'A', password: '1', security: 'WPA2' }, # Minimal
-        { ssid: 'Test-Network_123', password: 'P@ssw0rd!', security: 'WPA3' }, # Complex
+        { ssid: 'Test-Network_123', password: 'P@ssw0rd!', security: 'WPA3' } # Complex
       ]
 
       configurations.each do |config|

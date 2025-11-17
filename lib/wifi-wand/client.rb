@@ -10,6 +10,7 @@ module WifiWand
   # with the WifiWand library.
   class Client
     extend Forwardable
+
     attr_reader :model
 
     DELEGATED_METHODS = [
@@ -166,6 +167,5 @@ module WifiWand
         @model.verbose_mode = !!value
       end
     end
-
   end
 end

@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
+
 #
 # WiFi event hook: Send KDE Plasma system notifications
 #
@@ -74,8 +75,7 @@ begin
     err: '/dev/null'
   )
   exit Process.last_status.exitstatus
-
-rescue StandardError => e
+rescue => e
   warn "KDE notify hook error: #{e.message}"
   exit 1
 end

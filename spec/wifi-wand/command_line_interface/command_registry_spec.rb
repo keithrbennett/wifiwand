@@ -15,8 +15,9 @@ describe WifiWand::CommandLineInterface::CommandRegistry::Command do
 end
 
 describe WifiWand::CommandLineInterface::CommandRegistry do
-
   # Create a test class that includes the module
+  subject { test_class.new }
+
   let(:test_class) do
     Class.new do
       include WifiWand::CommandLineInterface::CommandRegistry
@@ -28,7 +29,6 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
     end
   end
 
-  subject { test_class.new }
 
   describe 'Command.new instantiation coverage' do
     it 'forces creation of all Command objects to achieve line coverage' do
@@ -54,7 +54,11 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
         expect(cmd.action).to respond_to(:call)
         # Execute lambda to achieve coverage of Command.new lambda bodies
         # The actual command functionality is tested in command_line_interface_spec.rb
-        cmd.action.call rescue nil # Ignore any errors, just need execution for coverage
+        begin
+          cmd.action.call
+        rescue
+          nil
+        end # Ignore any errors, just need execution for coverage
       end
     end
 

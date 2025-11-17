@@ -2,7 +2,6 @@
 
 module WifiWand
   module CommandOutputFormatter
-
     module_function
 
     def banner_line

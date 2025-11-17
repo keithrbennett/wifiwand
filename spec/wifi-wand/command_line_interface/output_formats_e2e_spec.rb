@@ -50,7 +50,7 @@ describe 'Output Format End-to-End Tests' do
   let(:mock_model) { create_standard_mock_model }
   let(:mock_os) { create_mock_os_with_model(mock_model) }
 
-  before(:each) do
+  before do
     allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(mock_os)
     allow_any_instance_of(WifiWand::CommandLineInterface).to receive(:run_shell)
   end
@@ -187,9 +187,9 @@ describe 'Output Format End-to-End Tests' do
 
     context 'with invalid format option' do
       it 'raises configuration error' do
-        expect {
+        expect do
           parse_options('-o', 'z', 'info')
-        }.to raise_error(WifiWand::ConfigurationError, /Invalid output format/)
+        end.to raise_error(WifiWand::ConfigurationError, /Invalid output format/)
       end
     end
 
@@ -298,7 +298,7 @@ describe 'Output Format End-to-End Tests' do
           parsed = case format_code
                    when 'j', 'k' then JSON.parse(output)
                    when 'y' then YAML.safe_load(output)
-                   end
+          end
 
           expect(parsed['network']).to eq('日本語ネットワーク')
           expect(parsed['emoji']).to eq('🔐 WiFi')

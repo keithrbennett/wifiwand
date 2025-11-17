@@ -15,7 +15,7 @@ describe 'QR Code Generator (unit)' do
   let(:password) { 'password123' }
   let(:security) { 'WPA2' }
 
-  before(:each) do
+  before do
     model.verbose_mode = false
     allow(model).to receive(:command_available?).with('qrencode').and_return(true)
     allow(model).to receive(:connected_network_name).and_return(ssid)
@@ -24,7 +24,7 @@ describe 'QR Code Generator (unit)' do
     allow(model).to receive(:network_hidden?).and_return(false)
   end
 
-  after(:each) do
+  after do
     FileUtils.rm_f('TestNetwork-qr-code.png')
     FileUtils.rm_f('out.svg')
     FileUtils.rm_f('out.eps')
@@ -38,8 +38,9 @@ describe 'QR Code Generator (unit)' do
     end
 
     result = nil
-    expect {
- result = model.generate_qr_code('-') }.to output(a_string_including('[QR-ANSI]')).to_stdout
+    expect do
+      result = model.generate_qr_code('-')
+    end.to output(a_string_including('[QR-ANSI]')).to_stdout
     expect(result).to eq('-')
   end
 
@@ -59,9 +60,9 @@ describe 'QR Code Generator (unit)' do
     expect(model).to receive(:run_os_command)
       .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'qrencode', 'boom'))
 
-    expect {
+    expect do
       silence_output { model.generate_qr_code('-', delivery_mode: :print) }
-    }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
+    end.to raise_error(WifiWand::Error, /Failed to generate QR code/)
   end
 
   it 'uses provided password without querying system password' do
@@ -102,7 +103,7 @@ describe 'QR Code Generator (unit)' do
     end
   end
 
-      it 'generates QR code with H:false for visible (broadcast) networks' do
+  it 'generates QR code with H:false for visible (broadcast) networks' do
     allow(model).to receive(:network_hidden?).and_return(false)
 
     expect(model).to receive(:run_os_command) do |cmd|
@@ -139,8 +140,9 @@ describe 'QR Code Generator (unit)' do
     end
 
     result = nil
-    expect {
- result = model.generate_qr_code('-') }.to output(a_string_including('[QR-ANSI]')).to_stdout
+    expect do
+      result = model.generate_qr_code('-')
+    end.to output(a_string_including('[QR-ANSI]')).to_stdout
     expect(result).to eq('-')
   end
 

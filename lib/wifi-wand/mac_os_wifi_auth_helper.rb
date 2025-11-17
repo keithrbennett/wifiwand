@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 # Manages the lifecycle of the macOS Wi-Fi helper app that runs privileged Swift code.
 # The module installs, compiles, and signs the helper bundle per WifiWand version so
 # network queries can bypass TCC redactions on Sonoma+ while remaining opt-in via env flag.
@@ -176,8 +177,8 @@ module WifiWand
     end
 
     def create_universal_binary(destination, *architecture_binaries)
-      stdout, stderr, status = Open3.capture3('lipo', '-create', '-output', destination, 
-*architecture_binaries)
+      stdout, stderr, status = Open3.capture3('lipo', '-create', '-output', destination,
+        *architecture_binaries)
       return if status.success?
 
       error_output = stderr.empty? ? stdout : stderr
@@ -193,8 +194,8 @@ module WifiWand
                  'Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)'
 
       # Path to entitlements file
-      entitlements_path = File.expand_path('../../libexec/macos/wifiwand-helper.entitlements', 
-__dir__)
+      entitlements_path = File.expand_path('../../libexec/macos/wifiwand-helper.entitlements',
+        __dir__)
 
       command = [
         'codesign',
@@ -296,7 +297,7 @@ __dir__)
       rescue Errno::ENOENT => e
         log_verbose("helper executable missing: #{e.message}")
         nil
-      rescue StandardError => e
+      rescue => e
         log_verbose("helper command '#{command}' failed: #{e.message}")
         nil
       end
@@ -307,7 +308,7 @@ __dir__)
 
         log_verbose('helper not installed; running installer')
         WifiWand::MacOsWifiAuthHelper.ensure_helper_installed(out_stream: verbose? ? out_stream : nil)
-      rescue StandardError => e
+      rescue => e
         emit_install_failure(e.message)
         @disabled = true
       end

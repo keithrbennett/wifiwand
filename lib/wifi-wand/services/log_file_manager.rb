@@ -22,7 +22,6 @@ module WifiWand
   #   manager.write('[2025-10-28 14:30:00] WiFi ON')
   #   manager.close
   class LogFileManager
-
     DEFAULT_LOG_FILE = 'wifiwand-events.log'
 
     attr_reader :log_file_path, :output, :verbose
@@ -42,7 +41,7 @@ module WifiWand
       begin
         @file_handle.puts(message)
         @file_handle.flush
-      rescue StandardError => e
+      rescue => e
         log_error("Failed to write to log file: #{e.message}")
       end
     end
@@ -59,18 +58,16 @@ module WifiWand
 
     # Set up the log file (open file in append mode)
     def setup_log_file
-      begin
-        open_log_file
-        log_message("Log file initialized at #{@log_file_path}") if @verbose
-      rescue StandardError => e
-        log_error("Failed to initialize log file: #{e.message}")
-      end
+      open_log_file
+      log_message("Log file initialized at #{@log_file_path}") if @verbose
+    rescue => e
+      log_error("Failed to initialize log file: #{e.message}")
     end
 
     # Open the log file in append mode
     def open_log_file
       @file_handle = File.open(@log_file_path, 'a')
-    rescue StandardError => e
+    rescue => e
       raise "Cannot open log file #{@log_file_path}: #{e.message}"
     end
 
@@ -82,7 +79,7 @@ module WifiWand
 
     # Log an error message to stderr
     def log_error(message)
-      $stderr.puts("ERROR: #{message}")
+      warn("ERROR: #{message}")
       $stderr.flush if $stderr.respond_to?(:flush)
     end
   end

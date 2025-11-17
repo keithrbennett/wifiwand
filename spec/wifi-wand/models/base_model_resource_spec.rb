@@ -11,17 +11,15 @@ describe 'BaseModel Resource Management' do
       end
 
       # Mock required methods
-      def open_resource(url); end
-      def open_application(app_name); end
+      def open_resource(url)
+      end
+
+      def open_application(app_name)
+      end
 
       # Stub other required methods to prevent NotImplementedError
-      %i[
-        default_interface detect_wifi_interface is_wifi_interface?
-        mac_address nameservers _preferred_network_password
-        preferred_networks remove_preferred_network set_nameservers
-        validate_os_preconditions wifi_off wifi_on wifi_on?
-        _available_network_names _connected_network_name _connect
-        _disconnect _ip_address
+      [
+        :default_interface, :detect_wifi_interface, :is_wifi_interface?, :mac_address, :nameservers, :_preferred_network_password, :preferred_networks, :remove_preferred_network, :set_nameservers, :validate_os_preconditions, :wifi_off, :wifi_on, :wifi_on?, :_available_network_names, :_connected_network_name, :_connect, :_disconnect, :_ip_address
       ].each do |method_name|
         define_method(method_name) { nil }
       end

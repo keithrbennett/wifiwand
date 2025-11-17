@@ -4,9 +4,11 @@ require_relative('../../spec_helper')
 require_relative('../../../lib/wifi-wand/main')
 
 describe WifiWand::Main do
+  subject { described_class.new(out_stream, err_stream) }
+
   let(:out_stream) { StringIO.new }
   let(:err_stream) { StringIO.new }
-  subject { described_class.new(out_stream, err_stream) }
+
 
   def parse_with_argv(*args)
     stub_const('ARGV', args)
@@ -14,7 +16,6 @@ describe WifiWand::Main do
   end
 
   describe '#parse_command_line' do
-
     it 'parses verbose flags' do
       options = parse_with_argv('--verbose', 'info')
       expect(options.verbose).to be(true)
@@ -72,7 +73,7 @@ describe WifiWand::Main do
 
     it 'parses help flag and adds h to ARGV' do
       stub_const('ARGV', ['--help'])
-      options = subject.parse_command_line
+      subject.parse_command_line
       expect(ARGV).to include('h')
     end
 
@@ -130,18 +131,19 @@ describe WifiWand::Main do
       allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--verbose "')
       stub_const('ARGV', ['info'])
 
-      expect {
- subject.parse_command_line }.to raise_error(WifiWand::ConfigurationError, /WIFIWAND_OPTS/)
+      expect do
+        subject.parse_command_line
+      end.to raise_error(WifiWand::ConfigurationError, /WIFIWAND_OPTS/)
     end
   end
 
   describe '#call' do
     let(:mock_cli) { double('CommandLineInterface') }
 
-    before(:each) do
+    before do
       # Mock the command line parsing to avoid complex setup
-      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: false, 
-interactive_mode: false))
+      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: false,
+        interactive_mode: false))
       # Mock CLI creation to avoid OS detection
       allow(WifiWand::CommandLineInterface).to receive(:new).and_return(mock_cli)
     end
@@ -177,8 +179,8 @@ interactive_mode: false))
       allow(mock_cli).to receive(:call).and_raise(ex)
 
       # Mock verbose mode
-      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: true, 
-interactive_mode: false))
+      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: true,
+        interactive_mode: false))
 
       expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
       expect(err_stream.string).to match(/Error: Test error/)
@@ -198,7 +200,7 @@ interactive_mode: false))
       options = subject.parse_command_line
 
       processor = options.post_processor
-      test_data = {'test' => 'value'}
+      test_data = { 'test' => 'value' }
       result = processor.call(test_data)
 
       expect(result).to be_a(String)
@@ -210,7 +212,7 @@ interactive_mode: false))
       options = subject.parse_command_line
 
       processor = options.post_processor
-      test_data = {'test' => 'value'}
+      test_data = { 'test' => 'value' }
       result = processor.call(test_data)
 
       expect(result).to be_a(String)
@@ -222,7 +224,7 @@ interactive_mode: false))
       options = subject.parse_command_line
 
       processor = options.post_processor
-      test_data = {'test' => 'value'}
+      test_data = { 'test' => 'value' }
       result = processor.call(test_data)
 
       expect(result).to eq(test_data.inspect)
@@ -233,7 +235,7 @@ interactive_mode: false))
       options = subject.parse_command_line
 
       processor = options.post_processor
-      test_data = {'test' => 'value'}
+      test_data = { 'test' => 'value' }
       result = processor.call(test_data)
 
       expect(result).to be_a(String)
@@ -247,7 +249,7 @@ interactive_mode: false))
       options = subject.parse_command_line
 
       processor = options.post_processor
-      test_data = {'test' => 'value'}
+      test_data = { 'test' => 'value' }
       result = processor.call(test_data)
 
       expect(result).to be_a(String)
@@ -258,7 +260,7 @@ interactive_mode: false))
   describe 'integration workflow' do
     let(:mock_cli) { double('CommandLineInterface') }
 
-    before(:each) do
+    before do
       allow(WifiWand::CommandLineInterface).to receive(:new).and_return(mock_cli)
     end
 
@@ -292,9 +294,9 @@ interactive_mode: false))
   describe '#handle_error' do
     let(:mock_cli) { double('CommandLineInterface') }
 
-    before(:each) do
-      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: false, 
-interactive_mode: false))
+    before do
+      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: false,
+        interactive_mode: false))
       allow(WifiWand::CommandLineInterface).to receive(:new).and_return(mock_cli)
     end
 
@@ -333,8 +335,8 @@ interactive_mode: false))
       ex = StandardError.new('a message')
       allow(ex).to receive(:backtrace).and_return(['line 1', 'line 2'])
       allow(mock_cli).to receive(:call).and_raise(ex)
-      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: true, 
-interactive_mode: false))
+      allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: true,
+        interactive_mode: false))
 
       expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
       expect(err_stream.string).to match(/Error: a message/)

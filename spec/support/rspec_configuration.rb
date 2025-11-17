@@ -14,12 +14,10 @@ module RSpecConfiguration
     configure_helper_inclusions(config)
   end
 
-  private
-
   # Basic RSpec configuration
   def self.configure_basic_settings(config)
     config.example_status_persistence_file_path = 'rspec-errors.txt'
-    config.filter_run_including :focus => true
+    config.filter_run_including focus: true
     config.run_all_when_everything_filtered = !config.only_failures?
 
     configure_disruptive_test_filtering(config)
@@ -37,8 +35,9 @@ module RSpecConfiguration
       items.partition do |it|
         needs_auth = it.metadata[:needs_sudo_access] || it.metadata[:keychain_integration]
         needs_auth || (
-          it.respond_to?(:examples) && it.examples.any? { |ex|
- ex.metadata[:needs_sudo_access] || ex.metadata[:keychain_integration] }
+          it.respond_to?(:examples) && it.examples.any? do |ex|
+            ex.metadata[:needs_sudo_access] || ex.metadata[:keychain_integration]
+          end
         )
       end
     end
@@ -56,18 +55,16 @@ module RSpecConfiguration
   # Configure preflight authentication to handle auth prompts early
   def self.configure_preflight_authentication(config)
     config.before(:suite) do
-      begin
-        examples_to_run = RSpecConfiguration.get_examples_to_run
-        test_types = RSpecConfiguration.analyze_test_types(examples_to_run)
+      examples_to_run = RSpecConfiguration.get_examples_to_run
+      test_types = RSpecConfiguration.analyze_test_types(examples_to_run)
 
-        RSpecConfiguration.handle_network_state_capture(test_types[:disruptive])
+      RSpecConfiguration.handle_network_state_capture(test_types[:disruptive])
 
-        if RSpecConfiguration.macos_and_auth_tests_will_run?(test_types)
-          RSpecConfiguration.handle_sudo_preflight(test_types[:sudo])
-        end
-      rescue
-        # Never fail the suite due to preflight issues
+      if RSpecConfiguration.macos_and_auth_tests_will_run?(test_types)
+        RSpecConfiguration.handle_sudo_preflight(test_types[:sudo])
       end
+    rescue
+      # Never fail the suite due to preflight issues
     end
   end
 
@@ -122,7 +119,7 @@ module RSpecConfiguration
 
   # Configure test stubbing to prevent keychain prompts during tests
   def self.configure_test_stubbing(config)
-    config.before(:each) do |example|
+    config.before do |example|
       next unless RSpecConfiguration.macos_model_available?
 
       begin
@@ -250,16 +247,14 @@ module RSpecConfiguration
     MESSAGE
   end
 
-  private
-
   def self.configure_disruptive_test_filtering(config)
-    case ENV['RSPEC_DISRUPTIVE_TESTS']
+    case ENV.fetch('RSPEC_DISRUPTIVE_TESTS', nil)
     when 'only'
-      config.filter_run_including :disruptive => true
+      config.filter_run_including disruptive: true
     when 'include'
       # Run both disruptive and non-disruptive (no filters)
     when 'exclude', '', nil
-      config.filter_run_excluding :disruptive => true
+      config.filter_run_excluding disruptive: true
     else
       raise "Invalid RSPEC_DISRUPTIVE_TESTS option. Valid options: 'only', 'include', 'exclude', '', nil"
     end

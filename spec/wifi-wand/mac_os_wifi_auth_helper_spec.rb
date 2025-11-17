@@ -4,10 +4,6 @@ require 'spec_helper'
 require 'stringio'
 
 RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
-  let(:out_stream) { StringIO.new }
-  let(:verbose_flag) { false }
-  let(:macos_version) { '14.0' }
-
   subject(:client) do
     described_class.new(
       out_stream_proc: -> { out_stream },
@@ -16,8 +12,13 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
     )
   end
 
+  let(:out_stream) { StringIO.new }
+  let(:verbose_flag) { false }
+  let(:macos_version) { '14.0' }
+
+
   around do |example|
-    original = ENV['WIFIWAND_DISABLE_MAC_HELPER']
+    original = ENV.fetch('WIFIWAND_DISABLE_MAC_HELPER', nil)
     ENV.delete('WIFIWAND_DISABLE_MAC_HELPER')
     example.run
   ensure
@@ -221,7 +222,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
       expect(File).to receive(:executable?).with(helper_path).and_return(false)
       allow(client).to receive(:log_verbose)
       expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed).and_raise(
-StandardError, 'boom')
+        StandardError, 'boom')
 
       client.send(:ensure_helper_installed)
 
@@ -262,7 +263,7 @@ StandardError, 'boom')
     it 'prints the warning only once' do
       client.send(:emit_location_warning)
       client.send(:emit_location_warning)
-      occurrences = out_stream.string.scan(/Location Services denied/).size
+      occurrences = out_stream.string.scan('Location Services denied').size
       expect(occurrences).to eq(1)
     end
   end

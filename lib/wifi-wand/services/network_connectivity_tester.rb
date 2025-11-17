@@ -10,7 +10,6 @@ require_relative '../timing_constants'
 
 module WifiWand
   class NetworkConnectivityTester
-
     def initialize(verbose: false, output: $stdout)
       @verbose = verbose
       @output = output
@@ -73,8 +72,8 @@ module WifiWand
         @output.puts "Testing internet TCP connectivity to: #{endpoints_list}"
       end
 
-      run_parallel_checks(test_endpoints, 
-TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do |endpoint|
+      run_parallel_checks(test_endpoints,
+        TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do |endpoint|
         attempt_tcp_connection(endpoint)
       end
     end
@@ -184,7 +183,7 @@ TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do |endpoint|
               end
 
               result
-            rescue StandardError => e
+            rescue => e
               # Catch and log any unexpected errors from the check.
               # Return false to indicate this check failed.
               log_unexpected_error(e)
@@ -230,13 +229,13 @@ TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do |endpoint|
     #
     def attempt_tcp_connection(endpoint)
       Timeout.timeout(TimingConstants::TCP_CONNECTION_TIMEOUT) do
-        Socket.tcp(endpoint[:host], endpoint[:port], 
-connect_timeout: TimingConstants::TCP_CONNECTION_TIMEOUT) do
+        Socket.tcp(endpoint[:host], endpoint[:port],
+          connect_timeout: TimingConstants::TCP_CONNECTION_TIMEOUT) do
           @output.puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}" if @verbose
           true
         end
       end
-    rescue StandardError => e
+    rescue => e
       @output.puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if @verbose
       false
     end
@@ -251,13 +250,13 @@ connect_timeout: TimingConstants::TCP_CONNECTION_TIMEOUT) do
     #
     def attempt_fast_tcp_connection(endpoint)
       Timeout.timeout(TimingConstants::FAST_TCP_CONNECTION_TIMEOUT) do
-        Socket.tcp(endpoint[:host], endpoint[:port], 
-connect_timeout: TimingConstants::FAST_TCP_CONNECTION_TIMEOUT) do
+        Socket.tcp(endpoint[:host], endpoint[:port],
+          connect_timeout: TimingConstants::FAST_TCP_CONNECTION_TIMEOUT) do
           @output.puts "Fast check: connected to #{endpoint[:host]}:#{endpoint[:port]}" if @verbose
           true
         end
       end
-    rescue StandardError => e
+    rescue => e
       @output.puts "Fast check: failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if @verbose
       false
     end
@@ -285,7 +284,7 @@ connect_timeout: TimingConstants::FAST_TCP_CONNECTION_TIMEOUT) do
         @output.puts "Successfully resolved #{domain}" if @verbose
         true
       end
-    rescue StandardError => e
+    rescue => e
       @output.puts "Failed to resolve #{domain}: #{e.class}" if @verbose
       false
     end

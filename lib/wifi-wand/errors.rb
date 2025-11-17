@@ -18,10 +18,10 @@ module WifiWand
 
     def build_message
       msg = "Network '#{network_name}' not found"
-      if available_networks.any?
-        msg += ". Available networks: #{available_networks.join(', ')}"
+      msg += if available_networks.any?
+        ". Available networks: #{available_networks.join(', ')}"
       else
-        msg += '. No networks are currently available'
+        '. No networks are currently available'
       end
       msg
     end
@@ -146,10 +146,9 @@ module WifiWand
 
   class KeychainError < Error
     def initialize(message)
-      super(message)
+      super
     end
   end
-
 
   # === OPERATING SYSTEM DETECTION ERRORS ===
   class MultipleOSMatchError < Error
@@ -172,7 +171,7 @@ module WifiWand
 
   class ConfigurationError < Error
     def initialize(message)
-      super(message)
+      super
     end
   end
 
@@ -184,10 +183,10 @@ module WifiWand
       @status_code = status_code
       @status_message = status_message
       message = if status_code
-                  "HTTP error fetching public IP info: #{status_code} #{status_message}"
-                else
-                  'Public IP lookup failed'
-                end
+        "HTTP error fetching public IP info: #{status_code} #{status_message}"
+      else
+        'Public IP lookup failed'
+      end
       super(message)
     end
   end

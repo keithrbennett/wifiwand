@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
+
 #
 # Automated test suite for WiFi event notification hooks
 # Tests all hooks with sample events and validates outputs
@@ -35,7 +36,7 @@ class HookTestSuite
   # Check if timeout command is available
   def timeout_available?
     system('which timeout > /dev/null 2>&1', out: File::NULL, err: File::NULL)
-  rescue StandardError
+  rescue
     false
   end
 
@@ -58,7 +59,7 @@ class HookTestSuite
     output = `#{test_cmd} 2>&1`
     success = Process.last_status.success?
 
-    if !success
+    unless success
       puts "#{RED}✗ FAIL#{NC}: #{test_name} (command failed)"
       puts "Error: #{output}"
       @tests_failed += 1
@@ -69,13 +70,13 @@ class HookTestSuite
       puts "#{GREEN}✓ PASS#{NC}: #{test_name}"
       puts "Output: #{output}" if verbose
       @tests_passed += 1
-      return true
+      true
     else
       puts "#{RED}✗ FAIL#{NC}: #{test_name} (expected pattern not found)"
       puts "Expected: #{expected_pattern}"
       puts "Got: #{output}"
       @tests_failed += 1
-      return false
+      false
     end
   end
 
@@ -146,8 +147,8 @@ class HookTestSuite
     end
 
     run_test 'executes without errors',
-             "cat '#{File.join(temp_dir, 'event-wifi-on.json')}' | '#{hook_path}' && echo 'success'",
-             'success'
+      "cat '#{File.join(temp_dir, 'event-wifi-on.json')}' | '#{hook_path}' && echo 'success'",
+      'success'
   end
 
   def test_json_log_hook
@@ -163,16 +164,16 @@ class HookTestSuite
     ENV['WIFIWAND_JSON_LOG_FILE'] = log_file
 
     run_test 'logs wifi_on event',
-             "cat '#{File.join(temp_dir, 'event-wifi-on.json')}' | '#{hook_path}' && cat '#{log_file}'",
-             'wifi_on'
+      "cat '#{File.join(temp_dir, 'event-wifi-on.json')}' | '#{hook_path}' && cat '#{log_file}'",
+      'wifi_on'
 
     run_test 'logs connected event',
-             "cat '#{File.join(temp_dir, 'event-connected.json')}' | '#{hook_path}' && cat '#{log_file}'",
-             'connected'
+      "cat '#{File.join(temp_dir, 'event-connected.json')}' | '#{hook_path}' && cat '#{log_file}'",
+      'connected'
 
     run_test 'logs internet_off event',
-             "cat '#{File.join(temp_dir, 'event-internet-off.json')}' | '#{hook_path}' && cat '#{log_file}'",
-             'internet_off'
+      "cat '#{File.join(temp_dir, 'event-internet-off.json')}' | '#{hook_path}' && cat '#{log_file}'",
+      'internet_off'
 
     ENV.delete('WIFIWAND_JSON_LOG_FILE')
   end
@@ -192,8 +193,8 @@ class HookTestSuite
     end
 
     run_test 'executes without errors',
-             "cat '#{File.join(temp_dir, 'event-wifi-on.json')}' | '#{hook_path}' && echo 'success'",
-             'success'
+      "cat '#{File.join(temp_dir, 'event-wifi-on.json')}' | '#{hook_path}' && echo 'success'",
+      'success'
   end
 
   def test_webhook_hook
@@ -216,8 +217,8 @@ class HookTestSuite
     end
 
     run_test 'executes without errors',
-             "cat '#{File.join(temp_dir, 'event-internet-on.json')}' | timeout 5 '#{hook_path}' && echo 'success'",
-             'success'
+      "cat '#{File.join(temp_dir, 'event-internet-on.json')}' | timeout 5 '#{hook_path}' && echo 'success'",
+      'success'
   end
 
   def test_macos_notify_hook
@@ -235,8 +236,8 @@ class HookTestSuite
     end
 
     run_test 'executes without errors',
-             "cat '#{File.join(temp_dir, 'event-wifi-on.json')}' | '#{hook_path}' && echo 'success'",
-             'success'
+      "cat '#{File.join(temp_dir, 'event-wifi-on.json')}' | '#{hook_path}' && echo 'success'",
+      'success'
   end
 
   def test_gnome_notify_hook
@@ -249,8 +250,8 @@ class HookTestSuite
     end
 
     run_test 'executes without errors',
-             "cat '#{File.join(temp_dir, 'event-wifi-on.json')}' | '#{hook_path}' && echo 'success'",
-             'success'
+      "cat '#{File.join(temp_dir, 'event-wifi-on.json')}' | '#{hook_path}' && echo 'success'",
+      'success'
   end
 
   def test_kde_notify_hook
@@ -263,8 +264,8 @@ class HookTestSuite
     end
 
     run_test 'executes without errors',
-             "cat '#{File.join(temp_dir, 'event-wifi-on.json')}' | '#{hook_path}' && echo 'success'",
-             'success'
+      "cat '#{File.join(temp_dir, 'event-wifi-on.json')}' | '#{hook_path}' && echo 'success'",
+      'success'
   end
 
   def test_multi_hook
@@ -282,8 +283,8 @@ class HookTestSuite
     ENV['WIFIWAND_MULTI_HOOK_DIR'] = script_dir
 
     run_test 'executes without errors',
-             "cat '#{File.join(temp_dir, 'event-wifi-on.json')}' | '#{hook_path}' && echo 'success'",
-             'success'
+      "cat '#{File.join(temp_dir, 'event-wifi-on.json')}' | '#{hook_path}' && echo 'success'",
+      'success'
 
     ENV.delete('WIFIWAND_MULTI_NOTIFY')
     ENV.delete('WIFIWAND_MULTI_JSON_LOG')

@@ -3,7 +3,6 @@
 module WifiWand
   class CommandLineInterface
     module ShellInterface
-
       # Runs a pry session in the context of this object.
       # Commands and options specified on the command line can also be specified in the shell.
       def run_shell
@@ -30,8 +29,8 @@ module WifiWand
       def method_missing(method_name, *method_args)
         attempt_command_action(method_name.to_s, *method_args) do
           raise NoMethodError, <<~MESSAGE
-              "#{method_name}" is not a valid command or option.
-              If you intended it as an argument to a command, it may be invalid or need quotes.
+            "#{method_name}" is not a valid command or option.
+            If you intended it as an argument to a command, it may be invalid or need quotes.
             MESSAGE
         end
       end
@@ -44,7 +43,6 @@ module WifiWand
           io.puts 'This command can only be run in shell mode.'
         end
       end
-
     end
   end
 end

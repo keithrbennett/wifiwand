@@ -53,8 +53,8 @@ describe WifiWand::StatusWaiter do
           call_count <= 2 # Simulate wifi turning off after 2 checks
         end
         allow(waiter).to receive(:sleep) # Mock sleep to speed up test
-        expect(waiter.wait_for(:off, 
-wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
+        expect(waiter.wait_for(:off,
+          wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
       end
     end
 
@@ -75,8 +75,8 @@ wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
           call_count > 2 # Simulate connection after 2 checks
         end
         allow(waiter).to receive(:sleep) # Mock sleep to speed up test
-        expect(waiter.wait_for(:conn, 
-wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
+        expect(waiter.wait_for(:conn,
+          wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
       end
     end
 
@@ -97,22 +97,22 @@ wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
           call_count <= 2 # Simulate disconnection after 2 checks
         end
         allow(waiter).to receive(:sleep) # Mock sleep to speed up test
-        expect(waiter.wait_for(:disc, 
-wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
+        expect(waiter.wait_for(:disc,
+          wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
       end
     end
 
     context 'with invalid status' do
       it 'raises ArgumentError for unknown status' do
-        expect {
+        expect do
           waiter.wait_for(:invalid_status)
-        }.to raise_error(ArgumentError, /Option must be one of/)
+        end.to raise_error(ArgumentError, /Option must be one of/)
       end
 
       it 'can stringify permitted values in error message' do
-        expect {
+        expect do
           waiter.wait_for(:bogus, stringify_permitted_values_in_error_msg: true)
-        }.to raise_error(ArgumentError, /Option must be one of \[conn, disc, on, off\]/)
+        end.to raise_error(ArgumentError, /Option must be one of \[conn, disc, on, off\]/)
       end
     end
 
@@ -129,16 +129,16 @@ wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
 
         allow(verbose_waiter).to receive(:sleep) # Mock sleep
 
-        expect {
+        expect do
           verbose_waiter.wait_for(:on, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)
-        }.to output(/StatusWaiter \(on\): starting, timeout: never, interval: #{WifiWand::TimingConstants::FAST_TEST_INTERVAL}s/).to_stdout
+        end.to output(/StatusWaiter \(on\): starting, timeout: never, interval: #{WifiWand::TimingConstants::FAST_TEST_INTERVAL}s/).to_stdout
       end
 
       it 'logs completion message when condition is already met' do
         allow(mock_model).to receive(:wifi_on?).and_return(true)
-        expect {
+        expect do
           verbose_waiter.wait_for(:on)
-        }.to output(/StatusWaiter \(on\): completed without needing to wait/).to_stdout
+        end.to output(/StatusWaiter \(on\): completed without needing to wait/).to_stdout
       end
 
       it 'logs total wait time when waiting is required' do
@@ -150,9 +150,9 @@ wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
 
         allow(verbose_waiter).to receive(:sleep)
 
-        expect {
+        expect do
           verbose_waiter.wait_for(:on, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)
-        }.to output(/StatusWaiter \(on\): wait time \(seconds\):/).to_stdout
+        end.to output(/StatusWaiter \(on\): wait time \(seconds\):/).to_stdout
       end
     end
 
@@ -168,14 +168,14 @@ wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
         start_time = 1000.0
         end_time = 1002.5
         allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
-                                                .and_return(start_time, end_time)
+          .and_return(start_time, end_time)
 
         verbose_waiter = WifiWand::StatusWaiter.new(mock_model, verbose: true)
         allow(verbose_waiter).to receive(:sleep)
 
-        expect {
+        expect do
           verbose_waiter.wait_for(:on, timeout_in_secs: 10) # Use longer timeout to ensure it doesn't timeout
-        }.to output(/StatusWaiter \(on\): wait time \(seconds\): 2\.5/).to_stdout
+        end.to output(/StatusWaiter \(on\): wait time \(seconds\): 2\.5/).to_stdout
       end
     end
 
@@ -184,9 +184,9 @@ wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)).to be_nil
         allow(mock_model).to receive(:wifi_on?).and_return(false)
         allow(mock_model).to receive(:connected_to_internet?).and_return(false)
 
-        expect {
+        expect do
           waiter.wait_for(:on, timeout_in_secs: 0)
-        }.to raise_error(WifiWand::WaitTimeoutError)
+        end.to raise_error(WifiWand::WaitTimeoutError)
       end
     end
   end

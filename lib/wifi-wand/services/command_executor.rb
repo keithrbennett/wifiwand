@@ -5,7 +5,6 @@ require_relative '../models/helpers/command_output_formatter'
 
 module WifiWand
   class CommandExecutor
-
     def initialize(verbose: false, output: $stdout)
       @verbose = verbose
       @output = output
@@ -45,20 +44,18 @@ module WifiWand
         until streams.empty?
           ready_ios = IO.select(streams.keys)&.first
           Array(ready_ios).each do |io|
-            begin
-              chunk = io.read_nonblock(4096)
-              if streams[io] == :stdout
-                stdout_chunks << chunk
-              else
-                stderr_chunks << chunk
-              end
-              combined_chunks << chunk
-            rescue IO::WaitReadable
-              next
-            rescue EOFError
-              io.close
-              streams.delete(io)
+            chunk = io.read_nonblock(4096)
+            if streams[io] == :stdout
+              stdout_chunks << chunk
+            else
+              stderr_chunks << chunk
             end
+            combined_chunks << chunk
+          rescue IO::WaitReadable
+            next
+          rescue EOFError
+            io.close
+            streams.delete(io)
           end
         end
 
@@ -103,7 +100,6 @@ module WifiWand
     # @stop_condition a lambda taking the command's stdout as its sole parameter
     # @return the stdout produced by the command, or nil if max_tries was reached
     def try_os_command_until(command, stop_condition, max_tries = 100)
-
       report_attempt_count = ->(attempt_count) do
         @output.puts "Command was executed #{attempt_count} time(s)." if @verbose
       end
@@ -167,10 +163,10 @@ module WifiWand
       attr_reader :exitstatus, :command, :text, :result
 
       def initialize(result_or_exitstatus, command = nil, text = nil)
-        if result_or_exitstatus.is_a?(OsCommandResult)
-          @result = result_or_exitstatus
+        @result = if result_or_exitstatus.is_a?(OsCommandResult)
+          result_or_exitstatus
         else
-          @result = OsCommandResult.new(
+          OsCommandResult.new(
             stdout: text,
             stderr: '',
             combined_output: text,

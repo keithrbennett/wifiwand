@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
+
 #
 # WiFi event hook: Send events to syslog
 #
@@ -34,7 +35,7 @@ begin
                 'Internet connectivity lost'
               else
                 "WiFi event: #{event['type']}"
-              end
+    end
 
     severity = case event['type']
                when 'internet_off'
@@ -43,11 +44,11 @@ begin
                  Syslog::LOG_NOTICE
                else
                  Syslog::LOG_INFO
-               end
+    end
 
     syslog.log(severity, message)
   end
-rescue StandardError => e
+rescue => e
   warn "Syslog hook error: #{e.message}"
   exit 1
 end

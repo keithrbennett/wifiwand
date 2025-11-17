@@ -4,7 +4,6 @@ require_relative '../timing_constants'
 
 module WifiWand
   class StatusWaiter
-
     def initialize(model, verbose: false, output: nil)
       @model = model
       @verbose = verbose
@@ -18,7 +17,7 @@ module WifiWand
     # @param wait_interval_in_secs sleeps this interval between retries; if nil or absent,
     #        a default will be provided
     def wait_for(target_status, timeout_in_secs: nil, wait_interval_in_secs: nil,
-                 stringify_permitted_values_in_error_msg: false)
+      stringify_permitted_values_in_error_msg: false)
       wait_interval_in_secs ||= TimingConstants::DEFAULT_WAIT_INTERVAL
       message_prefix = "StatusWaiter (#{target_status}):"
 
@@ -28,10 +27,10 @@ module WifiWand
       end
 
       finished_predicates = {
-          conn: -> { @model.connected_to_internet? },
-          disc: -> { !@model.connected_to_internet? },
-          on: -> { @model.wifi_on? },
-          off: -> { !@model.wifi_on? }
+        conn: -> { @model.connected_to_internet? },
+        disc: -> { !@model.connected_to_internet? },
+        on: -> { @model.wifi_on? },
+        off: -> { !@model.wifi_on? }
       }
 
       finished_predicate = finished_predicates[target_status]
@@ -48,8 +47,8 @@ module WifiWand
       if finished_predicate.call
         (@output || $stdout).puts "#{message_prefix} completed without needing to wait" if @verbose
         return nil
-      else
-        (@output || $stdout).puts "#{message_prefix} First attempt failed, entering waiting loop" if @verbose
+      elsif @verbose
+        (@output || $stdout).puts "#{message_prefix} First attempt failed, entering waiting loop"
       end
 
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)

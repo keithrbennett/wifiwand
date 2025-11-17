@@ -78,8 +78,9 @@ module TestHelpers
   def is_disruptive?
     current_example = RSpec.current_example
     example_disruptive = current_example&.metadata&.fetch(:disruptive, nil)
-    group_disruptive = self.class.metadata[:disruptive] || self.class.parent_groups.any? { |group|
- group.metadata[:disruptive] }
+    group_disruptive = self.class.metadata[:disruptive] || self.class.parent_groups.any? do |group|
+      group.metadata[:disruptive]
+    end
     example_disruptive || group_disruptive
   end
 
@@ -121,7 +122,7 @@ module TestHelpers
       wifi_off: nil,
       wifi_on: nil,
       available_network_names: ['TestNet1', 'TestNet2'],
-      wifi_info: {'status' => 'connected'},
+      wifi_info: { 'status' => 'connected' },
       connected_to_internet?: true,
       connected_network_name: 'TestNetwork',
       disconnect: nil,

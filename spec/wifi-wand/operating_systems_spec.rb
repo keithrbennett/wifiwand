@@ -30,7 +30,7 @@ module WifiWand
     end
 
     describe '.current_os' do
-      before(:each) do
+      before do
         # Reset class variable to force re-detection
         described_class.instance_variable_set(:@current_os, nil)
       end
@@ -50,7 +50,7 @@ module WifiWand
           first_result = described_class.current_os
           second_result = described_class.current_os
 
-          expect(first_result).to be_equal(second_result)
+          expect(first_result).to equal(second_result)
         end
       end
 
@@ -58,16 +58,16 @@ module WifiWand
         it 'raises error if multiple OSes match current system' do
           # Create a mock scenario where multiple OSes return true
           mock_os1 = double('MockOS1',
-                            current_os_is_this_os?: true,
-                            id: :mock1,
-                            display_name: 'Mock OS 1')
+            current_os_is_this_os?: true,
+            id: :mock1,
+            display_name: 'Mock OS 1')
           mock_os2 = double('MockOS2',
-                            current_os_is_this_os?: true,
-                            id: :mock2,
-                            display_name: 'Mock OS 2')
+            current_os_is_this_os?: true,
+            id: :mock2,
+            display_name: 'Mock OS 2')
 
-          allow(described_class).to receive(:supported_operating_systems).and_return([mock_os1, 
-mock_os2])
+          allow(described_class).to receive(:supported_operating_systems).and_return([mock_os1,
+                                                                                      mock_os2])
 
           expect { described_class.current_os }.to raise_error(WifiWand::MultipleOSMatchError)
         end
@@ -105,7 +105,7 @@ mock_os2])
     end
 
     describe '.create_model_for_current_os' do
-      before(:each) do
+      before do
         # Reset class variable to force re-detection
         described_class.instance_variable_set(:@current_os, nil)
       end
@@ -155,7 +155,7 @@ mock_os2])
 
     describe 'individual OS behavior' do
       it 'verifies each OS implements required methods' do
-        required_methods = %i[current_os_is_this_os? create_model id display_name]
+        required_methods = [:current_os_is_this_os?, :create_model, :id, :display_name]
         described_class.supported_operating_systems.each do |os|
           missing_required_methods = required_methods - os.methods
           expect(missing_required_methods).to be_empty
@@ -177,9 +177,7 @@ mock_os2])
 
     describe 'OS validation' do
       it 'ensures all supported OSes are valid BaseOs subclasses' do
-        described_class.supported_operating_systems.each do |os|
-          expect(os).to be_a(BaseOs)
-        end
+        expect(described_class.supported_operating_systems).to all(be_a(BaseOs))
       end
 
       it 'ensures OS ids are unique symbols' do
@@ -198,19 +196,17 @@ mock_os2])
     describe 'integration with model creation' do
       it 'can create models for detectable OSes without errors' do
         described_class.supported_operating_systems.each do |os|
-          begin
-            if os.current_os_is_this_os?
-              model = os.create_model(OpenStruct.new(verbose: false))
-              expect(model).not_to be_nil
-              # Basic interface validation
-              expect(model).to respond_to(:wifi_on?)
-              expect(model).to respond_to(:wifi_info)
-            end
-          rescue => e
-            # It's OK if model creation fails due to OS incompatibility
-            # but it should fail gracefully, not crash
-            expect(e.message).not_to be_nil
+          if os.current_os_is_this_os?
+            model = os.create_model(OpenStruct.new(verbose: false))
+            expect(model).not_to be_nil
+            # Basic interface validation
+            expect(model).to respond_to(:wifi_on?)
+            expect(model).to respond_to(:wifi_info)
           end
+        rescue => e
+          # It's OK if model creation fails due to OS incompatibility
+          # but it should fail gracefully, not crash
+          expect(e.message).not_to be_nil
         end
       end
     end

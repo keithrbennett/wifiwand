@@ -5,14 +5,15 @@ require_relative '../../../lib/wifi-wand/command_line_interface/shell_interface'
 require 'stringio'
 
 describe WifiWand::CommandLineInterface::ShellInterface do
-
   # Create a test class that includes the module
+  subject { test_class.new }
+
   let(:test_class) do
     Class.new do
       include WifiWand::CommandLineInterface::ShellInterface
 
       # Mock required methods from CommandLineInterface
-      def attempt_command_action(command, *args, &block)
+      def attempt_command_action(command, *_args, &block)
         case command
         when 'info'
           'mock info result'
@@ -37,21 +38,21 @@ describe WifiWand::CommandLineInterface::ShellInterface do
     end
   end
 
-  subject { test_class.new }
 
   describe '#method_missing' do
     it 'attempts to execute commands via attempt_command_action' do
       # Mock the command execution
-      expect(subject).to receive(:attempt_command_action).with('invalid_command', 'arg1', 
-'arg2') do |&block|
+      expect(subject).to receive(:attempt_command_action).with('invalid_command', 'arg1',
+        'arg2') do |&block|
         block.call if block # Call the error handler
         nil
       end
 
       # Should raise NoMethodError
-      expect {
- subject.invalid_command('arg1', 
-'arg2') }.to raise_error(NoMethodError, /is not a valid command or option/)
+      expect do
+        subject.invalid_command('arg1',
+          'arg2')
+      end.to raise_error(NoMethodError, /is not a valid command or option/)
     end
 
     it 'does not interfere with known commands' do
@@ -63,15 +64,17 @@ describe WifiWand::CommandLineInterface::ShellInterface do
     end
 
     it 'prints error for unknown commands' do
-      expect {
- subject.unknown_command }.to raise_error(NoMethodError, /is not a valid command or option/)
+      expect do
+        subject.unknown_command
+      end.to raise_error(NoMethodError, /is not a valid command or option/)
     end
 
     it 'suggests string literal usage for unknown commands' do
       # The suggestion is part of the error message in the current implementation
-      expect {
- subject.unknown_command }.to raise_error(NoMethodError, 
-/If you intended it as an argument to a command, it may be invalid or need quotes./)
+      expect do
+        subject.unknown_command
+      end.to raise_error(NoMethodError,
+        /If you intended it as an argument to a command, it may be invalid or need quotes./)
     end
   end
 
@@ -89,7 +92,7 @@ describe WifiWand::CommandLineInterface::ShellInterface do
   end
 
   describe '#run_shell' do
-    # Note: run_shell uses pry binding which is difficult to test comprehensively
+    # NOTE: run_shell uses pry binding which is difficult to test comprehensively
     # These tests focus on the basic setup and requirements
 
     def mock_pry_session

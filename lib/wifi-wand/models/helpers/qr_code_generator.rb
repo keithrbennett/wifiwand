@@ -32,7 +32,7 @@ module WifiWand
 
         network_name = require_connected_network_name(model)
         # If no password is provided, fetch the saved password from the system (may require auth on macOS)
-        password     = password || connected_password_for(model)
+        password ||= connected_password_for(model)
         security     = model.connection_security_type
         is_hidden    = model.network_hidden?
 
@@ -61,13 +61,14 @@ module WifiWand
                             'sudo apt install qrencode'
                           else
                             'install qrencode using your system package manager'
-                          end
+        end
         raise WifiWand::Error.new("Required operating system dependency 'qrencode' library not found. Use #{install_command} to install it.")
       end
 
       def require_connected_network_name(model)
         name = model.connected_network_name
         raise WifiWand::Error.new('Not connected to any WiFi network. Connect to a network first.') unless name
+
         name
       end
 
@@ -136,7 +137,7 @@ module WifiWand
             rescue
               raise WifiWand::Error.new("QR code output file '#{filename}' already exists and could not be overwritten.")
             end
-            return
+            nil
           else
             raise WifiWand::Error.new('Overwrite cancelled: file exists')
           end

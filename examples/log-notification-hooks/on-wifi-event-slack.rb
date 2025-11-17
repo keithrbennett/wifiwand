@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
+
 #
 # WiFi event hook: Send notifications to Slack
 #
@@ -19,7 +20,7 @@ require 'json'
 require 'net/http'
 require 'uri'
 
-webhook_url = ENV['SLACK_WEBHOOK_URL']
+webhook_url = ENV.fetch('SLACK_WEBHOOK_URL', nil)
 
 unless webhook_url
   warn 'Error: SLACK_WEBHOOK_URL environment variable not set'
@@ -80,8 +81,7 @@ begin
 
   response = http.request(request)
   exit 1 unless response.is_a?(Net::HTTPSuccess)
-
-rescue StandardError => e
+rescue => e
   warn "Slack hook error: #{e.message}"
   exit 1
 end

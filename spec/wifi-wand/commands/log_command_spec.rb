@@ -90,23 +90,23 @@ describe WifiWand::LogCommand do
 
       it 'raises error for invalid interval value' do
         command = WifiWand::LogCommand.new(mock_model, output: output)
-        expect {
+        expect do
           command.execute('--interval', 'invalid')
-        }.to raise_error(WifiWand::ConfigurationError)
+        end.to raise_error(WifiWand::ConfigurationError)
       end
 
       it 'raises error for zero interval' do
         command = WifiWand::LogCommand.new(mock_model, output: output)
-        expect {
+        expect do
           command.execute('--interval', '0')
-        }.to raise_error(WifiWand::ConfigurationError, /Interval must be greater than 0/)
+        end.to raise_error(WifiWand::ConfigurationError, /Interval must be greater than 0/)
       end
 
       it 'raises error for negative interval' do
         command = WifiWand::LogCommand.new(mock_model, output: output)
-        expect {
+        expect do
           command.execute('--interval', '-5')
-        }.to raise_error(WifiWand::ConfigurationError, /Interval must be greater than 0/)
+        end.to raise_error(WifiWand::ConfigurationError, /Interval must be greater than 0/)
       end
     end
 
@@ -219,8 +219,8 @@ describe WifiWand::LogCommand do
 
       it 'combines --interval, --file, --hook, and --stdout correctly' do
         command = WifiWand::LogCommand.new(mock_model, verbose: true, output: output)
-        command.execute('--interval', '3', '--file', '/tmp/test.log', '--hook', '/my/hook', 
-'--stdout')
+        command.execute('--interval', '3', '--file', '/tmp/test.log', '--hook', '/my/hook',
+          '--stdout')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
@@ -237,9 +237,9 @@ describe WifiWand::LogCommand do
 
     it 'raises error for unknown option' do
       command = WifiWand::LogCommand.new(mock_model, output: output)
-      expect {
+      expect do
         command.execute('--unknown')
-      }.to raise_error(WifiWand::ConfigurationError, /invalid option/)
+      end.to raise_error(WifiWand::ConfigurationError, /invalid option/)
     end
   end
 end
