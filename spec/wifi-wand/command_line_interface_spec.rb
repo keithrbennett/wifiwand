@@ -448,18 +448,18 @@ hash_including(password: nil)).and_raise(
   describe 'command delegation' do
     COMMAND_TEST_CASES = [
       { cmd: :cmd_w,  model_method: :wifi_on?, return_value: true, 
-non_interactive_output: "Wifi on: true\n" },
+        non_interactive_output: "Wifi on: true\n" },
       { cmd: :cmd_on, model_method: :wifi_on },
       { cmd: :cmd_of, model_method: :wifi_off },
       { cmd: :cmd_d,  model_method: :disconnect },
       { cmd: :cmd_cy, model_method: :cycle_network },
       { cmd: :cmd_a,  model_method: :available_network_names, skip_non_interactive: true },
       { cmd: :cmd_i,  model_method: :wifi_info, return_value: { 'status' => 'connected' }, 
-non_interactive_output: /status.*connected/m },
+        non_interactive_output: /status.*connected/m },
       { cmd: :cmd_ci, model_method: :connected_to_internet?, return_value: true, 
-non_interactive_output: "Connected to Internet: true\n" },
+        non_interactive_output: "Connected to Internet: true\n" },
       { cmd: :cmd_qr, model_method: :generate_qr_code, return_value: 'TestNetwork-qr-code.png', 
-non_interactive_output: "QR code generated: TestNetwork-qr-code.png\n" }
+        non_interactive_output: "QR code generated: TestNetwork-qr-code.png\n" }
     ]
 
     COMMAND_TEST_CASES.each do |test_case|

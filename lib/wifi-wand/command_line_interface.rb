@@ -31,9 +31,9 @@ class CommandLineInterface
     @err_stream = (options.respond_to?(:err_stream) && options.err_stream) || $stderr
 
     model_options = OpenStruct.new({
-      verbose:        options.verbose,
+      verbose: options.verbose,
       wifi_interface: options.wifi_interface,
-      out_stream:     out_stream
+      out_stream: out_stream
     })
 
     # Skip model initialization when help was explicitly requested in non-interactive mode,

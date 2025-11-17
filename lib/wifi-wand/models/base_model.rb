@@ -240,17 +240,17 @@ class BaseModel
     connected = connected_to_internet?(internet_tcp, dns_working)
 
     info = {
-        'wifi_on'                   => wifi_on?,
+        'wifi_on' => wifi_on?,
         'internet_tcp_connectivity' => internet_tcp,
-        'dns_working'               => dns_working,
-        'internet_on'               => connected,
-        'interface'                 => wifi_interface,
-        'default_interface'         => default_interface,
-        'network'                   => connected_network_name,
-        'ip_address'                => ip_address,
-        'mac_address'               => mac_address,
-        'nameservers'               => nameservers,
-        'timestamp'                 => Time.now,
+        'dns_working' => dns_working,
+        'internet_on' => connected,
+        'interface' => wifi_interface,
+        'default_interface' => default_interface,
+        'network' => connected_network_name,
+        'ip_address' => ip_address,
+        'mac_address' => mac_address,
+        'nameservers' => nameservers,
+        'timestamp' => Time.now,
     }
 
     if info['internet_on']
