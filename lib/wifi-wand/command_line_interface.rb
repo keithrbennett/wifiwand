@@ -84,9 +84,9 @@ class CommandLineInterface
     human_readable_string_producer = -> do
       if model.wifi_on?
         <<~MESSAGE
-          Available networks, in descending signal strength order, 
+          Available networks, in descending signal strength order,#{' '}
           and not including any currently connected network, are:
-  
+
           #{format_object(info)}" "
         MESSAGE
       else
@@ -103,7 +103,7 @@ class CommandLineInterface
 
   def cmd_co(network, password = nil)
     model.connect(network, password)
-    
+
     # Show message if we used a saved password
     if model.last_connection_used_saved_password? && !interactive_mode
       out_stream.puts "Using saved password for '#{network}'. Use 'forget #{network}' if you need to use a different password."
@@ -353,11 +353,11 @@ class CommandLineInterface
     end
 
     result = model.open_resources_by_codes(*resource_codes)
-    
+
     unless result[:invalid_codes].empty?
       @err_stream.puts model.resource_manager.invalid_codes_error(result[:invalid_codes])
     end
-    
+
     nil
   end
 

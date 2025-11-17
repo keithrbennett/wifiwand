@@ -55,7 +55,7 @@ describe WifiWand::CommandExecutor do
 
     it 'retries until condition is met' do
       call_count = 0
-      
+
       # Mock the run_os_command to include the iteration number in output
       allow(executor).to receive(:run_os_command) do |command|
         call_count += 1
@@ -69,7 +69,7 @@ describe WifiWand::CommandExecutor do
         )
       end
 
-      condition = ->(output) { 
+      condition = ->(output) {
         # Succeed on second try
         output.include?('attempt 2')
       }
@@ -156,7 +156,7 @@ describe WifiWand::CommandExecutor do
     it 'is accessible through BaseModel' do
       require_relative '../../../lib/wifi-wand/models/base_model'
       require 'ostruct'
-      
+
       # This tests the integration without actually running OS-specific code
       expect {
         WifiWand::BaseModel.new(OpenStruct.new(verbose: false))

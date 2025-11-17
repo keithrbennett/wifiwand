@@ -5,12 +5,12 @@ require_relative '../../../lib/wifi-wand/command_line_interface/shell_interface'
 require 'stringio'
 
 describe WifiWand::CommandLineInterface::ShellInterface do
-  
+
   # Create a test class that includes the module
   let(:test_class) do
     Class.new do
       include WifiWand::CommandLineInterface::ShellInterface
-      
+
       # Mock required methods from CommandLineInterface
       def attempt_command_action(command, *args, &block)
         case command
@@ -23,14 +23,14 @@ describe WifiWand::CommandLineInterface::ShellInterface do
           nil
         end
       end
-      
+
       def print_help
         puts "Mock help text"
       end
-      
+
       # Mock interactive_mode for testing
       attr_accessor :interactive_mode
-      
+
       def initialize
         @interactive_mode = true  # Default to interactive mode for testing
       end
@@ -46,7 +46,7 @@ describe WifiWand::CommandLineInterface::ShellInterface do
         block.call if block  # Call the error handler
         nil
       end
-      
+
       # Should raise NoMethodError
       expect { subject.invalid_command('arg1', 'arg2') }.to raise_error(NoMethodError, /is not a valid command or option/)
     end
@@ -54,7 +54,7 @@ describe WifiWand::CommandLineInterface::ShellInterface do
     it 'does not interfere with known commands' do
       # Should not call the original method_missing for successful commands
       expect(subject).to receive(:attempt_command_action).with('info').and_return('info result')
-      
+
       result = subject.info
       expect(result).to eq('info result')
     end
@@ -75,7 +75,7 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       expect(subject).to receive(:exit).with(0)
       subject.quit
     end
-    
+
     it 'prints error message when not in interactive mode' do
       subject.interactive_mode = false
       expect { subject.quit }.to output(/This command can only be run in shell mode/).to_stderr
@@ -85,7 +85,7 @@ describe WifiWand::CommandLineInterface::ShellInterface do
   describe '#run_shell' do
     # Note: run_shell uses pry binding which is difficult to test comprehensively
     # These tests focus on the basic setup and requirements
-    
+
     def mock_pry_session
       # Mock pry completely
       pry_config = double('pry_config')
@@ -94,16 +94,16 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       allow(pry_config).to receive(:exception_handler=)
       pry_class = double('Pry', config: pry_config)
       stub_const('Pry', pry_class)
-      
+
       mock_binding = double('binding')
       allow(subject).to receive(:binding).and_return(mock_binding)
       allow(mock_binding).to receive(:pry)
     end
-    
+
     it 'outputs a 1-line help message before starting pry session' do
       allow(subject).to receive(:require).with('pry')
       mock_pry_session
-      
+
       # Test the behavior and capture output while suppressing it during test runs
       captured_output = silence_output do |stdout, _stderr|
         subject.run_shell
@@ -111,11 +111,11 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       end
       expect(captured_output).to eq("For help, type 'h[Enter]' or 'help[Enter]'.\n")
     end
-    
+
     it 'requires pry gem' do
       expect(subject).to receive(:require).with('pry')
       mock_pry_session
-      
+
       silence_output { subject.run_shell }
     end
 

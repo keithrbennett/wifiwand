@@ -124,28 +124,28 @@ describe WifiWand::NetworkConnectivityTester do
     it 'returns true when both TCP and DNS work' do
       allow(tester).to receive(:tcp_connectivity?).and_return(true)
       allow(tester).to receive(:dns_working?).and_return(true)
-      
+
       expect(tester.connected_to_internet?).to be true
     end
 
     it 'returns false when TCP fails' do
       allow(tester).to receive(:tcp_connectivity?).and_return(false)
       allow(tester).to receive(:dns_working?).and_return(true)
-      
+
       expect(tester.connected_to_internet?).to be false
     end
 
     it 'returns false when DNS fails' do
       allow(tester).to receive(:tcp_connectivity?).and_return(true)
       allow(tester).to receive(:dns_working?).and_return(false)
-      
+
       expect(tester.connected_to_internet?).to be false
     end
 
     it 'returns false when both fail' do
       allow(tester).to receive(:tcp_connectivity?).and_return(false)
       allow(tester).to receive(:dns_working?).and_return(false)
-      
+
       expect(tester.connected_to_internet?).to be false
     end
   end

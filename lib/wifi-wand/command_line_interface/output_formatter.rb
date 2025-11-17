@@ -5,14 +5,14 @@ require 'awesome_print'
 module WifiWand
   class CommandLineInterface
     module OutputFormatter
-      
+
       def format_object(object)
         object.awesome_inspect
       end
 
       def colorize_text(text, color = nil)
         return text unless $stdout.tty? && color
-        
+
         color_codes = {
           red: "\e[31m",
           green: "\e[32m",
@@ -23,7 +23,7 @@ module WifiWand
           bold: "\e[1m",
           reset: "\e[0m"
         }
-        
+
         "#{color_codes[color]}#{text}#{color_codes[:reset]}"
       end
 
@@ -99,7 +99,7 @@ module WifiWand
       def post_processor
         options.post_processor
       end
-      
+
     end
   end
 end

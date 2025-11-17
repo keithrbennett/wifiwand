@@ -14,14 +14,14 @@ describe WifiWand::Main do
   end
 
   describe '#parse_command_line' do
-    
+
     it 'parses verbose flags' do
       options = parse_with_argv('--verbose', 'info')
       expect(options.verbose).to be(true)
-      
+
       options = parse_with_argv('-v', 'info')
       expect(options.verbose).to be(true)
-      
+
       options = parse_with_argv('--no-verbose', 'info')
       expect(options.verbose).to be(false)
     end
@@ -47,7 +47,7 @@ describe WifiWand::Main do
     it 'parses wifi interface options' do
       options = parse_with_argv('--wifi-interface', 'wlan0', 'info')
       expect(options.wifi_interface).to eq('wlan0')
-      
+
       options = parse_with_argv('-p', 'en0', 'info')
       expect(options.wifi_interface).to eq('en0')
     end
@@ -55,7 +55,7 @@ describe WifiWand::Main do
     it 'parses output format options' do
       options = parse_with_argv('--output_format', 'j', 'info')
       expect(options.post_processor).to respond_to(:call)
-      
+
       options = parse_with_argv('-o', 'y', 'info')
       expect(options.post_processor).to respond_to(:call)
     end
@@ -79,7 +79,7 @@ describe WifiWand::Main do
     it 'removes parsed options from ARGV' do
       stub_const('ARGV', ['-v', '-p', 'wlan0', 'connect', 'TestNetwork'])
       subject.parse_command_line
-      
+
       # OptionParser should remove the parsed flags, leaving just the command and args
       expect(ARGV).to eq(['connect', 'TestNetwork'])
     end
@@ -87,7 +87,7 @@ describe WifiWand::Main do
     it 'handles multiple flags together' do
       stub_const('ARGV', ['-v', '-p', 'eth0', '--output_format', 'j', 'info'])
       options = subject.parse_command_line
-      
+
       expect(options.verbose).to be(true)
       expect(options.wifi_interface).to eq('eth0')
       expect(options.post_processor).to respond_to(:call)
@@ -136,7 +136,7 @@ describe WifiWand::Main do
 
   describe '#call' do
     let(:mock_cli) { double('CommandLineInterface') }
-    
+
     before(:each) do
       # Mock the command line parsing to avoid complex setup
       allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: false, interactive_mode: false))
@@ -147,10 +147,10 @@ describe WifiWand::Main do
     it 'creates CLI with parsed options and calls it' do
       options = OpenStruct.new(verbose: true, wifi_interface: 'wlan0')
       allow(subject).to receive(:parse_command_line).and_return(options)
-      
+
       expect(WifiWand::CommandLineInterface).to receive(:new).with(options).and_return(mock_cli)
       expect(mock_cli).to receive(:call)
-      
+
       subject.call
     end
 
@@ -164,7 +164,7 @@ describe WifiWand::Main do
       ex = StandardError.new('Test error')
       allow(ex).to receive(:backtrace).and_return(['line1', 'line2', 'line3'])
       allow(mock_cli).to receive(:call).and_raise(ex)
-      
+
       expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
       expect(err_stream.string).to eq("Error: Test error\n")
     end
@@ -173,10 +173,10 @@ describe WifiWand::Main do
       ex = StandardError.new('Test error')
       allow(ex).to receive(:backtrace).and_return(['line1', 'line2', 'line3'])
       allow(mock_cli).to receive(:call).and_raise(ex)
-      
+
       # Mock verbose mode
       allow(subject).to receive(:parse_command_line).and_return(OpenStruct.new(verbose: true, interactive_mode: false))
-      
+
       expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
       expect(err_stream.string).to match(/Error: Test error/)
       expect(err_stream.string).to match(/Stack trace:/)
@@ -193,11 +193,11 @@ describe WifiWand::Main do
     it 'creates JSON processor' do
       stub_const('ARGV', ['-o', 'j', 'info'])  # 'j' for json
       options = subject.parse_command_line
-      
+
       processor = options.post_processor
       test_data = {'test' => 'value'}
       result = processor.call(test_data)
-      
+
       expect(result).to be_a(String)
       expect(JSON.parse(result)).to eq(test_data)
     end
@@ -205,11 +205,11 @@ describe WifiWand::Main do
     it 'creates YAML processor' do
       stub_const('ARGV', ['-o', 'y', 'info'])  # 'y' for yaml
       options = subject.parse_command_line
-      
+
       processor = options.post_processor
       test_data = {'test' => 'value'}
       result = processor.call(test_data)
-      
+
       expect(result).to be_a(String)
       expect(YAML.load(result)).to eq(test_data)
     end
@@ -254,14 +254,14 @@ describe WifiWand::Main do
 
   describe 'integration workflow' do
     let(:mock_cli) { double('CommandLineInterface') }
-    
+
     before(:each) do
       allow(WifiWand::CommandLineInterface).to receive(:new).and_return(mock_cli)
     end
 
     it 'parses arguments and executes CLI with correct options' do
       stub_const('ARGV', ['-v', '-p', 'wlan0', 'shell'])
-      
+
       expect(WifiWand::CommandLineInterface).to receive(:new) do |options|
         expect(options.verbose).to be(true)
         expect(options.interactive_mode).to be(true)
@@ -269,19 +269,19 @@ describe WifiWand::Main do
         mock_cli
       end
       expect(mock_cli).to receive(:call)
-      
+
       subject.call
     end
 
     it 'handles complete workflow with output formatting' do
       stub_const('ARGV', ['-o', 'j', 'info'])
-      
+
       expect(WifiWand::CommandLineInterface).to receive(:new) do |options|
         expect(options.post_processor).to respond_to(:call)
         mock_cli
       end
       expect(mock_cli).to receive(:call)
-      
+
       subject.call
     end
   end

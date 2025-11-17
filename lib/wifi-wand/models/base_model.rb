@@ -85,7 +85,7 @@ class BaseModel
     else
       @wifi_interface = detect_wifi_interface
     end
-    
+
     # Validate that WiFi interface is a valid string
     if @wifi_interface.nil? || @wifi_interface.empty?
       raise WifiInterfaceError.new
@@ -228,13 +228,13 @@ class BaseModel
     rescue
       false
     end
-    
+
     dns_working = begin
       dns_working?
     rescue
       false
     end
-    
+
     # Use the optimized connected_to_internet? method with pre-computed values
     connected = connected_to_internet?(internet_tcp, dns_working)
 
@@ -268,7 +268,7 @@ class BaseModel
       rescue JSON::ParserError
         # Service returned invalid JSON - try alternate approach
         out_stream.puts "Warning: Public IP service returned invalid data" if @verbose_mode
-        info['public_ip'] = nil  
+        info['public_ip'] = nil
       rescue => e
         # Other errors - log if verbose, gracefully degrade
         out_stream.puts "Warning: Public IP lookup failed: #{e.class}" if @verbose_mode
@@ -383,7 +383,7 @@ class BaseModel
 
   # Waits for the Internet connection to be in the desired state.
   # @param target_status must be in [:conn, :disc, :off, :on]; waits for that state
-  # @param timeout_in_secs after this many seconds, the method will raise a WaitTimeoutError; 
+  # @param timeout_in_secs after this many seconds, the method will raise a WaitTimeoutError;
   #        if nil (default), waits indefinitely
   # @param wait_interval_in_secs sleeps this interval between retries; if nil or absent,
   #        a default will be provided
@@ -467,13 +467,13 @@ class BaseModel
 
   # Network State Management for Testing
   # These methods help capture and restore network state during disruptive tests
-  
+
   def capture_network_state
     debug_method_entry(__method__)
 
     @state_manager.capture_network_state
   end
-  
+
   def restore_network_state(state, fail_silently: false)
     debug_method_entry(__method__, binding, %i{state fail_silently})
     @state_manager.restore_network_state(state, fail_silently: fail_silently)
@@ -493,7 +493,7 @@ class BaseModel
     debug_method_entry(__method__)
     qr_code_generator.generate(self, filespec, overwrite: overwrite, delivery_mode: delivery_mode, password: password)
   end
-  
+
   private
 
   # Normalizes a raw security descriptor string from OS tools to

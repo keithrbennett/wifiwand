@@ -10,7 +10,7 @@ require_relative '../timing_constants'
 
 module WifiWand
   class NetworkConnectivityTester
-    
+
     def initialize(verbose: false, output: $stdout)
       @verbose = verbose
       @output = output
@@ -67,7 +67,7 @@ module WifiWand
     # Tests TCP connectivity to internet hosts (not localhost)
     def tcp_connectivity?
       test_endpoints = tcp_test_endpoints
-      
+
       if @verbose
         endpoints_list = test_endpoints.map { |e| "#{e[:host]}:#{e[:port]}" }.join(', ')
         @output.puts "Testing internet TCP connectivity to: #{endpoints_list}"
@@ -81,11 +81,11 @@ module WifiWand
     # Tests DNS resolution capability
     def dns_working?
       test_domains = dns_test_domains
-      
+
       if @verbose
         @output.puts "Testing DNS resolution for domains: #{test_domains.join(', ')}"
       end
-      
+
       run_parallel_checks(test_domains, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do |domain|
         attempt_dns_resolution(domain)
       end

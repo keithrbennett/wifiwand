@@ -7,15 +7,15 @@ module WifiWand
   # === NETWORK CONNECTION ERRORS ===
   class NetworkNotFoundError < Error
     attr_reader :network_name, :available_networks
-    
+
     def initialize(network_name, available_networks = [])
       @network_name = network_name
       @available_networks = available_networks
       super(build_message)
     end
-    
+
     private
-    
+
     def build_message
       msg = "Network '#{network_name}' not found"
       if available_networks.any?
@@ -26,7 +26,7 @@ module WifiWand
       msg
     end
   end
-  
+
   class NetworkConnectionError < Error
     attr_reader :network_name, :reason
 
@@ -54,7 +54,7 @@ module WifiWand
 
 
   # === WIFI HARDWARE ERRORS ===
-  
+
   class WifiInterfaceError < Error
     def initialize(interface = nil)
       msg = interface ? "WiFi interface '#{interface}' not found" : "No WiFi interface found"
@@ -62,13 +62,13 @@ module WifiWand
       super(msg)
     end
   end
-  
+
   class WifiEnableError < Error
     def initialize
       super("WiFi could not be enabled. Check hardware and permissions")
     end
   end
-  
+
   class WifiDisableError < Error
     def initialize
       super("WiFi could not be disabled. Check permissions")
@@ -84,13 +84,13 @@ module WifiWand
   # === CONFIGURATION ERRORS ===
   class InvalidIPAddressError < Error
     attr_reader :invalid_addresses
-    
+
     def initialize(invalid_addresses)
       @invalid_addresses = Array(invalid_addresses)
       super("Invalid IP address(es): #{@invalid_addresses.join(', ')}")
     end
   end
-  
+
   class InvalidNetworkNameError < Error
     attr_reader :network_name, :reason
 
@@ -101,7 +101,7 @@ module WifiWand
       super("Invalid network name: '#{display_name}'. #{reason}")
     end
   end
-  
+
   class InvalidNetworkPasswordError < Error
     attr_reader :reason
 
@@ -110,7 +110,7 @@ module WifiWand
       super("Invalid network password: #{reason}")
     end
   end
-  
+
   class InvalidInterfaceError < Error
     def initialize(interface)
       super("'#{interface}' is not a valid WiFi interface")
@@ -131,19 +131,19 @@ module WifiWand
       super("Keychain access denied for network '#{network_name}'. Please grant access when prompted")
     end
   end
-  
+
   class KeychainAccessCancelledError < Error
     def initialize(network_name)
       super("Keychain access cancelled for network '#{network_name}'")
     end
   end
-  
+
   class KeychainNonInteractiveError < Error
     def initialize(network_name)
       super("Cannot access keychain for network '#{network_name}' in non-interactive environment")
     end
   end
-  
+
   class KeychainError < Error
     def initialize(message)
       super(message)
@@ -157,7 +157,7 @@ module WifiWand
       super("Multiple OS matches found: #{matching_os_names.join(', ')}. This should not happen")
     end
   end
-  
+
   class NoSupportedOSError < Error
     def initialize
       super("No supported operating system detected. WifiWand supports macOS and Ubuntu Linux")

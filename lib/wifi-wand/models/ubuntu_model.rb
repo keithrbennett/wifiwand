@@ -26,15 +26,15 @@ class UbuntuModel < BaseModel
 
   def validate_os_preconditions
     missing_commands = []
-    
+
     # Check for critical commands
     missing_commands << "iw (install: sudo apt install iw)" unless command_available?("iw")
     missing_commands << "nmcli (install: sudo apt install network-manager)" unless command_available?("nmcli")
-    
+
     unless missing_commands.empty?
       raise CommandNotFoundError.new(missing_commands)
     end
-    
+
     :ok
   end
 
@@ -483,7 +483,7 @@ class UbuntuModel < BaseModel
 
     begin
       output = run_os_command(['nmcli', 'connection', 'show', connection_name], false).stdout
-      
+
       # Extract DNS servers from connection configuration
       # Look for both configured DNS (ipv4.dns[1]:) and runtime DNS (IP4.DNS[1]:)
       # Format examples:
@@ -496,16 +496,16 @@ class UbuntuModel < BaseModel
 
       # Use .source to get the raw pattern, ensuring flags apply uniformly to the new regex.
       dns_line_pattern = /#{ip_version_pattern.source}#{dns_field_pattern.source}/i
-      
+
       dns_lines = output.split("\n").select do |line|
         line.match?(dns_line_pattern)
       end
-      
+
       nameservers = dns_lines.map do |line|
         # Split on colon and take everything after the last colon, then strip whitespace
         line.split(':').last.strip
       end.reject(&:empty?)
-      
+
       nameservers
     rescue WifiWand::CommandExecutor::OsCommandError
       # If we can't get connection info, return empty array

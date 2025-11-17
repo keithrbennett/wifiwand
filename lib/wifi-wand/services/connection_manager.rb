@@ -5,45 +5,45 @@ require_relative '../errors'
 module WifiWand
 
 class ConnectionManager
-  
+
   MAX_NETWORK_NAME_LENGTH = 32
   MAX_PASSWORD_LENGTH = 63
   CONTROL_CHAR_PATTERN = /[\p{Cntrl}]/
 
   attr_reader :model, :verbose_mode
-  
+
   def initialize(model, verbose: false)
     @model = model
     @verbose_mode = verbose
     @last_connection_used_saved_password = nil
   end
-  
+
   # Connects to the passed network name, optionally with password.
   # Turns WiFi on first, in case it was turned off.
   # Relies on model implementation of _connect().
   #
-  # Note: The @last_connection_used_saved_password flag is cleared at the start 
-  # of each connect attempt and only set to true if a saved password is successfully 
-  # used. If the connection fails, this flag may not accurately represent the 
+  # Note: The @last_connection_used_saved_password flag is cleared at the start
+  # of each connect attempt and only set to true if a saved password is successfully
+  # used. If the connection fails, this flag may not accurately represent the
   # most recent connection attempt's state.
   def connect(network_name, password = nil, skip_saved_password_lookup: false)
     reset_connection_state
-    
+
     network_name, password = normalize_inputs(network_name, password)
     validate_network_name(network_name)
-    
+
     # If we're already connected to the desired network, no need to proceed
     return if already_connected?(network_name)
-    
+
     password, used_saved_password = resolve_password(network_name, password, skip_saved_password_lookup)
-    
+
     perform_connection(network_name, password)
     store_saved_password_usage(used_saved_password)
     verify_connection(network_name, password)
-    
+
     nil
   end
-  
+
   # Returns true if the last connection attempt used a saved password.
   # Note: This flag is reset at the start of each connect() call, so it only
   # reflects saved password usage if the most recent connect() call completed
@@ -51,13 +51,13 @@ class ConnectionManager
   def last_connection_used_saved_password?
     !!@last_connection_used_saved_password
   end
-  
+
   private
-  
+
   def reset_connection_state
     @last_connection_used_saved_password = nil
   end
-  
+
   # Normalizes and validates connection inputs.
   #
   # Accepted input types:
@@ -95,17 +95,17 @@ class ConnectionManager
 
     [normalized_network_name, normalized_password]
   end
-  
+
   def validate_network_name(network_name)
     if network_name.nil? || network_name.empty?
       raise InvalidNetworkNameError.new(network_name || "")
     end
   end
-  
+
   def already_connected?(network_name)
     network_name == model.connected_network_name
   end
-  
+
   # Determines the password to use for a connection attempt.
   #
   # Behavior:
@@ -159,7 +159,7 @@ class ConnectionManager
 
     [nil, false]
   end
-  
+
   def perform_connection(network_name, password)
     model.wifi_on
     model._connect(network_name, password)
@@ -169,14 +169,14 @@ class ConnectionManager
       # Allow verification step to decide success/failure based on actual state
     end
   end
-  
+
   def store_saved_password_usage(used_saved_password)
     @last_connection_used_saved_password = used_saved_password
   end
-  
+
   def verify_connection(network_name, password)
     actual_network_name = model.connected_network_name
-    
+
     unless actual_network_name == network_name
       error_detail = actual_network_name ? "connected to '#{actual_network_name}' instead" : "unable to connect to any network"
       raise NetworkConnectionError.new(network_name, error_detail)

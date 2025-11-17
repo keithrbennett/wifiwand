@@ -6,11 +6,11 @@ require_relative '../timing_constants'
 module WifiWand
   class CommandLineInterface
     module HelpSystem
-      
+
       # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.
       def help_text
         resource_help = model ? model.resource_manager.open_resources.help_string : "[resources unavailable]"
-        
+
         %Q{
 Command Line Switches     [wifi-wand version #{WifiWand::VERSION} at https://github.com/keithrbennett/wifiwand]
 ---------------------

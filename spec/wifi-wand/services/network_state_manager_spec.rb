@@ -131,21 +131,21 @@ describe WifiWand::NetworkStateManager do
       wifi_off_state = valid_state.merge(wifi_enabled: true)
       allow(mock_model).to receive(:wifi_on?).and_return(false)
       allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
-      
+
       expect(mock_model).to receive(:wifi_on)
       expect(mock_model).to receive(:till).with(:on, timeout_in_secs: WifiWand::TimingConstants::WIFI_STATE_CHANGE_WAIT)
-      
+
       state_manager.restore_network_state(wifi_off_state)
     end
 
     it 'turns off WiFi when currently on but should be off and returns early' do
       wifi_off_state = valid_state.merge(wifi_enabled: false)
       allow(mock_model).to receive(:wifi_on?).and_return(true)
-      
+
       expect(mock_model).to receive(:wifi_off)
       expect(mock_model).to receive(:till).with(:off, timeout_in_secs: WifiWand::TimingConstants::WIFI_STATE_CHANGE_WAIT)
       expect(mock_model).not_to receive(:connect)
-      
+
       state_manager.restore_network_state(wifi_off_state)
     end
 
@@ -154,10 +154,10 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:wifi_on?).and_return(true)
       allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork')
       allow(mock_model).to receive(:preferred_network_password).with('TestNetwork').and_return('fallback_pass')
-      
+
       expect(mock_model).to receive(:connect).with('TestNetwork', 'fallback_pass')
       expect(mock_model).to receive(:till).with(:conn, timeout_in_secs: WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT)
-      
+
       state_manager.restore_network_state(state_without_password)
     end
 
@@ -169,11 +169,11 @@ describe WifiWand::NetworkStateManager do
         interface: 'wlan0'
       }
       allow(mock_model).to receive(:wifi_on?).and_return(false)
-      
+
       expect(mock_model).not_to receive(:connect)
       expect(mock_model).not_to receive(:wifi_on)
       expect(mock_model).not_to receive(:wifi_off)
-      
+
       state_manager.restore_network_state(wifi_disabled_state)
     end
 
@@ -260,8 +260,8 @@ describe WifiWand::NetworkStateManager do
         interface: 'wlan0'
       }
 
-      expect { 
-        verbose_state_manager.restore_network_state(valid_state) 
+      expect {
+        verbose_state_manager.restore_network_state(valid_state)
       }.to output(/restore_network_state: .* called/).to_stdout
     end
   end

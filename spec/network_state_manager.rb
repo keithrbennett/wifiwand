@@ -30,7 +30,7 @@ module NetworkStateManager
 
   def self.restore_state
     return unless @network_state
-    
+
     model.restore_network_state(@network_state, fail_silently: true)
   end
 

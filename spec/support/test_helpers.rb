@@ -11,7 +11,7 @@ module TestHelpers
   def restore_network_state
     NetworkStateManager.restore_state
   end
-  
+
   def network_state
     NetworkStateManager.network_state
   end
@@ -88,7 +88,7 @@ module TestHelpers
   def merge_verbose_options(options = {})
     # Check for verbose mode from environment variable (as default)
     verbose = ENV['WIFIWAND_VERBOSE'] == 'true'
-    
+
     # Merge environment default with provided options (options override env)
     OpenStruct.new({ verbose: verbose }.merge(options))
   end

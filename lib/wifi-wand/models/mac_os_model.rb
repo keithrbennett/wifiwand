@@ -421,7 +421,7 @@ class MacOsModel < BaseModel
     else
       out_stream.puts "Swift/CoreWLAN not available. Using ifconfig..." if verbose_mode
     end
-    
+
     # Fallback to ifconfig (disassociate from current network)
     begin
       iface = ensure_wifi_interface!
@@ -447,7 +447,7 @@ class MacOsModel < BaseModel
   end
 
 
-  
+
 
   def set_nameservers(nameservers)
     service_name = detect_wifi_service_name
@@ -486,7 +486,7 @@ class MacOsModel < BaseModel
   end
 
 
-  
+
 
 
   def nameservers_using_scutil
@@ -571,7 +571,7 @@ class MacOsModel < BaseModel
     unless command_available?("swift")
       out_stream.puts "Warning: Swift not available. Some advanced features may use fallback methods. Install with: xcode-select --install" if verbose_mode
     end
-    
+
     :ok
   end
 

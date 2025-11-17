@@ -7,19 +7,19 @@ module WifiWand
 
 describe UbuntuModel, :os_ubuntu do
   let(:subject) { create_ubuntu_test_model }
-  
+
   # Mock network connectivity tester to prevent real network calls during non-disruptive tests
   before(:each) do
     # Check if current test or any parent group is marked as disruptive
     example_disruptive = RSpec.current_example&.metadata[:disruptive]
     group_disruptive = RSpec.current_example&.example_group&.metadata[:disruptive]
     is_disruptive = example_disruptive || group_disruptive
-    
+
     unless is_disruptive
       allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:connected_to_internet?).and_return(true)
       allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?).and_return(true)
       allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
-      
+
       # Mock OS command execution to prevent real WiFi control commands
       allow(subject).to receive(:run_os_command).and_return(command_result(stdout: ''))
       allow(subject).to receive(:till).and_return(nil)
@@ -31,7 +31,7 @@ describe UbuntuModel, :os_ubuntu do
   # Constants for common patterns
   WIFI_INTERFACE_REGEX = /wl[a-z0-9]+/
   NMCLI_RADIO_CMD = 'nmcli radio wifi'
-  
+
   # Non-disruptive tests with proper mocking
   context 'core functionality tests (non-disruptive)' do
     describe '#wifi_on and #wifi_off failure paths' do
@@ -275,14 +275,14 @@ describe UbuntuModel, :os_ubuntu do
       it 'returns :ok when all required commands are available' do
         allow(subject).to receive(:command_available?).with('iw').and_return(command_result(stdout: true))
         allow(subject).to receive(:command_available?).with('nmcli').and_return(true)
-        
+
         expect(subject.validate_os_preconditions).to eq(:ok)
       end
 
       it 'raises CommandNotFoundError when iw is missing' do
         allow(subject).to receive(:command_available?).with('iw').and_return(false)
         allow(subject).to receive(:command_available?).with('nmcli').and_return(true)
-        
+
         expect { subject.validate_os_preconditions }
           .to raise_error(WifiWand::CommandNotFoundError, /iw.*install.*sudo apt install iw/)
       end
@@ -290,7 +290,7 @@ describe UbuntuModel, :os_ubuntu do
       it 'raises CommandNotFoundError when nmcli is missing' do
         allow(subject).to receive(:command_available?).with('iw').and_return(true)
         allow(subject).to receive(:command_available?).with('nmcli').and_return(false)
-        
+
         expect { subject.validate_os_preconditions }
           .to raise_error(WifiWand::CommandNotFoundError, /nmcli.*install.*sudo apt install network-manager/)
       end
@@ -298,7 +298,7 @@ describe UbuntuModel, :os_ubuntu do
       it 'raises CommandNotFoundError when both commands are missing' do
         allow(subject).to receive(:command_available?).with('iw').and_return(false)
         allow(subject).to receive(:command_available?).with('nmcli').and_return(false)
-        
+
         expect { subject.validate_os_preconditions }
           .to raise_error(WifiWand::CommandNotFoundError, /iw.*nmcli/)
       end
@@ -375,14 +375,14 @@ describe UbuntuModel, :os_ubuntu do
       it 'returns nameservers from resolv.conf' do
         allow(subject).to receive(:nameservers_using_resolv_conf)
           .and_return(['8.8.8.8', '8.8.4.4'])
-        
+
         expect(subject.nameservers).to eq(['8.8.8.8', '8.8.4.4'])
       end
 
       it 'returns empty array when no nameservers configured' do
         allow(subject).to receive(:nameservers_using_resolv_conf)
           .and_return([])
-        
+
         expect(subject.nameservers).to eq([])
       end
     end
@@ -643,7 +643,7 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:run_os_command)
           .with(/iw dev wlp3s0 info 2>\/dev\/null/, false)
           .and_return(command_result(stdout: 'Interface wlp3s0\n\ttype managed'))
-        
+
         expect(subject.is_wifi_interface?('wlp3s0')).to be(true)
       end
 
@@ -651,7 +651,7 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:run_os_command)
           .with(/iw dev eth0 info 2>\/dev\/null/, false)
           .and_return(command_result(stdout: ''))
-        
+
         expect(subject.is_wifi_interface?('eth0')).to be(false)
       end
     end
@@ -935,10 +935,10 @@ describe UbuntuModel, :os_ubuntu do
         # Mock specific command calls to avoid real system calls
         allow(subject).to receive(:run_os_command).with(/nmcli radio wifi on/, anything).and_return(command_result(stdout: ''))
         allow(subject).to receive(:run_os_command).with(/nmcli radio wifi$/, anything).and_return(command_result(stdout: 'disabled'))
-        
+
         # Mock the till method to immediately raise WaitTimeoutError (which wifi_on catches and converts to WifiEnableError)
         allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:on, 5))
-        
+
         expect { subject.wifi_on }.to raise_error(WifiWand::WifiEnableError)
       end
     end
@@ -988,7 +988,7 @@ describe UbuntuModel, :os_ubuntu do
       it 'raises error for invalid IP addresses' do
         invalid_nameservers = ['invalid.ip', '256.256.256.256']
         connection_name = 'MyHomeNetwork'
-        
+
         allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
 
         # Capture stdout to suppress the "invalid address:" output from IP validation
@@ -1019,7 +1019,7 @@ describe UbuntuModel, :os_ubuntu do
         # Mock no active connection
         allow(subject).to receive(:active_connection_profile_name).and_return(nil)
         allow(subject).to receive(:_connected_network_name).and_return(nil)
-        
+
         expect { subject.set_nameservers(['8.8.8.8']) }.to raise_error(WifiWand::WifiInterfaceError, /No active Wi-Fi connection/)
       end
     end
@@ -1043,7 +1043,7 @@ describe UbuntuModel, :os_ubuntu do
         allow(subject).to receive(:run_os_command)
           .with(/iw dev .* info 2>\/dev\/null/, false)
           .and_return(command_result(stdout: ''))  # When command fails with raise_on_error=false, it returns empty string
-        
+
         expect(subject.is_wifi_interface?('wlan0')).to be(false)
       end
     end
@@ -1101,7 +1101,7 @@ describe UbuntuModel, :os_ubuntu do
       it 'turns wifi on when it is off' do
         subject.wifi_off
         expect(subject.wifi_on?).to be(false)
-        
+
         subject.wifi_on
         expect(subject.wifi_on?).to be(true)
       end
@@ -1111,7 +1111,7 @@ describe UbuntuModel, :os_ubuntu do
       it 'turns wifi off when it is on' do
         subject.wifi_on
         expect(subject.wifi_on?).to be(true)
-        
+
         subject.wifi_off
         expect(subject.wifi_on?).to be(false)
       end
@@ -1201,7 +1201,7 @@ describe UbuntuModel, :os_ubuntu do
     describe 'WiFi state management' do
       it 'can toggle WiFi on and off successfully' do
         original_state = subject.wifi_on?
-        
+
         if original_state
           subject.wifi_off
           expect(subject.wifi_on?).to be(false)
@@ -1244,7 +1244,7 @@ describe UbuntuModel, :os_ubuntu do
           ip = subject.ip_address
           expect(ip).to match(/^\d+\.\d+\.\d+\.\d+$/) if ip
 
-          # Test MAC address retrieval  
+          # Test MAC address retrieval
           mac = subject.mac_address
           expect(mac).to match(/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/i) if mac
 

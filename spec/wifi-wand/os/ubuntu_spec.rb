@@ -91,11 +91,11 @@ describe Ubuntu do
     it 'requires UbuntuModel and creates model with options' do
       options = { verbose: true, wifi_interface: 'wlan0' }
       mock_model = double('UbuntuModel')
-      
+
       expect(subject).to receive(:require_relative).with('../models/ubuntu_model')
       stub_const('WifiWand::UbuntuModel', double('UbuntuModelClass'))
       expect(WifiWand::UbuntuModel).to receive(:create_model).with(options).and_return(mock_model)
-      
+
       expect(subject.create_model(options)).to eq(mock_model)
     end
   end

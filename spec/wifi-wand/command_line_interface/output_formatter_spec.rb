@@ -15,16 +15,16 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   let(:test_class) do
     Class.new do
       include WifiWand::CommandLineInterface::OutputFormatter
-      
+
       attr_accessor :options, :model
-      
+
       def initialize(options = nil, model = nil)
         @options = options || OpenStruct.new
         @model = model
       end
     end
   end
-  
+
   let(:mock_model) do
     double('model',
       wifi_on?: true,
@@ -34,7 +34,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       connected_to_internet?: true
     )
   end
-  
+
   let(:options) { OpenStruct.new(post_processor: nil) }
   subject { test_class.new(options, mock_model) }
 
@@ -45,7 +45,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         allow($stdout).to receive(:tty?).and_return(data[:tty])
         result = subject.public_send(test_cases[:method_name], data[:input])
         expect(result).to eq(data[:expected_output])
-        
+
         # Verify color codes are present when expected (tty: true + colorizable) and absent otherwise
         expected_has_color = data[:tty] && data.fetch(:has_color, true)
         expect(result.match?(ANSI_COLOR_REGEX)).to eq(expected_has_color)
@@ -65,7 +65,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
   describe '#colorize_text' do
     let(:text) { 'test text' }
-    
+
     test_cases = {
       'colorizes text with red color when TTY'               => { color: :red,     expected_output: "\e[31mtest text\e[0m", tty: true },
       'colorizes text with green color when TTY'             => { color: :green,   expected_output: "\e[32mtest text\e[0m", tty: true },
@@ -77,7 +77,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       'returns plain text without color codes when not TTY' => { color: :red,     expected_output: 'test text',            tty: false },
       'returns plain text when no color is provided'        => { color: nil,      expected_output: 'test text',            tty: true }
     }
-    
+
     test_cases.each do |description, data|
       it description do
         allow($stdout).to receive(:tty?).and_return(data[:tty])
@@ -150,7 +150,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
     context 'when stdout is a TTY' do
       before { allow($stdout).to receive(:tty?).and_return(true) }
-      
+
       it 'contains all status components with appropriate colors' do
         result = subject.status_line(status_data)
 
@@ -177,7 +177,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         expect(result).not_to match(/Network/)
         expect(result).to match(/Internet.*YES/)
       end
-      
+
       hash_key_map = {
         wifi_on?: :wifi_on,
         connected_network_name: :network_name,
@@ -201,18 +201,18 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           expect(result).to match(config[:expected_color])
         end
       end
-      
+
       it 'returns fallback message when model raises exception' do
         result = subject.status_line(nil)
-        
+
         expect(result).to match(/WiFi.*status unavailable/)
         expect(result).to match(YELLOW_TEXT_REGEX) # Yellow warning
       end
     end
-    
+
     context 'when stdout is not a TTY' do
       before { allow($stdout).to receive(:tty?).and_return(false) }
-      
+
       it 'contains all status components without color codes' do
         result = subject.status_line(status_data)
 
@@ -238,19 +238,19 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         expect(result).to match(/Internet.*YES/)
         expect(result).not_to match(ANSI_COLOR_REGEX)
       end
-      
+
       it 'shows error conditions without color codes' do
         data = status_data.clone
         data[:wifi_on] = false
         result = subject.status_line(data)
-        
+
         expect(result).to match(/WiFi.*NO/)
         expect(result).not_to match(ANSI_COLOR_REGEX)
       end
-      
+
       it 'shows fallback status without color codes' do
         result = subject.status_line(nil)
-        
+
         expect(result).to match(/WiFi.*status unavailable/)
         expect(result).not_to match(ANSI_COLOR_REGEX)
       end
@@ -259,18 +259,18 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
   describe '#post_process' do
     let(:test_object) { { key: 'value' } }
-    
+
     context 'when post_processor is set' do
       let(:processor) { ->(obj) { obj.to_s.upcase } }
       let(:options) { OpenStruct.new(post_processor: processor) }
-      
+
       it 'applies the post processor' do
         result = subject.post_process(test_object)
         # Accept both old Ruby format and new Ruby format
         expect(result).to eq(%q{{:KEY=>"VALUE"}}).or eq(%q{{KEY: "VALUE"}})
       end
     end
-    
+
     context 'when post_processor is nil' do
       it 'returns the object unchanged' do
         result = subject.post_process(test_object)
@@ -283,12 +283,12 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
     context 'when options has post_processor' do
       let(:processor) { ->(obj) { obj.to_s } }
       let(:options) { OpenStruct.new(post_processor: processor) }
-      
+
       it 'returns the post_processor from options' do
         expect(subject.post_processor).to eq(processor)
       end
     end
-    
+
     context 'when options has no post_processor' do
       it 'returns nil' do
         expect(subject.post_processor).to be_nil

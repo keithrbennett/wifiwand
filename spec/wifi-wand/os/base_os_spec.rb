@@ -20,7 +20,7 @@ describe BaseOs do
           super(id, display_name)
         end
       end
-      
+
       expect { test_subclass.new(:test_id, 'Test Display Name') }.not_to raise_error
     end
   end
@@ -40,9 +40,9 @@ describe BaseOs do
           super(id, display_name)
         end
       end
-      
+
       instance = test_subclass.new(:test_id, 'Test Display Name')
-      
+
       expect { instance.current_os_is_this_os? }.to raise_error(WifiWand::BaseOs::MethodNotImplementedError)
       expect { instance.create_model({}) }.to raise_error(WifiWand::BaseOs::MethodNotImplementedError)
     end
