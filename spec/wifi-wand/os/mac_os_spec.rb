@@ -47,9 +47,9 @@ describe WifiWand::MacOs do
     it 'delegates to MacOsModel.create_model and returns the model' do
       require_relative '../../../lib/wifi-wand/models/mac_os_model'
       options = { verbose: true, wifi_interface: 'en0' }
-      mock_model = instance_double('WifiWand::MacOsModel')
+      mock_model = instance_double(WifiWand::MacOsModel)
 
-      model_class = class_double('WifiWand::MacOsModel')
+      model_class = class_double(WifiWand::MacOsModel)
       stub_const('WifiWand::MacOsModel', model_class)
       expect(model_class).to receive(:create_model).with(options).and_return(mock_model)
 
@@ -59,9 +59,9 @@ describe WifiWand::MacOs do
     it 'passes through empty options' do
       require_relative '../../../lib/wifi-wand/models/mac_os_model'
       options = {}
-      mock_model = instance_double('WifiWand::MacOsModel')
+      mock_model = instance_double(WifiWand::MacOsModel)
 
-      model_class = class_double('WifiWand::MacOsModel')
+      model_class = class_double(WifiWand::MacOsModel)
       stub_const('WifiWand::MacOsModel', model_class)
       expect(model_class).to receive(:create_model).with(options).and_return(mock_model)
 
@@ -71,9 +71,9 @@ describe WifiWand::MacOs do
     it 'passes through nil options' do
       require_relative '../../../lib/wifi-wand/models/mac_os_model'
       options = nil
-      mock_model = instance_double('WifiWand::MacOsModel')
+      mock_model = instance_double(WifiWand::MacOsModel)
 
-      model_class = class_double('WifiWand::MacOsModel')
+      model_class = class_double(WifiWand::MacOsModel)
       stub_const('WifiWand::MacOsModel', model_class)
       expect(model_class).to receive(:create_model).with(options).and_return(mock_model)
 

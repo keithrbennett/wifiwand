@@ -3,10 +3,10 @@
 module WifiWand
   class CommandLineInterface
     module CommandRegistry
-      class Command < Struct.new(:min_string, :max_string, :action); end
+      Command = Struct.new(:min_string, :max_string, :action)
 
       def commands
-        @commands_ ||= [
+        @commands ||= [
           Command.new('a', 'avail_nets', ->(*_options) { cmd_a }),
           Command.new('ci',  'ci',            ->(*_options) { cmd_ci            }),
           Command.new('co',  'connect',       ->(*options)  { cmd_co(*options)  }),
@@ -39,7 +39,7 @@ module WifiWand
           &&
             command_string.length >= cmd.min_string.length # e.g. 'c' by itself should not work
         end
-        result ? result.action : nil
+        result&.action
       end
 
       # Look up the command name and, if found, run it. If not, execute the passed block.

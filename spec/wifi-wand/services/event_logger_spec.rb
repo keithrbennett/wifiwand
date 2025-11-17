@@ -15,50 +15,50 @@ describe WifiWand::EventLogger do
 
   describe 'initialization' do
     it 'creates an instance with default values' do
-      logger = WifiWand::EventLogger.new(mock_model)
+      logger = described_class.new(mock_model)
       expect(logger.model).to eq(mock_model)
       expect(logger.interval).to eq(5)
       expect(logger.verbose).to be false
     end
 
     it 'accepts custom interval' do
-      logger = WifiWand::EventLogger.new(mock_model, interval: 10)
+      logger = described_class.new(mock_model, interval: 10)
       expect(logger.interval).to eq(10)
     end
 
     it 'accepts verbose flag' do
-      logger = WifiWand::EventLogger.new(mock_model, verbose: true)
+      logger = described_class.new(mock_model, verbose: true)
       expect(logger.verbose).to be true
     end
 
     it 'accepts custom hook filespec' do
-      logger = WifiWand::EventLogger.new(mock_model, hook_filespec: '/custom/hook')
+      logger = described_class.new(mock_model, hook_filespec: '/custom/hook')
       expect(logger.hook_filespec).to eq('/custom/hook')
     end
 
     it 'does not create LogFileManager when no file path specified (stdout-only mode)' do
-      logger = WifiWand::EventLogger.new(mock_model, output: output)
+      logger = described_class.new(mock_model, output: output)
       expect(logger.log_file_manager).to be_nil
     end
 
     it 'creates LogFileManager when file path specified' do
       Dir.mktmpdir do |dir|
         log_file_path = File.join(dir, 'test.log')
-        logger = WifiWand::EventLogger.new(mock_model, log_file_path: log_file_path, output: output)
+        logger = described_class.new(mock_model, log_file_path: log_file_path, output: output)
         expect(logger.log_file_manager).to be_a(WifiWand::LogFileManager)
         logger.cleanup
       end
     end
 
     it 'accepts custom LogFileManager' do
-      logger = WifiWand::EventLogger.new(mock_model, log_file_manager: mock_log_file_manager)
+      logger = described_class.new(mock_model, log_file_manager: mock_log_file_manager)
       expect(logger.log_file_manager).to eq(mock_log_file_manager)
     end
 
     it 'respects nil output (file-only mode, no stdout)' do
       Dir.mktmpdir do |dir|
         log_file_path = File.join(dir, 'test.log')
-        logger = WifiWand::EventLogger.new(
+        logger = described_class.new(
           mock_model,
           log_file_path: log_file_path,
           output: nil,
@@ -74,14 +74,14 @@ describe WifiWand::EventLogger do
 
   describe '#fetch_current_state' do
     it 'fetches connectivity status from model' do
-      logger = WifiWand::EventLogger.new(mock_model, output: output)
+      logger = described_class.new(mock_model, output: output)
       state = logger.send(:fetch_current_state)
       expect(state).to eq({ internet_connected: true })
     end
 
     it 'returns nil when model raises error' do
       allow(mock_model).to receive(:fast_connectivity?).and_raise(StandardError, 'Test error')
-      logger = WifiWand::EventLogger.new(mock_model, output: output)
+      logger = described_class.new(mock_model, output: output)
       state = logger.send(:fetch_current_state)
       expect(state).to be_nil
     end
@@ -89,7 +89,7 @@ describe WifiWand::EventLogger do
 
   describe '#detect_and_emit_events' do
     let(:logger) do
-      WifiWand::EventLogger.new(
+      described_class.new(
         mock_model,
         output: output,
         log_file_manager: mock_log_file_manager
@@ -134,7 +134,7 @@ describe WifiWand::EventLogger do
 
   describe '#emit_event' do
     let(:logger) do
-      WifiWand::EventLogger.new(
+      described_class.new(
         mock_model,
         output: output,
         log_file_manager: mock_log_file_manager
@@ -173,7 +173,7 @@ describe WifiWand::EventLogger do
 
   describe '#format_event_message' do
     let(:logger) do
-      WifiWand::EventLogger.new(mock_model, output: output)
+      described_class.new(mock_model, output: output)
     end
 
     it 'formats wifi_on event' do
@@ -239,7 +239,7 @@ describe WifiWand::EventLogger do
 
   describe '#log_initial_state' do
     let(:logger) do
-      WifiWand::EventLogger.new(mock_model, output: output)
+      described_class.new(mock_model, output: output)
     end
 
     it 'logs initial state with internet available and timestamp' do
@@ -265,7 +265,7 @@ describe WifiWand::EventLogger do
 
   describe '#cleanup' do
     it 'closes log file manager and sets it to nil' do
-      logger = WifiWand::EventLogger.new(
+      logger = described_class.new(
         mock_model,
         output: output,
         log_file_manager: mock_log_file_manager
@@ -276,7 +276,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'handles nil log file manager gracefully' do
-      logger = WifiWand::EventLogger.new(mock_model, output: output)
+      logger = described_class.new(mock_model, output: output)
       logger.instance_variable_set(:@log_file_manager, nil)
       expect { logger.cleanup }.not_to raise_error
       expect(logger.instance_variable_get(:@log_file_manager)).to be_nil
@@ -285,12 +285,12 @@ describe WifiWand::EventLogger do
 
   describe '#hook_exists?' do
     it 'returns false when hook_filespec is nil' do
-      logger = WifiWand::EventLogger.new(mock_model, output: output, hook_filespec: nil)
+      logger = described_class.new(mock_model, output: output, hook_filespec: nil)
       expect(logger.send(:hook_exists?)).to be false
     end
 
     it 'returns false when hook file does not exist' do
-      logger = WifiWand::EventLogger.new(mock_model, output: output,
+      logger = described_class.new(mock_model, output: output,
         hook_filespec: '/nonexistent/hook')
       expect(logger.send(:hook_exists?)).to be false
     end
@@ -301,7 +301,7 @@ describe WifiWand::EventLogger do
       temp_file.close
       File.chmod(0o644, temp_file.path)
 
-      logger = WifiWand::EventLogger.new(mock_model, output: output, hook_filespec: temp_file.path)
+      logger = described_class.new(mock_model, output: output, hook_filespec: temp_file.path)
       expect(logger.send(:hook_exists?)).to be false
 
       File.unlink(temp_file.path)
@@ -313,7 +313,7 @@ describe WifiWand::EventLogger do
       temp_file.close
       File.chmod(0o755, temp_file.path)
 
-      logger = WifiWand::EventLogger.new(mock_model, output: output, hook_filespec: temp_file.path)
+      logger = described_class.new(mock_model, output: output, hook_filespec: temp_file.path)
       expect(logger.send(:hook_exists?)).to be true
 
       File.unlink(temp_file.path)
@@ -322,7 +322,7 @@ describe WifiWand::EventLogger do
 
   describe '#execute_hook' do
     let(:logger) do
-      WifiWand::EventLogger.new(
+      described_class.new(
         mock_model,
         output: output,
         log_file_manager: mock_log_file_manager
@@ -415,7 +415,7 @@ describe WifiWand::EventLogger do
       temp_file.close
       File.chmod(0o755, temp_file.path)
 
-      logger = WifiWand::EventLogger.new(
+      logger = described_class.new(
         mock_model,
         output: output,
         hook_filespec: temp_file.path

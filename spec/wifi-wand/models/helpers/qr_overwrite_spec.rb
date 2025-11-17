@@ -19,10 +19,8 @@ describe 'QR Code Overwrite Confirmation' do
   before do
     # Stub environment and dependencies
     allow(model).to receive(:command_available?).with('qrencode').and_return(true)
-    allow(model).to receive(:connected_network_name).and_return(ssid)
-    allow(model).to receive(:connection_security_type).and_return(security)
-    allow(model).to receive(:connected_network_password).and_return(password)
-    allow(model).to receive(:network_hidden?).and_return(false)
+    allow(model).to receive_messages(connected_network_name: ssid,
+      connection_security_type: security, connected_network_password: password, network_hidden?: false)
   end
 
   # Helper to manage temp directory lifecycle
@@ -42,8 +40,7 @@ describe 'QR Code Overwrite Confirmation' do
       File.write(filename, 'old')
 
       # Simulate interactive TTY and user confirmation
-      allow($stdin).to receive(:tty?).and_return(true)
-      allow($stdin).to receive(:gets).and_return("y\n")
+      allow($stdin).to receive_messages(tty?: true, gets: "y\n")
 
       # Ensure we delete the file before invoking qrencode
       expect(File).to receive(:delete).with(filename).ordered.and_call_original
@@ -63,8 +60,7 @@ describe 'QR Code Overwrite Confirmation' do
     with_temp_file do |filename|
       File.write(filename, 'old')
 
-      allow($stdin).to receive(:tty?).and_return(true)
-      allow($stdin).to receive(:gets).and_return("n\n")
+      allow($stdin).to receive_messages(tty?: true, gets: "n\n")
 
       expect(model).not_to receive(:run_os_command)
 
@@ -126,8 +122,7 @@ describe 'QR Code Overwrite Confirmation' do
     with_temp_file do |filename|
       File.write(filename, 'old')
 
-      allow($stdin).to receive(:tty?).and_return(true)
-      allow($stdin).to receive(:gets).and_return("y\n")
+      allow($stdin).to receive_messages(tty?: true, gets: "y\n")
       allow(File).to receive(:exist?).with(filename).and_return(true)
       allow(File).to receive(:delete).with(filename).and_raise(StandardError.new('cannot delete'))
 

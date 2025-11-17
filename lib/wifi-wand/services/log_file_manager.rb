@@ -73,8 +73,8 @@ module WifiWand
 
     # Log a message to stdout
     def log_message(message)
-      @output.puts(message) if @output
-      @output.flush if @output&.respond_to?(:flush)
+      @output&.puts(message)
+      @output.flush if @output.respond_to?(:flush)
     end
 
     # Log an error message to stderr

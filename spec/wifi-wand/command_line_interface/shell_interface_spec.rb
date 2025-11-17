@@ -20,7 +20,7 @@ describe WifiWand::CommandLineInterface::ShellInterface do
         when 'quit', 'q'
           quit
         else
-          block&.call if block
+          block&.call
           nil
         end
       end
@@ -44,7 +44,7 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       # Mock the command execution
       expect(subject).to receive(:attempt_command_action).with('invalid_command', 'arg1',
         'arg2') do |&block|
-        block.call if block # Call the error handler
+        block&.call # Call the error handler
         nil
       end
 

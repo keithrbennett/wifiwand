@@ -5,7 +5,7 @@
 require_relative '../errors'
 
 module WifiWand
-  class BaseOs < Struct.new(:id, :display_name)
+  BaseOs = Struct.new(:id, :display_name) do
     class NonSubclassInstantiationError < Error
       def to_s
         "Class #{self.class} can only be instantiated by subclasses"
@@ -18,7 +18,7 @@ module WifiWand
         super
       else
         # Prohibit BaseOs.new call
-        raise NonSubclassInstantiationError.new
+        raise NonSubclassInstantiationError
       end
     end
 
@@ -29,11 +29,11 @@ module WifiWand
     end
 
     def current_os_is_this_os?
-      raise MethodNotImplementedError.new
+      raise MethodNotImplementedError
     end
 
     def create_model(_options)
-      raise MethodNotImplementedError.new
+      raise MethodNotImplementedError
     end
   end
 end

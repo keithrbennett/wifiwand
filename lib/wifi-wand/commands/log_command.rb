@@ -102,9 +102,7 @@ module WifiWand
       begin
         parser.parse!(options)
       rescue OptionParser::ParseError => e
-        raise WifiWand::ConfigurationError.new(
-          "#{e.message}. Use 'wifi-wand help' or 'wifi-wand -h' for help."
-        )
+        raise WifiWand::ConfigurationError, "#{e.message}. Use 'wifi-wand help' or 'wifi-wand -h' for help."
       end
 
       if alternate_destination_requested && !stdout_explicit
@@ -118,9 +116,8 @@ module WifiWand
     def validate_interval(interval)
       return interval if interval > 0
 
-      raise WifiWand::ConfigurationError.new(
+      raise WifiWand::ConfigurationError,
         "Interval must be greater than 0. Use 'wifi-wand help' or 'wifi-wand -h' for help."
-      )
     end
   end
 end

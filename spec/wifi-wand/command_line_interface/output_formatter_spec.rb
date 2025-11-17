@@ -99,7 +99,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   end
 
   describe '#colorize_status' do
-    include_examples 'colorization method', {
+    it_behaves_like 'colorization method', {
       method_name: :colorize_status,
       tests: {
         'colorizes "true" as green when TTY' => {
@@ -149,7 +149,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   end
 
   describe '#colorize_network_name' do
-    include_examples 'colorization method', {
+    it_behaves_like 'colorization method', {
       method_name: :colorize_network_name,
       tests: {
         'colorizes quoted network names in cyan when TTY' => {
@@ -175,7 +175,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   end
 
   describe '#colorize_values' do
-    include_examples 'colorization method', {
+    it_behaves_like 'colorization method', {
       method_name: :colorize_values,
       tests: {
         'colorizes percentages in blue when TTY' => {
@@ -351,7 +351,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
   describe '#post_processor' do
     context 'when options has post_processor' do
-      let(:processor) { ->(obj) { obj.to_s } }
+      let(:processor) { lambda(&:to_s) }
       let(:options) { OpenStruct.new(post_processor: processor) }
 
       it 'returns the post_processor from options' do

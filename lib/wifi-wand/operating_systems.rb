@@ -25,10 +25,10 @@ module WifiWand
 
       def current_os
         @current_os ||= begin
-          matches = supported_operating_systems.select { |os| os.current_os_is_this_os? }
+          matches = supported_operating_systems.select(&:current_os_is_this_os?)
           if matches.size > 1
             matching_names = matches.map(&:display_name)
-            raise MultipleOSMatchError.new(matching_names)
+            raise MultipleOSMatchError, matching_names
           end
           matches.first # nil for an unrecognized OS
         end
@@ -45,7 +45,7 @@ module WifiWand
       def create_model_for_current_os(options = {})
         options = OpenStruct.new(options) if options.is_a?(Hash)
         current_os_instance = current_os
-        raise NoSupportedOSError.new unless current_os_instance
+        raise NoSupportedOSError unless current_os_instance
 
         current_os_instance.create_model(options)
       end

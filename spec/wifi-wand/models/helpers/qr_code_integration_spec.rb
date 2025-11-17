@@ -6,6 +6,7 @@
 # - Decoded payload matches expected WiFi components
 # Unit-level arg construction (stdout/custom filespec, type flags) is covered in qr_code_generator_spec.rb
 
+require 'English'
 require_relative '../../../spec_helper'
 require 'tempfile'
 require 'fileutils'
@@ -28,7 +29,7 @@ describe 'QR Code Integration Tests' do
 
   after do
     # Clean up test files
-    FileUtils.rm_rf(temp_dir) if Dir.exist?(temp_dir)
+    FileUtils.rm_rf(temp_dir)
     Dir.glob('*-qr-code.png').each { |f| File.delete(f) }
   end
 
@@ -37,12 +38,12 @@ describe 'QR Code Integration Tests' do
     return nil unless File.exist?(filename)
 
     output = `zbarimg "#{filename}" 2>/dev/null`
-    return nil unless $?.success?
+    return nil unless $CHILD_STATUS.success?
 
     # Extract the QR code content (format: "QR-Code:CONTENT")
     lines = output.split("\n")
     qr_line = lines.find { |line| line.start_with?('QR-Code:') }
-    qr_line ? qr_line.sub('QR-Code:', '') : nil
+    qr_line&.sub('QR-Code:', '')
   end
 
   # Helper method to parse WiFi QR code string into components
@@ -167,14 +168,10 @@ describe 'QR Code Integration Tests' do
       it "creates valid QR code for #{test_case[:name]}" do
         # Setup model mocks to prevent real system calls
         allow(test_model).to receive(:command_available?).with('qrencode').and_return(true)
-        allow(test_model).to receive(:connected_network_name).and_return(test_case[:network_name])
-        allow(test_model).to receive(:connected_network_password).and_return(test_case[:password])
-        allow(test_model).to receive(:connection_security_type).and_return(test_case[:security_type])
 
         # Mock methods that could make real system calls
-        allow(test_model).to receive(:preferred_networks).and_return([test_case[:network_name]])
-        allow(test_model).to receive(:preferred_network_password).and_return(test_case[:password])
-        allow(test_model).to receive(:_preferred_network_password).and_return(test_case[:password])
+        allow(test_model).to receive_messages(connected_network_name: test_case[:network_name],
+          connected_network_password: test_case[:password], connection_security_type: test_case[:security_type], preferred_networks: [test_case[:network_name]], preferred_network_password: test_case[:password], _preferred_network_password: test_case[:password])
 
         # Don't mock run_os_command - let it create real QR code files
         allow(test_model).to receive(:run_os_command) do |cmd|
@@ -211,7 +208,7 @@ describe 'QR Code Integration Tests' do
         expect(file_type).to include('PNG image')
 
         # Clean up
-        File.delete(filename) if File.exist?(filename)
+        FileUtils.rm_f(filename)
       end
     end
   end
@@ -219,14 +216,10 @@ describe 'QR Code Integration Tests' do
   describe 'QR Code Error Handling' do
     it 'handles qrencode command failure gracefully' do
       allow(test_model).to receive(:command_available?).with('qrencode').and_return(true)
-      allow(test_model).to receive(:connected_network_name).and_return('TestNetwork')
-      allow(test_model).to receive(:connected_network_password).and_return('password')
-      allow(test_model).to receive(:connection_security_type).and_return('WPA2')
 
       # Mock methods that could make real system calls
-      allow(test_model).to receive(:preferred_networks).and_return(['TestNetwork'])
-      allow(test_model).to receive(:preferred_network_password).and_return('password')
-      allow(test_model).to receive(:_preferred_network_password).and_return('password')
+      allow(test_model).to receive_messages(connected_network_name: 'TestNetwork',
+        connected_network_password: 'password', connection_security_type: 'WPA2', preferred_networks: ['TestNetwork'], preferred_network_password: 'password', _preferred_network_password: 'password')
 
       # Mock qrencode to fail
       allow(test_model).to receive(:run_os_command) do |cmd|
@@ -249,22 +242,16 @@ describe 'QR Code Integration Tests' do
   describe 'QR Code File Properties' do
     it 'creates QR codes with reasonable file sizes' do
       allow(test_model).to receive(:command_available?).with('qrencode').and_return(true)
-      allow(test_model).to receive(:connected_network_name).and_return('TestNetwork')
-      allow(test_model).to receive(:connected_network_password).and_return('password123')
-      allow(test_model).to receive(:connection_security_type).and_return('WPA2')
 
       # Mock methods that could make real system calls
-      allow(test_model).to receive(:preferred_networks).and_return(['TestNetwork'])
-      allow(test_model).to receive(:preferred_network_password).and_return('password123')
-      allow(test_model).to receive(:_preferred_network_password).and_return('password123')
+      allow(test_model).to receive_messages(connected_network_name: 'TestNetwork',
+        connected_network_password: 'password123', connection_security_type: 'WPA2', preferred_networks: ['TestNetwork'], preferred_network_password: 'password123', _preferred_network_password: 'password123')
 
       allow(test_model).to receive(:run_os_command) do |cmd|
         if cmd.is_a?(Array) && cmd[0] == 'qrencode'
           system(*cmd)
-          command_result(stdout: '')
-        else
-          command_result(stdout: '')
         end
+        command_result(stdout: '')
       end
 
       filename = silence_output { test_model.generate_qr_code }
@@ -276,7 +263,7 @@ describe 'QR Code Integration Tests' do
       expect(file_size).to be > 100, "QR code file too small: #{file_size} bytes"
       expect(file_size).to be < 10_000, "QR code file too large: #{file_size} bytes"
 
-      File.delete(filename) if File.exist?(filename)
+      FileUtils.rm_f(filename)
     end
   end
 
@@ -290,14 +277,10 @@ describe 'QR Code Integration Tests' do
 
       configurations.each do |config|
         allow(test_model).to receive(:command_available?).with('qrencode').and_return(true)
-        allow(test_model).to receive(:connected_network_name).and_return(config[:ssid])
-        allow(test_model).to receive(:connected_network_password).and_return(config[:password])
-        allow(test_model).to receive(:connection_security_type).and_return(config[:security])
 
         # Mock methods that could make real system calls
-        allow(test_model).to receive(:preferred_networks).and_return([config[:ssid]])
-        allow(test_model).to receive(:preferred_network_password).and_return(config[:password])
-        allow(test_model).to receive(:_preferred_network_password).and_return(config[:password])
+        allow(test_model).to receive_messages(connected_network_name: config[:ssid],
+          connected_network_password: config[:password], connection_security_type: config[:security], preferred_networks: [config[:ssid]], preferred_network_password: config[:password], _preferred_network_password: config[:password])
 
         allow(test_model).to receive(:run_os_command) do |cmd|
           system(*cmd) if cmd.is_a?(Array) && cmd[0] == 'qrencode'
@@ -314,7 +297,7 @@ describe 'QR Code Integration Tests' do
         expect(decoded_content).to start_with('WIFI:')
         expect(decoded_content).to end_with(';;')
 
-        File.delete(filename) if File.exist?(filename)
+        FileUtils.rm_f(filename)
       end
     end
   end

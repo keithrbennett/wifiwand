@@ -21,16 +21,15 @@ module TestHelpers
   def create_test_model(options = {})
     merged_options = merge_verbose_options(options)
     current_os = WifiWand::OperatingSystems.current_os
-    raise WifiWand::NoSupportedOSError.new unless current_os
+    raise WifiWand::NoSupportedOSError unless current_os
 
     case current_os.id
     when :ubuntu
       model = WifiWand::UbuntuModel.new(merged_options)
       # Mock command availability to prevent missing utility errors in CI
-      allow(model).to receive(:command_available?).and_return(true)
       # Mock WiFi interface detection to prevent hardware detection failures in CI
       # This can be overridden by individual tests that need to test interface detection failures
-      allow(model).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
+      allow(model).to receive_messages(command_available?: true, detect_wifi_interface: 'wlp0s20f3')
       model.init
       model
     when :mac
@@ -49,7 +48,7 @@ module TestHelpers
       allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_client)
       WifiWand::MacOsModel.create_model(merged_options)
     else
-      raise WifiWand::NoSupportedOSError.new
+      raise WifiWand::NoSupportedOSError
     end
   end
 

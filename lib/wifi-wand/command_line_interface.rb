@@ -37,7 +37,7 @@ module WifiWand
 
       # Skip model initialization when help was explicitly requested in non-interactive mode,
       # so that `--help` works even on systems without Wi‑Fi hardware or permissions.
-      @interactive_mode = !!options.interactive_mode
+      @interactive_mode = !options.interactive_mode.nil?
       help_requested = options.respond_to?(:help_requested) && options.help_requested
       skip_model_init = help_requested && !@interactive_mode
 
@@ -57,7 +57,7 @@ module WifiWand
     # Asserts that a command has been passed on the command line.
     def validate_command_line
       if ARGV.empty?
-        @err_stream.puts "Syntax is: #{File.basename($0)} [options] command [command_options]. #{help_hint}"
+        @err_stream.puts "Syntax is: #{File.basename($PROGRAM_NAME)} [options] command [command_options]. #{help_hint}"
         exit(-1)
       end
     end
@@ -69,9 +69,8 @@ module WifiWand
     # i.e. single or double quotes, %q, %Q, etc.
     # Otherwise it will assume it's a method name and pass it to method_missing!
     def process_command_line
-      attempt_command_action(ARGV[0], *ARGV[1..-1]) do
-        raise WifiWand::BadCommandError.new(
-            %(Unrecognized command. Command was #{ARGV.first.inspect} and options were #{ARGV[1..-1].inspect}.))
+      attempt_command_action(ARGV[0], *ARGV[1..]) do
+        raise WifiWand::BadCommandError, %(Unrecognized command. Command was #{ARGV.first.inspect} and options were #{ARGV[1..].inspect}.)
       end
     end
 
@@ -184,12 +183,10 @@ module WifiWand
     def cmd_t(*options)
       # Validate that target status argument was provided
       if options.empty? || options[0].nil?
-        raise WifiWand::ConfigurationError.new(
-          "Missing target status argument.\n" \
-          "Usage: till conn|disc|on|off [timeout_secs] [interval_secs]\n" \
-          "Examples: 'till off 20' or 'till conn 30 0.5'\n" \
-          "#{help_hint}"
-        )
+        raise WifiWand::ConfigurationError, "Missing target status argument.\n" \
+                                            "Usage: till conn|disc|on|off [timeout_secs] [interval_secs]\n" \
+                                            "Examples: 'till off 20' or 'till conn 30 0.5'\n" \
+                                            "#{help_hint}"
       end
 
       target_status = options[0].to_sym
@@ -198,17 +195,13 @@ module WifiWand
       begin
         timeout_in_secs = (options[1] ? Float(options[1]) : nil)
       rescue ArgumentError, TypeError
-        raise WifiWand::ConfigurationError.new(
-          "Invalid timeout value '#{options[1]}'. Timeout must be a number. #{help_hint}"
-        )
+        raise WifiWand::ConfigurationError, "Invalid timeout value '#{options[1]}'. Timeout must be a number. #{help_hint}"
       end
 
       begin
         interval_in_secs = (options[2] ? Float(options[2]) : nil)
       rescue ArgumentError, TypeError
-        raise WifiWand::ConfigurationError.new(
-          "Invalid interval value '#{options[2]}'. Interval must be a number. #{help_hint}"
-        )
+        raise WifiWand::ConfigurationError, "Invalid interval value '#{options[2]}'. Interval must be a number. #{help_hint}"
       end
 
       # Pass CLI-friendly error formatting in non-interactive mode only.
@@ -227,7 +220,7 @@ module WifiWand
 
     def cmd_qr(filespec = nil, password = nil)
       # Normalize destination and determine if stdout ('-') is requested
-      spec = filespec.nil? ? nil : filespec.to_s
+      spec = filespec&.to_s
       to_stdout = (spec == '-')
 
       if to_stdout

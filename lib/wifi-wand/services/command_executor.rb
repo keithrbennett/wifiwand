@@ -89,7 +89,7 @@ module WifiWand
       end
 
       if !result.success? && raise_on_error
-        raise OsCommandError.new(result)
+        raise OsCommandError, result
       end
 
       result

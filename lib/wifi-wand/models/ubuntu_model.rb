@@ -30,7 +30,7 @@ module WifiWand
       missing_commands << 'nmcli (install: sudo apt install network-manager)' unless command_available?('nmcli')
 
       unless missing_commands.empty?
-        raise CommandNotFoundError.new(missing_commands)
+        raise CommandNotFoundError, missing_commands
       end
 
       :ok
@@ -62,9 +62,9 @@ module WifiWand
 
       run_os_command(['nmcli', 'radio', 'wifi', 'on'])
       till(:on, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
-      wifi_on? ? nil : raise(WifiEnableError.new)
+      wifi_on? ? nil : raise(WifiEnableError)
     rescue WifiWand::WaitTimeoutError
-      raise WifiEnableError.new
+      raise WifiEnableError
     end
 
     def wifi_off
@@ -72,9 +72,9 @@ module WifiWand
 
       run_os_command(['nmcli', 'radio', 'wifi', 'off'])
       till(:off, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
-      wifi_on? ? raise(WifiDisableError.new) : nil
+      wifi_on? ? raise(WifiDisableError) : nil
     rescue WifiWand::WaitTimeoutError
-      raise WifiDisableError.new
+      raise WifiDisableError
     end
 
     def _available_network_names
@@ -138,9 +138,9 @@ module WifiWand
       end
 
       begin
+        profile = find_best_profile_for_ssid(network_name)
         if password
           # Case 2: Password is provided.
-          profile = find_best_profile_for_ssid(network_name)
           if profile
             # Profile exists. Only modify it if the password has changed.
             if password != _preferred_network_password(profile)
@@ -160,16 +160,13 @@ module WifiWand
             # No profile exists, create a new one.
             run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
           end
-        else
+        elsif profile
           # Case 3: No password provided.
-          profile = find_best_profile_for_ssid(network_name)
-          if profile
-            # Profile exists, try to bring it up with stored settings.
-            run_os_command(['nmcli', 'connection', 'up', profile])
-          else
-            # No profile exists, try to connect to it as an open network.
-            run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name])
-          end
+          # Profile exists, try to bring it up with stored settings.
+          run_os_command(['nmcli', 'connection', 'up', profile])
+        else
+          # No profile exists, try to connect to it as an open network.
+          run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name])
         end
       rescue WifiWand::CommandExecutor::OsCommandError => e
         # The nmcli command failed. Determine the specific failure reason.
@@ -177,7 +174,7 @@ module WifiWand
 
         # Check for network not found errors
         if error_text.match?(/No network with SSID/i)
-          raise WifiWand::NetworkNotFoundError.new(network_name)
+          raise WifiWand::NetworkNotFoundError, network_name
         end
 
         # Check for authentication/password errors
@@ -188,7 +185,7 @@ module WifiWand
           /authentication.*failed/i,
           /Connection activation failed.*\(7\)/i
         ].any? { |pattern| error_text.match?(pattern) }
-          raise WifiWand::NetworkAuthenticationError.new(network_name)
+          raise WifiWand::NetworkAuthenticationError, network_name
         end
 
         # Check for device-related errors
@@ -196,7 +193,7 @@ module WifiWand
           /No suitable device found/i,
           /Device.*not found/i
         ].any? { |pattern| error_text.match?(pattern) }
-          raise WifiWand::WifiInterfaceError.new(wifi_interface)
+          raise WifiWand::WifiInterfaceError, wifi_interface
         end
 
         # Generic connection activation failed - could indicate network out of range
@@ -389,7 +386,10 @@ module WifiWand
 
       # Get the current active Wi-Fi connection name
       current_connection = active_connection_profile_name || _connected_network_name
-      raise WifiInterfaceError.new('No active Wi-Fi connection to configure DNS for.') unless current_connection
+      unless current_connection
+        raise WifiInterfaceError,
+          'No active Wi-Fi connection to configure DNS for.'
+      end
 
       if nameservers == :clear
         # Clear custom DNS and use automatic DNS from router/DHCP (both IPv4 and IPv6)
@@ -412,7 +412,7 @@ module WifiWand
         end
 
         unless bad_addresses.empty?
-          raise InvalidIPAddressError.new(bad_addresses)
+          raise InvalidIPAddressError, bad_addresses
         end
 
         # Separate IPv4 and IPv6 addresses
@@ -512,9 +512,7 @@ module WifiWand
         # Use .source to get the raw pattern, ensuring flags apply uniformly to the new regex.
         dns_line_pattern = /#{ip_version_pattern.source}#{dns_field_pattern.source}/i
 
-        dns_lines = output.split("\n").select do |line|
-          line.match?(dns_line_pattern)
-        end
+        dns_lines = output.split("\n").grep(dns_line_pattern)
 
         dns_lines.map do |line|
           # Split on colon and take everything after the last colon, then strip whitespace

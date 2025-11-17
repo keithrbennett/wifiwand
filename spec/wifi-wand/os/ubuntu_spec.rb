@@ -5,7 +5,7 @@ require_relative '../../../lib/wifi-wand/os/ubuntu'
 
 module WifiWand
   describe Ubuntu do
-    subject { Ubuntu.new }
+    subject { described_class.new }
 
     describe '#initialize' do
       it 'sets correct id and display_name' do

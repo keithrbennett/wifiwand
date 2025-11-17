@@ -1,3 +1,5 @@
+# frozen_string_literal: true
+
 require_relative 'lib/wifi-wand/version'
 
 Gem::Specification.new do |spec|

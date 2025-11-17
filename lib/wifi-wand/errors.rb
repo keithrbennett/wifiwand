@@ -145,9 +145,6 @@ module WifiWand
   end
 
   class KeychainError < Error
-    def initialize(message)
-      super
-    end
   end
 
   # === OPERATING SYSTEM DETECTION ERRORS ===
@@ -170,9 +167,6 @@ module WifiWand
   end
 
   class ConfigurationError < Error
-    def initialize(message)
-      super
-    end
   end
 
   # === EXTERNAL SERVICE ERRORS ===
@@ -193,8 +187,5 @@ module WifiWand
 
   # === COMMAND LINE INTERFACE ERRORS ===
   class BadCommandError < Error
-    def initialize(error_message)
-      super
-    end
   end
 end

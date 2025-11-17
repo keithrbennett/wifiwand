@@ -17,7 +17,7 @@ describe WifiWand::NetworkStateManager do
     )
   end
 
-  let(:state_manager) { WifiWand::NetworkStateManager.new(mock_model, verbose: false) }
+  let(:state_manager) { described_class.new(mock_model, verbose: false) }
 
   describe '#capture_network_state' do
     it 'captures current network state' do
@@ -37,8 +37,8 @@ describe WifiWand::NetworkStateManager do
     end
 
     it 'handles password retrieval failure' do
-      allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
-      allow(mock_model).to receive(:preferred_network_password).and_return(nil)
+      allow(mock_model).to receive_messages(connected_network_name: 'TestNetwork',
+        preferred_network_password: nil)
       state = state_manager.capture_network_state
       expect(state[:network_name]).to eq('TestNetwork')
       expect(state[:network_password]).to be_nil
@@ -46,7 +46,7 @@ describe WifiWand::NetworkStateManager do
 
     it 'logs password retrieval failure in verbose mode' do
       output = StringIO.new
-      verbose_manager = WifiWand::NetworkStateManager.new(mock_model, verbose: true, output: output)
+      verbose_manager = described_class.new(mock_model, verbose: true, output: output)
       allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
       allow(mock_model).to receive(:preferred_network_password).and_raise(StandardError.new('Keychain error'))
 
@@ -77,9 +77,8 @@ describe WifiWand::NetworkStateManager do
       end
 
       it 'raises exceptions on connection failures' do
-        allow(mock_model).to receive(:wifi_on?).and_return(true)
-        allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork')
-        allow(mock_model).to receive(:preferred_network_password).and_return('testpass')
+        allow(mock_model).to receive_messages(wifi_on?: true,
+          connected_network_name: 'OtherNetwork', preferred_network_password: 'testpass')
         allow(mock_model).to receive(:connect).and_raise(StandardError.new('Network unavailable'))
 
         expect do
@@ -102,9 +101,8 @@ describe WifiWand::NetworkStateManager do
       end
 
       it 'swallows connection failures and logs to stderr' do
-        allow(mock_model).to receive(:wifi_on?).and_return(true)
-        allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork')
-        allow(mock_model).to receive(:preferred_network_password).and_return('testpass')
+        allow(mock_model).to receive_messages(wifi_on?: true,
+          connected_network_name: 'OtherNetwork', preferred_network_password: 'testpass')
         allow(mock_model).to receive(:connect).and_raise(StandardError.new('Network unavailable'))
         allow(mock_model).to receive(:till)
 
@@ -122,15 +120,13 @@ describe WifiWand::NetworkStateManager do
     end
 
     it 'returns :already_connected when already on correct network' do
-      allow(mock_model).to receive(:wifi_on?).and_return(true)
-      allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      allow(mock_model).to receive_messages(wifi_on?: true, connected_network_name: 'TestNetwork')
       expect(state_manager.restore_network_state(valid_state)).to eq(:already_connected)
     end
 
     it 'turns on WiFi when currently off but should be on' do
       wifi_off_state = valid_state.merge(wifi_enabled: true)
-      allow(mock_model).to receive(:wifi_on?).and_return(false)
-      allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      allow(mock_model).to receive_messages(wifi_on?: false, connected_network_name: 'TestNetwork')
 
       expect(mock_model).to receive(:wifi_on)
       expect(mock_model).to receive(:till).with(:on, timeout_in_secs: WifiWand::TimingConstants::WIFI_STATE_CHANGE_WAIT)
@@ -151,8 +147,7 @@ describe WifiWand::NetworkStateManager do
 
     it 'uses fallback password when state password is nil' do
       state_without_password = valid_state.merge(network_password: nil)
-      allow(mock_model).to receive(:wifi_on?).and_return(true)
-      allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork')
+      allow(mock_model).to receive_messages(wifi_on?: true, connected_network_name: 'OtherNetwork')
       allow(mock_model).to receive(:preferred_network_password).with('TestNetwork').and_return('fallback_pass')
 
       expect(mock_model).to receive(:connect).with('TestNetwork', 'fallback_pass')
@@ -187,10 +182,9 @@ describe WifiWand::NetworkStateManager do
     end
 
     it 'handles WaitTimeoutError and queries current network name' do
-      allow(mock_model).to receive(:wifi_on?).and_return(true)
       allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork',
         'ActualNetwork')
-      allow(mock_model).to receive(:preferred_network_password).and_return('testpass')
+      allow(mock_model).to receive_messages(wifi_on?: true, preferred_network_password: 'testpass')
       allow(mock_model).to receive(:connect)
       allow(mock_model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:conn, 10))
 
@@ -201,12 +195,11 @@ describe WifiWand::NetworkStateManager do
     end
 
     it 'handles WaitTimeoutError when querying network name fails' do
-      allow(mock_model).to receive(:wifi_on?).and_return(true)
       # First call (line 63 - already_connected check) returns different network
       # Second call (line 75 - in rescue block) raises error
       allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork',
         'OtherNetwork').and_raise(StandardError.new('Network query failed'))
-      allow(mock_model).to receive(:preferred_network_password).and_return('testpass')
+      allow(mock_model).to receive_messages(wifi_on?: true, preferred_network_password: 'testpass')
       allow(mock_model).to receive(:connect)
       allow(mock_model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:conn, 10))
 
@@ -218,11 +211,10 @@ describe WifiWand::NetworkStateManager do
 
     it 'logs WaitTimeoutError details in verbose mode when network query succeeds' do
       output = StringIO.new
-      verbose_manager = WifiWand::NetworkStateManager.new(mock_model, verbose: true, output: output)
-      allow(mock_model).to receive(:wifi_on?).and_return(true)
+      verbose_manager = described_class.new(mock_model, verbose: true, output: output)
       allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork',
         'ActualNetwork')
-      allow(mock_model).to receive(:preferred_network_password).and_return('testpass')
+      allow(mock_model).to receive_messages(wifi_on?: true, preferred_network_password: 'testpass')
       allow(mock_model).to receive(:connect)
       allow(mock_model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:conn, 10))
 
@@ -234,13 +226,12 @@ describe WifiWand::NetworkStateManager do
 
     it 'logs WaitTimeoutError details in verbose mode when network query fails' do
       output = StringIO.new
-      verbose_manager = WifiWand::NetworkStateManager.new(mock_model, verbose: true, output: output)
-      allow(mock_model).to receive(:wifi_on?).and_return(true)
+      verbose_manager = described_class.new(mock_model, verbose: true, output: output)
       # First call (line 63 - already_connected check) returns different network
       # Second call (line 75 - in rescue block) raises error
       allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork',
         'OtherNetwork').and_raise(StandardError.new('Network query failed'))
-      allow(mock_model).to receive(:preferred_network_password).and_return('testpass')
+      allow(mock_model).to receive_messages(wifi_on?: true, preferred_network_password: 'testpass')
       allow(mock_model).to receive(:connect)
       allow(mock_model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:conn, 10))
 
@@ -252,11 +243,10 @@ describe WifiWand::NetworkStateManager do
   end
 
   describe 'verbose mode' do
-    let(:verbose_state_manager) { WifiWand::NetworkStateManager.new(mock_model, verbose: true) }
+    let(:verbose_state_manager) { described_class.new(mock_model, verbose: true) }
 
     it 'logs restore attempts when verbose' do
-      allow(mock_model).to receive(:wifi_on?).and_return(true)
-      allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      allow(mock_model).to receive_messages(wifi_on?: true, connected_network_name: 'TestNetwork')
 
       valid_state = {
         wifi_enabled: true,
@@ -273,25 +263,25 @@ describe WifiWand::NetworkStateManager do
 
   describe 'private helpers' do
     it 'fallback_password_for returns password when successful' do
-      manager = WifiWand::NetworkStateManager.new(mock_model)
+      manager = described_class.new(mock_model)
       allow(mock_model).to receive(:preferred_network_password).with('TestNetwork').and_return('test_password')
       expect(manager.send(:fallback_password_for, 'TestNetwork')).to eq('test_password')
     end
 
     it 'fallback_password_for returns nil when network_name is nil' do
-      manager = WifiWand::NetworkStateManager.new(mock_model)
+      manager = described_class.new(mock_model)
       expect(manager.send(:fallback_password_for, nil)).to be_nil
     end
 
     it 'fallback_password_for rescues errors and returns nil' do
-      manager = WifiWand::NetworkStateManager.new(mock_model)
+      manager = described_class.new(mock_model)
       allow(mock_model).to receive(:preferred_network_password).and_raise(StandardError.new('Password lookup failed'))
       expect(manager.send(:fallback_password_for, 'TestNetwork')).to be_nil
     end
 
     it 'fallback_password_for logs errors in verbose mode' do
       output = StringIO.new
-      verbose_manager = WifiWand::NetworkStateManager.new(mock_model, verbose: true, output: output)
+      verbose_manager = described_class.new(mock_model, verbose: true, output: output)
       allow(mock_model).to receive(:preferred_network_password).and_raise(StandardError.new('Password lookup failed'))
 
       result = verbose_manager.send(:fallback_password_for, 'TestNetwork')
@@ -300,14 +290,14 @@ describe WifiWand::NetworkStateManager do
     end
 
     it 'connected_network_password returns password when network is connected' do
-      manager = WifiWand::NetworkStateManager.new(mock_model)
+      manager = described_class.new(mock_model)
       allow(mock_model).to receive(:connected_network_name).and_return('CurrentNetwork')
       allow(mock_model).to receive(:preferred_network_password).with('CurrentNetwork').and_return('current_password')
       expect(manager.send(:connected_network_password)).to eq('current_password')
     end
 
     it 'connected_network_password returns nil when not connected' do
-      manager = WifiWand::NetworkStateManager.new(mock_model)
+      manager = described_class.new(mock_model)
       allow(mock_model).to receive(:connected_network_name).and_return(nil)
       expect(manager.send(:connected_network_password)).to be_nil
     end

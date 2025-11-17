@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+# frozen_string_literal: true
 
 # One-time setup script for macOS location permissions
 # This script registers the wifiwand-helper with macOS and opens System Settings
@@ -50,7 +51,7 @@ puts <<~MSG
 MSG
 
 # Display setup status
-puts "\n" + ('=' * 70)
+puts "\n#{'=' * 70}"
 puts 'Setup Status:'
 puts '=' * 70
 puts format('  %-40s %s', 'Helper installed:', helper_installed ? '✓ Yes' : '✗ No')
@@ -60,7 +61,7 @@ if helper_installed
     puts format('  %-40s %s', 'Permission status:', permission_message)
   end
 else
-  puts format('  %-40s %s', 'Location permission:', '(will check after installation)')
+  puts '  Location permission:                     (will check after installation)'
 end
 puts '=' * 70
 
