@@ -78,7 +78,7 @@ module WifiWand
           current_state = fetch_current_state
 
           if current_state.nil?
-            log_message("Failed to fetch WiFi state") if @verbose
+            log_message('Failed to fetch WiFi state') if @verbose
             sleep(@interval)
             next
           end

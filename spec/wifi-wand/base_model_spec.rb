@@ -192,7 +192,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       # Ensure we\'re connected first (may need to connect to a network if not already)
       if subject.connected_network_name.nil?
-        skip "No network connection available for disconnect test"
+        skip 'No network connection available for disconnect test'
       end
 
       # Test disconnect works
@@ -333,7 +333,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   # Non-disruptive context - only runs when wifi is already on
   context 'wifi starts on', :disruptive => false do
     before(:each) do
-      skip "Wifi is not currently on" unless current_wifi_on
+      skip 'Wifi is not currently on' unless current_wifi_on
     end
 
     include_examples 'interface commands complete without error', true
@@ -342,7 +342,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   # Non-disruptive context - only runs when wifi is already off
   context 'wifi starts off', :disruptive => false do
     before(:each) do
-      skip "Wifi is currently on" if current_wifi_on
+      skip 'Wifi is currently on' if current_wifi_on
     end
 
     include_examples 'interface commands complete without error', false

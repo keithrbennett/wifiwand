@@ -332,7 +332,7 @@ describe WifiWand::CommandLineInterface do
       end
 
       context 'non-interactive stdout mode' do
-        it "prints ANSI via model and returns nil" do
+        it 'prints ANSI via model and returns nil' do
           # Model handles printing when delivery_mode is :print; CLI should not add extra output
           allow(mock_model).to receive(:generate_qr_code).with('-', hash_including(delivery_mode: :print, password: nil)) do
             $stdout.print("[QR-ANSI]\n")
@@ -401,10 +401,10 @@ describe WifiWand::CommandLineInterface do
         it 're-raises non-overwrite errors' do
           # Reset mock for different error
           allow(mock_model).to receive(:generate_qr_code).with('other.png', hash_including(password: nil)).and_raise(
-            WifiWand::Error.new("Network connection failed")
+            WifiWand::Error.new('Network connection failed')
           )
 
-          expect { subject.cmd_qr('other.png') }.to raise_error(WifiWand::Error, "Network connection failed")
+          expect { subject.cmd_qr('other.png') }.to raise_error(WifiWand::Error, 'Network connection failed')
         end
       end
     end
@@ -697,7 +697,7 @@ describe WifiWand::CommandLineInterface do
         cli = described_class.new(opts)
         allow(cli).to receive(:status_line).with(status_data).and_return('')
         cli.cmd_s
-        expect(out_stream.string).to eq("")
+        expect(out_stream.string).to eq('')
       end
     end
 
@@ -849,7 +849,7 @@ describe WifiWand::CommandLineInterface do
     end
 
     it 'does not duplicate help hint when error message already contains it' do
-      error_msg = "Missing required argument. Type help for usage"
+      error_msg = 'Missing required argument. Type help for usage'
       error = WifiWand::ConfigurationError.new(error_msg)
       # Rebuild CLI with a captured err_stream for this test
       err_stream = StringIO.new

@@ -62,7 +62,7 @@ module TestHelpers
     WifiWand::MacOsModel.new(merge_verbose_options(options))
   end
 
-  def wait_for(timeout: 5, interval: 0.1, description: "condition")
+  def wait_for(timeout: 5, interval: 0.1, description: 'condition')
     start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     loop do
       return if yield # The block returns true, so we exit successfully

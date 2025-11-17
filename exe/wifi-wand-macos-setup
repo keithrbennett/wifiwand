@@ -12,7 +12,7 @@ require_relative '../lib/wifi-wand/mac_os_wifi_auth_helper'
 helper_path = WifiWand::MacOsWifiAuthHelper.installed_executable_path
 helper_installed = File.executable?(helper_path)
 helper_authorized = false
-permission_message = "Unknown"
+permission_message = 'Unknown'
 
 if helper_installed
   stdout, stderr, status = Open3.capture3(helper_path, 'check-permission')
@@ -22,19 +22,19 @@ if helper_installed
       helper_authorized = result['authorized']
       permission_message = result['message']
     rescue JSON::ParserError
-      permission_message = "Could not determine status"
+      permission_message = 'Could not determine status'
     end
   else
-    permission_message = "Could not check status"
+    permission_message = 'Could not check status'
   end
 end
 
 # If everything is already set up, exit early
 if helper_installed && helper_authorized
-  puts "✅ WifiWand macOS setup is complete! All requirements are satisfied."
+  puts '✅ WifiWand macOS setup is complete! All requirements are satisfied.'
   puts "\nYou can use wifi-wand commands:"
-  puts "  wifi-wand a              # Show available networks"
-  puts "  wifi-wand info           # Show current connection info"
+  puts '  wifi-wand a              # Show available networks'
+  puts '  wifi-wand info           # Show current connection info'
   exit 0
 end
 
@@ -50,24 +50,24 @@ puts <<~MSG
 MSG
 
 # Display setup status
-puts "\n" + "=" * 70
-puts "Setup Status:"
-puts "=" * 70
-puts sprintf("  %-40s %s", "Helper installed:", helper_installed ? "✓ Yes" : "✗ No")
+puts "\n" + '=' * 70
+puts 'Setup Status:'
+puts '=' * 70
+puts sprintf('  %-40s %s', 'Helper installed:', helper_installed ? '✓ Yes' : '✗ No')
 if helper_installed
-  puts sprintf("  %-40s %s", "Location permission granted:", helper_authorized ? "✓ Yes" : "✗ No")
+  puts sprintf('  %-40s %s', 'Location permission granted:', helper_authorized ? '✓ Yes' : '✗ No')
   if !helper_authorized
-    puts sprintf("  %-40s %s", "Permission status:", permission_message)
+    puts sprintf('  %-40s %s', 'Permission status:', permission_message)
   end
 else
-  puts sprintf("  %-40s %s", "Location permission:", "(will check after installation)")
+  puts sprintf('  %-40s %s', 'Location permission:', '(will check after installation)')
 end
-puts "=" * 70
+puts '=' * 70
 
 # Determine what needs to be done
 steps_needed = []
-steps_needed << "Install wifiwand-helper" unless helper_installed
-steps_needed << "Grant location permission" unless helper_authorized
+steps_needed << 'Install wifiwand-helper' unless helper_installed
+steps_needed << 'Grant location permission' unless helper_authorized
 
 puts "\nSteps required:"
 steps_needed.each_with_index { |step, i| puts "  #{i + 1}. #{step}" }
@@ -99,7 +99,7 @@ begin
     if status.success? && !stdout.strip.empty?
       begin
         helper_authorized = JSON.parse(stdout)['authorized']
-        puts "✓ Location permission already granted (restored by macOS)" if helper_authorized
+        puts '✓ Location permission already granted (restored by macOS)' if helper_authorized
       rescue JSON::ParserError
         # Continue with permission setup
       end
@@ -112,7 +112,7 @@ begin
     puts "\n[#{current_step}/#{steps_needed.length}] Setting up location permission..."
 
     # Open System Settings to Location Services
-    puts "Opening System Settings → Privacy & Security → Location Services..."
+    puts 'Opening System Settings → Privacy & Security → Location Services...'
     sleep 1  # Brief pause so user can read the message
 
     system('open', 'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices')

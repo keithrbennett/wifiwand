@@ -50,7 +50,7 @@ class MacOsModel < BaseModel
     51 => ->(network_name, _error) { raise KeychainNonInteractiveError.new(network_name) },
     25 => ->(network_name, _error) { raise KeychainError.new("Invalid keychain search parameters for network '#{network_name}'") },
     1 => ->(network_name, error) {
-      if error.text.include?("could not be found")
+      if error.text.include?('could not be found')
         nil
       else
         raise KeychainError.new("Keychain error accessing password for network '#{network_name}': #{error.text.strip}")
@@ -380,23 +380,23 @@ class MacOsModel < BaseModel
     return helper_name if helper_name
 
     data = airport_data
-    airport_data = data.dig("SPAirPortDataType", 0, "spairport_airport_interfaces")
+    airport_data = data.dig('SPAirPortDataType', 0, 'spairport_airport_interfaces')
     return nil unless airport_data
 
     iface = ensure_wifi_interface!
     wifi_interface_data = airport_data.find do |interface|
-      interface["_name"] == iface
+      interface['_name'] == iface
     end
 
     # Handle interface not found
     return nil unless wifi_interface_data
 
     # Handle no current network connection
-    current_network = wifi_interface_data["spairport_current_network_information"]
+    current_network = wifi_interface_data['spairport_current_network_information']
     return nil unless current_network
 
     # Return the network name (could still be nil)
-    current_network["_name"]
+    current_network['_name']
   end
 
   def mac_helper_client
@@ -419,7 +419,7 @@ class MacOsModel < BaseModel
         # Fall through to ifconfig fallback
       end
     else
-      out_stream.puts "Swift/CoreWLAN not available. Using ifconfig..." if verbose_mode
+      out_stream.puts 'Swift/CoreWLAN not available. Using ifconfig...' if verbose_mode
     end
 
     # Fallback to ifconfig (disassociate from current network)
@@ -568,8 +568,8 @@ class MacOsModel < BaseModel
 
   def validate_os_preconditions
     # All core commands are built-in, just warn about optional ones
-    unless command_available?("swift")
-      out_stream.puts "Warning: Swift not available. Some advanced features may use fallback methods. Install with: xcode-select --install" if verbose_mode
+    unless command_available?('swift')
+      out_stream.puts 'Warning: Swift not available. Some advanced features may use fallback methods. Install with: xcode-select --install' if verbose_mode
     end
 
     :ok

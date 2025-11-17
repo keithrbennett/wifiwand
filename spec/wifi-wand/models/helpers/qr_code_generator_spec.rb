@@ -42,7 +42,7 @@ describe 'QR Code Generator (unit)' do
     expect(result).to eq('-')
   end
 
-  it "returns ANSI QR string without printing when delivery_mode is :return" do
+  it 'returns ANSI QR string without printing when delivery_mode is :return' do
     expect(model).to receive(:run_os_command) do |cmd|
       expect(cmd).to be_an(Array)
       expect(cmd[0..2]).to eq(%w[qrencode -t ANSI])
@@ -54,7 +54,7 @@ describe 'QR Code Generator (unit)' do
     expect(result).to eq("[QR-ANSI]\n")
   end
 
-  it "raises WifiWand::Error when ANSI generation command fails" do
+  it 'raises WifiWand::Error when ANSI generation command fails' do
     expect(model).to receive(:run_os_command)
       .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'qrencode', 'boom'))
 
@@ -63,7 +63,7 @@ describe 'QR Code Generator (unit)' do
     }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
   end
 
-  it "uses provided password without querying system password" do
+  it 'uses provided password without querying system password' do
     provided_password = 'provided123'
 
     # Ensure generator does not try to fetch stored password when one is given
@@ -101,7 +101,7 @@ describe 'QR Code Generator (unit)' do
     end
   end
 
-      it "generates QR code with H:false for visible (broadcast) networks" do
+      it 'generates QR code with H:false for visible (broadcast) networks' do
     allow(model).to receive(:network_hidden?).and_return(false)
 
     expect(model).to receive(:run_os_command) do |cmd|
@@ -114,7 +114,7 @@ describe 'QR Code Generator (unit)' do
     silence_output { model.generate_qr_code('TestNetwork-qr-code.png') }
   end
 
-  it "generates QR code with H:true for hidden networks" do
+  it 'generates QR code with H:true for hidden networks' do
     allow(model).to receive(:network_hidden?).and_return(true)
 
     expect(model).to receive(:run_os_command) do |cmd|
@@ -127,7 +127,7 @@ describe 'QR Code Generator (unit)' do
     silence_output { model.generate_qr_code('TestNetwork-qr-code.png') }
   end
 
-  it "generates ANSI QR with H:true for hidden networks" do
+  it 'generates ANSI QR with H:true for hidden networks' do
     allow(model).to receive(:network_hidden?).and_return(true)
 
     expect(model).to receive(:run_os_command) do |cmd|

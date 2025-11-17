@@ -42,7 +42,7 @@ describe Ubuntu do
         name: 'detects Ubuntu via /proc/version when os-release absent',
         os_release_exists: false,
         proc_version_exists: true,
-        proc_version_content: "Linux version 5.4.0-74-generic #83-Ubuntu",
+        proc_version_content: 'Linux version 5.4.0-74-generic #83-Ubuntu',
         expected: true
       },
       {

@@ -37,7 +37,7 @@ describe WifiWand::ConnectionManager do
     end
 
     it 'allows unusual unicode characters in the network name' do
-      unicode_name = "ネットワーク✨" # final char is an emoji
+      unicode_name = 'ネットワーク✨' # final char is an emoji
       network_name, password = subject.send(:normalize_inputs, unicode_name, nil)
       expect(network_name).to eq(unicode_name)
       expect(password).to be_nil
@@ -164,7 +164,7 @@ describe WifiWand::ConnectionManager do
         expect(subject.last_connection_used_saved_password?).to be false
       end
 
-      it "treats empty string password as an explicit no-password request" do
+      it 'treats empty string password as an explicit no-password request' do
         expect(mock_model).not_to receive(:preferred_network_password)
         expect(mock_model).to receive(:_connect).with('SavedNetwork', nil)
 

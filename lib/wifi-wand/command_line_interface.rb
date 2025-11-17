@@ -90,7 +90,7 @@ class CommandLineInterface
           #{format_object(info)}" "
         MESSAGE
       else
-        "Wifi is off, cannot see available networks."
+        'Wifi is off, cannot see available networks.'
       end
     end
     handle_output(info, human_readable_string_producer)
@@ -138,7 +138,7 @@ class CommandLineInterface
       when :get
         current_nameservers = model.nameservers
         human_readable_string_producer = -> do
-          current_nameservers_as_string = current_nameservers.empty? ? "[None]" : current_nameservers.join(', ')
+          current_nameservers_as_string = current_nameservers.empty? ? '[None]' : current_nameservers.join(', ')
           "Nameservers: #{current_nameservers_as_string}"
         end
         handle_output(current_nameservers, human_readable_string_producer)
@@ -243,8 +243,8 @@ class CommandLineInterface
         handle_output(result, -> { "QR code generated: #{result}" })
       end
     rescue WifiWand::Error => e
-      if e.message.include?("already exists") && $stdin.tty?
-        out_stream.print "Output file exists. Overwrite? [y/N]: "
+      if e.message.include?('already exists') && $stdin.tty?
+        out_stream.print 'Output file exists. Overwrite? [y/N]: '
         answer = $stdin.gets&.strip&.downcase
         if %w[y yes].include?(answer)
           result = model.generate_qr_code(filespec, overwrite: true, password: password)

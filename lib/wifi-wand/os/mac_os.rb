@@ -11,7 +11,7 @@ class MacOs < BaseOs
   end
 
   def current_os_is_this_os?
-    /darwin/.match?(RbConfig::CONFIG["host_os"])
+    /darwin/.match?(RbConfig::CONFIG['host_os'])
   end
 
   def create_model(options)

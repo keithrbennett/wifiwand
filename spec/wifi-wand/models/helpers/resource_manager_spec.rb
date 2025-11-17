@@ -41,7 +41,7 @@ describe WifiWand::Helpers::ResourceManager do
   describe '#available_resources_help' do
     it 'returns formatted help text' do
       help = resource_manager.available_resources_help
-      expect(help).to include("Please specify a resource to open:")
+      expect(help).to include('Please specify a resource to open:')
       expect(help).to include("'test1' (Test Resource 1)")
       expect(help).to include("'test2' (Test Resource 2)")
     end
@@ -51,14 +51,14 @@ describe WifiWand::Helpers::ResourceManager do
     it 'formats error message for single invalid code' do
       error = resource_manager.invalid_codes_error(['invalid'])
       expect(error).to include("Invalid resource code: 'invalid'")
-      expect(error).to include("Valid codes are:")
+      expect(error).to include('Valid codes are:')
       expect(error).to include("'test1' (Test Resource 1)")
     end
 
     it 'formats error message for multiple invalid codes' do
       error = resource_manager.invalid_codes_error(['invalid1', 'invalid2'])
       expect(error).to include("Invalid resource codes: 'invalid1', 'invalid2'")
-      expect(error).to include("Valid codes are:")
+      expect(error).to include('Valid codes are:')
     end
   end
 
@@ -176,7 +176,7 @@ describe 'ResourceManager error handling and edge cases' do
 
     it 'raises error when YAML file has invalid structure' do
       invalid_yaml_path = '/tmp/invalid_resources.yml'
-      File.write(invalid_yaml_path, "invalid: yaml: structure:")
+      File.write(invalid_yaml_path, 'invalid: yaml: structure:')
 
       allow(resource_manager).to receive(:resource_file_path).and_return(invalid_yaml_path)
 
@@ -187,7 +187,7 @@ describe 'ResourceManager error handling and edge cases' do
 
     it 'raises error when YAML file is missing resources key' do
       invalid_yaml_path = '/tmp/missing_resources_key.yml'
-      File.write(invalid_yaml_path, "other_key: value")
+      File.write(invalid_yaml_path, 'other_key: value')
 
       allow(resource_manager).to receive(:resource_file_path).and_return(invalid_yaml_path)
 

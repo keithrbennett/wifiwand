@@ -1,19 +1,19 @@
 require_relative 'lib/wifi-wand/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = "wifi-wand"
+  spec.name          = 'wifi-wand'
   spec.version       = WifiWand::VERSION
-  spec.authors       = ["Keith Bennett"]
-  spec.email         = ["keithrbennett@gmail.com"]
+  spec.authors       = ['Keith Bennett']
+  spec.email         = ['keithrbennett@gmail.com']
   spec.description   = %q{A command line interface for managing WiFi on Mac and Ubuntu systems.}
   spec.summary       = %q{Cross-platform WiFi management utility}
-  spec.homepage      = "https://github.com/keithrbennett/wifiwand"
-  spec.license       = "Apache-2.0"
+  spec.homepage      = 'https://github.com/keithrbennett/wifiwand'
+  spec.license       = 'Apache-2.0'
 
   spec.metadata = {
-    "source_code_uri" => "https://github.com/keithrbennett/wifiwand",
-    "bug_tracker_uri" => "https://github.com/keithrbennett/wifiwand/issues",
-    "changelog_uri"   => "https://github.com/keithrbennett/wifiwand/blob/main/RELEASE_NOTES.md"
+    'source_code_uri' => 'https://github.com/keithrbennett/wifiwand',
+    'bug_tracker_uri' => 'https://github.com/keithrbennett/wifiwand/issues',
+    'changelog_uri'   => 'https://github.com/keithrbennett/wifiwand/blob/main/RELEASE_NOTES.md'
   }
 
   spec.files         = Dir.chdir(File.expand_path(__dir__)) do
@@ -25,9 +25,9 @@ Gem::Specification.new do |spec|
   spec.bindir        = 'exe'
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
 
-  spec.require_paths = ["lib"]
+  spec.require_paths = ['lib']
 
-  spec.required_ruby_version = ">= 3.2.0"
+  spec.required_ruby_version = '>= 3.2.0'
 
   spec.add_dependency('awesome_print', '>= 1.9.2', '< 2')
 

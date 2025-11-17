@@ -40,7 +40,7 @@ module WifiWand
         Code signature:
       MSG
 
-      SIGNATURE_VALID = "✓ Signature is valid"
+      SIGNATURE_VALID = '✓ Signature is valid'
 
       def self.signature_invalid(stderr)
         <<~MSG
@@ -91,7 +91,7 @@ module WifiWand
         Stapling notarization ticket...
       MSG
 
-      TICKET_STAPLED = "✓ Notarization ticket stapled"
+      TICKET_STAPLED = '✓ Notarization ticket stapled'
 
       def self.staple_warning(stderr)
         <<~MSG
@@ -204,7 +204,7 @@ module WifiWand
           return false
         end
 
-        puts "✓ Universal binary confirmed (arm64 + x86_64)"
+        puts '✓ Universal binary confirmed (arm64 + x86_64)'
         true
       end
 
@@ -233,7 +233,7 @@ module WifiWand
       end
 
       def self.verify_signature(bundle_path)
-        puts "Verifying signature..."
+        puts 'Verifying signature...'
         _stdout, stderr, status = Open3.capture3('codesign', '--verify', '--verbose', bundle_path)
         message = status.success? ? Messages::SIGNATURE_VALID : Messages.signature_invalid(stderr)
         puts message
@@ -241,7 +241,7 @@ module WifiWand
       end
 
       def self.test_helper_execution(executable)
-        puts "Testing helper execution..."
+        puts 'Testing helper execution...'
         stdout, stderr, status = Open3.capture3(executable, 'current-network')
         message = status.success? ? Messages.helper_executed_success(stdout) : Messages.helper_execution_failed(stderr)
         puts message
@@ -360,7 +360,7 @@ module WifiWand
       system('codesign', '-dvv', helper.source_bundle_path)
       puts
 
-      puts "Binary architectures:"
+      puts 'Binary architectures:'
       archs = Operations.get_binary_architectures(executable)
       puts "  #{archs.join(', ')}"
       puts
@@ -390,7 +390,7 @@ module WifiWand
       puts Messages.zip_created(zip_path)
 
       stdout = Operations.submit_for_notarization(zip_path, apple_id, team_id, apple_password)
-      abort "Notarization was rejected. Check the output above for details." unless stdout.include?('status: Accepted')
+      abort 'Notarization was rejected. Check the output above for details.' unless stdout.include?('status: Accepted')
 
       puts Messages::NOTARIZATION_SUCCESS
       Operations.staple_ticket(bundle_path)
@@ -532,7 +532,7 @@ module WifiWand
       puts Messages::NOTARIZATION_STATUS_HEADER
       stdout, _stderr, status = Open3.capture3('spctl', '-a', '-vv', '-t', 'install', bundle_path)
       puts stdout
-      puts status.success? ? "✓ Helper is notarized and will run without Gatekeeper warnings" : stdout.include?('source=Notarized Developer ID') ? "✓ Helper is notarized" : "⚠ Helper is not notarized - users may see Gatekeeper warnings\n  Run: bin/mac-helper notarize"
+      puts status.success? ? '✓ Helper is notarized and will run without Gatekeeper warnings' : stdout.include?('source=Notarized Developer ID') ? '✓ Helper is notarized' : "⚠ Helper is not notarized - users may see Gatekeeper warnings\n  Run: bin/mac-helper notarize"
     end
     def fetch_notary_credentials!(command_hint:)
       apple_id = ENV['WIFIWAND_APPLE_DEV_ID']

@@ -23,7 +23,7 @@ module WifiWand
       message_prefix = "StatusWaiter (#{target_status}):"
 
       if @verbose
-        timeout_display = timeout_in_secs ? "#{timeout_in_secs}s" : "never"
+        timeout_display = timeout_in_secs ? "#{timeout_in_secs}s" : 'never'
         (@output || $stdout).puts "#{message_prefix} starting, timeout: #{timeout_display}, interval: #{wait_interval_in_secs}s"
       end
 

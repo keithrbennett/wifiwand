@@ -21,7 +21,7 @@ module WifiWand
       if available_networks.any?
         msg += ". Available networks: #{available_networks.join(', ')}"
       else
-        msg += ". No networks are currently available"
+        msg += '. No networks are currently available'
       end
       msg
     end
@@ -47,7 +47,7 @@ module WifiWand
       @reason = reason
       msg = "Authentication failed for network '#{network_name}'"
       msg += ": #{reason}" if reason
-      msg += ". Please verify the password is correct" unless reason&.include?("password")
+      msg += '. Please verify the password is correct' unless reason&.include?('password')
       super(msg)
     end
   end
@@ -57,21 +57,21 @@ module WifiWand
 
   class WifiInterfaceError < Error
     def initialize(interface = nil)
-      msg = interface ? "WiFi interface '#{interface}' not found" : "No WiFi interface found"
-      msg += ". Ensure WiFi hardware is present and drivers are installed"
+      msg = interface ? "WiFi interface '#{interface}' not found" : 'No WiFi interface found'
+      msg += '. Ensure WiFi hardware is present and drivers are installed'
       super(msg)
     end
   end
 
   class WifiEnableError < Error
     def initialize
-      super("WiFi could not be enabled. Check hardware and permissions")
+      super('WiFi could not be enabled. Check hardware and permissions')
     end
   end
 
   class WifiDisableError < Error
     def initialize
-      super("WiFi could not be disabled. Check permissions")
+      super('WiFi could not be disabled. Check permissions')
     end
   end
 
@@ -160,7 +160,7 @@ module WifiWand
 
   class NoSupportedOSError < Error
     def initialize
-      super("No supported operating system detected. WifiWand supports macOS and Ubuntu Linux")
+      super('No supported operating system detected. WifiWand supports macOS and Ubuntu Linux')
     end
   end
 
@@ -186,7 +186,7 @@ module WifiWand
       message = if status_code
                   "HTTP error fetching public IP info: #{status_code} #{status_message}"
                 else
-                  "Public IP lookup failed"
+                  'Public IP lookup failed'
                 end
       super(message)
     end

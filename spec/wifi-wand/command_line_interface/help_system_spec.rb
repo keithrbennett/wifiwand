@@ -18,12 +18,12 @@ describe WifiWand::CommandLineInterface::HelpSystem do
     end
   end
 
-  let(:resource_manager) { double("ResourceManager") }
-  let(:model) { double("Model", resource_manager: resource_manager) }
+  let(:resource_manager) { double('ResourceManager') }
+  let(:model) { double('Model', resource_manager: resource_manager) }
   subject { test_class.new(model) }
 
   before do
-    allow(resource_manager).to receive(:open_resources).and_return(double("OpenResources", help_string: "test resource help"))
+    allow(resource_manager).to receive(:open_resources).and_return(double('OpenResources', help_string: 'test resource help'))
   end
 
   describe '#help_text' do
@@ -42,14 +42,14 @@ describe WifiWand::CommandLineInterface::HelpSystem do
     end
 
     it 'includes the resource help string' do
-      expect(help).to include("test resource help")
+      expect(help).to include('test resource help')
     end
 
-    context "when model is not available" do
+    context 'when model is not available' do
       subject { test_class.new(nil) }
 
-      it "shows resources as unavailable" do
-        expect(help).to include("[resources unavailable]")
+      it 'shows resources as unavailable' do
+        expect(help).to include('[resources unavailable]')
       end
     end
   end
@@ -67,7 +67,7 @@ describe WifiWand::CommandLineInterface::HelpSystem do
       subject.instance_variable_set(:@out_stream, out_io)
 
       expect { subject.print_help }.to output(subject.help_text).to_stdout
-      expect(out_io.string).to eq("")
+      expect(out_io.string).to eq('')
     end
   end
 

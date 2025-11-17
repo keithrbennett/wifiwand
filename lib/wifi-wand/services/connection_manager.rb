@@ -98,7 +98,7 @@ class ConnectionManager
 
   def validate_network_name(network_name)
     if network_name.nil? || network_name.empty?
-      raise InvalidNetworkNameError.new(network_name || "")
+      raise InvalidNetworkNameError.new(network_name || '')
     end
   end
 
@@ -178,7 +178,7 @@ class ConnectionManager
     actual_network_name = model.connected_network_name
 
     unless actual_network_name == network_name
-      error_detail = actual_network_name ? "connected to '#{actual_network_name}' instead" : "unable to connect to any network"
+      error_detail = actual_network_name ? "connected to '#{actual_network_name}' instead" : 'unable to connect to any network'
       raise NetworkConnectionError.new(network_name, error_detail)
     end
   end

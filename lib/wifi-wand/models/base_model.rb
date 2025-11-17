@@ -267,7 +267,7 @@ class BaseModel
         end
       rescue JSON::ParserError
         # Service returned invalid JSON - try alternate approach
-        out_stream.puts "Warning: Public IP service returned invalid data" if @verbose_mode
+        out_stream.puts 'Warning: Public IP service returned invalid data' if @verbose_mode
         info['public_ip'] = nil
       rescue => e
         # Other errors - log if verbose, gracefully degrade
@@ -443,7 +443,7 @@ class BaseModel
     # - Clear multicast bit (bit 0) with mask 0xFE
     # - Set locally administered bit (bit 1) with OR 0x02
     bytes[0] = (bytes[0] & 0xFE) | 0x02
-    chars = bytes.map { |b| "%02x" % b }
+    chars = bytes.map { |b| '%02x' % b }
     chars.join(':')
   end
 

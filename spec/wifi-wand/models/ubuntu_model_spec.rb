@@ -558,7 +558,7 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#default_interface' do
       it 'returns interface from default route' do
-        route_output = "default via 192.168.1.1 dev wlp3s0 proto dhcp metric 600"
+        route_output = 'default via 192.168.1.1 dev wlp3s0 proto dhcp metric 600'
         allow(subject).to receive(:run_os_command)
           .with(%w[ip route show default], false)
           .and_return(command_result(stdout: route_output))
@@ -854,7 +854,7 @@ describe UbuntuModel, :os_ubuntu do
     describe 'private helper methods' do
       describe '#get_security_parameter' do
         it 'detects WPA2 security and returns correct parameter' do
-          wifi_list_output = "MyNetwork:WPA2"
+          wifi_list_output = 'MyNetwork:WPA2'
           allow(subject).to receive(:run_os_command)
             .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
             .and_return(command_result(stdout: wifi_list_output))
@@ -864,7 +864,7 @@ describe UbuntuModel, :os_ubuntu do
         end
 
         it 'detects WEP security and returns correct parameter' do
-          wifi_list_output = "MyNetwork:WEP"
+          wifi_list_output = 'MyNetwork:WEP'
           allow(subject).to receive(:run_os_command)
             .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
             .and_return(command_result(stdout: wifi_list_output))
@@ -874,7 +874,7 @@ describe UbuntuModel, :os_ubuntu do
         end
 
         it 'returns nil when network not found in scan' do
-          wifi_list_output = "OtherNetwork:WPA2"
+          wifi_list_output = 'OtherNetwork:WPA2'
           allow(subject).to receive(:run_os_command)
             .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
             .and_return(command_result(stdout: wifi_list_output))

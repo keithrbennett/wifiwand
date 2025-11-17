@@ -15,7 +15,7 @@ module OSFiltering
 
     rescue => e
       puts "Warning: Could not detect current OS for test filtering: #{e.message}"
-      puts "Running all tests - some may fail due to OS incompatibility"
+      puts 'Running all tests - some may fail due to OS incompatibility'
     end
   end
 

@@ -10,8 +10,8 @@
 require 'wifi-wand'
 require 'ostruct'
 
-puts "WifiWand Library - Basic Usage Example"
-puts "---------------------------------------"
+puts 'WifiWand Library - Basic Usage Example'
+puts '---------------------------------------'
 
 begin
   # 1. Create a new client instance.
@@ -20,11 +20,11 @@ begin
 
   # 2. Check the current Wi-Fi status.
   if client.wifi_on?
-    puts "✅ Wi-Fi is ON."
+    puts '✅ Wi-Fi is ON.'
     puts "   - Connected to: #{client.connected_network_name || 'None'}"
     puts "   - IP Address:   #{client.ip_address || 'N/A'}"
   else
-    puts "❌ Wi-Fi is OFF."
+    puts '❌ Wi-Fi is OFF.'
   end
 
   # 3. List available Wi-Fi networks.
@@ -35,7 +35,7 @@ begin
     puts "   Found #{networks.count} networks (in descending order of signal strength):\n\n"
     networks.each { |ssid| puts "     - #{ssid}" }
   else
-    puts "   No networks found. Ensure your Wi-Fi is enabled."
+    puts '   No networks found. Ensure your Wi-Fi is enabled.'
   end
 
   # 4. Get detailed information.

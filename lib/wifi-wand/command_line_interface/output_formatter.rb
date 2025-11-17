@@ -48,7 +48,7 @@ module WifiWand
         text.gsub(/\b\d+%|\b\d+\.\d+\.\d+\.\d+|\b\d+\b/) { |match| colorize_text(match, :blue) }
       end
 
-      def format_boolean_status(value, true_char: "✅ YES", false_char: "❌ NO", pending_char: "⏳ WAIT")
+      def format_boolean_status(value, true_char: '✅ YES', false_char: '❌ NO', pending_char: '⏳ WAIT')
         value = !!value unless value.nil? # convert non-Boolean non-nil values to true or false
         char, color = case value
                       when nil
@@ -63,7 +63,7 @@ module WifiWand
       end
 
       def status_line(status_data)
-        return colorize_text("WiFi: [status unavailable]", :yellow) if status_data.nil?
+        return colorize_text('WiFi: [status unavailable]', :yellow) if status_data.nil?
 
         wifi_status = format_boolean_status(status_data[:wifi_on])
         internet_status = format_boolean_status(status_data[:internet_connected])
@@ -75,9 +75,9 @@ module WifiWand
           network_name = status_data[:network_name]
           network_text, network_color =
             if network_name == :pending
-              ["WAIT", :yellow]
+              ['WAIT', :yellow]
             elsif network_name.nil? || network_name.to_s.empty?
-              ["[none]", :yellow]
+              ['[none]', :yellow]
             else
               [network_name.to_s, :cyan]
             end

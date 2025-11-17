@@ -27,11 +27,11 @@ class Main
     prepend_env_options
 
     OptionParser.new do |parser|
-      parser.on("-v", "--[no-]verbose", "Run verbosely") do |v|
+      parser.on('-v', '--[no-]verbose', 'Run verbosely') do |v|
         options.verbose = v
       end
 
-      parser.on("-o", "--output_format FORMAT", "Format output data") do |v|
+      parser.on('-o', '--output_format FORMAT', 'Format output data') do |v|
 
         formatters = {
             'i' => ->(object) { object.inspect },
@@ -55,11 +55,11 @@ class Main
         options.post_processor = formatters[choice]
       end
 
-      parser.on("-p", "--wifi-interface interface", "WiFi interface name") do |v|
+      parser.on('-p', '--wifi-interface interface', 'WiFi interface name') do |v|
         options.wifi_interface = v
       end
 
-      parser.on("-h", "--help", "Show help") do |_help_requested|
+      parser.on('-h', '--help', 'Show help') do |_help_requested|
         options.help_requested = true
         ARGV << 'h' # pass on the request to the command processor
       end

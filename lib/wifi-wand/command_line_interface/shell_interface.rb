@@ -41,7 +41,7 @@ module WifiWand
           exit(0)
         else
           io = @err_stream || $stderr
-          io.puts "This command can only be run in shell mode."
+          io.puts 'This command can only be run in shell mode.'
         end
       end
 

@@ -28,8 +28,8 @@ class UbuntuModel < BaseModel
     missing_commands = []
 
     # Check for critical commands
-    missing_commands << "iw (install: sudo apt install iw)" unless command_available?("iw")
-    missing_commands << "nmcli (install: sudo apt install network-manager)" unless command_available?("nmcli")
+    missing_commands << 'iw (install: sudo apt install iw)' unless command_available?('iw')
+    missing_commands << 'nmcli (install: sudo apt install network-manager)' unless command_available?('nmcli')
 
     unless missing_commands.empty?
       raise CommandNotFoundError.new(missing_commands)
@@ -202,7 +202,7 @@ class UbuntuModel < BaseModel
       # or temporarily unavailable (not the same as "not found")
       if error_text.match?(/Connection activation failed/i)
         raise WifiWand::NetworkConnectionError.new(network_name,
-          "Network may be out of range or temporarily unavailable")
+          'Network may be out of range or temporarily unavailable')
       end
 
       # Re-raise the original error if it doesn't match known patterns
@@ -236,9 +236,9 @@ class UbuntuModel < BaseModel
 
     case canonical_security_type_from(security_type)
     when 'WPA3', 'WPA2', 'WPA'
-      "802-11-wireless-security.psk"
+      '802-11-wireless-security.psk'
     when 'WEP'
-      "802-11-wireless-security.wep-key0"
+      '802-11-wireless-security.wep-key0'
     else
       # Unsupported, enterprise, or open network (shouldn't need password).
       nil
@@ -385,7 +385,7 @@ class UbuntuModel < BaseModel
 
     # Get the current active Wi-Fi connection name
     current_connection = active_connection_profile_name || _connected_network_name
-    raise WifiInterfaceError.new("No active Wi-Fi connection to configure DNS for.") unless current_connection
+    raise WifiInterfaceError.new('No active Wi-Fi connection to configure DNS for.') unless current_connection
 
     if nameservers == :clear
       # Clear custom DNS and use automatic DNS from router/DHCP (both IPv4 and IPv6)
