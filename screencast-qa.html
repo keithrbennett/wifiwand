@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Screencast Q&A</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2em;
+    background: #1e1e1e;
+    color: #d4d4d4;
+  }
+
+  h1 {
+    color: #4ec9b0;
+    border-bottom: 3px solid #4ec9b0;
+    padding-bottom: 0.5em;
+  }
+
+  details {
+    margin: 2.5em 0;
+    padding: 1.5em;
+    border: 2px solid #3c3c3c;
+    border-radius: 8px;
+    background: #252526;
+    transition: all 0.3s ease;
+  }
+
+  details[open] {
+    border-color: #4ec9b0;
+    box-shadow: 0 0 20px rgba(78, 201, 176, 0.2);
+  }
+
+  summary {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: #4ec9b0;
+    cursor: pointer;
+    padding: 0.5em;
+    margin: -0.5em;
+    border-radius: 4px;
+    list-style: none;
+  }
+
+  summary::-webkit-details-marker {
+    display: none;
+  }
+
+  summary:hover {
+    background: #2d2d30;
+  }
+
+  summary::before {
+    content: '▶ ';
+    display: inline-block;
+    transition: transform 0.3s;
+  }
+
+  details[open] summary::before {
+    transform: rotate(90deg);
+  }
+
+  .question-prompt {
+    font-style: italic;
+    color: #9cdcfe;
+    margin: 0.5em 0 1.5em 0;
+    font-size: 1.1em;
+  }
+
+  .answer {
+    margin-top: 1.5em;
+    padding: 1.5em;
+    background: #1e1e1e;
+    border-left: 4px solid #4ec9b0;
+    border-radius: 4px;
+  }
+
+  pre {
+    background: #1e1e1e;
+    padding: 1em;
+    border-radius: 4px;
+    overflow-x: auto;
+  }
+
+  code {
+    font-family: 'Consolas', 'Monaco', monospace;
+  }
+
+  ul {
+    line-height: 1.8;
+  }
+
+  li {
+    margin: 0.5em 0;
+  }
+
+  .uncovered {
+    color: #f48771;
+  }
+
+  .covered {
+    color: #6a9955;
+  }
+</style>
+</head>
+<body>
+
+<h1>Claude Code Prompts for Screencast</h1>
+
+<details>
+  <summary>Q1: The 10 Lowest Coverage Files</summary>
+  <div class="question-prompt">
+    List the names of the ten files in this code base with the lowest test coverage, along with the coverage percentage and line counts.
+  </div>
+  <div class="answer">
+    <ul>
+      <li>lib/simplecov_mcp/resolvers/coverage_line_resolver.rb – 48/51 lines covered (94.12%)</li>
+      <li>lib/simplecov_mcp/tools/all_files_coverage_tool.rb – 16/17 (94.12%)</li>
+      <li>lib/simplecov_mcp/formatters/source_formatter.rb – 83/88 (94.32%)</li>
+      <li>lib/simplecov_mcp/tools/coverage_table_tool.rb – 17/18 (94.44%)</li>
+      <li>lib/simplecov_mcp/presenters/base_coverage_presenter.rb – 19/20 (95.00%)</li>
+      <li>lib/simplecov_mcp/tools/help_tool.rb – 27/28 (96.43%)</li>
+      <li>lib/simplecov_mcp/path_relativizer.rb – 31/32 (96.88%)</li>
+      <li>lib/simplecov_mcp/error_handler.rb – 64/66 (96.97%)</li>
+      <li>lib/simplecov_mcp/errors.rb – 103/106 (97.17%)</li>
+      <li>lib/simplecov_mcp/resolvers/resultset_path_resolver.rb – 41/42 (97.62%)</li>
+    </ul>
+  </div>
+</details>
+
+<details>
+  <summary>Q2: Show Uncovered Lines</summary>
+  <div class="question-prompt">
+    Show me the uncovered lines' text in <code>lib/simplecov_mcp/tools/help_tool.rb</code>, with up to 2 context lines around them. Visually differentiate between the covered and uncovered lines by denoting the uncovered lines with a red 'x'.
+  </div>
+  <div class="answer">
+<pre><code class="language-ruby"><span class="covered">    135             value.any? { |element| element.downcase.include?(token) }
+    136           else</span>
+<span class="uncovered">❌  137             false</span>
+<span class="covered">    138           end
+    139         end</span>
+</code></pre>
+  </div>
+</details>
+
+<details>
+  <summary>Q3: Write Tests to Address Uncovered Lines</summary>
+  <div class="question-prompt">
+    Write meaningful test(s) for the uncovered line(s) in help_tool.rb. Read the existing spec file first to match the style.
+  </div>
+  <div class="answer">
+<pre><code class="language-ruby">43 +  it 'ignores non-string metadata when filtering entries' do
+44 +    entries = [
+45 +      { 'tool' => 'match', 'label' => nil, 'use_when' => 'match feature' },
+46 +      { 'tool' => 'other', 'label' => 'something else', 'use_when' => 123 }
+47 +    ]
+48 +
+49 +    filtered = described_class.send(:filter_entries, entries, 'match')
+50 +
+51 +    expect(filtered.map { |entry| entry['tool'] }).to eq(['match'])
+52 +  end
+53  end
+</code></pre>
+    <p><strong>Follow-up question:</strong> So now the 'false' line is covered, but is it tested meaningfully? Did we test that the value returned was false?</p>
+    <p><strong>Analysis:</strong> The new example drives filter_entries with a numeric use_when value. Since that entry is excluded, the only way for it to disappear is for value_matches? to return false on that numeric value—i.e., the fallback branch at line 137.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Q4: Test Coverage Analysis by Feature/Function</summary>
+  <div class="question-prompt">
+    Analyze the overall test coverage for this project by logical feature/function.
+  </div>
+  <div class="answer">
+    <h3>Coverage Snapshot</h3>
+    <ul>
+      <li><strong>coverage_line_resolver</strong> (lib/simplecov_mcp/resolvers/coverage_line_resolver.rb) – 48/51 (94.12%). This resolver is the gateway to every per-file metric, yet branch-only synthesis paths and Dir.pwd fallbacks still lack protection.</li>
+      <li><strong>CLI table/reporting tools:</strong>
+        <ul>
+          <li>lib/simplecov_mcp/tools/all_files_coverage_tool.rb – 16/17 (94.12%)</li>
+          <li>lib/simplecov_mcp/tools/coverage_table_tool.rb – 17/18 (94.44%)</li>
+          <li>lib/simplecov_mcp/tools/help_tool.rb – 27/28 (96.43%)</li>
+        </ul>
+      </li>
+      <li><strong>Presentation/formatting layer:</strong>
+        <ul>
+          <li>lib/simplecov_mcp/formatters/source_formatter.rb – 83/88 (94.32%)</li>
+          <li>lib/simplecov_mcp/presenters/base_coverage_presenter.rb – 19/20 (95.0%)</li>
+          <li>lib/simplecov_mcp/path_relativizer.rb – 31/32 (96.88%)</li>
+        </ul>
+      </li>
+      <li><strong>Error propagation:</strong>
+        <ul>
+          <li>lib/simplecov_mcp/error_handler.rb – 64/66 (96.97%)</li>
+          <li>lib/simplecov_mcp/errors.rb – 103/106 (97.17%)</li>
+          <li>lib/simplecov_mcp/resolvers/resultset_path_resolver.rb – 41/42 (97.62%)</li>
+        </ul>
+      </li>
+    </ul>
+
+    <h3>Feature Priorities</h3>
+    <ol>
+      <li><strong>Coverage resolution pipeline</strong>: foundational; any bug prevents data access</li>
+      <li><strong>User-facing MCP tools</strong>: missing coverage around error handling and filtering</li>
+      <li><strong>Source/presenter utilities</strong>: cover edge cases for deterministic CLI output</li>
+      <li><strong>Error handler</strong>: ensure MCP clients always receive structured messages</li>
+    </ol>
+  </div>
+</details>
+
+<details>
+  <summary>Q5: Action Plan Based On Coverage Analysis</summary>
+  <div class="question-prompt">
+    Based on this analysis, give me an action plan to address the most important test coverage issues.
+  </div>
+  <div class="answer">
+    <ol>
+      <li><strong>Cover the coverage resolution path first:</strong> Add specs for lib/simplecov_mcp/resolvers/coverage_line_resolver.rb that feed branch-only resultsets, malformed branch metadata, and Dir.pwd-prefixed paths.</li>
+      <li><strong>Harden the repo-wide tools:</strong> Write tests mocking CoverageModel to throw errors (missing resultset, stale data) to assert rescue blocks produce MCP error responses.</li>
+      <li><strong>Expand presenter/formatter coverage:</strong> Simulate negative/invalid context, missing source files, and failures inside File.readlines.</li>
+      <li><strong>Validate error translation:</strong> Add specs that feed unknown RuntimeError/StandardError instances and confirm proper conversion with logging.</li>
+    </ol>
+    <p><em>This sequence fortifies the most critical code paths first, keeping test scopes focused and measurable.</em></p>
+  </div>
+</details>
+
+<script>
+  hljs.highlightAll();
+</script>
+
+</body>
+</html>
