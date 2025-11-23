@@ -357,7 +357,79 @@ module WifiWand
         end
       end
 
-      
+      describe '#wifi_on (unit)' do
+        it 'returns early without issuing command when wifi is already on' do
+          allow(model).to receive(:wifi_on?).and_return(true)
+
+          expect(model).not_to receive(:run_os_command)
+          expect { model.wifi_on }.not_to raise_error
+        end
+
+        it 'issues networksetup command when wifi is off' do
+          allow(model).to receive(:wifi_on?).and_return(false, true)
+          allow(model).to receive(:ensure_wifi_interface!).and_return('en0')
+
+          expect(model).to receive(:run_os_command)
+            .with(['networksetup', '-setairportpower', 'en0', 'on'])
+            .and_return(success_result)
+
+          expect { model.wifi_on }.not_to raise_error
+        end
+
+        it 'raises WifiEnableError when wifi fails to turn on after command' do
+          allow(model).to receive(:wifi_on?).and_return(false, false)
+          allow(model).to receive(:ensure_wifi_interface!).and_return('en0')
+          allow(model).to receive(:run_os_command).and_return(success_result)
+
+          expect { model.wifi_on }.to raise_error(WifiWand::WifiEnableError)
+        end
+
+        it 'raises WifiEnableError when networksetup command fails' do
+          allow(model).to receive(:wifi_on?).and_return(false)
+          allow(model).to receive(:ensure_wifi_interface!).and_return('en0')
+          allow(model).to receive(:run_os_command)
+            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'networksetup', 'Failed'))
+
+          expect { model.wifi_on }.to raise_error(WifiWand::CommandExecutor::OsCommandError)
+        end
+      end
+
+      describe '#wifi_off (unit)' do
+        it 'returns early without issuing command when wifi is already off' do
+          allow(model).to receive(:wifi_on?).and_return(false)
+
+          expect(model).not_to receive(:run_os_command)
+          expect { model.wifi_off }.not_to raise_error
+        end
+
+        it 'issues networksetup command when wifi is on' do
+          allow(model).to receive(:wifi_on?).and_return(true, false)
+          allow(model).to receive(:ensure_wifi_interface!).and_return('en0')
+
+          expect(model).to receive(:run_os_command)
+            .with(['networksetup', '-setairportpower', 'en0', 'off'])
+            .and_return(success_result)
+
+          expect { model.wifi_off }.not_to raise_error
+        end
+
+        it 'raises WifiDisableError when wifi fails to turn off after command' do
+          allow(model).to receive(:wifi_on?).and_return(true, true)
+          allow(model).to receive(:ensure_wifi_interface!).and_return('en0')
+          allow(model).to receive(:run_os_command).and_return(success_result)
+
+          expect { model.wifi_off }.to raise_error(WifiWand::WifiDisableError)
+        end
+
+        it 'raises error when networksetup command fails' do
+          allow(model).to receive(:wifi_on?).and_return(true)
+          allow(model).to receive(:ensure_wifi_interface!).and_return('en0')
+          allow(model).to receive(:run_os_command)
+            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'networksetup', 'Failed'))
+
+          expect { model.wifi_off }.to raise_error(WifiWand::CommandExecutor::OsCommandError)
+        end
+      end
 
       describe '#_ip_address' do
         it 'handles different ipconfig responses' do

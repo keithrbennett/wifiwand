@@ -622,8 +622,9 @@ describe UbuntuModel, :os_ubuntu do
         expect(result).to eq(['OtherNet', 'TestNet'])
       end
 
-      it 'filters out empty SSIDs' do
+      it 'filters out empty SSIDs (hidden networks)' do
         # Note: empty SSIDs show up as lines starting with ':' (colon)
+        # These represent hidden networks that don't broadcast their SSID
         nmcli_output = "TestNet:75\n:80\nOtherNet:90\n:60"
         allow(subject).to receive(:run_os_command)
           .with(%w[nmcli radio wifi], false)
@@ -633,8 +634,8 @@ describe UbuntuModel, :os_ubuntu do
           .and_return(command_result(stdout: nmcli_output))
 
         result = subject.available_network_names
-        # The implementation currently doesn't filter empty SSIDs, so let's test actual behavior
-        expect(result).to eq(['OtherNet', '', 'TestNet'])
+        expect(result).to eq(['OtherNet', 'TestNet'])
+        expect(result).not_to include('')
       end
     end
 

@@ -801,6 +801,75 @@ describe WifiWand::CommandLineInterface do
     end
   end
   
+  describe 'command error handling' do
+    describe '#cmd_i when model raises error' do
+      it 'propagates WifiInterfaceError from model' do
+        allow(mock_model).to receive(:wifi_info).and_raise(WifiWand::WifiInterfaceError.new('en0'))
+
+        expect { subject.cmd_i }.to raise_error(WifiWand::WifiInterfaceError)
+      end
+    end
+
+    describe '#cmd_co when model raises error' do
+      it 'propagates NetworkConnectionError from model' do
+        allow(mock_model).to receive(:connect).and_raise(WifiWand::NetworkConnectionError.new('TestNetwork', 'connection failed'))
+
+        expect { subject.cmd_co('TestNetwork', 'password') }.to raise_error(WifiWand::NetworkConnectionError)
+      end
+
+      it 'propagates InvalidNetworkNameError for invalid network names' do
+        allow(mock_model).to receive(:connect).and_raise(WifiWand::InvalidNetworkNameError.new(''))
+
+        expect { subject.cmd_co('') }.to raise_error(WifiWand::InvalidNetworkNameError)
+      end
+    end
+
+    describe '#cmd_on when model raises error' do
+      it 'propagates WifiEnableError from model' do
+        allow(mock_model).to receive(:wifi_on).and_raise(WifiWand::WifiEnableError.new)
+
+        expect { subject.cmd_on }.to raise_error(WifiWand::WifiEnableError)
+      end
+    end
+
+    describe '#cmd_of when model raises error' do
+      it 'propagates WifiDisableError from model' do
+        allow(mock_model).to receive(:wifi_off).and_raise(WifiWand::WifiDisableError.new)
+
+        expect { subject.cmd_of }.to raise_error(WifiWand::WifiDisableError)
+      end
+    end
+
+    describe '#cmd_pa when network not found' do
+      it 'propagates PreferredNetworkNotFoundError from model' do
+        allow(mock_model).to receive(:preferred_network_password)
+          .with('NonExistent')
+          .and_raise(WifiWand::PreferredNetworkNotFoundError.new('NonExistent'))
+
+        expect { subject.cmd_pa('NonExistent') }.to raise_error(WifiWand::PreferredNetworkNotFoundError)
+      end
+    end
+
+    describe '#cmd_na when setting invalid IPs' do
+      it 'propagates InvalidIPAddressError from model' do
+        invalid_ips = ['invalid.ip']
+        allow(mock_model).to receive(:set_nameservers)
+          .with(invalid_ips)
+          .and_raise(WifiWand::InvalidIPAddressError.new(invalid_ips))
+
+        expect { subject.cmd_na(*invalid_ips) }.to raise_error(WifiWand::InvalidIPAddressError)
+      end
+    end
+
+    describe '#cmd_ci when connectivity check fails' do
+      it 'handles timeout gracefully and returns false' do
+        allow(mock_model).to receive(:connected_to_internet?).and_return(false)
+
+        expect { subject.cmd_ci }.to output(/Connected to Internet: false/).to_stdout
+      end
+    end
+  end
+
   describe '#call (main entry point)' do
     before do
       allow(subject).to receive(:validate_command_line)

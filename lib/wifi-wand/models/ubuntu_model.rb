@@ -89,7 +89,8 @@ class UbuntuModel < BaseModel
       [ssid, signal.to_i]
     end.sort_by { |_, signal| -signal }.map { |ssid, _| ssid }
 
-    networks.uniq
+    # Filter out empty/blank SSIDs (hidden networks report empty SSID in nmcli output)
+    networks.reject { |ssid| ssid.nil? || ssid.strip.empty? }.uniq
   end
 
   def _connected_network_name
