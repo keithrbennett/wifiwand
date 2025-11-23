@@ -1,8 +1,6 @@
-# Ubuntu OS Command Use
-### os-command-use-ubuntu-gpt5.md
-### 2025-10-29 14:33:58 UTC
+# Ubuntu OS Commands Reference
 
-This document outlines the shell commands used by `wifi-wand` on the Ubuntu operating system.
+This document outlines the shell commands used by wifi-wand on Ubuntu.
 
 Notes:
 - Ubuntu support relies on NetworkManager; `nmcli connection ...` operates on saved profiles that may differ from visible SSIDs (e.g., `"MySSID 1"`).

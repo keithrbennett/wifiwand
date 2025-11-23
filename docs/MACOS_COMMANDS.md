@@ -1,8 +1,6 @@
-# macOS OS Command Use
-### os-command-use-macos-gpt5.md
-### 2025-10-29 14:33:54 UTC
+# macOS OS Commands Reference
 
-This document outlines the shell commands used by `wifi-wand` on the macOS operating system.
+This document outlines the shell commands used by wifi-wand on macOS.
 
 Notes:
 - macOS differentiates network service labels (e.g., "Wi-Fi") from interface devices (e.g., `en0`). `wifi-wand` captures both so each command receives the argument it expects.

@@ -1,3 +1,5 @@
+# Logo Assets
+
 ## Logo Image Files
 
 #### wifiwand-logo-horizontal-color.png

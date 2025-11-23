@@ -116,7 +116,7 @@ true
 
 **[Type and execute]**
 ```bash
-wifi-wand i -o json
+wifi-wand -o j i
 ```
 
 **[Sample Output]**
@@ -126,7 +126,7 @@ wifi-wand i -o json
 
 **[Type and execute]**
 ```bash
-wifi-wand a -o yaml
+wifi-wand -o y a
 ```
 
 **[Sample Output]**

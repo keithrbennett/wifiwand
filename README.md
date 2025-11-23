@@ -78,7 +78,7 @@ method names and argument lists, so that they present a unified interface for us
 
 * command line invocation (e.g. `wifi-wand co my-network my-password` to connect to a network)
 * interactive shell (REPL) sessions where the WiFi-wand methods are effectively DSL commands (`wifi-wand shell` to run in interactive mode)
-* other Ruby applications as a gem (library) (`require wifi-wand`)
+* other Ruby applications as a gem (library) (`require 'wifi-wand'`)
 
 ### ⚠️ Breaking Change: Interactive Shell
 
@@ -576,5 +576,5 @@ Logo designed and generously contributed by Anhar Ismail (Github: [@anharismail]
 I am available for consulting, development, tutoring, training, troubleshooting, etc.
 Here is my contact information:
 
-* GMail, Github, LinkedIn, X, : _keithrbennett_
+* GMail, Github, LinkedIn, X: _keithrbennett_
 * Website: [Bennett Business Solutions, Inc.](https://www.bbs-software.com)
