@@ -17,3 +17,4 @@ test/version_tmp
 tmp
 .idea/
 mac-wifi-error-stack-trace.txt
+rspec-errors.txt
