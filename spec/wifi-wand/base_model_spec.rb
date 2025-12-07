@@ -743,11 +743,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       data = subject.status_line_data
       expect(data).to be_a(Hash)
 
-      # All models should have wifi_on and internet_connected
-      expect(data.keys).to include(:wifi_on, :internet_connected)
-
-      # network_name is only included if show_network_name_in_status? is true
-      expect(data.has_key?(:network_name)).to eq(subject.show_network_name_in_status?)
+      # All models should have wifi_on, internet_connected, and network_name
+      expect(data.keys).to include(:wifi_on, :internet_connected, :network_name)
 
     end
 
@@ -772,16 +769,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
         data = subject.status_line_data
 
-        # All models should return wifi_on and internet_connected
+        # All models should return wifi_on, internet_connected, and network_name
         expect(data[:wifi_on]).to eq(expected_data[:wifi_on])
         expect(data[:internet_connected]).to eq(expected_data[:internet_connected])
-
-        # network_name is only included if show_network_name_in_status? is true
-        if subject.show_network_name_in_status?
-          expect(data[:network_name]).to eq(expected_data[:network_name])
-        else
-          expect(data).not_to have_key(:network_name)
-        end
+        expect(data[:network_name]).to eq(expected_data[:network_name])
       end
     end
 

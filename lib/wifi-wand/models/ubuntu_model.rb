@@ -17,13 +17,6 @@ class UbuntuModel < BaseModel
     :ubuntu
   end
 
-  # Returns true because fetching the network name on Ubuntu uses nmcli,
-  # which is fast (typically <100ms). Including the network name in status
-  # provides useful information without significantly impacting performance.
-  def show_network_name_in_status?
-    true
-  end
-
   def validate_os_preconditions
     missing_commands = []
     

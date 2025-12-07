@@ -284,47 +284,32 @@ class BaseModel
     wifi_on? ? (wifi_off; wifi_on) : (wifi_on; wifi_off)
   end
 
-  # Determines whether the status command should include network name.
-  # Subclasses override this based on OS-specific performance characteristics.
-  # Default is true; macOS overrides to false because system_profiler is slow (3+ seconds).
-  def show_network_name_in_status?
-    true
-  end
-
   # Builds a hash for the status command, yielding partial results as soon as
   # they're known so callers can stream updates (e.g., DNS finishing before TCP).
-  # DNS and TCP checks run concurrently using fibers to shorten the perceived wait.
+  # Network name and connectivity checks run concurrently using fibers to shorten the perceived wait.
   def status_line_data(progress_callback: nil)
     begin
-      # Build initial partial hash - only include network_name if we're fetching it
-      partial = { wifi_on: wifi_on?, internet_connected: nil }
-      partial[:network_name] = :pending if show_network_name_in_status?
+      # Build initial partial hash with pending values
+      partial = { wifi_on: wifi_on?, internet_connected: nil, network_name: :pending }
 
       progress_callback&.call(partial.dup)
 
       Async do |task|
-        # Network name check - OS-specific based on performance characteristics
-        ssid_task = if show_network_name_in_status?
-          task.async do
-            begin
-              connected_network_name
-            rescue StandardError
-              nil
-            end
+        # Network name check
+        ssid_task = task.async do
+          begin
+            connected_network_name
+          rescue StandardError
+            nil
           end
-        else
-          # Skip network name lookup entirely - don't include in result hash
-          nil
         end
 
         # Fast connectivity check (typically 50-200ms, 1 second worst case)
         connectivity_task = task.async { fast_connectivity? }
 
-        # Wait for tasks to complete - only set network_name if we fetched it
-        if ssid_task
-          partial[:network_name] = ssid_task.wait
-          progress_callback&.call(partial.dup)
-        end
+        # Wait for tasks to complete
+        partial[:network_name] = ssid_task.wait
+        progress_callback&.call(partial.dup)
 
         partial[:internet_connected] = connectivity_task.wait
 

@@ -165,19 +165,6 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         expect(result).to match(GREEN_TEXT_REGEX)     # Green YES statuses
       end
 
-      it 'omits network field when not present in status data' do
-        data_without_network = {
-          wifi_on: true,
-          internet_connected: true
-        }
-        result = subject.status_line(data_without_network)
-
-        # Should not include Network field
-        expect(result).to match(/WiFi.*YES/)
-        expect(result).not_to match(/Network/)
-        expect(result).to match(/Internet.*YES/)
-      end
-      
       hash_key_map = {
         wifi_on?: :wifi_on,
         connected_network_name: :network_name,
@@ -225,20 +212,6 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         expect(result).not_to match(ANSI_COLOR_REGEX)
       end
 
-      it 'omits network field when not present in status data' do
-        data_without_network = {
-          wifi_on: true,
-          internet_connected: true
-        }
-        result = subject.status_line(data_without_network)
-
-        # Should not include Network field
-        expect(result).to match(/WiFi.*YES/)
-        expect(result).not_to match(/Network/)
-        expect(result).to match(/Internet.*YES/)
-        expect(result).not_to match(ANSI_COLOR_REGEX)
-      end
-      
       it 'shows error conditions without color codes' do
         data = status_data.clone
         data[:wifi_on] = false

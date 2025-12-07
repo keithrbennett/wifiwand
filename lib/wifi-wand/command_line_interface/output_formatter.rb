@@ -68,26 +68,20 @@ module WifiWand
         wifi_status = format_boolean_status(status_data[:wifi_on])
         internet_status = format_boolean_status(status_data[:internet_connected])
 
-        # Only include network field if it was actually fetched
-        result = "WiFi: #{wifi_status}"
+        # Format network name
+        network_name = status_data[:network_name]
+        network_text, network_color =
+          if network_name == :pending
+            ["WAIT", :yellow]
+          elsif network_name.nil? || network_name.to_s.empty?
+            ["[none]", :yellow]
+          else
+            [network_name.to_s, :cyan]
+          end
 
-        if status_data.key?(:network_name)
-          network_name = status_data[:network_name]
-          network_text, network_color =
-            if network_name == :pending
-              ["WAIT", :yellow]
-            elsif network_name.nil? || network_name.to_s.empty?
-              ["[none]", :yellow]
-            else
-              [network_name.to_s, :cyan]
-            end
+        network_display = colorize_text(network_text, network_color)
 
-          network_display = colorize_text(network_text, network_color)
-          result += " | Network: #{network_display}"
-        end
-
-        result += " | Internet: #{internet_status}"
-        result
+        "WiFi: #{wifi_status} | Network: #{network_display} | Internet: #{internet_status}"
       end
 
 
