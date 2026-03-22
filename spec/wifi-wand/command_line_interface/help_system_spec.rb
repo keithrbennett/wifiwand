@@ -45,6 +45,18 @@ describe WifiWand::CommandLineInterface::HelpSystem do
       expect(help).to include("test resource help")
     end
 
+    it 'includes the repository URL' do
+      expect(help).to include(WifiWand::CommandLineInterface::HelpSystem::REPOSITORY_URL)
+    end
+
+    it 'includes horizontal rule separators' do
+      expect(help).to include(WifiWand::CommandLineInterface::HelpSystem::HORIZONTAL_RULE)
+    end
+
+    it 'includes Usage line' do
+      expect(help).to include('Usage:                 wifi-wand [options] [subcommand] [args]')
+    end
+
     context "when model is not available" do
       subject { test_class.new(nil) }
 
