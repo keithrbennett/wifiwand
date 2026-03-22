@@ -57,7 +57,7 @@ This document summarizes the changes and improvements made in version 3.0 compar
   - Default: stdout only
   - `--file [PATH]`: log to file (default: `wifiwand-events.log`)
   - `--file --stdout`: output to both file and terminal
-  - When `--file` or `--hook` is used, stdout is silent unless `--stdout` is also supplied
+  - When `--file` is used, stdout is silent unless `--stdout` is also supplied
 - Configurable polling interval with `--interval N` (default: 5 seconds)
 - Graceful shutdown with Ctrl+C
 - ISO-8601 timestamp format for all logged events
@@ -65,26 +65,6 @@ This document summarizes the changes and improvements made in version 3.0 compar
 - Created `EventLogger` service for monitoring and event detection
 - Created `LogFileManager` service for file output handling
 - Added comprehensive logging documentation in `docs/LOGGING.md`
-
-## Event Hooks System (New Feature)
-
-- Fully implemented event hook system for automation and notifications
-- Hooks receive JSON event data via stdin with full state information
-- Event JSON includes: type, timestamp, details, previous_state, current_state
-- Hook execution with proper error handling and exit code checking
-- Default hook location: `~/.config/wifi-wand/hooks/on-event`
-- Created example hooks in `examples/log-notification-hooks/`:
-  - `on-wifi-event-syslog.rb` - Send events to system syslog
-  - `on-wifi-event-json-log.rb` - Log events as NDJSON for analysis
-  - `on-wifi-event-slack.rb` - Post formatted events to Slack
-  - `on-wifi-event-webhook.rb` - POST events to HTTP endpoints
-  - `on-wifi-event-macos-notify.rb` - macOS Notification Center (via terminal-notifier)
-  - `on-wifi-event-gnome-notify.rb` - GNOME/Ubuntu desktop notifications
-  - `on-wifi-event-kde-notify.rb` - KDE Plasma desktop notifications
-  - `on-wifi-event-multi.rb` - Compound hook for running multiple hooks
-- Hook execution integrated into EventLogger with stdin/stdout pipe handling
-- Added hook testing infrastructure and sample events
-- Comprehensive hook documentation in `examples/log-notification-hooks/README.md`
 
 ## Status Command (New Feature)
 
@@ -136,6 +116,5 @@ This document summarizes the changes and improvements made in version 3.0 compar
 
 - Created modular command structure with `LogCommand` in `lib/wifi-wand/commands/`
 - Extracted timing constants into `TimingConstants` module for consistency
-- Improved error handling with proper exit codes for hook execution
 - Enhanced I/O routing with separate output and error streams
 - Better separation of concerns between CLI, models, and services

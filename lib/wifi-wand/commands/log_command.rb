@@ -12,21 +12,18 @@ module WifiWand
   # - Parse command-line options using OptionParser
   # - Validate option values (e.g., interval must be positive)
   # - Create and configure EventLogger with parsed options
-  # - Handle output destination (stdout, file, hooks)
+  # - Handle output destination (stdout, file)
   #
   # Options:
   # - --interval N: Poll interval in seconds (default: 5)
   # - --file [PATH]: Enable file logging (default filename: wifiwand-events.log)
   # - --stdout: Explicitly enable stdout (required when other destinations are used)
-  # - --hook PATH: Hook script path
   # - --verbose: Enable verbose logging
   #
   # Output behavior:
   # - Default: stdout only (no file)
   # - --file: file only (stdout disabled unless --stdout is also provided)
-  # - --hook: hook only (stdout disabled unless --stdout is also provided)
   # - --file --stdout: both file and stdout
-  # - --hook --stdout: hook and stdout
   #
   # Example usage:
   #   command = LogCommand.new(model)
@@ -42,14 +39,13 @@ module WifiWand
 
     # Execute the log command with the provided options
     def execute(*options)
-      interval, log_file_path, hook_filespec, output_to_stdout, verbose_flag = parse_options(options)
+      interval, log_file_path, output_to_stdout, verbose_flag = parse_options(options)
 
       # Create and run event logger
       logger = WifiWand::EventLogger.new(
         model,
         interval: interval,
         verbose: verbose_flag,
-        hook_filespec: hook_filespec,
         log_file_path: log_file_path,
         output: (output_to_stdout ? output : nil)
       )
@@ -61,15 +57,14 @@ module WifiWand
     private
 
     # Parse and validate command line options using OptionParser
-    # Returns: [interval, log_file_path, hook_filespec, output_to_stdout, verbose]
+    # Returns: [interval, log_file_path, output_to_stdout, verbose]
     def parse_options(options)
       interval = TimingConstants::EVENT_LOG_POLLING_INTERVAL
       log_file_path = nil
-      hook_filespec = nil
       output_to_stdout = true  # Default: stdout only
       verbose_flag = @verbose  # Start with initialization value, override if --verbose specified
       stdout_explicit = false
-      alternate_destination_requested = false
+      file_destination_requested = false
 
       parser = OptionParser.new do |opts|
         opts.on('--interval N', Float) do |v|
@@ -79,18 +74,13 @@ module WifiWand
         opts.on('--file [PATH]') do |v|
           # If --file is specified, use provided path or default filename
           log_file_path = v || LogFileManager::DEFAULT_LOG_FILE
-          alternate_destination_requested = true
+          file_destination_requested = true
         end
 
         opts.on('--stdout') do
           # Explicitly enable stdout output
           output_to_stdout = true
           stdout_explicit = true
-        end
-
-        opts.on('--hook PATH') do |v|
-          hook_filespec = v
-          alternate_destination_requested = true
         end
 
         opts.on('--verbose', '-v') do
@@ -107,11 +97,11 @@ module WifiWand
         )
       end
 
-      if alternate_destination_requested && !stdout_explicit
+      if file_destination_requested && !stdout_explicit
         output_to_stdout = false
       end
 
-      [interval, log_file_path, hook_filespec, output_to_stdout, verbose_flag]
+      [interval, log_file_path, output_to_stdout, verbose_flag]
     end
 
     # Validate that interval is positive

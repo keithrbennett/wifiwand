@@ -18,9 +18,6 @@ module WifiWand
   # 4. Logs events only when state actually changes (no duplicate logging)
   # 5. Handles Ctrl+C gracefully to close log files properly
   #
-  # The event structure is designed to support future hook execution for
-  # automated responses to network state changes (notifications, reconnects, etc.)
-  #
   # Example usage:
   #   logger = EventLogger.new(model, interval: 5, output: $stdout)
   #   logger.run  # Blocks until Ctrl+C is pressed
@@ -35,14 +32,13 @@ module WifiWand
       internet_off: 'Internet unavailable'
     }.freeze
 
-    attr_reader :model, :interval, :verbose, :hook_filespec, :output, :log_file_manager
+    attr_reader :model, :interval, :verbose, :output, :log_file_manager
 
-    def initialize(model, interval: 5, verbose: false, hook_filespec: nil, log_file_path: nil,
+    def initialize(model, interval: 5, verbose: false, log_file_path: nil,
                    output: $stdout, log_file_manager: nil)
       @model = model
       @interval = interval
       @verbose = verbose
-      @hook_filespec = hook_filespec || File.expand_path('~/.config/wifi-wand/hooks/on-event')
       @output = output
       # Only create LogFileManager if file logging is requested
       @log_file_manager = if log_file_manager
@@ -160,7 +156,6 @@ module WifiWand
       }
 
       log_event(event)
-      execute_hook(event) if hook_exists?
     end
 
     # Format and output an event
@@ -192,32 +187,6 @@ module WifiWand
       @output.puts(message) if @output
       @output.flush if @output&.respond_to?(:flush)
       @log_file_manager.write(message) if @log_file_manager
-    end
-
-    # Check if a hook script exists and is executable
-    def hook_exists?
-      File.executable?(@hook_filespec || '')
-    end
-
-    # Execute hook script with event data as JSON via stdin
-    def execute_hook(event)
-      return unless hook_exists?
-
-      begin
-        event_json = JSON.generate(event)
-        IO.popen([@hook_filespec], 'w') do |io|
-          io.write(event_json)
-          io.close_write
-        end
-
-        # Check exit status
-        status = Process.last_status
-        if status && !status.success?
-          log_message("Hook execution failed (exit code: #{status.exitstatus}) at #{@hook_filespec}")
-        end
-      rescue StandardError => e
-        log_message("Hook execution error: #{e.message}")
-      end
     end
   end
 end

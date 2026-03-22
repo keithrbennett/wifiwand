@@ -53,7 +53,6 @@ describe WifiWand::LogCommand do
         hash_including(
           interval: WifiWand::TimingConstants::EVENT_LOG_POLLING_INTERVAL,
           verbose: false,
-          hook_filespec: nil,
           log_file_path: nil,
           output: output
         )
@@ -160,34 +159,6 @@ describe WifiWand::LogCommand do
       end
     end
 
-    context 'with --hook option' do
-      it 'passes custom hook filespec to EventLogger' do
-        command = WifiWand::LogCommand.new(mock_model, output: output)
-        command.execute('--hook', '/custom/hook')
-
-        expect(WifiWand::EventLogger).to have_received(:new).with(
-          mock_model,
-          hash_including(
-            hook_filespec: '/custom/hook',
-            output: nil
-          )
-        )
-      end
-
-      it 'allows stdout when explicitly requested with hooks' do
-        command = WifiWand::LogCommand.new(mock_model, output: output)
-        command.execute('--hook', '/custom/hook', '--stdout')
-
-        expect(WifiWand::EventLogger).to have_received(:new).with(
-          mock_model,
-          hash_including(
-            hook_filespec: '/custom/hook',
-            output: output
-          )
-        )
-      end
-    end
-
     context 'with --verbose option' do
       it 'passes verbose flag to EventLogger' do
         command = WifiWand::LogCommand.new(mock_model, verbose: true, output: output)
@@ -201,32 +172,30 @@ describe WifiWand::LogCommand do
     end
 
     context 'with multiple options' do
-      it 'combines --interval, --file, and --hook correctly (file only)' do
+      it 'combines --interval and --file correctly (file only)' do
         command = WifiWand::LogCommand.new(mock_model, verbose: true, output: output)
-        command.execute('--interval', '3', '--file', '/tmp/test.log', '--hook', '/my/hook')
+        command.execute('--interval', '3', '--file', '/tmp/test.log')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
           hash_including(
             interval: 3.0,
             verbose: true,
-            hook_filespec: '/my/hook',
             log_file_path: '/tmp/test.log',
             output: nil
           )
         )
       end
 
-      it 'combines --interval, --file, --hook, and --stdout correctly' do
+      it 'combines --interval, --file, and --stdout correctly' do
         command = WifiWand::LogCommand.new(mock_model, verbose: true, output: output)
-        command.execute('--interval', '3', '--file', '/tmp/test.log', '--hook', '/my/hook', '--stdout')
+        command.execute('--interval', '3', '--file', '/tmp/test.log', '--stdout')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
           hash_including(
             interval: 3.0,
             verbose: true,
-            hook_filespec: '/my/hook',
             log_file_path: '/tmp/test.log',
             output: output
           )

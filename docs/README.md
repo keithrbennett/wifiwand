@@ -25,7 +25,6 @@ Welcome to the `wifi-wand` documentation! This directory contains comprehensive 
 
 - **[Environment Variables](ENVIRONMENT_VARIABLES.md)** - Configuring `wifi-wand` via the environment (including `WIFIWAND_OPTS`).
 - **[Testing Guide](TESTING.md)** - How to run the test suite and understand coverage reports.
-- **[Log Event Hooks](../examples/log-notification-hooks/README.md)** - Examples for automating notifications on WiFi events.
 
 ## Project History
 

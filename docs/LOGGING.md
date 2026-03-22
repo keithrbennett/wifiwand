@@ -59,7 +59,7 @@ wifi-wand log
 Output appears as events occur:
 ```
 [2025-10-28 23:44:14] Event logging started (polling every 5s)
-[2025-10-28 23:44:19] Current state: WiFi ON, connected to "HomeNetwork", internet available
+[2025-10-28 23:44:19] Current state: Internet available
 [2025-10-28 23:45:10] Internet unavailable
 [2025-10-28 23:45:45] Internet available
 ```
@@ -113,9 +113,9 @@ When this option is used alone, output goes to file only (stdout is disabled).
 
 ### `--stdout`
 
-Explicitly enables stdout output. Standard output is used by default, but it is disabled automatically once `--file` or `--hook` is specified unless `--stdout` is also provided.
+Explicitly enables stdout output. Standard output is used by default, but it is disabled automatically once `--file` is specified unless `--stdout` is also provided.
 
-- Include after `--file` or `--hook` to keep seeing events in the terminal
+- Include after `--file` to keep seeing events in the terminal
 - Without any other destinations, stdout is already active by default
 
 ### `--interval N`
@@ -136,30 +136,6 @@ wifi-wand log --interval 0      # No wait, check again immediately (total: sever
 - **Lower (0-2)**: Only useful if you're actively debugging and want the fastest possible response time
 - **Note**: Setting this very low does NOT improve accuracy; the status check itself takes several seconds
 
-### `--hook PATH`
-
-Path to a hook script that will be executed when events occur.
-
-```bash
-wifi-wand log --hook ~/.config/wifi-wand/hooks/on-event
-```
-
-When an event is detected (WiFi on/off, network connect/disconnect, internet available/unavailable), the specified hook script is executed with event data passed as JSON via stdin.
-
-**Note:** Using `--hook` disables stdout unless you also provide `--stdout`.
-
-**Default hook location:** `~/.config/wifi-wand/hooks/on-event`
-
-**Example hooks** are available in `examples/log-notification-hooks/`:
-- Desktop notifications (macOS, GNOME, KDE)
-- Syslog integration
-- JSON logging for analysis
-- Slack notifications
-- HTTP webhooks
-- Multi-hook composition
-
-See `examples/log-notification-hooks/README.md` for complete hook documentation and usage examples.
-
 ### `--verbose`, `-v`
 
 Enable verbose logging (shows additional details).
@@ -172,10 +148,6 @@ wifi-wand log --verbose
 
 The logger tracks and reports the following event types:
 
-- **WiFi ON** - WiFi radio turned on
-- **WiFi OFF** - WiFi radio turned off
-- **Connected to "NetworkName"** - Successfully connected to a network
-- **Disconnected from "NetworkName"** - Disconnected from the network
 - **Internet available** - Internet connectivity became available
 - **Internet unavailable** - Internet connectivity was lost
 
@@ -191,11 +163,9 @@ Example log file content:
 
 ```
 [2025-10-28 14:32:15] Event logging started (polling every 5s)
-[2025-10-28 14:32:20] Current state: WiFi ON, connected to "HomeNetwork", internet available
+[2025-10-28 14:32:20] Current state: Internet available
 [2025-10-28 14:32:25] Internet unavailable
 [2025-10-28 14:32:30] Internet available
-[2025-10-28 14:45:10] Disconnected from "HomeNetwork"
-[2025-10-28 14:45:15] WiFi OFF
 ```
 
 ## Practical Examples
@@ -250,13 +220,9 @@ cat debug.log
 
 ## Connectivity Checks
 
-The logger evaluates connectivity using the same mechanisms as the `status` command:
+The logger monitors internet connectivity by checking if DNS resolution and TCP connectivity are working. This is a fast check optimized for continuous monitoring (~50-200ms per poll).
 
-- **WiFi Power**: On or Off
-- **Network Connection**: Connected to a network (and which one)
-- **Internet Availability**: Both DNS and TCP connectivity are working
-
-These checks use appropriate timeouts to avoid false positives from temporary network hiccups.
+Changes are detected by comparing current state to the previous state - only when internet connectivity changes (available ↔ unavailable) is an event logged.
 
 ## File Permission Errors
 
@@ -313,19 +279,3 @@ tail -f /var/log/wifi-events.log | while read line; do
   fi
 done
 ```
-
-## Hook Integration
-
-The event logging system supports hook execution for custom automation. Hooks are scripts that execute in response to specific events:
-
-```bash
-wifi-wand log --hook ~/.config/wifi-wand/hooks/on-event
-```
-
-Hook use cases:
-- Sending notifications when connectivity changes
-- Logging events to external monitoring systems (syslog, JSON files, webhooks)
-- Custom automation based on network state changes
-- Integration with desktop notification systems
-
-The event structure uses JSON serialization to pass event data to hooks via stdin. See `examples/log-notification-hooks/` for working examples and `examples/log-notification-hooks/README.md` for detailed documentation on writing and using hooks.
