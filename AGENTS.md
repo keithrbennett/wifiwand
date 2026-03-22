@@ -2,13 +2,6 @@
 
 This file provides guidance to AI agents (such as Gemini CLI, Claude Code, etc.) when working with code in this repository. Treat it as the canonical reference for workflows, tooling, and expectations; update it directly whenever new agent instructions are required.
 
----
-# The following hooks section is specific to Claude Code (claude.ai/code)
-hooks:
-  on_wait_for_user:
-    handler: notify-send "Claude Code" "Waiting for your response"
----
-
 ## Mission
 - Pull accurate information and project facts for users by driving available tools rather than reasoning from scratch.
 - Keep workflow transparent: explain what you did, why it matters, and what the user should consider next.
