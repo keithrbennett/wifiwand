@@ -394,6 +394,17 @@ Each wifi-wand version installs its helper to a versioned directory:
 
 Old versions are not automatically removed (in case you have multiple wifi-wand versions installed). You can safely delete old version directories.
 
+### Permission Identity and Version Upgrades
+
+macOS identifies the helper by its **bundle identifier** (`com.wifiwand.helper`), not by its installed path. This means:
+
+- **Same gem version**: After granting Location Services permission once, subsequent uses don't require re-authorization.
+- **New gem version**: Permission should continue automatically because the helper keeps the same bundle identifier and signing identity. Upgrading to a new wifi-wand version normally does not require another permission grant.
+
+> **Note:** macOS TCC (Transparency, Consent, and Control) behavior can sometimes be sensitive to path, signature, or OS-version quirks. If macOS prompts for permission again after a gem upgrade, that would be an OS-level edge case—the design goal is permission continuity across versions.
+
+Multiple installed helper copies may exist on disk (one per gem version), but they present as one logical macOS app identity for permission purposes via the stable bundle identifier `com.wifiwand.helper`.
+
 ### Disabling the Helper
 
 If you prefer not to use the helper (accepting that WiFi names will be redacted), set:
