@@ -76,6 +76,14 @@ describe WifiWand::Main do
       expect(ARGV).to include('h')
     end
 
+    it 'parses version flags' do
+      options = parse_with_argv('--version')
+      expect(options.version_requested).to be(true)
+
+      options = parse_with_argv('-V')
+      expect(options.version_requested).to be(true)
+    end
+
     it 'removes parsed options from ARGV' do
       stub_const('ARGV', ['-v', '-p', 'wlan0', 'connect', 'TestNetwork'])
       subject.parse_command_line
@@ -186,6 +194,28 @@ describe WifiWand::Main do
       expect(mock_cli).to receive(:call).and_return('success')
       subject.call
       expect(out_stream.string).to be_empty
+    end
+
+    it 'prints version and skips CLI initialization when requested' do
+      stub_const('ARGV', ['-V'])
+      allow(subject).to receive(:parse_command_line).and_call_original
+
+      expect(WifiWand::CommandLineInterface).not_to receive(:new)
+
+      subject.call
+
+      expect(out_stream.string).to eq("#{WifiWand::VERSION}\n")
+    end
+
+    it 'returns immediately after printing version even when other arguments are present' do
+      stub_const('ARGV', ['--version', 'info'])
+      allow(subject).to receive(:parse_command_line).and_call_original
+
+      expect(WifiWand::CommandLineInterface).not_to receive(:new)
+
+      subject.call
+
+      expect(out_stream.string).to eq("#{WifiWand::VERSION}\n")
     end
   end
 

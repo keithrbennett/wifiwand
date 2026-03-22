@@ -28,6 +28,7 @@ module WifiWand
                                     - when not in shell mode, outputs data in the following formats: inspect, JSON, pretty JSON, puts, YAML
           -p, --wifi-interface interface_name
                                     - specify WiFi interface name (overrides auto-detection)
+          -V, --version             - show version
           -v, --[no-]verbose        - verbose mode (prints OS commands and their outputs)
 
           Subcommands
