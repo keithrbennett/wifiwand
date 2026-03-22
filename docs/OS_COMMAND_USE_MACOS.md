@@ -1,5 +1,5 @@
 # macOS OS Command Use
-### os-command-use-macos-gpt5.md
+### OS_COMMAND_USE_MACOS.md
 ### 2025-10-29 14:33:54 UTC
 
 This document outlines the shell commands used by `wifi-wand` on the macOS operating system.

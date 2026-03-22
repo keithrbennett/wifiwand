@@ -1,6 +1,15 @@
-# Developer Documentation Overview
+# Developer Documentation Index
 
-This directory is for wifi-wand maintainers.
+This directory is for `wifi-wand` maintainers and developers. These documents contain deep technical details, research, and internal strategy.
 
-- Use these guides when building, signing, or notarizing the macOS helper and preparing releases.
-- End users should rely on the documents in `../` instead of this folder.
+## macOS Helper Development
+
+- **[macOS Helper Research](MAC_HELPER_RESEARCH.md)** - Original research into why and how the native macOS helper was implemented.
+- **[macOS Helper Permissions](MAC_HELPER_PERMISSIONS.md)** - Documentation of the helper's permission behavior and the "com.wifiwand.helper" bundle identity.
+- **[macOS Code Signing (Context)](MACOS_CODE_SIGNING_CONTEXT.md)** - Technical context for macOS code signing and notarization.
+- **[macOS Code Signing (Instructions)](MACOS_CODE_SIGNING_INSTRUCTIONS.md)** - Step-by-step instructions for maintainers to sign and notarize a release.
+
+## General Information
+
+- End-user documentation should be prioritized by contributors in the **[Main Documentation Index](../README.md)**.
+- For internal testing strategies and CI details, refer to the **[Testing Guide](../TESTING.md)**.
