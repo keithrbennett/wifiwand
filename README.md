@@ -141,6 +141,7 @@ Command Line Switches     [wifi-wand version 3.0.0-alpha.1 at https://github.com
                           - when not in shell mode, outputs data in the following formats: inspect, JSON, pretty JSON, puts, YAML
 -p, --wifi-interface interface_name
                           - specify WiFi interface name (overrides auto-detection)
+-V, --version             - show version
 -v, --[no-]verbose        - verbose mode (prints OS commands and their outputs)
                             To disable: use --no-verbose or --no-v (short form negation like -v- is not supported)
 

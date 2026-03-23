@@ -1,4 +1,4 @@
-## What's New in WifiWand v3.0.0
+## v3.0.0.pre-alpha.1
 
 ### The Big Kahuna
 
@@ -10,12 +10,35 @@
 * Removed `fancy_print`.  Awesome Print is now a required gem so it is always available, so there is no need for fancy_print.
 * We no longer assume that if WiFi is off there is no Internet connectivity, since that connectivity can be provided by an Ethernet connection
   * The 'ci' (connected to Internet) command can now return true if WiFi is off but there is another Internet connection.
+* The `-s`/`--shell` command-line option has been replaced with a `shell` subcommand (e.g. `wifi-wand shell` instead of `wifi-wand -s`).
+* All environment variables have been renamed to use the `WIFIWAND_` prefix (e.g. `WIFIWAND_VERBOSE`, `WIFIWAND_OPTS`).
+* Removed the `l`/`ls_avail_nets` command; it is no longer operational.
+* The `--hook` option for the `log` subcommand has been removed. The hook execution feature was incomplete and never properly tested; its removal simplifies the codebase and eliminates a security concern.
+
+### New Commands & Features
+
+* **`-V`/`--version`** — Print the version and exit.
+* **`log` subcommand** — Monitor and log internet connectivity events (connect/disconnect) to stdout and/or a file. Detects outages using fast multi-endpoint TCP probes.
+* **`qr` command** — Generate a QR code for the currently connected WiFi network (or a specified network), enabling easy sharing with mobile devices. Supports output to stdout or a file.
+* **`shell` subcommand** — Launch an interactive REPL shell (replaces the `-s`/`--shell` option).
+* **Sort order option** (`-o`/`--sort-order`) — Control the sort order (`a`/`ascending` or `d`/`descending`) of the available networks list.
+
+### macOS: New Signed Helper Application
+
+* Replaced Swift/CoreWLAN scripts with a signed, notarized macOS helper application (`wifiwand-helper`) that enables WifiWand to access WiFi network names without triggering repeated authorization prompts.
+* The helper is a Universal binary (ARM + Intel) and requires macOS 14.0 or later for location-based network scanning.
+* A `wifi-wand-macos-setup` script is provided to guide users through granting the necessary permissions.
+* A post-install gem message directs macOS users to the setup documentation.
 
 ### User Experience Improvements
 
 * Added support for `WIFIWAND_VERBOSE` environment variable to simulate `-v` flag. This is especially useful for testing.
 * Added `WIFIWAND_OPTS` environment variable to prepend default command-line options before parsing user input.
-* Added a `status`/`s` command for displaying a 1-line network status summary.
+* Added a `status`/`s` command for displaying a 1-line network status summary with DNS and TCP connectivity icons.
+* Help output is now styled with a formatted banner.
+* In non-interactive mode, the process now exits with code 1 if any errors occur (unless only help text was requested).
+* Empty-string passwords are now treated as deliberate open-network connection attempts, skipping saved credential lookups.
+* Improved validation for user-provided SSIDs and passwords.
 
 ### Architectural Improvements
 
@@ -23,12 +46,18 @@
 cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
 * The system automatically detects the OS and loads the appropriate model for that OS.
 * Extracted hardcoded data into YAML configuration files.
+* **Client class** — A new `WifiWand::Client` class provides a clean programmatic API for use as a library.
+* **Secure command execution** — All OS commands are now executed using `Open3` with argument arrays, eliminating shell interpolation and command injection vulnerabilities.
+* Switched from threads to the `async` gem for concurrent network detection.
 
 ### Network Management & Reporting Improvements
 
 * The 'connected to Internet?' functionality has been improved:
   * wifi off will no longer by itself cause it to return false, since there may be an Ethernet connection
   * DNS and TCP tests are both done, with separate indicators in the new 'status' command's output.
+* Internet connectivity checks now use fast multi-endpoint TCP probes (~50–200ms typical, 1s worst case) instead of slower DNS+TCP checks.
+* IPv6 nameservers are now supported.
+* `public_ip_address_info` now uses Ruby's `Net::HTTP` instead of `curl`, removing the external dependency.
 
 ### Error Handling Improvements
 * Added comprehensive error classes and improved error messaging
@@ -50,10 +79,13 @@ cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
 * A TESTING.md file has been added.
 * A CLAUDE.md file generated and used by Claude Code has helpful information about the code base.
 * Prompts located in a `prompts/` directory are used to create and update some documents using AI, such as "OS Command Use" for each supported OS.
+* Comprehensive `docs/` directory with separate user and developer documentation indexes.
 
 ### Bug Fixes
 * Fixed the lack of explicit require of 'stringio' for modern Ruby versions.
 * Added shell escaping for strings included in OS commands.
+* Fixed Ubuntu OS detection to remove command injection and support Ubuntu derivatives.
+* Fixed `cycle_network` to correctly handle the case where WiFi starts in the off state.
 
 ### Verbose Mode Debug Output
 
@@ -63,8 +95,10 @@ cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
 * gemspec:
   * Updated some gemspec gem specifications for the first time in years.
   * Added version constraints where there were none.
+  * Ruby version constraint updated to >= 3.2 (required by the `async` gem via `traces`).
 * **Status monitoring** - Enhanced connection status monitoring with configurable timeouts
 * **Mock testing** - Removed real OS commands from non-disruptive unit tests
+* Added a `bin/op-wrap` script to simplify using 1Password for credential management during development.
 
 This major release represents a complete rewrite focused on cross-platform support while maintaining backward compatibility for existing macOS users.
 
