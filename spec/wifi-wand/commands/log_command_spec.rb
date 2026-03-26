@@ -160,9 +160,19 @@ describe WifiWand::LogCommand do
     end
 
     context 'with --verbose option' do
-      it 'passes verbose flag to EventLogger' do
-        command = WifiWand::LogCommand.new(mock_model, verbose: true, output: output)
+      it 'passes true to EventLogger when --verbose is specified' do
+        command = WifiWand::LogCommand.new(mock_model, verbose: false, output: output)
         command.execute('--verbose')
+
+        expect(WifiWand::EventLogger).to have_received(:new).with(
+          mock_model,
+          hash_including(verbose: true)
+        )
+      end
+
+      it 'passes true to EventLogger when -v is specified' do
+        command = WifiWand::LogCommand.new(mock_model, verbose: false, output: output)
+        command.execute('-v')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,

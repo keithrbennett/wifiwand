@@ -68,25 +68,21 @@ module WifiWand
       log_message("[#{timestamp}] Event logging started (polling every #{@interval}s)")
 
       begin
-        # Fetch and log initial state
-        initial_state = fetch_current_state
-        if initial_state
-          log_initial_state(initial_state)
-          @previous_state = initial_state
-        end
-
         while @running
           current_state = fetch_current_state
 
-          if current_state.nil?
-            log_message("Failed to fetch WiFi state") if @verbose
-            sleep(@interval)
-            next
+          if current_state
+            if @previous_state
+              detect_and_emit_events(current_state)
+            else
+              log_initial_state(current_state)
+            end
+            @previous_state = current_state
+          elsif @verbose
+            log_message("Failed to fetch WiFi state")
           end
 
-          detect_and_emit_events(current_state)
-          @previous_state = current_state
-
+          break unless @running
           sleep(@interval)
         end
       rescue Interrupt
@@ -122,23 +118,13 @@ module WifiWand
 
     private
 
-    # Fetch current WiFi state from model
-    # Polls wifi_on?, connected_network_name, and fast_connectivity? at each interval
+    # Fetch current WiFi state from model.
+    # Uses status_line_data which performs checks concurrently for better performance.
     def fetch_current_state
-      begin
-        wifi_on = @model.wifi_on?
-        network_name = @model.connected_network_name
-        internet_connected = @model.fast_connectivity?
-
-        {
-          wifi_on: wifi_on,
-          network_name: network_name,
-          internet_connected: internet_connected
-        }
-      rescue StandardError => e
-        log_message("Error fetching status: #{e.message}") if @verbose
-        nil
-      end
+      @model.status_line_data
+    rescue StandardError => e
+      log_message("Error fetching status: #{e.message}") if @verbose
+      nil
     end
 
     # Detect state changes and emit events

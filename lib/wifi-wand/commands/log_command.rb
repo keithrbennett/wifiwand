@@ -2,6 +2,7 @@
 
 require 'optparse'
 require_relative '../services/event_logger'
+require_relative '../services/log_file_manager'
 require_relative '../errors'
 require_relative '../timing_constants'
 
@@ -26,7 +27,7 @@ module WifiWand
   # - --file --stdout: both file and stdout
   #
   # Example usage:
-  #   command = LogCommand.new(model)
+  #   command = WifiWand::LogCommand.new(model)
   #   command.execute('--interval', '2', '--file', '--stdout')
   class LogCommand
     attr_reader :model, :output, :verbose

@@ -12,7 +12,8 @@ describe WifiWand::EventLogger do
     double('Model',
       fast_connectivity?: true,
       wifi_on?: true,
-      connected_network_name: 'TestNetwork'
+      connected_network_name: 'TestNetwork',
+      status_line_data: { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
     )
   end
   let(:output) { StringIO.new }
@@ -73,15 +74,19 @@ describe WifiWand::EventLogger do
   end
 
   describe '#fetch_current_state' do
-    it 'fetches all state fields from model' do
+    it 'fetches state from model using status_line_data' do
       logger = WifiWand::EventLogger.new(mock_model, output: output)
-      state = logger.send(:fetch_current_state)
-      expect(state).to eq({ wifi_on: true, network_name: 'TestNetwork', internet_connected: true })
+      state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
+      expect(mock_model).to receive(:status_line_data).and_return(state)
+      
+      expect(logger.send(:fetch_current_state)).to eq(state)
     end
 
-    it 'returns nil when model raises error' do
-      allow(mock_model).to receive(:fast_connectivity?).and_raise(StandardError, 'Test error')
-      logger = WifiWand::EventLogger.new(mock_model, output: output)
+    it 'returns nil and logs message when model raises error in verbose mode' do
+      allow(mock_model).to receive(:status_line_data).and_raise(StandardError, 'Test error')
+      logger = WifiWand::EventLogger.new(mock_model, output: output, verbose: true)
+      
+      expect(logger).to receive(:log_message).with(/Test error/)
       state = logger.send(:fetch_current_state)
       expect(state).to be_nil
     end
@@ -337,16 +342,19 @@ describe WifiWand::EventLogger do
       expect(output.string).to match(/Event logging stopped/)
     end
 
-    it 'calls detect_and_emit_events each iteration' do
+    it 'calls detect_and_emit_events each iteration after initial state' do
       logger = WifiWand::EventLogger.new(mock_model, output: output, interval: 0)
       allow(logger).to receive(:sleep)
       call_count = 0
       allow(logger).to receive(:detect_and_emit_events) do
         call_count += 1
-        logger.stop if call_count >= 3
+        logger.stop if call_count >= 2
       end
+      # For initial state
+      allow(mock_model).to receive(:status_line_data).and_return({ wifi_on: true })
+      
       logger.run
-      expect(call_count).to eq(3)
+      expect(call_count).to eq(2)
     end
 
     it 'sleeps for the configured interval between polls' do
