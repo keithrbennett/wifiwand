@@ -2,49 +2,14 @@
 
 ## Overview
 
-The `log` command continuously polls your WiFi connection status at regular intervals and logs events when state changes occur. This is useful for:
+The `log` command continuously monitors WiFi power, network connection, and internet connectivity, logging events when any of these states change. This is useful for:
 
-- Monitoring WiFi connectivity issues over time
+- Monitoring WiFi power state changes
+- Tracking network connections and disconnections
+- Monitoring internet connectivity issues over time
 - Debugging network problems
-- Tracking connection drops and reconnections
-- Creating an audit trail of network state changes
-
-## ⚠️ Important: macOS Status Observation Timing
-
-**On macOS, each WiFi status check takes several seconds to complete.**
-
-The status observation involves querying multiple OS utilities (`networksetup`, `system_profiler`, network commands) to determine WiFi power state, network connection, TCP connectivity, and DNS resolution. This inherently takes several seconds.
-
-**This means the `--interval` option sets a MINIMUM time between polls, not an exact polling frequency.**
-
-### Example: `--interval 1`
-
-When you run:
-```bash
-wifi-wand log --interval 1
-```
-
-You might expect to see status checks every 1 second. However:
-- Status check takes several seconds
-- After check completes, waits 1 second before next check
-- **Actual polling interval: several seconds plus 1 second**
-
-### Effective Polling Intervals
-
-| `--interval` Setting | Status Check Duration | Actual Interval |
-|-----|---|---|
-| 1 second | Several seconds | Several seconds + 1 |
-| 5 seconds (default) | Several seconds | Several seconds + 5 |
-| 0.5 seconds | Several seconds | Several seconds + 0.5 |
-| 0 seconds | Several seconds | Several seconds |
-
-### Practical Implications
-
-- **For monitoring**: Use default `--interval 5` or higher
-- **For debugging fast events**: Events that happen within the status check duration of each other will be captured together in a single observation
-- **For real-time accuracy**: Set `--interval 0` to check again immediately after each status completes (but still limited by status check duration)
-
-**Note**: This timing limitation is due to macOS's underlying system APIs and utilities (`networksetup`, `system_profiler`, network commands), not our design. Ubuntu does not have this issue and status checks complete much faster.
+- Tracking outages and reconnections
+- Creating an audit trail of connectivity state changes
 
 ## Basic Usage
 
@@ -58,10 +23,14 @@ wifi-wand log
 
 Output appears as events occur:
 ```
-[2025-10-28 23:44:14] Event logging started (polling every 5s)
-[2025-10-28 23:44:19] Current state: Internet available
-[2025-10-28 23:45:10] Internet unavailable
-[2025-10-28 23:45:45] Internet available
+[2025-10-28T23:44:14Z] Event logging started (polling every 5s)
+[2025-10-28T23:44:19Z] Current state: WiFi on, connected to MyNetwork, internet available
+[2025-10-28T23:45:10Z] WiFi OFF
+[2025-10-28T23:45:15Z] Disconnected from MyNetwork
+[2025-10-28T23:45:20Z] Internet unavailable
+[2025-10-28T23:45:45Z] WiFi ON
+[2025-10-28T23:45:50Z] Connected to MyNetwork
+[2025-10-28T23:45:55Z] Internet available
 ```
 
 Press `Ctrl+C` to stop logging.
@@ -120,21 +89,18 @@ Explicitly enables stdout output. Standard output is used by default, but it is 
 
 ### `--interval N`
 
-Wait time between status checks in seconds (default: 5).
-
-**Important**: This is the time to wait AFTER each status check completes, not the total polling frequency. See [macOS Status Observation Timing](#-important-macos-status-observation-timing) above.
+Time between connectivity checks in seconds (default: 5). Must be greater than 0.
 
 ```bash
-wifi-wand log --interval 2      # Wait 2 sec after each check (total: several seconds + 2)
-wifi-wand log --interval 0.5    # Wait 0.5 sec after each check (total: several seconds + 0.5)
-wifi-wand log --interval 0      # No wait, check again immediately (total: several seconds)
+wifi-wand log --interval 2      # check every 2 seconds
+wifi-wand log --interval 0.5    # check every 0.5 seconds
+wifi-wand log --interval 10     # check every 10 seconds
 ```
 
 **Practical guidance:**
 - **Default (5)**: Recommended for most use cases
 - **Higher (10+)**: For long-term monitoring with less system load
-- **Lower (0-2)**: Only useful if you're actively debugging and want the fastest possible response time
-- **Note**: Setting this very low does NOT improve accuracy; the status check itself takes several seconds
+- **Lower (1-2)**: For faster outage detection when actively debugging
 
 ### `--verbose`, `-v`
 
@@ -148,24 +114,51 @@ wifi-wand log --verbose
 
 The logger tracks and reports the following event types:
 
-- **Internet available** - Internet connectivity became available
-- **Internet unavailable** - Internet connectivity was lost
+| Event | Description |
+|-------|-------------|
+| **WiFi ON** | WiFi power was turned on |
+| **WiFi OFF** | WiFi power was turned off |
+| **Connected to \<network\>** | Connected to a WiFi network |
+| **Disconnected from \<network\>** | Disconnected from a WiFi network |
+| **Internet available** | Internet connectivity became available |
+| **Internet unavailable** | Internet connectivity was lost |
+
+### Event Emission Order
+
+When multiple state changes occur in a single poll, events are emitted in this order:
+
+1. **WiFi power** (wifi_on/wifi_off)
+2. **Network connection** (connected/disconnected)
+3. **Internet connectivity** (internet_on/internet_off)
+
+This ensures that related state changes are logged in a logical sequence.
+
+### Network Roaming
+
+When the network name changes from one non-nil value to another (e.g., "NetworkA" to "NetworkB"), both events are emitted in this order:
+
+1. `Disconnected from NetworkA`
+2. `Connected to NetworkB`
 
 ## Log File Format
 
-Each log entry is timestamped in the format:
+Each log entry is timestamped in ISO-8601 format:
 
 ```
-[YYYY-MM-DD HH:MM:SS] Event description
+[YYYY-MM-DDTHH:MM:SSZ] Event description
 ```
 
 Example log file content:
 
 ```
-[2025-10-28 14:32:15] Event logging started (polling every 5s)
-[2025-10-28 14:32:20] Current state: Internet available
-[2025-10-28 14:32:25] Internet unavailable
-[2025-10-28 14:32:30] Internet available
+[2025-10-28T14:32:15Z] Event logging started (polling every 5s)
+[2025-10-28T14:32:20Z] Current state: WiFi on, connected to MyNetwork, internet available
+[2025-10-28T14:32:25Z] WiFi OFF
+[2025-10-28T14:32:30Z] Disconnected from MyNetwork
+[2025-10-28T14:32:35Z] Internet unavailable
+[2025-10-28T14:32:45Z] WiFi ON
+[2025-10-28T14:32:50Z] Connected to MyNetwork
+[2025-10-28T14:32:55Z] Internet available
 ```
 
 ## Practical Examples
@@ -173,10 +166,10 @@ Example log file content:
 ### Monitor WiFi for 1 minute with fast polling
 
 ```bash
-timeout 60 wifi-wand log --interval 0 --file --stdout
+timeout 60 wifi-wand log --interval 0.1 --file --stdout
 ```
 
-**Note**: Even with `--interval 0`, the status check duration limits how frequently observations can occur. This is the fastest possible granularity on macOS.
+Use a small interval like 0.1 for rapid polling.
 
 ### Continuously log to a dated file
 
@@ -212,17 +205,28 @@ cat debug.log
 
 ## How It Works
 
-1. **Initial State**: The logger captures and logs the current network state when started
-2. **Polling Loop**: At regular intervals (default 5 seconds), the status is queried
+1. **Initial State**: The logger captures and logs the current WiFi state (power, network, internet) when started
+2. **Polling Loop**: At regular intervals (default 5 seconds), the following are queried:
+   - `wifi_on?` - WiFi power state
+   - `connected_network_name` - Currently connected network
+   - `fast_connectivity?` - Internet connectivity status
 3. **Change Detection**: Current state is compared to previous state
-4. **Event Emission**: Only changes are logged (no duplicates for unchanged state)
+4. **Event Emission**: Only actual changes are logged, in the order: WiFi power → Network → Internet
 5. **Graceful Shutdown**: Pressing `Ctrl+C` cleanly closes the log file and exits
 
-## Connectivity Checks
+## Status Checks
 
-The logger monitors internet connectivity by checking if DNS resolution and TCP connectivity are working. This is a fast check optimized for continuous monitoring (~50-200ms per poll).
+The logger monitors three aspects of WiFi state:
 
-Changes are detected by comparing current state to the previous state - only when internet connectivity changes (available ↔ unavailable) is an event logged.
+1. **WiFi Power**: Whether WiFi is turned on or off
+2. **Network Connection**: The name of the connected WiFi network (SSID)
+3. **Internet Connectivity**: Whether internet access is available (tested via fast parallel TCP probes)
+
+The internet connectivity check uses fast parallel TCP probes to multiple well-known hosts (Cloudflare, Google, Baidu), optimized for continuous monitoring (~50–200ms per poll, 1s worst case).
+
+### macOS Performance Note
+
+On macOS, `connected_network_name` can be slow without the Swift/CoreWLAN helper installed (see [MACOS_SETUP.md](./MACOS_SETUP.md)). This affects logging performance on macOS systems without the helper.
 
 ## File Permission Errors
 

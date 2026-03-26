@@ -6,10 +6,15 @@ require_relative '../../../lib/wifi-wand/services/event_logger'
 require_relative '../../../lib/wifi-wand/services/log_file_manager'
 
 describe WifiWand::EventLogger do
-  # ISO-8601 timestamp format pattern: [YYYY-MM-DDTHH:MM:SSZ]
   ISO8601_TIMESTAMP_PATTERN = '\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\]'
 
-  let(:mock_model) { double('Model', fast_connectivity?: true) }
+  let(:mock_model) do
+    double('Model',
+      fast_connectivity?: true,
+      wifi_on?: true,
+      connected_network_name: 'TestNetwork'
+    )
+  end
   let(:output) { StringIO.new }
   let(:mock_log_file_manager) { double('LogFileManager', write: nil, close: nil) }
 
@@ -68,10 +73,10 @@ describe WifiWand::EventLogger do
   end
 
   describe '#fetch_current_state' do
-    it 'fetches connectivity status from model' do
+    it 'fetches all state fields from model' do
       logger = WifiWand::EventLogger.new(mock_model, output: output)
       state = logger.send(:fetch_current_state)
-      expect(state).to eq({ internet_connected: true })
+      expect(state).to eq({ wifi_on: true, network_name: 'TestNetwork', internet_connected: true })
     end
 
     it 'returns nil when model raises error' do
@@ -92,15 +97,66 @@ describe WifiWand::EventLogger do
     end
 
     it 'does not emit events on first call (no previous state)' do
-      current_state = { internet_connected: true }
+      current_state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
       expect(logger).not_to receive(:emit_event)
       logger.send(:detect_and_emit_events, current_state)
     end
 
-    it 'emits internet_on event when internet becomes available' do
-      logger.instance_variable_set(:@previous_state, { internet_connected: false })
+    it 'emits wifi_on event when WiFi is turned on' do
+      logger.instance_variable_set(:@previous_state, { wifi_on: false, network_name: nil, internet_connected: false })
 
-      current_state = { internet_connected: true }
+      current_state = { wifi_on: true, network_name: nil, internet_connected: false }
+
+      expect(logger).to receive(:emit_event).with(:wifi_on, {}, kind_of(Hash), kind_of(Hash))
+
+      logger.send(:detect_and_emit_events, current_state)
+    end
+
+    it 'emits wifi_off event when WiFi is turned off' do
+      logger.instance_variable_set(:@previous_state, { wifi_on: true, network_name: nil, internet_connected: false })
+
+      current_state = { wifi_on: false, network_name: nil, internet_connected: false }
+
+      expect(logger).to receive(:emit_event).with(:wifi_off, {}, kind_of(Hash), kind_of(Hash))
+
+      logger.send(:detect_and_emit_events, current_state)
+    end
+
+    it 'emits connected event when network is joined' do
+      logger.instance_variable_set(:@previous_state, { wifi_on: true, network_name: nil, internet_connected: true })
+
+      current_state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
+
+      expect(logger).to receive(:emit_event).with(:connected, { network_name: 'TestNetwork' }, kind_of(Hash), kind_of(Hash))
+
+      logger.send(:detect_and_emit_events, current_state)
+    end
+
+    it 'emits disconnected event when network is left' do
+      logger.instance_variable_set(:@previous_state, { wifi_on: true, network_name: 'TestNetwork', internet_connected: true })
+
+      current_state = { wifi_on: true, network_name: nil, internet_connected: true }
+
+      expect(logger).to receive(:emit_event).with(:disconnected, { network_name: 'TestNetwork' }, kind_of(Hash), kind_of(Hash))
+
+      logger.send(:detect_and_emit_events, current_state)
+    end
+
+    it 'emits both disconnected and connected events when network roams (non-nil to non-nil)' do
+      logger.instance_variable_set(:@previous_state, { wifi_on: true, network_name: 'OldNetwork', internet_connected: true })
+
+      current_state = { wifi_on: true, network_name: 'NewNetwork', internet_connected: true }
+
+      expect(logger).to receive(:emit_event).with(:disconnected, { network_name: 'OldNetwork' }, kind_of(Hash), kind_of(Hash))
+      expect(logger).to receive(:emit_event).with(:connected, { network_name: 'NewNetwork' }, kind_of(Hash), kind_of(Hash))
+
+      logger.send(:detect_and_emit_events, current_state)
+    end
+
+    it 'emits internet_on event when internet becomes available' do
+      logger.instance_variable_set(:@previous_state, { wifi_on: true, network_name: 'TestNetwork', internet_connected: false })
+
+      current_state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
 
       expect(logger).to receive(:emit_event).with(:internet_on, {}, kind_of(Hash), kind_of(Hash))
 
@@ -108,19 +164,31 @@ describe WifiWand::EventLogger do
     end
 
     it 'emits internet_off event when internet becomes unavailable' do
-      logger.instance_variable_set(:@previous_state, { internet_connected: true })
+      logger.instance_variable_set(:@previous_state, { wifi_on: true, network_name: 'TestNetwork', internet_connected: true })
 
-      current_state = { internet_connected: false }
+      current_state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: false }
 
       expect(logger).to receive(:emit_event).with(:internet_off, {}, kind_of(Hash), kind_of(Hash))
 
       logger.send(:detect_and_emit_events, current_state)
     end
 
-    it 'does not emit when internet state does not change' do
-      logger.instance_variable_set(:@previous_state, { internet_connected: true })
+    it 'emits events in order: wifi, network, internet when multiple changes happen' do
+      logger.instance_variable_set(:@previous_state, { wifi_on: false, network_name: nil, internet_connected: false })
 
-      current_state = { internet_connected: true }
+      current_state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
+
+      expect(logger).to receive(:emit_event).with(:wifi_on, {}, kind_of(Hash), kind_of(Hash)).ordered
+      expect(logger).to receive(:emit_event).with(:connected, { network_name: 'TestNetwork' }, kind_of(Hash), kind_of(Hash)).ordered
+      expect(logger).to receive(:emit_event).with(:internet_on, {}, kind_of(Hash), kind_of(Hash)).ordered
+
+      logger.send(:detect_and_emit_events, current_state)
+    end
+
+    it 'does not emit when state does not change' do
+      logger.instance_variable_set(:@previous_state, { wifi_on: true, network_name: 'TestNetwork', internet_connected: true })
+
+      current_state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
 
       expect(logger).not_to receive(:emit_event)
       logger.send(:detect_and_emit_events, current_state)
@@ -173,7 +241,7 @@ describe WifiWand::EventLogger do
     it 'formats wifi_on event' do
       event = {
         type: :wifi_on,
-        timestamp: Time.new(2025, 10, 28, 14, 30, 45, 0),
+        timestamp: Time.new(2025, 10, 28, 14, 32, 30, 0),
         details: {}
       }
       message = logger.send(:format_event_message, event)
@@ -183,31 +251,31 @@ describe WifiWand::EventLogger do
     it 'formats wifi_off event' do
       event = {
         type: :wifi_off,
-        timestamp: Time.new(2025, 10, 28, 14, 31, 0, 0),
+        timestamp: Time.new(2025, 10, 28, 14, 32, 31, 0),
         details: {}
       }
       message = logger.send(:format_event_message, event)
       expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} WiFi OFF/)
     end
 
-    it 'formats connected event with network name' do
+    it 'formats connected event' do
       event = {
         type: :connected,
-        timestamp: Time.new(2025, 10, 28, 14, 31, 15, 0),
-        details: { network_name: 'MyNetwork' }
+        timestamp: Time.new(2025, 10, 28, 14, 32, 32, 0),
+        details: { network_name: 'TestNetwork' }
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Connected to MyNetwork/)
+      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Connected to TestNetwork/)
     end
 
-    it 'formats disconnected event with network name' do
+    it 'formats disconnected event' do
       event = {
         type: :disconnected,
-        timestamp: Time.new(2025, 10, 28, 14, 32, 0, 0),
-        details: { network_name: 'MyNetwork' }
+        timestamp: Time.new(2025, 10, 28, 14, 32, 33, 0),
+        details: { network_name: 'TestNetwork' }
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Disconnected from MyNetwork/)
+      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Disconnected from TestNetwork/)
     end
 
     it 'formats internet_on event' do
@@ -229,6 +297,91 @@ describe WifiWand::EventLogger do
       message = logger.send(:format_event_message, event)
       expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Internet unavailable/)
     end
+
+    it 'formats unknown event type gracefully' do
+      event = {
+        type: :unknown_type,
+        timestamp: Time.new(2025, 10, 28, 14, 34, 0, 0),
+        details: {}
+      }
+      message = logger.send(:format_event_message, event)
+      expect(message).to match(/UNKNOWN EVENT: unknown_type/)
+    end
+  end
+
+  describe '#run' do
+    it 'logs startup message' do
+      logger = WifiWand::EventLogger.new(mock_model, output: output, interval: 0)
+      allow(logger).to receive(:sleep)
+      call_count = 0
+      allow(logger).to receive(:detect_and_emit_events) do
+        call_count += 1
+        logger.stop if call_count >= 1
+      end
+      logger.run
+      expect(output.string).to match(/Event logging started/)
+    end
+
+    it 'logs initial state on startup' do
+      logger = WifiWand::EventLogger.new(mock_model, output: output, interval: 0)
+      allow(logger).to receive(:sleep)
+      allow(logger).to receive(:detect_and_emit_events) { logger.stop }
+      logger.run
+      expect(output.string).to match(/Current state: WiFi/)
+    end
+
+    it 'logs stopped message on Ctrl+C' do
+      logger = WifiWand::EventLogger.new(mock_model, output: output, interval: 0)
+      allow(logger).to receive(:sleep).and_raise(Interrupt)
+      logger.run
+      expect(output.string).to match(/Event logging stopped/)
+    end
+
+    it 'calls detect_and_emit_events each iteration' do
+      logger = WifiWand::EventLogger.new(mock_model, output: output, interval: 0)
+      allow(logger).to receive(:sleep)
+      call_count = 0
+      allow(logger).to receive(:detect_and_emit_events) do
+        call_count += 1
+        logger.stop if call_count >= 3
+      end
+      logger.run
+      expect(call_count).to eq(3)
+    end
+
+    it 'sleeps for the configured interval between polls' do
+      logger = WifiWand::EventLogger.new(mock_model, output: output, interval: 7)
+      sleep_count = 0
+      allow(logger).to receive(:sleep) do |duration|
+        sleep_count += 1
+        logger.stop if sleep_count >= 1
+        expect(duration).to eq(7)
+      end
+      allow(logger).to receive(:detect_and_emit_events)
+      logger.run
+    end
+
+    it 'cleans up log file manager on exit' do
+      logger = WifiWand::EventLogger.new(
+        mock_model,
+        output: output,
+        interval: 0,
+        log_file_manager: mock_log_file_manager
+      )
+      allow(logger).to receive(:sleep).and_raise(Interrupt)
+      logger.run
+      expect(mock_log_file_manager).to have_received(:close)
+    end
+  end
+
+  describe '#stop' do
+    it 'sets running to false, stopping the run loop' do
+      logger = WifiWand::EventLogger.new(mock_model, output: output, interval: 0)
+      allow(logger).to receive(:sleep)
+      allow(logger).to receive(:detect_and_emit_events) { logger.stop }
+      logger.run
+      expect(logger.instance_variable_get(:@running)).to be false
+    end
   end
 
   describe '#log_initial_state' do
@@ -236,21 +389,21 @@ describe WifiWand::EventLogger do
       WifiWand::EventLogger.new(mock_model, output: output)
     end
 
-    it 'logs initial state with internet available and timestamp' do
-      state = { internet_connected: true }
+    it 'logs initial state with all fields available' do
+      state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
 
       expect(logger).to receive(:log_message) do |message|
-        expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Current state: Internet available/)
+        expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi on, connected to TestNetwork, internet available/)
       end
 
       logger.send(:log_initial_state, state)
     end
 
-    it 'logs initial state with internet unavailable and timestamp' do
-      state = { internet_connected: false }
+    it 'logs initial state with WiFi off' do
+      state = { wifi_on: false, network_name: nil, internet_connected: false }
 
       expect(logger).to receive(:log_message) do |message|
-        expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Current state: Internet unavailable/)
+        expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi off, not connected, internet unavailable/)
       end
 
       logger.send(:log_initial_state, state)
