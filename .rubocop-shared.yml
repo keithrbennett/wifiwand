@@ -1,0 +1,232 @@
+inherit_mode:
+  merge:
+    - Exclude
+
+plugins:
+  - rubocop-rspec
+
+AllCops:
+  TargetRubyVersion: 3.2
+  NewCops: enable
+  SuggestExtensions: false
+
+Layout/ArgumentAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+Layout/ClosingHeredocIndentation:
+  Enabled: false
+
+Layout/EmptyLines:
+  Enabled: false
+
+Layout/EmptyLinesAroundAccessModifier:
+  EnforcedStyle: around
+
+Layout/EmptyLinesAroundBlockBody:
+  EnforcedStyle: no_empty_lines
+
+Layout/EmptyLinesAroundClassBody:
+  EnforcedStyle: no_empty_lines
+
+Layout/EmptyLinesAroundModuleBody:
+  EnforcedStyle: no_empty_lines
+
+Layout/EndAlignment:
+  EnforcedStyleAlignWith: start_of_line
+
+Layout/FirstArrayElementIndentation:
+  EnforcedStyle: consistent
+
+Layout/FirstHashElementIndentation:
+  EnforcedStyle: consistent
+
+Layout/HashAlignment:
+  EnforcedHashRocketStyle: key
+  EnforcedColonStyle: key
+
+Layout/IndentationConsistency:
+  EnforcedStyle: normal
+
+Layout/LineLength:
+  AllowedPatterns:
+    - '\s*#'
+    - '^\s*\#.*http'
+
+Layout/MultilineMethodCallBraceLayout:
+  Enabled: false
+
+Layout/MultilineMethodCallIndentation:
+  EnforcedStyle: indented
+
+Layout/ParameterAlignment:
+  EnforcedStyle: with_fixed_indentation
+
+Layout/SpaceInsideBlockBraces:
+  EnforcedStyle: space
+
+Layout/SpaceInsideHashLiteralBraces:
+  EnforcedStyle: space
+
+Layout/TrailingWhitespace:
+  Enabled: true
+
+Lint/AmbiguousBlockAssociation:
+  Enabled: true
+  AllowedMethods:
+    - change
+    - not_change
+    - raise_error
+
+Lint/SuppressedException:
+  AllowComments: true
+
+Lint/UnusedBlockArgument:
+  AllowUnusedKeywordArguments: true
+
+Lint/UnusedMethodArgument:
+  AllowUnusedKeywordArguments: true
+
+Metrics/AbcSize:
+  Enabled: false
+
+Metrics/BlockLength:
+  Enabled: false
+
+Metrics/BlockNesting:
+  Enabled: false
+
+Metrics/ClassLength:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
+  Enabled: false
+
+Metrics/MethodLength:
+  Enabled: false
+
+Metrics/ModuleLength:
+  Enabled: false
+
+Metrics/ParameterLists:
+  Enabled: false
+
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+Naming/AccessorMethodName:
+  Enabled: true
+
+Naming/MemoizedInstanceVariableName:
+  EnforcedStyleForLeadingUnderscores: optional
+
+Naming/PredicatePrefix:
+  Enabled: true
+  AllowedMethods:
+    - is_a?
+
+Naming/VariableNumber:
+  EnforcedStyle: normalcase
+
+RSpec/ContextWording:
+  Enabled: true
+  Prefixes:
+    - when
+    - with
+    - without
+    - if
+    - unless
+    - for
+
+RSpec/ExampleLength:
+  Enabled: false
+
+RSpec/MultipleExpectations:
+  Enabled: false
+
+RSpec/MultipleMemoizedHelpers:
+  Enabled: false
+
+RSpec/NestedGroups:
+  Enabled: false
+
+RSpec/VerifiedDoubles:
+  Enabled: false
+
+Security/Eval:
+  Enabled: true
+
+Security/MarshalLoad:
+  Enabled: true
+
+Security/YAMLLoad:
+  Enabled: true
+
+Style/BlockDelimiters:
+  EnforcedStyle: line_count_based
+
+Style/ClassAndModuleChildren:
+  Enabled: false
+
+Style/Documentation:
+  Enabled: false
+
+Style/EmptyMethod:
+  EnforcedStyle: expanded
+
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+
+Style/GuardClause:
+  Enabled: false
+
+Style/IfUnlessModifier:
+  Enabled: false
+
+Style/Lambda:
+  EnforcedStyle: literal
+
+Style/LambdaCall:
+  Enabled: false
+
+Style/MethodDefParentheses:
+  Enabled: false
+
+Style/MultilineTernaryOperator:
+  Enabled: false
+
+Style/NumericPredicate:
+  Enabled: false
+
+Style/ParenthesesAroundCondition:
+  AllowInMultilineConditions: true
+
+Style/PercentLiteralDelimiters:
+  PreferredDelimiters:
+    default: '()'
+    '%w': '[]'
+    '%W': '[]'
+    '%i': '[]'
+    '%I': '[]'
+
+Style/RedundantReturn:
+  Enabled: true
+  AllowMultipleReturnValues: true
+
+Style/RescueStandardError:
+  EnforcedStyle: implicit
+
+Style/SingleLineMethods:
+  AllowIfMethodIsEmpty: false
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Style/StringLiteralsInInterpolation:
+  EnforcedStyle: single_quotes
+
+Style/TrailingCommaInArguments:
+  EnforcedStyleForMultiline: no_comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: no_comma
