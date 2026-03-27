@@ -45,6 +45,7 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
     private let command: HelperCommand
     private var hasExecuted = false
     private var authorizationRequested = false
+    private var authorizationTimeoutWorkItem: DispatchWorkItem?
 
     init(command: HelperCommand) {
         self.command = command
@@ -116,16 +117,12 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
                 locationManager?.requestWhenInUseAuthorization()
                 showPermissionAlert()
             } else {
-                // For normal commands, request but don't wait long
-                fputs("wifiwand-helper: Requesting authorization (may not show prompt for CLI apps)\n", stderr)
+                // For normal commands, wait for an explicit authorization result instead of
+                // scanning with hidden SSIDs and forcing the Ruby layer to guess what happened.
+                fputs("wifiwand-helper: Requesting authorization before executing command\n", stderr)
                 authorizationRequested = true
                 locationManager?.requestWhenInUseAuthorization()
-                // Wait a moment for potential callback, then execute regardless
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
-                    guard let self = self, !self.hasExecuted else { return }
-                    fputs("wifiwand-helper: Proceeding without authorization (SSIDs will be hidden)\n", stderr)
-                    self.executeCommand()
-                }
+                scheduleAuthorizationTimeout()
             }
         case .authorizedAlways, .authorized:
             // Already authorized, execute immediately
@@ -136,17 +133,15 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
                 executeCommand()
             }
         case .denied, .restricted:
-            // Permission denied - execute anyway (will get <hidden> for SSIDs, but that's expected)
             fputs("wifiwand-helper: Permission denied or restricted\n", stderr)
             if command == .requestPermission {
                 showDeniedAlert()
             } else {
-                executeCommand()
+                emitLocationServicesError("Location Services denied")
             }
         @unknown default:
-            // Unknown status - try to execute anyway
             fputs("wifiwand-helper: Unknown authorization status\n", stderr)
-            executeCommand()
+            emitLocationServicesError("Location Services authorization status is unknown")
         }
     }
 
@@ -170,7 +165,27 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
         if status == .authorizedAlways || status == .authorized {
             fputs("wifiwand-helper: Authorization granted! Executing command.\n", stderr)
             executeCommand()
+        } else if status == .denied || status == .restricted {
+            emitLocationServicesError("Location Services denied")
         }
+    }
+
+    private func scheduleAuthorizationTimeout() {
+        authorizationTimeoutWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            guard let self = self, !self.hasExecuted else { return }
+            self.emitLocationServicesError("Location Services authorization timed out")
+        }
+        authorizationTimeoutWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10.0, execute: workItem)
+    }
+
+    private func emitLocationServicesError(_ message: String) {
+        guard !hasExecuted else { return }
+        hasExecuted = true
+        authorizationTimeoutWorkItem?.cancel()
+        printJSON(["status": "error", "error": message])
+        exit(1)
     }
 
     private func showPermissionAlert() {
@@ -231,6 +246,7 @@ Click 'Open Settings' to go there now.
         // Prevent double execution
         guard !hasExecuted else { return }
         hasExecuted = true
+        authorizationTimeoutWorkItem?.cancel()
 
         guard let interface = obtainInterfaceWithRetry() else {
             printJSON(["status": "error", "error": "no Wi-Fi interface" ] )

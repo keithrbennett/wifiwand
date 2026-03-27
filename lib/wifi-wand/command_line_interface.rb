@@ -83,12 +83,16 @@ class CommandLineInterface
     info = model.available_network_names
     human_readable_string_producer = -> do
       if model.wifi_on?
-        <<~MESSAGE
-          Available networks, in descending signal strength order, 
-          and not including any currently connected network, are:
-  
-          #{format_object(info)}" "
-        MESSAGE
+        if info.respond_to?(:empty?) && info.empty?
+          empty_available_networks_message
+        else
+          <<~MESSAGE
+            Available networks, in descending signal strength order,
+            and not including any currently connected network, are:
+
+            #{format_object(info)}
+          MESSAGE
+        end
       else
         "Wifi is off, cannot see available networks."
       end
@@ -397,6 +401,14 @@ class CommandLineInterface
   # when padding inline terminal updates.
   def strip_ansi(text)
     text.to_s.gsub(/\e\[[\d;]*m/, '')
+  end
+
+  def empty_available_networks_message
+    if model.is_a?(WifiWand::MacOsModel)
+      'No visible networks were found. On macOS 14+, this can mean the helper could not get usable Location Services authorization for WiFi SSIDs.'
+    else
+      'No visible networks were found.'
+    end
   end
 
   def handle_output(data, human_readable_string_producer)

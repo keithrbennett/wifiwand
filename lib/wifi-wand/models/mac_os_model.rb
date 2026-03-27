@@ -204,19 +204,13 @@ class MacOsModel < BaseModel
 
   def helper_available_network_names
     networks = mac_helper_client.scan_networks
-    return nil unless networks && !networks.empty?
+    return [] if mac_helper_client.location_services_blocked?
+    return nil unless networks&.any?
 
-    names = []
-    seen = {}
-
-    networks.each do |network|
-      ssid = network['ssid'].to_s
-      next if ssid.empty? || ssid == '<hidden>'
-      next if seen[ssid]
-
-      seen[ssid] = true
-      names << ssid
-    end
+    names = networks
+      .map { |network| network['ssid'].to_s }
+      .reject { |ssid| placeholder_network_name?(ssid) }
+      .uniq
 
     names.empty? ? nil : names
   end
@@ -370,7 +364,8 @@ class MacOsModel < BaseModel
   # Returns the network currently connected to, or nil if none.
   def _connected_network_name
     helper_name = mac_helper_client.connected_network_name
-    return helper_name if helper_name
+    return helper_name if helper_name && !placeholder_network_name?(helper_name)
+    return nil if mac_helper_client.location_services_blocked?
 
     data = airport_data
     airport_data = data.dig("SPAirPortDataType", 0, "spairport_airport_interfaces")
@@ -389,7 +384,8 @@ class MacOsModel < BaseModel
     return nil unless current_network
 
     # Return the network name (could still be nil)
-    current_network["_name"]
+    network_name = current_network["_name"]
+    placeholder_network_name?(network_name) ? nil : network_name
   end
 
   def mac_helper_client
@@ -636,12 +632,18 @@ class MacOsModel < BaseModel
     networks
       .sort_by { |net| -extract_signal_strength(net) }
       .map { |h| h['_name'] }
+      .reject { |name| placeholder_network_name?(name) }
       .compact
       .uniq
   end
 
   def extract_signal_strength(network)
     network.fetch('spairport_signal_noise', '0/0').to_s.split('/').first.to_i
+  end
+
+  def placeholder_network_name?(name)
+    value = name.to_s.strip
+    value.empty? || %w[<hidden> <redacted>].include?(value.downcase)
   end
 
   def airport_data

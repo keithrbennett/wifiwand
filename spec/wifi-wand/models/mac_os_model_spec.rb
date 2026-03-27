@@ -385,7 +385,11 @@ module WifiWand
         end
       end
       describe '#_connected_network_name' do
-        let(:helper_double) { instance_double(WifiWand::MacOsWifiAuthHelper::Client) }
+        let(:helper_double) do
+          instance_double(
+            WifiWand::MacOsWifiAuthHelper::Client, location_services_blocked?: false
+          )
+        end
 
         before do
           model.instance_variable_set(:@mac_helper_client, nil)
@@ -425,6 +429,14 @@ module WifiWand
           )
           allow(model).to receive(:ensure_wifi_interface!).and_return('en0')
 
+          expect(model._connected_network_name).to be_nil
+        end
+
+        it 'does not fall back to airport data when helper is blocked by Location Services' do
+          allow(helper_double).to receive(:connected_network_name).and_return(nil)
+          allow(helper_double).to receive(:location_services_blocked?).and_return(true)
+
+          expect(model).not_to receive(:airport_data)
           expect(model._connected_network_name).to be_nil
         end
       end
@@ -802,7 +814,8 @@ module WifiWand
           instance_double(
             WifiWand::MacOsWifiAuthHelper::Client,
             connected_network_name: nil,
-            scan_networks: []
+            scan_networks: [],
+            location_services_blocked?: false
           )
         end
         let(:mock_airport_data) do
@@ -869,6 +882,47 @@ module WifiWand
           
           result = model._available_network_names
           expect(result).to eq(["DupeNetwork", "UniqueNetwork"])
+        end
+
+        it 'filters placeholder network names from helper results' do
+          allow(helper_double).to receive(:scan_networks).and_return([
+            {"ssid" => "<hidden>"},
+            {"ssid" => "<redacted>"},
+            {"ssid" => "VisibleNetwork"}
+          ])
+
+          result = model._available_network_names
+          expect(result).to eq(["VisibleNetwork"])
+        end
+
+        it 'filters placeholder network names from system_profiler fallback results' do
+          placeholder_data = {
+            "SPAirPortDataType" => [{
+              "spairport_airport_interfaces" => [{
+                "_name" => "en0",
+                "spairport_airport_local_wireless_networks" => [
+                  {"_name" => "<redacted>", "spairport_signal_noise" => "95/10"},
+                  {"_name" => "<hidden>", "spairport_signal_noise" => "85/10"},
+                  {"_name" => "VisibleNetwork", "spairport_signal_noise" => "75/10"}
+                ]
+              }]
+            }]
+          }
+
+          allow(model).to receive(:airport_data).and_return(placeholder_data)
+          allow(model).to receive(:wifi_interface).and_return("en0")
+          allow(model).to receive(:connected_network_name).and_return(nil)
+
+          result = model._available_network_names
+          expect(result).to eq(["VisibleNetwork"])
+        end
+
+        it 'does not fall back to system_profiler when helper is blocked by Location Services' do
+          allow(helper_double).to receive(:scan_networks).and_return([])
+          allow(helper_double).to receive(:location_services_blocked?).and_return(true)
+
+          expect(model).not_to receive(:airport_data)
+          expect(model._available_network_names).to eq([])
         end
       end
 

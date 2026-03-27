@@ -475,6 +475,13 @@ describe WifiWand::CommandLineInterface do
             }
           }
         }
+
+        it 'outputs a clear empty-scan message when no networks are returned' do
+          allow(mock_model).to receive(:available_network_names).and_return([])
+          allow(mock_model).to receive(:is_a?).with(WifiWand::MacOsModel).and_return(true)
+
+          expect { subject.cmd_a }.to output(/No visible networks were found.*Location Services authorization/i).to_stdout
+        end
       end
       
       context 'when wifi is off' do

@@ -221,12 +221,15 @@ module WifiWand
     end
 
     class Client
+      attr_reader :last_error_message
+
       def initialize(out_stream_proc:, verbose_proc:, macos_version_proc:)
         @out_stream_proc = out_stream_proc
         @verbose_proc = verbose_proc
         @macos_version_proc = macos_version_proc
         @location_warning_emitted = false
         @disabled = false
+        @last_error_message = nil
       end
 
       def connected_network_name
@@ -260,6 +263,12 @@ module WifiWand
         false
       end
 
+      def location_services_blocked?
+        return false unless @last_error_message
+
+        @last_error_message.downcase.include?('location services')
+      end
+
       private
 
       def sanitize_version_string(version)
@@ -271,6 +280,7 @@ module WifiWand
       end
 
       def execute(command)
+        @last_error_message = nil
         return nil unless available?
 
         ensure_helper_installed
@@ -324,7 +334,8 @@ module WifiWand
       def handle_error(message)
         return unless message
 
-        if message.downcase.include?('location services denied')
+        @last_error_message = message
+        if message.downcase.include?('location services')
           emit_location_warning
         else
           log_verbose("helper error: #{message}")

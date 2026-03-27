@@ -99,6 +99,18 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
     end
   end
 
+  describe '#location_services_blocked?' do
+    it 'returns true when the last helper error came from Location Services' do
+      client.send(:handle_error, 'Location Services authorization timed out')
+      expect(client.location_services_blocked?).to be(true)
+    end
+
+    it 'returns false when the last helper error was unrelated' do
+      client.send(:handle_error, 'unexpected failure')
+      expect(client.location_services_blocked?).to be(false)
+    end
+  end
+
   describe '#execute' do
     subject(:execute_command) { client.send(:execute, command) }
 
