@@ -59,11 +59,11 @@ Run the setup script again. It will register the helper with macOS.
 
 **Q: I granted permission but still see `<hidden>`**
 
-Try running wifi-wand again. If the issue persists, the helper may need to be reinstalled:
+Try running wifi-wand again. If the issue persists, the helper may need to be reinstalled. Run the
+repair flag, which replaces the helper bundle and prompts you to re-grant permission:
 
 ```bash
-bundle exec rake mac:rm_helper
-wifi-wand-macos-setup
+wifi-wand-macos-setup --repair
 ```
 
 **Q: Does wifi-wand track my location?**

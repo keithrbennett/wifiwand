@@ -11,7 +11,7 @@ This document explains the native macOS helper application that wifi-wand uses t
 - [What is the Helper?](#what-is-the-helper)
 - [Why Does wifi-wand Need a Helper?](#why-does-wifi-wand-need-a-helper)
 - [Location Services Permissions](#location-services-permissions)
-- [Managing Permissions](#managing-permissions)
+- [Managing the Helper](#managing-the-helper)
 - [Troubleshooting](#troubleshooting)
 - [Privacy and Security](#privacy-and-security)
 - [Technical Details](#technical-details)
@@ -119,81 +119,67 @@ The helper has **no access** to:
 
 - The first wifi-wand command that needs WiFi details launches `wifiwand-helper`, and macOS immediately asks for Location Services access.
 - The dialog can appear behind other windows; if the command seems stuck, look for the prompt or open **System Settings → Privacy & Security → Location Services** to grant access manually once the helper appears there.
-- macOS does **not** list `wifiwand-helper` in Location Services until the helper has run at least once. If you prefer to grant permission before using wifi-wand interactively, run:
+- macOS does **not** list `wifiwand-helper` in Location Services until the helper has run at least once. To register the helper with macOS and walk through permission granting in one step, run:
   ```bash
-  bundle exec rake mac:helper_location_permission_allow
+  wifi-wand-macos-setup
   ```
-  This task starts the helper briefly so macOS can register it, then waits for you to click **Allow** (or you can flip the switch in System Settings afterwards).
 
 ---
 
-## Managing Permissions
+## Managing the Helper
 
-wifi-wand provides rake tasks to manage Location Services permissions for the helper.
+wifi-wand ships a setup script for installing the helper and managing location permission.
 
-### Check Current Permission Status
-
-```bash
-rake mac:helper_location_permission_status
-```
-
-**Output:**
-```
-No Location Services entry found for wifiwand-helper.
-```
-or
-```
-Location Services entries for wifiwand-helper:
-- Allowed (auth=2) for com.wifiwand.helper [bundle identifier] at 2025-11-03 10:00:00
-```
-
-### Grant Location Permission
+### Check Status and Install
 
 ```bash
-rake mac:helper_location_permission_allow
+wifi-wand-macos-setup
 ```
 
-This will:
-1. Reset any existing permission decision
-2. Launch the helper (which causes macOS to list it under Location Services if this is the first run)
-3. Trigger the macOS permission prompt
-4. Wait for you to click "Allow"
+This command:
+1. Checks whether the helper is installed and structurally valid
+2. Checks whether Location Services permission is already granted
+3. Exits immediately if everything is already set up:
+   ```
+   ✅ WifiWand macOS setup is complete! All requirements are satisfied.
+   ```
+4. Otherwise installs the helper (if needed) and opens System Settings so you can grant permission
 
-**What you'll see:**
+### Repair or Reinstall
+
+```bash
+wifi-wand-macos-setup --repair
 ```
-"wifiwand-helper" would like to access your location.
 
-wifiwand needs location access to retrieve Wi-Fi network information.
-
-[Don't Allow]  [Allow]
-```
-
-Click **Allow** to grant permission.
+Use this when the helper is already installed but wifi-wand still shows `<hidden>` or `<redacted>` for network names. It force-replaces the helper bundle and re-runs the authorization flow.
 
 ### Revoke Location Permission
 
-```bash
-rake mac:helper_location_permission_deny
-```
-
-This prompts you to click **Don't Allow** when the permission dialog appears.
-
-### Reset Permission
-
-```bash
-rake mac:helper_location_permission_reset
-```
-
-This clears the stored permission decision, allowing you to re-authorize.
-
-### Manual Permission Management
-
-You can also manage permissions via System Settings:
+To remove wifi-wand's access to WiFi names:
 
 1. Open **System Settings**
 2. Go to **Privacy & Security → Location Services**
-3. Scroll to find **wifiwand-helper** or **com.wifiwand.helper** (the helper only appears here after it has run once—run any wifi-wand command that talks to WiFi or use `bundle exec rake mac:helper_location_permission_allow` to seed the entry)
-4. Toggle permission on/off
+3. Find **wifiwand-helper** in the list
+4. Toggle the switch to off
+
+After revoking, wifi-wand will fall back to system commands and will typically show `<redacted>` for network names on macOS 14+.
+
+### Disable the Helper Entirely
+
+If you prefer not to use the helper (accepting redacted WiFi names), set this environment variable before running wifi-wand:
+
+```bash
+export WIFIWAND_DISABLE_MAC_HELPER=1
+```
+
+### Manual Permission Management
+
+You can also manage permissions directly via System Settings:
+
+1. Open **System Settings**
+2. Go to **Privacy & Security → Location Services**
+3. Scroll to find **wifiwand-helper** (the helper only appears here after it has run at least once — run any wifi-wand command or `wifi-wand-macos-setup` to seed the entry)
+4. Toggle permission on or off
 
 ---
 
@@ -210,40 +196,31 @@ You can also manage permissions via System Settings:
 
 **Solution:**
 ```bash
-# Check permission
-rake mac:helper_location_permission_status
+# Check status and grant permission if needed
+wifi-wand-macos-setup
 
-# Grant permission if needed
-rake mac:helper_location_permission_allow
-
-# Check system Location Services
+# Open Location Services directly if needed
 open "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices"
 ```
 
 ---
 
-### Permission Prompt Doesn't Appear
+### Permission Prompt Doesn't Appear / Still Seeing `<hidden>`
 
-**Symptom:** Run `rake mac:helper_location_permission_allow` but no prompt shows
+**Symptom:** Ran `wifi-wand-macos-setup` but no prompt appeared, or network names are still redacted
 
 **Possible Causes:**
-1. Permission already granted or denied
-2. Helper not properly installed
-3. macOS caching the previous decision
+1. Permission already granted or denied (check System Settings)
+2. Helper bundle is stale or macOS TCC has lost track of it
+3. macOS cached the previous permission decision
 
 **Solution:**
 ```bash
-# Reset the permission
-rake mac:helper_location_permission_reset
-
-# Try again
-rake mac:helper_location_permission_allow
-
-# If still no prompt, reinstall helper
-rm -rf ~/Library/Application\ Support/WifiWand/
-# Run any wifi-wand command to reinstall
-wifi-wand info
+# Force-reinstall the helper and re-run the permission flow
+wifi-wand-macos-setup --repair
 ```
+
+If the prompt still does not appear after repair, open System Settings manually and look for **wifiwand-helper** under Location Services. If it is present, toggle it off and back on.
 
 ---
 
@@ -252,23 +229,17 @@ wifi-wand info
 **Symptom:** Error message about helper installation failure
 
 **Possible Causes:**
-1. Swift compiler not available (shouldn't happen with pre-signed binary)
-2. Corrupted helper files
-3. File permission issues
+1. Corrupted helper files
+2. File permission issues
 
 **Solution:**
 ```bash
-# Remove old helper
+# Repair the helper installation
+wifi-wand-macos-setup --repair
+
+# If repair fails, remove the helper directory and run setup again
 rm -rf ~/Library/Application\ Support/WifiWand/
-
-# Check if Xcode Command Line Tools are installed
-xcode-select -p
-
-# If not installed:
-xcode-select --install
-
-# Try running wifi-wand again
-wifi-wand info
+wifi-wand-macos-setup
 ```
 
 ---
@@ -284,7 +255,7 @@ This appears to be a quirk of macOS 15.x behavior where:
 - WiFi information is still successfully retrieved
 
 **Is this a problem?**
-Not really - it means wifi-wand works without requiring explicit permission management. However, for proper long-term behavior and user control, using the permission rake tasks is still recommended.
+Not really — it means wifi-wand works without requiring explicit permission management on those versions.
 
 ---
 
@@ -308,7 +279,7 @@ The helper:
 - ✅ Does not run in the background
 - ✅ Does not access your location coordinates
 
-**You are in full control.** The helper only runs when you use wifi-wand, and you can revoke permissions at any time.
+**You are in full control.** The helper only runs when you use wifi-wand, and you can revoke permissions at any time via System Settings.
 
 ### Auditing the Helper
 
@@ -401,7 +372,7 @@ macOS identifies the helper by its **bundle identifier** (`com.wifiwand.helper`)
 - **Same gem version**: After granting Location Services permission once, subsequent uses don't require re-authorization.
 - **New gem version**: Permission should continue automatically because the helper keeps the same bundle identifier and signing identity. Upgrading to a new wifi-wand version normally does not require another permission grant.
 
-> **Note:** macOS TCC (Transparency, Consent, and Control) behavior can sometimes be sensitive to path, signature, or OS-version quirks. If macOS prompts for permission again after a gem upgrade, that would be an OS-level edge case—the design goal is permission continuity across versions.
+> **Note:** macOS TCC (Transparency, Consent, and Control) behavior can sometimes be sensitive to path, signature, or OS-version quirks. If macOS prompts for permission again after a gem upgrade, run `wifi-wand-macos-setup --repair` to force re-registration.
 
 Multiple installed helper copies may exist on disk (one per gem version), but they present as one logical macOS app identity for permission purposes via the stable bundle identifier `com.wifiwand.helper`.
 
@@ -432,6 +403,6 @@ If you're interested in the code signing and notarization process used to build 
 
 ---
 
-**Last Updated:** 2025-11-03
+**Last Updated:** 2026-03-30
 **macOS Compatibility:** macOS 14.0 (Sonoma) and later
 **Helper Version:** Matches wifi-wand gem version

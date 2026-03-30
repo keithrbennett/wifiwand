@@ -346,7 +346,9 @@ module WifiWand
         return if @location_warning_emitted
 
         stream = out_stream || $stdout
-        stream.puts('wifiwand helper: Location Services denied. Run `bundle exec rake mac:helper_location_permission_allow` to enable unredacted SSIDs.') if stream
+        stream.puts('wifiwand helper: Location Services denied. ' \
+                    'Run `wifi-wand-macos-setup` (or `wifi-wand-macos-setup --repair`) ' \
+                    'to grant location access.') if stream
         @location_warning_emitted = true
       end
 
