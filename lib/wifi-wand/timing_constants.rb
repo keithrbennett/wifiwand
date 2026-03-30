@@ -10,13 +10,13 @@ module WifiWand
     STATUS_WAIT_TIMEOUT_LONG = 15
     # Use a shorter window for quick retries such as rapid on/off toggles.
     STATUS_WAIT_TIMEOUT_SHORT = 5
-    
+
     # Many Realtek/Broadcom chipsets need multiple seconds to report link-up/-down.
     # Value was 0.05s originally but was raised to 5s after repeated flake reports.
     WIFI_STATE_CHANGE_WAIT = 5.0
     # Wait long enough for DHCP + captive portal redirects before the next poll.
-    NETWORK_CONNECTION_WAIT = 10.0 
-    
+    NETWORK_CONNECTION_WAIT = 10.0
+
     # NetworkConnectivityTester timeouts
     # Integration tests stub out sockets, so 0.25s keeps specs fast while still
     # tolerating async cleanup; production needs longer timeouts to avoid flaky results
@@ -29,7 +29,7 @@ module WifiWand
     # The overall window is wider to accommodate both TCP and DNS checks with retries.
     # Tests finish quickly with 1s; production gets 6s to cover TCP + DNS + latency.
     OVERALL_CONNECTIVITY_TIMEOUT = ENV['RSPEC_RUNNING'] ? 1.0 : 6
-    
+
     # Spec helper interval for rapid polling in deterministic unit tests.
     FAST_TEST_INTERVAL = 0.1
 

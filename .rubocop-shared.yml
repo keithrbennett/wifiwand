@@ -48,9 +48,9 @@ Layout/IndentationConsistency:
   EnforcedStyle: normal
 
 Layout/LineLength:
+  Max: 110
   AllowedPatterns:
     - '\s*#'
-    - '^\s*\#.*http'
 
 Layout/MultilineMethodCallBraceLayout:
   Enabled: false
@@ -69,6 +69,9 @@ Layout/SpaceInsideHashLiteralBraces:
 
 Layout/TrailingWhitespace:
   Enabled: true
+
+Layout/ExtraSpacing:
+  Enabled: false
 
 Lint/AmbiguousBlockAssociation:
   Enabled: true
@@ -149,6 +152,12 @@ RSpec/MultipleMemoizedHelpers:
 RSpec/NestedGroups:
   Enabled: false
 
+RSpec/DescribeClass:
+  Enabled: false
+
+RSpec/MessageSpies:
+  Enabled: false
+
 RSpec/VerifiedDoubles:
   Enabled: false
 
@@ -213,6 +222,9 @@ Style/RedundantReturn:
   Enabled: true
   AllowMultipleReturnValues: true
 
+Style/RegexpLiteral:
+  Enabled: false
+
 Style/RescueStandardError:
   EnforcedStyle: implicit
 
@@ -224,6 +236,15 @@ Style/StringLiterals:
 
 Style/StringLiteralsInInterpolation:
   EnforcedStyle: single_quotes
+
+Style/SymbolArray:
+  EnforcedStyle: percent
+
+Style/WordArray:
+  EnforcedStyle: percent
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: no_comma
 
 Style/TrailingCommaInArguments:
   EnforcedStyleForMultiline: no_comma

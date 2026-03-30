@@ -79,7 +79,7 @@ module WifiWand
             end
             @previous_state = current_state
           elsif @verbose
-            log_message("Failed to fetch WiFi state")
+            log_message('Failed to fetch WiFi state')
           end
 
           break unless @running

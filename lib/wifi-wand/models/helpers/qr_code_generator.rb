@@ -128,7 +128,7 @@ module WifiWand
         end
 
         if $stdin.tty?
-          output_stream.print "Output file exists. Overwrite? [y/N]: "
+          output_stream.print 'Output file exists. Overwrite? [y/N]: '
           answer = $stdin.gets&.strip&.downcase
           if %w[y yes].include?(answer)
             begin

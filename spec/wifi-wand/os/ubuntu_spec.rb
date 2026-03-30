@@ -6,7 +6,7 @@ require_relative '../../../lib/wifi-wand/os/ubuntu'
 module WifiWand
 
 describe Ubuntu do
-  subject { Ubuntu.new }
+  subject { described_class.new }
 
   describe '#initialize' do
     it 'sets correct id and display_name' do
@@ -42,7 +42,7 @@ describe Ubuntu do
         name: 'detects Ubuntu via /proc/version when os-release absent',
         os_release_exists: false,
         proc_version_exists: true,
-        proc_version_content: "Linux version 5.4.0-74-generic #83-Ubuntu",
+        proc_version_content: 'Linux version 5.4.0-74-generic #83-Ubuntu',
         expected: true
       },
       {
@@ -91,11 +91,11 @@ describe Ubuntu do
     it 'requires UbuntuModel and creates model with options' do
       options = { verbose: true, wifi_interface: 'wlan0' }
       mock_model = double('UbuntuModel')
-      
+
       expect(subject).to receive(:require_relative).with('../models/ubuntu_model')
       stub_const('WifiWand::UbuntuModel', double('UbuntuModelClass'))
       expect(WifiWand::UbuntuModel).to receive(:create_model).with(options).and_return(mock_model)
-      
+
       expect(subject.create_model(options)).to eq(mock_model)
     end
   end

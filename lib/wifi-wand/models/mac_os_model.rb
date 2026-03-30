@@ -50,7 +50,7 @@ class MacOsModel < BaseModel
     51 => ->(network_name, _error) { raise KeychainNonInteractiveError.new(network_name) },
     25 => ->(network_name, _error) { raise KeychainError.new("Invalid keychain search parameters for network '#{network_name}'") },
     1 => ->(network_name, error) {
-      if error.text.include?("could not be found")
+      if error.text.include?('could not be found')
         nil
       else
         raise KeychainError.new("Keychain error accessing password for network '#{network_name}': #{error.text.strip}")
@@ -368,23 +368,23 @@ class MacOsModel < BaseModel
     return nil if mac_helper_client.location_services_blocked?
 
     data = airport_data
-    airport_data = data.dig("SPAirPortDataType", 0, "spairport_airport_interfaces")
+    airport_data = data.dig('SPAirPortDataType', 0, 'spairport_airport_interfaces')
     return nil unless airport_data
 
     iface = ensure_wifi_interface!
     wifi_interface_data = airport_data.find do |interface|
-      interface["_name"] == iface
+      interface['_name'] == iface
     end
 
     # Handle interface not found
     return nil unless wifi_interface_data
 
     # Handle no current network connection
-    current_network = wifi_interface_data["spairport_current_network_information"]
+    current_network = wifi_interface_data['spairport_current_network_information']
     return nil unless current_network
 
     # Return the network name (could still be nil)
-    network_name = current_network["_name"]
+    network_name = current_network['_name']
     placeholder_network_name?(network_name) ? nil : network_name
   end
 
@@ -408,9 +408,9 @@ class MacOsModel < BaseModel
         # Fall through to ifconfig fallback
       end
     else
-      out_stream.puts "Swift/CoreWLAN not available. Using ifconfig..." if verbose_mode
+      out_stream.puts 'Swift/CoreWLAN not available. Using ifconfig...' if verbose_mode
     end
-    
+
     # Fallback to ifconfig (disassociate from current network)
     begin
       iface = ensure_wifi_interface!
@@ -436,7 +436,7 @@ class MacOsModel < BaseModel
   end
 
 
-  
+
 
   def set_nameservers(nameservers)
     service_name = detect_wifi_service_name
@@ -473,9 +473,6 @@ class MacOsModel < BaseModel
   def open_resource(resource_url)
     run_os_command(['open', resource_url])
   end
-
-
-  
 
 
   def nameservers_using_scutil
@@ -557,10 +554,10 @@ class MacOsModel < BaseModel
 
   def validate_os_preconditions
     # All core commands are built-in, just warn about optional ones
-    unless command_available?("swift")
-      out_stream.puts "Warning: Swift not available. Some advanced features may use fallback methods. Install with: xcode-select --install" if verbose_mode
+    unless command_available?('swift')
+      out_stream.puts 'Warning: Swift not available. Some advanced features may use fallback methods. Install with: xcode-select --install' if verbose_mode
     end
-    
+
     :ok
   end
 

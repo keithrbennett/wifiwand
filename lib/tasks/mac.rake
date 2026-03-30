@@ -23,7 +23,7 @@ namespace :mac do
       abort "Source helper not found at #{source}. Run `bundle exec rake swift:compile` first."
     end
 
-    puts "Installing development helper..."
+    puts 'Installing development helper...'
     puts "  From: #{source}"
     puts "  To:   #{dest}"
 
@@ -31,7 +31,7 @@ namespace :mac do
     FileUtils.rm_rf(dest)
     FileUtils.cp_r(source, dest)
 
-    puts "✓ Development helper installed successfully"
+    puts '✓ Development helper installed successfully'
   end
 
   desc 'Remove installed helper from user library'
@@ -44,7 +44,7 @@ namespace :mac do
     if File.exist?(install_dir)
       puts "Removing helper installation at: #{install_dir}"
       FileUtils.rm_rf(install_dir)
-      puts "✓ Helper removed successfully"
+      puts '✓ Helper removed successfully'
     else
       puts "Helper not present at #{install_dir}, no action necessary."
     end

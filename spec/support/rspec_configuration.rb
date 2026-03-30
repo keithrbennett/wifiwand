@@ -21,11 +21,11 @@ module RSpecConfiguration
     config.example_status_persistence_file_path = 'rspec-errors.txt'
     config.filter_run_including :focus => true
     config.run_all_when_everything_filtered = !config.only_failures?
-    
+
     configure_disruptive_test_filtering(config)
     OSFiltering.setup_os_detection(config)
     OSFiltering.configure_os_filtering(config)
-    
+
     config.define_derived_metadata do |meta|
       meta[:slow] = true if meta[:disruptive]
     end
@@ -69,7 +69,7 @@ module RSpecConfiguration
       end
     end
   end
-  
+
   def self.get_examples_to_run
     if RSpec.world.respond_to?(:filtered_examples)
       RSpec.world.filtered_examples.values.flatten
@@ -77,7 +77,7 @@ module RSpecConfiguration
       []
     end
   end
-  
+
   def self.analyze_test_types(examples_to_run)
     {
       disruptive: examples_to_run.any? { |ex| ex.metadata[:disruptive] },
@@ -85,29 +85,29 @@ module RSpecConfiguration
       keychain: examples_to_run.any? { |ex| ex.metadata[:keychain_integration] }
     }
   end
-  
+
   def self.macos_and_auth_tests_will_run?(test_types)
     defined?($compatible_os_tag) && $compatible_os_tag == :os_mac &&
       (test_types[:disruptive] || test_types[:sudo] || test_types[:keychain])
   end
-  
+
   def self.handle_sudo_preflight(sudo_tests_will_run)
     return unless sudo_tests_will_run
-    
+
     system('sudo -v')
     RSpecConfiguration.keep_sudo_alive
   end
-  
+
   def self.handle_network_state_capture(disruptive_tests_will_run)
     return unless disruptive_tests_will_run
-    
+
     begin
       NetworkStateManager.capture_state
     rescue => e
       puts "Warning: Could not capture network state during preflight: #{e.message}"
     end
   end
-  
+
   def self.keep_sudo_alive
     $sudo_keepalive_thread = Thread.new do
       loop do
@@ -123,7 +123,7 @@ module RSpecConfiguration
   def self.configure_test_stubbing(config)
     config.before(:each) do |example|
       next unless RSpecConfiguration.macos_model_available?
-      
+
       begin
         RSpecConfiguration.stub_keychain_access(example)
         RSpecConfiguration.stub_security_commands
@@ -132,14 +132,14 @@ module RSpecConfiguration
       end
     end
   end
-  
+
   def self.macos_model_available?
     defined?(WifiWand::MacOsModel) && ($compatible_os_tag == :os_mac)
   end
-  
+
   def self.stub_keychain_access(example)
     return if example.metadata[:keychain_integration]
-    
+
     allow_any_instance_of(WifiWand::MacOsModel)
       .to receive(:preferred_network_password)
       .and_return(nil)
@@ -165,7 +165,7 @@ module RSpecConfiguration
   def self.configure_helper_inclusions(config)
     config.include(TestHelpers)
   end
-  
+
   # Configure network state management for disruptive tests
   def self.configure_network_state_management(config)
     # Restore network state after each disruptive test
@@ -178,32 +178,32 @@ module RSpecConfiguration
       RSpecConfiguration.cleanup_sudo_keepalive
       RSpecConfiguration.attempt_final_network_restoration
     end
-    
+
     # Show usage information
     config.before(:suite) do
       RSpecConfiguration.show_test_usage_information
     end
   end
-  
+
   def self.cleanup_sudo_keepalive
     return unless defined?($sudo_keepalive_thread) && $sudo_keepalive_thread&.alive?
-    
+
     begin
       $sudo_keepalive_thread.kill
     rescue
       # Ignore cleanup errors
     end
   end
-  
+
   def self.attempt_final_network_restoration
     examples_to_run = RSpecConfiguration.get_examples_to_run
     disruptive_tests_ran = examples_to_run.any? { |ex| ex.metadata[:disruptive] }
-    
+
     return unless disruptive_tests_ran
-    
+
     network_state = NetworkStateManager.network_state
     return unless network_state && network_state[:network_name]
-    
+
     puts "\n#{'=' * 60}"
     begin
       NetworkStateManager.restore_state
@@ -216,7 +216,7 @@ module RSpecConfiguration
     end
     puts "#{'=' * 60}\n\n"
   end
-  
+
   def self.show_test_usage_information
     puts <<~MESSAGE
 

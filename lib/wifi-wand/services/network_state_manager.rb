@@ -4,7 +4,7 @@ require_relative '../timing_constants'
 
 module WifiWand
   class NetworkStateManager
-    
+
     def initialize(model, verbose: false, output: $stdout)
       @model = model
       @verbose = verbose
@@ -13,10 +13,10 @@ module WifiWand
 
     # Network State Management for Testing
     # These methods help capture and restore network state during disruptive tests
-    
+
     def capture_network_state
       network_name = @model.connected_network_name
-      
+
       # Always attempt to capture password for consistent restoration
       # If we're capturing network state, we should have the password available
       # for reliable restoration without repeated keychain prompts
@@ -30,7 +30,7 @@ module WifiWand
       else
         nil
       end
-      
+
       {
         wifi_enabled: @model.wifi_on?,
         network_name: network_name,
@@ -38,11 +38,11 @@ module WifiWand
         interface: @model.wifi_interface
       }
     end
-    
+
     def restore_network_state(state, fail_silently: false)
       @output.puts "restore_network_state: #{state} called" if @verbose
       return :no_state_to_restore unless state
-      
+
       begin
         # Restore WiFi enabled state
         if state[:wifi_enabled]
@@ -57,7 +57,7 @@ module WifiWand
           end
           return # If WiFi should be off, we're done
         end
-        
+
         # Restore network connection if one existed
         if state[:network_name] && state[:wifi_enabled]
           # If we are already connected to the original network, no need to proceed
@@ -99,7 +99,7 @@ module WifiWand
         nil
       end
     end
-    
+
     private
 
     def connected_network_password

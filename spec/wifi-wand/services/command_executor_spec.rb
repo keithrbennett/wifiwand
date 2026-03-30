@@ -7,7 +7,7 @@ describe WifiWand::CommandExecutor do
 
   describe '#run_os_command' do
     context 'with verbose mode disabled' do
-      let(:executor) { WifiWand::CommandExecutor.new(verbose: false) }
+      let(:executor) { described_class.new(verbose: false) }
 
       it 'executes commands successfully' do
         result = executor.run_os_command('echo "test"')
@@ -16,9 +16,9 @@ describe WifiWand::CommandExecutor do
       end
 
       it 'raises OsCommandError on command failure when raise_on_error is true' do
-        expect {
+        expect do
           executor.run_os_command('false')  # Command that always fails
-        }.to raise_error(WifiWand::CommandExecutor::OsCommandError)
+        end.to raise_error(WifiWand::CommandExecutor::OsCommandError)
       end
 
       it 'returns result without raising on command failure when raise_on_error is false' do
@@ -35,18 +35,18 @@ describe WifiWand::CommandExecutor do
     end
 
     context 'with verbose mode enabled' do
-      let(:executor) { WifiWand::CommandExecutor.new(verbose: true) }
+      let(:executor) { described_class.new(verbose: true) }
 
       it 'outputs command attempt and duration info' do
-        expect {
+        expect do
           executor.run_os_command('echo "test"')
-        }.to output(/Command:.*echo "test".*Duration:.*seconds/m).to_stdout
+        end.to output(/Command:.*echo "test".*Duration:.*seconds/m).to_stdout
       end
     end
   end
 
   describe '#try_os_command_until' do
-    let(:executor) { WifiWand::CommandExecutor.new(verbose: false) }
+    let(:executor) { described_class.new(verbose: false) }
 
     it 'returns output when condition is met on first try' do
       condition = ->(output) { output.include?('success') }
@@ -55,7 +55,7 @@ describe WifiWand::CommandExecutor do
 
     it 'retries until condition is met' do
       call_count = 0
-      
+
       # Mock the run_os_command to include the iteration number in output
       allow(executor).to receive(:run_os_command) do |command|
         call_count += 1
@@ -69,7 +69,7 @@ describe WifiWand::CommandExecutor do
         )
       end
 
-      condition = ->(output) { 
+      condition = ->(output) {
         # Succeed on second try
         output.include?('attempt 2')
       }
@@ -86,7 +86,7 @@ describe WifiWand::CommandExecutor do
 
     it 'reports attempt count in verbose mode' do
       io = StringIO.new
-      verbose_executor = WifiWand::CommandExecutor.new(verbose: true, output: io)
+      verbose_executor = described_class.new(verbose: true, output: io)
       condition = ->(_output) { true }  # Succeeds on first try
       verbose_executor.try_os_command_until('echo "test"', condition, 3)
       expect(io.string).to match(/Command was executed 1 time/)
@@ -94,7 +94,7 @@ describe WifiWand::CommandExecutor do
   end
 
   describe '#command_available?' do
-    let(:executor) { WifiWand::CommandExecutor.new(verbose: false) }
+    let(:executor) { described_class.new(verbose: false) }
 
     it 'returns true for available commands' do
       expect(executor.command_available?('echo')).to be true
@@ -124,7 +124,7 @@ describe WifiWand::CommandExecutor do
   end
 
   describe WifiWand::CommandExecutor::OsCommandError do
-    let(:error) { WifiWand::CommandExecutor::OsCommandError.new(1, 'false', 'command failed') }
+    let(:error) { described_class.new(1, 'false', 'command failed') }
 
     it 'stores command execution details' do
       expect(error.exitstatus).to eq(1)
@@ -156,11 +156,11 @@ describe WifiWand::CommandExecutor do
     it 'is accessible through BaseModel' do
       require_relative '../../../lib/wifi-wand/models/base_model'
       require 'ostruct'
-      
+
       # This tests the integration without actually running OS-specific code
-      expect {
+      expect do
         WifiWand::BaseModel.new(OpenStruct.new(verbose: false))
-      }.not_to raise_error
+      end.not_to raise_error
     end
 
   end

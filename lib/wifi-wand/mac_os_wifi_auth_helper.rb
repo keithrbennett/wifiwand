@@ -122,7 +122,7 @@ module WifiWand
 
       # Verify installation succeeded - if not, likely concurrent corruption
       unless helper_installed_and_valid?
-        raise "Helper installation failed validation. If running multiple processes concurrently, try again."
+        raise 'Helper installation failed validation. If running multiple processes concurrently, try again.'
       end
 
       installed_bundle_path
@@ -189,7 +189,7 @@ module WifiWand
 
       # Use environment variable or default to Keith's Developer ID
       identity = ENV['WIFIWAND_CODESIGN_IDENTITY'] ||
-                 "Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)"
+                 'Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)'
 
       # Path to entitlements file
       entitlements_path = File.expand_path('../../libexec/macos/wifiwand-helper.entitlements', __dir__)

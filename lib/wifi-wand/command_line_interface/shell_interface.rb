@@ -3,7 +3,7 @@
 module WifiWand
   class CommandLineInterface
     module ShellInterface
-      
+
       # Runs a pry session in the context of this object.
       # Commands and options specified on the command line can also be specified in the shell.
       def run_shell
@@ -41,10 +41,10 @@ module WifiWand
           exit(0)
         else
           io = @err_stream || $stderr
-          io.puts "This command can only be run in shell mode."
+          io.puts 'This command can only be run in shell mode.'
         end
       end
-      
+
     end
   end
 end

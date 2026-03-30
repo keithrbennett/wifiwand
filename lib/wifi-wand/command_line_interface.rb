@@ -72,7 +72,7 @@ class CommandLineInterface
   def process_command_line
     attempt_command_action(ARGV[0], *ARGV[1..-1]) do
       raise WifiWand::BadCommandError.new(
-          %Q{Unrecognized command. Command was #{ARGV.first.inspect} and options were #{ARGV[1..-1].inspect}.})
+          "Unrecognized command. Command was #{ARGV.first.inspect} and options were #{ARGV[1..-1].inspect}.")
     end
   end
 
@@ -94,7 +94,7 @@ class CommandLineInterface
           MESSAGE
         end
       else
-        "Wifi is off, cannot see available networks."
+        'Wifi is off, cannot see available networks.'
       end
     end
     handle_output(info, human_readable_string_producer)
@@ -107,7 +107,7 @@ class CommandLineInterface
 
   def cmd_co(network, password = nil)
     model.connect(network, password)
-    
+
     # Show message if we used a saved password
     if model.last_connection_used_saved_password? && !interactive_mode
       out_stream.puts "Using saved password for '#{network}'. Use 'forget #{network}' if you need to use a different password."
@@ -142,7 +142,7 @@ class CommandLineInterface
       when :get
         current_nameservers = model.nameservers
         human_readable_string_producer = -> do
-          current_nameservers_as_string = current_nameservers.empty? ? "[None]" : current_nameservers.join(', ')
+          current_nameservers_as_string = current_nameservers.empty? ? '[None]' : current_nameservers.join(', ')
           "Nameservers: #{current_nameservers_as_string}"
         end
         handle_output(current_nameservers, human_readable_string_producer)
@@ -170,8 +170,8 @@ class CommandLineInterface
   def cmd_pa(network)
     password = model.preferred_network_password(network)
     human_readable_string_producer = -> do
-      %Q{Preferred network "#{network}" } +
-        (password ? %Q{stored password is "#{password}".} : 'has no stored password.')
+      %Q(Preferred network "#{network}" ) +
+        (password ? %Q(stored password is "#{password}".) : 'has no stored password.')
     end
     handle_output(password, human_readable_string_producer)
   end
@@ -247,8 +247,8 @@ class CommandLineInterface
         handle_output(result, -> { "QR code generated: #{result}" })
       end
     rescue WifiWand::Error => e
-      if e.message.include?("already exists") && $stdin.tty?
-        out_stream.print "Output file exists. Overwrite? [y/N]: "
+      if e.message.include?('already exists') && $stdin.tty?
+        out_stream.print 'Output file exists. Overwrite? [y/N]: '
         answer = $stdin.gets&.strip&.downcase
         if %w[y yes].include?(answer)
           result = model.generate_qr_code(filespec, overwrite: true, password: password)
@@ -357,11 +357,11 @@ class CommandLineInterface
     end
 
     result = model.open_resources_by_codes(*resource_codes)
-    
+
     unless result[:invalid_codes].empty?
       @err_stream.puts model.resource_manager.invalid_codes_error(result[:invalid_codes])
     end
-    
+
     nil
   end
 

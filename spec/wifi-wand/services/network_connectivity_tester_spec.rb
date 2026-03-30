@@ -11,7 +11,7 @@ describe WifiWand::NetworkConnectivityTester do
 
     context 'with verbose mode enabled' do
       let(:output) { StringIO.new }
-      let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: true, output: output) }
+      let(:tester) { described_class.new(verbose: true, output: output) }
 
       before do
         mock_socket_connection_failure
@@ -30,7 +30,7 @@ describe WifiWand::NetworkConnectivityTester do
     end
 
     context 'with mocked failures' do
-      let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
+      let(:tester) { described_class.new(verbose: false) }
 
       before do
         stub_short_connectivity_timeouts
@@ -45,7 +45,7 @@ describe WifiWand::NetworkConnectivityTester do
     end
 
     context 'with mocked success' do
-      let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
+      let(:tester) { described_class.new(verbose: false) }
 
       before { mock_socket_connection_success }
 
@@ -55,7 +55,7 @@ describe WifiWand::NetworkConnectivityTester do
     end
 
     context 'when some ports are blocked but others remain open' do
-      let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
+      let(:tester) { described_class.new(verbose: false) }
 
       before do
         allow(tester).to receive(:tcp_test_endpoints).and_return([
@@ -82,7 +82,7 @@ describe WifiWand::NetworkConnectivityTester do
 
     context 'with verbose mode enabled' do
       let(:output) { StringIO.new }
-      let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: true, output: output) }
+      let(:tester) { described_class.new(verbose: true, output: output) }
 
       before { mock_dns_resolution_failure }
 
@@ -93,7 +93,7 @@ describe WifiWand::NetworkConnectivityTester do
     end
 
     context 'with mocked failures' do
-      let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
+      let(:tester) { described_class.new(verbose: false) }
 
       before do
         stub_short_connectivity_timeouts
@@ -108,7 +108,7 @@ describe WifiWand::NetworkConnectivityTester do
     end
 
     context 'with mocked success' do
-      let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
+      let(:tester) { described_class.new(verbose: false) }
 
       before { mock_dns_resolution_success }
 
@@ -119,33 +119,33 @@ describe WifiWand::NetworkConnectivityTester do
   end
 
   describe '#connected_to_internet?' do
-    let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
+    let(:tester) { described_class.new(verbose: false) }
 
     it 'returns true when both TCP and DNS work' do
       allow(tester).to receive(:tcp_connectivity?).and_return(true)
       allow(tester).to receive(:dns_working?).and_return(true)
-      
+
       expect(tester.connected_to_internet?).to be true
     end
 
     it 'returns false when TCP fails' do
       allow(tester).to receive(:tcp_connectivity?).and_return(false)
       allow(tester).to receive(:dns_working?).and_return(true)
-      
+
       expect(tester.connected_to_internet?).to be false
     end
 
     it 'returns false when DNS fails' do
       allow(tester).to receive(:tcp_connectivity?).and_return(true)
       allow(tester).to receive(:dns_working?).and_return(false)
-      
+
       expect(tester.connected_to_internet?).to be false
     end
 
     it 'returns false when both fail' do
       allow(tester).to receive(:tcp_connectivity?).and_return(false)
       allow(tester).to receive(:dns_working?).and_return(false)
-      
+
       expect(tester.connected_to_internet?).to be false
     end
   end

@@ -85,7 +85,7 @@ class BaseModel
     else
       @wifi_interface = detect_wifi_interface
     end
-    
+
     # Validate that WiFi interface is a valid string
     if @wifi_interface.nil? || @wifi_interface.empty?
       raise WifiInterfaceError.new
@@ -228,13 +228,13 @@ class BaseModel
     rescue
       false
     end
-    
+
     dns_working = begin
       dns_working?
     rescue
       false
     end
-    
+
     # Use the optimized connected_to_internet? method with pre-computed values
     connected = connected_to_internet?(internet_tcp, dns_working)
 
@@ -267,8 +267,8 @@ class BaseModel
         end
       rescue JSON::ParserError
         # Service returned invalid JSON - try alternate approach
-        out_stream.puts "Warning: Public IP service returned invalid data" if @verbose_mode
-        info['public_ip'] = nil  
+        out_stream.puts 'Warning: Public IP service returned invalid data' if @verbose_mode
+        info['public_ip'] = nil
       rescue => e
         # Other errors - log if verbose, gracefully degrade
         out_stream.puts "Warning: Public IP lookup failed: #{e.class}" if @verbose_mode
@@ -333,7 +333,7 @@ class BaseModel
   # Connects to the passed network name, optionally with password.
   # Delegates to ConnectionManager for complex connection logic.
   def connect(network_name, password = nil, skip_saved_password_lookup: false)
-    debug_method_entry(__method__, binding, %i{network_name password})
+    debug_method_entry(__method__, binding, %i[network_name password])
     @connection_manager.connect(network_name, password, skip_saved_password_lookup: skip_saved_password_lookup)
   end
 
@@ -368,7 +368,7 @@ class BaseModel
 
   # Waits for the Internet connection to be in the desired state.
   # @param target_status must be in [:conn, :disc, :off, :on]; waits for that state
-  # @param timeout_in_secs after this many seconds, the method will raise a WaitTimeoutError; 
+  # @param timeout_in_secs after this many seconds, the method will raise a WaitTimeoutError;
   #        if nil (default), waits indefinitely
   # @param wait_interval_in_secs sleeps this interval between retries; if nil or absent,
   #        a default will be provided
@@ -376,7 +376,7 @@ class BaseModel
   # Connected is defined as being able to connect to an external web site.
   def till(target_status, timeout_in_secs: nil, wait_interval_in_secs: nil,
            stringify_permitted_values_in_error_msg: false)
-    debug_method_entry(__method__, binding, %i{target_status timeout_in_secs wait_interval_in_secs})
+    debug_method_entry(__method__, binding, %i[target_status timeout_in_secs wait_interval_in_secs])
 
     @status_waiter.wait_for(
       target_status,
@@ -392,7 +392,7 @@ class BaseModel
   # @stop_condition a lambda taking the command's stdout as its sole parameter
   # @return the stdout produced by the command, or nil if max_tries was reached
   def try_os_command_until(command, stop_condition, max_tries = 100)
-    debug_method_entry(__method__, binding, %i{command stop_condition max_tries})
+    debug_method_entry(__method__, binding, %i[command stop_condition max_tries])
 
     @command_executor.try_os_command_until(command, stop_condition, max_tries)
   end
@@ -428,7 +428,7 @@ class BaseModel
     # - Clear multicast bit (bit 0) with mask 0xFE
     # - Set locally administered bit (bit 1) with OR 0x02
     bytes[0] = (bytes[0] & 0xFE) | 0x02
-    chars = bytes.map { |b| "%02x" % b }
+    chars = bytes.map { |b| '%02x' % b }
     chars.join(':')
   end
 
@@ -452,15 +452,15 @@ class BaseModel
 
   # Network State Management for Testing
   # These methods help capture and restore network state during disruptive tests
-  
+
   def capture_network_state
     debug_method_entry(__method__)
 
     @state_manager.capture_network_state
   end
-  
+
   def restore_network_state(state, fail_silently: false)
-    debug_method_entry(__method__, binding, %i{state fail_silently})
+    debug_method_entry(__method__, binding, %i[state fail_silently])
     @state_manager.restore_network_state(state, fail_silently: fail_silently)
   end
 
@@ -478,7 +478,7 @@ class BaseModel
     debug_method_entry(__method__)
     qr_code_generator.generate(self, filespec, overwrite: overwrite, delivery_mode: delivery_mode, password: password)
   end
-  
+
   private
 
   # Normalizes a raw security descriptor string from OS tools to

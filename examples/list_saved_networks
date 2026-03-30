@@ -9,7 +9,7 @@ CLIENT = WifiWand::Client.new
 
 def saved_networks_with_passwords
   networks = CLIENT.preferred_networks
-  
+
   # Create an array of NetworkInfo objects
   network_data = networks.map do |network_name|
     password = CLIENT.model.preferred_network_password(network_name)
