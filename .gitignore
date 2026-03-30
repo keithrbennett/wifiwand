@@ -15,6 +15,7 @@ lib/bundler/man
 mac-wifi-error-stack-trace.txt
 pkg
 rdoc
+rspec-errors.txt
 spec/reports
 test/tmp
 test/version_tmp
