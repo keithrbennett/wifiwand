@@ -465,7 +465,7 @@ bin/mac-helper test
 - Helper execution
 - WiFi information retrieval
 
-> **Prerequisite:** macOS only lists `wifiwand-helper` in Location Services after the helper runs once (for example via `bundle exec rake mac:helper_location_permission_allow`). Make sure it appears under **System Settings → Privacy & Security → Location Services** and toggle it on before running the test to avoid a hidden prompt that makes the task appear stuck.
+> **Prerequisite:** macOS only lists `wifiwand-helper` in Location Services after the helper runs once (for example via `bin/mac-helper test`). Make sure it appears under **System Settings → Privacy & Security → Location Services** and toggle it on before running the test to avoid a hidden prompt that makes the task appear stuck. For the shipped end-user flow, use `wifi-wand-macos-setup`.
 
 ---
 
@@ -708,11 +708,8 @@ codesign -dvv libexec/macos/wifiwand-helper.app | grep runtime
 
 **Solution:**
 ```bash
-# Check TCC entry
-bundle exec rake mac:helper_location_permission_status
-
-# Grant permission
-bundle exec rake mac:helper_location_permission_allow
+# Run the helper once so macOS creates/refreshes the Location Services entry
+bin/mac-helper test
 
 # Check system Location Services
 open "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices"

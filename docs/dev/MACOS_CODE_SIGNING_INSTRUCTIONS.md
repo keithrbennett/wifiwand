@@ -55,7 +55,7 @@ This page is intentionally short so you can follow it during a release. When you
    bin/mac-helper build
    ```
    - Confirms the helper builds, signs, and that your local keychain trusts the certificate.
-   - Run the helper once so macOS registers it with Location Services (either start `bin/mac-helper test` or run `bundle exec rake mac:helper_location_permission_allow`, which launches the helper just long enough to create the TCC entry).
+   - Run the helper once so macOS registers it with Location Services. For maintainer/dev workflows, `bin/mac-helper test` is sufficient. For the shipped end-user flow, use `wifi-wand-macos-setup` instead of any repo-local rake task.
    - After the helper shows up under **System Settings → Privacy & Security → Location Services**, toggle it on to avoid the hidden prompt the first time the test task runs.
 
 6. **Follow the build task's suggested next steps**
