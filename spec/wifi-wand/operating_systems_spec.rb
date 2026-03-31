@@ -111,11 +111,18 @@ module WifiWand
 
       it 'creates a model when current OS is detected' do
         if described_class.current_os
-          # Mock system command availability for CI environments
-          if described_class.current_os.class.name.include?('Ubuntu')
-            allow_any_instance_of(WifiWand::UbuntuModel).to receive(:command_available?).and_return(true)
-            allow_any_instance_of(WifiWand::UbuntuModel).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
-          end
+          model = described_class.create_model_for_current_os
+          expect(model).not_to be_nil
+          expect(model).to respond_to(:wifi_on?)
+          expect(model).to respond_to(:wifi_info)
+        end
+      end
+
+      it 'creates a model even when no WiFi interface is detectable' do
+        if described_class.current_os
+          # Simulate a host with no detectable WiFi hardware
+          allow_any_instance_of(WifiWand::BaseModel).to receive(:detect_wifi_interface).and_return(nil)
+          allow_any_instance_of(WifiWand::BaseModel).to receive(:validate_os_preconditions).and_return(:ok)
 
           model = described_class.create_model_for_current_os
           expect(model).not_to be_nil
@@ -135,18 +142,7 @@ module WifiWand
       it 'accepts options and passes them to model creation' do
         if described_class.current_os
           options = OpenStruct.new(verbose: true)
-
-          # Mock system command availability and interface detection for CI environments
-          if described_class.current_os.class.name.include?('Ubuntu')
-            allow_any_instance_of(WifiWand::UbuntuModel).to receive(:command_available?).and_return(true)
-            allow_any_instance_of(WifiWand::UbuntuModel).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
-          elsif described_class.current_os.class.name.include?('MacOs')
-            allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_return('en0')
-          end
-
           model = described_class.create_model_for_current_os(options)
-
-          # Verify the model was created (specific options verification would be OS-specific)
           expect(model).not_to be_nil
         end
       end

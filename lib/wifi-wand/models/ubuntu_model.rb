@@ -314,7 +314,7 @@ class UbuntuModel < BaseModel
   def _ip_address
     debug_method_entry(__method__)
 
-    output = run_os_command(['ip', '-4', 'addr', 'show', wifi_interface], false).stdout
+    output = run_os_command(['ip', '-4', 'addr', 'show', ensure_wifi_interface!], false).stdout
     inet_line = output.split("\n").find { |line| line.include?('inet ') }
     return nil unless inet_line
 
@@ -328,7 +328,7 @@ class UbuntuModel < BaseModel
   def mac_address
     debug_method_entry(__method__)
 
-    output = run_os_command(['ip', 'link', 'show', wifi_interface], false).stdout
+    output = run_os_command(['ip', 'link', 'show', ensure_wifi_interface!], false).stdout
     ether_line = output.split("\n").find { |line| line.include?('ether') }
     return nil unless ether_line
 
@@ -341,8 +341,7 @@ class UbuntuModel < BaseModel
   def _disconnect
     debug_method_entry(__method__)
 
-    interface = wifi_interface
-    return nil unless interface
+    interface = ensure_wifi_interface!
     begin
       run_os_command(['nmcli', 'dev', 'disconnect', interface])
     rescue WifiWand::CommandExecutor::OsCommandError => e

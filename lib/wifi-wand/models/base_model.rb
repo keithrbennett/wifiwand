@@ -26,7 +26,8 @@ class BaseModel
   def self.create_model(options = {})
     options = OpenStruct.new(options) if options.is_a?(Hash)
     instance = new(options)
-    instance.init if current_os_matches_this_model?
+    # Eagerly validate an explicitly-specified interface; defer discovery otherwise.
+    instance.init if options.respond_to?(:wifi_interface) && options.wifi_interface
     instance
   end
 

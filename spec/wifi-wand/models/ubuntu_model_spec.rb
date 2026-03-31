@@ -201,7 +201,7 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#_disconnect' do
       it 'returns nil when disconnect succeeds' do
-        allow(subject).to receive(:wifi_interface).and_return('wlan0')
+        allow(subject).to receive(:ensure_wifi_interface!).and_return('wlan0')
         expect(subject).to receive(:run_os_command).with(%w[nmcli dev disconnect wlan0]).and_return(command_result(stdout: ''))
         expect(subject.send(:_disconnect)).to be_nil
       end
@@ -392,7 +392,7 @@ describe UbuntuModel, :os_ubuntu do
         ip_output = "2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000\n    inet 192.168.1.100/24 brd 192.168.1.255 scope global dynamic noprefixroute wlp3s0"
         wifi_interface = 'wlp3s0'
 
-        allow(subject).to receive(:wifi_interface).and_return(wifi_interface)
+        allow(subject).to receive(:ensure_wifi_interface!).and_return(wifi_interface)
         allow(subject).to receive(:run_os_command)
           .with(['ip', '-4', 'addr', 'show', wifi_interface], false)
           .and_return(command_result(stdout: ip_output))
@@ -401,7 +401,7 @@ describe UbuntuModel, :os_ubuntu do
       end
 
       it 'returns nil when no IP address assigned' do
-        allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
+        allow(subject).to receive(:ensure_wifi_interface!).and_return('wlp3s0')
         allow(subject).to receive(:run_os_command)
           .with(['ip', '-4', 'addr', 'show', 'wlp3s0'], false)
           .and_return(command_result(stdout: ''))
@@ -411,7 +411,7 @@ describe UbuntuModel, :os_ubuntu do
 
       it 'handles multiple IP addresses by returning first' do
         ip_output = "2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP>\n    inet 192.168.1.100/24 brd 192.168.1.255 scope global\n    inet 10.0.0.50/24 brd 10.0.0.255 scope global secondary"
-        allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
+        allow(subject).to receive(:ensure_wifi_interface!).and_return('wlp3s0')
         allow(subject).to receive(:run_os_command)
           .with(['ip', '-4', 'addr', 'show', 'wlp3s0'], false)
           .and_return(command_result(stdout: ip_output))
@@ -425,7 +425,7 @@ describe UbuntuModel, :os_ubuntu do
         mac_output = "2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP mode DORMANT group default qlen 1000\n    link/ether aa:bb:cc:dd:ee:ff brd ff:ff:ff:ff:ff:ff"
         wifi_interface = 'wlp3s0'
 
-        allow(subject).to receive(:wifi_interface).and_return(wifi_interface)
+        allow(subject).to receive(:ensure_wifi_interface!).and_return(wifi_interface)
         allow(subject).to receive(:run_os_command)
           .with(['ip', 'link', 'show', wifi_interface], false)
           .and_return(command_result(stdout: mac_output))
@@ -434,7 +434,7 @@ describe UbuntuModel, :os_ubuntu do
       end
 
       it 'returns nil when no MAC address found' do
-        allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
+        allow(subject).to receive(:ensure_wifi_interface!).and_return('wlp3s0')
         allow(subject).to receive(:run_os_command)
           .with(['ip', 'link', 'show', 'wlp3s0'], false)
           .and_return(command_result(stdout: ''))
@@ -958,8 +958,7 @@ describe UbuntuModel, :os_ubuntu do
 
     describe '#disconnect' do
       it 'handles nmcli disconnect failures gracefully' do
-        # Mock wifi_interface, wifi_on? check, and disconnect command
-        allow(subject).to receive(:wifi_interface).and_return('wlan0')
+        allow(subject).to receive(:ensure_wifi_interface!).and_return('wlan0')
         allow(subject).to receive(:run_os_command)
           .with(%w[nmcli radio wifi], false)
           .and_return(command_result(stdout: 'enabled'))  # wifi_on? returns true
@@ -971,8 +970,7 @@ describe UbuntuModel, :os_ubuntu do
       end
 
       it 'handles exit status 6 as normal disconnect behavior' do
-        # Mock wifi_interface, wifi_on? check, and disconnect command
-        allow(subject).to receive(:wifi_interface).and_return(command_result(stdout: 'wlan0'))
+        allow(subject).to receive(:ensure_wifi_interface!).and_return('wlan0')
         allow(subject).to receive(:run_os_command)
           .with(%w[nmcli radio wifi], false)
           .and_return(command_result(stdout: 'enabled'))  # wifi_on? returns true
