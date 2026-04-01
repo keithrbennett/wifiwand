@@ -37,31 +37,56 @@ module WifiWand
       combined_chunks = []
       status = nil
 
+      # Open3.popen3 launches the child process and yields three IO objects
+      # (stdin, stdout, stderr) plus a thread that will hold the exit status.
+      # Using the block form ensures all handles are closed automatically when
+      # the block exits, even if an exception is raised.
       Open3.popen3(*command_array) do |stdin, stdout, stderr, wait_thr|
+        # We don't send any input to the process, so close stdin immediately.
+        # Leaving it open can cause the child to block waiting for input.
         stdin.close
 
-        streams = { stdout => :stdout, stderr => :stderr }
+        # A mutex guards the shared chunk arrays below. Two threads write to
+        # them concurrently (one per stream), so without synchronization the
+        # arrays could be corrupted by interleaved appends.
+        mutex = Mutex.new
 
-        until streams.empty?
-          ready_ios = IO.select(streams.keys)&.first
-          Array(ready_ios).each do |io|
-            begin
-              chunk = io.read_nonblock(4096)
-              if streams[io] == :stdout
-                stdout_chunks << chunk
-              else
-                stderr_chunks << chunk
-              end
+        # read_stream drains one IO stream into the appropriate chunk arrays.
+        # It uses readpartial rather than read_nonblock + IO.select because:
+        #   - readpartial blocks until *some* data arrives, then returns whatever
+        #     is available (up to the requested size) — no busy-polling needed.
+        #   - read_nonblock in Ruby 4+ internally uses IO::Buffer, which emits
+        #     an "experimental" warning we want to avoid.
+        # readpartial raises EOFError when the stream closes (i.e., the child
+        # process has finished writing), which is used as the loop-exit signal.
+        read_stream = lambda do |io, type|
+          loop do
+            chunk = io.readpartial(4096)
+            mutex.synchronize do
+              (type == :stdout ? stdout_chunks : stderr_chunks) << chunk
               combined_chunks << chunk
-            rescue IO::WaitReadable
-              next
-            rescue EOFError
-              io.close
-              streams.delete(io)
             end
+          rescue EOFError
+            break
           end
         end
 
+        # Spawn one thread per stream so both are drained in parallel.
+        # If we read them sequentially, the child could fill the stderr pipe
+        # buffer and deadlock while we were still waiting for stdout to finish
+        # (or vice versa). Running concurrently prevents that deadlock.
+        threads = [
+          Thread.new { read_stream.call(stdout, :stdout) },
+          Thread.new { read_stream.call(stderr, :stderr) }
+        ]
+        # Wait for both threads to finish (i.e., both streams are fully read)
+        # before asking for the exit status. This guarantees all output has been
+        # collected before we return the result.
+        threads.each(&:join)
+
+        # wait_thr.value blocks until the child process exits and returns its
+        # Process::Status. Calling it after joining the reader threads means the
+        # process should already be done by this point in most cases.
         status = wait_thr.value
       end
 
