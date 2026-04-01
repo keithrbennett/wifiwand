@@ -44,7 +44,8 @@ module TestHelpers
       helper_client = instance_double(
         WifiWand::MacOsWifiAuthHelper::Client,
         connected_network_name: nil,
-        scan_networks: []
+        scan_networks: [],
+        location_services_blocked?: false
       )
       allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_client)
       WifiWand::MacOsModel.create_model(merged_options)
