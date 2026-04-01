@@ -1,6 +1,11 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+# The async gem's io-event dependency uses IO::Buffer internally via read_nonblock,
+# which Ruby marks as experimental. We can't change third-party gem code, so we
+# suppress just this warning category rather than letting it leak to users.
+Warning[:experimental] = false
+
 require_relative '../lib/wifi-wand'
 require_relative '../lib/wifi-wand/main'
 
