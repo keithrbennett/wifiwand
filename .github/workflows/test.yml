@@ -9,30 +9,41 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    
+    runs-on: ${{ matrix.os }}
+
     strategy:
       matrix:
-        ruby-version: ['3.2', '3.3', '3.4']
-    
+        # Ubuntu runs all supported Ruby versions cheaply. Ruby 4.0 is included
+        # to catch breaking changes early; drop older versions here as they reach EOL.
+        ruby-version: ['3.2', '3.3', '3.4', '4.0']
+        os: [ubuntu-latest]
+        include:
+          # macOS runners cost ~10x more than Ubuntu in GitHub Actions minutes,
+          # so we run only one Ruby version there. We use a stable mid-range version
+          # (3.4) rather than the latest (4.0) to avoid Ruby-compatibility noise
+          # obscuring genuine macOS-specific failures. When you drop 3.2/3.3 from
+          # the Ubuntu matrix, bump this to the new minimum to keep it in sync.
+          - os: macos-latest
+            ruby-version: '3.4'
+
     steps:
     - uses: actions/checkout@v4
-    
+
     - name: Set up Ruby ${{ matrix.ruby-version }}
       uses: ruby/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby-version }}
         bundler-cache: true
-    
+
     - name: Run tests
       run: bundle exec rspec
       env:
         # Only run safe tests in CI (no network modifications)
         RSPEC_DISRUPTIVE_TESTS: exclude
-    
+
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3
-      if: matrix.ruby-version == '3.3'
+      if: matrix.ruby-version == '3.3' && matrix.os == 'ubuntu-latest'
       with:
         files: ./coverage/coverage.xml
         fail_ci_if_error: false
