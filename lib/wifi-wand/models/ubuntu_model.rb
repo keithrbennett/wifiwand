@@ -483,7 +483,7 @@ class UbuntuModel < BaseModel
       #   IP4.DNS[1]:                         192.168.3.1 (active/runtime state)
       # Note: ipv4.dns is documented in NetworkManager official docs, IP4.DNS observed in practice
 
-      ip_version_pattern = /(?i)ip(?:v4|4)/     # Matches 'ipv4' or 'ip4'
+      ip_version_pattern = /(?i)ip(?:v?[46])/    # Matches 'ipv4', 'ip4', 'ipv6', 'ip6'
       dns_field_pattern = /\.dns\[\d+\]:/       # Matches '.dns[N]:'
 
       # Use .source to get the raw pattern, ensuring flags apply uniformly to the new regex.
@@ -494,8 +494,8 @@ class UbuntuModel < BaseModel
       end
 
       nameservers = dns_lines.map do |line|
-        # Split on colon and take everything after the last colon, then strip whitespace
-        line.split(':').last.strip
+        # Split only on the first colon so IPv6 addresses (which contain colons) are preserved
+        line.split(':', 2).last.strip
       end.reject(&:empty?)
 
       nameservers

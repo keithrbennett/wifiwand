@@ -269,6 +269,31 @@ describe UbuntuModel, :os_ubuntu do
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli connection show', 'failed'))
         expect(subject.send(:nameservers_from_connection, 'ConnY')).to eq([])
       end
+
+      it 'parses IPv6 DNS servers without truncating at colons' do
+        nmcli_output = <<~OUT
+          connection.id:                   ConnZ
+          ipv6.dns[1]:                     2606:4700:4700::1111
+          IP6.DNS[2]:                      2606:4700:4700::1001
+          some.other:                      value
+        OUT
+        expect(subject).to receive(:run_os_command).with(['nmcli', 'connection', 'show', 'ConnZ'], false).and_return(command_result(stdout: nmcli_output))
+        expect(subject.send(:nameservers_from_connection, 'ConnZ')).to eq(['2606:4700:4700::1111', '2606:4700:4700::1001'])
+      end
+
+      it 'parses mixed IPv4 and IPv6 DNS servers' do
+        nmcli_output = <<~OUT
+          connection.id:                   ConnM
+          ipv4.dns[1]:                     1.1.1.1
+          IP4.DNS[2]:                      9.9.9.9
+          ipv6.dns[1]:                     2606:4700:4700::1111
+          IP6.DNS[2]:                      2001:4860:4860::8888
+        OUT
+        expect(subject).to receive(:run_os_command).with(['nmcli', 'connection', 'show', 'ConnM'], false).and_return(command_result(stdout: nmcli_output))
+        result = subject.send(:nameservers_from_connection, 'ConnM')
+        expect(result).to include('1.1.1.1', '9.9.9.9', '2606:4700:4700::1111', '2001:4860:4860::8888')
+        expect(result.length).to eq(4)
+      end
     end
 
     describe '#validate_os_preconditions' do
