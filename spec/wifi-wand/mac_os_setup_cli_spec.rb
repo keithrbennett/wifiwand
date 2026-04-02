@@ -5,6 +5,8 @@ require 'stringio'
 require 'wifi-wand/mac_os_setup_cli'
 
 RSpec.describe WifiWand::MacOsSetupCli do
+  before { allow_any_instance_of(described_class).to receive(:sleep) }
+
   # ---------------------------------------------------------------------------
   # Helpers
   # ---------------------------------------------------------------------------
@@ -193,7 +195,6 @@ RSpec.describe WifiWand::MacOsSetupCli do
       end
 
       it 'prints the manual setup instructions' do
-        allow(build_cli(setup: setup)).to receive(:sleep)
         build_cli(setup: setup).run
         expect(out_stream.string).to include('Manual Setup Instructions')
       end
