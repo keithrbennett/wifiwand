@@ -197,6 +197,12 @@ describe UbuntuModel, :os_ubuntu do
         expect(subject).to receive(:run_os_command).with(%w[nmcli connection delete Home])
         expect(subject.remove_preferred_network('Home')).to be_nil
       end
+
+      it 'does not delete non-Wi-Fi profile even if name matches' do
+        allow(subject).to receive(:preferred_networks).and_return(['MyWifiNetwork'])
+        expect(subject).not_to receive(:run_os_command).with(/nmcli connection delete/)
+        expect(subject.remove_preferred_network('Wired connection 1')).to be_nil
+      end
     end
 
     describe '#_disconnect' do
@@ -366,33 +372,35 @@ describe UbuntuModel, :os_ubuntu do
     end
 
     describe '#preferred_networks' do
-      it 'returns list of saved network profiles' do
-        nmcli_output = "TestNetwork-1\nTestNetwork-2\nWired connection 1"
+      it 'returns list of saved Wi-Fi network profiles' do
+        nmcli_output = "TestNetwork-1:802-11-wireless\nTestNetwork-2:802-11-wireless\nWired connection 1:ethernet"
         allow(subject).to receive(:run_os_command)
-          .with(%w[nmcli -t -f NAME connection show])
+          .with(%w[nmcli -t -f NAME,TYPE connection show])
           .and_return(command_result(stdout: nmcli_output))
 
         result = subject.preferred_networks
         expect(result).to be_an(Array)
-        expect(result).to include('TestNetwork-1', 'TestNetwork-2', 'Wired connection 1')
+        expect(result).to include('TestNetwork-1', 'TestNetwork-2')
+        expect(result).not_to include('Wired connection 1')
       end
 
-      it 'returns empty array when no connections exist' do
+      it 'returns empty array when no Wi-Fi connections exist' do
+        nmcli_output = "Wired connection 1:ethernet\nVPN profile:vpn"
         allow(subject).to receive(:run_os_command)
-          .with(%w[nmcli -t -f NAME connection show])
-          .and_return(command_result(stdout: ''))
+          .with(%w[nmcli -t -f NAME,TYPE connection show])
+          .and_return(command_result(stdout: nmcli_output))
 
         expect(subject.preferred_networks).to eq([])
       end
 
-      it 'filters out empty lines from output' do
-        nmcli_output = "TestNetwork\n\n\nWired connection\n"
+      it 'filters out empty lines and non-Wi-Fi connections from output' do
+        nmcli_output = "TestNetwork:802-11-wireless\n\n\nWired connection:ethernet\nVPN profile:vpn"
         allow(subject).to receive(:run_os_command)
-          .with(%w[nmcli -t -f NAME connection show])
+          .with(%w[nmcli -t -f NAME,TYPE connection show])
           .and_return(command_result(stdout: nmcli_output))
 
         result = subject.preferred_networks
-        expect(result).to eq(['TestNetwork', 'Wired connection'])
+        expect(result).to eq(['TestNetwork'])
       end
     end
 

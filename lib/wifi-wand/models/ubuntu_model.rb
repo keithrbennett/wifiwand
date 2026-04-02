@@ -298,8 +298,12 @@ module WifiWand
     def preferred_networks
       debug_method_entry(__method__)
 
-      output = run_os_command(['nmcli', '-t', '-f', 'NAME', 'connection', 'show']).stdout
-      connections = output.split("\n").map(&:strip).reject(&:empty?)
+      output = run_os_command(['nmcli', '-t', '-f', 'NAME,TYPE', 'connection', 'show']).stdout
+      connections = output.split("\n")
+        .map { |line| nmcli_split(line, 2) }
+        .select { |_, type| type == '802-11-wireless' }
+        .map { |name, _| name.strip }
+        .reject(&:empty?)
       connections.sort
     end
 
