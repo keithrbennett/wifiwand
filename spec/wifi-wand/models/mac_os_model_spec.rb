@@ -1308,29 +1308,28 @@ module WifiWand
         end
       end
     end
-  end
-
-  describe '#create_model with provided interface' do
-    context 'when valid wifi_interface is provided' do
-      it 'uses the provided interface without calling detect_wifi_interface' do
-        model = WifiWand::MacOsModel.create_model(wifi_interface: 'en0')
-        expect(model.wifi_interface).to eq('en0')
+    describe '#create_model with provided interface' do
+      context 'when valid wifi_interface is provided' do
+        it 'uses the provided interface without calling detect_wifi_interface', :disruptive do
+          model = WifiWand::MacOsModel.create_model(wifi_interface: 'en0')
+          expect(model.wifi_interface).to eq('en0')
+        end
       end
-    end
 
-    context 'when invalid wifi_interface is provided' do
-      it 'raises InvalidInterfaceError' do
-        allow_any_instance_of(WifiWand::MacOsModel).to receive(:is_wifi_interface?).with('invalid0').and_return(false)
+      context 'when invalid wifi_interface is provided' do
+        it 'raises InvalidInterfaceError' do
+          allow_any_instance_of(WifiWand::MacOsModel).to receive(:is_wifi_interface?).with('invalid0').and_return(false)
 
-        expect { WifiWand::MacOsModel.create_model(wifi_interface: 'invalid0') }
-          .to raise_error(WifiWand::InvalidInterfaceError)
+          expect { WifiWand::MacOsModel.create_model(wifi_interface: 'invalid0') }
+            .to raise_error(WifiWand::InvalidInterfaceError)
+        end
       end
-    end
 
-    context 'when no wifi_interface is provided' do
-      it 'initializes with nil interface for lazy discovery' do
-        model = WifiWand::MacOsModel.create_model
-        expect(model.wifi_interface).to be_nil
+      context 'when no wifi_interface is provided' do
+        it 'initializes with nil interface for lazy discovery' do
+          model = WifiWand::MacOsModel.create_model
+          expect(model.wifi_interface).to be_nil
+        end
       end
     end
   end
