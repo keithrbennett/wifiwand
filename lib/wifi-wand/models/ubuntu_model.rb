@@ -78,7 +78,7 @@ class UbuntuModel < BaseModel
 
     # Parse SSID and signal strength, then sort by signal (descending)
     networks = networks_with_signal.map do |line|
-      ssid, signal = line.split(':', 2)  # Limit to 2 parts in case SSID contains colons
+      ssid, signal = nmcli_split(line, 2)
       [ssid, signal.to_i]
     end.sort_by { |_, signal| -signal }.map { |ssid, _| ssid }
 
@@ -88,11 +88,10 @@ class UbuntuModel < BaseModel
   def _connected_network_name
     debug_method_entry(__method__)
     output = run_os_command(['nmcli', '-t', '-f', 'active,ssid', 'device', 'wifi'], false).stdout
-    active_line = output.split("\n").find { |line| line.start_with?('yes:') }
+    active_line = output.split("\n").find { |line| nmcli_split(line, 2).first == 'yes' }
     return nil unless active_line
 
-    # Extract SSID after the first colon (limit to 2 parts in case SSID contains colons)
-    active_line.split(':', 2).last&.strip
+    nmcli_split(active_line, 2).last&.strip
   end
 
   def _connect(network_name, password = nil)
@@ -220,12 +219,11 @@ class UbuntuModel < BaseModel
       return nil # Can't scan, so can't determine the type.
     end
 
-    network_line = output.split("\n").find { |line| line.start_with?("#{ssid}:") }
+    network_line = output.split("\n").find { |line| nmcli_split(line, 2).first == ssid }
     return nil unless network_line
 
-    # The output can be like "SSID:WPA2" or "SSID:WPA1 WPA2", so we just grab the part after the first colon.
-    # Use limit of 2 to handle SSIDs with colons
-    security_type = network_line.split(':', 2).last&.strip
+    # The output can be like "SSID:WPA2" or "SSID:WPA1 WPA2"
+    security_type = nmcli_split(network_line, 2).last&.strip
 
     case canonical_security_type_from(security_type)
     when 'WPA3', 'WPA2', 'WPA'
@@ -263,11 +261,9 @@ class UbuntuModel < BaseModel
     end
 
     profiles = output.split("\n").map do |line|
-      # Limit to 2 parts in case profile name contains colons
-      name, timestamp = line.split(':', 2)
-      # We only care about profiles whose names start with the SSID,
-      # to catch "MySSID" and "MySSID 1", etc.
-      if name.start_with?(ssid)
+      name, timestamp = nmcli_split(line, 2)
+      # Match exact profile name or NM duplicate suffixes: "MySSID", "MySSID 1", "MySSID 2", etc.
+      if profile_matches_ssid?(name, ssid)
         { name: name, timestamp: timestamp.to_i }
       else
         nil
@@ -505,6 +501,29 @@ class UbuntuModel < BaseModel
     end
   end
 
+  # Splits a line of nmcli terse (-t) output on unescaped field separators.
+  # nmcli escapes literal colons in values as \:; this method splits only on
+  # unescaped colons and then unescapes each resulting field.
+  #
+  # @param line [String] A line of nmcli -t terse output
+  # @param limit [Integer, nil] Maximum number of parts to produce
+  # @return [Array<String>] Unescaped field values
+  def nmcli_split(line, limit = nil)
+    parts = limit ? line.split(/(?<!\\):/, limit) : line.split(/(?<!\\):/)
+    parts.map { |p| p.gsub('\\:', ':') }
+  end
+
+  # Returns true when a connection profile name corresponds to a given SSID.
+  # NetworkManager names the first profile exactly after the SSID; subsequent
+  # duplicates get a space-separated integer suffix ("SSID 1", "SSID 2", …).
+  #
+  # @param profile_name [String] The connection profile name from nmcli
+  # @param ssid [String] The target SSID
+  # @return [Boolean]
+  def profile_matches_ssid?(profile_name, ssid)
+    profile_name == ssid || profile_name.match?(/\A#{Regexp.escape(ssid)} \d+\z/)
+  end
+
   # Gets nameservers from /etc/resolv.conf - fallback method
   def nameservers_using_resolv_conf
     begin
@@ -528,12 +547,11 @@ class UbuntuModel < BaseModel
       return nil # Can't scan, return nil
     end
 
-    network_line = output.split("\n").find { |line| line.start_with?("#{network_name}:") }
+    network_line = output.split("\n").find { |line| nmcli_split(line, 2).first == network_name }
     return nil unless network_line
 
     # The output can be like "SSID:WPA2" or "SSID:WPA1 WPA2"
-    # Use limit of 2 to handle SSIDs with colons
-    security_type = network_line.split(':', 2).last&.strip
+    security_type = nmcli_split(network_line, 2).last&.strip
 
     # Normalize via shared logic (returns nil for open/enterprise/unknown)
     canonical_security_type_from(security_type)

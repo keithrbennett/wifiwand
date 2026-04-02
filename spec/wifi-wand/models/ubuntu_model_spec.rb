@@ -910,18 +910,18 @@ describe UbuntuModel, :os_ubuntu do
 
       describe '#find_best_profile_for_ssid' do
         it 'finds existing connection profile for SSID' do
-          # Mock the actual command that gets all profiles with name and timestamp
-          connection_output = "MyNetwork-1:1672574400\nMyNetwork-2:1672660200\nOtherNetwork:1672547800"
+          # NetworkManager names duplicates "SSID", "SSID 1", "SSID 2", etc.
+          connection_output = "MyNetwork:1672574400\nMyNetwork 1:1672660200\nOtherNetwork:1672547800"
           allow(subject).to receive(:run_os_command)
             .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
             .and_return(command_result(stdout: connection_output))
 
           result = subject.send(:find_best_profile_for_ssid, 'MyNetwork')
-          expect(result).to eq('MyNetwork-2')  # Most recent profile
+          expect(result).to eq('MyNetwork 1')  # Most recent profile
         end
 
         it 'returns nil when no profile exists for SSID' do
-          connection_output = "MyNetwork-1:1672574400\nOtherNetwork:1672547800"
+          connection_output = "MyNetwork:1672574400\nOtherNetwork:1672547800"
           allow(subject).to receive(:run_os_command)
             .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
             .and_return(command_result(stdout: connection_output))
@@ -947,6 +947,110 @@ describe UbuntuModel, :os_ubuntu do
             .and_return(command_result(stdout: ''))
 
           expect(subject.send(:_preferred_network_password, 'MyProfile')).to be_nil
+        end
+      end
+    end
+
+    # Regression tests: nmcli terse output with colons in SSIDs/profiles
+    describe 'nmcli colon-safe parsing' do
+      describe '#_available_network_names with colon-containing SSIDs' do
+        it 'correctly parses an SSID that contains a literal colon' do
+          # nmcli escapes the colon in "Cafe:Guest" as "Cafe\:Guest"
+          nmcli_output = "Cafe\\:Guest:75\nRegularNet:90"
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli radio wifi], false)
+            .and_return(command_result(stdout: 'enabled'))
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
+            .and_return(command_result(stdout: nmcli_output))
+
+          result = subject.available_network_names
+          expect(result).to include('Cafe:Guest', 'RegularNet')
+        end
+      end
+
+      describe '#_connected_network_name with colon-containing SSID' do
+        it 'returns the full SSID including its embedded colon' do
+          nmcli_output = "no:RegularNet\nyes:Corp\\:Wifi"
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f active,ssid device wifi], false)
+            .and_return(command_result(stdout: nmcli_output))
+
+          expect(subject.send(:_connected_network_name)).to eq('Corp:Wifi')
+        end
+      end
+
+      describe '#get_security_parameter with colon-containing SSID' do
+        it 'matches the exact SSID and returns the correct security parameter' do
+          # "Corp:Wifi" is escaped as "Corp\:Wifi" in nmcli terse output
+          nmcli_output = "Corp\\:Wifi:WPA2\nCorpNet:WPA2"
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
+            .and_return(command_result(stdout: nmcli_output))
+
+          expect(subject.send(:get_security_parameter, 'Corp:Wifi')).to eq('802-11-wireless-security.psk')
+        end
+
+        it 'does not match a prefix-collision SSID (Office vs Office-Guest)' do
+          nmcli_output = "Office-Guest:WPA2\nOtherNet:WPA2"
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
+            .and_return(command_result(stdout: nmcli_output))
+
+          expect(subject.send(:get_security_parameter, 'Office')).to be_nil
+        end
+      end
+
+      describe '#find_best_profile_for_ssid with colon-containing profile name' do
+        it 'correctly parses profile names that contain literal colons' do
+          # nmcli escapes "Corp:Net" as "Corp\:Net" in terse output
+          connection_output = "Corp\\:Net:1672660200\nOtherNetwork:1672574400"
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
+            .and_return(command_result(stdout: connection_output))
+
+          expect(subject.send(:find_best_profile_for_ssid, 'Corp:Net')).to eq('Corp:Net')
+        end
+
+        it 'does not match a profile whose name merely starts with the SSID (prefix collision)' do
+          connection_output = "Office-Guest:1672660200\nOffice Extra:1672574400"
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
+            .and_return(command_result(stdout: connection_output))
+
+          expect(subject.send(:find_best_profile_for_ssid, 'Office')).to be_nil
+        end
+
+        it 'matches an NM duplicate profile (SSID followed by space and number)' do
+          connection_output = "Office:1672574400\nOffice 1:1672660200\nOffice-Guest:1672547800"
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
+            .and_return(command_result(stdout: connection_output))
+
+          result = subject.send(:find_best_profile_for_ssid, 'Office')
+          expect(result).to eq('Office 1')
+        end
+      end
+
+      describe '#connection_security_type with colon-containing SSID' do
+        it 'returns the correct security type for an SSID with a colon' do
+          allow(subject).to receive(:_connected_network_name).and_return('Corp:Wifi')
+          nmcli_output = "Corp\\:Wifi:WPA2\nCorpNet:WPA2"
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
+            .and_return(command_result(stdout: nmcli_output))
+
+          expect(subject.connection_security_type).to eq('WPA2')
+        end
+
+        it 'does not misidentify a prefix-collision SSID (Office vs Office-Guest)' do
+          allow(subject).to receive(:_connected_network_name).and_return('Office')
+          nmcli_output = "Office-Guest:WPA2"
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
+            .and_return(command_result(stdout: nmcli_output))
+
+          expect(subject.connection_security_type).to be_nil
         end
       end
     end
