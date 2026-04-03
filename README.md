@@ -54,9 +54,17 @@ Optional dependency for QR codes:
 
 ---
 
+### 🐧 Note for Ubuntu Users
+
+Ubuntu support requires **NetworkManager** (standard on Ubuntu Desktop). 
+`wifi-wand` uses `nmcli`, `iw`, and `ip` to manage WiFi. 
+These are typically pre-installed on Ubuntu systems.
+
+---
+
 ### ⚠️ Important for macOS Users (10.15+)
 
-**After installation, run the one-time setup script:**
+**After installation, run the one-time setup script (not required for Ubuntu):**
 
 ```bash
 wifi-wand-macos-setup

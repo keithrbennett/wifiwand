@@ -6,6 +6,7 @@ Welcome to the `wifi-wand` documentation! This directory contains comprehensive 
 
 - **[Installation & Quick Start](../README.md)** - Basic setup and common command overview.
 - **[macOS Setup Guide](MACOS_SETUP.md)** - Crucial one-time setup steps for macOS users (Sonoma and later).
+- **[Ubuntu Setup & Requirements](UBUNTU_SETUP.md)** - Requirements and configuration for Ubuntu systems.
 
 ## Command-Specific Guides
 
