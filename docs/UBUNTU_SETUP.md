@@ -2,11 +2,11 @@
 
 ## Overview
 
-Unlike macOS (which requires location permission for WiFi scanning), `wifi-wand` on Ubuntu works out-of-the-box on most standard installations. It relies on the industry-standard **NetworkManager** suite.
+Unlike macOS (which requires location permission for WiFi scanning), `wifi-wand` on Ubuntu and Ubuntu-based distributions (Linux Mint, Pop!_OS, elementary OS, etc.) works out-of-the-box on most standard installations. It relies on the industry-standard **NetworkManager** suite.
 
 ## Requirements
 
-`wifi-wand` requires the following core Ubuntu tools:
+`wifi-wand` requires **Ruby >= 3.2.0** and the following core Ubuntu tools:
 
 - **NetworkManager** (`nmcli`): Required for managing connections, status, WiFi radio state, and DNS settings.
 - **iw**: Required for WiFi interface detection and wireless capability checks.
@@ -15,6 +15,7 @@ The following tools are used for specific features but are not required for ever
 
 - **iproute2** (`ip`): Used for IP address, MAC address, and routing information.
 - **qrencode** (Optional): Required only for the `qr` command to generate Wi-Fi QR codes.
+- **xdg-open** (Optional): Required only for the `ropen` command to open URLs in a browser. Pre-installed on most desktop environments.
 
 On many Ubuntu Desktop installations, `nmcli`, `iw`, and `ip` are already present, but that is environment-dependent.
 
@@ -24,7 +25,7 @@ If any commands are missing, you can install them via `apt`:
 
 ```bash
 sudo apt update
-sudo apt install network-manager iw iproute2 qrencode
+sudo apt install network-manager iw iproute2 qrencode xdg-utils
 ```
 
 ## User Permissions
@@ -63,6 +64,12 @@ If it's stopped, start it with:
 sudo systemctl start NetworkManager
 ```
 
+To ensure it starts automatically on boot:
+
+```bash
+sudo systemctl enable --now NetworkManager
+```
+
 ### No WiFi Interface Found
 
 If `wifi-wand` cannot find your WiFi interface:
@@ -76,3 +83,10 @@ If the `qr` command fails, ensure `qrencode` is installed:
 ```bash
 sudo apt install qrencode
 ```
+
+### No Visible Networks Found
+
+If `wifi-wand` reports no visible networks but you expect to see some:
+1. Trigger a manual scan: `nmcli device wifi rescan`
+2. Ensure your WiFi radio is on: `nmcli radio wifi`
+3. Check that your hardware and drivers are working: `iw dev`
