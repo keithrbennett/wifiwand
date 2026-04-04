@@ -93,12 +93,10 @@ describe WifiWand::NetworkStateManager do
         allow(mock_model).to receive(:wifi_on?).and_return(false)
         allow(mock_model).to receive(:wifi_on).and_raise(StandardError.new('WiFi hardware error'))
 
-        expect($stderr).to receive(:puts).with('Warning: Could not restore network state: WiFi hardware error')
-        expect($stderr).to receive(:puts).with('You may need to manually reconnect to: TestNetwork')
-
         expect do
           state_manager.restore_network_state(valid_state, fail_silently: true)
-        end.not_to raise_error
+        end.to output(/Warning: Could not restore network state: WiFi hardware error.*You may need to manually reconnect to: TestNetwork/m) \
+          .to_stderr
       end
 
       it 'swallows connection failures and logs to stderr' do
@@ -108,12 +106,10 @@ describe WifiWand::NetworkStateManager do
         allow(mock_model).to receive(:connect).and_raise(StandardError.new('Network unavailable'))
         allow(mock_model).to receive(:till)
 
-        expect($stderr).to receive(:puts).with('Warning: Could not restore network state: Network unavailable')
-        expect($stderr).to receive(:puts).with('You may need to manually reconnect to: TestNetwork')
-
         expect do
           state_manager.restore_network_state(valid_state, fail_silently: true)
-        end.not_to raise_error
+        end.to output(/Warning: Could not restore network state: Network unavailable.*You may need to manually reconnect to: TestNetwork/m) \
+          .to_stderr
       end
     end
 
@@ -195,21 +191,24 @@ describe WifiWand::NetworkStateManager do
 
       expect do
         state_manager.restore_network_state(valid_state)
-      end.to raise_error(WifiWand::NetworkConnectionError, /timed out waiting for connection; currently connected to "ActualNetwork"/)
+      end.to raise_error(WifiWand::NetworkConnectionError,
+        /timed out waiting for connection; currently connected to "ActualNetwork"/)
     end
 
     it 'handles WaitTimeoutError when querying network name fails' do
       allow(mock_model).to receive(:wifi_on?).and_return(true)
       # First call (line 63 - already_connected check) returns different network
       # Second call (line 75 - in rescue block) raises error
-      allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork', 'OtherNetwork').and_raise(StandardError.new('Network query failed'))
+      allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork',
+        'OtherNetwork').and_raise(StandardError.new('Network query failed'))
       allow(mock_model).to receive(:preferred_network_password).and_return('testpass')
       allow(mock_model).to receive(:connect)
       allow(mock_model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:conn, 10))
 
       expect do
         state_manager.restore_network_state(valid_state)
-      end.to raise_error(WifiWand::NetworkConnectionError, /timed out waiting for connection; currently connected to nil/)
+      end.to raise_error(WifiWand::NetworkConnectionError,
+        /timed out waiting for connection; currently connected to nil/)
     end
 
     it 'logs WaitTimeoutError details in verbose mode when network query succeeds' do
@@ -233,7 +232,8 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:wifi_on?).and_return(true)
       # First call (line 63 - already_connected check) returns different network
       # Second call (line 75 - in rescue block) raises error
-      allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork', 'OtherNetwork').and_raise(StandardError.new('Network query failed'))
+      allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork',
+        'OtherNetwork').and_raise(StandardError.new('Network query failed'))
       allow(mock_model).to receive(:preferred_network_password).and_return('testpass')
       allow(mock_model).to receive(:connect)
       allow(mock_model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:conn, 10))
@@ -243,7 +243,6 @@ describe WifiWand::NetworkStateManager do
       end.to raise_error(WifiWand::NetworkConnectionError)
       expect(output.string).to match(/Warning: Connection timeout and failed to query current network: Network query failed/)
     end
-
   end
 
   describe 'verbose mode' do

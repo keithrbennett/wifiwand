@@ -91,23 +91,60 @@ RSpec.describe WifiWand::BaseModel do
 
     before do
       allow(model).to receive(:wifi_on?).and_return(false)
+      allow(model).to receive(:connected?).and_return(false)
     end
 
-    it 'returns nil from connected_network_name without calling implementation' do
+    it 'raises Error from connected_network_name without calling implementation' do
       expect(model).not_to receive(:_connected_network_name)
+      expect { model.connected_network_name }.to raise_error(WifiWand::Error, /WiFi is off/)
+    end
+
+    it 'raises Error from available_network_names without calling implementation' do
+      expect(model).not_to receive(:_available_network_names)
+      expect { model.available_network_names }.to raise_error(WifiWand::Error, /WiFi is off/)
+    end
+
+    it 'raises Error from ip_address without calling implementation' do
+      expect(model).not_to receive(:_ip_address)
+      expect { model.ip_address }.to raise_error(WifiWand::Error, /not connected/)
+    end
+
+    it 'raises Error from connected_network_password without calling implementation' do
+      expect(model).not_to receive(:_connected_network_name)
+      expect(model).not_to receive(:preferred_network_password)
+      expect { model.send(:connected_network_password) }.to raise_error(WifiWand::Error, /WiFi is off/)
+    end
+  end
+
+  describe 'wifi on, not connected' do
+    let(:model) { described_class.allocate }
+
+    before do
+      allow(model).to receive(:wifi_on?).and_return(true)
+      allow(model).to receive(:connected?).and_return(false)
+      allow(model).to receive(:_connected_network_name).and_return(nil)
+    end
+
+    it 'connected_network_name returns nil' do
       expect(model.connected_network_name).to be_nil
     end
 
-    it 'returns nil from ip_address without calling implementation' do
+    it 'connected_network_password returns nil' do
+      expect(model.send(:connected_network_password)).to be_nil
+    end
+
+    it 'ip_address raises Error' do
       expect(model).not_to receive(:_ip_address)
-      expect(model.ip_address).to be_nil
+      expect { model.ip_address }.to raise_error(WifiWand::Error, /not connected/)
     end
   end
 
   describe 'debug-logged connectivity checks' do
     let(:model) { described_class.allocate }
     let(:output) { StringIO.new }
-    let(:tester) { double('tester', connected_to_internet?: true, tcp_connectivity?: true, dns_working?: true) }
+    let(:tester) do
+      double('tester', connected_to_internet?: true, tcp_connectivity?: true, dns_working?: true)
+    end
 
     before do
       model.instance_variable_set(:@verbose_mode, true)

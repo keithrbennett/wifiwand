@@ -4,7 +4,6 @@ require_relative '../timing_constants'
 
 module WifiWand
   class NetworkStateManager
-
     def initialize(model, verbose: false, output: $stdout)
       @model = model
       @verbose = verbose
@@ -15,7 +14,11 @@ module WifiWand
     # These methods help capture and restore network state during disruptive tests
 
     def capture_network_state
-      network_name = @model.connected_network_name
+      network_name = begin
+        @model.connected_network_name
+      rescue WifiWand::Error
+        nil
+      end
 
       # Always attempt to capture password for consistent restoration
       # If we're capturing network state, we should have the password available
@@ -76,7 +79,7 @@ module WifiWand
           begin
             @model.connect(state[:network_name], password_to_use)
             @model.till(:conn, timeout_in_secs: TimingConstants::NETWORK_CONNECTION_WAIT)
-          rescue WifiWand::WaitTimeoutError => wait_error
+          rescue WifiWand::WaitTimeoutError => e
             begin
               actual_network = @model.connected_network_name
               if @verbose
@@ -88,14 +91,15 @@ module WifiWand
             end
 
             error = WifiWand::NetworkConnectionError.new(state[:network_name], "timed out waiting for connection; currently connected to #{actual_network.inspect}")
-            error.set_backtrace(wait_error.backtrace)
+            error.set_backtrace(e.backtrace)
             raise error
           end
         end
       rescue => e
         raise unless fail_silently
-        $stderr.puts "Warning: Could not restore network state: #{e.message}"
-        $stderr.puts "You may need to manually reconnect to: #{state[:network_name]}" if state[:network_name]
+
+        warn "Warning: Could not restore network state: #{e.message}"
+        warn "You may need to manually reconnect to: #{state[:network_name]}" if state[:network_name]
         nil
       end
     end
@@ -103,8 +107,14 @@ module WifiWand
     private
 
     def connected_network_password
-      return nil unless @model.connected_network_name
-      @model.preferred_network_password(@model.connected_network_name)
+      network_name = begin
+        @model.connected_network_name
+      rescue WifiWand::Error
+        nil
+      end
+      return nil unless network_name
+
+      @model.preferred_network_password(network_name)
     end
 
     def fallback_password_for(network_name)

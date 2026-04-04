@@ -8,6 +8,8 @@ describe WifiWand::CommandLineInterface do
   include TestHelpers
 
   # Use factory methods to create standard test fixtures
+  subject { described_class.new(options) }
+
   let(:mock_model) { create_standard_mock_model }
   let(:mock_os) { create_mock_os_with_model(mock_model) }
   let(:options) { create_cli_options }
@@ -54,14 +56,13 @@ describe WifiWand::CommandLineInterface do
     end
   end
 
-  before(:each) do
+  before do
     # Mock OS detection to avoid real system calls
     allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(mock_os)
     # Prevent interactive shell from starting
     allow_any_instance_of(described_class).to receive(:run_shell)
   end
 
-  subject { described_class.new(options) }
 
   describe 'initialization' do
     it 'raises NoSupportedOSError when no OS is detected' do
@@ -93,7 +94,7 @@ describe WifiWand::CommandLineInterface do
   end
 
   describe 'command validation' do
-    before(:each) do
+    before do
       allow(subject).to receive(:print_help)
       allow(subject).to receive(:exit)
     end
@@ -179,7 +180,7 @@ describe WifiWand::CommandLineInterface do
 
   describe 'command line processing' do
     describe '#process_command_line' do
-      before(:each) do
+      before do
         allow(subject).to receive(:print_help)
       end
 
@@ -192,7 +193,7 @@ describe WifiWand::CommandLineInterface do
       end
 
       it 'raises BadCommandError for invalid commands' do
-        stub_const('ARGV', ['invalid_command', 'arg1', 'arg2'])
+        stub_const('ARGV', %w[invalid_command arg1 arg2])
 
         expect { subject.process_command_line }.to raise_error(WifiWand::BadCommandError) do |error|
           expect(error.message).to include('Unrecognized command')
@@ -203,7 +204,7 @@ describe WifiWand::CommandLineInterface do
       end
 
       it 'passes command arguments correctly' do
-        stub_const('ARGV', ['connect', 'TestNetwork', 'password123'])
+        stub_const('ARGV', %w[connect TestNetwork password123])
         allow(subject).to receive(:cmd_co).with('TestNetwork', 'password123').and_return('connected')
 
         result = subject.process_command_line
@@ -256,7 +257,7 @@ describe WifiWand::CommandLineInterface do
   describe 'resource management commands' do
     let(:mock_resource_manager) { double('resource_manager') }
 
-    before(:each) do
+    before do
       allow(mock_model).to receive(:resource_manager).and_return(mock_resource_manager)
       allow(mock_model).to receive(:open_resources_by_codes)
       allow(mock_model).to receive(:available_resources_help)
@@ -293,13 +294,16 @@ describe WifiWand::CommandLineInterface do
       it 'displays error message for invalid resource codes' do
         allow(mock_model).to receive(:open_resources_by_codes)
           .with('invalid1', 'invalid2')
-          .and_return({ opened_resources: [], invalid_codes: ['invalid1', 'invalid2'] })
+          .and_return({ opened_resources: [], invalid_codes: %w[invalid1 invalid2] })
 
         allow(mock_resource_manager).to receive(:invalid_codes_error)
-          .with(['invalid1', 'invalid2'])
+          .with(%w[invalid1 invalid2])
           .and_return("Invalid resource codes: 'invalid1', 'invalid2'")
 
-        expect { subject.cmd_ro('invalid1', 'invalid2') }.to output("Invalid resource codes: 'invalid1', 'invalid2'\n").to_stderr
+        expect do
+          subject.cmd_ro('invalid1',
+            'invalid2')
+        end.to output("Invalid resource codes: 'invalid1', 'invalid2'\n").to_stderr
       end
 
       it 'handles mixed valid and invalid codes' do
@@ -326,7 +330,7 @@ describe WifiWand::CommandLineInterface do
           allow(interactive_cli.model).to receive(:generate_qr_code)
             .with('-', hash_including(delivery_mode: :return, password: nil)).and_return(ansi_content)
 
-          expect { @result = interactive_cli.cmd_qr(:'-') }.not_to output.to_stdout
+          expect { @result = interactive_cli.cmd_qr(:-) }.not_to output.to_stdout
           expect(@result).to eq(ansi_content)
         end
       end
@@ -334,7 +338,8 @@ describe WifiWand::CommandLineInterface do
       context 'non-interactive stdout mode' do
         it 'prints ANSI via model and returns nil' do
           # Model handles printing when delivery_mode is :print; CLI should not add extra output
-          allow(mock_model).to receive(:generate_qr_code).with('-', hash_including(delivery_mode: :print, password: nil)) do
+          allow(mock_model).to receive(:generate_qr_code)
+            .with('-', hash_including(delivery_mode: :print, password: nil)) do
             $stdout.print("[QR-ANSI]\n")
             '-'
           end
@@ -356,13 +361,15 @@ describe WifiWand::CommandLineInterface do
 
         before do
           # First call always fails with file exists error
-          allow(mock_model).to receive(:generate_qr_code).with(filename, hash_including(password: nil)).and_raise(file_exists_error)
+          allow(mock_model).to receive(:generate_qr_code).with(filename,
+            hash_including(password: nil)).and_raise(file_exists_error)
           allow($stdin).to receive(:tty?).and_return(true)
         end
 
         shared_examples 'user confirms overwrite' do |user_input|
           it "proceeds with overwrite when user enters '#{user_input.strip}'" do
-            allow(mock_model).to receive(:generate_qr_code).with(filename, hash_including(overwrite: true, password: nil)).and_return(filename)
+            allow(mock_model).to receive(:generate_qr_code).with(filename,
+              hash_including(overwrite: true, password: nil)).and_return(filename)
             allow($stdin).to receive(:gets).and_return(user_input)
 
             captured = silence_output do |stdout, _stderr|
@@ -383,7 +390,8 @@ describe WifiWand::CommandLineInterface do
         end
 
         it 'prompts for overwrite confirmation when file exists' do
-          allow(mock_model).to receive(:generate_qr_code).with(filename, hash_including(overwrite: true, password: nil)).and_return(filename)
+          allow(mock_model).to receive(:generate_qr_code).with(filename,
+            hash_including(overwrite: true, password: nil)).and_return(filename)
           allow($stdin).to receive(:gets).and_return("y\n")
 
           captured = silence_output do |stdout, _stderr|
@@ -400,7 +408,8 @@ describe WifiWand::CommandLineInterface do
 
         it 're-raises non-overwrite errors' do
           # Reset mock for different error
-          allow(mock_model).to receive(:generate_qr_code).with('other.png', hash_including(password: nil)).and_raise(
+          allow(mock_model).to receive(:generate_qr_code).with('other.png',
+            hash_including(password: nil)).and_raise(
             WifiWand::Error.new('Network connection failed')
           )
 
@@ -433,15 +442,19 @@ describe WifiWand::CommandLineInterface do
 
   describe 'command delegation' do
     COMMAND_TEST_CASES = [
-      { cmd: :cmd_w,  model_method: :wifi_on?, return_value: true, non_interactive_output: "Wifi on: true\n" },
+      { cmd: :cmd_w,  model_method: :wifi_on?, return_value: true,
+        non_interactive_output: "Wifi on: true\n" },
       { cmd: :cmd_on, model_method: :wifi_on },
       { cmd: :cmd_of, model_method: :wifi_off },
       { cmd: :cmd_d,  model_method: :disconnect },
       { cmd: :cmd_cy, model_method: :cycle_network },
       { cmd: :cmd_a,  model_method: :available_network_names, skip_non_interactive: true },
-      { cmd: :cmd_i,  model_method: :wifi_info, return_value: { 'status' => 'connected' }, non_interactive_output: /status.*connected/m },
-      { cmd: :cmd_ci, model_method: :connected_to_internet?, return_value: true, non_interactive_output: "Connected to Internet: true\n" },
-      { cmd: :cmd_qr, model_method: :generate_qr_code, return_value: 'TestNetwork-qr-code.png', non_interactive_output: "QR code generated: TestNetwork-qr-code.png\n" }
+      { cmd: :cmd_i,  model_method: :wifi_info, return_value: { 'status' => 'connected' },
+        non_interactive_output: /status.*connected/m },
+      { cmd: :cmd_ci, model_method: :connected_to_internet?, return_value: true,
+        non_interactive_output: "Connected to Internet: true\n" },
+      { cmd: :cmd_qr, model_method: :generate_qr_code, return_value: 'TestNetwork-qr-code.png',
+        non_interactive_output: "QR code generated: TestNetwork-qr-code.png\n" }
     ]
 
     COMMAND_TEST_CASES.each do |test_case|
@@ -467,10 +480,10 @@ describe WifiWand::CommandLineInterface do
         before { allow(mock_model).to receive(:wifi_on?).and_return(true) }
 
         include_examples 'interactive vs non-interactive command', :cmd_a, :available_network_names, {
-          return_value: ['TestNet1', 'TestNet2'],
+          return_value: %w[TestNet1 TestNet2],
           non_interactive_tests: {
             'outputs formatted available networks message' => {
-              model_return: ['TestNet1', 'TestNet2'],
+              model_return: %w[TestNet1 TestNet2],
               expected_output: /Available networks.*descending signal strength.*TestNet1.*TestNet2/m
             }
           }
@@ -480,15 +493,20 @@ describe WifiWand::CommandLineInterface do
           allow(mock_model).to receive(:available_network_names).and_return([])
           allow(mock_model).to receive(:is_a?).with(WifiWand::MacOsModel).and_return(true)
 
-          expect { subject.cmd_a }.to output(/No visible networks were found.*Location Services authorization/i).to_stdout
+          expect do
+            subject.cmd_a
+          end.to output(/No visible networks were found.*Location Services authorization/im).to_stdout
         end
       end
 
       context 'when wifi is off' do
-        before { allow(mock_model).to receive(:wifi_on?).and_return(false) }
+        before do
+          allow(mock_model).to receive(:wifi_on?).and_return(false)
+          allow(mock_model).to receive(:available_network_names).and_raise(WifiWand::Error.new('WiFi is off, cannot scan for available networks.'))
+        end
 
         it 'outputs wifi off message' do
-          expect { subject.cmd_a }.to output("Wifi is off, cannot see available networks.\n").to_stdout
+          expect { subject.cmd_a }.to output("WiFi is off, cannot scan for available networks.\n").to_stdout
         end
       end
     end
@@ -554,7 +572,7 @@ describe WifiWand::CommandLineInterface do
   describe 'preferred networks commands' do
     describe '#cmd_pr (preferred networks)' do
       it 'outputs formatted preferred networks list' do
-        networks = ['Network1', 'Network2']
+        networks = %w[Network1 Network2]
         allow(mock_model).to receive(:preferred_networks).and_return(networks)
 
         expect { subject.cmd_pr }.to output(/Network1.*Network2/m).to_stdout
@@ -567,20 +585,24 @@ describe WifiWand::CommandLineInterface do
         password = 'secret123'
         allow(mock_model).to receive(:preferred_network_password).with(network).and_return(password)
 
-        expect { subject.cmd_pa(network) }.to output(/Preferred network.*TestNetwork.*stored password.*secret123/m).to_stdout
+        expect do
+          subject.cmd_pa(network)
+        end.to output(/Preferred network.*TestNetwork.*stored password.*secret123/m).to_stdout
       end
 
       it 'outputs no password message when network has no stored password' do
         network = 'TestNetwork'
         allow(mock_model).to receive(:preferred_network_password).with(network).and_return(nil)
 
-        expect { subject.cmd_pa(network) }.to output(/Preferred network.*TestNetwork.*no stored password/m).to_stdout
+        expect do
+          subject.cmd_pa(network)
+        end.to output(/Preferred network.*TestNetwork.*no stored password/m).to_stdout
       end
     end
 
     describe '#cmd_f (forget/remove preferred networks)' do
       it 'removes specified networks and outputs result' do
-        networks_to_remove = ['Network1', 'Network2']
+        networks_to_remove = %w[Network1 Network2]
         removed_networks = ['Network1']
 
         expect(mock_model).to receive(:remove_preferred_networks).with(*networks_to_remove).and_return(removed_networks)
@@ -636,7 +658,9 @@ describe WifiWand::CommandLineInterface do
         end
 
         it 'raises ConfigurationError when interval is not numeric' do
-          expect { subject.cmd_t('on', '10', 'bad_value') }.to raise_error(WifiWand::ConfigurationError) do |error|
+          expect do
+            subject.cmd_t('on', '10', 'bad_value')
+          end.to raise_error(WifiWand::ConfigurationError) do |error|
             expect(error.message).to include('Invalid interval value')
             expect(error.message).to include('bad_value')
             expect(error.message).to include('must be a number')
@@ -725,14 +749,16 @@ describe WifiWand::CommandLineInterface do
     describe '#cmd_log' do
       it 'delegates to LogCommand with no arguments' do
         mock_log_command = instance_double('WifiWand::LogCommand')
-        expect(WifiWand::LogCommand).to receive(:new).with(mock_model, output: subject.send(:out_stream), verbose: false).and_return(mock_log_command)
+        expect(WifiWand::LogCommand).to receive(:new).with(mock_model, output: subject.send(:out_stream),
+          verbose: false).and_return(mock_log_command)
         expect(mock_log_command).to receive(:execute)
         subject.cmd_log
       end
 
       it 'delegates to LogCommand with arguments' do
         mock_log_command = instance_double('WifiWand::LogCommand')
-        expect(WifiWand::LogCommand).to receive(:new).with(mock_model, output: subject.send(:out_stream), verbose: false).and_return(mock_log_command)
+        expect(WifiWand::LogCommand).to receive(:new).with(mock_model, output: subject.send(:out_stream),
+          verbose: false).and_return(mock_log_command)
         expect(mock_log_command).to receive(:execute).with('--interval', '2', '--file')
         subject.cmd_log('--interval', '2', '--file')
       end
@@ -741,7 +767,8 @@ describe WifiWand::CommandLineInterface do
         verbose_opts = create_cli_options(verbose: true)
         verbose_cli = described_class.new(verbose_opts)
         mock_log_command = instance_double('WifiWand::LogCommand')
-        expect(WifiWand::LogCommand).to receive(:new).with(verbose_cli.model, output: verbose_cli.send(:out_stream), verbose: true).and_return(mock_log_command)
+        expect(WifiWand::LogCommand).to receive(:new).with(verbose_cli.model,
+          output: verbose_cli.send(:out_stream), verbose: true).and_return(mock_log_command)
         expect(mock_log_command).to receive(:execute)
         verbose_cli.cmd_log
       end
@@ -762,7 +789,8 @@ describe WifiWand::CommandLineInterface do
         # LogCommand.execute then determines whether to use it based on --file/--stdout options.
         # When --file is used without --stdout, LogCommand.execute passes nil to EventLogger.
         mock_log_command = instance_double('WifiWand::LogCommand')
-        expect(WifiWand::LogCommand).to receive(:new).with(mock_model, output: subject.send(:out_stream), verbose: false).and_return(mock_log_command)
+        expect(WifiWand::LogCommand).to receive(:new).with(mock_model, output: subject.send(:out_stream),
+          verbose: false).and_return(mock_log_command)
         expect(mock_log_command).to receive(:execute).with('--file')
         subject.cmd_log('--file')
       end
@@ -795,13 +823,16 @@ describe WifiWand::CommandLineInterface do
                 output = stdout.string
               end
             end.not_to raise_error
-            expect(output).to eq(%Q({:KEY=>"VALUE"}\n)).or eq(%Q({KEY: "VALUE"}\n))
+            expect(output).to eq(%({:KEY=>"VALUE"}\n)).or eq(%({KEY: "VALUE"}\n))
           end
         end
 
         context 'without post processor' do
           it 'uses human readable producer and outputs result' do
-            expect { subject.send(:handle_output, test_data, human_readable_producer) }.to output("Human readable output\n").to_stdout
+            expect do
+              subject.send(:handle_output, test_data,
+                human_readable_producer)
+            end.to output("Human readable output\n").to_stdout
           end
         end
       end
@@ -869,7 +900,7 @@ describe WifiWand::CommandLineInterface do
       expect(cli).to receive(:exit).with(-1)
       cli.call
       # Count occurrences of the help hint - should only appear once
-      hint_count = err_stream.string.scan(/Type help for usage/).length
+      hint_count = err_stream.string.scan('Type help for usage').length
       expect(hint_count).to eq(1)
     end
   end
@@ -892,6 +923,4 @@ describe WifiWand::CommandLineInterface do
       end
     end
   end
-
-
 end
