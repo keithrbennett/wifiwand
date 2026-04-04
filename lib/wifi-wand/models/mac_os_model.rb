@@ -202,9 +202,24 @@ module WifiWand
       sort_networks_by_signal_strength(networks)
     end
 
+    # Queries available WiFi network names via the macOS helper (CoreWLAN).
+    #
+    # Returns:
+    #   - Array<String> of unique SSID names when the helper returns usable data
+    #   - [] (empty array) when Location Services blocks the scan, preventing
+    #     fallback to system_profiler so redacted/hidden entries are not exposed
+    #   - nil when the helper is unavailable, returns no networks, or all SSIDs
+    #     are filtered placeholders (signals the caller to try fallback sources)
+    #
+    # Placeholder SSIDs such as "<hidden>" and "<redacted>" are excluded from
+    # the result. All interpretation of the helper response uses the explicit
+    # HelperQueryResult returned by scan_networks—no hidden client state is
+    # consulted.
     def helper_available_network_names
-      networks = mac_helper_client.scan_networks
-      return [] if mac_helper_client.location_services_blocked?
+      result = mac_helper_client.scan_networks
+      return [] if result.location_services_blocked?
+
+      networks = result.payload
       return nil unless networks&.any?
 
       names = networks
@@ -359,9 +374,10 @@ module WifiWand
 
     # Returns the network currently connected to, or nil if none.
     def _connected_network_name
-      helper_name = mac_helper_client.connected_network_name
-      return helper_name if helper_name && !placeholder_network_name?(helper_name)
-      return nil if mac_helper_client.location_services_blocked?
+      result = mac_helper_client.connected_network_name
+      ssid = result.payload
+      return ssid if ssid && !placeholder_network_name?(ssid)
+      return nil if result.location_services_blocked?
 
       data = airport_data
       airport_data = data.dig('SPAirPortDataType', 0, 'spairport_airport_interfaces')

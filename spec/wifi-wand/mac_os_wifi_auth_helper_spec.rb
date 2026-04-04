@@ -4,10 +4,6 @@ require 'spec_helper'
 require 'stringio'
 
 RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
-  let(:out_stream) { StringIO.new }
-  let(:verbose_flag) { false }
-  let(:macos_version) { '14.0' }
-
   subject(:client) do
     described_class.new(
       out_stream_proc: -> { out_stream },
@@ -16,8 +12,13 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
     )
   end
 
+  let(:out_stream) { StringIO.new }
+  let(:verbose_flag) { false }
+  let(:macos_version) { '14.0' }
+
+
   around do |example|
-    original = ENV['WIFIWAND_DISABLE_MAC_HELPER']
+    original = ENV.fetch('WIFIWAND_DISABLE_MAC_HELPER', nil)
     ENV.delete('WIFIWAND_DISABLE_MAC_HELPER')
     example.run
   ensure
@@ -75,27 +76,42 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
   end
 
   describe '#connected_network_name' do
-    it 'returns the SSID from the helper payload' do
-      expect(client).to receive(:execute).with('current-network').and_return('ssid' => 'OfficeWiFi')
-      expect(client.connected_network_name).to eq('OfficeWiFi')
+    it 'returns a result with the SSID payload' do
+      raw_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: { 'ssid' => 'OfficeWiFi' })
+      expect(client).to receive(:execute).with('current-network').and_return(raw_result)
+      result = client.connected_network_name
+      expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+      expect(result.payload).to eq('OfficeWiFi')
+      expect(result).not_to be_location_services_blocked
     end
 
-    it 'returns nil when the helper does not respond' do
-      expect(client).to receive(:execute).with('current-network').and_return(nil)
-      expect(client.connected_network_name).to be_nil
+    it 'returns a result with nil payload when the helper does not respond' do
+      raw_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+      expect(client).to receive(:execute).with('current-network').and_return(raw_result)
+      result = client.connected_network_name
+      expect(result.payload).to be_nil
+      expect(result).not_to be_location_services_blocked
     end
   end
 
   describe '#scan_networks' do
-    it 'returns network data from the helper payload' do
-      payload = { 'networks' => [{ 'ssid' => 'Cafe' }] }
-      expect(client).to receive(:execute).with('scan-networks').and_return(payload)
-      expect(client.scan_networks).to eq(payload['networks'])
+    it 'returns a result with network data payload' do
+      raw_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
+        payload: { 'networks' => [{ 'ssid' => 'Cafe' }] }
+      )
+      expect(client).to receive(:execute).with('scan-networks').and_return(raw_result)
+      result = client.scan_networks
+      expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+      expect(result.payload).to eq([{ 'ssid' => 'Cafe' }])
+      expect(result).not_to be_location_services_blocked
     end
 
-    it 'returns an empty array when the helper does not respond' do
-      expect(client).to receive(:execute).with('scan-networks').and_return(nil)
-      expect(client.scan_networks).to eq([])
+    it 'returns a result with empty array payload when the helper does not respond' do
+      raw_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+      expect(client).to receive(:execute).with('scan-networks').and_return(raw_result)
+      result = client.scan_networks
+      expect(result.payload).to eq([])
+      expect(result).not_to be_location_services_blocked
     end
   end
 
@@ -126,9 +142,12 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
     context 'when the helper is unavailable' do
       let(:helper_available) { false }
 
-      it 'returns nil without invoking the executable' do
+      it 'returns an empty result without invoking the executable' do
         expect(Open3).not_to receive(:capture3)
-        expect(execute_command).to be_nil
+        result = execute_command
+        expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+        expect(result.payload).to be_nil
+        expect(result).not_to be_location_services_blocked
       end
     end
 
@@ -141,8 +160,11 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
           .and_return(['{"status":"ok","payload":1}', '', status])
       end
 
-      it 'returns the parsed payload' do
-        expect(execute_command).to eq('status' => 'ok', 'payload' => 1)
+      it 'returns a result with the parsed payload' do
+        result = execute_command
+        expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+        expect(result.payload).to eq('status' => 'ok', 'payload' => 1)
+        expect(result).not_to be_location_services_blocked
       end
     end
 
@@ -153,9 +175,11 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
         allow(Open3).to receive(:capture3).and_return(['', 'boom', status])
       end
 
-      it 'logs the failure and returns nil' do
+      it 'logs the failure and returns an empty result' do
         expect(client).to receive(:log_verbose).with('helper exited with status 64: boom')
-        expect(execute_command).to be_nil
+        result = execute_command
+        expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+        expect(result.payload).to be_nil
       end
     end
 
@@ -167,8 +191,10 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
         allow(client).to receive(:parse_json).and_return(nil)
       end
 
-      it 'returns nil' do
-        expect(execute_command).to be_nil
+      it 'returns an empty result' do
+        result = execute_command
+        expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+        expect(result.payload).to be_nil
       end
     end
 
@@ -180,9 +206,12 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
           .and_return(['{"status":"error","error":"Location Services denied"}', '', status])
       end
 
-      it 'delegates to handle_error and returns nil' do
+      it 'delegates to handle_error and returns a result with location_services_blocked' do
         expect(client).to receive(:handle_error).with('Location Services denied')
-        expect(execute_command).to be_nil
+        result = execute_command
+        expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+        expect(result).to be_location_services_blocked
+        expect(result.error_message).to eq('Location Services denied')
       end
     end
 
@@ -191,9 +220,11 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
         allow(Open3).to receive(:capture3).and_raise(Errno::ENOENT.new('wifiwand-helper'))
       end
 
-      it 'logs the error and returns nil' do
+      it 'logs the error and returns an empty result' do
         expect(client).to receive(:log_verbose).with(/helper executable missing:/)
-        expect(execute_command).to be_nil
+        result = execute_command
+        expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+        expect(result.payload).to be_nil
       end
     end
 
@@ -202,9 +233,11 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
         allow(Open3).to receive(:capture3).and_raise(StandardError, 'boom')
       end
 
-      it 'logs the failure and returns nil' do
+      it 'logs the failure and returns an empty result' do
         expect(client).to receive(:log_verbose).with("helper command 'scan-networks' failed: boom")
-        expect(execute_command).to be_nil
+        result = execute_command
+        expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+        expect(result.payload).to be_nil
       end
     end
   end
@@ -232,7 +265,8 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
     it 'disables the helper when installation raises an error' do
       expect(File).to receive(:executable?).with(helper_path).and_return(false)
       allow(client).to receive(:log_verbose)
-      expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed).and_raise(StandardError, 'boom')
+      expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed).and_raise(StandardError,
+        'boom')
 
       client.send(:ensure_helper_installed)
 
@@ -273,7 +307,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
     it 'prints the warning only once' do
       client.send(:emit_location_warning)
       client.send(:emit_location_warning)
-      occurrences = out_stream.string.scan(/Location Services denied/).size
+      occurrences = out_stream.string.scan('Location Services denied').size
       expect(occurrences).to eq(1)
     end
   end

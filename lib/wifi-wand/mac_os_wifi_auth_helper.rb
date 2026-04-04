@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+
 # Manages the lifecycle of the macOS Wi-Fi helper app that runs privileged Swift code.
 # The module installs, compiles, and signs the helper bundle per WifiWand version so
 # network queries can bypass TCC redactions on Sonoma+ while remaining opt-in via env flag.
@@ -176,7 +177,8 @@ module WifiWand
     end
 
     def create_universal_binary(destination, *architecture_binaries)
-      stdout, stderr, status = Open3.capture3('lipo', '-create', '-output', destination, *architecture_binaries)
+      stdout, stderr, status = Open3.capture3('lipo', '-create', '-output', destination,
+        *architecture_binaries)
       return if status.success?
 
       error_output = stderr.empty? ? stdout : stderr
@@ -220,6 +222,17 @@ module WifiWand
       File.write(File.join(versioned_install_dir, 'VERSION'), helper_version)
     end
 
+    HelperQueryResult = Struct.new(
+      :payload,
+      :location_services_blocked,
+      :error_message,
+      keyword_init: true
+    ) do
+      def location_services_blocked?
+        !!location_services_blocked
+      end
+    end
+
     class Client
       attr_reader :last_error_message
 
@@ -233,15 +246,23 @@ module WifiWand
       end
 
       def connected_network_name
-        payload = execute('current-network')
-        payload&.fetch('ssid', nil)
+        result = execute('current-network')
+        ssid = result.payload&.fetch('ssid', nil)
+        HelperQueryResult.new(
+          payload: ssid,
+          location_services_blocked: result.location_services_blocked,
+          error_message: result.error_message
+        )
       end
 
       def scan_networks
-        payload = execute('scan-networks')
-        return [] unless payload
-
-        payload.fetch('networks', [])
+        result = execute('scan-networks')
+        networks = result.payload&.fetch('networks', []) || []
+        HelperQueryResult.new(
+          payload: networks,
+          location_services_blocked: result.location_services_blocked,
+          error_message: result.error_message
+        )
       end
 
       def available?
@@ -281,32 +302,36 @@ module WifiWand
 
       def execute(command)
         @last_error_message = nil
-        return nil unless available?
+        return HelperQueryResult.new unless available?
 
         ensure_helper_installed
-        return nil if @disabled
+        return HelperQueryResult.new if @disabled
 
         stdout, stderr, status = Open3.capture3(helper_executable_path, command)
         unless status.success?
           log_verbose("helper exited with status #{status.exitstatus}: #{stderr.strip}")
-          return nil
+          return HelperQueryResult.new
         end
 
         payload = parse_json(stdout)
-        return nil unless payload
+        return HelperQueryResult.new unless payload
 
         if payload['status'] == 'error'
-          handle_error(payload['error'])
-          return nil
+          error_msg = payload['error']
+          handle_error(error_msg)
+          return HelperQueryResult.new(
+            location_services_blocked: error_msg&.downcase&.include?('location services'),
+            error_message: error_msg
+          )
         end
 
-        payload
+        HelperQueryResult.new(payload: payload)
       rescue Errno::ENOENT => e
         log_verbose("helper executable missing: #{e.message}")
-        nil
-      rescue StandardError => e
+        HelperQueryResult.new
+      rescue => e
         log_verbose("helper command '#{command}' failed: #{e.message}")
-        nil
+        HelperQueryResult.new
       end
 
       def ensure_helper_installed
@@ -315,7 +340,7 @@ module WifiWand
 
         log_verbose('helper not installed; running installer')
         WifiWand::MacOsWifiAuthHelper.ensure_helper_installed(out_stream: verbose? ? out_stream : nil)
-      rescue StandardError => e
+      rescue => e
         emit_install_failure(e.message)
         @disabled = true
       end
@@ -346,9 +371,11 @@ module WifiWand
         return if @location_warning_emitted
 
         stream = out_stream || $stdout
-        stream.puts('wifiwand helper: Location Services denied. ' \
-                    'Run `wifi-wand-macos-setup` (or `wifi-wand-macos-setup --repair`) ' \
-                    'to grant location access.') if stream
+        if stream
+          stream.puts('wifiwand helper: Location Services denied. ' \
+                      'Run `wifi-wand-macos-setup` (or `wifi-wand-macos-setup --repair`) ' \
+                      'to grant location access.')
+        end
         @location_warning_emitted = true
       end
 
