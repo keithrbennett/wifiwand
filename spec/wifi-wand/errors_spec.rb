@@ -153,13 +153,6 @@ module WifiWand
             allow(model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:off, 5))
           }
         },
-        {
-          method: :validate_os_preconditions, args: [], error: CommandNotFoundError, os_tag: :os_ubuntu,
-          before: -> {
-            allow(model).to receive(:command_available?).with('iw').and_return(false)
-            allow(model).to receive(:command_available?).with('nmcli').and_return(false)
-          }
-        },
       ]
 
       error_raising_test_cases.each do |test_case|
@@ -174,6 +167,13 @@ module WifiWand
             expect { model.public_send(test_case[:method], *test_case[:args]) }.to raise_error(test_case[:error])
           end
         end
+      end
+
+      it 'raises CommandNotFoundError from UbuntuModel#validate_os_preconditions when required commands are missing' do
+        ubuntu_model = create_ubuntu_test_model
+        allow(ubuntu_model).to receive(:command_available?).with('iw').and_return(false)
+        allow(ubuntu_model).to receive(:command_available?).with('nmcli').and_return(false)
+        expect { ubuntu_model.validate_os_preconditions }.to raise_error(CommandNotFoundError)
       end
 
       # These tests are harder to make table-driven due to their complexity
@@ -204,7 +204,7 @@ module WifiWand
         end
       end
 
-      describe 'macOS specific errors', :os_mac do
+      describe 'macOS specific errors' do
         let(:mac_model) { create_mac_os_test_model }
 
         # These tests ensure the application gracefully handles specific failures from the external `security` command-line tool

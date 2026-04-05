@@ -5,7 +5,7 @@ require_relative '../../../lib/wifi-wand/models/ubuntu_model'
 
 module WifiWand
 
-describe UbuntuModel, :os_ubuntu do
+describe UbuntuModel do
   let(:subject) { create_ubuntu_test_model }
 
   # Mock network connectivity tester to prevent real network calls during non-disruptive tests
@@ -1229,7 +1229,7 @@ describe UbuntuModel, :os_ubuntu do
   end
 
   # System-modifying tests (will change wifi state)
-  context 'system-modifying operations', :disruptive do
+  context 'system-modifying operations', :disruptive, :os_ubuntu do
 
     describe '#wifi_on' do
       it 'turns wifi on when it is off' do
@@ -1330,7 +1330,7 @@ describe UbuntuModel, :os_ubuntu do
   end
 
   # System-modifying tests (will change WiFi state)
-  context 'integration tests', :disruptive do
+  context 'integration tests', :disruptive, :os_ubuntu do
 
     describe 'WiFi state management' do
       it 'can toggle WiFi on and off successfully' do

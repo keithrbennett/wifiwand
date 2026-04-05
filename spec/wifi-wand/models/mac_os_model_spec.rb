@@ -5,7 +5,7 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/models/mac_os_model'
 
 module WifiWand
-  describe MacOsModel, :os_mac do
+  describe MacOsModel do
     # Prevent accidental Keychain UI prompts in all tests (both disruptive and non-disruptive)
     before do
       # Mock network connectivity tester to prevent real network calls during non-disruptive tests
@@ -48,7 +48,7 @@ module WifiWand
       end
 
       # System-modifying tests (will change wifi state)
-      context 'system-modifying operations', :disruptive do
+      context 'system-modifying operations', :disruptive, :os_mac do
         subject { create_mac_os_test_model }
 
         describe '#wifi_on' do
@@ -86,7 +86,7 @@ module WifiWand
       end
 
       # Network connection tests (highest risk)
-      context 'network connection operations', :disruptive do
+      context 'network connection operations', :disruptive, :os_mac do
         subject { create_mac_os_test_model }
 
         describe '#_connect' do
@@ -98,7 +98,7 @@ module WifiWand
       end
 
       # Additional disruptive tests for system-modifying operations
-      context 'extended disruptive operations', :disruptive do
+      context 'extended disruptive operations', :disruptive, :os_mac do
         subject { create_mac_os_test_model }
 
         before(:all) do
@@ -538,6 +538,7 @@ module WifiWand
         end
 
         it 'validates IP addresses and raises error for invalid ones' do
+          allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
           invalid_nameservers = ['8.8.8.8', 'invalid.ip', '1.1.1.1']
           silence_output do
             expect { model.set_nameservers(invalid_nameservers) }.to raise_error(WifiWand::InvalidIPAddressError)
@@ -1298,6 +1299,7 @@ module WifiWand
 
       describe '#set_nameservers IP validation edge cases' do
         it 'identifies mixed valid and invalid IP addresses (IPv4 and IPv6)' do
+          allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
           mixed_ips = ['8.8.8.8', 'invalid.ip', '2606:4700:4700::1111', '1.1.1.1', '999.999.999.999']
 
           silence_output do
@@ -1311,6 +1313,7 @@ module WifiWand
         end
 
         it 'handles IP validation exceptions gracefully' do
+          allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
           # Mock IPAddr to raise exception for specific input
           allow(IPAddr).to receive(:new).with('problematic.ip').and_raise(StandardError.new('Parse error'))
           allow(IPAddr).to receive(:new).with('8.8.8.8').and_call_original
@@ -1325,7 +1328,7 @@ module WifiWand
 
     describe '#create_model with provided interface' do
       context 'when valid wifi_interface is provided' do
-        it 'uses the provided interface without calling detect_wifi_interface', :disruptive do
+        it 'uses the provided interface without calling detect_wifi_interface', :disruptive, :os_mac do
           model = WifiWand::MacOsModel.create_model(wifi_interface: 'en0')
           expect(model.wifi_interface).to eq('en0')
         end
