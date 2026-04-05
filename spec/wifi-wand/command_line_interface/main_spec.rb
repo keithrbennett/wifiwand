@@ -224,7 +224,7 @@ describe WifiWand::Main do
       options = subject.parse_command_line
 
       processor = options.post_processor
-      test_data = {'test' => 'value'}
+      test_data = { 'test' => 'value' }
       result = processor.call(test_data)
 
       expect(result).to be_a(String)
@@ -236,7 +236,7 @@ describe WifiWand::Main do
       options = subject.parse_command_line
 
       processor = options.post_processor
-      test_data = {'test' => 'value'}
+      test_data = { 'test' => 'value' }
       result = processor.call(test_data)
 
       expect(result).to be_a(String)
@@ -248,7 +248,7 @@ describe WifiWand::Main do
       options = subject.parse_command_line
 
       processor = options.post_processor
-      test_data = {'test' => 'value'}
+      test_data = { 'test' => 'value' }
       result = processor.call(test_data)
 
       expect(result).to eq(test_data.inspect)
@@ -259,7 +259,7 @@ describe WifiWand::Main do
       options = subject.parse_command_line
 
       processor = options.post_processor
-      test_data = {'test' => 'value'}
+      test_data = { 'test' => 'value' }
       result = processor.call(test_data)
 
       expect(result).to be_a(String)
@@ -273,7 +273,7 @@ describe WifiWand::Main do
       options = subject.parse_command_line
 
       processor = options.post_processor
-      test_data = {'test' => 'value'}
+      test_data = { 'test' => 'value' }
       result = processor.call(test_data)
 
       expect(result).to be_a(String)

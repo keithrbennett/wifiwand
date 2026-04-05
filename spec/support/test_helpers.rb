@@ -121,7 +121,7 @@ module TestHelpers
       wifi_off: nil,
       wifi_on: nil,
       available_network_names: ['TestNet1', 'TestNet2'],
-      wifi_info: {'status' => 'connected'},
+      wifi_info: { 'status' => 'connected' },
       connected_to_internet?: true,
       connected_network_name: 'TestNetwork',
       disconnect: nil,

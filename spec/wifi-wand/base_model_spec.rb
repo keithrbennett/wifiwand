@@ -28,7 +28,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:dns_working?).and_return(true)
       # Don't mock connected_to_internet? globally - let tests override it when needed
       allow(subject).to receive(:fast_connectivity?).and_return(true)
-      allow(subject).to receive(:public_ip_address_info).and_return({'ip' => '1.2.3.4'})
+      allow(subject).to receive(:public_ip_address_info).and_return({ 'ip' => '1.2.3.4' })
 
       # Also mock the underlying NetworkConnectivityTester to prevent real network calls
       # Don't mock connected_to_internet? - let it use the passed parameters
@@ -552,7 +552,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'handles internet_tcp_connectivity exceptions' do
       allow(subject).to receive(:internet_tcp_connectivity?).and_raise(StandardError, 'Network error')
       allow(subject).to receive(:dns_working?).and_return(true)
-      allow(subject).to receive(:public_ip_address_info).and_return({'ip' => '1.2.3.4'})
+      allow(subject).to receive(:public_ip_address_info).and_return({ 'ip' => '1.2.3.4' })
 
       result = subject.wifi_info
 
@@ -566,7 +566,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'handles dns_working exceptions' do
       allow(subject).to receive(:internet_tcp_connectivity?).and_return(true)
       allow(subject).to receive(:dns_working?).and_raise(StandardError, 'DNS error')
-      allow(subject).to receive(:public_ip_address_info).and_return({'ip' => '1.2.3.4'})
+      allow(subject).to receive(:public_ip_address_info).and_return({ 'ip' => '1.2.3.4' })
 
       result = subject.wifi_info
       expect(result['dns_working']).to be false
@@ -584,12 +584,12 @@ describe 'Common WiFi Model Behavior (All OS)' do
           .and_raise(Errno::ETIMEDOUT)
           .once
         allow(subject).to receive(:public_ip_address_info)
-          .and_return({'ip' => '1.2.3.4'})
+          .and_return({ 'ip' => '1.2.3.4' })
           .once
         allow(subject).to receive(:sleep)
 
         result = subject.wifi_info
-        expect(result['public_ip']).to eq({'ip' => '1.2.3.4'})
+        expect(result['public_ip']).to eq({ 'ip' => '1.2.3.4' })
       end
 
       # These tests are complex because they test error handling paths within wifi_info

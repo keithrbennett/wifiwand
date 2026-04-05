@@ -35,14 +35,6 @@ Layout/IndentationWidth:
 Layout/LineLength:
   Enabled: false
 
-# Offense count: 22
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyle, EnforcedStyleForEmptyBraces.
-# SupportedStyles: space, no_space, compact
-# SupportedStylesForEmptyBraces: space, no_space
-Layout/SpaceInsideHashLiteralBraces:
-  Enabled: false
-
 # Offense count: 13
 # This cop supports safe autocorrection (--autocorrect).
 # Configuration parameters: EnforcedStyle.
