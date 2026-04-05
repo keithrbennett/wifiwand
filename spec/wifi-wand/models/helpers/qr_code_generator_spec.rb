@@ -102,7 +102,7 @@ describe 'QR Code Generator (unit)' do
   end
 
   it 'generates QR code with H:false for visible (broadcast) networks' do
-allow(model).to receive(:network_hidden?).and_return(false)
+    allow(model).to receive(:network_hidden?).and_return(false)
 
 expect(model).to receive(:run_os_command) do |cmd|
   expect(cmd).to be_an(Array)
