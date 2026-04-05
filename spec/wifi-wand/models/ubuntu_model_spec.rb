@@ -666,8 +666,7 @@ describe UbuntuModel, :os_ubuntu do
           .and_return(command_result(stdout: nmcli_output))
 
         result = subject.available_network_names
-        # The implementation currently doesn't filter empty SSIDs, so let's test actual behavior
-        expect(result).to eq(['OtherNet', '', 'TestNet'])
+        expect(result).to eq(["OtherNet", "TestNet"])
       end
     end
 

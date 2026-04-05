@@ -88,7 +88,7 @@ module WifiWand
       networks = networks_with_signal.map do |line|
         ssid, signal = nmcli_split(line, 2)
         [ssid, signal.to_i]
-      end.sort_by { |_, signal| -signal }.map { |ssid, _| ssid }
+      end.sort_by { |_, signal| -signal }.map { |ssid, _| ssid }.reject(&:empty?)
 
       networks.uniq
     end
