@@ -35,10 +35,10 @@ module WifiWand
         parser.on('-o', '--output_format FORMAT', 'Format output data') do |v|
           formatters = {
             'i' => ->(object) { object.inspect },
-              'j' => ->(object) { object.to_json },
-              'k' => ->(object) { JSON.pretty_generate(object) },
-              'p' => ->(object) { sio = StringIO.new; sio.puts(object); sio.string },
-              'y' => ->(object) { object.to_yaml }
+            'j' => ->(object) { object.to_json },
+            'k' => ->(object) { JSON.pretty_generate(object) },
+            'p' => ->(object) { sio = StringIO.new; sio.puts(object); sio.string },
+            'y' => ->(object) { object.to_yaml }
           }
 
           choice = v[0].downcase

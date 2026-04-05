@@ -43,8 +43,8 @@ module TestHelpers
       ])
       helper_client = instance_double(
         WifiWand::MacOsWifiAuthHelper::Client,
-        connected_network_name: nil,
-        scan_networks: [],
+        connected_network_name:     nil,
+        scan_networks:              [],
         location_services_blocked?: false
       )
       allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_client)
@@ -116,28 +116,28 @@ module TestHelpers
   # Factory method for creating standard CLI mock model with common methods
   def create_standard_mock_model(overrides = {})
     defaults = {
-      verbose_mode: false,
-      wifi_on?: true,
-      wifi_off: nil,
-      wifi_on: nil,
-      available_network_names: ['TestNet1', 'TestNet2'],
-      wifi_info: { 'status' => 'connected' },
-      connected_to_internet?: true,
-      connected_network_name: 'TestNetwork',
-      disconnect: nil,
-      connect: nil,
-      cycle_network: nil,
-      nameservers: ['8.8.8.8', '1.1.1.1'],
-      set_nameservers: nil,
-      preferred_networks: ['Network1', 'Network2'],
-      preferred_network_password: 'password123',
-      remove_preferred_networks: ['RemovedNet'],
-      till: nil,
+      verbose_mode:                         false,
+      wifi_on?:                             true,
+      wifi_off:                             nil,
+      wifi_on:                              nil,
+      available_network_names:              ['TestNet1', 'TestNet2'],
+      wifi_info:                            { 'status' => 'connected' },
+      connected_to_internet?:               true,
+      connected_network_name:               'TestNetwork',
+      disconnect:                           nil,
+      connect:                              nil,
+      cycle_network:                        nil,
+      nameservers:                          ['8.8.8.8', '1.1.1.1'],
+      set_nameservers:                      nil,
+      preferred_networks:                   ['Network1', 'Network2'],
+      preferred_network_password:           'password123',
+      remove_preferred_networks:            ['RemovedNet'],
+      till:                                 nil,
       last_connection_used_saved_password?: false,
-      available_resources_help: 'Available resources help text',
-      open_resources_by_codes: { opened_resources: [], invalid_codes: [] },
-      resource_manager: double('resource_manager', invalid_codes_error: 'Invalid codes'),
-      generate_qr_code: 'TestNetwork-qr-code.png'
+      available_resources_help:             'Available resources help text',
+      open_resources_by_codes:              { opened_resources: [], invalid_codes: [] },
+      resource_manager:                     double('resource_manager', invalid_codes_error: 'Invalid codes'),
+      generate_qr_code:                     'TestNetwork-qr-code.png'
     }
     double('model', defaults.merge(overrides))
   end
@@ -151,10 +151,10 @@ module TestHelpers
   # Factory method for creating CLI options
   def create_cli_options(overrides = {})
     defaults = {
-      verbose: false,
-      wifi_interface: nil,
+      verbose:          false,
+      wifi_interface:   nil,
       interactive_mode: false,
-      post_processor: nil
+      post_processor:   nil
     }
     OpenStruct.new(defaults.merge(overrides))
   end

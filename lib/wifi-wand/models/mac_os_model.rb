@@ -42,12 +42,12 @@ module WifiWand
     # 25  - Invalid keychain search parameters
     # 1   - General error (could be "not found" or other issues)
     KEYCHAIN_EXIT_CODE_HANDLERS = {
-      44 => ->(network_name, _error) {}, # Item not found - no password stored
-      45 => ->(network_name, _error) { raise KeychainAccessDeniedError.new(network_name) },
+      44  => ->(network_name, _error) {}, # Item not found - no password stored
+      45  => ->(network_name, _error) { raise KeychainAccessDeniedError.new(network_name) },
       128 => ->(network_name, _error) { raise KeychainAccessCancelledError.new(network_name) },
-      51 => ->(network_name, _error) { raise KeychainNonInteractiveError.new(network_name) },
-      25 => ->(network_name, _error) { raise KeychainError.new("Invalid keychain search parameters for network '#{network_name}'") },
-      1 => ->(network_name, error) {
+      51  => ->(network_name, _error) { raise KeychainNonInteractiveError.new(network_name) },
+      25  => ->(network_name, _error) { raise KeychainError.new("Invalid keychain search parameters for network '#{network_name}'") },
+      1   => ->(network_name, error) {
         if error.text.include?('could not be found')
           nil
         else
@@ -402,8 +402,8 @@ module WifiWand
 
     def mac_helper_client
       @mac_helper_client ||= WifiWand::MacOsWifiAuthHelper::Client.new(
-        out_stream_proc: -> { out_stream },
-        verbose_proc: -> { verbose_mode },
+        out_stream_proc:    -> { out_stream },
+        verbose_proc:       -> { verbose_mode },
         macos_version_proc: -> { macos_version }
       )
     end

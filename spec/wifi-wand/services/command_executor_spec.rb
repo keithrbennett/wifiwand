@@ -59,12 +59,12 @@ describe WifiWand::CommandExecutor do
       allow(executor).to receive(:run_os_command) do |command|
         call_count += 1
         WifiWand::CommandExecutor::OsCommandResult.new(
-          stdout: "attempt #{call_count}",
-          stderr: '',
+          stdout:          "attempt #{call_count}",
+          stderr:          '',
           combined_output: "attempt #{call_count}",
-          exitstatus: 0,
-          command: command,
-          duration: 0.0
+          exitstatus:      0,
+          command:         command,
+          duration:        0.0
         )
       end
 
@@ -144,8 +144,8 @@ describe WifiWand::CommandExecutor do
       error_hash = error.to_h
       expect(error_hash).to eq({
         exitstatus: 1,
-        command: 'false',
-        text: 'command failed'
+        command:    'false',
+        text:       'command failed'
       })
     end
   end

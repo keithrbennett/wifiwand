@@ -41,8 +41,9 @@ Layout/FirstHashElementIndentation:
   EnforcedStyle: consistent
 
 Layout/HashAlignment:
-  EnforcedHashRocketStyle: key
-  EnforcedColonStyle: key
+  EnforcedHashRocketStyle: table
+  EnforcedColonStyle: table
+  AllowMultipleStyles: true
 
 Layout/IndentationConsistency:
   EnforcedStyle: normal

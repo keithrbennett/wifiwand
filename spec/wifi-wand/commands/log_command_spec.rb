@@ -8,10 +8,10 @@ describe WifiWand::LogCommand do
   let(:mock_model) do
     double('Model',
       status_line_data: {
-        wifi_on: true,
-        network_name: 'HomeNetwork',
-        tcp_working: true,
-        dns_working: true,
+        wifi_on:            true,
+        network_name:       'HomeNetwork',
+        tcp_working:        true,
+        dns_working:        true,
         internet_connected: true
       }
     )
@@ -51,10 +51,10 @@ describe WifiWand::LogCommand do
       expect(WifiWand::EventLogger).to have_received(:new).with(
         mock_model,
         hash_including(
-          interval: WifiWand::TimingConstants::EVENT_LOG_POLLING_INTERVAL,
-          verbose: false,
+          interval:      WifiWand::TimingConstants::EVENT_LOG_POLLING_INTERVAL,
+          verbose:       false,
           log_file_path: nil,
-          output: output
+          output:        output
         )
       )
     end
@@ -128,7 +128,7 @@ describe WifiWand::LogCommand do
           mock_model,
           hash_including(
             log_file_path: WifiWand::LogFileManager::DEFAULT_LOG_FILE,
-            output: nil
+            output:        nil
           )
         )
       end
@@ -153,7 +153,7 @@ describe WifiWand::LogCommand do
           mock_model,
           hash_including(
             log_file_path: '/tmp/test.log',
-            output: output
+            output:        output
           )
         )
       end
@@ -189,10 +189,10 @@ describe WifiWand::LogCommand do
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
           hash_including(
-            interval: 3.0,
-            verbose: true,
+            interval:      3.0,
+            verbose:       true,
             log_file_path: '/tmp/test.log',
-            output: nil
+            output:        nil
           )
         )
       end
@@ -204,10 +204,10 @@ describe WifiWand::LogCommand do
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
           hash_including(
-            interval: 3.0,
-            verbose: true,
+            interval:      3.0,
+            verbose:       true,
             log_file_path: '/tmp/test.log',
-            output: output
+            output:        output
           )
         )
       end

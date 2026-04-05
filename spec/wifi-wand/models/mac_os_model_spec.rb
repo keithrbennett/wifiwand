@@ -422,7 +422,7 @@ module WifiWand
           allow(model).to receive(:airport_data).and_return(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name' => 'en0',
+                '_name'                                 => 'en0',
                 'spairport_current_network_information' => { '_name' => 'ProfilerNet' }
               }]
             }]
@@ -438,7 +438,7 @@ module WifiWand
           allow(model).to receive(:airport_data).and_return(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name' => 'en0',
+                '_name'                                 => 'en0',
                 'spairport_current_network_information' => nil
               }]
             }]
@@ -451,7 +451,7 @@ module WifiWand
         it 'does not fall back to airport data when helper is blocked by Location Services' do
           result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
             location_services_blocked: true,
-            error_message: 'Location Services denied'
+            error_message:             'Location Services denied'
           )
           allow(helper_double).to receive(:connected_network_name).and_return(result)
 
@@ -521,11 +521,11 @@ module WifiWand
 
         it 'accepts IPv6 DNS addresses' do
           ipv6_test_cases = [
-            { input: ['2606:4700:4700::1111', '2606:4700:4700::1001'],
+            { input:         ['2606:4700:4700::1111', '2606:4700:4700::1001'],
               expected_args: ['2606:4700:4700::1111', '2606:4700:4700::1001'] },
-            { input: ['2001:4860:4860::8888'],
+            { input:         ['2001:4860:4860::8888'],
               expected_args: ['2001:4860:4860::8888'] },
-            { input: ['8.8.8.8', '2606:4700:4700::1111'],
+            { input:         ['8.8.8.8', '2606:4700:4700::1111'],
               expected_args: ['8.8.8.8', '2606:4700:4700::1111'] }
           ]
 
@@ -605,9 +605,9 @@ module WifiWand
           allow(model).to receive(:wifi_interface).and_return('en0')
 
           test_cases = {
-            'Simple' => 'sudo networksetup -removepreferredwirelessnetwork en0 Simple',
-            'Network With Spaces' => 'sudo networksetup -removepreferredwirelessnetwork en0 Network\\ With\\ Spaces',
-            'Network"WithQuotes' => 'sudo networksetup -removepreferredwirelessnetwork en0 Network\"WithQuotes',
+            'Simple'                   => 'sudo networksetup -removepreferredwirelessnetwork en0 Simple',
+            'Network With Spaces'      => 'sudo networksetup -removepreferredwirelessnetwork en0 Network\\ With\\ Spaces',
+            'Network"WithQuotes'       => 'sudo networksetup -removepreferredwirelessnetwork en0 Network\"WithQuotes',
             "Network'WithSingleQuotes" => "sudo networksetup -removepreferredwirelessnetwork en0 Network\\'WithSingleQuotes"
           }
 
@@ -858,7 +858,7 @@ module WifiWand
           {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name' => 'en0',
+                '_name'                                     => 'en0',
                 'spairport_airport_local_wireless_networks' => [
                   { '_name' => 'StrongNetwork', 'spairport_signal_noise' => '85/10' },
                   { '_name' => 'WeakNetwork', 'spairport_signal_noise' => '45/10' },
@@ -905,7 +905,7 @@ module WifiWand
           duplicate_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name' => 'en0',
+                '_name'                                     => 'en0',
                 'spairport_airport_local_wireless_networks' => [
                   { '_name' => 'DupeNetwork', 'spairport_signal_noise' => '85/10' },
                   { '_name' => 'DupeNetwork', 'spairport_signal_noise' => '45/10' },
@@ -941,7 +941,7 @@ module WifiWand
           placeholder_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name' => 'en0',
+                '_name'                                     => 'en0',
                 'spairport_airport_local_wireless_networks' => [
                   { '_name' => '<redacted>', 'spairport_signal_noise' => '95/10' },
                   { '_name' => '<hidden>', 'spairport_signal_noise' => '85/10' },
@@ -961,9 +961,9 @@ module WifiWand
 
         it 'does not fall back to system_profiler when helper is blocked by Location Services' do
           result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
-            payload: [],
+            payload:                   [],
             location_services_blocked: true,
-            error_message: 'Location Services denied'
+            error_message:             'Location Services denied'
           )
           allow(helper_double).to receive(:scan_networks).and_return(result)
 
@@ -1108,9 +1108,9 @@ module WifiWand
             airport_data = {
               'SPAirPortDataType' => [{
                 'spairport_airport_interfaces' => [{
-                  '_name' => wifi_interface,
+                  '_name'                                     => wifi_interface,
                   'spairport_airport_local_wireless_networks' => [{
-                    '_name' => network_name,
+                    '_name'                   => network_name,
                     'spairport_security_mode' => security_mode
                   }]
                 }]
@@ -1139,7 +1139,7 @@ module WifiWand
           airport_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name' => 'other_interface',
+                '_name'                                     => 'other_interface',
                 'spairport_airport_local_wireless_networks' => []
               }]
             }]
@@ -1154,9 +1154,9 @@ module WifiWand
           airport_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name' => wifi_interface,
+                '_name'                                     => wifi_interface,
                 'spairport_airport_local_wireless_networks' => [{
-                  '_name' => 'OtherNetwork',
+                  '_name'                   => 'OtherNetwork',
                   'spairport_security_mode' => 'WPA2'
                 }]
               }]
@@ -1172,7 +1172,7 @@ module WifiWand
           airport_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name' => wifi_interface,
+                '_name'                                     => wifi_interface,
                 'spairport_airport_local_wireless_networks' => [{
                   '_name' => network_name
                   # No spairport_security_mode key
@@ -1200,12 +1200,12 @@ module WifiWand
           airport_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name' => wifi_interface,
-                'spairport_current_network_information' => {
+                '_name'                                     => wifi_interface,
+                'spairport_current_network_information'     => {
                   '_name' => network_name
                 },
                 'spairport_airport_local_wireless_networks' => [{
-                  '_name' => network_name,
+                  '_name'                  => network_name,
                   'spairport_signal_noise' => '50/10'
                 }]
               }]
@@ -1222,12 +1222,12 @@ module WifiWand
           airport_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name' => wifi_interface,
-                'spairport_current_network_information' => {
+                '_name'                                     => wifi_interface,
+                'spairport_current_network_information'     => {
                   '_name' => network_name
                 },
                 'spairport_airport_local_wireless_networks' => [{
-                  '_name' => 'OtherNetwork',
+                  '_name'                  => 'OtherNetwork',
                   'spairport_signal_noise' => '40/10'
                 }]
               }]
@@ -1256,7 +1256,7 @@ module WifiWand
           airport_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name' => 'other_interface',
+                '_name'                                 => 'other_interface',
                 'spairport_current_network_information' => {
                   '_name' => network_name
                 }

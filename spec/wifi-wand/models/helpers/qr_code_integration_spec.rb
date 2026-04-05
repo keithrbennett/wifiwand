@@ -78,11 +78,11 @@ describe 'QR Code Integration Tests' do
     # Table-driven test cases
     test_cases = [
       {
-        name: 'WPA2 network with password',
-        network_name: 'TestNetwork',
-        password: 'password123',
+        name:          'WPA2 network with password',
+        network_name:  'TestNetwork',
+        password:      'password123',
         security_type: 'WPA2',
-        expected: {
+        expected:      {
           'T' => 'WPA',
           'S' => 'TestNetwork',
           'P' => 'password123',
@@ -90,11 +90,11 @@ describe 'QR Code Integration Tests' do
         }
       },
       {
-        name: 'WPA3 network with complex password',
-        network_name: 'SecureNet-5G',
-        password: 'C0mp1ex!P@ssw0rd',
+        name:          'WPA3 network with complex password',
+        network_name:  'SecureNet-5G',
+        password:      'C0mp1ex!P@ssw0rd',
         security_type: 'WPA3',
-        expected: {
+        expected:      {
           'T' => 'WPA',
           'S' => 'SecureNet-5G',
           'P' => 'C0mp1ex!P@ssw0rd',
@@ -102,11 +102,11 @@ describe 'QR Code Integration Tests' do
         }
       },
       {
-        name: 'WEP network',
-        network_name: 'OldRouter',
-        password: '1234567890',
+        name:          'WEP network',
+        network_name:  'OldRouter',
+        password:      '1234567890',
         security_type: 'WEP',
-        expected: {
+        expected:      {
           'T' => 'WEP',
           'S' => 'OldRouter',
           'P' => '1234567890',
@@ -114,11 +114,11 @@ describe 'QR Code Integration Tests' do
         }
       },
       {
-        name: 'Open network (no password)',
-        network_name: 'FreeWiFi',
-        password: nil,
+        name:          'Open network (no password)',
+        network_name:  'FreeWiFi',
+        password:      nil,
         security_type: nil,
-        expected: {
+        expected:      {
           'T' => 'nopass',
           'S' => 'FreeWiFi',
           'P' => '',
@@ -126,11 +126,11 @@ describe 'QR Code Integration Tests' do
         }
       },
       {
-        name: 'Network name with spaces',
-        network_name: 'Coffee Shop WiFi',
-        password: 'welcome123',
+        name:          'Network name with spaces',
+        network_name:  'Coffee Shop WiFi',
+        password:      'welcome123',
         security_type: 'WPA2',
-        expected: {
+        expected:      {
           'T' => 'WPA',
           'S' => 'Coffee Shop WiFi',
           'P' => 'welcome123',
@@ -138,11 +138,11 @@ describe 'QR Code Integration Tests' do
         }
       },
       {
-        name: 'Network with special characters in SSID',
-        network_name: 'Net;work:WiFi\\Test',
-        password: 'p@ss,w0rd;test:data\\escape',
+        name:          'Network with special characters in SSID',
+        network_name:  'Net;work:WiFi\\Test',
+        password:      'p@ss,w0rd;test:data\\escape',
         security_type: 'WPA2',
-        expected: {
+        expected:      {
           'T' => 'WPA',
           'S' => 'Net;work:WiFi\\Test',
           'P' => 'p@ss,w0rd;test:data\\escape',
@@ -150,11 +150,11 @@ describe 'QR Code Integration Tests' do
         }
       },
       {
-        name: 'Long network name and password',
-        network_name: 'VeryLongNetworkNameThatExceeds32Characters',
-        password: 'ThisIsAVeryLongPasswordThatContainsLotsOfCharactersToTestLongStrings',
+        name:          'Long network name and password',
+        network_name:  'VeryLongNetworkNameThatExceeds32Characters',
+        password:      'ThisIsAVeryLongPasswordThatContainsLotsOfCharactersToTestLongStrings',
         security_type: 'WPA3',
-        expected: {
+        expected:      {
           'T' => 'WPA',
           'S' => 'VeryLongNetworkNameThatExceeds32Characters',
           'P' => 'ThisIsAVeryLongPasswordThatContainsLotsOfCharactersToTestLongStrings',

@@ -64,19 +64,19 @@ describe 'Output Format Integration Tests' do
 
   describe 'Output format validation' do
     output_formats = {
-      inspect: {
+      inspect:     {
         code: 'i'
       },
-      json: {
+      json:        {
         code: 'j'
       },
       pretty_json: {
         code: 'k'
       },
-      puts: {
+      puts:        {
         code: 'p'
       },
-      yaml: {
+      yaml:        {
         code: 'y'
       }
     }
@@ -277,10 +277,10 @@ describe 'Output Format Integration Tests' do
         context 'with nested hash data' do
           let(:test_data) do
             {
-              'wifi_on' => true,
-              'network' => {
-                'ssid' => 'HomeNet',
-                'channel' => 11,
+              'wifi_on'    => true,
+              'network'    => {
+                'ssid'     => 'HomeNet',
+                'channel'  => 11,
                 'security' => 'WPA2'
               },
               'ip_address' => '192.168.1.100'
@@ -366,11 +366,11 @@ describe 'Output Format Integration Tests' do
       outputs = {}
 
       format_codes = {
-        inspect: 'i',
-        json: 'j',
+        inspect:     'i',
+        json:        'j',
         pretty_json: 'k',
-        puts: 'p',
-        yaml: 'y'
+        puts:        'p',
+        yaml:        'y'
       }
 
       format_codes.each do |format_name, code|
@@ -397,20 +397,20 @@ describe 'Output Format Integration Tests' do
   describe 'Round-trip serialization tests' do
     let(:complex_data) do
       {
-        'wifi_status' => {
-          'enabled' => true,
-          'connected' => true,
-          'network_name' => 'HomeNetwork',
+        'wifi_status'        => {
+          'enabled'         => true,
+          'connected'       => true,
+          'network_name'    => 'HomeNetwork',
           'signal_strength' => -45
         },
-        'network_details' => {
-          'channel' => 11,
-          'frequency' => '2.4GHz',
-          'security' => 'WPA2-PSK',
+        'network_details'    => {
+          'channel'    => 11,
+          'frequency'  => '2.4GHz',
+          'security'   => 'WPA2-PSK',
           'ip_address' => '192.168.1.100'
         },
         'available_networks' => ['HomeNetwork', 'GuestNetwork', 'OfficeWiFi'],
-        'nameservers' => ['8.8.8.8', '8.8.4.4', '1.1.1.1']
+        'nameservers'        => ['8.8.8.8', '8.8.4.4', '1.1.1.1']
       }
     end
 

@@ -6,14 +6,14 @@ require_relative '../../../lib/wifi-wand/services/network_state_manager'
 describe WifiWand::NetworkStateManager do
   let(:mock_model) do
     double('Model',
-      wifi_on?: true,
-      connected_network_name: 'TestNetwork',
-      wifi_interface: 'wlan0',
+      wifi_on?:                   true,
+      connected_network_name:     'TestNetwork',
+      wifi_interface:             'wlan0',
       preferred_network_password: 'testpass',
-      wifi_on: nil,
-      wifi_off: nil,
-      connect: nil,
-      till: nil
+      wifi_on:                    nil,
+      wifi_off:                   nil,
+      connect:                    nil,
+      till:                       nil
     )
   end
 
@@ -22,10 +22,10 @@ describe WifiWand::NetworkStateManager do
   describe '#capture_network_state' do
     it 'captures current network state' do
       expect(state_manager.capture_network_state).to include(
-        wifi_enabled: true,
-        network_name: 'TestNetwork',
+        wifi_enabled:     true,
+        network_name:     'TestNetwork',
         network_password: 'testpass',
-        interface: 'wlan0'
+        interface:        'wlan0'
       )
     end
 
@@ -59,10 +59,10 @@ describe WifiWand::NetworkStateManager do
   describe '#restore_network_state' do
     let(:valid_state) do
       {
-        wifi_enabled: true,
-        network_name: 'TestNetwork',
+        wifi_enabled:     true,
+        network_name:     'TestNetwork',
         network_password: 'testpass',
-        interface: 'wlan0'
+        interface:        'wlan0'
       }
     end
 
@@ -159,10 +159,10 @@ describe WifiWand::NetworkStateManager do
 
     it 'skips network connection when WiFi should be disabled' do
       wifi_disabled_state = {
-        wifi_enabled: false,
-        network_name: 'TestNetwork',
+        wifi_enabled:     false,
+        network_name:     'TestNetwork',
         network_password: 'testpass',
-        interface: 'wlan0'
+        interface:        'wlan0'
       }
       allow(mock_model).to receive(:wifi_on?).and_return(false)
 
@@ -253,10 +253,10 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
 
       valid_state = {
-        wifi_enabled: true,
-        network_name: 'TestNetwork',
+        wifi_enabled:     true,
+        network_name:     'TestNetwork',
         network_password: 'testpass',
-        interface: 'wlan0'
+        interface:        'wlan0'
       }
 
       expect do

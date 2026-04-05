@@ -82,8 +82,8 @@ module RSpecConfiguration
   def self.analyze_test_types(examples_to_run)
     {
       disruptive: examples_to_run.any? { |ex| ex.metadata[:disruptive] },
-      sudo: examples_to_run.any? { |ex| ex.metadata[:needs_sudo_access] },
-      keychain: examples_to_run.any? { |ex| ex.metadata[:keychain_integration] }
+      sudo:       examples_to_run.any? { |ex| ex.metadata[:needs_sudo_access] },
+      keychain:   examples_to_run.any? { |ex| ex.metadata[:keychain_integration] }
     }
   end
 

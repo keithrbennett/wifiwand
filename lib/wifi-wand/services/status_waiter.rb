@@ -28,9 +28,9 @@ module WifiWand
 
       finished_predicates = {
         conn: -> { @model.connected_to_internet? },
-          disc: -> { !@model.connected_to_internet? },
-          on:   -> { @model.wifi_on? },
-          off:  -> { !@model.wifi_on? }
+        disc: -> { !@model.connected_to_internet? },
+        on:   -> { @model.wifi_on? },
+        off:  -> { !@model.wifi_on? }
       }
 
       finished_predicate = finished_predicates[target_status]

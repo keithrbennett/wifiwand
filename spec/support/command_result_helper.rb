@@ -3,12 +3,12 @@
 module CommandResultHelper
   def build_command_result(stdout: '', stderr: '', exitstatus: 0, command: nil, duration: 0.0)
     WifiWand::CommandExecutor::OsCommandResult.new(
-      stdout: stdout,
-      stderr: stderr,
+      stdout:          stdout,
+      stderr:          stderr,
       combined_output: [stdout, stderr].join,
-      exitstatus: exitstatus,
-      command: command,
-      duration: duration
+      exitstatus:      exitstatus,
+      command:         command,
+      duration:        duration
     )
   end
 

@@ -7,7 +7,7 @@ require_relative '../../../lib/wifi-wand/timing_constants'
 describe WifiWand::StatusWaiter do
   let(:mock_model) do
     double('Model',
-      wifi_on?: false,
+      wifi_on?:               false,
       connected_to_internet?: false
     )
   end

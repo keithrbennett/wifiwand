@@ -30,9 +30,9 @@ module WifiWand
       @err_stream = (options.respond_to?(:err_stream) && options.err_stream) || $stderr
 
       model_options = OpenStruct.new({
-        verbose: options.verbose,
+        verbose:        options.verbose,
         wifi_interface: options.wifi_interface,
-        out_stream: out_stream
+        out_stream:     out_stream
       })
 
       # Skip model initialization when help was explicitly requested in non-interactive mode,
@@ -218,8 +218,8 @@ module WifiWand
       # Pass CLI-friendly error formatting in non-interactive mode only.
       model.till(
         target_status,
-        timeout_in_secs: timeout_in_secs,
-        wait_interval_in_secs: interval_in_secs,
+        timeout_in_secs:                         timeout_in_secs,
+        wait_interval_in_secs:                   interval_in_secs,
         stringify_permitted_values_in_error_msg: !interactive_mode
       )
     end

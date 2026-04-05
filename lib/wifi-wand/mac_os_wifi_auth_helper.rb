@@ -87,11 +87,11 @@ module WifiWand
     #   - :source_swift - path to Swift source in gem
     def helper_info
       {
-        version: helper_version,
-        installed_bundle: installed_bundle_path,
+        version:              helper_version,
+        installed_bundle:     installed_bundle_path,
         installed_executable: installed_executable_path,
-        source_bundle: source_bundle_path,
-        source_swift: source_swift_path
+        source_bundle:        source_bundle_path,
+        source_swift:         source_swift_path
       }
     end
 
@@ -249,9 +249,9 @@ module WifiWand
         result = execute('current-network')
         ssid = result.payload&.fetch('ssid', nil)
         HelperQueryResult.new(
-          payload: ssid,
+          payload:                   ssid,
           location_services_blocked: result.location_services_blocked,
-          error_message: result.error_message
+          error_message:             result.error_message
         )
       end
 
@@ -259,9 +259,9 @@ module WifiWand
         result = execute('scan-networks')
         networks = result.payload&.fetch('networks', []) || []
         HelperQueryResult.new(
-          payload: networks,
+          payload:                   networks,
           location_services_blocked: result.location_services_blocked,
-          error_message: result.error_message
+          error_message:             result.error_message
         )
       end
 
@@ -321,7 +321,7 @@ module WifiWand
           handle_error(error_msg)
           return HelperQueryResult.new(
             location_services_blocked: error_msg&.downcase&.include?('location services'),
-            error_message: error_msg
+            error_message:             error_msg
           )
         end
 

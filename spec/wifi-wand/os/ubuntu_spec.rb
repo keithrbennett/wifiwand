@@ -17,52 +17,52 @@ module WifiWand
     describe '#current_os_is_this_os?' do
       detection_scenarios = [
         {
-          name: 'detects Ubuntu via /etc/os-release with ID=ubuntu',
-          os_release_exists: true,
-          os_release_content: "ID=ubuntu\nID_LIKE=debian\n",
+          name:                'detects Ubuntu via /etc/os-release with ID=ubuntu',
+          os_release_exists:   true,
+          os_release_content:  "ID=ubuntu\nID_LIKE=debian\n",
           proc_version_exists: false,
-          expected: true
+          expected:            true
         },
         {
-          name: 'detects Ubuntu derivatives via ID_LIKE=ubuntu',
-          os_release_exists: true,
-          os_release_content: "ID=linuxmint\nID_LIKE=ubuntu\n",
+          name:                'detects Ubuntu derivatives via ID_LIKE=ubuntu',
+          os_release_exists:   true,
+          os_release_content:  "ID=linuxmint\nID_LIKE=ubuntu\n",
           proc_version_exists: false,
-          expected: true
+          expected:            true
         },
         {
-          name: 'detects Ubuntu derivatives via ID_LIKE="ubuntu debian"',
-          os_release_exists: true,
-          os_release_content: "ID=pop\nID_LIKE=\"ubuntu debian\"\n",
+          name:                'detects Ubuntu derivatives via ID_LIKE="ubuntu debian"',
+          os_release_exists:   true,
+          os_release_content:  "ID=pop\nID_LIKE=\"ubuntu debian\"\n",
           proc_version_exists: false,
-          expected: true
+          expected:            true
         },
         {
-          name: 'detects Ubuntu via /proc/version when os-release absent',
-          os_release_exists: false,
-          proc_version_exists: true,
+          name:                 'detects Ubuntu via /proc/version when os-release absent',
+          os_release_exists:    false,
+          proc_version_exists:  true,
           proc_version_content: 'Linux version 5.4.0-74-generic #83-Ubuntu',
-          expected: true
+          expected:             true
         },
         {
-          name: 'returns false for Debian (ID=debian without ubuntu in ID_LIKE)',
-          os_release_exists: true,
-          os_release_content: "ID=debian\n",
+          name:                'returns false for Debian (ID=debian without ubuntu in ID_LIKE)',
+          os_release_exists:   true,
+          os_release_content:  "ID=debian\n",
           proc_version_exists: false,
-          expected: false
+          expected:            false
         },
         {
-          name: 'returns false for Fedora',
-          os_release_exists: true,
-          os_release_content: "ID=fedora\nID_LIKE=\"rhel fedora\"\n",
+          name:                'returns false for Fedora',
+          os_release_exists:   true,
+          os_release_content:  "ID=fedora\nID_LIKE=\"rhel fedora\"\n",
           proc_version_exists: false,
-          expected: false
+          expected:            false
         },
         {
-          name: 'returns false when no Ubuntu indicators found',
-          os_release_exists: false,
+          name:                'returns false when no Ubuntu indicators found',
+          os_release_exists:   false,
           proc_version_exists: false,
-          expected: false
+          expected:            false
         }
       ]
 

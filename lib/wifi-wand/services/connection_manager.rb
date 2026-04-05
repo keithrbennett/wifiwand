@@ -72,22 +72,22 @@ module WifiWand
     # @return [Array(String, String,nil)] normalized `[network_name, password]`.
     def normalize_inputs(network_name, password)
       normalized_network_name = normalize_scalar_input(
-        value: network_name,
-        allow_nil: false,
-        max_length: MAX_NETWORK_NAME_LENGTH,
-        field_label: 'Network name',
-        error_class: InvalidNetworkNameError,
-        blank_message: 'Network name cannot be empty',
+        value:                network_name,
+        allow_nil:            false,
+        max_length:           MAX_NETWORK_NAME_LENGTH,
+        field_label:          'Network name',
+        error_class:          InvalidNetworkNameError,
+        blank_message:        'Network name cannot be empty',
         control_char_message: 'Network name cannot contain control characters'
       )
 
       normalized_password = normalize_scalar_input(
-        value: password,
-        allow_nil: true,
-        max_length: MAX_PASSWORD_LENGTH,
-        field_label: 'Password',
-        error_class: InvalidNetworkPasswordError,
-        blank_message: nil,
+        value:                password,
+        allow_nil:            true,
+        max_length:           MAX_PASSWORD_LENGTH,
+        field_label:          'Password',
+        error_class:          InvalidNetworkPasswordError,
+        blank_message:        nil,
         control_char_message: nil
       )
 

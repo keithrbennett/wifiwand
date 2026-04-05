@@ -356,10 +356,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
   describe '#restore_network_state' do
     let(:valid_state) do
       {
-        wifi_enabled: true,
-        network_name: 'TestNetwork',
+        wifi_enabled:     true,
+        network_name:     'TestNetwork',
         network_password: 'testpass',
-        interface: 'wlan0'
+        interface:        'wlan0'
       }
     end
 
@@ -745,13 +745,13 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     test_cases = {
       'when everything is working' => {
-        wifi_on: true,
-        network_name: 'TestNetwork',
+        wifi_on:            true,
+        network_name:       'TestNetwork',
         internet_connected: true
       },
-      'when wifi is off' => {
-        wifi_on: false,
-        network_name: nil,
+      'when wifi is off'           => {
+        wifi_on:            false,
+        network_name:       nil,
         internet_connected: false
       }
     }

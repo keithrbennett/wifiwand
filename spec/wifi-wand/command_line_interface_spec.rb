@@ -461,10 +461,10 @@ describe WifiWand::CommandLineInterface do
       describe "##{test_case[:cmd]}" do
         if test_case[:non_interactive_output]
           include_examples 'interactive vs non-interactive command', test_case[:cmd], test_case[:model_method], {
-            return_value: test_case[:return_value],
+            return_value:          test_case[:return_value],
             non_interactive_tests: {
               'outputs formatted message' => {
-                model_return: test_case[:return_value],
+                model_return:    test_case[:return_value],
                 expected_output: test_case[:non_interactive_output]
               }
             }
@@ -480,10 +480,10 @@ describe WifiWand::CommandLineInterface do
         before { allow(mock_model).to receive(:wifi_on?).and_return(true) }
 
         include_examples 'interactive vs non-interactive command', :cmd_a, :available_network_names, {
-          return_value: %w[TestNet1 TestNet2],
+          return_value:          %w[TestNet1 TestNet2],
           non_interactive_tests: {
             'outputs formatted available networks message' => {
-              model_return: %w[TestNet1 TestNet2],
+              model_return:    %w[TestNet1 TestNet2],
               expected_output: /Available networks.*descending signal strength.*TestNet1.*TestNet2/m
             }
           }
@@ -616,8 +616,8 @@ describe WifiWand::CommandLineInterface do
       it 'calls model till method with target status' do
         expect(mock_model).to receive(:till).with(
           :on,
-          timeout_in_secs: nil,
-          wait_interval_in_secs: nil,
+          timeout_in_secs:                         nil,
+          wait_interval_in_secs:                   nil,
           stringify_permitted_values_in_error_msg: true
         )
         subject.cmd_t('on')
@@ -626,8 +626,8 @@ describe WifiWand::CommandLineInterface do
       it 'calls model till method with target status and wait interval' do
         expect(mock_model).to receive(:till).with(
           :connected,
-          timeout_in_secs: 2.5,
-          wait_interval_in_secs: nil,
+          timeout_in_secs:                         2.5,
+          wait_interval_in_secs:                   nil,
           stringify_permitted_values_in_error_msg: true
         )
         subject.cmd_t('connected', '2.5')
@@ -670,8 +670,8 @@ describe WifiWand::CommandLineInterface do
         it 'accepts valid numeric timeout as string' do
           expect(mock_model).to receive(:till).with(
             :on,
-            timeout_in_secs: 30.0,
-            wait_interval_in_secs: nil,
+            timeout_in_secs:                         30.0,
+            wait_interval_in_secs:                   nil,
             stringify_permitted_values_in_error_msg: true
           )
           expect { subject.cmd_t('on', '30') }.not_to raise_error
@@ -680,8 +680,8 @@ describe WifiWand::CommandLineInterface do
         it 'accepts valid numeric timeout and interval as strings' do
           expect(mock_model).to receive(:till).with(
             :off,
-            timeout_in_secs: 20.0,
-            wait_interval_in_secs: 0.5,
+            timeout_in_secs:                         20.0,
+            wait_interval_in_secs:                   0.5,
             stringify_permitted_values_in_error_msg: true
           )
           expect { subject.cmd_t('off', '20', '0.5') }.not_to raise_error
@@ -701,10 +701,10 @@ describe WifiWand::CommandLineInterface do
     describe '#cmd_s (status)' do
       let(:status_data) do
         {
-          wifi_on: true,
-          network_name: 'TestNet',
-          tcp_working: true,
-          dns_working: true,
+          wifi_on:            true,
+          network_name:       'TestNet',
+          tcp_working:        true,
+          dns_working:        true,
           internet_connected: true
         }
       end

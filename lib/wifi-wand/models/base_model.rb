@@ -242,17 +242,17 @@ module WifiWand
       connected = connected_to_internet?(internet_tcp, dns_working)
 
       info = {
-        'wifi_on' => wifi_on?,
+        'wifi_on'                   => wifi_on?,
         'internet_tcp_connectivity' => internet_tcp,
-        'dns_working' => dns_working,
-        'internet_on' => connected,
-        'interface' => wifi_interface,
-        'default_interface' => default_interface,
-        'network' => begin; connected_network_name; rescue Error; nil; end,
-        'ip_address' => begin; ip_address; rescue Error; nil; end,
-        'mac_address' => mac_address,
-        'nameservers' => nameservers,
-        'timestamp' => Time.now
+        'dns_working'               => dns_working,
+        'internet_on'               => connected,
+        'interface'                 => wifi_interface,
+        'default_interface'         => default_interface,
+        'network'                   => begin; connected_network_name; rescue Error; nil; end,
+        'ip_address'                => begin; ip_address; rescue Error; nil; end,
+        'mac_address'               => mac_address,
+        'nameservers'               => nameservers,
+        'timestamp'                 => Time.now
       }
 
       if info['internet_on']
@@ -381,8 +381,8 @@ module WifiWand
 
       @status_waiter.wait_for(
         target_status,
-        timeout_in_secs: timeout_in_secs,
-        wait_interval_in_secs: wait_interval_in_secs,
+        timeout_in_secs:                         timeout_in_secs,
+        wait_interval_in_secs:                   wait_interval_in_secs,
         stringify_permitted_values_in_error_msg: stringify_permitted_values_in_error_msg
       )
     end

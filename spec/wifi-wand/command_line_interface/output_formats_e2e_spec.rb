@@ -65,11 +65,11 @@ describe 'Output Format End-to-End Tests' do
   describe 'Command-line option parsing and output formatting' do
     let(:test_network_info) do
       {
-        'ssid' => 'TestNetwork',
-        'channel' => 6,
+        'ssid'            => 'TestNetwork',
+        'channel'         => 6,
         'signal_strength' => -50,
-        'security' => 'WPA2',
-        'connected' => true
+        'security'        => 'WPA2',
+        'connected'       => true
       }
     end
 
@@ -343,13 +343,13 @@ describe 'Output Format End-to-End Tests' do
   describe 'Format preservation with different data types' do
     it 'maintains type information through JSON format' do
       test_data = {
-        'string' => 'text',
+        'string'  => 'text',
         'integer' => 42,
-        'float' => 3.14,
+        'float'   => 3.14,
         'boolean' => true,
-        'null' => nil,
-        'array' => [1, 2, 3],
-        'nested' => { 'key' => 'value' }
+        'null'    => nil,
+        'array'   => [1, 2, 3],
+        'nested'  => { 'key' => 'value' }
       }
 
       allow(mock_model).to receive(:wifi_info).and_return(test_data)

@@ -13,14 +13,14 @@ module WifiWand
         return text unless $stdout.tty? && color
 
         color_codes = {
-          red: "\e[31m",
-          green: "\e[32m",
-          yellow: "\e[33m",
-          blue: "\e[34m",
-          cyan: "\e[36m",
+          red:     "\e[31m",
+          green:   "\e[32m",
+          yellow:  "\e[33m",
+          blue:    "\e[34m",
+          cyan:    "\e[36m",
           magenta: "\e[35m",
-          bold: "\e[1m",
-          reset: "\e[0m"
+          bold:    "\e[1m",
+          reset:   "\e[0m"
         }
 
         "#{color_codes[color]}#{text}#{color_codes[:reset]}"

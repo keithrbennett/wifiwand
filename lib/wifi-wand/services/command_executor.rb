@@ -92,12 +92,12 @@ module WifiWand
       duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
 
       result = OsCommandResult.new(
-        stdout: stdout_chunks.join,
-        stderr: stderr_chunks.join,
+        stdout:          stdout_chunks.join,
+        stderr:          stderr_chunks.join,
         combined_output: combined_chunks.join,
-        exitstatus: status.exitstatus,
-        command: command_display,
-        duration: duration
+        exitstatus:      status.exitstatus,
+        command:         command_display,
+        duration:        duration
       )
 
       status_string = "Exit code: #{result.exitstatus} (#{result.success? ? 'success' : 'error'})"
@@ -176,12 +176,12 @@ module WifiWand
 
       def to_h
         {
-          stdout: stdout,
-          stderr: stderr,
+          stdout:          stdout,
+          stderr:          stderr,
           combined_output: combined_output,
-          exitstatus: exitstatus,
-          command: command,
-          duration: duration
+          exitstatus:      exitstatus,
+          command:         command,
+          duration:        duration
         }
       end
     end
@@ -194,12 +194,12 @@ module WifiWand
           @result = result_or_exitstatus
         else
           @result = OsCommandResult.new(
-            stdout: text,
-            stderr: '',
+            stdout:          text,
+            stderr:          '',
             combined_output: text,
-            exitstatus: result_or_exitstatus,
-            command: command,
-            duration: nil
+            exitstatus:      result_or_exitstatus,
+            command:         command,
+            duration:        nil
           )
         end
 

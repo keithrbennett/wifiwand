@@ -301,9 +301,9 @@ module WifiWand
       def self.submit_for_notarization(zip_path, apple_id, team_id, apple_password)
         run_notarytool(
           ['submit', zip_path, '--wait'],
-          apple_id: apple_id,
-          apple_password: apple_password,
-          team_id: team_id,
+          apple_id:        apple_id,
+          apple_password:  apple_password,
+          team_id:         team_id,
           failure_message: 'Notarization failed. Check the output above for details.'
         )
       end

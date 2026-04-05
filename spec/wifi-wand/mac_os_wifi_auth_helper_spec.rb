@@ -6,8 +6,8 @@ require 'stringio'
 RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
   subject(:client) do
     described_class.new(
-      out_stream_proc: -> { out_stream },
-      verbose_proc: -> { verbose_flag },
+      out_stream_proc:    -> { out_stream },
+      verbose_proc:       -> { verbose_flag },
       macos_version_proc: -> { macos_version }
     )
   end

@@ -35,10 +35,10 @@ module WifiWand
       end
 
       {
-        wifi_enabled: @model.wifi_on?,
-        network_name: network_name,
+        wifi_enabled:     @model.wifi_on?,
+        network_name:     network_name,
         network_password: network_password,
-        interface: @model.wifi_interface
+        interface:        @model.wifi_interface
       }
     end
 

@@ -50,8 +50,8 @@ module WifiWand
       elsif log_file_path
         LogFileManager.new(
           log_file_path: log_file_path,
-          verbose: @verbose,
-          output: @output
+          verbose:       @verbose,
+          output:        @output
         )
       else
         nil
@@ -156,11 +156,11 @@ module WifiWand
     # Create and process an event
     def emit_event(event_type, details, previous_state, current_state)
       event = {
-        type: event_type,
-        timestamp: Time.now,
+        type:           event_type,
+        timestamp:      Time.now,
         previous_state: previous_state,
-        current_state: current_state,
-        details: details
+        current_state:  current_state,
+        details:        details
       }
 
       log_event(event)
