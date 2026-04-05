@@ -22,12 +22,6 @@ Layout/HashAlignment:
 Layout/LineLength:
   Enabled: false
 
-# Offense count: 13
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: final_newline, final_blank_line
-Layout/TrailingEmptyLines:
-  Enabled: false
 
 # Offense count: 12
 # Configuration parameters: AllowedMethods.
