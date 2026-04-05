@@ -204,12 +204,6 @@ Lint/RedundantSafeNavigation:
 Lint/SafeNavigationChain:
   Enabled: false
 
-# Offense count: 1
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: strict, consistent
-Lint/SymbolConversion:
-  Enabled: false
 
 # Offense count: 2
 # This cop supports safe autocorrection (--autocorrect).
