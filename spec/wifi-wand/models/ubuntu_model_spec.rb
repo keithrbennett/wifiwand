@@ -1229,7 +1229,7 @@ describe UbuntuModel do
   end
 
   # System-modifying tests (will change wifi state)
-  context 'system-modifying operations', :disruptive, :os_ubuntu do
+  context 'system-modifying operations', :disruptive_ubuntu do
 
     describe '#wifi_on' do
       it 'turns wifi on when it is off' do
@@ -1330,7 +1330,7 @@ describe UbuntuModel do
   end
 
   # System-modifying tests (will change WiFi state)
-  context 'integration tests', :disruptive, :os_ubuntu do
+  context 'integration tests', :disruptive_ubuntu do
 
     describe 'WiFi state management' do
       it 'can toggle WiFi on and off successfully' do

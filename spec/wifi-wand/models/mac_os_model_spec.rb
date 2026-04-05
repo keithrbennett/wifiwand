@@ -48,7 +48,7 @@ module WifiWand
       end
 
       # System-modifying tests (will change wifi state)
-      context 'system-modifying operations', :disruptive, :os_mac do
+      context 'system-modifying operations', :disruptive_mac do
         subject { create_mac_os_test_model }
 
         describe '#wifi_on' do
@@ -86,7 +86,7 @@ module WifiWand
       end
 
       # Network connection tests (highest risk)
-      context 'network connection operations', :disruptive, :os_mac do
+      context 'network connection operations', :disruptive_mac do
         subject { create_mac_os_test_model }
 
         describe '#_connect' do
@@ -98,7 +98,7 @@ module WifiWand
       end
 
       # Additional disruptive tests for system-modifying operations
-      context 'extended disruptive operations', :disruptive, :os_mac do
+      context 'extended disruptive operations', :disruptive_mac do
         subject { create_mac_os_test_model }
 
         before(:all) do
@@ -770,7 +770,7 @@ module WifiWand
         end
       end
 
-      describe '#macos_version (real system)', :disruptive, :os_mac do
+      describe '#macos_version (real system)', :disruptive_mac do
         # For these real-system checks, allow actual OS command execution
         before do
           allow_any_instance_of(described_class).to receive(:run_os_command).and_call_original
@@ -1328,7 +1328,7 @@ module WifiWand
 
     describe '#create_model with provided interface' do
       context 'when valid wifi_interface is provided' do
-        it 'uses the provided interface without calling detect_wifi_interface', :disruptive, :os_mac do
+        it 'uses the provided interface without calling detect_wifi_interface', :disruptive_mac do
           model = WifiWand::MacOsModel.create_model(wifi_interface: 'en0')
           expect(model.wifi_interface).to eq('en0')
         end

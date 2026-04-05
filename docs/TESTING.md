@@ -95,42 +95,46 @@ Disruptive tests will fail or cause problems in CI because:
 
 ### Automatic OS Detection
 
-The test suite automatically detects the current operating system and runs only compatible tests:
+The test suite automatically detects the current operating system. Mocked unit tests run on any host; only tests that exercise real hardware are gated to a specific OS.
 
 **How it works:**
-- ✅ **Tests with no OS tags** run on all OSes (common interface tests)
-- ✅ **Tests with OS tags** run only on compatible OSes  
-- ❌ **Tests with foreign OS tags** are automatically excluded
+- ✅ **Tests with no OS tag** run on all OSes
+- ✅ **Tests tagged `:disruptive_mac`** run only on macOS (and only when disruptive tests are enabled)
+- ✅ **Tests tagged `:disruptive_ubuntu`** run only on Ubuntu (and only when disruptive tests are enabled)
+- ❌ **Tests tagged with a foreign OS** are automatically skipped
 
 **Examples:**
 ```bash
 # On Ubuntu - automatically runs:
-# ✅ common_os_model_spec.rb (no OS tags)
-# ✅ ubuntu_model_spec.rb (:os_ubuntu tag)
-# ❌ Skips mac_os_model_spec.rb (:os_mac tag)
+# ✅ All mocked unit tests in ubuntu_model_spec.rb and mac_os_model_spec.rb
+# ✅ :disruptive_ubuntu tests (if RSPEC_DISRUPTIVE_TESTS=include)
+# ❌ Skips :disruptive_mac tests
 bundle exec rspec
 
-# On Mac - automatically runs:
-# ✅ common_os_model_spec.rb (no OS tags)  
-# ✅ mac_os_model_spec.rb (:os_mac tag)
-# ❌ Skips ubuntu_model_spec.rb (:os_ubuntu tag)
+# On macOS - automatically runs:
+# ✅ All mocked unit tests in ubuntu_model_spec.rb and mac_os_model_spec.rb
+# ✅ :disruptive_mac tests (if RSPEC_DISRUPTIVE_TESTS=include)
+# ❌ Skips :disruptive_ubuntu tests
 bundle exec rspec
 ```
 
-**OS Tags Available:**
-- `:os_ubuntu` - Ubuntu-specific tests
-- `:os_mac` - macOS-specific tests
-- Future: `:os_linux`, `:os_bsd`, etc.
+**Combined OS+Disruptive Tags:**
+- `:disruptive_mac` - requires macOS hardware; always excluded by default (same as `:disruptive`)
+- `:disruptive_ubuntu` - requires Ubuntu hardware; always excluded by default (same as `:disruptive`)
+- Future: `:disruptive_linux`, `:disruptive_bsd`, etc.
+
+**Choosing the right tag:**
+Use plain `:disruptive` when the test works on any supported OS — typically tests that use `create_test_model`, which adapts to the current OS and exercises the common interface. Use `:disruptive_mac` or `:disruptive_ubuntu` only when the test requires OS-specific hardware, commands, or model behavior that would not work on another OS.
 
 ## Test Filtering with RSpec Tags
 
 ### Available Tags
 
-| Tag           | Description                                           | Default Behavior      |
-|---------------|-------------------------------------------------------|-----------------------|
-| `:disruptive` | Tests that modify system state or network connections | ❌ Excluded by default |
-| `:os_ubuntu`  | Ubuntu-specific tests                                 | See OS Filtering      |
-| `:os_mac`     | macOS-specific tests                                  | See OS Filtering      |
+| Tag                  | Description                                              | Default Behavior      |
+|----------------------|----------------------------------------------------------|-----------------------|
+| `:disruptive`        | Tests that modify system state or network connections    | ❌ Excluded by default |
+| `:disruptive_mac`    | Disruptive tests that also require macOS hardware        | ❌ Excluded by default |
+| `:disruptive_ubuntu` | Disruptive tests that also require Ubuntu hardware       | ❌ Excluded by default |
 
 ### Sudo/Keychain Ordering
 
@@ -238,26 +242,18 @@ The spec helper includes:
 
 Key configuration:
 ```ruby
-# Exclude disruptive tests by default
+# :disruptive_mac / :disruptive_ubuntu backfill :disruptive so all existing
+# filtering, after-hooks, and network-state management apply automatically
+config.define_derived_metadata do |meta|
+  meta[:disruptive] = true if meta[:disruptive_mac] || meta[:disruptive_ubuntu]
+  meta[:slow] = true if meta[:disruptive]
+end
+
+# Exclude disruptive tests by default (catches :disruptive_mac/:disruptive_ubuntu too)
 config.filter_run_excluding :disruptive => true
 
-# Automatic OS detection and filtering (only if no command line tags specified)
-if config.inclusion_filter.rules.empty? && config.exclusion_filter.rules.empty?
-  config.filter_run do |metadata|
-    # Apply default exclusion for disruptive tests
-    return false if metadata[:disruptive]
-    
-    # Check OS compatibility for non-disruptive tests
-    os_tags = metadata.keys.select { |key| key.to_s.start_with?('os_') }
-    
-    if os_tags.empty?
-      true # No OS tags - run on all OSes (common tests)
-    else
-      # Test has OS tags - only run if compatible with current OS
-      os_tags.include?(compatible_os_tag)
-    end
-  end
-end
+# OS filtering: skip tests tagged for a different OS
+# (runs in before(:each) so it only fires for examples that weren't already excluded)
 ```
 
 Additional important configuration:
@@ -286,13 +282,19 @@ it 'returns wifi status' do
   expect(result).to be(true).or(be(false))
 end
 
-# Disruptive test - requires --tag disruptive flag
+# Disruptive test (any OS) - excluded by default
 it 'turns wifi on', :disruptive do
   subject.wifi_on
   expect(subject.wifi_on?).to be(true)
 end
 
-# Disruptive test with network restoration - requires --tag disruptive flag  
+# Disruptive test requiring specific OS hardware - excluded by default
+it 'turns wifi on', :disruptive_mac do
+  subject.wifi_on
+  expect(subject.wifi_on?).to be(true)
+end
+
+# Disruptive test with network restoration - excluded by default
 it 'tests disconnect and restores connection', :disruptive do
   
   original_network = subject.connected_network_name

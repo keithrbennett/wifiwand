@@ -27,6 +27,7 @@ module RSpecConfiguration
     OSFiltering.configure_os_filtering(config)
 
     config.define_derived_metadata do |meta|
+      meta[:disruptive] = true if meta[:disruptive_mac] || meta[:disruptive_ubuntu]
       meta[:slow] = true if meta[:disruptive]
     end
   end
