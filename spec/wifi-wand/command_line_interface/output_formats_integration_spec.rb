@@ -83,7 +83,6 @@ describe 'Output Format Integration Tests' do
 
     output_formats.each do |format_name, format_config|
       describe "#{format_name} format (-o #{format_config[:code]})" do
-
         context 'with string data' do
           let(:test_data) { 'TestNetwork' }
           let(:options) { parse_options('-o', format_config[:code], 'ne') }

@@ -5,7 +5,6 @@ require_relative '../../../lib/wifi-wand/command_line_interface/shell_interface'
 require 'stringio'
 
 describe WifiWand::CommandLineInterface::ShellInterface do
-
   # Create a test class that includes the module
   let(:test_class) do
     Class.new do

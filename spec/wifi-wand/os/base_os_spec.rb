@@ -4,7 +4,6 @@ require_relative '../../../lib/wifi-wand/os/base_os'
 
 module WifiWand
 describe BaseOs do
-
   describe 'private constructor' do
     it 'prevents direct instantiation via new' do
       expect { described_class.new(:test_id, 'Test Display Name') }.to raise_error(WifiWand::BaseOs::NonSubclassInstantiationError)

@@ -1060,11 +1060,9 @@ describe UbuntuModel do
         end
       end
     end
-
   end
 
   context 'error handling tests (non-disruptive)' do
-
     describe '#wifi_on' do
       it 'raises WifiEnableError when command succeeds but wifi remains off' do
         # Mock specific command calls to avoid real system calls
@@ -1224,12 +1222,10 @@ describe UbuntuModel do
           .not_to raise_error
       end
     end
-
   end
 
   # System-modifying tests (will change wifi state)
   context 'system-modifying operations', :disruptive_ubuntu do
-
     describe '#wifi_on' do
       it 'turns wifi on when it is off' do
         subject.wifi_off
@@ -1325,12 +1321,10 @@ describe UbuntuModel do
         expect(result).to eq(:clear)
       end
     end
-
   end
 
   # System-modifying tests (will change WiFi state)
   context 'integration tests', :disruptive_ubuntu do
-
     describe 'WiFi state management' do
       it 'can toggle WiFi on and off successfully' do
         original_state = subject.wifi_on?

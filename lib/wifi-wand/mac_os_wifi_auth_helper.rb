@@ -191,7 +191,7 @@ module WifiWand
 
       # Use environment variable or default to Keith's Developer ID
       identity = ENV['WIFIWAND_CODESIGN_IDENTITY'] ||
-                 'Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)'
+        'Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)'
 
       # Path to entitlements file
       entitlements_path = File.expand_path('../../libexec/macos/wifiwand-helper.entitlements', __dir__)

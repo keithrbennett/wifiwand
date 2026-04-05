@@ -5,7 +5,6 @@ require_relative '../../lib/wifi-wand/models/ubuntu_model'
 require_relative '../../lib/wifi-wand/models/mac_os_model'
 
 describe 'Common WiFi Model Behavior (All OS)' do
-
   # Mock OS calls to prevent real system interaction during non-disruptive tests
   before(:each) do
     # Mock detect_wifi_interface for both OS types
@@ -287,7 +286,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
   # The following tests run commands and verify they complete without error,
   # testing both wifi on and wifi off states
   shared_examples 'interface commands complete without error' do |wifi_starts_on|
-
     before(:each) do
       # Only set wifi state in disruptive contexts
       if self.class.metadata[:disruptive]
@@ -323,8 +321,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
         expect(name).to be_nil
       end
     end
-
-
   end
 
   # Check current wifi state and create appropriate contexts
@@ -745,7 +741,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       # All models should have wifi_on, internet_connected, and network_name
       expect(data.keys).to include(:wifi_on, :internet_connected, :network_name)
-
     end
 
     test_cases = {

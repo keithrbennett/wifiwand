@@ -12,7 +12,6 @@ require 'fileutils'
 
 # Integration tests that create real QR code files and verify their contents
 describe 'QR Code Integration Tests' do
-
   before(:all) do
     # Check if required tools are available
     unless system('which qrencode > /dev/null 2>&1')

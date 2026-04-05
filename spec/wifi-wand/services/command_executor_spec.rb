@@ -4,7 +4,6 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/services/command_executor'
 
 describe WifiWand::CommandExecutor do
-
   describe '#run_os_command' do
     context 'with verbose mode disabled' do
       let(:executor) { described_class.new(verbose: false) }
@@ -162,6 +161,5 @@ describe WifiWand::CommandExecutor do
         WifiWand::BaseModel.new(OpenStruct.new(verbose: false))
       end.not_to raise_error
     end
-
   end
 end

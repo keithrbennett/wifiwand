@@ -15,7 +15,6 @@ describe WifiWand::CommandLineInterface::CommandRegistry::Command do
 end
 
 describe WifiWand::CommandLineInterface::CommandRegistry do
-
   # Create a test class that includes the module
   let(:test_class) do
     Class.new do

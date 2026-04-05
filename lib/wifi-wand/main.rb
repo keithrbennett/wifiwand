@@ -33,7 +33,6 @@ class Main
       end
 
       parser.on('-o', '--output_format FORMAT', 'Format output data') do |v|
-
         formatters = {
           'i' => ->(object) { object.inspect },
             'j' => ->(object) { object.to_json },

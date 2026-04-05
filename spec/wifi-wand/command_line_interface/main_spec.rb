@@ -14,7 +14,6 @@ describe WifiWand::Main do
   end
 
   describe '#parse_command_line' do
-
     it 'parses verbose flags' do
       options = parse_with_argv('--verbose', 'info')
       expect(options.verbose).to be(true)

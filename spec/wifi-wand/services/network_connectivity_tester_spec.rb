@@ -8,7 +8,6 @@ describe WifiWand::NetworkConnectivityTester do
   include TestHelpers
 
   describe '#tcp_connectivity?' do
-
     context 'with verbose mode enabled' do
       let(:output) { StringIO.new }
       let(:tester) { described_class.new(verbose: true, output: output) }
@@ -79,7 +78,6 @@ describe WifiWand::NetworkConnectivityTester do
   end
 
   describe '#dns_working?' do
-
     context 'with verbose mode enabled' do
       let(:output) { StringIO.new }
       let(:tester) { described_class.new(verbose: true, output: output) }
