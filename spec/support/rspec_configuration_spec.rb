@@ -3,6 +3,40 @@
 require 'spec_helper'
 
 RSpec.describe RSpecConfiguration do
+  class BasicSettingsConfigDouble
+    attr_reader :derived_metadata_blocks
+
+    def initialize
+      @derived_metadata_blocks = []
+    end
+
+    def example_status_persistence_file_path=(_path); end
+
+    def filter_run_including(*_args); end
+
+    def run_all_when_everything_filtered=(_value); end
+
+    def only_failures?
+      false
+    end
+
+    def filter_run_excluding(*_args); end
+
+    def before(*_args); end
+
+    def after(*_args); end
+
+    def include(_module); end
+
+    def register_ordering(*_args); end
+
+    def order=(_value); end
+
+    def define_derived_metadata(&block)
+      @derived_metadata_blocks << block
+    end
+  end
+
   # Minimal stand-in for the RSpec configuration object. We only need to
   # capture the before(:suite) blocks so they can be triggered manually in the
   # examples, which keeps the tests close to the real preflight flow.
@@ -21,6 +55,7 @@ RSpec.describe RSpecConfiguration do
   end
 
   let(:config_double) { PreflightConfigDouble.new }
+  let(:basic_settings_config) { BasicSettingsConfigDouble.new }
 
   # Ensure we never leak OS state between examples. The real code relies on the
   # global $compatible_os_tag that OS filtering sets up; the examples need
@@ -40,6 +75,12 @@ RSpec.describe RSpecConfiguration do
   def run_preflight
     described_class.configure_preflight_authentication(config_double)
     config_double.suite_hooks.each(&:call)
+  end
+
+  def apply_derived_metadata(metadata)
+    described_class.send(:configure_basic_settings, basic_settings_config)
+    basic_settings_config.derived_metadata_blocks.each { |block| block.call(metadata) }
+    metadata
   end
 
   # Ubuntu (and other Linux hosts) do not require sudo/keychain prompts, but
@@ -72,5 +113,26 @@ RSpec.describe RSpecConfiguration do
     expect(described_class).to receive(:handle_sudo_preflight).with(true).and_return(nil)
 
     run_preflight
+  end
+
+  it 'marks disruptive_mac examples as disruptive and slow' do
+    metadata = apply_derived_metadata(disruptive_mac: true)
+
+    expect(metadata[:disruptive]).to be(true)
+    expect(metadata[:slow]).to be(true)
+  end
+
+  it 'marks disruptive_ubuntu examples as disruptive and slow' do
+    metadata = apply_derived_metadata(disruptive_ubuntu: true)
+
+    expect(metadata[:disruptive]).to be(true)
+    expect(metadata[:slow]).to be(true)
+  end
+
+  it 'leaves non-disruptive examples unchanged' do
+    metadata = apply_derived_metadata({})
+
+    expect(metadata).not_to have_key(:disruptive)
+    expect(metadata).not_to have_key(:slow)
   end
 end
