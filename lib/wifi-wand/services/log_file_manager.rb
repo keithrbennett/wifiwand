@@ -22,7 +22,6 @@ module WifiWand
   #   manager.write('[2025-10-28 14:30:00] WiFi ON')
   #   manager.close
   class LogFileManager
-
     DEFAULT_LOG_FILE = 'wifiwand-events.log'
 
     attr_reader :log_file_path, :output, :verbose

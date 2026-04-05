@@ -5,7 +5,6 @@ require_relative '../models/helpers/command_output_formatter'
 
 module WifiWand
   class CommandExecutor
-
     def initialize(verbose: false, output: $stdout)
       @verbose = verbose
       @output = output

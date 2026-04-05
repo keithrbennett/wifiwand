@@ -10,7 +10,6 @@ require_relative '../timing_constants'
 
 module WifiWand
   class NetworkConnectivityTester
-
     def initialize(verbose: false, output: $stdout)
       @verbose = verbose
       @output = output

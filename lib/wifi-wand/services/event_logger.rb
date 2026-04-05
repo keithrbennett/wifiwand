@@ -27,7 +27,6 @@ module WifiWand
   #   logger = EventLogger.new(model, interval: 5, output: $stdout)
   #   logger.run  # Blocks until Ctrl+C is pressed
   class EventLogger
-
     EVENT_TYPES = {
       wifi_on:      'WiFi ON',
       wifi_off:     'WiFi OFF',

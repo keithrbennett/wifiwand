@@ -4,7 +4,6 @@ require_relative 'base_os'
 
 module WifiWand
 class Ubuntu < BaseOs
-
   def initialize()
     super(:ubuntu, 'Ubuntu Linux')
   end

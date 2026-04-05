@@ -4,7 +4,6 @@ require_relative '../timing_constants'
 
 module WifiWand
   class StatusWaiter
-
     def initialize(model, verbose: false, output: nil)
       @model = model
       @verbose = verbose

@@ -167,6 +167,5 @@ module WifiWand
         @model.verbose_mode = !!value
       end
     end
-
   end
 end

@@ -4,7 +4,6 @@ require_relative 'base_os'
 
 module WifiWand
 class MacOs < BaseOs
-
   def initialize()
     super(:mac, 'macOS')
   end
