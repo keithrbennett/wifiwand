@@ -58,13 +58,13 @@ module WifiWand
         it 'raises error if multiple OSes match current system' do
           # Create a mock scenario where multiple OSes return true
           mock_os1 = double('MockOS1',
-                            current_os_is_this_os?: true,
-                            id: :mock1,
-                            display_name: 'Mock OS 1')
+            current_os_is_this_os?: true,
+            id: :mock1,
+            display_name: 'Mock OS 1')
           mock_os2 = double('MockOS2',
-                            current_os_is_this_os?: true,
-                            id: :mock2,
-                            display_name: 'Mock OS 2')
+            current_os_is_this_os?: true,
+            id: :mock2,
+            display_name: 'Mock OS 2')
 
           allow(described_class).to receive(:supported_operating_systems).and_return([mock_os1, mock_os2])
 

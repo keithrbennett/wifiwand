@@ -64,7 +64,7 @@ module WifiWand
       OptionParser.new do |opts|
         opts.banner = 'Usage: wifi-wand-macos-setup [--repair]'
         opts.on('--repair', '--reinstall',
-                'Force reinstall the helper app and re-run setup') do
+          'Force reinstall the helper app and re-run setup') do
           @repair_requested = true
         end
       end.parse!(@argv)
