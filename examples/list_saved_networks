@@ -28,7 +28,7 @@ if __FILE__ == $0
     MESSAGE
   end
 
-    # Call the method and let errors propagate
+  # Call the method and let errors propagate
   network_list = saved_networks_with_passwords
 
   name_max_width = network_list.map(&:name).map(&:length).max

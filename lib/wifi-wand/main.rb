@@ -68,9 +68,9 @@ class Main
       parser.on('-V', '--version', 'Show version') do
         options.version_requested = true
       end
-    # Use order! instead of parse! to stop parsing at the first non-option argument (the command name).
-    # This allows subcommands (like 'log') to have their own options that aren't parsed by the main parser.
-    # .parse! would fail on unrecognized options like --file and --stdout that belong to subcommands.
+      # Use order! instead of parse! to stop parsing at the first non-option argument (the command name).
+      # This allows subcommands (like 'log') to have their own options that aren't parsed by the main parser.
+      # .parse! would fail on unrecognized options like --file and --stdout that belong to subcommands.
     end.order!
 
     if ARGV.first == 'shell'
