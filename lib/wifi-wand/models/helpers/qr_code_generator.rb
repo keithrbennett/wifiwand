@@ -68,6 +68,7 @@ module WifiWand
       def require_connected_network_name(model)
         name = model.connected_network_name
         raise WifiWand::Error.new('Not connected to any WiFi network. Connect to a network first.') unless name
+
         name
       end
 

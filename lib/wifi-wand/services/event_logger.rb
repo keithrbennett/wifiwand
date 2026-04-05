@@ -83,6 +83,7 @@ module WifiWand
           end
 
           break unless @running
+
           sleep(@interval)
         end
       rescue Interrupt

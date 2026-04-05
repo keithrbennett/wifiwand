@@ -186,6 +186,7 @@ module WifiWand
       def self.get_binary_architectures(binary_path)
         stdout, _stderr, status = Open3.capture3('lipo', '-archs', binary_path)
         return [] unless status.success?
+
         stdout.strip.split
       end
 

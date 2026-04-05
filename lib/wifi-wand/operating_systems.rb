@@ -47,6 +47,7 @@ class OperatingSystems
       options = OpenStruct.new(options) if options.is_a?(Hash)
       current_os_instance = current_os
       raise NoSupportedOSError.new unless current_os_instance
+
       current_os_instance.create_model(options)
     end
   end

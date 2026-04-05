@@ -85,6 +85,7 @@ module WifiWand
 
         resources = data['resources'].map do |resource|
           next if resource.nil? || !resource.is_a?(Hash)
+
           OpenResource.new(resource['code'], resource['url'], resource['desc'])
         end.compact
 
