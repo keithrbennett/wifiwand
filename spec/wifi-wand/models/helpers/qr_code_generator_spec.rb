@@ -112,7 +112,7 @@ describe 'QR Code Generator (unit)' do
     end
 
     silence_output { model.generate_qr_code('TestNetwork-qr-code.png') }
-  end
+      end
 
   it 'generates QR code with H:true for hidden networks' do
     allow(model).to receive(:network_hidden?).and_return(true)
