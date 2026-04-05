@@ -3,7 +3,6 @@
 require_relative '../../../lib/wifi-wand/os/base_os'
 
 module WifiWand
-
 describe BaseOs do
 
   describe 'private constructor' do
@@ -48,5 +47,4 @@ describe BaseOs do
     end
   end
 end
-
 end

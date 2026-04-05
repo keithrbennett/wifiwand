@@ -150,7 +150,6 @@ module WifiWand
     end
   end
 
-
   # === OPERATING SYSTEM DETECTION ERRORS ===
   class MultipleOSMatchError < Error
     def initialize(matching_os_names)
@@ -187,7 +186,7 @@ module WifiWand
                   "HTTP error fetching public IP info: #{status_code} #{status_message}"
       else
                   'Public IP lookup failed'
-                end
+      end
       super(message)
     end
   end

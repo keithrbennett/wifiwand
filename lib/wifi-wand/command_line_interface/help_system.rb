@@ -6,7 +6,6 @@ require_relative '../timing_constants'
 module WifiWand
   class CommandLineInterface
     module HelpSystem
-
       HORIZONTAL_RULE = '-' * 79
       REPOSITORY_URL = 'https://github.com/keithrbennett/wifiwand'
 
@@ -84,7 +83,7 @@ module WifiWand
                  $stdout
         else
                  respond_to?(:out_stream) ? out_stream : ($stdout)
-               end
+        end
         dest.puts help_text
       end
 

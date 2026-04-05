@@ -4,7 +4,6 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/os/ubuntu'
 
 module WifiWand
-
 describe Ubuntu do
   subject { described_class.new }
 
@@ -100,5 +99,4 @@ describe Ubuntu do
     end
   end
 end
-
 end

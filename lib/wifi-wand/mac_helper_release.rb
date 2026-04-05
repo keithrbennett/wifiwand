@@ -469,7 +469,7 @@ module WifiWand
                           entries.reverse
                         else
                           entries
-                        end
+      end
 
       if pending_only
         ordered_entries = ordered_entries.select { |item| item['status'] == 'In Progress' }
@@ -535,6 +535,7 @@ module WifiWand
       puts stdout
       puts status.success? ? '✓ Helper is notarized and will run without Gatekeeper warnings' : stdout.include?('source=Notarized Developer ID') ? '✓ Helper is notarized' : "⚠ Helper is not notarized - users may see Gatekeeper warnings\n  Run: bin/mac-helper notarize"
     end
+
     def fetch_notary_credentials!(command_hint:)
       apple_id = ENV['WIFIWAND_APPLE_DEV_ID']
       apple_password = ENV['WIFIWAND_APPLE_DEV_PASSWORD']

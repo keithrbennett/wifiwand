@@ -298,7 +298,7 @@ describe 'Output Format End-to-End Tests' do
           parsed = case format_code
                    when 'j', 'k' then JSON.parse(output)
                    when 'y' then YAML.safe_load(output)
-                   end
+          end
 
           expect(parsed['network']).to eq('日本語ネットワーク')
           expect(parsed['emoji']).to eq('🔐 WiFi')

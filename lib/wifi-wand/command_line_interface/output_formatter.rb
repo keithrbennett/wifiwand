@@ -5,7 +5,6 @@ require 'awesome_print'
 module WifiWand
   class CommandLineInterface
     module OutputFormatter
-
       def format_object(object)
         object.awesome_inspect
       end
@@ -57,7 +56,7 @@ module WifiWand
                         [true_char, :green]
                       when false
                         [false_char, :red]
-                      end
+        end
 
         colorize_text(char, color)
       end
@@ -84,7 +83,6 @@ module WifiWand
         "WiFi: #{wifi_status} | Network: #{network_display} | Internet: #{internet_status}"
       end
 
-
       # If a post-processor has been configured (e.g. YAML or JSON), use it.
       def post_process(object)
         post_processor ? post_processor.(object) : object
@@ -93,7 +91,6 @@ module WifiWand
       def post_processor
         options.post_processor
       end
-
     end
   end
 end

@@ -61,7 +61,7 @@ module WifiWand
                             'sudo apt install qrencode'
                           else
                             'install qrencode using your system package manager'
-                          end
+        end
         raise WifiWand::Error.new("Required operating system dependency 'qrencode' library not found. Use #{install_command} to install it.")
       end
 

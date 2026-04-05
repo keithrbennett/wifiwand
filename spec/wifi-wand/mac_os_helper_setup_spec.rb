@@ -169,7 +169,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
         allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true)
         allow(Open3).to receive(:capture3).with(helper_path, 'check-permission')
-                                          .and_return([response, '', ok_status])
+          .and_return([response, '', ok_status])
       end
 
       it 'returns installed: true, valid: true, authorized: false' do
@@ -193,7 +193,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
         allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true)
         allow(Open3).to receive(:capture3).with(helper_path, 'check-permission')
-                                          .and_return([response, '', ok_status])
+          .and_return([response, '', ok_status])
       end
 
       it 'returns setup_complete? true' do
@@ -210,7 +210,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
         allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true)
         allow(Open3).to receive(:capture3).with(helper_path, 'check-permission')
-                                          .and_return(['{invalid', '', ok_status])
+          .and_return(['{invalid', '', ok_status])
       end
 
       it 'returns authorized: false with a descriptive message' do
@@ -225,7 +225,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
         allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true)
         allow(Open3).to receive(:capture3).with(helper_path, 'check-permission')
-                                          .and_raise(Errno::ENOENT.new('helper'))
+          .and_raise(Errno::ENOENT.new('helper'))
       end
 
       it 'returns authorized: false gracefully' do

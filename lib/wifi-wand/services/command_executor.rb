@@ -128,7 +128,6 @@ module WifiWand
     # @stop_condition a lambda taking the command's stdout as its sole parameter
     # @return the stdout produced by the command, or nil if max_tries was reached
     def try_os_command_until(command, stop_condition, max_tries = 100)
-
       report_attempt_count = ->(attempt_count) do
         @output.puts "Command was executed #{attempt_count} time(s)." if @verbose
       end

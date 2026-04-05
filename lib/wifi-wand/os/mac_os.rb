@@ -3,7 +3,6 @@
 require_relative 'base_os'
 
 module WifiWand
-
 class MacOs < BaseOs
 
   def initialize()

@@ -47,6 +47,9 @@ Layout/HashAlignment:
 Layout/IndentationConsistency:
   EnforcedStyle: normal
 
+Layout/MultilineOperationIndentation:
+  EnforcedStyle: indented
+
 Layout/LineLength:
   Max: 110
   AllowedPatterns:

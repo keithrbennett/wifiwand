@@ -40,7 +40,7 @@ module WifiWand
     attr_reader :model, :interval, :verbose, :output, :log_file_manager
 
     def initialize(model, interval: 5, verbose: false, log_file_path: nil,
-                   output: $stdout, log_file_manager: nil)
+      output: $stdout, log_file_manager: nil)
       @model = model
       @interval = interval
       @verbose = verbose
@@ -56,7 +56,7 @@ module WifiWand
                             )
       else
                             nil
-                          end
+      end
       @previous_state = nil
       @running = false
     end

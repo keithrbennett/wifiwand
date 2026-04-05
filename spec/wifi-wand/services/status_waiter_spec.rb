@@ -165,7 +165,7 @@ describe WifiWand::StatusWaiter do
         start_time = 1000.0
         end_time = 1002.5
         allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
-                                                .and_return(start_time, end_time)
+          .and_return(start_time, end_time)
 
         verbose_waiter = described_class.new(mock_model, verbose: true)
         allow(verbose_waiter).to receive(:sleep)

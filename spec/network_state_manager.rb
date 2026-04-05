@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 module NetworkStateManager
-
   def self.model
     options = OpenStruct.new(verbose: ENV['WIFIWAND_VERBOSE'] == 'true')
     @model ||= WifiWand::OperatingSystems.create_model_for_current_os(options)

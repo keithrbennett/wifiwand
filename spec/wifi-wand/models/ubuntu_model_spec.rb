@@ -4,7 +4,6 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/models/ubuntu_model'
 
 module WifiWand
-
 describe UbuntuModel do
   let(:subject) { create_ubuntu_test_model }
 
@@ -1390,5 +1389,4 @@ describe UbuntuModel do
     end
   end
 end
-
 end

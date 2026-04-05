@@ -6,7 +6,6 @@ require_relative 'os/mac_os'
 require_relative 'os/ubuntu'
 
 module WifiWand
-
 # This class will be helpful in adding support for other OS's.
 # To add an OS, see how each BaseOs subclass is implemented, implement it, and
 # add it to the list of supported OS's.

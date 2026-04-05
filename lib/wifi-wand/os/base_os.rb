@@ -5,7 +5,6 @@
 require_relative '../errors'
 
 module WifiWand
-
 class BaseOs < Struct.new(:id, :display_name)
 
   class NonSubclassInstantiationError < Error

@@ -65,9 +65,9 @@ describe 'QR Code Integration Tests' do
 
       # Unescape special characters
       unescaped_value = value.gsub('\\;', ';')
-                             .gsub('\\,', ',')
-                             .gsub('\\:', ':')
-                             .gsub('\\\\', '\\')
+        .gsub('\\,', ',')
+        .gsub('\\:', ':')
+        .gsub('\\\\', '\\')
 
       components[key] = unescaped_value
     end

@@ -420,7 +420,7 @@ describe 'Output Format Integration Tests' do
                     when 'j' then 'JSON'
                     when 'k' then 'Pretty JSON'
                     when 'y' then 'YAML'
-                    end
+      end
 
       it "can round-trip complex data through #{format_name} format" do
         options = parse_options('-o', format_code, 'i')
@@ -436,7 +436,7 @@ describe 'Output Format Integration Tests' do
         parsed = case format_code
                  when 'j', 'k' then JSON.parse(output)
                  when 'y' then YAML.safe_load(output)
-                 end
+        end
 
         # Verify round-trip preserves data
         expect(parsed).to eq(complex_data)

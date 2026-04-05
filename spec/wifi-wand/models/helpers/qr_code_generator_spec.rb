@@ -101,18 +101,18 @@ describe 'QR Code Generator (unit)' do
     end
   end
 
-      it 'generates QR code with H:false for visible (broadcast) networks' do
-    allow(model).to receive(:network_hidden?).and_return(false)
+  it 'generates QR code with H:false for visible (broadcast) networks' do
+allow(model).to receive(:network_hidden?).and_return(false)
 
-    expect(model).to receive(:run_os_command) do |cmd|
-      expect(cmd).to be_an(Array)
-      expect(cmd).to include('qrencode')
-      expect(cmd.last).to include('H:false')
-      command_result(stdout: '')
-    end
+expect(model).to receive(:run_os_command) do |cmd|
+  expect(cmd).to be_an(Array)
+  expect(cmd).to include('qrencode')
+  expect(cmd.last).to include('H:false')
+  command_result(stdout: '')
+end
 
-    silence_output { model.generate_qr_code('TestNetwork-qr-code.png') }
-      end
+silence_output { model.generate_qr_code('TestNetwork-qr-code.png') }
+  end
 
   it 'generates QR code with H:true for hidden networks' do
     allow(model).to receive(:network_hidden?).and_return(true)
