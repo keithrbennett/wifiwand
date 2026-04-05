@@ -82,7 +82,7 @@ module WifiWand
       def print_help
         dest = if respond_to?(:interactive_mode) && interactive_mode
                  $stdout
-               else
+        else
                  respond_to?(:out_stream) ? out_stream : ($stdout)
                end
         dest.puts help_text

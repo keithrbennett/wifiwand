@@ -185,7 +185,7 @@ module WifiWand
       @status_message = status_message
       message = if status_code
                   "HTTP error fetching public IP info: #{status_code} #{status_message}"
-                else
+      else
                   'Public IP lookup failed'
                 end
       super(message)
