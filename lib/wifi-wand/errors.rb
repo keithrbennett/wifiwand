@@ -63,6 +63,8 @@ module WifiWand
     end
   end
 
+  class WifiOffError < Error; end
+
   class WifiEnableError < Error
     def initialize
       super('WiFi could not be enabled. Check hardware and permissions')

@@ -1365,20 +1365,16 @@ module WifiWand
       end
 
       describe 'network information' do
-        it 'retrieves network information when connected' do
-          if subject.wifi_on? && subject.connected_network_name
-            # Test IP address retrieval
-            ip = subject.ip_address
-            expect(ip).to match(/^\d+\.\d+\.\d+\.\d+$/) if ip
+        it 'retrieves IP address' do
+          expect(subject.ip_address).to match(/^\d+\.\d+\.\d+\.\d+$/)
+        end
 
-            # Test MAC address retrieval
-            mac = subject.mac_address
-            expect(mac).to match(/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/i) if mac
+        it 'retrieves MAC address' do
+          expect(subject.mac_address).to match(/^([0-9a-f]{2}:){5}[0-9a-f]{2}$/i)
+        end
 
-            # Test nameserver retrieval
-            nameservers = subject.nameservers
-            expect(nameservers).to be_an(Array)
-          end
+        it 'retrieves nameservers' do
+          expect(subject.nameservers).to be_an(Array)
         end
       end
     end

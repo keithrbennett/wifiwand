@@ -169,13 +169,13 @@ module WifiWand
     ].each { |method_name| define_subclass_required_method(method_name) }
 
     def available_network_names
-      raise Error, 'WiFi is off, cannot scan for available networks.' unless wifi_on?
+      raise WifiOffError, 'WiFi is off, cannot scan for available networks.' unless wifi_on?
 
       _available_network_names
     end
 
     def connected_network_name
-      raise Error, 'WiFi is off, cannot determine connected network.' unless wifi_on?
+      raise WifiOffError, 'WiFi is off, cannot determine connected network.' unless wifi_on?
 
       _connected_network_name
     end

@@ -315,12 +315,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect([true, false]).to include(subject.wifi_on?)
     end
 
-    it 'can query connected network name' do
-      name = subject.connected_network_name
-      unless subject.wifi_on?
-        expect(name).to be_nil
-      end
-    end
   end
 
   # Check current wifi state and create appropriate contexts
@@ -347,10 +341,18 @@ describe 'Common WiFi Model Behavior (All OS)' do
   # Disruptive contexts - only run with --tag disruptive flag
   context 'wifi starts on (disruptive)', :disruptive do
     include_examples 'interface commands complete without error', true
+
+    it 'can query connected network name' do
+      expect(subject.connected_network_name).to be_a(String).or be_nil
+    end
   end
 
   context 'wifi starts off (disruptive)', :disruptive do
     include_examples 'interface commands complete without error', false
+
+    it 'raises WifiOffError when querying connected network name' do
+      expect { subject.connected_network_name }.to raise_error(WifiWand::WifiOffError)
+    end
   end
 
   describe '#restore_network_state' do

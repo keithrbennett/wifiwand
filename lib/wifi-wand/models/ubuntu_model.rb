@@ -54,8 +54,8 @@ module WifiWand
       return false unless wifi_on?
 
       iface = ensure_wifi_interface!
-      output = run_os_command(['nmcli', '-t', '-f', 'STATE', 'device', 'show', iface], false).stdout
-      output.strip == 'connected'
+      output = run_os_command(%w[nmcli -t -f DEVICE connection show --active], false).stdout
+      output.split("\n").any? { |line| line.strip == iface }
     end
 
     def wifi_on

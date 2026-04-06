@@ -56,17 +56,13 @@ module RSpecConfiguration
   # Configure preflight authentication to handle auth prompts early
   def self.configure_preflight_authentication(config)
     config.before(:suite) do
-      begin
-        examples_to_run = RSpecConfiguration.get_examples_to_run
-        test_types = RSpecConfiguration.analyze_test_types(examples_to_run)
+      examples_to_run = RSpecConfiguration.get_examples_to_run
+      test_types = RSpecConfiguration.analyze_test_types(examples_to_run)
 
-        RSpecConfiguration.handle_network_state_capture(test_types[:disruptive])
+      RSpecConfiguration.handle_network_state_capture(test_types[:disruptive])
 
-        if RSpecConfiguration.macos_and_auth_tests_will_run?(test_types)
-          RSpecConfiguration.handle_sudo_preflight(test_types[:sudo])
-        end
-      rescue
-        # Never fail the suite due to preflight issues
+      if RSpecConfiguration.macos_and_auth_tests_will_run?(test_types)
+        RSpecConfiguration.handle_sudo_preflight(test_types[:sudo])
       end
     end
   end
@@ -102,11 +98,12 @@ module RSpecConfiguration
   def self.handle_network_state_capture(disruptive_tests_will_run)
     return unless disruptive_tests_will_run
 
-    begin
-      NetworkStateManager.capture_state
-    rescue => e
-      puts "Warning: Could not capture network state during preflight: #{e.message}"
+    unless NetworkStateManager.model.connected?
+      raise "Disruptive tests require an active network connection. " \
+            "Please connect to a WiFi network before running disruptive tests."
     end
+
+    NetworkStateManager.capture_state
   end
 
   def self.keep_sudo_alive
