@@ -137,7 +137,7 @@ module WifiWand
             rescue
               raise WifiWand::Error.new("QR code output file '#{filename}' already exists and could not be overwritten.")
             end
-            return
+            nil
           else
             raise WifiWand::Error.new('Overwrite cancelled: file exists')
           end
