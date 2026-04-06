@@ -32,11 +32,12 @@ module WifiWand
     # interception by making real HTTP requests to well-known connectivity check
     # endpoints and verifying the response status codes.
     #
-    # Multiple endpoints are checked sequentially so that a single misbehaving
-    # endpoint cannot cause a false captive-portal detection. Returns +true+
-    # immediately if any endpoint returns the expected code, +false+ only when
-    # at least one endpoint returned a wrong status code and none succeeded, and
-    # +true+ (assume free) when all endpoints had network errors.
+    # Multiple endpoints are checked concurrently so that a single misbehaving
+    # endpoint cannot cause a false captive-portal detection without adding the
+    # serial worst-case latency of back-to-back HTTP timeouts. Returns +true+
+    # if any endpoint returns the expected code, +false+ only when at least one
+    # endpoint returned a wrong status code and none succeeded, and +true+
+    # (assume free) when all endpoints had network errors.
     #
     # For full details on endpoint redundancy, return-value rationale, decision
     # flow, and terminology ("mismatch"), see docs/CONNECTIVITY_CHECKING.md

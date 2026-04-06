@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `ci` command (connectivity info) is the primary tool for checking internet connectivity. It provides a simple true/false indication of whether both DNS and TCP connectivity are working.
+The `ci` command (connectivity info) is the primary tool for checking internet connectivity. It provides a simple true/false indication of whether TCP connectivity, DNS resolution, and captive-portal-free internet access are working.
 
 ## Basic Usage
 
@@ -68,12 +68,13 @@ Use `ci` when you just need to know "is the internet working?". Use `status` whe
 
 ## Understanding the Results
 
-`ci` checks two things:
+`ci` checks three things:
 
 1. **DNS Resolution**: Can the system resolve domain names?
 2. **TCP Connectivity**: Can the system establish TCP connections?
+3. **Captive Portal Detection**: If TCP and DNS work, does an HTTP connectivity-check endpoint return the expected status code rather than a portal redirect or login page?
 
-Internet is considered available only when **both** are working.
+Internet is considered available only when all required checks pass.
 
 ## Examples
 
@@ -164,11 +165,12 @@ checking remaining endpoints before making a final determination.
 
 ### Endpoint Redundancy
 
-Multiple endpoints are checked sequentially so that a single misbehaving or
-rewritten endpoint cannot cause a false captive-portal detection:
+Multiple endpoints are checked concurrently so that a single misbehaving or
+rewritten endpoint cannot cause a false captive-portal detection without adding
+serial worst-case timeout cost:
 
 - If **any** endpoint returns the expected status code, the method returns `true`
-  immediately (real internet confirmed, remaining endpoints are skipped).
+  (real internet confirmed).
 - If an endpoint returns an unexpected HTTP status code, the method records a
   "definite mismatch" but continues trying remaining endpoints in case one of them
   succeeds.
@@ -194,14 +196,15 @@ unreachable).
 For each endpoint:
 
 1. Attempt HTTP GET via `attempt_captive_portal_check`.
-   - Returns `true` → expected code received; return `true` immediately.
-   - Returns `false` → wrong code received (mismatch); record it, try next endpoint.
-   - Returns `nil` → network error; try next endpoint.
+   - Returns `true` → expected code received; mark internet confirmed.
+   - Returns `false` → wrong code received (mismatch); record it.
+   - Returns `nil` → network error; ignore it for mismatch purposes.
 
-After all endpoints are exhausted:
+After the concurrent checks complete:
 
-- If any mismatch was recorded → return `false` (captive portal detected).
-- If no mismatch was recorded → return `true` (all errors, assume free).
+- If any endpoint succeeded → return `true`.
+- Otherwise, if any mismatch was recorded → return `false` (captive portal detected).
+- Otherwise → return `true` (all errors, assume free).
 
 ### Verbose Logging
 
