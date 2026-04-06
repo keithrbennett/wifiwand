@@ -126,3 +126,96 @@ done
 Like the `status` command, `ci` uses intentionally long timeouts (several seconds on macOS) to avoid false positives from temporary network slowdowns. This means each check takes several seconds to complete.
 
 If you need to check connectivity frequently, be mindful that each check will block for several seconds. Use appropriate sleep intervals between checks when polling in a loop.
+
+## Captive Portal Detection
+
+Beyond basic TCP and DNS checks, wifi-wand can detect **captive portals** — the
+interception pages common in coffee shops, hotels, and airports that block real
+internet access behind a login screen.
+
+### How It Works
+
+Captive portals intercept TCP connections and complete the handshake on behalf of
+external hosts. This makes plain TCP connectivity checks unreliable —
+`tcp_connectivity?` returns `true` even when real internet access is blocked.
+
+The `captive_portal_free?` method disambiguates by issuing real HTTP GET requests
+to well-known connectivity check endpoints (e.g. Google's `generate_204` endpoints)
+and verifying the response status codes. A `204 No Content` response can only come
+from the actual server — captive portals return `302` redirects or `200` HTML login
+pages instead.
+
+**HTTP (not HTTPS) is used intentionally:** captive portals must respond to plain
+HTTP requests themselves rather than silently forwarding them, which forces a
+detectable status code mismatch.
+
+### Terminology: "mismatch"
+
+A **mismatch** means an endpoint returned an HTTP status code different from the
+expected code configured for that endpoint (e.g. receiving a `302` or `200` when
+`204` was expected). This is distinct from a **network error** (timeout, connection
+refused, DNS failure), which produces no HTTP response at all.
+
+A mismatch is significant because it indicates the server *did* respond, but with
+unexpected content — the hallmark of a captive portal intercepting and rewriting
+the request. However, a single mismatch is not conclusive on its own (the endpoint
+could have been reconfigured or temporarily misbehaving), so the method continues
+checking remaining endpoints before making a final determination.
+
+### Endpoint Redundancy
+
+Multiple endpoints are checked sequentially so that a single misbehaving or
+rewritten endpoint cannot cause a false captive-portal detection:
+
+- If **any** endpoint returns the expected status code, the method returns `true`
+  immediately (real internet confirmed, remaining endpoints are skipped).
+- If an endpoint returns an unexpected HTTP status code, the method records a
+  "definite mismatch" but continues trying remaining endpoints in case one of them
+  succeeds.
+- If an endpoint fails with a network-level error, the method skips it and moves
+  on — the endpoint server itself may be unreachable, which does not indicate a
+  captive portal.
+
+### Return Values
+
+| Return | Condition | Meaning |
+|--------|-----------|---------|
+| `true` | At least one endpoint returned the expected status code | Real internet confirmed |
+| `false` | At least one endpoint returned a wrong status code **and** none succeeded | Captive portal detected |
+| `true` | All endpoints failed with network errors, none returned any HTTP response | Can't determine; assume free to avoid false negatives |
+
+The "assume free" fallback for all-network-error scenarios avoids false negatives
+that would falsely report captive-portal detection on networks with transient
+connectivity issues (e.g. the check servers themselves being temporarily
+unreachable).
+
+### Decision Flow
+
+For each endpoint:
+
+1. Attempt HTTP GET via `attempt_captive_portal_check`.
+   - Returns `true` → expected code received; return `true` immediately.
+   - Returns `false` → wrong code received (mismatch); record it, try next endpoint.
+   - Returns `nil` → network error; try next endpoint.
+
+After all endpoints are exhausted:
+
+- If any mismatch was recorded → return `false` (captive portal detected).
+- If no mismatch was recorded → return `true` (all errors, assume free).
+
+### Verbose Logging
+
+When verbose mode is enabled (`wifi-wand -v`), the method logs:
+
+- The list of endpoints being tested before the first request.
+- Per-endpoint results: `pass`, `mismatch`, or network error details.
+- A final decision message indicating the outcome.
+
+### Deferred Checking in `wifi_info`
+
+The `wifi_info` method (used by the `info` command) defers the captive portal
+HTTP check when TCP or DNS has already failed. Since a captive portal can only
+be present when both TCP and DNS are working (portals complete TCP handshakes
+and provide DNS), performing the HTTP request on an obviously-offline network
+adds unnecessary delay. When TCP or DNS is `false`, `captive_portal_free` is
+set to `true` without making any HTTP request.

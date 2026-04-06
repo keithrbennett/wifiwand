@@ -19,7 +19,7 @@ module WifiWand
     # Tests TCP connectivity, DNS resolution, and absence of a captive portal.
     # Pre-computed values can be supplied for each component to avoid redundant network calls.
     # Captive portals complete the TCP handshake on behalf of external hosts, so tcp_working
-    # alone is not sufficient — we also verify the HTTP response from a known endpoint.
+    # alone is not sufficient — we also verify the absence of a captive portal.
     def connected_to_internet?(tcp_working = nil, dns_working = nil, captive_free = nil)
       tcp = tcp_working.nil? ? tcp_connectivity? : tcp_working
       dns = dns_working.nil? ? dns_working? : dns_working
@@ -28,36 +28,50 @@ module WifiWand
       captive_free.nil? ? captive_portal_free? : captive_free
     end
 
-    # Returns true if the current connection is not intercepted by a captive portal.
+    # Determines whether the current network connection is free of captive portal
+    # interception by making real HTTP requests to well-known connectivity check
+    # endpoints and verifying the response status codes.
     #
-    # Captive portals (coffee shops, hotels, etc.) intercept TCP connections and complete
-    # the handshake themselves, making tcp_connectivity? return true even when real internet
-    # is blocked. This check makes a real HTTP request and verifies the response code.
-    # A 204 No Content response can only come from the actual Google server — captive portals
-    # return 302 redirects or 200 HTML pages instead.
+    # Multiple endpoints are checked sequentially so that a single misbehaving
+    # endpoint cannot cause a false captive-portal detection. Returns +true+
+    # immediately if any endpoint returns the expected code, +false+ only when
+    # at least one endpoint returned a wrong status code and none succeeded, and
+    # +true+ (assume free) when all endpoints had network errors.
     #
-    # Return values:
-    # - true  → at least one endpoint returned the expected status code (real internet confirmed)
-    # - false → at least one endpoint returned a wrong status code (captive portal detected)
-    # - true  → all endpoints failed with network errors (can't determine; assume free to
-    #            avoid false negatives when the check servers themselves are unreachable)
+    # For full details on endpoint redundancy, return-value rationale, decision
+    # flow, and terminology ("mismatch"), see docs/CONNECTIVITY_CHECKING.md
+    # section "Captive Portal Detection".
+    #
+    # @return [Boolean] true if no captive portal is detected (or can't be determined),
+    #   false if a captive portal is confidently detected.
+    # @see attempt_captive_portal_check for per-endpoint HTTP check details
+    # @see captive_portal_check_endpoints for the configured endpoint list
     #
     def captive_portal_free?
       endpoints = captive_portal_check_endpoints
 
-      if @verbose
-        urls = endpoints.map { |e| e[:url] }.join(', ')
-        @output.puts "Testing captive portal via HTTP: #{urls}"
-      end
+      @output.puts "Testing captive portal via HTTP: #{endpoints.map { _1[:url] }.join(', ')}" if @verbose
 
-      endpoints.each do |endpoint|
-        result = attempt_captive_portal_check(endpoint)
-        return result unless result.nil?  # nil means network error — try next endpoint
-      end
+      results = []
 
-      # All endpoints had network errors — can't determine, assume free
-      @output.puts 'All captive portal checks had network errors, assuming free' if @verbose
-      true
+      Async do |_task|
+        barrier = Async::Barrier.new
+        endpoints.each do |ep|
+          barrier.async do
+            case attempt_captive_portal_check(ep)
+            when true  then results << :absent; barrier.stop
+            when false then results << :present
+            else              results << :error
+            end
+          end
+        end
+        barrier.wait
+      rescue Async::Stop
+      end.wait
+
+      free = results.include?(:absent) || !results.include?(:present)
+      @output.puts "Captive portal results: #{results.inspect} — #{free ? 'free' : 'detected'}" if @verbose
+      free
     end
 
     # Fast connectivity check optimized for continuous monitoring (e.g., log command).
@@ -407,7 +421,7 @@ module WifiWand
         result = actual_code == expected_code
 
         if @verbose
-          status = result ? 'pass' : 'CAPTIVE PORTAL DETECTED'
+          status = result ? 'pass' : 'mismatch'
           @output.puts "Captive portal check #{endpoint[:url]}: HTTP #{actual_code} (expected #{expected_code}) -> #{status}"
         end
 

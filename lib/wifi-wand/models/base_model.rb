@@ -245,10 +245,14 @@ module WifiWand
         false
       end
 
-      captive_free = begin
-        captive_portal_free?
-      rescue
-        true  # assume free if we can't check; tcp/dns already failed anyway
+      captive_free = if internet_tcp && dns_working
+        begin
+          captive_portal_free?
+        rescue
+          true
+        end
+      else
+        true
       end
 
       # Pass all pre-computed values to avoid redundant network calls

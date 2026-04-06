@@ -573,6 +573,43 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(result['internet_on']).to be false  # Should be false due to DNS failure
     end
 
+    it 'does not call captive_portal_free? when TCP fails' do
+      allow(subject).to receive(:internet_tcp_connectivity?).and_return(false)
+      allow(subject).to receive(:dns_working?).and_return(true)
+      allow(subject).to receive(:public_ip_address_info).and_return({ 'ip' => '1.2.3.4' })
+      expect(subject).not_to receive(:captive_portal_free?)
+
+      subject.wifi_info
+    end
+
+    it 'does not call captive_portal_free? when DNS fails' do
+      allow(subject).to receive(:internet_tcp_connectivity?).and_return(true)
+      allow(subject).to receive(:dns_working?).and_return(false)
+      allow(subject).to receive(:public_ip_address_info).and_return({ 'ip' => '1.2.3.4' })
+      expect(subject).not_to receive(:captive_portal_free?)
+
+      subject.wifi_info
+    end
+
+    it 'does not call captive_portal_free? when both TCP and DNS fail' do
+      allow(subject).to receive(:internet_tcp_connectivity?).and_return(false)
+      allow(subject).to receive(:dns_working?).and_return(false)
+      allow(subject).to receive(:public_ip_address_info).and_return({ 'ip' => '1.2.3.4' })
+      expect(subject).not_to receive(:captive_portal_free?)
+
+      subject.wifi_info
+    end
+
+    it 'calls captive_portal_free? when both TCP and DNS succeed' do
+      allow(subject).to receive(:internet_tcp_connectivity?).and_return(true)
+      allow(subject).to receive(:dns_working?).and_return(true)
+      allow(subject).to receive(:captive_portal_free?).and_return(true)
+      allow(subject).to receive(:public_ip_address_info).and_return({ 'ip' => '1.2.3.4' })
+      expect(subject).to receive(:captive_portal_free?).and_return(true)
+
+      subject.wifi_info
+    end
+
     context 'public IP address handling' do
       before do
         allow(subject).to receive(:internet_tcp_connectivity?).and_return(true)

@@ -226,9 +226,42 @@ describe WifiWand::NetworkConnectivityTester do
 
       before { mock_captive_portal_detected }
 
-      it 'logs CAPTIVE PORTAL DETECTED' do
+      it 'logs results array and detected status' do
         tester.captive_portal_free?
-        expect(output.string).to include('CAPTIVE PORTAL DETECTED')
+        expect(output.string).to include('mismatch')
+        expect(output.string).to include('detected')
+      end
+    end
+
+    context 'with multiple endpoints (redundancy)' do
+      let(:tester) { described_class.new(verbose: false) }
+
+      it 'returns false when first endpoint returns wrong status but second returns 204' do
+        allow(tester).to receive(:attempt_captive_portal_check).and_return(false, true)
+        endpoints = [
+          { url: 'http://first.example.com/check', expected_code: 204 },
+          { url: 'http://second.example.com/check', expected_code: 204 }
+        ]
+        expect(tester.captive_portal_free?).to be true
+      end
+
+      it 'returns true when first endpoint has network error and second returns 204' do
+        allow(tester).to receive(:attempt_captive_portal_check).and_return(nil, true)
+        endpoints = [
+          { url: 'http://first.example.com/check', expected_code: 204 },
+          { url: 'http://second.example.com/check', expected_code: 204 }
+        ]
+        expect(tester.captive_portal_free?).to be true
+      end
+
+      it 'returns false when all endpoints return wrong status' do
+        allow(tester).to receive(:attempt_captive_portal_check).and_return(false, false)
+        expect(tester.captive_portal_free?).to be false
+      end
+
+      it 'returns true when all endpoints have network errors' do
+        allow(tester).to receive(:attempt_captive_portal_check).and_return(nil, nil)
+        expect(tester.captive_portal_free?).to be true
       end
     end
   end
