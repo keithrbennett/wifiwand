@@ -185,7 +185,7 @@ describe 'Output Format Integration Tests' do
 
             case format_name
             when :inspect
-              expect(eval(output)).to eq(test_data)
+              expect(JSON.parse(output)).to eq(test_data)
             when :json
               parsed = JSON.parse(output)
               expect(parsed).to eq(test_data)
@@ -218,7 +218,7 @@ describe 'Output Format Integration Tests' do
 
             case format_name
             when :inspect
-              expect(eval(output)).to eq([])
+              expect(JSON.parse(output)).to eq([])
             when :json
               parsed = JSON.parse(output)
               expect(parsed).to eq([])

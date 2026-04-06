@@ -151,7 +151,7 @@ describe 'Output Format End-to-End Tests' do
 
           case format_code
           when 'i'
-            expect(eval(output)).to eq(networks)
+            expect(JSON.parse(output)).to eq(networks)
           when 'j', 'k'
             expect(JSON.parse(output)).to eq(networks)
           when 'p'
