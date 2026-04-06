@@ -54,6 +54,7 @@ module WifiWand
         end
         barrier.wait
       rescue Async::Stop
+        nil
       end.wait
 
       free = results.include?(:absent) || !results.include?(:present)
