@@ -176,6 +176,12 @@ describe WifiWand::NetworkConnectivityTester do
   describe '#captive_portal_free?' do
     let(:tester) { described_class.new(verbose: false) }
 
+    it 'delegates to the captive_portal_checker' do
+      checker = tester.captive_portal_checker
+      allow(checker).to receive(:captive_portal_free?).and_return(true)
+      expect(tester.captive_portal_free?).to be true
+    end
+
     context 'when the connectivity check endpoint returns 204' do
       before { mock_captive_portal_free }
 
@@ -230,40 +236,6 @@ describe WifiWand::NetworkConnectivityTester do
         tester.captive_portal_free?
         expect(output.string).to include('mismatch')
         expect(output.string).to include('detected')
-      end
-    end
-
-    context 'with multiple endpoints (redundancy)' do
-      let(:tester) { described_class.new(verbose: false) }
-      let(:endpoints) do
-        [
-          { url: 'http://first.example.com/check', expected_code: 204 },
-          { url: 'http://second.example.com/check', expected_code: 204 }
-        ]
-      end
-
-      before do
-        allow(tester).to receive(:captive_portal_check_endpoints).and_return(endpoints)
-      end
-
-      it 'returns false when first endpoint returns wrong status but second returns 204' do
-        allow(tester).to receive(:attempt_captive_portal_check).and_return(false, true)
-        expect(tester.captive_portal_free?).to be true
-      end
-
-      it 'returns true when first endpoint has network error and second returns 204' do
-        allow(tester).to receive(:attempt_captive_portal_check).and_return(nil, true)
-        expect(tester.captive_portal_free?).to be true
-      end
-
-      it 'returns false when all endpoints return wrong status' do
-        allow(tester).to receive(:attempt_captive_portal_check).and_return(false, false)
-        expect(tester.captive_portal_free?).to be false
-      end
-
-      it 'returns true when all endpoints have network errors' do
-        allow(tester).to receive(:attempt_captive_portal_check).and_return(nil, nil)
-        expect(tester.captive_portal_free?).to be true
       end
     end
   end
