@@ -246,7 +246,7 @@ module WifiWand
     end
 
     # Returns whether or not the specified interface is a WiFi interface.
-    def is_wifi_interface?(interface)
+    def is_wifi_interface?(interface) # rubocop:disable Naming/PredicatePrefix
       run_os_command(['networksetup', '-listpreferredwirelessnetworks', interface])
       true  # If command succeeds, it's a WiFi interface
     rescue WifiWand::CommandExecutor::OsCommandError => e
@@ -446,7 +446,7 @@ module WifiWand
       ether_index ? tokens[ether_index + 1] : nil
     end
 
-    def set_nameservers(nameservers)
+    def set_nameservers(nameservers) # rubocop:disable Naming/AccessorMethodName
       service_name = detect_wifi_service_name
 
       if nameservers == :clear

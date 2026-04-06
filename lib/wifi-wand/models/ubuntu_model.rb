@@ -39,7 +39,7 @@ module WifiWand
       interface_line ? interface_line.split[1] : nil
     end
 
-    def is_wifi_interface?(interface)
+    def is_wifi_interface?(interface) # rubocop:disable Naming/PredicatePrefix
       # Redirect stderr to /dev/null - requires shell
       output = run_os_command("iw dev #{Shellwords.shellescape(interface)} info 2>/dev/null", false).stdout
       !output.empty?
@@ -377,7 +377,7 @@ module WifiWand
       nameservers_using_resolv_conf || []
     end
 
-    def set_nameservers(nameservers)
+    def set_nameservers(nameservers) # rubocop:disable Naming/AccessorMethodName
       # Use NetworkManager connection-based DNS configuration
       # This is the correct approach for Ubuntu - we modify the connection profile,
       # not the interface directly. Each Wi-Fi network has its own connection profile

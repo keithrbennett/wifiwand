@@ -90,7 +90,7 @@ RSpec.describe RSpecConfiguration do
   it 'captures network state when disruptive tests run on non-macOS hosts' do
     $compatible_os_tag = :os_ubuntu
 
-    allow(described_class).to receive(:get_examples_to_run).and_return([
+    allow(described_class).to receive(:examples_to_run).and_return([
       double('example', metadata: { disruptive: true })
     ])
 
@@ -105,7 +105,7 @@ RSpec.describe RSpecConfiguration do
   it 'captures network state exactly once when disruptive auth tests run on macOS' do
     $compatible_os_tag = :os_mac
 
-    allow(described_class).to receive(:get_examples_to_run).and_return([
+    allow(described_class).to receive(:examples_to_run).and_return([
       double('example', metadata: { disruptive: true, needs_sudo_access: true })
     ])
 

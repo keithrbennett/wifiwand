@@ -381,7 +381,7 @@ module WifiWand
 
     # Returns true if the given network name exists in the preferred networks list.
     # Extracted for easier testing and overriding/mocking.
-    def has_preferred_network?(network_name)
+    def has_preferred_network?(network_name) # rubocop:disable Naming/PredicatePrefix
       preferred_networks.include?(network_name.to_s)
     end
 

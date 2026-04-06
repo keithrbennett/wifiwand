@@ -56,7 +56,7 @@ module RSpecConfiguration
   # Configure preflight authentication to handle auth prompts early
   def self.configure_preflight_authentication(config)
     config.before(:suite) do
-      examples_to_run = RSpecConfiguration.get_examples_to_run
+      examples_to_run = RSpecConfiguration.examples_to_run
       test_types = RSpecConfiguration.analyze_test_types(examples_to_run)
 
       RSpecConfiguration.handle_network_state_capture(test_types[:disruptive])
@@ -67,7 +67,7 @@ module RSpecConfiguration
     end
   end
 
-  def self.get_examples_to_run
+  def self.examples_to_run
     if RSpec.world.respond_to?(:filtered_examples)
       RSpec.world.filtered_examples.values.flatten
     else
@@ -201,7 +201,7 @@ module RSpecConfiguration
   end
 
   def self.attempt_final_network_restoration
-    examples_to_run = RSpecConfiguration.get_examples_to_run
+    examples_to_run = RSpecConfiguration.examples_to_run
     disruptive_tests_ran = examples_to_run.any? { |ex| ex.metadata[:disruptive] }
 
     return unless disruptive_tests_ran
