@@ -26,7 +26,7 @@ describe WifiWand::CommandLineInterface do
 
   # Shared examples for interactive vs non-interactive behavior
   shared_examples 'interactive vs non-interactive command' do |cmd_method, model_method, test_cases|
-    context 'in interactive mode' do
+    context 'when in interactive mode' do
       it 'returns the result directly' do
         allow(interactive_cli.model).to receive(model_method).and_return(test_cases[:return_value])
         result = interactive_cli.public_send(cmd_method)
@@ -34,7 +34,7 @@ describe WifiWand::CommandLineInterface do
       end
     end
 
-    context 'in non-interactive mode' do
+    context 'when in non-interactive mode' do
       test_cases[:non_interactive_tests].each do |description, test_data|
         it description do
           allow(mock_model).to receive(model_method).and_return(test_data[:model_return])
@@ -335,7 +335,7 @@ describe WifiWand::CommandLineInterface do
         end
       end
 
-      context 'non-interactive stdout mode' do
+      context 'when in non-interactive stdout mode' do
         it 'prints ANSI via model and returns nil' do
           # Model handles printing when delivery_mode is :print; CLI should not add extra output
           allow(mock_model).to receive(:generate_qr_code)
@@ -355,7 +355,7 @@ describe WifiWand::CommandLineInterface do
         end
       end
 
-      context 'file overwrite scenarios' do
+      context 'when handling file overwrite scenarios' do
         let(:filename) { 'test.png' }
         let(:file_exists_error) { WifiWand::Error.new("File #{filename} already exists") }
 
@@ -421,7 +421,7 @@ describe WifiWand::CommandLineInterface do
 
   describe 'status command interactive mode' do
     describe '#cmd_s' do
-      context 'in interactive mode' do
+      context 'when in interactive mode' do
         it 'outputs status line to out_stream and returns nil' do
           status_data = { wifi_on: true, network_name: 'TestNet' }
           out_stream = StringIO.new
@@ -633,7 +633,7 @@ describe WifiWand::CommandLineInterface do
         subject.cmd_t('connected', '2.5')
       end
 
-      context 'argument validation' do
+      context 'when validating arguments' do
         it 'raises ConfigurationError when no arguments provided' do
           expect { subject.cmd_t }.to raise_error(WifiWand::ConfigurationError) do |error|
             expect(error.message).to include('Missing target status argument')
@@ -805,14 +805,14 @@ describe WifiWand::CommandLineInterface do
       let(:options_with_processor) { create_cli_options(post_processor: processor) }
       let(:cli_with_processor) { described_class.new(options_with_processor) }
 
-      context 'in interactive mode' do
+      context 'when in interactive mode' do
         it 'returns data directly without output' do
           result = interactive_cli.send(:handle_output, test_data, human_readable_producer)
           expect(result).to eq(test_data)
         end
       end
 
-      context 'in non-interactive mode' do
+      context 'when in non-interactive mode' do
         context 'with post processor' do
           it 'uses post processor and outputs result' do
             # Accept both old Ruby format and new Ruby format

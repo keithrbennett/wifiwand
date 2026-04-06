@@ -48,7 +48,7 @@ module WifiWand
       end
 
       # System-modifying tests (will change wifi state)
-      context 'system-modifying operations', :disruptive_mac do
+      context 'when running system-modifying operations', :disruptive_mac do
         subject { create_mac_os_test_model }
 
         describe '#wifi_on' do
@@ -86,7 +86,7 @@ module WifiWand
       end
 
       # Network connection tests (highest risk)
-      context 'network connection operations', :disruptive_mac do
+      context 'when running network connection operations', :disruptive_mac do
         subject { create_mac_os_test_model }
 
         describe '#_connect' do
@@ -98,7 +98,7 @@ module WifiWand
       end
 
       # Additional disruptive tests for system-modifying operations
-      context 'extended disruptive operations', :disruptive_mac do
+      context 'when running extended disruptive operations', :disruptive_mac do
         subject { create_mac_os_test_model }
 
         before(:all) do
@@ -272,7 +272,7 @@ module WifiWand
     end
 
     # Non-disruptive tests for core functionality
-    context 'core functionality' do
+    context 'when testing core functionality' do
       subject(:model) { create_mac_os_test_model }
       let(:success_result) do
         WifiWand::CommandExecutor::OsCommandResult.new(

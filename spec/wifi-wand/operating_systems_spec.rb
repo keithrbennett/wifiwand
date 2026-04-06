@@ -54,7 +54,7 @@ module WifiWand
         end
       end
 
-      context 'error handling' do
+      context 'when handling errors' do
         it 'raises error if multiple OSes match current system' do
           # Create a mock scenario where multiple OSes return true
           mock_os1 = double('MockOS1',

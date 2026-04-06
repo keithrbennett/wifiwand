@@ -153,7 +153,7 @@ describe WifiWand::StatusWaiter do
       end
     end
 
-    context 'timing behavior' do
+    context 'when testing timing behavior' do
       it 'measures wait time accurately' do
         call_count = 0
         allow(mock_model).to receive(:wifi_on?) do

@@ -193,7 +193,7 @@ describe 'Output Format End-to-End Tests' do
       end
     end
 
-    context 'case insensitivity' do
+    context 'with case insensitivity' do
       it 'accepts uppercase format codes' do
         options = parse_options('-o', 'J', 'info')
         expect(options.post_processor).not_to be_nil
@@ -229,7 +229,7 @@ describe 'Output Format End-to-End Tests' do
   end
 
   describe 'Format-specific edge cases' do
-    context 'JSON and Pretty JSON' do
+    context 'with JSON and Pretty JSON' do
       it 'Pretty JSON has more whitespace than compact JSON' do
         test_data = { 'a' => 1, 'b' => { 'c' => 2, 'd' => 3 } }
         allow(mock_model).to receive(:wifi_info).and_return(test_data)
@@ -262,7 +262,7 @@ describe 'Output Format End-to-End Tests' do
       end
     end
 
-    context 'YAML special characters' do
+    context 'with YAML special characters' do
       it 'properly escapes strings with special characters' do
         test_data = { 'network' => 'Test:Network', 'password' => 'has spaces & symbols!' }
         allow(mock_model).to receive(:wifi_info).and_return(test_data)
@@ -281,7 +281,7 @@ describe 'Output Format End-to-End Tests' do
       end
     end
 
-    context 'Unicode and special characters' do
+    context 'with Unicode and special characters' do
       it 'handles unicode in all formats' do
         test_data = { 'network' => '日本語ネットワーク', 'emoji' => '🔐 WiFi' }
         allow(mock_model).to receive(:wifi_info).and_return(test_data)

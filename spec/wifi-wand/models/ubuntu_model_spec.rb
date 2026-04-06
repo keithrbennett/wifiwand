@@ -32,7 +32,7 @@ module WifiWand
     NMCLI_RADIO_CMD = 'nmcli radio wifi'
 
     # Non-disruptive tests with proper mocking
-    context 'core functionality tests (non-disruptive)' do
+    context 'when running core functionality tests (non-disruptive)' do
       describe '#wifi_on and #wifi_off failure paths' do
         it 'raises WifiEnableError when WiFi remains disabled after enable attempt' do
           allow(subject).to receive(:wifi_on?).and_return(false, false)
@@ -1062,7 +1062,7 @@ module WifiWand
       end
     end
 
-    context 'error handling tests (non-disruptive)' do
+    context 'when running error handling tests (non-disruptive)' do
       describe '#wifi_on' do
         it 'raises WifiEnableError when command succeeds but wifi remains off' do
           # Mock specific command calls to avoid real system calls
@@ -1225,7 +1225,7 @@ module WifiWand
     end
 
     # System-modifying tests (will change wifi state)
-    context 'system-modifying operations', :disruptive_ubuntu do
+    context 'when running system-modifying operations', :disruptive_ubuntu do
       describe '#wifi_on' do
         it 'turns wifi on when it is off' do
           subject.wifi_off
@@ -1319,7 +1319,7 @@ module WifiWand
     end
 
     # System-modifying tests (will change WiFi state)
-    context 'integration tests', :disruptive_ubuntu do
+    context 'when running integration tests', :disruptive_ubuntu do
       describe 'WiFi state management' do
         it 'can toggle WiFi on and off successfully' do
           original_state = subject.wifi_on?

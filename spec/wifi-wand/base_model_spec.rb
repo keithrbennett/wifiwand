@@ -318,7 +318,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   let(:current_wifi_on) { subject.wifi_on? }
 
   # Non-disruptive context - only runs when wifi is already on
-  context 'wifi starts on', :disruptive => false do
+  context 'when wifi starts on', :disruptive => false do
     before(:each) do
       skip 'Wifi is not currently on' unless current_wifi_on
     end
@@ -327,7 +327,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   # Non-disruptive context - only runs when wifi is already off
-  context 'wifi starts off', :disruptive => false do
+  context 'when wifi starts off', :disruptive => false do
     before(:each) do
       skip 'Wifi is currently on' if current_wifi_on
     end
@@ -336,7 +336,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   # Disruptive contexts - only run with --tag disruptive flag
-  context 'wifi starts on (disruptive)', :disruptive do
+  context 'when wifi starts on (disruptive)', :disruptive do
     include_examples 'interface commands complete without error', true
 
     it 'can query connected network name' do
@@ -344,7 +344,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
-  context 'wifi starts off (disruptive)', :disruptive do
+  context 'when wifi starts off (disruptive)', :disruptive do
     include_examples 'interface commands complete without error', false
 
     it 'raises WifiOffError when querying connected network name' do
@@ -521,7 +521,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:connected_to_internet?).and_call_original
     end
 
-    shared_context 'verbose test model setup' do
+    shared_context 'for verbose test model setup' do
       let(:captured_output) { StringIO.new }
 
       let(:test_model) do
@@ -609,7 +609,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       subject.wifi_info
     end
 
-    context 'public IP address handling' do
+    context 'for public IP address handling' do
       before do
         allow(subject).to receive(:internet_tcp_connectivity?).and_return(true)
         allow(subject).to receive(:dns_working?).and_return(true)
@@ -632,7 +632,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       # that involve verbose logging. We simplify by testing the behavior more directly.
 
       context 'with verbose logging enabled' do
-        include_context 'verbose test model setup'
+        include_context 'for verbose test model setup'
 
         it 'handles retry failure with verbose logging' do
           # Make public_ip_address_info fail twice (triggering retry path)
@@ -858,7 +858,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:_preferred_network_password).and_return(network_password)
     end
 
-    context 'dependency checking' do
+    context 'when checking dependencies' do
       [
         [:ubuntu, 'sudo apt install qrencode'],
         [:mac, 'brew install qrencode']
@@ -879,7 +879,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
     end
 
-    context 'network connection validation' do
+    context 'when validating network connection' do
       it 'raises error when not connected to any network' do
         allow(subject).to receive(:connected_network_name).and_return(nil)
 
@@ -887,7 +887,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
     end
 
-    context 'QR code generation with different security types' do
+    context 'when generating QR codes with different security types' do
       [
         ['WPA',  'WPA'],
         ['WPA2', 'WPA'],
@@ -917,7 +917,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
     end
 
-    context 'special character escaping' do
+    context 'when escaping special characters' do
       [
         ['Network;With;Semicolons', 'password,with,commas', 'WIFI:T:WPA;S:Network\;With\;Semicolons;P:password\,with\,commas;H:false;;'],
         ['Network:With:Colons', 'password:with:colons', 'WIFI:T:WPA;S:Network\:With\:Colons;P:password\:with\:colons;H:false;;'],
@@ -939,7 +939,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
     end
 
-    context 'filename generation' do
+    context 'when generating filenames' do
       [
         ['SimpleNetwork',       'SimpleNetwork-qr-code.png'],
         ['Network With Spaces', 'Network_With_Spaces-qr-code.png'],
@@ -956,7 +956,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
     end
 
-    context 'open network handling' do
+    context 'when handling open networks' do
       it 'generates QR code for open network (no password)' do
         allow(subject).to receive(:connected_network_password).and_return(nil)
         allow(subject).to receive(:connection_security_type).and_return(nil)
@@ -970,7 +970,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
     end
 
-    context 'error handling' do
+    context 'when handling errors' do
       it 'raises WifiWand::Error when qrencode command fails' do
         allow(subject).to receive(:run_os_command)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'qrencode', 'Command failed'))
