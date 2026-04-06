@@ -2,9 +2,6 @@ inherit_mode:
   merge:
     - Exclude
 
-plugins:
-  - rubocop-rspec
-
 AllCops:
   TargetRubyVersion: 3.2
   NewCops: enable

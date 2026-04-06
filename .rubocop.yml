@@ -1,3 +1,6 @@
+plugins:
+  - rubocop-rspec
+
 inherit_from:
   - .rubocop_todo.yml
   - .rubocop-shared.yml
