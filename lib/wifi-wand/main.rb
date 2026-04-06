@@ -46,9 +46,9 @@ module WifiWand
           unless formatters.keys.include?(choice)
             @err_stream.puts <<~MESSAGE
 
-            Output format "#{choice}" not in list of available formats (#{formatters.keys.join(', ')}).
+              Output format "#{choice}" not in list of available formats (#{formatters.keys.join(', ')}).
 
-          MESSAGE
+            MESSAGE
             raise ConfigurationError.new("Invalid output format '#{choice}'. Available formats: #{formatters.keys.join(', ')}")
           end
 
@@ -120,18 +120,18 @@ module WifiWand
         # Clean error message for invalid command line options
         @err_stream.puts <<~MESSAGE
 
-        Error: #{error.message}
+          Error: #{error.message}
 
-        Use -h or --help to see available options.
-      MESSAGE
+          Use -h or --help to see available options.
+        MESSAGE
       when WifiWand::CommandExecutor::OsCommandError
         # Show the helpful command error message and details but not the stack trace
         @err_stream.puts <<~MESSAGE
 
-        Error: #{error.text}
-        Command failed: #{error.command}
-        Exit code: #{error.exitstatus}
-      MESSAGE
+          Error: #{error.text}
+          Command failed: #{error.command}
+          Exit code: #{error.exitstatus}
+        MESSAGE
       when WifiWand::Error
         # Custom WiFi-related errors already have user-friendly messages
         @err_stream.puts "Error: #{error.message}"
@@ -139,11 +139,11 @@ module WifiWand
         # Unknown errors - show message but not stack trace unless verbose
         if verbose_mode
           message = <<~MESSAGE
-          Error: #{error.message}
+            Error: #{error.message}
 
-          Stack trace:
-          #{error.backtrace.join("\n")}
-        MESSAGE
+            Stack trace:
+            #{error.backtrace.join("\n")}
+          MESSAGE
         else
           message = "Error: #{error.message}"
         end
