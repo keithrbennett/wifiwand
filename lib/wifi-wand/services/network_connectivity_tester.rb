@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'net/http'
 require 'socket'
 require 'timeout'
 require 'yaml'
@@ -15,12 +16,48 @@ module WifiWand
       @output = output
     end
 
-    # Tests both TCP connectivity to internet hosts and DNS resolution.
-    # If tcp_working or dns_working parameters are provided, uses them instead of querying the system.
-    def connected_to_internet?(tcp_working = nil, dns_working = nil)
+    # Tests TCP connectivity, DNS resolution, and absence of a captive portal.
+    # Pre-computed values can be supplied for each component to avoid redundant network calls.
+    # Captive portals complete the TCP handshake on behalf of external hosts, so tcp_working
+    # alone is not sufficient — we also verify the HTTP response from a known endpoint.
+    def connected_to_internet?(tcp_working = nil, dns_working = nil, captive_free = nil)
       tcp = tcp_working.nil? ? tcp_connectivity? : tcp_working
       dns = dns_working.nil? ? dns_working? : dns_working
-      tcp && dns
+      return false unless tcp && dns
+
+      captive_free.nil? ? captive_portal_free? : captive_free
+    end
+
+    # Returns true if the current connection is not intercepted by a captive portal.
+    #
+    # Captive portals (coffee shops, hotels, etc.) intercept TCP connections and complete
+    # the handshake themselves, making tcp_connectivity? return true even when real internet
+    # is blocked. This check makes a real HTTP request and verifies the response code.
+    # A 204 No Content response can only come from the actual Google server — captive portals
+    # return 302 redirects or 200 HTML pages instead.
+    #
+    # Return values:
+    # - true  → at least one endpoint returned the expected status code (real internet confirmed)
+    # - false → at least one endpoint returned a wrong status code (captive portal detected)
+    # - true  → all endpoints failed with network errors (can't determine; assume free to
+    #            avoid false negatives when the check servers themselves are unreachable)
+    #
+    def captive_portal_free?
+      endpoints = captive_portal_check_endpoints
+
+      if @verbose
+        urls = endpoints.map { |e| e[:url] }.join(', ')
+        @output.puts "Testing captive portal via HTTP: #{urls}"
+      end
+
+      endpoints.each do |endpoint|
+        result = attempt_captive_portal_check(endpoint)
+        return result unless result.nil?  # nil means network error — try next endpoint
+      end
+
+      # All endpoints had network errors — can't determine, assume free
+      @output.puts 'All captive portal checks had network errors, assuming free' if @verbose
+      true
     end
 
     # Fast connectivity check optimized for continuous monitoring (e.g., log command).
@@ -350,6 +387,46 @@ module WifiWand
         yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'dns_test_domains.yml')
         data = YAML.safe_load_file(yaml_path)
         data['domains'].map { |domain| domain['domain'] }
+      end
+    end
+
+    # Attempts an HTTP GET to a captive portal check endpoint and compares the response code.
+    #
+    # @param endpoint [Hash] with :url (String) and :expected_code (Integer)
+    # @return [true]  if the server returned the expected HTTP status code
+    # @return [false] if the server returned a different status code (portal redirect/page)
+    # @return [nil]   if a network error prevented any response (caller should skip)
+    #
+    def attempt_captive_portal_check(endpoint)
+      uri = URI(endpoint[:url])
+      expected_code = endpoint[:expected_code]
+
+      Timeout.timeout(TimingConstants::HTTP_CONNECTIVITY_TIMEOUT) do
+        response = Net::HTTP.get_response(uri)
+        actual_code = response.code.to_i
+        result = actual_code == expected_code
+
+        if @verbose
+          status = result ? 'pass' : 'CAPTIVE PORTAL DETECTED'
+          @output.puts "Captive portal check #{endpoint[:url]}: HTTP #{actual_code} (expected #{expected_code}) -> #{status}"
+        end
+
+        result
+      end
+    rescue StandardError => e
+      @output.puts "Captive portal check network error for #{endpoint[:url]}: #{e.class}" if @verbose
+      nil
+    end
+
+    # Loads captive portal check endpoint configuration from YAML.
+    #
+    # @return [Array<Hash>] Array of hashes with :url and :expected_code keys
+    #
+    def captive_portal_check_endpoints
+      @captive_portal_check_endpoints ||= begin
+        yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'captive_portal_check_endpoints.yml')
+        data = YAML.safe_load_file(yaml_path)
+        data['endpoints'].map { |e| e.transform_keys(&:to_sym) }
       end
     end
   end

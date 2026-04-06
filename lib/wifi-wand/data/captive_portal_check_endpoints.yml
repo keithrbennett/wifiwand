@@ -1,0 +1,12 @@
+---
+# These endpoints return a specific HTTP status code when real internet is available.
+# Captive portals intercept the request and return 302 redirects or 200 HTML pages instead.
+# We use HTTP (not HTTPS) so captive portals can't silently forward the request - they must
+# respond themselves, producing a detectable status code mismatch.
+endpoints:
+  - url: "http://connectivitycheck.gstatic.com/generate_204"
+    expected_code: 204
+    desc: "Google connectivity check (used by Android) - returns 204 No Content on real internet"
+  - url: "http://clients3.google.com/generate_204"
+    expected_code: 204
+    desc: "Google connectivity check alternate host - returns 204 No Content on real internet"

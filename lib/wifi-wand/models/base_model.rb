@@ -196,11 +196,11 @@ module WifiWand
     end
 
     # This method returns whether or not there is a working Internet connection.
-    # Tests both TCP connectivity to internet hosts and DNS resolution.
-    # If tcp_working or dns_working parameters are provided, uses them instead of querying the system.
-    def connected_to_internet?(tcp_working = nil, dns_working = nil)
+    # Tests TCP connectivity, DNS resolution, and absence of a captive portal.
+    # Pre-computed values can be supplied to avoid redundant network calls.
+    def connected_to_internet?(tcp_working = nil, dns_working = nil, captive_free = nil)
       debug_method_entry(__method__)
-      @connectivity_tester.connected_to_internet?(tcp_working, dns_working)
+      @connectivity_tester.connected_to_internet?(tcp_working, dns_working, captive_free)
     end
 
     # Tests TCP connectivity to internet hosts (not localhost)
@@ -213,6 +213,13 @@ module WifiWand
     def dns_working?
       debug_method_entry(__method__)
       @connectivity_tester.dns_working?
+    end
+
+    # Returns true if the connection is not intercepted by a captive portal.
+    # See NetworkConnectivityTester#captive_portal_free? for details.
+    def captive_portal_free?
+      debug_method_entry(__method__)
+      @connectivity_tester.captive_portal_free?
     end
 
     # Fast connectivity check optimized for continuous monitoring (e.g. `log` and `status` commands).
@@ -238,13 +245,20 @@ module WifiWand
         false
       end
 
-      # Use the optimized connected_to_internet? method with pre-computed values
-      connected = connected_to_internet?(internet_tcp, dns_working)
+      captive_free = begin
+        captive_portal_free?
+      rescue
+        true  # assume free if we can't check; tcp/dns already failed anyway
+      end
+
+      # Pass all pre-computed values to avoid redundant network calls
+      connected = connected_to_internet?(internet_tcp, dns_working, captive_free)
 
       info = {
         'wifi_on'                   => wifi_on?,
         'internet_tcp_connectivity' => internet_tcp,
         'dns_working'               => dns_working,
+        'captive_portal_free'       => captive_free,
         'internet_on'               => connected,
         'interface'                 => wifi_interface,
         'default_interface'         => default_interface,

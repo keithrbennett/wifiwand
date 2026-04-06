@@ -41,5 +41,10 @@ module WifiWand
     FAST_CONNECTIVITY_TIMEOUT = 1.0
     # Individual TCP connection timeout for fast checks
     FAST_TCP_CONNECTION_TIMEOUT = 0.8
+
+    # HTTP-level captive portal check timeout (in seconds)
+    # Needs to be long enough for a full HTTP round-trip on slow networks.
+    # Tests use a short value to keep specs fast.
+    HTTP_CONNECTIVITY_TIMEOUT = ENV['RSPEC_RUNNING'] ? 0.25 : 5
   end
 end

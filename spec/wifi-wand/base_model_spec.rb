@@ -26,6 +26,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:preferred_networks).and_return(['TestNetwork1', 'SavedNetwork1'])
       allow(subject).to receive(:internet_tcp_connectivity?).and_return(true)
       allow(subject).to receive(:dns_working?).and_return(true)
+      allow(subject).to receive(:captive_portal_free?).and_return(true)
       # Don't mock connected_to_internet? globally - let tests override it when needed
       allow(subject).to receive(:fast_connectivity?).and_return(true)
       allow(subject).to receive(:public_ip_address_info).and_return({ 'ip' => '1.2.3.4' })
@@ -34,6 +35,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       # Don't mock connected_to_internet? - let it use the passed parameters
       allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?).and_return(true)
       allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:captive_portal_free?).and_return(true)
 
       # Mock low-level OS command execution to prevent real system calls
       # but allow higher-level methods to be called for testing
@@ -74,14 +76,15 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       # All OSes must provide these fields with consistent types
       expect(result).to include(
-        'wifi_on', 'internet_tcp_connectivity', 'dns_working', 'internet_on',
-        'interface', 'default_interface', 'network', 'ip_address', 'mac_address',
-        'nameservers', 'timestamp'
+        'wifi_on', 'internet_tcp_connectivity', 'dns_working', 'captive_portal_free',
+        'internet_on', 'interface', 'default_interface', 'network', 'ip_address',
+        'mac_address', 'nameservers', 'timestamp'
       )
 
       expect([true, false]).to include(result['wifi_on'])
       expect([true, false]).to include(result['internet_tcp_connectivity'])
       expect([true, false]).to include(result['dns_working'])
+      expect([true, false]).to include(result['captive_portal_free'])
       expect([true, false]).to include(result['internet_on'])
       expect(result['timestamp']).to be_a(Time)
     end

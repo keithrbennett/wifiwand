@@ -184,5 +184,18 @@ module TestHelpers
     stub_const('WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT', 0.05)
     stub_const('WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT', 0.01)
     stub_const('WifiWand::TimingConstants::DNS_RESOLUTION_TIMEOUT', 0.01)
+    stub_const('WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT', 0.01)
+  end
+
+  # Helper for mocking Net::HTTP to return a captive-portal-free response (HTTP 204)
+  def mock_captive_portal_free
+    response = instance_double(Net::HTTPResponse, code: '204')
+    allow(Net::HTTP).to receive(:get_response).and_return(response)
+  end
+
+  # Helper for mocking Net::HTTP to simulate a captive portal (HTTP 302 redirect)
+  def mock_captive_portal_detected
+    response = instance_double(Net::HTTPResponse, code: '302')
+    allow(Net::HTTP).to receive(:get_response).and_return(response)
   end
 end
