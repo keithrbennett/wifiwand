@@ -312,13 +312,22 @@ module WifiWand
     end
 
     # Builds a hash for the status command, yielding partial results as soon as
-    # they're known so callers can stream updates (e.g., DNS finishing before TCP).
-    # Network name and connectivity checks run concurrently using fibers to shorten the perceived wait.
+    # they're known so callers can stream updates.
+    # Network name and internet checks run concurrently using fibers to shorten
+    # the perceived wait. Internet status uses the full connectivity path so
+    # captive portals are reported as not connected.
     def status_line_data(progress_callback: nil)
       # Build initial partial hash with pending values
       partial = { wifi_on: wifi_on?, internet_connected: nil, network_name: :pending }
 
       progress_callback&.call(partial.dup)
+
+      unless partial[:wifi_on]
+        partial[:network_name] = nil
+        partial[:internet_connected] = false
+        progress_callback&.call(partial.dup)
+        return partial
+      end
 
       Async do |task|
         # Network name check
@@ -328,8 +337,7 @@ module WifiWand
           nil
         end
 
-        # Fast connectivity check (typically 50-200ms, 1 second worst case)
-        connectivity_task = task.async { fast_connectivity? }
+        connectivity_task = task.async { connected_to_internet? }
 
         # Wait for tasks to complete
         partial[:network_name] = ssid_task.wait

@@ -163,6 +163,34 @@ RSpec.describe WifiWand::BaseModel do
     end
   end
 
+  describe '#status_line_data' do
+    let(:model) { described_class.allocate }
+    let(:progress_updates) { [] }
+
+    before do
+      allow(model).to receive(:wifi_on?).and_return(true)
+      allow(model).to receive(:connected_network_name).and_return('Oasis Coffee')
+    end
+
+    it 'uses the full internet check rather than the fast TCP-only probe' do
+      expect(model).to receive(:connected_to_internet?).and_return(false)
+      expect(model).not_to receive(:fast_connectivity?)
+
+      result = model.status_line_data(progress_callback: ->(data) { progress_updates << data })
+
+      expect(result).to eq(
+        wifi_on:            true,
+        internet_connected: false,
+        network_name:       'Oasis Coffee'
+      )
+      expect(progress_updates).to eq([
+        { wifi_on: true, internet_connected: nil,   network_name: :pending },
+        { wifi_on: true, internet_connected: nil,   network_name: 'Oasis Coffee' },
+        { wifi_on: true, internet_connected: false, network_name: 'Oasis Coffee' }
+      ])
+    end
+  end
+
   describe '#preferred_network_password' do
     let(:model) { described_class.allocate }
 
