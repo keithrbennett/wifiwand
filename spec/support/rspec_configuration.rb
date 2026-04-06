@@ -104,6 +104,13 @@ module RSpecConfiguration
     end
 
     NetworkStateManager.capture_state
+
+    unless NetworkStateManager.network_state[:network_name]
+      raise "Disruptive tests require a restorable network state. " \
+            "Connected state was detected but network name could not be determined."
+    end
+
+    puts "\nCaptured network state for restoration: #{NetworkStateManager.network_state[:network_name]}\n"
   end
 
   def self.keep_sudo_alive

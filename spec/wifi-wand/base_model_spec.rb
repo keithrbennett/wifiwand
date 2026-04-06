@@ -189,11 +189,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'disconnects from network and handles subsequent calls gracefully', :needs_sudo_access => (WifiWand::OperatingSystems.current_id == :mac) do
       subject.wifi_on
 
-      # Ensure we\'re connected first (may need to connect to a network if not already)
-      if subject.connected_network_name.nil?
-        skip 'No network connection available for disconnect test'
-      end
-
       # Test disconnect works
       subject.disconnect
       expect(subject.connected_network_name).to be_nil

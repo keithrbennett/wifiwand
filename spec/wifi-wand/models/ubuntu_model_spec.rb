@@ -1277,11 +1277,6 @@ module WifiWand
 
         it 'sets valid nameservers' do
           subject.wifi_on
-
-          unless subject.connected_network_name
-            skip 'Skipping: no active WiFi connection available'
-          end
-
           result = subject.set_nameservers(valid_nameservers)
           expect(result).to eq(valid_nameservers)
         end

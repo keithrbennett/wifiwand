@@ -115,6 +115,43 @@ RSpec.describe RSpecConfiguration do
     run_preflight
   end
 
+  describe '.handle_network_state_capture' do
+    let(:mock_model) { double('model') }
+
+    before do
+      allow(NetworkStateManager).to receive(:model).and_return(mock_model)
+    end
+
+    it 'does nothing when no disruptive tests will run' do
+      expect(mock_model).not_to receive(:connected?)
+      described_class.handle_network_state_capture(false)
+    end
+
+    it 'raises when not connected to a network' do
+      allow(mock_model).to receive(:connected?).and_return(false)
+
+      expect { described_class.handle_network_state_capture(true) }
+        .to raise_error(RuntimeError, /active network connection/)
+    end
+
+    it 'raises when connected but captured state has no network name' do
+      allow(mock_model).to receive(:connected?).and_return(true)
+      allow(NetworkStateManager).to receive(:capture_state)
+      allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: nil })
+
+      expect { described_class.handle_network_state_capture(true) }
+        .to raise_error(RuntimeError, /restorable network state/)
+    end
+
+    it 'succeeds when connected and network name is captured' do
+      allow(mock_model).to receive(:connected?).and_return(true)
+      allow(NetworkStateManager).to receive(:capture_state)
+      allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: 'MyNetwork' })
+
+      expect { described_class.handle_network_state_capture(true) }.not_to raise_error
+    end
+  end
+
   it 'marks disruptive_mac examples as disruptive and slow' do
     metadata = apply_derived_metadata(disruptive_mac: true)
 

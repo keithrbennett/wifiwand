@@ -7,24 +7,7 @@ module NetworkStateManager
   end
 
   def self.capture_state
-    begin
-      @network_state = model.capture_network_state
-      if @network_state[:network_name]
-        puts <<~MESSAGE
-
-          Captured network state for restoration: #{@network_state[:network_name]}
-
-        MESSAGE
-      end
-    rescue => e
-      puts <<~MESSAGE
-
-        Warning: Could not capture network state: #{e.message}
-        Network restoration will not be available for this test run.
-
-      MESSAGE
-      @network_state = nil
-    end
+    @network_state = model.capture_network_state
   end
 
   def self.restore_state
