@@ -41,11 +41,11 @@ module TestHelpers
         { name: 'Wi-Fi', device: 'en0', ethernet_address: '34:b1:eb:f3:b8:1c' },
         { name: 'Ethernet', device: 'en1', ethernet_address: 'aa:bb:cc:dd:ee:ff' }
       ])
+      empty_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
       helper_client = instance_double(
         WifiWand::MacOsWifiAuthHelper::Client,
-        connected_network_name:     nil,
-        scan_networks:              [],
-        location_services_blocked?: false
+        connected_network_name: empty_result,
+        scan_networks:          empty_result
       )
       allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_client)
       WifiWand::MacOsModel.create_model(merged_options)
