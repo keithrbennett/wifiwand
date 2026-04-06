@@ -312,7 +312,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'can check wifi status' do
       expect([true, false]).to include(subject.wifi_on?)
     end
-
   end
 
   # Check current wifi state and create appropriate contexts
