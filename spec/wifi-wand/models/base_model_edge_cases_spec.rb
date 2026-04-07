@@ -54,27 +54,27 @@ RSpec.describe WifiWand::BaseModel do
               :trace_test
             end
 
-            def validate_os_preconditions; end
-            def detect_wifi_interface; 'wlan0'; end
-            def connection_security_type; nil; end
-            def is_wifi_interface?(_iface); true; end
-            def mac_address; '00:00:00:00:00:00'; end
-            def nameservers; []; end
-            def open_application(_app); end
-            def open_resource(_resource); end
-            def preferred_networks; []; end
-            def remove_preferred_network(_name); end
-            def set_nameservers(_servers); end
-            def wifi_off; end
-            def wifi_on; end
-            def wifi_on?; false; end
+            def validate_os_preconditions = nil
+            def detect_wifi_interface = 'wlan0'
+            def connection_security_type = nil
+            def is_wifi_interface?(_iface) = true
+            def mac_address = '00:00:00:00:00:00'
+            def nameservers = []
+            def open_application(_app) = nil
+            def open_resource(_resource) = nil
+            def preferred_networks = []
+            def remove_preferred_network(_name) = nil
+            def set_nameservers(_servers) = nil
+            def wifi_off = nil
+            def wifi_on = nil
+            def wifi_on? = false
 
-            def _available_network_names; []; end
-            def _connected_network_name; nil; end
-            def _connect(_network, _password); end
-            def _disconnect; end
-            def _ip_address; nil; end
-            def _preferred_network_password(_network); nil; end
+            def _available_network_names = []
+            def _connected_network_name = nil
+            def _connect(_network, _password) = nil
+            def _disconnect = nil
+            def _ip_address = nil
+            def _preferred_network_password(_network) = nil
           end
         RUBY
 

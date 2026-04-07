@@ -21,9 +21,7 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
       include WifiWand::CommandLineInterface::CommandRegistry
 
       # Handle cmd_* method calls made by lambda actions during coverage testing
-      def method_missing(method_name, *args)
-        method_name.to_s.start_with?('cmd_') ? nil : super
-      end
+      def method_missing(method_name, *args) = method_name.to_s.start_with?('cmd_') ? nil : super
     end
   end
 

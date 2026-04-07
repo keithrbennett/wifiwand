@@ -87,9 +87,7 @@ module WifiWand
         dest.puts help_text
       end
 
-      def help_hint
-        "Use 'wifi-wand help' or 'wifi-wand -h' for help."
-      end
+      def help_hint = "Use 'wifi-wand help' or 'wifi-wand -h' for help."
     end
   end
 end

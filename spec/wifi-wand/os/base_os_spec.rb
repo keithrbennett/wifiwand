@@ -14,9 +14,7 @@ module WifiWand
       it 'allows subclass instantiation' do
         # Create a test subclass to verify inheritance works
         test_subclass = Class.new(BaseOs) do
-          def initialize(id, display_name)
-            super(id, display_name)
-          end
+          def initialize(id, display_name) = super(id, display_name)
         end
 
         expect { test_subclass.new(:test_id, 'Test Display Name') }.not_to raise_error
@@ -34,9 +32,7 @@ module WifiWand
 
       it 'raises MethodNotImplementedError for abstract methods' do
         test_subclass = Class.new(BaseOs) do
-          def initialize(id, display_name)
-            super(id, display_name)
-          end
+          def initialize(id, display_name) = super(id, display_name)
         end
 
         instance = test_subclass.new(:test_id, 'Test Display Name')

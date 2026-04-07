@@ -6,35 +6,29 @@ RSpec.describe RSpecConfiguration do
   class BasicSettingsConfigDouble
     attr_reader :derived_metadata_blocks
 
-    def initialize
-      @derived_metadata_blocks = []
-    end
+    def initialize = @derived_metadata_blocks = []
 
     def example_status_persistence_file_path=(_path); end
 
-    def filter_run_including(*_args); end
+    def filter_run_including(*_args) = nil
 
     def run_all_when_everything_filtered=(_value); end
 
-    def only_failures?
-      false
-    end
+    def only_failures? = false
 
-    def filter_run_excluding(*_args); end
+    def filter_run_excluding(*_args) = nil
 
-    def before(*_args); end
+    def before(*_args) = nil
 
-    def after(*_args); end
+    def after(*_args) = nil
 
-    def include(_module); end
+    def include(_module) = nil
 
-    def register_ordering(*_args); end
+    def register_ordering(*_args) = nil
 
     def order=(_value); end
 
-    def define_derived_metadata(&block)
-      @derived_metadata_blocks << block
-    end
+    def define_derived_metadata(&block) = @derived_metadata_blocks << block
   end
 
   # Minimal stand-in for the RSpec configuration object. We only need to
@@ -43,9 +37,7 @@ RSpec.describe RSpecConfiguration do
   class PreflightConfigDouble
     attr_reader :suite_hooks
 
-    def initialize
-      @suite_hooks = []
-    end
+    def initialize = @suite_hooks = []
 
     def before(scope, &block)
       raise ArgumentError, 'expected :suite scope' unless scope == :suite

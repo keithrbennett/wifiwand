@@ -5,9 +5,7 @@ require 'awesome_print'
 module WifiWand
   class CommandLineInterface
     module OutputFormatter
-      def format_object(object)
-        object.awesome_inspect
-      end
+      def format_object(object) = object.awesome_inspect
 
       def colorize_text(text, color = nil)
         return text unless $stdout.tty? && color
@@ -37,15 +35,9 @@ module WifiWand
         end
       end
 
-      def colorize_network_name(text)
-        # Color quoted network names
-        text.gsub(/"([^"]*)"/) { |match| colorize_text(match, :cyan) }
-      end
+      def colorize_network_name(text) = text.gsub(/"([^"]*)"/) { |match| colorize_text(match, :cyan) }
 
-      def colorize_values(text)
-        # Color numbers, percentages, and IP addresses
-        text.gsub(/\b\d+%|\b\d+\.\d+\.\d+\.\d+|\b\d+\b/) { |match| colorize_text(match, :blue) }
-      end
+      def colorize_values(text) = text.gsub(/\b\d+%|\b\d+\.\d+\.\d+\.\d+|\b\d+\b/) { |match| colorize_text(match, :blue) }
 
       def format_boolean_status(value, true_char: '✅ YES', false_char: '❌ NO', pending_char: '⏳ WAIT')
         value = !!value unless value.nil? # convert non-Boolean non-nil values to true or false
@@ -84,13 +76,9 @@ module WifiWand
       end
 
       # If a post-processor has been configured (e.g. YAML or JSON), use it.
-      def post_process(object)
-        post_processor ? post_processor.(object) : object
-      end
+      def post_process(object) = post_processor ? post_processor.(object) : object
 
-      def post_processor
-        options.post_processor
-      end
+      def post_processor = options.post_processor
     end
   end
 end

@@ -7,9 +7,7 @@ require_relative '../errors'
 
 module WifiWand
   class UbuntuModel < BaseModel
-    def initialize(options = {})
-      super
-    end
+    def initialize(options = {}) = super
 
     def self.os_id
       :ubuntu
@@ -245,9 +243,7 @@ module WifiWand
     end
 
     # Preferred, clearer name for security parameter query
-    def security_parameter(ssid)
-      get_security_parameter(ssid)
-    end
+    def security_parameter(ssid) = get_security_parameter(ssid)
 
     # Finds the best connection profile for a given SSID.
     # "Best" is defined as the one with the most recent TIMESTAMP, which indicates
@@ -537,9 +533,7 @@ module WifiWand
     # @param profile_name [String] The connection profile name from nmcli
     # @param ssid [String] The target SSID
     # @return [Boolean]
-    def profile_matches_ssid?(profile_name, ssid)
-      profile_name == ssid || profile_name.match?(/\A#{Regexp.escape(ssid)} \d+\z/)
-    end
+    def profile_matches_ssid?(profile_name, ssid) = profile_name == ssid || profile_name.match?(/\A#{Regexp.escape(ssid)} \d+\z/)
 
     # Gets nameservers from /etc/resolv.conf - fallback method
     def nameservers_using_resolv_conf

@@ -11,8 +11,8 @@ describe 'BaseModel Resource Management' do
       end
 
       # Mock required methods
-      def open_resource(url); end
-      def open_application(app_name); end
+      def open_resource(url) = nil
+      def open_application(app_name) = nil
 
       # Stub other required methods to prevent NotImplementedError
       %i[

@@ -46,15 +46,11 @@ module WifiWand
     # Note: This flag is reset at the start of each connect() call, so it only
     # reflects saved password usage if the most recent connect() call completed
     # successfully. Failed connections may leave this in an inconsistent state.
-    def last_connection_used_saved_password?
-      !!@last_connection_used_saved_password
-    end
+    def last_connection_used_saved_password? = !!@last_connection_used_saved_password
 
     private
 
-    def reset_connection_state
-      @last_connection_used_saved_password = nil
-    end
+    def reset_connection_state = @last_connection_used_saved_password = nil
 
     # Normalizes and validates connection inputs.
     #
@@ -170,9 +166,7 @@ module WifiWand
       end
     end
 
-    def store_saved_password_usage(used_saved_password)
-      @last_connection_used_saved_password = used_saved_password
-    end
+    def store_saved_password_usage(used_saved_password) = @last_connection_used_saved_password = used_saved_password
 
     def verify_connection(network_name, password)
       actual_network_name = model.connected_network_name

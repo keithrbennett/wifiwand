@@ -34,13 +34,9 @@ module WifiWand
         end
       end
 
-      def current_id
-        current_os&.id
-      end
+      def current_id = current_os&.id
 
-      def current_display_name
-        current_os&.display_name
-      end
+      def current_display_name = current_os&.display_name
 
       def create_model_for_current_os(options = {})
         options = OpenStruct.new(options) if options.is_a?(Hash)

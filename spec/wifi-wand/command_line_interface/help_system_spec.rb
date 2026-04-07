@@ -12,9 +12,7 @@ describe WifiWand::CommandLineInterface::HelpSystem do
 
       attr_accessor :model
 
-      def initialize(model = nil)
-        @model = model
-      end
+      def initialize(model = nil) = @model = model
     end
   end
 

@@ -429,12 +429,12 @@ describe 'Common WiFi Model Behavior (All OS)' do
       test_class = Class.new(WifiWand::BaseModel) do
         def self.os_id = :mac
         # implement required underscore methods to satisfy inherited verification
-        def _available_network_names; []; end
-        def _connected_network_name; nil; end
-        def _connect(_n, _p); nil; end
-        def _disconnect; nil; end
-        def _ip_address; nil; end
-        def _preferred_network_password(_n); nil; end
+        def _available_network_names = []
+        def _connected_network_name = nil
+        def _connect(_n, _p) = nil
+        def _disconnect = nil
+        def _ip_address = nil
+        def _preferred_network_password(_n) = nil
       end
 
       inst = test_class.allocate # skip initialize internals

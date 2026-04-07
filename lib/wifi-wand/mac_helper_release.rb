@@ -443,13 +443,9 @@ module WifiWand
       puts "✓ Submission #{submission_id} removed from notary queue."
     end
 
-    def latest_submission_id
-      select_submission_id(order: :desc)
-    end
+    def latest_submission_id = select_submission_id(order: :desc)
 
-    def oldest_submission_id
-      select_submission_id(order: :asc)
-    end
+    def oldest_submission_id = select_submission_id(order: :asc)
 
     def select_submission_id(order:, pending_only: false)
       normalized_order = normalize_submission_order(order)

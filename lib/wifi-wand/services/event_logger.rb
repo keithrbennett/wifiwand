@@ -112,9 +112,7 @@ module WifiWand
     end
 
     # Stop polling loop
-    def stop
-      @running = false
-    end
+    def stop = @running = false
 
     private
 

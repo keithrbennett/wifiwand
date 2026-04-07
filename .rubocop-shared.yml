@@ -181,7 +181,10 @@ Style/Documentation:
   Enabled: false
 
 Style/EmptyMethod:
-  EnforcedStyle: expanded
+  EnforcedStyle: compact
+
+Style/EndlessMethod:
+  EnforcedStyle: allow_always
 
 Style/FrozenStringLiteralComment:
   Enabled: true

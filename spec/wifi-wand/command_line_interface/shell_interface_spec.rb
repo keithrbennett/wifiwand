@@ -23,16 +23,12 @@ describe WifiWand::CommandLineInterface::ShellInterface do
         end
       end
 
-      def print_help
-        puts 'Mock help text'
-      end
+      def print_help = puts 'Mock help text'
 
       # Mock interactive_mode for testing
       attr_accessor :interactive_mode
 
-      def initialize
-        @interactive_mode = true  # Default to interactive mode for testing
-      end
+      def initialize = @interactive_mode = true
     end
   end
 

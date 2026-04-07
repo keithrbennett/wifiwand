@@ -48,24 +48,16 @@ module WifiWand
     end
 
     # Dynamic output stream that respects current $stdout (for test silence_output compatibility)
-    def out_stream
-      @original_out_stream || $stdout
-    end
+    def out_stream = @original_out_stream || $stdout
 
     # Returns a symbol identifying the operating system for this model
     # Examples: :mac, :ubuntu
-    def os
-      self.class.os_id
-    end
+    def os = self.class.os_id
 
     # Convenience OS predicates
-    def mac?
-      os == :mac
-    end
+    def mac? = os == :mac
 
-    def ubuntu?
-      os == :ubuntu
-    end
+    def ubuntu? = os == :ubuntu
 
     def init
       init_wifi_interface
@@ -191,9 +183,7 @@ module WifiWand
       _ip_address
     end
 
-    def run_os_command(command, raise_on_error = true)
-      @command_executor.run_os_command(command, raise_on_error)
-    end
+    def run_os_command(command, raise_on_error = true) = @command_executor.run_os_command(command, raise_on_error)
 
     # This method returns whether or not there is a working Internet connection.
     # Tests TCP connectivity, DNS resolution, and absence of a captive portal.
@@ -389,9 +379,7 @@ module WifiWand
 
     # Returns true if the given network name exists in the preferred networks list.
     # Extracted for easier testing and overriding/mocking.
-    def has_preferred_network?(network_name) # rubocop:disable Naming/PredicatePrefix
-      preferred_networks.include?(network_name.to_s)
-    end
+    def has_preferred_network?(network_name) = preferred_networks.include?(network_name.to_s)
 
     # Waits for the Internet connection to be in the desired state.
     # @param target_status must be in [:conn, :disc, :off, :on]; waits for that state
@@ -457,22 +445,14 @@ module WifiWand
     end
 
     # Resource management functionality
-    def resource_manager
-      @resource_manager ||= Helpers::ResourceManager.new
-    end
+    def resource_manager = @resource_manager ||= Helpers::ResourceManager.new
 
-    def open_resources_by_codes(*resource_codes)
-      resource_manager.open_resources_by_codes(self, *resource_codes)
-    end
+    def open_resources_by_codes(*resource_codes) = resource_manager.open_resources_by_codes(self, *resource_codes)
 
-    def available_resources_help
-      resource_manager.available_resources_help
-    end
+    def available_resources_help = resource_manager.available_resources_help
 
     # QR code generator helper
-    def qr_code_generator
-      @qr_code_generator ||= Helpers::QrCodeGenerator.new
-    end
+    def qr_code_generator = @qr_code_generator ||= Helpers::QrCodeGenerator.new
 
     # Network State Management for Testing
     # These methods help capture and restore network state during disruptive tests
@@ -540,9 +520,7 @@ module WifiWand
       preferred_network_password(network_name)
     end
 
-    def command_available?(command)
-      @command_executor.command_available?(command)
-    end
+    def command_available?(command) = @command_executor.command_available?(command)
 
     # QR code generator helper
     def debug_method_entry(method_name, binding = nil, param_names = nil)

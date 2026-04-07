@@ -72,10 +72,7 @@ module WifiWand
         name
       end
 
-      def connected_password_for(model)
-        # Use the model's private helper to preserve behavior
-        model.send(:connected_network_password)
-      end
+      def connected_password_for(model) = model.send(:connected_network_password)
 
       def build_wifi_qr_string(network_name, password, security_type, is_hidden = false)
         qr_password = password.to_s

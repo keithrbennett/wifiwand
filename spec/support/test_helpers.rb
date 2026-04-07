@@ -8,13 +8,9 @@ require_relative '../../lib/wifi-wand/models/ubuntu_model'
 require_relative '../../lib/wifi-wand/models/mac_os_model'
 
 module TestHelpers
-  def restore_network_state
-    NetworkStateManager.restore_state
-  end
+  def restore_network_state = NetworkStateManager.restore_state
 
-  def network_state
-    NetworkStateManager.network_state
-  end
+  def network_state = NetworkStateManager.network_state
 
   # Helper method to create models with verbose configuration
   # Handles missing system commands gracefully for CI environments
@@ -55,13 +51,9 @@ module TestHelpers
   end
 
   # Helper method to create specific OS models with verbose configuration
-  def create_ubuntu_test_model(options = {})
-    WifiWand::UbuntuModel.new(merge_verbose_options(options))
-  end
+  def create_ubuntu_test_model(options = {}) = WifiWand::UbuntuModel.new(merge_verbose_options(options))
 
-  def create_mac_os_test_model(options = {})
-    WifiWand::MacOsModel.new(merge_verbose_options(options))
-  end
+  def create_mac_os_test_model(options = {}) = WifiWand::MacOsModel.new(merge_verbose_options(options))
 
   def wait_for(timeout: 5, interval: 0.1, description: 'condition')
     start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -160,24 +152,16 @@ module TestHelpers
   end
 
   # Helper for mocking Socket.tcp failures
-  def mock_socket_connection_failure
-    allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
-  end
+  def mock_socket_connection_failure = allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
 
   # Helper for mocking Socket.tcp success
-  def mock_socket_connection_success
-    allow(Socket).to receive(:tcp).and_yield
-  end
+  def mock_socket_connection_success = allow(Socket).to receive(:tcp).and_yield
 
   # Helper for mocking IPSocket.getaddress failures
-  def mock_dns_resolution_failure
-    allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
-  end
+  def mock_dns_resolution_failure = allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
 
   # Helper for mocking IPSocket.getaddress success
-  def mock_dns_resolution_success(ip_address = '1.2.3.4')
-    allow(IPSocket).to receive(:getaddress).and_return(ip_address)
-  end
+  def mock_dns_resolution_success(ip_address = '1.2.3.4') = allow(IPSocket).to receive(:getaddress).and_return(ip_address)
 
   # Helper for stubbing short connectivity timeouts for fast tests
   def stub_short_connectivity_timeouts

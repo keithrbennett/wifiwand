@@ -6,24 +6,16 @@ module WifiWand
   module Helpers
     class ResourceManager
       class OpenResource < Struct.new(:code, :url, :description)
-        def help_string
-          "'#{code}' (#{description})"
-        end
+        def help_string = "'#{code}' (#{description})"
       end
 
       class OpenResources < Array
-        def find_by_code(code)
-          detect { |resource| resource.code == code }
-        end
+        def find_by_code(code) = detect { |resource| resource.code == code }
 
-        def help_string
-          map(&:help_string).join(', ')
-        end
+        def help_string = map(&:help_string).join(', ')
       end
 
-      def open_resources
-        @open_resources ||= load_resources
-      end
+      def open_resources = @open_resources ||= load_resources
 
       # Opens resources by their abbreviation codes
       # @param model [BaseModel] The model instance that will open the resources
@@ -53,9 +45,7 @@ module WifiWand
       end
 
       # Get help string for available resources
-      def available_resources_help
-        "Please specify a resource to open:\n #{open_resources.help_string.gsub(',', "\n")}"
-      end
+      def available_resources_help = "Please specify a resource to open:\n #{open_resources.help_string.gsub(',', "\n")}"
 
       # Get error message for invalid codes
       def invalid_codes_error(invalid_codes)
@@ -91,9 +81,7 @@ module WifiWand
         OpenResources.new(resources)
       end
 
-      def resource_file_path
-        File.join(File.dirname(__FILE__), '..', '..', 'data', 'open_resources.yml')
-      end
+      def resource_file_path = File.join(File.dirname(__FILE__), '..', '..', 'data', 'open_resources.yml')
     end
   end
 end

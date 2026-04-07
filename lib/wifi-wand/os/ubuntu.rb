@@ -4,9 +4,7 @@ require_relative 'base_os'
 
 module WifiWand
   class Ubuntu < BaseOs
-    def initialize()
-      super(:ubuntu, 'Ubuntu Linux')
-    end
+    def initialize = super(:ubuntu, 'Ubuntu Linux')
 
     def current_os_is_this_os?
       # Check /etc/os-release for Ubuntu or Ubuntu-based systems

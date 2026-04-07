@@ -66,21 +66,15 @@ module WifiWand
   class WifiOffError < Error; end
 
   class WifiEnableError < Error
-    def initialize
-      super('WiFi could not be enabled. Check hardware and permissions')
-    end
+    def initialize = super('WiFi could not be enabled. Check hardware and permissions')
   end
 
   class WifiDisableError < Error
-    def initialize
-      super('WiFi could not be disabled. Check permissions')
-    end
+    def initialize = super('WiFi could not be disabled. Check permissions')
   end
 
   class WaitTimeoutError < Error
-    def initialize(action, timeout)
-      super("Timed out after #{timeout} seconds waiting for #{action}")
-    end
+    def initialize(action, timeout) = super("Timed out after #{timeout} seconds waiting for #{action}")
   end
 
   # === CONFIGURATION ERRORS ===
@@ -114,9 +108,7 @@ module WifiWand
   end
 
   class InvalidInterfaceError < Error
-    def initialize(interface)
-      super("'#{interface}' is not a valid WiFi interface")
-    end
+    def initialize(interface) = super("'#{interface}' is not a valid WiFi interface")
   end
 
   # === SYSTEM/PERMISSION ERRORS ===
@@ -129,52 +121,36 @@ module WifiWand
 
   # === MACOS-SPECIFIC ERRORS ===
   class KeychainAccessDeniedError < Error
-    def initialize(network_name)
-      super("Keychain access denied for network '#{network_name}'. Please grant access when prompted")
-    end
+    def initialize(network_name) = super("Keychain access denied for network '#{network_name}'. Please grant access when prompted")
   end
 
   class KeychainAccessCancelledError < Error
-    def initialize(network_name)
-      super("Keychain access cancelled for network '#{network_name}'")
-    end
+    def initialize(network_name) = super("Keychain access cancelled for network '#{network_name}'")
   end
 
   class KeychainNonInteractiveError < Error
-    def initialize(network_name)
-      super("Cannot access keychain for network '#{network_name}' in non-interactive environment")
-    end
+    def initialize(network_name) = super("Cannot access keychain for network '#{network_name}' in non-interactive environment")
   end
 
   class KeychainError < Error
-    def initialize(message)
-      super(message)
-    end
+    def initialize(message) = super(message)
   end
 
   # === OPERATING SYSTEM DETECTION ERRORS ===
   class MultipleOSMatchError < Error
-    def initialize(matching_os_names)
-      super("Multiple OS matches found: #{matching_os_names.join(', ')}. This should not happen")
-    end
+    def initialize(matching_os_names) = super("Multiple OS matches found: #{matching_os_names.join(', ')}. This should not happen")
   end
 
   class NoSupportedOSError < Error
-    def initialize
-      super('No supported operating system detected. WifiWand supports macOS and Ubuntu Linux')
-    end
+    def initialize = super('No supported operating system detected. WifiWand supports macOS and Ubuntu Linux')
   end
 
   class PreferredNetworkNotFoundError < Error
-    def initialize(network_name)
-      super("Network '#{network_name}' not in preferred networks list")
-    end
+    def initialize(network_name) = super("Network '#{network_name}' not in preferred networks list")
   end
 
   class ConfigurationError < Error
-    def initialize(message)
-      super(message)
-    end
+    def initialize(message) = super(message)
   end
 
   # === EXTERNAL SERVICE ERRORS ===
@@ -195,8 +171,6 @@ module WifiWand
 
   # === COMMAND LINE INTERFACE ERRORS ===
   class BadCommandError < Error
-    def initialize(error_message)
-      super
-    end
+    def initialize(error_message) = super
   end
 end

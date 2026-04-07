@@ -29,16 +29,12 @@ module WifiWand
 
       # True only when the helper is installed, structurally valid, and
       # macOS location permission has been granted.
-      def setup_complete?
-        installed? && valid? && authorized?
-      end
+      def setup_complete? = installed? && valid? && authorized?
 
       # True when the helper is on disk but failed structural validation
       # (e.g. the bundle is corrupt or the executable does not respond to
       # --help).  In this case reinstall is preferable to a first-time install.
-      def repair_recommended?
-        installed? && !valid?
-      end
+      def repair_recommended? = installed? && !valid?
 
       # Ordered list of symbolic steps still required.  Callers map these to
       # human-readable labels and execution logic.
@@ -51,9 +47,7 @@ module WifiWand
       end
     end
 
-    def initialize(out_stream: $stdout)
-      @out_stream = out_stream
-    end
+    def initialize(out_stream: $stdout) = @out_stream = out_stream
 
     # Inspect the current installation and return a Result value object.
     #
@@ -77,9 +71,7 @@ module WifiWand
     # standard validation + concurrent-install safeguards are honoured.
     #
     # @raise [RuntimeError] if installation fails validation
-    def install_helper
-      MacOsWifiAuthHelper.ensure_helper_installed(out_stream: @out_stream)
-    end
+    def install_helper = MacOsWifiAuthHelper.ensure_helper_installed(out_stream: @out_stream)
 
     # Force-replace the installed bundle regardless of current validity, then
     # re-validate.  Use this for the --repair path where the user knows the
@@ -100,9 +92,7 @@ module WifiWand
 
     # Open the macOS System Settings pane for Location Services so the user
     # can grant permission to wifiwand-helper.
-    def open_location_settings
-      system('open', 'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices')
-    end
+    def open_location_settings = system('open', 'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices')
 
     private
 

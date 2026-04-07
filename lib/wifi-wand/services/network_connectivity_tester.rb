@@ -33,9 +33,7 @@ module WifiWand
 
     # Delegates to CaptivePortalChecker#captive_portal_free?
     # See that class for full documentation on return-value semantics.
-    def captive_portal_free?
-      @captive_portal_checker.captive_portal_free?
-    end
+    def captive_portal_free? = @captive_portal_checker.captive_portal_free?
 
     # Fast connectivity check optimized for continuous monitoring (e.g., log command).
     #

@@ -33,49 +33,37 @@ module WifiWand
     # Returns the version string used for the helper installation
     #
     # @return [String] WifiWand gem version (e.g., "1.2.3")
-    def helper_version
-      WifiWand::VERSION
-    end
+    def helper_version = WifiWand::VERSION
 
     # Returns the path to the Swift source file in the gem's libexec directory
     #
     # @return [String] absolute path to wifiwand-helper.swift source file
     #   Example: /path/to/gem/libexec/macos/src/wifiwand-helper.swift
-    def source_swift_path
-      File.expand_path('../../libexec/macos/src/wifiwand-helper.swift', __dir__)
-    end
+    def source_swift_path = File.expand_path('../../libexec/macos/src/wifiwand-helper.swift', __dir__)
 
     # Returns the path to the app bundle template in the gem's libexec directory
     #
     # @return [String] absolute path to the bundle template directory
     #   Example: /path/to/gem/libexec/macos/wifiwand-helper.app
-    def source_bundle_path
-      File.expand_path('../../libexec/macos/wifiwand-helper.app', __dir__)
-    end
+    def source_bundle_path = File.expand_path('../../libexec/macos/wifiwand-helper.app', __dir__)
 
     # Returns the versioned installation directory in user's Library folder
     #
     # @return [String] absolute path to version-specific installation directory
     #   Example: ~/Library/Application Support/WifiWand/1.2.3
-    def versioned_install_dir
-      File.join(INSTALL_PARENT, helper_version)
-    end
+    def versioned_install_dir = File.join(INSTALL_PARENT, helper_version)
 
     # Returns the path to the installed app bundle in user's Library folder
     #
     # @return [String] absolute path to the installed .app bundle
     #   Example: ~/Library/Application Support/WifiWand/1.2.3/wifiwand-helper.app
-    def installed_bundle_path
-      File.join(versioned_install_dir, BUNDLE_NAME)
-    end
+    def installed_bundle_path = File.join(versioned_install_dir, BUNDLE_NAME)
 
     # Returns the path to the compiled executable inside the installed bundle
     #
     # @return [String] absolute path to the executable binary
     #   Example: ~/Library/Application Support/WifiWand/1.2.3/wifiwand-helper.app/Contents/MacOS/wifiwand-helper
-    def installed_executable_path
-      File.join(installed_bundle_path, 'Contents', 'MacOS', EXECUTABLE_NAME)
-    end
+    def installed_executable_path = File.join(installed_bundle_path, 'Contents', 'MacOS', EXECUTABLE_NAME)
 
     # Returns a hash containing all helper paths and version information
     #
@@ -228,9 +216,7 @@ module WifiWand
       :error_message,
       keyword_init: true
     ) do
-      def location_services_blocked?
-        !!location_services_blocked
-      end
+      def location_services_blocked? = !!location_services_blocked
     end
 
     class Client
@@ -345,9 +331,7 @@ module WifiWand
         @disabled = true
       end
 
-      def helper_executable_path
-        WifiWand::MacOsWifiAuthHelper.installed_executable_path
-      end
+      def helper_executable_path = WifiWand::MacOsWifiAuthHelper.installed_executable_path
 
       def parse_json(text)
         JSON.parse(text)
@@ -391,17 +375,11 @@ module WifiWand
         stream.puts("wifiwand helper: #{message}") if stream
       end
 
-      def macos_version
-        @macos_version_proc&.call
-      end
+      def macos_version = @macos_version_proc&.call
 
-      def out_stream
-        @out_stream_proc&.call
-      end
+      def out_stream = @out_stream_proc&.call
 
-      def verbose?
-        !!(@verbose_proc && @verbose_proc.call)
-      end
+      def verbose? = !!(@verbose_proc && @verbose_proc.call)
     end
   end
 end

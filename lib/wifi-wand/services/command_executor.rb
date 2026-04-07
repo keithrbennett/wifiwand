@@ -166,13 +166,9 @@ module WifiWand
         @duration = duration
       end
 
-      def success?
-        exitstatus.to_i.zero?
-      end
+      def success? = exitstatus.to_i.zero?
 
-      def to_s
-        combined_output
-      end
+      def to_s = combined_output
 
       def to_h
         {
@@ -208,13 +204,9 @@ module WifiWand
         @text = @result.combined_output
       end
 
-      def to_s
-        "#{self.class.name}: Error code #{exitstatus}, command = #{command}, text = #{text}"
-      end
+      def to_s = "#{self.class.name}: Error code #{exitstatus}, command = #{command}, text = #{text}"
 
-      def to_h
-        { exitstatus: exitstatus, command: command, text: text }
-      end
+      def to_h = { exitstatus: exitstatus, command: command, text: text }
     end
   end
 end

@@ -45,14 +45,10 @@ module WifiWand
       run_shell if @interactive_mode
     end
 
-    def verbose_mode
-      options.verbose
-    end
+    def verbose_mode = options.verbose
 
     # Dynamic output stream that respects current $stdout (for test silence_output compatibility)
-    def out_stream
-      @original_out_stream || $stdout
-    end
+    def out_stream = @original_out_stream || $stdout
 
     # Asserts that a command has been passed on the command line.
     def validate_command_line
@@ -111,13 +107,9 @@ module WifiWand
       end
     end
 
-    def cmd_cy
-      model.cycle_network
-    end
+    def cmd_cy = model.cycle_network
 
-    def cmd_d
-      model.disconnect
-    end
+    def cmd_d = model.disconnect
 
     def cmd_i
       info = model.wifi_info
@@ -158,13 +150,9 @@ module WifiWand
       handle_output(nil, -> { e.message })
     end
 
-    def cmd_of
-      model.wifi_off
-    end
+    def cmd_of = model.wifi_off
 
-    def cmd_on
-      model.wifi_on
-    end
+    def cmd_on = model.wifi_on
 
     def cmd_pa(network)
       password = model.preferred_network_password(network)
@@ -264,13 +252,9 @@ module WifiWand
     # ===== OTHER COMMANDS =====
     # Commands that don't directly delegate to the model
 
-    def cmd_h
-      print_help
-    end
+    def cmd_h = print_help
 
-    def cmd_q
-      quit
-    end
+    def cmd_q = quit
 
     def cmd_s
       progress_mode = status_progress_mode
@@ -340,9 +324,7 @@ module WifiWand
       command.execute(*options)
     end
 
-    def cmd_x
-      quit
-    end
+    def cmd_x = quit
 
     # Use macOS 'open' command line utility
     def cmd_ro(*resource_codes)
@@ -399,9 +381,7 @@ module WifiWand
 
     # Strips ANSI escape codes from a string so we can measure visible length
     # when padding inline terminal updates.
-    def strip_ansi(text)
-      text.to_s.gsub(/\e\[[\d;]*m/, '')
-    end
+    def strip_ansi(text) = text.to_s.gsub(/\e\[[\d;]*m/, '')
 
     def empty_available_networks_message
       if model.is_a?(WifiWand::MacOsModel)

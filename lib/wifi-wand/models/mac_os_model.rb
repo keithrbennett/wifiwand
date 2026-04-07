@@ -104,9 +104,7 @@ module WifiWand
     end
 
     # Lazily detected macOS version to avoid OS calls during initialization
-    def macos_version
-      @macos_version ||= detect_macos_version
-    end
+    def macos_version = @macos_version ||= detect_macos_version
 
     def initialize(options = {})
       super
@@ -129,9 +127,7 @@ module WifiWand
 
     # Preferred, clearer name for the Wi‑Fi service query.
     # Kept alongside detect_wifi_service_name for backward compatibility.
-    def wifi_service_name
-      detect_wifi_service_name
-    end
+    def wifi_service_name = detect_wifi_service_name
 
     # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
     # This may not detect WiFi ports with nonstandard names, such as USB WiFi devices.
@@ -470,13 +466,9 @@ module WifiWand
       nameservers
     end
 
-    def open_application(application_name)
-      run_os_command(['open', '-a', application_name])
-    end
+    def open_application(application_name) = run_os_command(['open', '-a', application_name])
 
-    def open_resource(resource_url)
-      run_os_command(['open', resource_url])
-    end
+    def open_resource(resource_url) = run_os_command(['open', resource_url])
 
     def nameservers_using_scutil
       output = run_os_command(%w[scutil --dns]).stdout
@@ -493,10 +485,7 @@ module WifiWand
       output.split("\n")
     end
 
-    def nameservers
-      # Use scutil for the most accurate DNS information on macOS
-      nameservers_using_scutil
-    end
+    def nameservers = nameservers_using_scutil
 
     def swift_and_corewlan_present?
       run_os_command(['swift', '-e', 'import CoreWLAN'], false)
@@ -595,13 +584,9 @@ module WifiWand
       raise WifiWand::CommandExecutor::OsCommandError.new(1, 'networksetup', output_text.strip)
     end
 
-    def connection_failed?(output_text)
-      CONNECTION_FAILURE_PATTERNS.any? { |pattern| output_text.match?(pattern) }
-    end
+    def connection_failed?(output_text) = CONNECTION_FAILURE_PATTERNS.any? { |pattern| output_text.match?(pattern) }
 
-    def authentication_failed?(output_text)
-      AUTHENTICATION_FAILURE_PATTERNS.any? { |pattern| output_text.match?(pattern) }
-    end
+    def authentication_failed?(output_text) = AUTHENTICATION_FAILURE_PATTERNS.any? { |pattern| output_text.match?(pattern) }
 
     # Helper methods for _available_network_names
     def find_airport_interfaces(data)
@@ -610,9 +595,7 @@ module WifiWand
         &.fetch('spairport_airport_interfaces', [])
     end
 
-    def find_wifi_interface_data(interfaces, iface)
-      interfaces.detect { |h| h['_name'] == iface }
-    end
+    def find_wifi_interface_data(interfaces, iface) = interfaces.detect { |h| h['_name'] == iface }
 
     def network_list_key
       connected_network_name ?
@@ -629,9 +612,7 @@ module WifiWand
         .uniq
     end
 
-    def extract_signal_strength(network)
-      network.fetch('spairport_signal_noise', '0/0').to_s.split('/').first.to_i
-    end
+    def extract_signal_strength(network) = network.fetch('spairport_signal_noise', '0/0').to_s.split('/').first.to_i
 
     def placeholder_network_name?(name)
       value = name.to_s.strip
