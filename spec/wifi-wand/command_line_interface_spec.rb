@@ -460,7 +460,8 @@ describe WifiWand::CommandLineInterface do
     COMMAND_TEST_CASES.each do |test_case|
       describe "##{test_case[:cmd]}" do
         if test_case[:non_interactive_output]
-          include_examples 'interactive vs non-interactive command', test_case[:cmd], test_case[:model_method], {
+          include_examples 'interactive vs non-interactive command',
+            test_case[:cmd], test_case[:model_method], {
             return_value:          test_case[:return_value],
             non_interactive_tests: {
               'outputs formatted message' => {
@@ -502,7 +503,8 @@ describe WifiWand::CommandLineInterface do
       context 'when wifi is off' do
         before do
           allow(mock_model).to receive(:wifi_on?).and_return(false)
-          allow(mock_model).to receive(:available_network_names).and_raise(WifiWand::Error.new('WiFi is off, cannot scan for available networks.'))
+          allow(mock_model).to receive(:available_network_names) \
+            .and_raise(WifiWand::Error.new('WiFi is off, cannot scan for available networks.'))
         end
 
         it 'outputs wifi off message' do
@@ -605,7 +607,8 @@ describe WifiWand::CommandLineInterface do
         networks_to_remove = %w[Network1 Network2]
         removed_networks = ['Network1']
 
-        expect(mock_model).to receive(:remove_preferred_networks).with(*networks_to_remove).and_return(removed_networks)
+        expect(mock_model).to receive(:remove_preferred_networks).with(*networks_to_remove) \
+          .and_return(removed_networks)
         expect { subject.cmd_f(*networks_to_remove) }.to output(/Removed networks.*Network1/m).to_stdout
       end
     end

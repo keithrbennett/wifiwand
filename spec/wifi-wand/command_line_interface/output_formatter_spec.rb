@@ -40,14 +40,14 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
   # Shared examples for colorization methods
   shared_examples 'colorization method' do |test_cases|
-    test_cases[:tests].each do |description, data|
-      it description do
+    test_cases[:tests].each do |data|
+      it data[:name] do
         allow($stdout).to receive(:tty?).and_return(data[:tty])
         result = subject.public_send(test_cases[:method_name], data[:input])
         expect(result).to eq(data[:expected_output])
 
         # Verify color codes are present when expected (tty: true + colorizable) and absent otherwise
-        expected_has_color = data[:tty] && data.fetch(:has_color, true)
+        expected_has_color = data[:tty] && (data[:has_color] != false)
         expect(result.match?(ANSI_COLOR_REGEX)).to eq(expected_has_color)
       end
     end
@@ -90,52 +90,195 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   describe '#colorize_status' do
     include_examples 'colorization method', {
       method_name: :colorize_status,
-      tests:       {
-        'colorizes "true" as green when TTY'                            => { input: 'true',         expected_output: "\e[32mtrue\e[0m",         tty: true },
-        'colorizes "on" as green when TTY'                              => { input: 'on',           expected_output: "\e[32mon\e[0m",           tty: true },
-        'colorizes "connected" as green when TTY'                       => { input: 'connected',    expected_output: "\e[32mconnected\e[0m",    tty: true },
-        'colorizes "yes" as green when TTY'                             => { input: 'yes',          expected_output: "\e[32myes\e[0m",          tty: true },
-        'colorizes "FALSE" as red (case insensitive) when TTY'          => { input: 'FALSE',        expected_output: "\e[31mFALSE\e[0m",        tty: true },
-        'colorizes "false" as red when TTY'                             => { input: 'false',        expected_output: "\e[31mfalse\e[0m",        tty: true },
-        'colorizes "off" as red when TTY'                               => { input: 'off',          expected_output: "\e[31moff\e[0m",          tty: true },
-        'colorizes "disconnected" as red when TTY'                      => { input: 'disconnected', expected_output: "\e[31mdisconnected\e[0m", tty: true },
-        'colorizes "no" as red when TTY'                                => { input: 'no',           expected_output: "\e[31mno\e[0m",           tty: true },
-        'returns "unknown" unchanged (no word boundary match) when TTY' => { input: 'unknown',      expected_output: 'unknown',                tty: true, has_color: false },
-        'returns empty string unchanged when TTY'                       => { input: '',             expected_output: '',                       tty: true, has_color: false },
-        'returns plain text for positive status when not TTY'           => { input: 'true',         expected_output: 'true',                   tty: false },
-        'returns plain text for negative status when not TTY'           => { input: 'false',        expected_output: 'false',                  tty: false },
-        'returns plain text for disconnected when not TTY'              => { input: 'disconnected', expected_output: 'disconnected',           tty: false }
-      }
+      tests: [
+        [
+          'colorizes "true" as green when TTY',
+          'true',
+          "\e[32mtrue\e[0m",
+          true
+        ],
+        [
+          'colorizes "on" as green when TTY',
+          'on',
+          "\e[32mon\e[0m",
+          true
+        ],
+        [
+          'colorizes "connected" as green when TTY',
+          'connected',
+          "\e[32mconnected\e[0m",
+          true
+        ],
+        [
+          'colorizes "yes" as green when TTY',
+          'yes',
+          "\e[32myes\e[0m",
+          true
+        ],
+        [
+          'colorizes "FALSE" as red (case insensitive) when TTY',
+          'FALSE',
+          "\e[31mFALSE\e[0m",
+          true
+        ],
+        [
+          'colorizes "false" as red when TTY',
+          'false',
+          "\e[31mfalse\e[0m",
+          true
+        ],
+        [
+          'colorizes "off" as red when TTY',
+          'off',
+          "\e[31moff\e[0m",
+          true
+        ],
+        [
+          'colorizes "disconnected" as red when TTY',
+          'disconnected',
+          "\e[31mdisconnected\e[0m",
+          true
+        ],
+        [
+          'colorizes "no" as red when TTY',
+          'no',
+          "\e[31mno\e[0m",
+          true
+        ],
+        [
+          'returns "unknown" unchanged (no word boundary match) when TTY',
+          'unknown',
+          'unknown',
+          true, false
+        ],
+        [
+          'returns empty string unchanged when TTY',
+          '',
+          '',
+          true, false
+        ],
+        [
+          'returns plain text for positive status when not TTY',
+          'true',
+          'true',
+          false
+        ],
+        [
+          'returns plain text for negative status when not TTY',
+          'false',
+          'false',
+          false
+        ],
+        [
+          'returns plain text for disconnected when not TTY',
+          'disconnected',
+          'disconnected',
+          false
+        ],
+      ].map { |name, input, expected_output, tty, has_color|
+        { name:, input:, expected_output:, tty:, has_color: } }
     }
   end
-
+  
   describe '#colorize_network_name' do
     include_examples 'colorization method', {
       method_name: :colorize_network_name,
-      tests:       {
-        'colorizes quoted network names in cyan when TTY'                   => { input: 'Connected to "MyNetwork" successfully',     expected_output: "Connected to \e[36m\"MyNetwork\"\e[0m successfully", tty: true },
-        'colorizes multiple quoted network names when TTY'                  => { input: 'Networks: "Network1" and "Network2"',      expected_output: "Networks: \e[36m\"Network1\"\e[0m and \e[36m\"Network2\"\e[0m", tty: true },
-        'does not colorize unquoted text when TTY'                          => { input: 'No quoted networks here',                   expected_output: 'No quoted networks here', tty: true, has_color: false },
-        'handles empty quotes when TTY'                                     => { input: 'Empty network name: ""',                    expected_output: "Empty network name: \e[36m\"\"\e[0m", tty: true },
-        'returns plain text for quoted network names when not TTY'          => { input: 'Connected to "MyNetwork" successfully',     expected_output: 'Connected to "MyNetwork" successfully', tty: false },
-        'returns plain text for multiple quoted network names when not TTY' => { input: 'Networks: "Network1" and "Network2"',  expected_output: 'Networks: "Network1" and "Network2"', tty: false }
-      }
+      tests: [
+        [
+          'colorizes quoted network names in cyan when TTY',
+          'Connected to "MyNetwork" successfully',
+          "Connected to \e[36m\"MyNetwork\"\e[0m successfully",
+          true
+        ],
+        [
+          'colorizes multiple quoted network names when TTY',
+          'Networks: "Network1" and "Network2"',
+          "Networks: \e[36m\"Network1\"\e[0m and \e[36m\"Network2\"\e[0m",
+          true
+        ],
+        [
+          'does not colorize unquoted text when TTY',
+          'No quoted networks here',
+          'No quoted networks here',
+          true, false
+        ],
+        [
+          'handles empty quotes when TTY',
+          'Empty network name: ""',
+          "Empty network name: \e[36m\"\"\e[0m",
+          true
+        ],
+        [
+          'returns plain text for quoted network names when not TTY',
+          'Connected to "MyNetwork" successfully',
+          'Connected to "MyNetwork" successfully',
+          false
+        ],
+        [
+          'returns plain text for multiple quoted network names when not TTY',
+          'Networks: "Network1" and "Network2"',
+          'Networks: "Network1" and "Network2"',
+          false
+        ],
+      ].map { |name, input, expected_output, tty, has_color|
+        { name:, input:, expected_output:, tty:, has_color: } }
     }
   end
 
   describe '#colorize_values' do
     include_examples 'colorization method', {
       method_name: :colorize_values,
-      tests:       {
-        'colorizes percentages in blue when TTY'                    => { input: 'Signal strength: 85%',                       expected_output: "Signal strength: \e[34m85%\e[0m", tty: true },
-        'colorizes IP addresses in blue when TTY'                   => { input: 'IP: 192.168.1.1',                            expected_output: "IP: \e[34m192.168.1.1\e[0m", tty: true },
-        'colorizes standalone numbers in blue when TTY'             => { input: 'Channel: 6',                                 expected_output: "Channel: \e[34m6\e[0m", tty: true },
-        'colorizes multiple values in the same text when TTY'       => { input: 'Signal: 75% on channel 11 at 192.168.1.1',  expected_output: "Signal: \e[34m75%\e[0m on channel \e[34m11\e[0m at \e[34m192.168.1.1\e[0m", tty: true },
-        'does not colorize numbers that are part of words when TTY' => { input: 'Network5G is fast',                          expected_output: 'Network5G is fast', tty: true, has_color: false },
-        'returns plain text for percentages when not TTY'           => { input: 'Signal strength: 85%',                       expected_output: 'Signal strength: 85%', tty: false },
-        'returns plain text for IP addresses when not TTY'          => { input: 'IP: 192.168.1.1',                            expected_output: 'IP: 192.168.1.1', tty: false },
-        'returns plain text for multiple values when not TTY'       => { input: 'Signal: 75% on channel 11 at 192.168.1.1',  expected_output: 'Signal: 75% on channel 11 at 192.168.1.1', tty: false }
-      }
+      tests: [
+        [
+          'colorizes percentages in blue when TTY',
+          'Signal strength: 85%',
+          "Signal strength: \e[34m85%\e[0m",
+          true
+        ],
+        [
+          'colorizes IP addresses in blue when TTY',
+          'IP: 192.168.1.1',
+          "IP: \e[34m192.168.1.1\e[0m",
+          true
+        ],
+        [
+          'colorizes standalone numbers in blue when TTY',
+          'Channel: 6',
+          "Channel: \e[34m6\e[0m",
+          true
+        ],
+        [
+          'colorizes multiple values in the same text when TTY',
+          'Signal: 75% on channel 11 at 192.168.1.1',
+          "Signal: \e[34m75%\e[0m on channel \e[34m11\e[0m at \e[34m192.168.1.1\e[0m",
+          true
+        ],
+        [
+          'does not colorize numbers that are part of words when TTY',
+          'Network5G is fast',
+          'Network5G is fast',
+          true, false
+        ],
+        [
+          'returns plain text for percentages when not TTY',
+          'Signal strength: 85%',
+          'Signal strength: 85%',
+          false
+        ],
+        [
+          'returns plain text for IP addresses when not TTY',
+          'IP: 192.168.1.1',
+          'IP: 192.168.1.1',
+          false
+        ],
+        [
+          'returns plain text for multiple values when not TTY',
+          'Signal: 75% on channel 11 at 192.168.1.1',
+          'Signal: 75% on channel 11 at 192.168.1.1',
+          false
+        ],
+      ].map { |name, input, expected_output, tty, has_color|
+        { name:, input:, expected_output:, tty:, has_color: } }
     }
   end
 
@@ -172,20 +315,19 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       }
 
       {
-        'WiFi off'         => { mock_method: :wifi_on?,                return_value: false, expected_pattern: /WiFi.*NO/,      expected_color: RED_TEXT_REGEX },
-        'no network'       => { mock_method: :connected_network_name,  return_value: nil,   expected_pattern: /Network.*none/, expected_color: YELLOW_TEXT_REGEX },
-        'Internet failure' => { mock_method: :connected_to_internet?,  return_value: false, expected_pattern: /Internet.*NO/,  expected_color: RED_TEXT_REGEX }
-      }.each do |scenario, config|
+        'WiFi off'         => [ :wifi_on?,                false, /WiFi.*NO/,      RED_TEXT_REGEX    ],
+        'no network'       => [ :connected_network_name,  nil,   /Network.*none/, YELLOW_TEXT_REGEX ],
+        'Internet failure' => [ :connected_to_internet?,  false, /Internet.*NO/,  RED_TEXT_REGEX    ],
+      }.each do |scenario, (mock_method, return_value, expected_pattern, expected_color)|
         it "displays error status when #{scenario}" do
           data = status_data.clone
-          target_key = hash_key_map[config[:mock_method]]
-          new_value = config[:return_value]
-          data[target_key] = new_value
+          target_key = hash_key_map[mock_method]
+          data[target_key] = return_value
 
           result = subject.status_line(data)
 
-          expect(result).to match(config[:expected_pattern])
-          expect(result).to match(config[:expected_color])
+          expect(result).to match(expected_pattern)
+          expect(result).to match(expected_color)
         end
       end
 
