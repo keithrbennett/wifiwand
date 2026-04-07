@@ -81,7 +81,7 @@ module WifiWand
 
     # Log an error message to stderr
     def log_error(message)
-      $stderr.puts("ERROR: #{message}")
+      warn("ERROR: #{message}")
       $stderr.flush if $stderr.respond_to?(:flush)
     end
   end

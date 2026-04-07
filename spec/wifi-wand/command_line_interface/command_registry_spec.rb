@@ -53,7 +53,11 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
         expect(cmd.action).to respond_to(:call)
         # Execute lambda to achieve coverage of Command.new lambda bodies
         # The actual command functionality is tested in command_line_interface_spec.rb
-        cmd.action.call rescue nil  # Ignore any errors, just need execution for coverage
+        begin
+          cmd.action.call
+        rescue
+          nil
+        end  # Ignore any errors, just need execution for coverage
       end
     end
 

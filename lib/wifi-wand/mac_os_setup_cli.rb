@@ -105,24 +105,25 @@ module WifiWand
     end
 
     def print_status_table(status)
-      @out_stream.puts
-      @out_stream.puts '=' * 70
-      @out_stream.puts 'Setup Status:'
-      @out_stream.puts '=' * 70
-      @out_stream.puts format('  %-40s %s', 'Helper installed:', status.installed? ? '✓ Yes' : '✗ No')
+      row = ->(str1 = '', str2 = '') { @out_stream.puts format('  %-40s %s', str1, str2) }
+      separator_line = '=' * 70
+
+      row.()
+      row.(separator_line)
+      row.('Setup Status:')
+      row.(separator_line)
+      row.('Helper installed:', status.installed? ? '✓ Yes' : '✗ No')
       if status.installed?
         validity = status.valid? ? '✓ Yes' : '✗ No (repair recommended)'
-        @out_stream.puts format('  %-40s %s', 'Helper valid:', validity)
-        @out_stream.puts format('  %-40s %s',
-          'Location permission granted:', status.authorized? ? '✓ Yes' : '✗ No')
+        row.('Helper valid:', validity)
+        row.('Location permission granted:', status.authorized? ? '✓ Yes' : '✗ No')
         unless status.authorized?
-          @out_stream.puts format('  %-40s %s', 'Permission status:', status.permission_message)
+          row.('Permission status:', status.permission_message)
         end
       else
-        @out_stream.puts format('  %-40s %s',
-          'Location permission:', '(will check after installation)')
+        row.('Location permission:', '(will check after installation)')
       end
-      @out_stream.puts '=' * 70
+      row.(separator_line)
     end
 
     def print_steps(steps)

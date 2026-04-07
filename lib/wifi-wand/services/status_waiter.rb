@@ -47,8 +47,8 @@ module WifiWand
       if finished_predicate.call
         (@output || $stdout).puts "#{message_prefix} completed without needing to wait" if @verbose
         return nil
-      else
-        (@output || $stdout).puts "#{message_prefix} First attempt failed, entering waiting loop" if @verbose
+      elsif @verbose
+        (@output || $stdout).puts "#{message_prefix} First attempt failed, entering waiting loop"
       end
 
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)

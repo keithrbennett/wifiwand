@@ -69,9 +69,9 @@ module WifiWand
     # i.e. single or double quotes, %q, %Q, etc.
     # Otherwise it will assume it's a method name and pass it to method_missing!
     def process_command_line
-      attempt_command_action(ARGV[0], *ARGV[1..-1]) do
+      attempt_command_action(ARGV[0], *ARGV[1..]) do
         raise WifiWand::BadCommandError.new(
-            "Unrecognized command. Command was #{ARGV.first.inspect} and options were #{ARGV[1..-1].inspect}.")
+            "Unrecognized command. Command was #{ARGV.first.inspect} and options were #{ARGV[1..].inspect}.")
       end
     end
 

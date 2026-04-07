@@ -35,10 +35,10 @@ module RSpecConfiguration
   # Configure test execution order to run auth-requiring tests first
   def self.configure_test_ordering(config)
     auth_partition = ->(items) do
-      items.partition do |it|
-        needs_auth = it.metadata[:needs_sudo_access] || it.metadata[:keychain_integration]
+      items.partition do |item|
+        needs_auth = item.metadata[:needs_sudo_access] || item.metadata[:keychain_integration]
         needs_auth || (
-          it.respond_to?(:examples) && it.examples.any? { |ex| ex.metadata[:needs_sudo_access] || ex.metadata[:keychain_integration] }
+          item.respond_to?(:examples) && item.examples.any? { |ex| ex.metadata[:needs_sudo_access] || ex.metadata[:keychain_integration] }
         )
       end
     end

@@ -58,7 +58,7 @@ module WifiWand
         #     an "experimental" warning we want to avoid.
         # readpartial raises EOFError when the stream closes (i.e., the child
         # process has finished writing), which is used as the loop-exit signal.
-        read_stream = lambda do |io, type|
+        read_stream = ->(io, type) do
           loop do
             chunk = io.readpartial(4096)
             mutex.synchronize do

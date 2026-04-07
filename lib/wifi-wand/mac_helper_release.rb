@@ -517,7 +517,7 @@ module WifiWand
       system('codesign', '-dvv', bundle_path)
 
       puts "\nBinary Architectures:"
-      puts "#{"-" * 60}"
+      puts ("-" * 60).to_s
       archs = Operations.get_binary_architectures(executable_path)
       if archs.include?('arm64') && archs.include?('x86_64')
         puts "✓ Universal binary (#{archs.join(', ')})"
@@ -533,7 +533,14 @@ module WifiWand
       puts Messages::NOTARIZATION_STATUS_HEADER
       stdout, _stderr, status = Open3.capture3('spctl', '-a', '-vv', '-t', 'install', bundle_path)
       puts stdout
-      puts status.success? ? '✓ Helper is notarized and will run without Gatekeeper warnings' : stdout.include?('source=Notarized Developer ID') ? '✓ Helper is notarized' : "⚠ Helper is not notarized - users may see Gatekeeper warnings\n  Run: bin/mac-helper notarize"
+      message = if status.success?
+        '✓ Helper is notarized and will run without Gatekeeper warnings'
+      elsif stdout.include?('source=Notarized Developer ID')
+        '✓ Helper is notarized'
+      else
+        "⚠ Helper is not notarized - users may see Gatekeeper warnings\n  Run: bin/mac-helper notarize"
+      end
+      puts message
     end
 
     def fetch_notary_credentials!(command_hint:)

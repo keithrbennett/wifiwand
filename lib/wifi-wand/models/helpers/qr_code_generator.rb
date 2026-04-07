@@ -32,7 +32,7 @@ module WifiWand
 
         network_name = require_connected_network_name(model)
         # If no password is provided, fetch the saved password from the system (may require auth on macOS)
-        password     = password || connected_password_for(model)
+        password     ||= connected_password_for(model)
         security     = model.connection_security_type
         is_hidden    = model.network_hidden?
 

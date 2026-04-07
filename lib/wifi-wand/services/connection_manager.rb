@@ -136,7 +136,7 @@ module WifiWand
         return [nil, false]
       end
 
-      password_provided = password && password.length > 0
+      password_provided = password && !password.empty?
       return [password, false] if password_provided
 
       begin
