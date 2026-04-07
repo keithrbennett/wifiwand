@@ -130,38 +130,46 @@ describe WifiWand::EventLogger do
     end
 
     it 'emits connected event when network is joined' do
-      logger.instance_variable_set(:@previous_state, { wifi_on: true, network_name: nil, internet_connected: true })
+      logger.instance_variable_set(:@previous_state, \
+        { wifi_on: true, network_name: nil, internet_connected: true })
 
       current_state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
 
-      expect(logger).to receive(:emit_event).with(:connected, { network_name: 'TestNetwork' }, kind_of(Hash), kind_of(Hash))
+      expect(logger).to receive(:emit_event) \
+        .with(:connected, { network_name: 'TestNetwork' }, kind_of(Hash), kind_of(Hash))
 
       logger.send(:detect_and_emit_events, current_state)
     end
 
     it 'emits disconnected event when network is left' do
-      logger.instance_variable_set(:@previous_state, { wifi_on: true, network_name: 'TestNetwork', internet_connected: true })
+      logger.instance_variable_set(:@previous_state, \
+        { wifi_on: true, network_name: 'TestNetwork', internet_connected: true })
 
       current_state = { wifi_on: true, network_name: nil, internet_connected: true }
 
-      expect(logger).to receive(:emit_event).with(:disconnected, { network_name: 'TestNetwork' }, kind_of(Hash), kind_of(Hash))
+      expect(logger).to receive(:emit_event) \
+        .with(:disconnected, { network_name: 'TestNetwork' }, kind_of(Hash), kind_of(Hash))
 
       logger.send(:detect_and_emit_events, current_state)
     end
 
     it 'emits both disconnected and connected events when network roams (non-nil to non-nil)' do
-      logger.instance_variable_set(:@previous_state, { wifi_on: true, network_name: 'OldNetwork', internet_connected: true })
+      logger.instance_variable_set(:@previous_state, \
+        { wifi_on: true, network_name: 'OldNetwork', internet_connected: true })
 
       current_state = { wifi_on: true, network_name: 'NewNetwork', internet_connected: true }
 
-      expect(logger).to receive(:emit_event).with(:disconnected, { network_name: 'OldNetwork' }, kind_of(Hash), kind_of(Hash))
-      expect(logger).to receive(:emit_event).with(:connected, { network_name: 'NewNetwork' }, kind_of(Hash), kind_of(Hash))
+      expect(logger).to receive(:emit_event) \
+        .with(:disconnected, { network_name: 'OldNetwork' }, kind_of(Hash), kind_of(Hash))
+      expect(logger).to receive(:emit_event) \
+        .with(:connected, { network_name: 'NewNetwork' }, kind_of(Hash), kind_of(Hash))
 
       logger.send(:detect_and_emit_events, current_state)
     end
 
     it 'emits internet_on event when internet becomes available' do
-      logger.instance_variable_set(:@previous_state, { wifi_on: true, network_name: 'TestNetwork', internet_connected: false })
+      logger.instance_variable_set(:@previous_state, \
+        { wifi_on: true, network_name: 'TestNetwork', internet_connected: false })
 
       current_state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
 
@@ -171,7 +179,8 @@ describe WifiWand::EventLogger do
     end
 
     it 'emits internet_off event when internet becomes unavailable' do
-      logger.instance_variable_set(:@previous_state, { wifi_on: true, network_name: 'TestNetwork', internet_connected: true })
+      logger.instance_variable_set(:@previous_state, \
+        { wifi_on: true, network_name: 'TestNetwork', internet_connected: true })
 
       current_state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: false }
 
@@ -181,19 +190,22 @@ describe WifiWand::EventLogger do
     end
 
     it 'emits events in order: wifi, network, internet when multiple changes happen' do
-      logger.instance_variable_set(:@previous_state, { wifi_on: false, network_name: nil, internet_connected: false })
+      logger.instance_variable_set(:@previous_state,  \
+        { wifi_on: false, network_name: nil, internet_connected: false })
 
       current_state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
 
       expect(logger).to receive(:emit_event).with(:wifi_on, {}, kind_of(Hash), kind_of(Hash)).ordered
-      expect(logger).to receive(:emit_event).with(:connected, { network_name: 'TestNetwork' }, kind_of(Hash), kind_of(Hash)).ordered
+      expect(logger).to receive(:emit_event). \
+        with(:connected, { network_name: 'TestNetwork' }, kind_of(Hash), kind_of(Hash)).ordered
       expect(logger).to receive(:emit_event).with(:internet_on, {}, kind_of(Hash), kind_of(Hash)).ordered
 
       logger.send(:detect_and_emit_events, current_state)
     end
 
     it 'does not emit when state does not change' do
-      logger.instance_variable_set(:@previous_state, { wifi_on: true, network_name: 'TestNetwork', internet_connected: true })
+      logger.instance_variable_set(:@previous_state, \
+        { wifi_on: true, network_name: 'TestNetwork', internet_connected: true })
 
       current_state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
 

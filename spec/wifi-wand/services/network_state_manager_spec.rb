@@ -93,11 +93,10 @@ describe WifiWand::NetworkStateManager do
         allow(mock_model).to receive(:wifi_on?).and_return(false)
         allow(mock_model).to receive(:wifi_on).and_raise(StandardError.new('WiFi hardware error'))
 
-        expect do
-          state_manager.restore_network_state(valid_state, fail_silently: true)
-        end.to output(
-          /Warning: Could not restore network state: WiFi hardware error.*You may need to manually reconnect to: TestNetwork/m
-        ).to_stderr
+        target = 'Warning: Could not restore network state: WiFi hardware error.*' \
+          + 'You may need to manually reconnect to: TestNetwork'
+        expect { state_manager.restore_network_state(valid_state, fail_silently: true) } \
+          .to output(/#{target}/m).to_stderr
       end
 
       it 'swallows connection failures and logs to stderr' do
@@ -107,11 +106,11 @@ describe WifiWand::NetworkStateManager do
         allow(mock_model).to receive(:connect).and_raise(StandardError.new('Network unavailable'))
         allow(mock_model).to receive(:till)
 
+        target_str = 'Warning: Could not restore network state: Network unavailable' \
+            '.*You may need to manually reconnect to: TestNetwork'
         expect do
           state_manager.restore_network_state(valid_state, fail_silently: true)
-        end.to output(
-          /Warning: Could not restore network state: Network unavailable.*You may need to manually reconnect to: TestNetwork/m
-        ).to_stderr
+        end.to output(/#{target_str}/m).to_stderr
       end
     end
 
@@ -131,7 +130,8 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
 
       expect(mock_model).to receive(:wifi_on)
-      expect(mock_model).to receive(:till).with(:on, timeout_in_secs: WifiWand::TimingConstants::WIFI_STATE_CHANGE_WAIT)
+      expect(mock_model).to receive(:till) \
+        .with(:on, timeout_in_secs: WifiWand::TimingConstants::WIFI_STATE_CHANGE_WAIT)
 
       state_manager.restore_network_state(wifi_off_state)
     end
@@ -141,7 +141,8 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:wifi_on?).and_return(true)
 
       expect(mock_model).to receive(:wifi_off)
-      expect(mock_model).to receive(:till).with(:off, timeout_in_secs: WifiWand::TimingConstants::WIFI_STATE_CHANGE_WAIT)
+      expect(mock_model).to receive(:till) \
+        .with(:off, timeout_in_secs: WifiWand::TimingConstants::WIFI_STATE_CHANGE_WAIT)
       expect(mock_model).not_to receive(:connect)
 
       state_manager.restore_network_state(wifi_off_state)
@@ -151,10 +152,12 @@ describe WifiWand::NetworkStateManager do
       state_without_password = valid_state.merge(network_password: nil)
       allow(mock_model).to receive(:wifi_on?).and_return(true)
       allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork')
-      allow(mock_model).to receive(:preferred_network_password).with('TestNetwork').and_return('fallback_pass')
+      allow(mock_model).to receive(:preferred_network_password).with('TestNetwork') \
+                                                               .and_return('fallback_pass')
 
       expect(mock_model).to receive(:connect).with('TestNetwork', 'fallback_pass')
-      expect(mock_model).to receive(:till).with(:conn, timeout_in_secs: WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT)
+      expect(mock_model).to receive(:till) \
+        .with(:conn, timeout_in_secs: WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT)
 
       state_manager.restore_network_state(state_without_password)
     end
@@ -225,7 +228,8 @@ describe WifiWand::NetworkStateManager do
       expect do
         verbose_manager.restore_network_state(valid_state)
       end.to raise_error(WifiWand::NetworkConnectionError)
-      expect(output.string).to match(/Warning: Connection timeout - expected "TestNetwork", currently connected to "ActualNetwork"/)
+      expect(output.string).to match(
+        /Warning: Connection timeout - expected "TestNetwork", currently connected to "ActualNetwork"/)
     end
 
     it 'logs WaitTimeoutError details in verbose mode when network query fails' do
@@ -243,7 +247,8 @@ describe WifiWand::NetworkStateManager do
       expect do
         verbose_manager.restore_network_state(valid_state)
       end.to raise_error(WifiWand::NetworkConnectionError)
-      expect(output.string).to match(/Warning: Connection timeout and failed to query current network: Network query failed/)
+      expect(output.string).to match(
+        /Warning: Connection timeout and failed to query current network: Network query failed/)
     end
   end
 
@@ -270,7 +275,8 @@ describe WifiWand::NetworkStateManager do
   describe 'private helpers' do
     it 'fallback_password_for returns password when successful' do
       manager = described_class.new(mock_model)
-      allow(mock_model).to receive(:preferred_network_password).with('TestNetwork').and_return('test_password')
+      allow(mock_model).to receive(:preferred_network_password).with('TestNetwork') \
+        .and_return('test_password')
       expect(manager.send(:fallback_password_for, 'TestNetwork')).to eq('test_password')
     end
 
@@ -281,24 +287,28 @@ describe WifiWand::NetworkStateManager do
 
     it 'fallback_password_for rescues errors and returns nil' do
       manager = described_class.new(mock_model)
-      allow(mock_model).to receive(:preferred_network_password).and_raise(StandardError.new('Password lookup failed'))
+      allow(mock_model).to receive(:preferred_network_password) \
+        .and_raise(StandardError.new('Password lookup failed'))
       expect(manager.send(:fallback_password_for, 'TestNetwork')).to be_nil
     end
 
     it 'fallback_password_for logs errors in verbose mode' do
       output = StringIO.new
       verbose_manager = described_class.new(mock_model, verbose: true, output: output)
-      allow(mock_model).to receive(:preferred_network_password).and_raise(StandardError.new('Password lookup failed'))
+      allow(mock_model).to receive(:preferred_network_password) \
+        .and_raise(StandardError.new('Password lookup failed'))
 
       result = verbose_manager.send(:fallback_password_for, 'TestNetwork')
       expect(result).to be_nil
-      expect(output.string).to match(/Warning: Failed to retrieve fallback password for TestNetwork: Password lookup failed/)
+      expect(output.string).to match(
+        /Warning: Failed to retrieve fallback password for TestNetwork: Password lookup failed/)
     end
 
     it 'connected_network_password returns password when network is connected' do
       manager = described_class.new(mock_model)
       allow(mock_model).to receive(:connected_network_name).and_return('CurrentNetwork')
-      allow(mock_model).to receive(:preferred_network_password).with('CurrentNetwork').and_return('current_password')
+      allow(mock_model).to receive(:preferred_network_password).with('CurrentNetwork') \
+        .and_return('current_password')
       expect(manager.send(:connected_network_password)).to eq('current_password')
     end
 

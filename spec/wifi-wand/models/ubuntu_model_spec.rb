@@ -413,7 +413,7 @@ module WifiWand
             TestNetwork-2:802-11-wireless
             Wired connection 1:ethernet
           OUT
-          allow(subject).to receive(:run_os_command)            .with(%w[nmcli -t -f NAME,TYPE connection show])
+          allow(subject).to receive(:run_os_command).with(%w[nmcli -t -f NAME,TYPE connection show])
             .and_return(command_result(stdout: nmcli_output))
 
           result = subject.preferred_networks
@@ -747,7 +747,8 @@ module WifiWand
 
           # Mock the connection-based DNS commands
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', nameservers.join(' ')], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', nameservers.join(' ')],
+              false)
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'], false)
