@@ -36,7 +36,7 @@ module WifiWand
       def find_command_action(command_string)
         result = commands.detect do |cmd|
           cmd.max_string.start_with?(command_string) \
-          && 
+          &&
             command_string.length >= cmd.min_string.length  # e.g. 'c' by itself should not work
         end
         result ? result.action : nil
