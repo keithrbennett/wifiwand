@@ -21,11 +21,6 @@ Layout/LineLength:
 Lint/ConstantDefinitionInBlock:
   Enabled: false
 
-# Offense count: 1
-# Configuration parameters: DebuggerMethods, DebuggerRequires.
-Lint/Debugger:
-  Enabled: false
-
 # Offense count: 8
 # Configuration parameters: IgnoreLiteralBranches, IgnoreConstantBranches, IgnoreDuplicateElseBranch.
 Lint/DuplicateBranch:

@@ -22,7 +22,7 @@ module WifiWand
           output.puts exception.message
         end
 
-        binding.pry
+        binding.pry # rubocop:disable Lint/Debugger
       end
 
       # For use by the shell when the user types the DSL commands
