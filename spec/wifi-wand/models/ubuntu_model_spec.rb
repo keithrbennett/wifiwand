@@ -665,7 +665,7 @@ module WifiWand
             .and_return(command_result(stdout: nmcli_output))
 
           result = subject.available_network_names
-          expect(result).to eq(["OtherNet", "TestNet"])
+          expect(result).to eq(['OtherNet', 'TestNet'])
         end
       end
 
@@ -1051,7 +1051,7 @@ module WifiWand
 
           it 'does not misidentify a prefix-collision SSID (Office vs Office-Guest)' do
             allow(subject).to receive(:_connected_network_name).and_return('Office')
-            nmcli_output = "Office-Guest:WPA2"
+            nmcli_output = 'Office-Guest:WPA2'
             allow(subject).to receive(:run_os_command)
               .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
               .and_return(command_result(stdout: nmcli_output))

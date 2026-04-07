@@ -99,15 +99,15 @@ module RSpecConfiguration
     return unless disruptive_tests_will_run
 
     unless NetworkStateManager.model.connected?
-      raise "Disruptive tests require an active network connection. " \
-            "Please connect to a WiFi network before running disruptive tests."
+      raise 'Disruptive tests require an active network connection. ' \
+            'Please connect to a WiFi network before running disruptive tests.'
     end
 
     NetworkStateManager.capture_state
 
     unless NetworkStateManager.network_state[:network_name]
-      raise "Disruptive tests require a restorable network state. " \
-            "Connected state was detected but network name could not be determined."
+      raise 'Disruptive tests require a restorable network state. ' \
+            'Connected state was detected but network name could not be determined.'
     end
 
     puts "\nCaptured network state for restoration: #{NetworkStateManager.network_state[:network_name]}\n"
