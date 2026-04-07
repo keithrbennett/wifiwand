@@ -183,7 +183,9 @@ module WifiWand
       _ip_address
     end
 
-    def run_os_command(command, raise_on_error = true) = @command_executor.run_os_command(command, raise_on_error)
+    def run_os_command(command, raise_on_error = true)
+      @command_executor.run_os_command(command, raise_on_error)
+    end
 
     # This method returns whether or not there is a working Internet connection.
     # Tests TCP connectivity, DNS resolution, and absence of a captive portal.
@@ -447,7 +449,9 @@ module WifiWand
     # Resource management functionality
     def resource_manager = @resource_manager ||= Helpers::ResourceManager.new
 
-    def open_resources_by_codes(*resource_codes) = resource_manager.open_resources_by_codes(self, *resource_codes)
+    def open_resources_by_codes(*resource_codes)
+      resource_manager.open_resources_by_codes(self, *resource_codes)
+    end
 
     def available_resources_help = resource_manager.available_resources_help
 

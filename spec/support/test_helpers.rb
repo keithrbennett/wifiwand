@@ -161,7 +161,9 @@ module TestHelpers
   def mock_dns_resolution_failure = allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
 
   # Helper for mocking IPSocket.getaddress success
-  def mock_dns_resolution_success(ip_address = '1.2.3.4') = allow(IPSocket).to receive(:getaddress).and_return(ip_address)
+  def mock_dns_resolution_success(ip_address = '1.2.3.4')
+    allow(IPSocket).to receive(:getaddress).and_return(ip_address)
+  end
 
   # Helper for stubbing short connectivity timeouts for fast tests
   def stub_short_connectivity_timeouts

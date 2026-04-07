@@ -121,7 +121,9 @@ module WifiWand
 
   # === MACOS-SPECIFIC ERRORS ===
   class KeychainAccessDeniedError < Error
-    def initialize(network_name) = super("Keychain access denied for network '#{network_name}'. Please grant access when prompted")
+    def initialize(network_name)
+      super("Keychain access denied for network '#{network_name}'. Please grant access when prompted")
+    end
   end
 
   class KeychainAccessCancelledError < Error
@@ -129,7 +131,9 @@ module WifiWand
   end
 
   class KeychainNonInteractiveError < Error
-    def initialize(network_name) = super("Cannot access keychain for network '#{network_name}' in non-interactive environment")
+    def initialize(network_name)
+      super("Cannot access keychain for network '#{network_name}' in non-interactive environment")
+    end
   end
 
   class KeychainError < Error
@@ -138,11 +142,15 @@ module WifiWand
 
   # === OPERATING SYSTEM DETECTION ERRORS ===
   class MultipleOSMatchError < Error
-    def initialize(matching_os_names) = super("Multiple OS matches found: #{matching_os_names.join(', ')}. This should not happen")
+    def initialize(matching_os_names)
+      super("Multiple OS matches found: #{matching_os_names.join(', ')}. This should not happen")
+    end
   end
 
   class NoSupportedOSError < Error
-    def initialize = super('No supported operating system detected. WifiWand supports macOS and Ubuntu Linux')
+    def initialize
+      super('No supported operating system detected. WifiWand supports macOS and Ubuntu Linux')
+    end
   end
 
   class PreferredNetworkNotFoundError < Error

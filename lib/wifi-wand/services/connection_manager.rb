@@ -166,7 +166,9 @@ module WifiWand
       end
     end
 
-    def store_saved_password_usage(used_saved_password) = @last_connection_used_saved_password = used_saved_password
+    def store_saved_password_usage(used_saved_password)
+      @last_connection_used_saved_password = used_saved_password
+    end
 
     def verify_connection(network_name, password)
       actual_network_name = model.connected_network_name

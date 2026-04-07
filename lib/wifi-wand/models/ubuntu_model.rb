@@ -533,7 +533,9 @@ module WifiWand
     # @param profile_name [String] The connection profile name from nmcli
     # @param ssid [String] The target SSID
     # @return [Boolean]
-    def profile_matches_ssid?(profile_name, ssid) = profile_name == ssid || profile_name.match?(/\A#{Regexp.escape(ssid)} \d+\z/)
+    def profile_matches_ssid?(profile_name, ssid)
+      profile_name == ssid || profile_name.match?(/\A#{Regexp.escape(ssid)} \d+\z/)
+    end
 
     # Gets nameservers from /etc/resolv.conf - fallback method
     def nameservers_using_resolv_conf

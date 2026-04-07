@@ -584,9 +584,13 @@ module WifiWand
       raise WifiWand::CommandExecutor::OsCommandError.new(1, 'networksetup', output_text.strip)
     end
 
-    def connection_failed?(output_text) = CONNECTION_FAILURE_PATTERNS.any? { |pattern| output_text.match?(pattern) }
+    def connection_failed?(output_text)
+      CONNECTION_FAILURE_PATTERNS.any? { |pattern| output_text.match?(pattern) }
+    end
 
-    def authentication_failed?(output_text) = AUTHENTICATION_FAILURE_PATTERNS.any? { |pattern| output_text.match?(pattern) }
+    def authentication_failed?(output_text)
+      AUTHENTICATION_FAILURE_PATTERNS.any? { |pattern| output_text.match?(pattern) }
+    end
 
     # Helper methods for _available_network_names
     def find_airport_interfaces(data)
@@ -612,7 +616,9 @@ module WifiWand
         .uniq
     end
 
-    def extract_signal_strength(network) = network.fetch('spairport_signal_noise', '0/0').to_s.split('/').first.to_i
+    def extract_signal_strength(network)
+      network.fetch('spairport_signal_noise', '0/0').to_s.split('/').first.to_i
+    end
 
     def placeholder_network_name?(name)
       value = name.to_s.strip

@@ -45,7 +45,9 @@ module WifiWand
       end
 
       # Get help string for available resources
-      def available_resources_help = "Please specify a resource to open:\n #{open_resources.help_string.gsub(',', "\n")}"
+      def available_resources_help
+        "Please specify a resource to open:\n #{open_resources.help_string.gsub(',', "\n")}"
+      end
 
       # Get error message for invalid codes
       def invalid_codes_error(invalid_codes)

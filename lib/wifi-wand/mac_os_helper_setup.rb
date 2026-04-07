@@ -92,7 +92,9 @@ module WifiWand
 
     # Open the macOS System Settings pane for Location Services so the user
     # can grant permission to wifiwand-helper.
-    def open_location_settings = system('open', 'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices')
+    def open_location_settings
+      system('open', 'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices')
+    end
 
     private
 

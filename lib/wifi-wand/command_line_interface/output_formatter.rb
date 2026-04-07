@@ -37,7 +37,9 @@ module WifiWand
 
       def colorize_network_name(text) = text.gsub(/"([^"]*)"/) { |match| colorize_text(match, :cyan) }
 
-      def colorize_values(text) = text.gsub(/\b\d+%|\b\d+\.\d+\.\d+\.\d+|\b\d+\b/) { |match| colorize_text(match, :blue) }
+      def colorize_values(text)
+        text.gsub(/\b\d+%|\b\d+\.\d+\.\d+\.\d+|\b\d+\b/) { |match| colorize_text(match, :blue) }
+      end
 
       def format_boolean_status(value, true_char: '✅ YES', false_char: '❌ NO', pending_char: '⏳ WAIT')
         value = !!value unless value.nil? # convert non-Boolean non-nil values to true or false
