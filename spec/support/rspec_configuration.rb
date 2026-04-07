@@ -38,7 +38,8 @@ module RSpecConfiguration
       items.partition do |item|
         needs_auth = item.metadata[:needs_sudo_access] || item.metadata[:keychain_integration]
         needs_auth || (
-          item.respond_to?(:examples) && item.examples.any? { |ex| ex.metadata[:needs_sudo_access] || ex.metadata[:keychain_integration] }
+          item.respond_to?(:examples) &&
+            item.examples.any? { |ex| ex.metadata[:needs_sudo_access] || ex.metadata[:keychain_integration] }
         )
       end
     end

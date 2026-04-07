@@ -21,7 +21,8 @@ describe WifiWand::CommandLineInterface::HelpSystem do
   subject { test_class.new(model) }
 
   before do
-    allow(resource_manager).to receive(:open_resources).and_return(double('OpenResources', help_string: 'test resource help'))
+    open_resources = double('OpenResources', help_string: 'test resource help')
+    allow(resource_manager).to receive(:open_resources).and_return(open_resources)
   end
 
   describe '#help_text' do

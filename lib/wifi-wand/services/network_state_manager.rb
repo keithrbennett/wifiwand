@@ -66,7 +66,9 @@ module WifiWand
           # If we are already connected to the original network, no need to proceed
           begin
             current_network = @model.connected_network_name
-            return :already_connected if @model.wifi_on? == state[:wifi_enabled] && current_network == state[:network_name]
+            if @model.wifi_on? == state[:wifi_enabled] && current_network == state[:network_name]
+              return :already_connected
+            end
           rescue => e
             # If we can't determine current network, proceed with connection attempt
             @output.puts "Warning: Unable to query current network (#{e.message}), proceeding with connection attempt" if @verbose

@@ -108,7 +108,8 @@ describe WifiWand::EventLogger do
     end
 
     it 'emits wifi_on event when WiFi is turned on' do
-      logger.instance_variable_set(:@previous_state, { wifi_on: false, network_name: nil, internet_connected: false })
+      logger.instance_variable_set(:@previous_state,
+        { wifi_on: false, network_name: nil, internet_connected: false })
 
       current_state = { wifi_on: true, network_name: nil, internet_connected: false }
 
@@ -118,7 +119,8 @@ describe WifiWand::EventLogger do
     end
 
     it 'emits wifi_off event when WiFi is turned off' do
-      logger.instance_variable_set(:@previous_state, { wifi_on: true, network_name: nil, internet_connected: false })
+      logger.instance_variable_set(:@previous_state,
+        { wifi_on: true, network_name: nil, internet_connected: false })
 
       current_state = { wifi_on: false, network_name: nil, internet_connected: false }
 

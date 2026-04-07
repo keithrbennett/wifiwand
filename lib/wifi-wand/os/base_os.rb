@@ -22,7 +22,8 @@ module WifiWand
 
     class MethodNotImplementedError < Error
       def to_s
-        'This method is not implemented in this base class. It must be implemented in, and called on, a subclass.'
+        'This method is not implemented in this base class. ' \
+          'It must be implemented in, and called on, a subclass.'
       end
     end
 

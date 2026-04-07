@@ -244,7 +244,11 @@ module WifiWand
       def self.test_helper_execution(executable)
         puts 'Testing helper execution...'
         stdout, stderr, status = Open3.capture3(executable, 'current-network')
-        message = status.success? ? Messages.helper_executed_success(stdout) : Messages.helper_execution_failed(stderr)
+        message = if status.success?
+                    Messages.helper_executed_success(stdout)
+                  else
+                    Messages.helper_execution_failed(stderr)
+                  end
         puts message
         exit 1 unless status.success?
       end
@@ -314,7 +318,8 @@ module WifiWand
         puts message
       end
 
-      def self.run_notarytool(args, apple_id:, apple_password:, team_id:, failure_message:, suppress_output: false)
+      def self.run_notarytool(args, apple_id:, apple_password:, team_id:,
+                             failure_message:, suppress_output: false)
         command = ['xcrun', 'notarytool'] + args + [
           '--apple-id', apple_id,
           '--team-id', team_id,
@@ -384,14 +389,19 @@ module WifiWand
       abort "Helper bundle not found at #{bundle_path}. Run: bin/mac-helper build" unless File.exist?(bundle_path)
 
       stdout, _stderr, status = Open3.capture3('codesign', '-dv', bundle_path)
-      abort "Error: Helper is ad-hoc signed. Must be signed with Developer ID.\nRun: bin/mac-helper build" if status.success? && stdout.include?('adhoc')
+      if status.success? && stdout.include?('adhoc')
+        abort "Error: Helper is ad-hoc signed. Must be signed with Developer ID.\n" \
+              'Run: bin/mac-helper build'
+      end
 
       puts Messages.notarizing_header(bundle_path: bundle_path, apple_id: apple_id, team_id: team_id)
       Operations.create_zip(bundle_path, zip_path)
       puts Messages.zip_created(zip_path)
 
       stdout = Operations.submit_for_notarization(zip_path, apple_id, team_id, apple_password)
-      abort 'Notarization was rejected. Check the output above for details.' unless stdout.include?('status: Accepted')
+      unless stdout.include?('status: Accepted')
+        abort 'Notarization was rejected. Check the output above for details.'
+      end
 
       puts Messages::NOTARIZATION_SUCCESS
       Operations.staple_ticket(bundle_path)
@@ -410,7 +420,10 @@ module WifiWand
     end
 
     def notarization_status(submission_id)
-      abort 'Error: Submission ID is required. Use --submission-id <uuid> or let the script auto-select.' unless submission_id && !submission_id.empty?
+      if submission_id.nil? || submission_id.empty?
+        abort 'Error: Submission ID is required. Use --submission-id <uuid> ' \
+              'or let the script auto-select.'
+      end
       creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper info --submission-id <uuid>')
       puts "Status for submission #{submission_id}:"
       Operations.run_notarytool(
@@ -421,7 +434,10 @@ module WifiWand
     end
 
     def notarization_log(submission_id)
-      abort 'Error: Submission ID is required. Use --submission-id <uuid> or let the script auto-select.' unless submission_id && !submission_id.empty?
+      if submission_id.nil? || submission_id.empty?
+        abort 'Error: Submission ID is required. Use --submission-id <uuid> ' \
+              'or let the script auto-select.'
+      end
       creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper log --submission-id <uuid>')
       puts "Log for submission #{submission_id}:"
       Operations.run_notarytool(
@@ -432,7 +448,10 @@ module WifiWand
     end
 
     def cancel_notarization(submission_id)
-      abort 'Error: Submission ID is required. Use --submission-id <uuid> or let the script auto-select.' unless submission_id && !submission_id.empty?
+      if submission_id.nil? || submission_id.empty?
+        abort 'Error: Submission ID is required. Use --submission-id <uuid> ' \
+              'or let the script auto-select.'
+      end
       creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper cancel --submission-id <uuid>')
       puts "Canceling submission #{submission_id}..."
       Operations.run_notarytool(

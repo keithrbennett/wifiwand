@@ -66,20 +66,20 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   describe '#colorize_text' do
     let(:text) { 'test text' }
 
-    test_cases = {
-      'colorizes text with red color when TTY'              => { color: :red,     expected_output: "\e[31mtest text\e[0m", tty: true },
-      'colorizes text with green color when TTY'            => { color: :green,   expected_output: "\e[32mtest text\e[0m", tty: true },
-      'colorizes text with yellow color when TTY'           => { color: :yellow,  expected_output: "\e[33mtest text\e[0m", tty: true },
-      'colorizes text with blue color when TTY'             => { color: :blue,    expected_output: "\e[34mtest text\e[0m", tty: true },
-      'colorizes text with cyan color when TTY'             => { color: :cyan,    expected_output: "\e[36mtest text\e[0m", tty: true },
-      'colorizes text with magenta color when TTY'          => { color: :magenta, expected_output: "\e[35mtest text\e[0m", tty: true },
-      'colorizes text with bold style when TTY'             => { color: :bold,    expected_output: "\e[1mtest text\e[0m",  tty: true },
-      'returns plain text without color codes when not TTY' => { color: :red,     expected_output: 'test text',            tty: false },
-      'returns plain text when no color is provided'        => { color: nil,      expected_output: 'test text',            tty: true }
-    }
+    test_cases = [
+      ['colorizes text with red color when TTY',              :red,     "\e[31mtest text\e[0m", true],
+        ['colorizes text with green color when TTY',            :green,   "\e[32mtest text\e[0m", true],
+        ['colorizes text with yellow color when TTY',           :yellow,  "\e[33mtest text\e[0m", true],
+        ['colorizes text with blue color when TTY',             :blue,    "\e[34mtest text\e[0m", true],
+        ['colorizes text with cyan color when TTY',             :cyan,    "\e[36mtest text\e[0m", true],
+        ['colorizes text with magenta color when TTY',          :magenta, "\e[35mtest text\e[0m", true],
+        ['colorizes text with bold style when TTY',             :bold,    "\e[1mtest text\e[0m",  true],
+        ['returns plain text without color codes when not TTY', :red,     'test text',            false],
+        ['returns plain text when no color is provided',        nil,      'test text',            true],
+    ].map { |name, color, expected_output, tty| { name:, color:, expected_output:, tty: } }
 
-    test_cases.each do |description, data|
-      it description do
+    test_cases.each do |data|
+      it data[:name] do
         allow($stdout).to receive(:tty?).and_return(data[:tty])
         result = subject.colorize_text(text, data[:color])
         expect(result).to eq(data[:expected_output])

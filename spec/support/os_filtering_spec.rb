@@ -19,8 +19,10 @@ RSpec.describe OSFiltering do
 
   around do |example|
     original_os_tag = defined?($compatible_os_tag) ? $compatible_os_tag : nil
-    original_compatible_disruptive_tag = defined?($compatible_disruptive_tag) ? $compatible_disruptive_tag : nil
-    original_incompatible_disruptive_tags = defined?($incompatible_disruptive_tags) ? $incompatible_disruptive_tags : nil
+    original_compatible_disruptive_tag =
+      defined?($compatible_disruptive_tag) ? $compatible_disruptive_tag : nil
+    original_incompatible_disruptive_tags =
+      defined?($incompatible_disruptive_tags) ? $incompatible_disruptive_tags : nil
 
     example.run
 
@@ -38,7 +40,8 @@ RSpec.describe OSFiltering do
     $compatible_os_tag = :os_ubuntu
     $incompatible_disruptive_tags = [:disruptive_mac]
 
-    example = instance_double(RSpec::Core::Example, metadata: { disruptive_mac: true })
+    example = instance_double(RSpec::Core::Example,
+      metadata: { disruptive_mac: true })
 
     expect(self).to receive(:skip).with(/disruptive_mac/)
     instance_exec(example, &configured_hook)
@@ -48,7 +51,8 @@ RSpec.describe OSFiltering do
     $compatible_os_tag = :os_ubuntu
     $incompatible_disruptive_tags = [:disruptive_mac]
 
-    example = instance_double(RSpec::Core::Example, metadata: { disruptive_ubuntu: true })
+    example = instance_double(RSpec::Core::Example,
+      metadata: { disruptive_ubuntu: true })
 
     expect(self).not_to receive(:skip)
     instance_exec(example, &configured_hook)

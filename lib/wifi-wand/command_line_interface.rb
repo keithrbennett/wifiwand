@@ -131,8 +131,8 @@ module WifiWand
       when :get
         current_nameservers = model.nameservers
         human_readable_string_producer = -> do
-          current_nameservers_as_string = current_nameservers.empty? ? '[None]' : current_nameservers.join(', ')
-          "Nameservers: #{current_nameservers_as_string}"
+          nameservers_list = current_nameservers.empty? ? '[None]' : current_nameservers.join(', ')
+          "Nameservers: #{nameservers_list}"
         end
         handle_output(current_nameservers, human_readable_string_producer)
       when :clear
@@ -386,10 +386,12 @@ module WifiWand
     def empty_available_networks_message
       if model.is_a?(WifiWand::MacOsModel)
         "No visible networks were found.\n" \
-          'On macOS 14+, this can mean the helper could not get usable Location Services authorization for WiFi SSIDs.'
+          'On macOS 14+, this can mean the helper could not get usable ' \
+          'Location Services authorization for WiFi SSIDs.'
       elsif model.is_a?(WifiWand::UbuntuModel)
         "No visible networks were found.\n" \
-          'If you expect to see networks, try running `nmcli device wifi rescan` or check your hardware/drivers.'
+          'If you expect to see networks, try running `nmcli device wifi rescan` ' \
+          'or check your hardware/drivers.'
       else
         'No visible networks were found.'
       end

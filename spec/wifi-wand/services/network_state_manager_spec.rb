@@ -95,8 +95,9 @@ describe WifiWand::NetworkStateManager do
 
         expect do
           state_manager.restore_network_state(valid_state, fail_silently: true)
-        end.to output(/Warning: Could not restore network state: WiFi hardware error.*You may need to manually reconnect to: TestNetwork/m)
-          .to_stderr
+        end.to output(
+          /Warning: Could not restore network state: WiFi hardware error.*You may need to manually reconnect to: TestNetwork/m
+        ).to_stderr
       end
 
       it 'swallows connection failures and logs to stderr' do
@@ -108,8 +109,9 @@ describe WifiWand::NetworkStateManager do
 
         expect do
           state_manager.restore_network_state(valid_state, fail_silently: true)
-        end.to output(/Warning: Could not restore network state: Network unavailable.*You may need to manually reconnect to: TestNetwork/m)
-          .to_stderr
+        end.to output(
+          /Warning: Could not restore network state: Network unavailable.*You may need to manually reconnect to: TestNetwork/m
+        ).to_stderr
       end
     end
 

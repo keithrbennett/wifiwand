@@ -137,11 +137,13 @@ module WifiWand
 
       if current_state[:network_name] != @previous_state[:network_name]
         if @previous_state[:network_name]
-          emit_event(:disconnected, { network_name: @previous_state[:network_name] }, @previous_state, current_state)
+          emit_event(:disconnected, { network_name: @previous_state[:network_name] },
+            @previous_state, current_state)
         end
 
         if current_state[:network_name]
-          emit_event(:connected, { network_name: current_state[:network_name] }, @previous_state, current_state)
+          emit_event(:connected, { network_name: current_state[:network_name] },
+            @previous_state, current_state)
         end
       end
 

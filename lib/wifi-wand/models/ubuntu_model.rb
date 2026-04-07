@@ -18,7 +18,10 @@ module WifiWand
 
       # Check for critical commands
       missing_commands << 'iw (install: sudo apt install iw)' unless command_available?('iw')
-      missing_commands << 'nmcli (install: sudo apt install network-manager)' unless command_available?('nmcli')
+      unless command_available?('nmcli')
+        missing_commands << 'nmcli (install: sudo apt install network-manager)'
+      end
+
 
       unless missing_commands.empty?
         raise CommandNotFoundError.new(missing_commands)
@@ -383,7 +386,9 @@ module WifiWand
 
       # Get the current active Wi-Fi connection name
       current_connection = active_connection_profile_name || _connected_network_name
-      raise WifiInterfaceError.new('No active Wi-Fi connection to configure DNS for.') unless current_connection
+      unless current_connection
+        raise WifiInterfaceError.new('No active Wi-Fi connection to configure DNS for.')
+      end
 
       if nameservers == :clear
         # Clear custom DNS and use automatic DNS from router/DHCP (both IPv4 and IPv6)

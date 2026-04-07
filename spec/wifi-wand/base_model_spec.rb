@@ -9,7 +9,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
   before(:each) do
     # Mock detect_wifi_interface for both OS types
     allow_any_instance_of(WifiWand::UbuntuModel).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
-    allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_return('en0') if defined?(WifiWand::MacOsModel)
+    if defined?(WifiWand::MacOsModel)
+      allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_return('en0')
+    end
 
     # Mock all OS-calling methods to prevent real system calls in non-disruptive tests
     # Only mock for non-disruptive tests (those not tagged with :disruptive)
@@ -33,9 +35,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       # Also mock the underlying NetworkConnectivityTester to prevent real network calls
       # Don't mock connected_to_internet? - let it use the passed parameters
-      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?).and_return(true)
-      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
-      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:captive_portal_free?).and_return(true)
+      tester = WifiWand::NetworkConnectivityTester
+      allow_any_instance_of(tester).to receive(:tcp_connectivity?).and_return(true)
+      allow_any_instance_of(tester).to receive(:dns_working?).and_return(true)
+      allow_any_instance_of(tester).to receive(:captive_portal_free?).and_return(true)
 
       # Mock low-level OS command execution to prevent real system calls
       # but allow higher-level methods to be called for testing
@@ -189,7 +192,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   describe '#disconnect', :disruptive do
-    it 'disconnects from network and handles subsequent calls gracefully', :needs_sudo_access => (WifiWand::OperatingSystems.current_id == :mac) do
+    it 'disconnects from network and handles subsequent calls gracefully',
+      :needs_sudo_access => (WifiWand::OperatingSystems.current_id == :mac) do
       subject.wifi_on
 
       # Test disconnect works
@@ -465,7 +469,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       expect do
         subject.public_ip_address_info
-      end.to raise_error(WifiWand::PublicIPLookupError, /HTTP error fetching public IP info: 500 Internal Server Error/)
+      end.to raise_error(WifiWand::PublicIPLookupError,
+        /HTTP error fetching public IP info: 500 Internal Server Error/)
     end
   end
 
@@ -556,7 +561,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       result = subject.wifi_info
 
       # Test the connectivity method directly
-      direct_result = subject.connected_to_internet?(result['internet_tcp_connectivity'], result['dns_working'])
+      subject.connected_to_internet?(result['internet_tcp_connectivity'], result['dns_working'])
 
       expect(result['internet_tcp_connectivity']).to be false
       expect(result['internet_on']).to be false  # Should be false due to TCP failure
@@ -875,7 +880,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
         allow(subject).to receive(:command_available?).with('qrencode').and_return(false)
         allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: :unknown))
 
-        expect { silence_output { subject.generate_qr_code } }.to raise_error(WifiWand::Error, /install qrencode using your system package manager/)
+        expect { silence_output { subject.generate_qr_code } }
+          .to raise_error(WifiWand::Error,
+            /install qrencode using your system package manager/)
       end
     end
 
@@ -883,7 +890,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       it 'raises error when not connected to any network' do
         allow(subject).to receive(:connected_network_name).and_return(nil)
 
-        expect { silence_output { subject.generate_qr_code } }.to raise_error(WifiWand::Error, /Not connected to any WiFi network/)
+        expect { silence_output { subject.generate_qr_code } }
+          .to raise_error(WifiWand::Error, /Not connected to any WiFi network/)
       end
     end
 
@@ -919,10 +927,14 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     context 'when escaping special characters' do
       [
-        ['Network;With;Semicolons', 'password,with,commas', 'WIFI:T:WPA;S:Network\;With\;Semicolons;P:password\,with\,commas;H:false;;'],
-        ['Network:With:Colons', 'password:with:colons', 'WIFI:T:WPA;S:Network\:With\:Colons;P:password\:with\:colons;H:false;;'],
-        ['Network\With\Backslashes', 'pass\word', 'WIFI:T:WPA;S:Network\\\\With\\\\Backslashes;P:pass\\\\word;H:false;;'],
-        ['Regular-Network_Name', 'regularPassword123', 'WIFI:T:WPA;S:Regular-Network_Name;P:regularPassword123;H:false;;']
+        ['Network;With;Semicolons', 'password,with,commas',
+         'WIFI:T:WPA;S:Network\;With\;Semicolons;P:password\,with\,commas;H:false;;'],
+        ['Network:With:Colons', 'password:with:colons',
+         'WIFI:T:WPA;S:Network\:With\:Colons;P:password\:with\:colons;H:false;;'],
+        ['Network\With\Backslashes', 'pass\word',
+         'WIFI:T:WPA;S:Network\\\\With\\\\Backslashes;P:pass\\\\word;H:false;;'],
+        ['Regular-Network_Name', 'regularPassword123',
+         'WIFI:T:WPA;S:Regular-Network_Name;P:regularPassword123;H:false;;']
       ].each do |test_network, test_password, expected_qr_string|
         it "properly escapes special characters in '#{test_network}' / '#{test_password}'" do
           allow(subject).to receive(:connected_network_name).and_return(test_network)
@@ -975,7 +987,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
         allow(subject).to receive(:run_os_command)
           .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'qrencode', 'Command failed'))
 
-        expect { silence_output { subject.generate_qr_code } }.to raise_error(WifiWand::Error, /Failed to generate QR code/)
+        expect { silence_output { subject.generate_qr_code } }
+          .to raise_error(WifiWand::Error, /Failed to generate QR code/)
       end
     end
   end

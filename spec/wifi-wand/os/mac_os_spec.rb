@@ -15,16 +15,16 @@ describe WifiWand::MacOs do
 
   describe '#current_os_is_this_os?' do
     detection_scenarios = [
-      { name: 'detects macOS with darwin host_os',                   host_os: 'darwin',          expected: true  },
-      { name: 'detects macOS with darwin-based host_os',             host_os: 'x86_64-darwin21', expected: true  },
-      { name: 'returns false for Linux system',                      host_os: 'linux-gnu',       expected: false },
-      { name: 'returns false for Windows system',                    host_os: 'mingw32',         expected: false },
-      { name: 'returns false for Windows mswin variant',             host_os: 'mswin',           expected: false },
-      { name: 'returns false for cygwin environment',                host_os: 'cygwin',          expected: false },
-      { name: 'returns false for uppercase DARWIN (case sensitive)', host_os: 'DARWIN',          expected: false },
-      { name: 'returns false for nil host_os',                       host_os: nil,               expected: false },
-      { name: 'returns false for empty host_os',                     host_os: '',                expected: false }
-    ]
+      ['detects macOS with darwin host_os',                   'darwin',          true],
+        ['detects macOS with darwin-based host_os',             'x86_64-darwin21', true],
+        ['returns false for Linux system',                      'linux-gnu',       false],
+        ['returns false for Windows system',                    'mingw32',         false],
+        ['returns false for Windows mswin variant',             'mswin',           false],
+        ['returns false for cygwin environment',                'cygwin',          false],
+        ['returns false for uppercase DARWIN (case sensitive)', 'DARWIN',          false],
+        ['returns false for nil host_os',                       nil,               false],
+        ['returns false for empty host_os',                     '',                false],
+    ].map { |name, host_os, expected| { name:, host_os:, expected: } }
 
     detection_scenarios.each do |scenario|
       it scenario[:name] do

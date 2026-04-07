@@ -323,7 +323,9 @@ module WifiWand
           # Specific error codes that indicate we should try networksetup instead
           # -3900: Generic CoreWLAN error
           # -3905: Network not found via CoreWLAN
-          if e.text.include?('code: -3900') || e.text.include?('code: -3905') || e.text.downcase.include?('network not found')
+          if e.text.include?('code: -3900') ||
+             e.text.include?('code: -3905') ||
+             e.text.downcase.include?('network not found')
             out_stream.puts "Swift/CoreWLAN failed (#{e.text.strip}). Trying networksetup fallback..." if verbose_mode
           else
             # For other errors, re-raise as they may indicate real problems
@@ -539,7 +541,8 @@ module WifiWand
     def validate_os_preconditions
       # All core commands are built-in, just warn about optional ones
       if !command_available?('swift') && verbose_mode
-        out_stream.puts 'Warning: Swift not available. Some advanced features may use fallback methods. Install with: xcode-select --install'
+        out_stream.puts 'Warning: Swift not available. Some advanced features ' \
+                        'may use fallback methods. Install with: xcode-select --install'
       end
 
       :ok
