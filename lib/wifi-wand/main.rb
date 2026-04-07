@@ -81,7 +81,6 @@ module WifiWand
     end
 
     def call
-      begin
         options = parse_command_line
         if options.version_requested
           @out_stream.puts(WifiWand::VERSION)
@@ -97,7 +96,6 @@ module WifiWand
         handle_error(e, verbose)
         # In non-interactive CLI mode, ensure failures return a non-zero exit code
         exit(1) unless options&.interactive_mode
-      end
     end
 
     private

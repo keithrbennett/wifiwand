@@ -193,7 +193,6 @@ module WifiWand
     describe 'integration with model creation' do
       it 'can create models for detectable OSes without errors' do
         described_class.supported_operating_systems.each do |os|
-          begin
             if os.current_os_is_this_os?
               model = os.create_model(OpenStruct.new(verbose: false))
               expect(model).not_to be_nil
@@ -205,7 +204,6 @@ module WifiWand
             # It's OK if model creation fails due to OS incompatibility
             # but it should fail gracefully, not crash
             expect(e.message).not_to be_nil
-          end
         end
       end
     end
