@@ -89,7 +89,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   end
 
   describe '#colorize_status' do
-    include_examples 'colorization method', {
+    it_behaves_like 'colorization method', {
       method_name: :colorize_status,
       tests:       [
         [
@@ -183,7 +183,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   end
 
   describe '#colorize_network_name' do
-    include_examples 'colorization method', {
+    it_behaves_like 'colorization method', {
       method_name: :colorize_network_name,
       tests:       [
         [
@@ -229,7 +229,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   end
 
   describe '#colorize_values' do
-    include_examples 'colorization method', {
+    it_behaves_like 'colorization method', {
       method_name: :colorize_values,
       tests:       [
         [

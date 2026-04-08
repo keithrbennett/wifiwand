@@ -243,14 +243,6 @@ RSpec/HookArgument:
     - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
     - 'spec/wifi-wand/operating_systems_spec.rb'
 
-# Offense count: 14
-# This cop supports unsafe autocorrection (--autocorrect-all).
-RSpec/IncludeExamples:
-  Exclude:
-    - 'spec/wifi-wand/base_model_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
-    - 'spec/wifi-wand/command_line_interface_spec.rb'
-
 
 
 # Offense count: 15

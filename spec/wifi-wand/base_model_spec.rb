@@ -330,7 +330,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       skip 'Wifi is not currently on' unless current_wifi_on
     end
 
-    include_examples 'interface commands complete without error', true
+    it_behaves_like 'interface commands complete without error', true
   end
 
   # Non-disruptive context - only runs when wifi is already off
@@ -339,12 +339,12 @@ describe 'Common WiFi Model Behavior (All OS)' do
       skip 'Wifi is currently on' if current_wifi_on
     end
 
-    include_examples 'interface commands complete without error', false
+    it_behaves_like 'interface commands complete without error', false
   end
 
   # Disruptive contexts - only run with --tag disruptive flag
   context 'when wifi starts on (disruptive)', :disruptive do
-    include_examples 'interface commands complete without error', true
+    it_behaves_like 'interface commands complete without error', true
 
     it 'can query connected network name' do
       expect(subject.connected_network_name).to be_a(String).or be_nil
@@ -352,7 +352,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   context 'when wifi starts off (disruptive)', :disruptive do
-    include_examples 'interface commands complete without error', false
+    it_behaves_like 'interface commands complete without error', false
 
     it 'raises WifiOffError when querying connected network name' do
       expect { subject.connected_network_name }.to raise_error(WifiWand::WifiOffError)

@@ -401,10 +401,10 @@ describe WifiWand::CommandLineInterface do
           expect(captured).to match(/Output file exists. Overwrite\? \[y\/N\]: /)
         end
 
-        include_examples 'user confirms overwrite', "y\n"
-        include_examples 'user confirms overwrite', "yes\n"
-        include_examples 'user declines overwrite', "n\n"
-        include_examples 'user declines overwrite', "\n"
+        it_behaves_like 'user confirms overwrite', "y\n"
+        it_behaves_like 'user confirms overwrite', "yes\n"
+        it_behaves_like 'user declines overwrite', "n\n"
+        it_behaves_like 'user declines overwrite', "\n"
 
         it 're-raises non-overwrite errors' do
           # Reset mock for different error
@@ -460,7 +460,7 @@ describe WifiWand::CommandLineInterface do
     COMMAND_TEST_CASES.each do |tc|
       describe "##{tc[:cmd]}" do
         if tc[:non_interactive_output]
-          include_examples 'interactive vs non-interactive command', tc[:cmd], tc[:model_method],
+          it_behaves_like 'interactive vs non-interactive command', tc[:cmd], tc[:model_method],
             {
               return_value:          tc[:return_value],
               non_interactive_tests: {
@@ -471,7 +471,7 @@ describe WifiWand::CommandLineInterface do
               }
             }
         elsif !tc[:skip_non_interactive]
-          include_examples 'simple command delegation', tc[:cmd], tc[:model_method]
+          it_behaves_like 'simple command delegation', tc[:cmd], tc[:model_method]
         end
       end
     end
@@ -480,7 +480,7 @@ describe WifiWand::CommandLineInterface do
       context 'when wifi is on' do
         before { allow(mock_model).to receive(:wifi_on?).and_return(true) }
 
-        include_examples 'interactive vs non-interactive command', :cmd_a, :available_network_names, {
+        it_behaves_like 'interactive vs non-interactive command', :cmd_a, :available_network_names, {
           return_value:          %w[TestNet1 TestNet2],
           non_interactive_tests: {
             'outputs formatted available networks message' => {
