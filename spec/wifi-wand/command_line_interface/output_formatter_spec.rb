@@ -90,7 +90,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   describe '#colorize_status' do
     include_examples 'colorization method', {
       method_name: :colorize_status,
-      tests: [
+      tests:       [
         [
           'colorizes "true" as green when TTY',
           'true',
@@ -184,7 +184,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   describe '#colorize_network_name' do
     include_examples 'colorization method', {
       method_name: :colorize_network_name,
-      tests: [
+      tests:       [
         [
           'colorizes quoted network names in cyan when TTY',
           'Connected to "MyNetwork" successfully',
@@ -230,7 +230,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   describe '#colorize_values' do
     include_examples 'colorization method', {
       method_name: :colorize_values,
-      tests: [
+      tests:       [
         [
           'colorizes percentages in blue when TTY',
           'Signal strength: 85%',

@@ -462,7 +462,7 @@ describe WifiWand::CommandLineInterface do
         if tc[:non_interactive_output]
           include_examples 'interactive vs non-interactive command', tc[:cmd], tc[:model_method],
             {
-              return_value: tc[:return_value],
+              return_value:          tc[:return_value],
               non_interactive_tests: {
                 'outputs formatted message' => {
                   model_return:    tc[:return_value],
