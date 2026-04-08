@@ -144,15 +144,13 @@ RSpec.describe WifiWand::Client do
     let(:client) { described_class.new(options) }
 
     it 'mac? is true when os == :mac' do
-      allow(mock_model).to receive(:mac?).and_return(true)
-      allow(mock_model).to receive(:ubuntu?).and_return(false)
+      allow(mock_model).to receive_messages(mac?: true, ubuntu?: false)
       expect(client.mac?).to be(true)
       expect(client.ubuntu?).to be(false)
     end
 
     it 'ubuntu? is true when os == :ubuntu' do
-      allow(mock_model).to receive(:ubuntu?).and_return(true)
-      allow(mock_model).to receive(:mac?).and_return(false)
+      allow(mock_model).to receive_messages(ubuntu?: true, mac?: false)
       expect(client.ubuntu?).to be(true)
       expect(client.mac?).to be(false)
     end

@@ -90,8 +90,7 @@ RSpec.describe WifiWand::BaseModel do
     let(:model) { described_class.allocate }
 
     before do
-      allow(model).to receive(:wifi_on?).and_return(false)
-      allow(model).to receive(:connected?).and_return(false)
+      allow(model).to receive_messages(wifi_on?: false, connected?: false)
     end
 
     it 'raises Error from connected_network_name without calling implementation' do
@@ -120,9 +119,7 @@ RSpec.describe WifiWand::BaseModel do
     let(:model) { described_class.allocate }
 
     before do
-      allow(model).to receive(:wifi_on?).and_return(true)
-      allow(model).to receive(:connected?).and_return(false)
-      allow(model).to receive(:_connected_network_name).and_return(nil)
+      allow(model).to receive_messages(wifi_on?: true, connected?: false, _connected_network_name: nil)
     end
 
     it 'connected_network_name returns nil' do
@@ -168,8 +165,7 @@ RSpec.describe WifiWand::BaseModel do
     let(:progress_updates) { [] }
 
     before do
-      allow(model).to receive(:wifi_on?).and_return(true)
-      allow(model).to receive(:connected_network_name).and_return('Oasis Coffee')
+      allow(model).to receive_messages(wifi_on?: true, connected_network_name: 'Oasis Coffee')
     end
 
     it 'uses the full internet check rather than the fast TCP-only probe' do

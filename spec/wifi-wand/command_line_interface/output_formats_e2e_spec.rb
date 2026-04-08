@@ -312,8 +312,7 @@ describe 'Output Format End-to-End Tests' do
       test_info = { 'network' => 'TestNet' }
       test_networks = ['Net1', 'Net2']
 
-      allow(mock_model).to receive(:wifi_info).and_return(test_info)
-      allow(mock_model).to receive(:preferred_networks).and_return(test_networks)
+      allow(mock_model).to receive_messages(wifi_info: test_info, preferred_networks: test_networks)
 
       options = parse_options('-o', 'j', 'info')
       cli = WifiWand::CommandLineInterface.new(options)

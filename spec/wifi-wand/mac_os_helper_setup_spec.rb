@@ -256,9 +256,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
         allow(WifiWand::MacOsWifiAuthHelper)
           .to receive(:install_helper_bundle).with(out_stream: out_stream)
         allow(WifiWand::MacOsWifiAuthHelper)
-          .to receive(:helper_installed_and_valid?).and_return(true)
-        allow(WifiWand::MacOsWifiAuthHelper)
-          .to receive(:installed_bundle_path).and_return('/fake/bundle')
+          .to receive_messages(helper_installed_and_valid?: true, installed_bundle_path: '/fake/bundle')
       end
 
       it 'returns the installed bundle path' do

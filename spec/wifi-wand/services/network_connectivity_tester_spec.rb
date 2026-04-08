@@ -120,53 +120,44 @@ describe WifiWand::NetworkConnectivityTester do
     let(:tester) { described_class.new(verbose: false) }
 
     it 'returns true when TCP, DNS, and captive portal check all pass' do
-      allow(tester).to receive(:tcp_connectivity?).and_return(true)
-      allow(tester).to receive(:dns_working?).and_return(true)
-      allow(tester).to receive(:captive_portal_free?).and_return(true)
+      allow(tester).to receive_messages(tcp_connectivity?: true, dns_working?: true, captive_portal_free?: true)
 
       expect(tester.connected_to_internet?).to be true
     end
 
     it 'returns false when TCP fails' do
-      allow(tester).to receive(:tcp_connectivity?).and_return(false)
-      allow(tester).to receive(:dns_working?).and_return(true)
+      allow(tester).to receive_messages(tcp_connectivity?: false, dns_working?: true)
 
       expect(tester.connected_to_internet?).to be false
     end
 
     it 'returns false when DNS fails' do
-      allow(tester).to receive(:tcp_connectivity?).and_return(true)
-      allow(tester).to receive(:dns_working?).and_return(false)
+      allow(tester).to receive_messages(tcp_connectivity?: true, dns_working?: false)
 
       expect(tester.connected_to_internet?).to be false
     end
 
     it 'returns false when both TCP and DNS fail' do
-      allow(tester).to receive(:tcp_connectivity?).and_return(false)
-      allow(tester).to receive(:dns_working?).and_return(false)
+      allow(tester).to receive_messages(tcp_connectivity?: false, dns_working?: false)
 
       expect(tester.connected_to_internet?).to be false
     end
 
     it 'returns false when captive portal is detected (TCP and DNS pass but portal intercepts)' do
-      allow(tester).to receive(:tcp_connectivity?).and_return(true)
-      allow(tester).to receive(:dns_working?).and_return(true)
-      allow(tester).to receive(:captive_portal_free?).and_return(false)
+      allow(tester).to receive_messages(tcp_connectivity?: true, dns_working?: true, captive_portal_free?: false)
 
       expect(tester.connected_to_internet?).to be false
     end
 
     it 'skips captive portal check when TCP fails (short-circuit)' do
-      allow(tester).to receive(:tcp_connectivity?).and_return(false)
-      allow(tester).to receive(:dns_working?).and_return(true)
+      allow(tester).to receive_messages(tcp_connectivity?: false, dns_working?: true)
       expect(tester).not_to receive(:captive_portal_free?)
 
       tester.connected_to_internet?
     end
 
     it 'accepts pre-computed captive_free value and does not re-check' do
-      allow(tester).to receive(:tcp_connectivity?).and_return(true)
-      allow(tester).to receive(:dns_working?).and_return(true)
+      allow(tester).to receive_messages(tcp_connectivity?: true, dns_working?: true)
       expect(tester).not_to receive(:captive_portal_free?)
 
       expect(tester.connected_to_internet?(true, true, true)).to be true

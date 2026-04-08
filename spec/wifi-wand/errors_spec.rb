@@ -140,9 +140,8 @@ module WifiWand
         {
           method: :connect, args: ['TestNetwork'], error: NetworkConnectionError,
           before: -> {
-            allow(model).to receive(:wifi_on).and_return(true)
             allow(model).to receive(:_connect).with('TestNetwork', nil).and_return(true)
-            allow(model).to receive(:connected_network_name).and_return('DifferentNetwork')
+            allow(model).to receive_messages(wifi_on: true, connected_network_name: 'DifferentNetwork')
             # Mock the connection manager to prevent real connection attempts
             allow(model.connection_manager).to receive(:perform_connection)
             allow(model.connection_manager).to receive(:verify_connection) \
@@ -170,16 +169,14 @@ module WifiWand
         {
           method: :wifi_on, args: [], error: WifiEnableError,
           before: -> {
-            allow(model).to receive(:run_os_command).and_return(command_result(stdout: ''))
-            allow(model).to receive(:wifi_on?).and_return(false)
+            allow(model).to receive_messages(run_os_command: command_result(stdout: ''), wifi_on?: false)
             allow(model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:on, 5))
           }
         },
         {
           method: :wifi_off, args: [], error: WifiDisableError,
           before: -> {
-            allow(model).to receive(:run_os_command).and_return(command_result(stdout: ''))
-            allow(model).to receive(:wifi_on?).and_return(true)
+            allow(model).to receive_messages(run_os_command: command_result(stdout: ''), wifi_on?: true)
             allow(model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:off, 5))
           }
         },
@@ -217,8 +214,7 @@ module WifiWand
           case current_os.id
           when :ubuntu
             model = WifiWand::UbuntuModel.new(merged_options)
-            allow(model).to receive(:command_available?).and_return(true)
-            allow(model).to receive(:detect_wifi_interface).and_return(nil)
+            allow(model).to receive_messages(command_available?: true, detect_wifi_interface: nil)
             expect { model.init }.to raise_error(WifiInterfaceError)
           when :mac
             model = WifiWand::MacOsModel.new(merged_options)

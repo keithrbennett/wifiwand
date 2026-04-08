@@ -106,8 +106,7 @@ describe WifiWand::CommandExecutor do
     it 'checks executable files in PATH directories' do
       # Mock ENV['PATH'] to test the implementation
       allow(ENV).to receive(:[]).with('PATH').and_return('/usr/bin:/bin')
-      allow(File).to receive(:executable?).and_return(false)
-      allow(File).to receive(:directory?).and_return(false)
+      allow(File).to receive_messages(executable?: false, directory?: false)
       allow(File).to receive(:executable?).with('/usr/bin/test_cmd').and_return(true)
 
       expect(executor.command_available?('test_cmd')).to be true

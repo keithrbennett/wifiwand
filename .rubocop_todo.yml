@@ -318,10 +318,6 @@ RSpec/NoExpectationExample:
   Exclude:
     - 'spec/wifi-wand/base_model_spec.rb'
 
-# Offense count: 253
-# This cop supports unsafe autocorrection (--autocorrect-all).
-RSpec/ReceiveMessages:
-  Enabled: false
 
 # Offense count: 1
 # This cop supports safe autocorrection (--autocorrect).

@@ -181,8 +181,7 @@ describe WifiWand::StatusWaiter do
 
     context 'with timeout' do
       it 'raises WaitTimeoutError when timeout elapses' do
-        allow(mock_model).to receive(:wifi_on?).and_return(false)
-        allow(mock_model).to receive(:connected_to_internet?).and_return(false)
+        allow(mock_model).to receive_messages(wifi_on?: false, connected_to_internet?: false)
 
         expect do
           waiter.wait_for(:on, timeout_in_secs: 0)

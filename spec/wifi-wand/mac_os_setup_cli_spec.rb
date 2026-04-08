@@ -38,9 +38,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
     allow(setup).to receive(:reinstall_helper)
     allow(setup).to receive(:open_location_settings)
     allow(WifiWand::MacOsWifiAuthHelper)
-      .to receive(:installed_executable_path).and_return('/fake/helper')
-    allow(WifiWand::MacOsWifiAuthHelper)
-      .to receive(:installed_bundle_path).and_return('/fake/bundle')
+      .to receive_messages(installed_executable_path: '/fake/helper', installed_bundle_path: '/fake/bundle')
   end
 
   # ---------------------------------------------------------------------------
@@ -216,9 +214,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
       allow(setup).to receive(:reinstall_helper)
       allow(setup).to receive(:open_location_settings)
       allow(WifiWand::MacOsWifiAuthHelper)
-        .to receive(:installed_executable_path).and_return('/fake/helper')
-      allow(WifiWand::MacOsWifiAuthHelper)
-        .to receive(:installed_bundle_path).and_return('/fake/bundle')
+        .to receive_messages(installed_executable_path: '/fake/helper', installed_bundle_path: '/fake/bundle')
     end
 
     context 'when macOS preserves authorization after reinstall' do
