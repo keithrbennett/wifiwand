@@ -49,19 +49,23 @@ cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
 * **Client class** — A new `WifiWand::Client` class provides a clean programmatic API for use as a library.
 * **Secure command execution** — All OS commands are now executed using `Open3` with argument arrays, eliminating shell interpolation and command injection vulnerabilities.
 * Switched from threads to the `async` gem for concurrent network detection.
+* **`CaptivePortalChecker` service class** — Captive-portal detection logic has been extracted from `NetworkConnectivityTester` into a dedicated class for better separation of concerns.
 
 ### Network Management & Reporting Improvements
 
 * The 'connected to Internet?' functionality has been improved:
   * wifi off will no longer by itself cause it to return false, since there may be an Ethernet connection
   * DNS and TCP tests are both done, with separate indicators in the new 'status' command's output.
+  * An HTTP application-layer check is now performed after the TCP probes to detect expired captive portal sessions. A `GET` to `http://connectivitycheck.gstatic.com/generate_204` must return `204 No Content`; a redirect or HTML response is treated as no connectivity. Plain HTTP is used deliberately so that TLS-intercepting portals cannot silently forward the check. If all HTTP check requests fail with network errors the method errs on the side of reporting connected (fail-open).
+  * The `wifi_info` hash now includes a `captive_portal_free` boolean key alongside `connected_to_internet`, `dns_working`, and `tcp_working`.
 * Internet connectivity checks now use fast multi-endpoint TCP probes (~50–200ms typical, 1s worst case) instead of slower DNS+TCP checks.
 * IPv6 nameservers are now supported.
 * `public_ip_address_info` now uses Ruby's `Net::HTTP` instead of `curl`, removing the external dependency.
 
 ### Error Handling Improvements
-* Added comprehensive error classes and improved error messaging
-* Stack traces are no longer displayed unless in verbose mode
+* Added comprehensive error classes and improved error messaging.
+* Stack traces are no longer displayed unless in verbose mode.
+* Added `WifiOffError`, a specific error class raised when an operation is attempted that requires WiFi to be on.
 
 ### Testing Improvements
 * Massive increase in test coverage.
@@ -72,6 +76,11 @@ cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
 * Tests save state at start of test suite and restore that state after each "disruptive" test and at the end of the test suite.
 * OS-specific tests are tagged with their OS and excluded when not the native OS.
 * The number of tests that do real OS calls has been greatly reduced, speeding testing and enabling the more frequent testing of some behavior.
+* **Simplified disruptive-test tags.** The two-tag pattern `:disruptive, :os_mac` / `:disruptive, :os_ubuntu` has been replaced with single combined tags `:disruptive_mac` / `:disruptive_ubuntu`. A `define_derived_metadata` block back-fills `:disruptive` so all existing filtering, after-hooks, and network-state management continue to work unchanged.
+* **Disruptive-test preflight enforcement.** The test suite now aborts immediately (rather than silently skipping) if the required preconditions for disruptive tests — WiFi on and connected to a network — are not met at suite start.
+* **Disruptive-test state capture hardened.** Errors in state capture now propagate as failures instead of being silently rescued.
+* Added regression specs for OS tag filtering and disruptive-test skip logic.
+* New captive-portal specs covering `captive_portal_free?`: 204 pass, 302 fail, all-network-errors failsafe, and verbose output paths.
 
 ### Documentation Improvements
 
@@ -84,7 +93,6 @@ cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
 ### Bug Fixes
 * Fixed the lack of explicit require of 'stringio' for modern Ruby versions.
 * Added shell escaping for strings included in OS commands.
-* Fixed Ubuntu OS detection to remove command injection and support Ubuntu derivatives.
 * Fixed `cycle_network` to correctly handle the case where WiFi starts in the off state.
 
 ### Verbose Mode Debug Output
@@ -96,6 +104,10 @@ cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
   * Updated some gemspec gem specifications for the first time in years.
   * Added version constraints where there were none.
   * Ruby version constraint updated to >= 3.2 (required by the `async` gem via `traces`).
+  * Added `rubygems_mfa_required` metadata.
+* **Ruby 3 endless method syntax** — All simple single-line methods (`def f; expr; end`) across `lib/` and `spec/` have been converted to the endless form (`def f = expr`).
+* **Comprehensive RuboCop compliance pass** — Hundreds of Layout, Style, Lint, and Naming offenses corrected across the entire codebase.
+* **Replaced `eval` with `JSON.parse`** in output-format specs (RuboCop `Security/Eval`).
 * **Status monitoring** - Enhanced connection status monitoring with configurable timeouts
 * **Mock testing** - Removed real OS commands from non-disruptive unit tests
 * Added a `bin/op-wrap` script to simplify using 1Password for credential management during development.
