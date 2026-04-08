@@ -318,9 +318,9 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       }
 
       {
-        'WiFi off'         => [ :wifi_on?,                false, /WiFi.*NO/,      RED_TEXT_REGEX    ],
-        'no network'       => [ :connected_network_name,  nil,   /Network.*none/, YELLOW_TEXT_REGEX ],
-        'Internet failure' => [ :connected_to_internet?,  false, /Internet.*NO/,  RED_TEXT_REGEX    ],
+        'WiFi off'         => [:wifi_on?,                false, /WiFi.*NO/,      RED_TEXT_REGEX],
+        'no network'       => [:connected_network_name,  nil,   /Network.*none/, YELLOW_TEXT_REGEX],
+        'Internet failure' => [:connected_to_internet?,  false, /Internet.*NO/,  RED_TEXT_REGEX],
       }.each do |scenario, (mock_method, return_value, expected_pattern, expected_color)|
         it "displays error status when #{scenario}" do
           data = status_data.clone
