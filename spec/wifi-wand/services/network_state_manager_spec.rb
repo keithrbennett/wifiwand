@@ -107,7 +107,7 @@ describe WifiWand::NetworkStateManager do
         allow(mock_model).to receive(:till)
 
         target_str = 'Warning: Could not restore network state: Network unavailable' \
-            '.*You may need to manually reconnect to: TestNetwork'
+          '.*You may need to manually reconnect to: TestNetwork'
         expect do
           state_manager.restore_network_state(valid_state, fail_silently: true)
         end.to output(/#{target_str}/m).to_stderr
@@ -153,7 +153,7 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:wifi_on?).and_return(true)
       allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork')
       allow(mock_model).to receive(:preferred_network_password).with('TestNetwork') \
-                                                               .and_return('fallback_pass')
+        .and_return('fallback_pass')
 
       expect(mock_model).to receive(:connect).with('TestNetwork', 'fallback_pass')
       expect(mock_model).to receive(:till) \

@@ -245,10 +245,10 @@ module WifiWand
         puts 'Testing helper execution...'
         stdout, stderr, status = Open3.capture3(executable, 'current-network')
         message = if status.success?
-                    Messages.helper_executed_success(stdout)
-                  else
-                    Messages.helper_execution_failed(stderr)
-                  end
+          Messages.helper_executed_success(stdout)
+        else
+          Messages.helper_execution_failed(stderr)
+        end
         puts message
         exit 1 unless status.success?
       end
@@ -391,7 +391,7 @@ module WifiWand
       stdout, _stderr, status = Open3.capture3('codesign', '-dv', bundle_path)
       if status.success? && stdout.include?('adhoc')
         abort "Error: Helper is ad-hoc signed. Must be signed with Developer ID.\n" \
-              'Run: bin/mac-helper build'
+          'Run: bin/mac-helper build'
       end
 
       puts Messages.notarizing_header(bundle_path: bundle_path, apple_id: apple_id, team_id: team_id)
@@ -422,7 +422,7 @@ module WifiWand
     def notarization_status(submission_id)
       if submission_id.nil? || submission_id.empty?
         abort 'Error: Submission ID is required. Use --submission-id <uuid> ' \
-              'or let the script auto-select.'
+          'or let the script auto-select.'
       end
       creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper info --submission-id <uuid>')
       puts "Status for submission #{submission_id}:"
@@ -436,7 +436,7 @@ module WifiWand
     def notarization_log(submission_id)
       if submission_id.nil? || submission_id.empty?
         abort 'Error: Submission ID is required. Use --submission-id <uuid> ' \
-              'or let the script auto-select.'
+          'or let the script auto-select.'
       end
       creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper log --submission-id <uuid>')
       puts "Log for submission #{submission_id}:"
@@ -450,7 +450,7 @@ module WifiWand
     def cancel_notarization(submission_id)
       if submission_id.nil? || submission_id.empty?
         abort 'Error: Submission ID is required. Use --submission-id <uuid> ' \
-              'or let the script auto-select.'
+          'or let the script auto-select.'
       end
       creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper cancel --submission-id <uuid>')
       puts "Canceling submission #{submission_id}..."

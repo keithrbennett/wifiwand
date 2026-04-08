@@ -176,10 +176,11 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           false
         ],
       ].map { |name, input, expected_output, tty, has_color|
-        { name:, input:, expected_output:, tty:, has_color: } }
+        { name:, input:, expected_output:, tty:, has_color: }
+      }
     }
   end
-  
+
   describe '#colorize_network_name' do
     include_examples 'colorization method', {
       method_name: :colorize_network_name,
@@ -221,7 +222,8 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           false
         ],
       ].map { |name, input, expected_output, tty, has_color|
-        { name:, input:, expected_output:, tty:, has_color: } }
+        { name:, input:, expected_output:, tty:, has_color: }
+      }
     }
   end
 
@@ -278,7 +280,8 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           false
         ],
       ].map { |name, input, expected_output, tty, has_color|
-        { name:, input:, expected_output:, tty:, has_color: } }
+        { name:, input:, expected_output:, tty:, has_color: }
+      }
     }
   end
 

@@ -76,7 +76,7 @@ module WifiWand
 
         it 'modifies existing profile when password changed and security is known' do
           setup_connect_test(profile_name: 'SSID1', old_password: 'oldpass',
-                             security_param: '802-11-wireless-security.psk')
+            security_param: '802-11-wireless-security.psk')
 
           expect(subject).to receive(:run_os_command)
             .with(%w[nmcli connection modify SSID1 802-11-wireless-security.psk newpass])

@@ -542,7 +542,7 @@ module WifiWand
       # All core commands are built-in, just warn about optional ones
       if !command_available?('swift') && verbose_mode
         out_stream.puts 'Warning: Swift not available. Some advanced features ' \
-                        'may use fallback methods. Install with: xcode-select --install'
+          'may use fallback methods. Install with: xcode-select --install'
       end
 
       :ok

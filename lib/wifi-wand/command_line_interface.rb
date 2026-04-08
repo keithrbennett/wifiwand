@@ -178,9 +178,9 @@ module WifiWand
       if options.empty? || options[0].nil?
         raise WifiWand::ConfigurationError.new(
           "Missing target status argument.\n" \
-          "Usage: till conn|disc|on|off [timeout_secs] [interval_secs]\n" \
-          "Examples: 'till off 20' or 'till conn 30 0.5'\n" \
-          "#{help_hint}"
+            "Usage: till conn|disc|on|off [timeout_secs] [interval_secs]\n" \
+            "Examples: 'till off 20' or 'till conn 30 0.5'\n" \
+            "#{help_hint}"
         )
       end
 

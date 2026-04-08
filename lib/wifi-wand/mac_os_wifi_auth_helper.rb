@@ -357,8 +357,8 @@ module WifiWand
         stream = out_stream || $stdout
         if stream
           stream.puts('wifiwand helper: Location Services denied. ' \
-                      'Run `wifi-wand-macos-setup` (or `wifi-wand-macos-setup --repair`) ' \
-                      'to grant location access.')
+            'Run `wifi-wand-macos-setup` (or `wifi-wand-macos-setup --repair`) ' \
+            'to grant location access.')
         end
         @location_warning_emitted = true
       end

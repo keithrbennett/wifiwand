@@ -457,21 +457,21 @@ describe WifiWand::CommandLineInterface do
         non_interactive_output: "QR code generated: TestNetwork-qr-code.png\n" }
     ]
 
-    COMMAND_TEST_CASES.each do |test_case|
-      describe "##{test_case[:cmd]}" do
-        if test_case[:non_interactive_output]
-          include_examples 'interactive vs non-interactive command',
-            test_case[:cmd], test_case[:model_method], {
-            return_value:          test_case[:return_value],
-            non_interactive_tests: {
-              'outputs formatted message' => {
-                model_return:    test_case[:return_value],
-                expected_output: test_case[:non_interactive_output]
+    COMMAND_TEST_CASES.each do |tc|
+      describe "##{tc[:cmd]}" do
+        if tc[:non_interactive_output]
+          include_examples 'interactive vs non-interactive command', tc[:cmd], tc[:model_method],
+            {
+              return_value: tc[:return_value],
+              non_interactive_tests: {
+                'outputs formatted message' => {
+                  model_return:    tc[:return_value],
+                  expected_output: tc[:non_interactive_output]
+                }
               }
             }
-          }
-        elsif !test_case[:skip_non_interactive]
-          include_examples 'simple command delegation', test_case[:cmd], test_case[:model_method]
+        elsif !tc[:skip_non_interactive]
+          include_examples 'simple command delegation', tc[:cmd], tc[:model_method]
         end
       end
     end

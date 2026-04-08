@@ -777,7 +777,7 @@ module WifiWand
           # Cause only the sw_vers call to fail; detection should rescue and set nil
           allow_any_instance_of(described_class)
             .to receive(:run_os_command).with(%w[sw_vers -productVersion]) \
-              .and_raise(StandardError.new('Command failed'))
+            .and_raise(StandardError.new('Command failed'))
           failing_model = create_mac_os_test_model
           silence_output { expect(failing_model.macos_version).to be_nil }
         end
@@ -903,8 +903,8 @@ module WifiWand
 
         it 'uses different data key when connected to network' do
           connected_data = JSON.parse(mock_airport_data.to_json)
-          connected_data['SPAirPortDataType'][0]['spairport_airport_interfaces'][0] \
-            ['spairport_airport_other_local_wireless_networks'] =
+          interfaces = connected_data['SPAirPortDataType'][0]['spairport_airport_interfaces'][0]
+          interfaces['spairport_airport_other_local_wireless_networks'] =
             [{ '_name' => 'OtherNetwork', 'spairport_signal_noise' => '75/10' }]
 
           allow(model).to receive(:airport_data).and_return(connected_data)

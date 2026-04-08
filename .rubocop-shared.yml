@@ -48,6 +48,9 @@ Layout/IndentationConsistency:
 Layout/MultilineOperationIndentation:
   EnforcedStyle: indented
 
+Layout/LineEndStringConcatenationIndentation:
+  EnforcedStyle: indented
+
 Layout/LineLength:
   Max: 110
   AllowedPatterns:

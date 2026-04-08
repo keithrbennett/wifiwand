@@ -190,14 +190,14 @@ describe WifiWand::EventLogger do
     end
 
     it 'emits events in order: wifi, network, internet when multiple changes happen' do
-      logger.instance_variable_set(:@previous_state,  \
+      logger.instance_variable_set(:@previous_state,
         { wifi_on: false, network_name: nil, internet_connected: false })
 
       current_state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
 
       expect(logger).to receive(:emit_event).with(:wifi_on, {}, kind_of(Hash), kind_of(Hash)).ordered
-      expect(logger).to receive(:emit_event). \
-        with(:connected, { network_name: 'TestNetwork' }, kind_of(Hash), kind_of(Hash)).ordered
+      expect(logger).to receive(:emit_event) \
+        .with(:connected, { network_name: 'TestNetwork' }, kind_of(Hash), kind_of(Hash)).ordered
       expect(logger).to receive(:emit_event).with(:internet_on, {}, kind_of(Hash), kind_of(Hash)).ordered
 
       logger.send(:detect_and_emit_events, current_state)
