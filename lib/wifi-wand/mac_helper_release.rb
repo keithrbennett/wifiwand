@@ -532,7 +532,7 @@ module WifiWand
       system('codesign', '-dvv', bundle_path)
 
       puts "\nBinary Architectures:"
-      puts ('-' * 60).to_s
+      puts ('-' * 60)
       archs = Operations.get_binary_architectures(executable_path)
       if archs.include?('arm64') && archs.include?('x86_64')
         puts "✓ Universal binary (#{archs.join(', ')})"

@@ -7,6 +7,26 @@
 # versions of RuboCop, may require this file to be generated again.
 
 
+# Offense count: 9
+RSpec/ExpectActual:
+  Exclude:
+    - 'spec/wifi-wand/base_model_spec.rb'
+    - 'spec/wifi-wand/operating_systems_spec.rb'
+
+# Offense count: 3
+# Configuration parameters: AssignmentOnly.
+RSpec/InstanceVariable:
+  Exclude:
+    - 'spec/support/os_filtering_spec.rb'
+    - 'spec/support/rspec_configuration_spec.rb'
+    - 'spec/wifi-wand/command_line_interface_spec.rb'
+
+# Offense count: 2
+RSpec/IteratedExpectation:
+  Exclude:
+    - 'spec/wifi-wand/errors_spec.rb'
+    - 'spec/wifi-wand/operating_systems_spec.rb'
+
 # Offense count: 12
 # Configuration parameters: AllowedMethods.
 # AllowedMethods: enums
@@ -62,11 +82,6 @@ Lint/RedundantSafeNavigation:
     - 'lib/wifi-wand/services/event_logger.rb'
     - 'lib/wifi-wand/services/log_file_manager.rb'
 
-# Offense count: 1
-# This cop supports safe autocorrection (--autocorrect).
-Lint/RedundantStringCoercion:
-  Exclude:
-    - 'lib/wifi-wand/mac_helper_release.rb'
 
 # Offense count: 2
 # This cop supports safe autocorrection (--autocorrect).
@@ -103,12 +118,6 @@ Lint/UselessAccessModifier:
   Exclude:
     - 'spec/support/rspec_configuration.rb'
 
-# Offense count: 2
-# This cop supports safe autocorrection (--autocorrect).
-Lint/UselessAssignment:
-  Exclude:
-    - 'lib/wifi-wand/models/base_model.rb'
-    - 'spec/wifi-wand/command_line_interface/main_spec.rb'
 
 # Offense count: 5
 Lint/UselessConstantScoping:
@@ -228,12 +237,6 @@ RSpec/EmptyLineAfterFinalLet:
     - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
     - 'spec/wifi-wand/services/connection_manager_spec.rb'
 
-# Offense count: 11
-# This cop supports safe autocorrection (--autocorrect).
-RSpec/ExpectActual:
-  Exclude:
-    - 'spec/wifi-wand/base_model_spec.rb'
-    - 'spec/wifi-wand/operating_systems_spec.rb'
 
 # Offense count: 2
 RSpec/ExpectOutput:
@@ -267,20 +270,7 @@ RSpec/IncludeExamples:
     - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
     - 'spec/wifi-wand/command_line_interface_spec.rb'
 
-# Offense count: 4
-# Configuration parameters: AssignmentOnly.
-RSpec/InstanceVariable:
-  Exclude:
-    - 'spec/support/os_filtering_spec.rb'
-    - 'spec/support/rspec_configuration_spec.rb'
-    - 'spec/wifi-wand/command_line_interface_spec.rb'
 
-# Offense count: 3
-# This cop supports safe autocorrection (--autocorrect).
-RSpec/IteratedExpectation:
-  Exclude:
-    - 'spec/wifi-wand/errors_spec.rb'
-    - 'spec/wifi-wand/operating_systems_spec.rb'
 
 # Offense count: 15
 # This cop supports safe autocorrection (--autocorrect).
@@ -306,11 +296,6 @@ RSpec/LeakyConstantDeclaration:
     - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
     - 'spec/wifi-wand/services/event_logger_spec.rb'
 
-# Offense count: 1
-# This cop supports safe autocorrection (--autocorrect).
-RSpec/LetBeforeExamples:
-  Exclude:
-    - 'spec/wifi-wand/base_model_spec.rb'
 
 # Offense count: 2
 RSpec/MultipleDescribes:

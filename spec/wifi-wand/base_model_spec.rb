@@ -51,6 +51,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
   subject { create_test_model }
 
   # These tests run on any OS - interface consistency tests
+  # Check current wifi state and create appropriate contexts
+  let(:current_wifi_on) { subject.wifi_on? }
   describe '#internet_tcp_connectivity?' do
     it 'returns boolean indicating TCP connectivity' do
       expect([true, false]).to include(subject.internet_tcp_connectivity?)
@@ -318,8 +320,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
-  # Check current wifi state and create appropriate contexts
-  let(:current_wifi_on) { subject.wifi_on? }
 
   # Non-disruptive context - only runs when wifi is already on
   context 'when wifi starts on', :disruptive => false do

@@ -71,7 +71,7 @@ describe WifiWand::Main do
 
     it 'parses help flag and adds h to ARGV' do
       stub_const('ARGV', ['--help'])
-      options = subject.parse_command_line
+      subject.parse_command_line
       expect(ARGV).to include('h')
     end
 

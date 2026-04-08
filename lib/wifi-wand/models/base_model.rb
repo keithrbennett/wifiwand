@@ -268,7 +268,7 @@ module WifiWand
       if info['internet_on']
         begin
           info['public_ip'] = public_ip_address_info
-        rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED, SocketError => e
+        rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED, SocketError
           # Network connectivity issues - retry with exponential backoff
           begin
             sleep(0.5)

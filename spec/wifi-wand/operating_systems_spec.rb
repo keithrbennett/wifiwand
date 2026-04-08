@@ -172,9 +172,7 @@ module WifiWand
 
     describe 'OS validation' do
       it 'ensures all supported OSes are valid BaseOs subclasses' do
-        described_class.supported_operating_systems.each do |os|
-          expect(os).to be_a(BaseOs)
-        end
+        expect(described_class.supported_operating_systems).to all(be_a(BaseOs))
       end
 
       it 'ensures OS ids are unique symbols' do
