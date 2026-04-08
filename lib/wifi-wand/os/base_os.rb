@@ -16,7 +16,7 @@ module WifiWand
         super
       else
         # Prohibit BaseOs.new call
-        raise NonSubclassInstantiationError.new
+        raise NonSubclassInstantiationError
       end
     end
 
@@ -27,8 +27,8 @@ module WifiWand
       end
     end
 
-    def current_os_is_this_os? = raise MethodNotImplementedError.new
+    def current_os_is_this_os? = raise MethodNotImplementedError
 
-    def create_model(options) = raise MethodNotImplementedError.new
+    def create_model(options) = raise MethodNotImplementedError
   end
 end

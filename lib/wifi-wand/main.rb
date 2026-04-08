@@ -49,7 +49,7 @@ module WifiWand
               Output format "#{choice}" not in list of available formats (#{formatters.keys.join(', ')}).
 
             MESSAGE
-            raise ConfigurationError.new("Invalid output format '#{choice}'. Available formats: #{formatters.keys.join(', ')}")
+            raise ConfigurationError, "Invalid output format '#{choice}'. Available formats: #{formatters.keys.join(', ')}"
           end
 
           options.post_processor = formatters[choice]
@@ -109,7 +109,7 @@ module WifiWand
 
       ARGV.unshift(*env_args)
     rescue ArgumentError => error
-      raise ConfigurationError.new("Invalid WIFIWAND_OPTS value: #{error.message}")
+      raise ConfigurationError, "Invalid WIFIWAND_OPTS value: #{error.message}"
     end
 
     def handle_error(error, verbose_mode)

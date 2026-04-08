@@ -92,7 +92,7 @@ module WifiWand
 
     def validate_network_name(network_name)
       if network_name.nil? || network_name.empty?
-        raise InvalidNetworkNameError.new(network_name || '')
+        raise InvalidNetworkNameError, network_name || ''
       end
     end
 

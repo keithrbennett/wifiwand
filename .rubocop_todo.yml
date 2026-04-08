@@ -553,24 +553,6 @@ Style/OptionalBooleanParameter:
     - 'lib/wifi-wand/services/command_executor.rb'
     - 'lib/wifi-wand/services/connection_manager.rb'
 
-# Offense count: 48
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: EnforcedStyle, AllowedCompactTypes.
-# SupportedStyles: compact, exploded
-Style/RaiseArgs:
-  Exclude:
-    - 'lib/wifi-wand/command_line_interface.rb'
-    - 'lib/wifi-wand/commands/log_command.rb'
-    - 'lib/wifi-wand/main.rb'
-    - 'lib/wifi-wand/models/base_model.rb'
-    - 'lib/wifi-wand/models/helpers/qr_code_generator.rb'
-    - 'lib/wifi-wand/models/mac_os_model.rb'
-    - 'lib/wifi-wand/models/ubuntu_model.rb'
-    - 'lib/wifi-wand/operating_systems.rb'
-    - 'lib/wifi-wand/os/base_os.rb'
-    - 'lib/wifi-wand/services/command_executor.rb'
-    - 'lib/wifi-wand/services/connection_manager.rb'
-    - 'spec/support/test_helpers.rb'
 
 # Offense count: 57
 # This cop supports safe autocorrection (--autocorrect).
