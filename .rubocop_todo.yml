@@ -342,14 +342,6 @@ RSpec/SubjectStub:
     - 'spec/wifi-wand/mac_os_wifi_auth_helper_spec.rb'
     - 'spec/wifi-wand/services/connection_manager_spec.rb'
 
-# Offense count: 14
-# This cop supports unsafe autocorrection (--autocorrect-all).
-RSpec/VerifiedDoubleReference:
-  Exclude:
-    - 'spec/wifi-wand/base_model_spec.rb'
-    - 'spec/wifi-wand/client_spec.rb'
-    - 'spec/wifi-wand/command_line_interface_spec.rb'
-    - 'spec/wifi-wand/os/mac_os_spec.rb'
 
 # Offense count: 2
 # This cop supports safe autocorrection (--autocorrect).

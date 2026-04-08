@@ -6,7 +6,7 @@ require 'wifi-wand/errors'
 require 'ostruct'
 
 RSpec.describe WifiWand::Client do
-  let(:mock_model) { instance_double('WifiWand::MacOsModel') }
+  let(:mock_model) { instance_double(WifiWand::MacOsModel) }
   let(:options) { OpenStruct.new }
 
   before do

@@ -456,11 +456,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:public_ip_address_info).and_call_original
 
       # Minimal Net::HTTP stubs
-      response = instance_double('Net::HTTPResponse', code: '500', message: 'Internal Server Error')
+      response = instance_double(Net::HTTPResponse, code: '500', message: 'Internal Server Error')
       # Make the response not be a Net::HTTPSuccess for any class check
       allow(response).to receive(:is_a?).and_return(false)
 
-      http = instance_double('Net::HTTP')
+      http = instance_double(Net::HTTP)
       allow(http).to receive(:use_ssl=)
       allow(http).to receive(:open_timeout=)
       allow(http).to receive(:read_timeout=)
