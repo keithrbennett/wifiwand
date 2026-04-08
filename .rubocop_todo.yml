@@ -396,15 +396,6 @@ Style/BlockDelimiters:
   Exclude:
     - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
 
-# Offense count: 3
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: Keywords, RequireColon.
-# Keywords: TODO, FIXME, OPTIMIZE, HACK, REVIEW, NOTE
-Style/CommentAnnotation:
-  Exclude:
-    - 'spec/wifi-wand/base_model_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/shell_interface_spec.rb'
-    - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
 
 # Offense count: 1
 # This cop supports unsafe autocorrection (--autocorrect-all).
@@ -496,15 +487,6 @@ Style/HashLikeCase:
     - 'spec/wifi-wand/command_line_interface/output_formats_integration_spec.rb'
 
 # Offense count: 8
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyle, EnforcedShorthandSyntax, UseHashRocketsWithSymbolValues, PreferHashRocketsForNonAlnumEndingSymbols.
-# SupportedStyles: ruby19, hash_rockets, no_mixed_keys, ruby19_no_mixed_keys
-# SupportedShorthandSyntax: always, never, either, consistent, either_consistent
-Style/HashSyntax:
-  Exclude:
-    - 'lib/tasks/swift.rake'
-    - 'spec/support/rspec_configuration.rb'
-    - 'spec/wifi-wand/base_model_spec.rb'
 
 # Offense count: 4
 # This cop supports unsafe autocorrection (--autocorrect-all).
@@ -596,12 +578,6 @@ Style/SafeNavigationChainLength:
   Exclude:
     - 'spec/wifi-wand/models/mac_os_model_spec.rb'
 
-# Offense count: 2
-# This cop supports unsafe autocorrection (--autocorrect-all).
-Style/SelectByRegexp:
-  Exclude:
-    - 'lib/wifi-wand/models/mac_os_model.rb'
-    - 'lib/wifi-wand/models/ubuntu_model.rb'
 
 # Offense count: 3
 # This cop supports safe autocorrection (--autocorrect).
@@ -634,13 +610,6 @@ Style/StringConcatenation:
     - 'spec/wifi-wand/models/mac_os_model_spec.rb'
     - 'spec/wifi-wand/services/network_state_manager_spec.rb'
 
-# Offense count: 6
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: single_quotes, double_quotes
-Style/StringLiteralsInInterpolation:
-  Exclude:
-    - 'lib/wifi-wand/mac_helper_release.rb'
 
 # Offense count: 3
 # This cop supports unsafe autocorrection (--autocorrect-all).

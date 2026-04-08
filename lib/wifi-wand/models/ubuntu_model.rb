@@ -505,9 +505,7 @@ module WifiWand
         # Use .source to get the raw pattern, ensuring flags apply uniformly to the new regex.
         dns_line_pattern = /#{ip_version_pattern.source}#{dns_field_pattern.source}/i
 
-        dns_lines = output.split("\n").select do |line|
-          line.match?(dns_line_pattern)
-        end
+        dns_lines = output.split("\n").grep(dns_line_pattern)
 
         dns_lines.map do |line|
           # Split only on the first colon so IPv6 addresses (which contain colons) are preserved

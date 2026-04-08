@@ -198,7 +198,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#disconnect', :disruptive do
     it 'disconnects from network and handles subsequent calls gracefully',
-      :needs_sudo_access => (WifiWand::OperatingSystems.current_id == :mac) do
+      needs_sudo_access: (WifiWand::OperatingSystems.current_id == :mac) do
       subject.wifi_on
 
       # Test disconnect works
@@ -325,7 +325,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
 
   # Non-disruptive context - only runs when wifi is already on
-  context 'when wifi starts on', :disruptive => false do
+  context 'when wifi starts on', disruptive: false do
     before(:each) do
       skip 'Wifi is not currently on' unless current_wifi_on
     end
@@ -334,7 +334,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   # Non-disruptive context - only runs when wifi is already off
-  context 'when wifi starts off', :disruptive => false do
+  context 'when wifi starts off', disruptive: false do
     before(:each) do
       skip 'Wifi is currently on' if current_wifi_on
     end
@@ -501,7 +501,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end.to raise_error(NotImplementedError, /must implement.*_available_network_names/)
     end
 
-    # Note: TracePoint callback testing is unreliable due to test mocking interference.
+    # NOTE: TracePoint callback testing is unreliable due to test mocking interference.
     # Instead, we test verify_underscore_methods_implemented directly above.
 
     it 'calls NotImplementedError for dynamically defined required methods' do

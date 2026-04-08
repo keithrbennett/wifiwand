@@ -80,7 +80,7 @@ describe WifiWand::CommandLineInterface::ShellInterface do
   end
 
   describe '#run_shell' do
-    # Note: run_shell uses pry binding which is difficult to test comprehensively
+    # NOTE: run_shell uses pry binding which is difficult to test comprehensively
     # These tests focus on the basic setup and requirements
 
     def mock_pry_session

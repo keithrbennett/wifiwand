@@ -15,6 +15,9 @@ module WifiWand
 
     # Message templates for output
     module Messages
+      SECTION_SEPARATOR = '=' * 60
+      SUBSECTION_SEPARATOR = '-' * 60
+
       def self.building_helper(source:, destination:, identity:)
         <<~MSG
           Building helper for distribution...
@@ -115,14 +118,14 @@ module WifiWand
       def self.workflow_starting
         <<~MSG
           Starting complete helper release workflow...
-          #{"=" * 60}
+          #{SECTION_SEPARATOR}
 
         MSG
       end
 
       WORKFLOW_SEPARATOR = <<~MSG
 
-        #{"=" * 60}
+        #{SECTION_SEPARATOR}
 
       MSG
 
@@ -138,23 +141,23 @@ module WifiWand
       def self.codesign_status_header
         <<~MSG
           Code Signing Status
-          #{"=" * 60}
+          #{SECTION_SEPARATOR}
 
           Signature Details:
-          #{"-" * 60}
+          #{SUBSECTION_SEPARATOR}
         MSG
       end
 
       SIGNATURE_VERIFICATION_HEADER = <<~MSG
 
         Signature Verification:
-        #{"-" * 60}
+        #{SUBSECTION_SEPARATOR}
       MSG
 
       NOTARIZATION_STATUS_HEADER = <<~MSG
 
         Notarization Status:
-        #{"-" * 60}
+        #{SUBSECTION_SEPARATOR}
       MSG
 
       def self.bundle_not_found(bundle_path)
@@ -532,7 +535,7 @@ module WifiWand
       system('codesign', '-dvv', bundle_path)
 
       puts "\nBinary Architectures:"
-      puts ('-' * 60)
+      puts SUBSECTION_SEPARATOR
       archs = Operations.get_binary_architectures(executable_path)
       if archs.include?('arm64') && archs.include?('x86_64')
         puts "✓ Universal binary (#{archs.join(', ')})"

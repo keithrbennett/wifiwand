@@ -19,7 +19,7 @@ module RSpecConfiguration
   # Basic RSpec configuration
   def self.configure_basic_settings(config)
     config.example_status_persistence_file_path = 'rspec-errors.txt'
-    config.filter_run_including :focus => true
+    config.filter_run_including focus: true
     config.run_all_when_everything_filtered = !config.only_failures?
 
     configure_disruptive_test_filtering(config)
@@ -260,11 +260,11 @@ module RSpecConfiguration
   def self.configure_disruptive_test_filtering(config)
     case ENV['RSPEC_DISRUPTIVE_TESTS']
     when 'only'
-      config.filter_run_including :disruptive => true
+      config.filter_run_including disruptive: true
     when 'include'
       # Run both disruptive and non-disruptive (no filters)
     when 'exclude', '', nil
-      config.filter_run_excluding :disruptive => true
+      config.filter_run_excluding disruptive: true
     else
       raise "Invalid RSPEC_DISRUPTIVE_TESTS option. Valid options: 'only', 'include', 'exclude', '', nil"
     end

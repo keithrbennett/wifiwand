@@ -303,7 +303,7 @@ module WifiWand
       return '' if output_text.nil?
 
       lines = output_text.lines.map(&:strip).reject(&:empty?)
-      filtered = lines.reject { |line| line.match?(/Failed to join network/i) }
+      filtered = lines.grep_v(/Failed to join network/i)
       reason = filtered.join(' ')
       reason.empty? ? output_text.strip : reason
     end

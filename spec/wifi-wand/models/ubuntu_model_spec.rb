@@ -711,7 +711,7 @@ module WifiWand
         end
 
         it 'filters out empty SSIDs' do
-          # Note: empty SSIDs show up as lines starting with ':' (colon)
+          # NOTE: empty SSIDs show up as lines starting with ':' (colon)
           nmcli_output = "TestNet:75\n:80\nOtherNet:90\n:60"
           allow(subject).to receive(:run_os_command)
             .with(%w[nmcli radio wifi], false)
