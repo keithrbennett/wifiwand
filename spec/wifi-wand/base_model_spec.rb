@@ -53,6 +53,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   # These tests run on any OS - interface consistency tests
   # Check current wifi state and create appropriate contexts
   let(:current_wifi_on) { subject.wifi_on? }
+
   describe '#internet_tcp_connectivity?' do
     it 'returns boolean indicating TCP connectivity' do
       expect([true, false]).to include(subject.internet_tcp_connectivity?)

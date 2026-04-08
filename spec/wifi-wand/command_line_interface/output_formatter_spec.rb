@@ -36,6 +36,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   end
 
   let(:options) { OpenStruct.new(post_processor: nil) }
+
   subject { test_class.new(options, mock_model) }
 
   # Shared examples for colorization methods

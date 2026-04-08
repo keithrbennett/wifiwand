@@ -6,6 +6,7 @@ require_relative('../../../lib/wifi-wand/main')
 describe WifiWand::Main do
   let(:out_stream) { StringIO.new }
   let(:err_stream) { StringIO.new }
+
   subject { described_class.new(out_stream, err_stream) }
 
   def parse_with_argv(*args)

@@ -18,6 +18,7 @@ describe WifiWand::CommandLineInterface::HelpSystem do
 
   let(:resource_manager) { double('ResourceManager') }
   let(:model) { double('Model', resource_manager: resource_manager) }
+
   subject { test_class.new(model) }
 
   before do

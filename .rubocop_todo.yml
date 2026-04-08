@@ -227,16 +227,6 @@ RSpec/DescribedClass:
     - 'spec/wifi-wand/models/mac_os_model_spec.rb'
     - 'spec/wifi-wand/os/base_os_spec.rb'
 
-# Offense count: 11
-# This cop supports safe autocorrection (--autocorrect).
-RSpec/EmptyLineAfterFinalLet:
-  Exclude:
-    - 'spec/wifi-wand/command_line_interface/help_system_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/main_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formats_integration_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
-    - 'spec/wifi-wand/services/connection_manager_spec.rb'
-
 
 # Offense count: 2
 RSpec/ExpectOutput:

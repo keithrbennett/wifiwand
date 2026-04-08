@@ -5,6 +5,7 @@ require_relative '../../../lib/wifi-wand/services/connection_manager'
 
 describe WifiWand::ConnectionManager do
   let(:mock_model) { double('model') }
+
   subject { described_class.new(mock_model, verbose: false) }
 
   before do

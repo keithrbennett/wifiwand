@@ -86,6 +86,7 @@ describe 'Output Format Integration Tests' do
         context 'with string data' do
           let(:test_data) { 'TestNetwork' }
           let(:options) { parse_options('-o', format_config[:code], 'ne') }
+
           subject { WifiWand::CommandLineInterface.new(options) }
 
           it 'produces valid output that can be parsed' do
@@ -117,6 +118,7 @@ describe 'Output Format Integration Tests' do
         context 'with boolean data' do
           let(:test_data) { true }
           let(:options) { parse_options('-o', format_config[:code], 'w') }
+
           subject { WifiWand::CommandLineInterface.new(options) }
 
           it 'produces valid output for true' do
@@ -173,6 +175,7 @@ describe 'Output Format Integration Tests' do
         context 'with array data' do
           let(:test_data) { ['Network1', 'Network2', 'Network3'] }
           let(:options) { parse_options('-o', format_config[:code], 'pr') }
+
           subject { WifiWand::CommandLineInterface.new(options) }
 
           it 'produces valid output that can be parsed' do
@@ -206,6 +209,7 @@ describe 'Output Format Integration Tests' do
         context 'with empty array data' do
           let(:test_data) { [] }
           let(:options) { parse_options('-o', format_config[:code], 'na') }
+
           subject { WifiWand::CommandLineInterface.new(options) }
 
           it 'produces valid output for empty array' do
@@ -238,6 +242,7 @@ describe 'Output Format Integration Tests' do
         context 'with hash data' do
           let(:test_data) { { 'ssid' => 'TestNet', 'channel' => 6, 'signal' => -50 } }
           let(:options) { parse_options('-o', format_config[:code], 'i') }
+
           subject { WifiWand::CommandLineInterface.new(options) }
 
           it 'produces valid output that can be parsed' do
@@ -287,6 +292,7 @@ describe 'Output Format Integration Tests' do
             }
           end
           let(:options) { parse_options('-o', format_config[:code], 'i') }
+
           subject { WifiWand::CommandLineInterface.new(options) }
 
           it 'produces valid output for nested structures' do
@@ -327,6 +333,7 @@ describe 'Output Format Integration Tests' do
         context 'with nil data' do
           let(:test_data) { nil }
           let(:options) { parse_options('-o', format_config[:code], 'ne') }
+
           subject { WifiWand::CommandLineInterface.new(options) }
 
           it 'produces valid output for nil' do
