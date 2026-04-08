@@ -169,7 +169,14 @@ describe 'QR Code Integration Tests' do
         allow(test_model).to receive(:command_available?).with('qrencode').and_return(true)
 
         # Mock methods that could make real system calls
-        allow(test_model).to receive_messages(connected_network_name: test_case[:network_name], connected_network_password: test_case[:password], connection_security_type: test_case[:security_type], preferred_networks: [test_case[:network_name]], preferred_network_password: test_case[:password], _preferred_network_password: test_case[:password])
+        allow(test_model).to receive_messages(
+          connected_network_name: test_case[:network_name],
+          connected_network_password: test_case[:password],
+          connection_security_type: test_case[:security_type],
+          preferred_networks: [test_case[:network_name]],
+          preferred_network_password: test_case[:password],
+          _preferred_network_password: test_case[:password]
+        )
 
         # Don't mock run_os_command - let it create real QR code files
         allow(test_model).to receive(:run_os_command) do |cmd|
@@ -216,7 +223,14 @@ describe 'QR Code Integration Tests' do
       allow(test_model).to receive(:command_available?).with('qrencode').and_return(true)
 
       # Mock methods that could make real system calls
-      allow(test_model).to receive_messages(connected_network_name: 'TestNetwork', connected_network_password: 'password', connection_security_type: 'WPA2', preferred_networks: ['TestNetwork'], preferred_network_password: 'password', _preferred_network_password: 'password')
+      allow(test_model).to receive_messages(
+        connected_network_name: 'TestNetwork',
+        connected_network_password: 'password',
+        connection_security_type: 'WPA2',
+        preferred_networks: ['TestNetwork'],
+        preferred_network_password: 'password',
+        _preferred_network_password: 'password'
+      )
 
       # Mock qrencode to fail
       allow(test_model).to receive(:run_os_command) do |cmd|
@@ -238,7 +252,14 @@ describe 'QR Code Integration Tests' do
       allow(test_model).to receive(:command_available?).with('qrencode').and_return(true)
 
       # Mock methods that could make real system calls
-      allow(test_model).to receive_messages(connected_network_name: 'TestNetwork', connected_network_password: 'password123', connection_security_type: 'WPA2', preferred_networks: ['TestNetwork'], preferred_network_password: 'password123', _preferred_network_password: 'password123')
+      allow(test_model).to receive_messages(
+        connected_network_name: 'TestNetwork',
+        connected_network_password: 'password123',
+        connection_security_type: 'WPA2',
+        preferred_networks: ['TestNetwork'],
+        preferred_network_password: 'password123',
+        _preferred_network_password: 'password123'
+      )
 
       allow(test_model).to receive(:run_os_command) do |cmd|
         if cmd.is_a?(Array) && cmd[0] == 'qrencode'
@@ -274,7 +295,14 @@ describe 'QR Code Integration Tests' do
         allow(test_model).to receive(:command_available?).with('qrencode').and_return(true)
 
         # Mock methods that could make real system calls
-        allow(test_model).to receive_messages(connected_network_name: config[:ssid], connected_network_password: config[:password], connection_security_type: config[:security], preferred_networks: [config[:ssid]], preferred_network_password: config[:password], _preferred_network_password: config[:password])
+        allow(test_model).to receive_messages(
+          connected_network_name: config[:ssid],
+          connected_network_password: config[:password],
+          connection_security_type: config[:security],
+          preferred_networks: [config[:ssid]],
+          preferred_network_password: config[:password],
+          _preferred_network_password: config[:password]
+        )
 
         allow(test_model).to receive(:run_os_command) do |cmd|
           system(*cmd) if cmd.is_a?(Array) && cmd[0] == 'qrencode'

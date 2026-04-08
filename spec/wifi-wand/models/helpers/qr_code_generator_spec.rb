@@ -18,7 +18,12 @@ describe 'QR Code Generator (unit)' do
   before(:each) do
     model.verbose_mode = false
     allow(model).to receive(:command_available?).with('qrencode').and_return(true)
-    allow(model).to receive_messages(connected_network_name: ssid, connection_security_type: security, connected_network_password: password, network_hidden?: false)
+    allow(model).to receive_messages(
+      connected_network_name: ssid,
+      connection_security_type: security,
+      connected_network_password: password,
+      network_hidden?: false
+    )
   end
 
   after(:each) do

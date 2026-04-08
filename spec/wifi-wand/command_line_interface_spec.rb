@@ -846,7 +846,10 @@ describe WifiWand::CommandLineInterface do
     before do
       allow(subject).to receive(:validate_command_line)
       allow(subject).to receive(:exit)
-      allow(subject).to receive_messages(process_command_line: 'command_result', help_hint: 'Type help for usage')
+      allow(subject).to receive_messages(
+        process_command_line: 'command_result',
+        help_hint: 'Type help for usage'
+      )
     end
 
     it 'validates command line and processes commands successfully' do

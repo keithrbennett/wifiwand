@@ -19,7 +19,12 @@ describe 'QR Code Overwrite Confirmation' do
   before(:each) do
     # Stub environment and dependencies
     allow(model).to receive(:command_available?).with('qrencode').and_return(true)
-    allow(model).to receive_messages(connected_network_name: ssid, connection_security_type: security, connected_network_password: password, network_hidden?: false)
+    allow(model).to receive_messages(
+      connected_network_name: ssid,
+      connection_security_type: security,
+      connected_network_password: password,
+      network_hidden?: false
+    )
   end
 
   # Helper to manage temp directory lifecycle

@@ -241,13 +241,19 @@ module WifiWand
 
       describe '#nameservers with active connection' do
         it 'returns connection-specific nameservers when present' do
-          allow(subject).to receive_messages(active_connection_profile_name: 'Conn1', _connected_network_name: 'SSID-Conn1')
+          allow(subject).to receive_messages(
+            active_connection_profile_name: 'Conn1',
+            _connected_network_name: 'SSID-Conn1'
+          )
           expect(subject).to receive(:nameservers_from_connection).with('Conn1').and_return(['1.1.1.1'])
           expect(subject.nameservers).to eq(['1.1.1.1'])
         end
 
         it 'prefers the active profile name over the SSID when resolving DNS' do
-          allow(subject).to receive_messages(active_connection_profile_name: 'RenamedProfile', _connected_network_name: 'SSID-RenamedProfile')
+          allow(subject).to receive_messages(
+            active_connection_profile_name: 'RenamedProfile',
+            _connected_network_name: 'SSID-RenamedProfile'
+          )
           expect(subject).to receive(:nameservers_from_connection).with('RenamedProfile')
             .and_return(['9.9.9.9'])
           expect(subject.nameservers).to eq(['9.9.9.9'])
@@ -261,7 +267,10 @@ module WifiWand
         end
 
         it 'uses SSID as a fallback when profile name is unavailable' do
-          allow(subject).to receive_messages(active_connection_profile_name: nil, _connected_network_name: 'FallbackSSID')
+          allow(subject).to receive_messages(
+            active_connection_profile_name: nil,
+            _connected_network_name: 'FallbackSSID'
+          )
           expect(subject).to receive(:nameservers_from_connection).with('FallbackSSID')
             .and_return(['4.4.4.4'])
           expect(subject.nameservers).to eq(['4.4.4.4'])
@@ -577,7 +586,10 @@ module WifiWand
         let(:profile_name) { 'TestNetwork' }
 
         before(:each) do
-          allow(subject).to receive_messages(_connected_network_name: network_name, active_connection_profile_name: profile_name)
+          allow(subject).to receive_messages(
+            _connected_network_name: network_name,
+            active_connection_profile_name: profile_name
+          )
         end
 
         it 'returns true when connection profile has hidden=yes' do
@@ -787,7 +799,10 @@ module WifiWand
           ssid_name = 'OfficeWiFi'
           nameservers = ['4.4.4.4']
 
-          allow(subject).to receive_messages(active_connection_profile_name: profile_name, _connected_network_name: ssid_name)
+          allow(subject).to receive_messages(
+            active_connection_profile_name: profile_name,
+            _connected_network_name: ssid_name
+          )
           allow(subject).to receive(:nameservers_from_connection).with(profile_name).and_return(nameservers)
 
           allow(subject).to receive(:run_os_command)
@@ -1206,7 +1221,10 @@ module WifiWand
 
         it 'handles cases when no active connection exists' do
           # Mock no active connection
-          allow(subject).to receive_messages(active_connection_profile_name: nil, _connected_network_name: nil)
+          allow(subject).to receive_messages(
+            active_connection_profile_name: nil,
+            _connected_network_name: nil
+          )
 
           expect { subject.set_nameservers(['8.8.8.8']) }
             .to raise_error(WifiWand::WifiInterfaceError, /No active Wi-Fi connection/)
@@ -1270,7 +1288,11 @@ module WifiWand
         it 'handles security parameter detection failures gracefully' do
           # Mock get_security_parameter to return nil (detection failure)
           # Mock the fallback connection attempt to avoid real network connection
-          allow(subject).to receive_messages(get_security_parameter: command_result(stdout: nil), _connected_network_name: nil, find_best_profile_for_ssid: nil)
+          allow(subject).to receive_messages(
+            get_security_parameter: command_result(stdout: nil),
+            _connected_network_name: nil,
+            find_best_profile_for_ssid: nil
+          )
           allow(subject).to receive(:run_os_command)
             .with(/nmcli dev wifi connect.*password/)
             .and_return(command_result(stdout: ''))  # Simulate successful connection

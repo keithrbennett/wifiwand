@@ -37,7 +37,10 @@ describe WifiWand::NetworkStateManager do
     end
 
     it 'handles password retrieval failure' do
-      allow(mock_model).to receive_messages(connected_network_name: 'TestNetwork', preferred_network_password: nil)
+      allow(mock_model).to receive_messages(
+        connected_network_name: 'TestNetwork',
+        preferred_network_password: nil
+      )
       state = state_manager.capture_network_state
       expect(state[:network_name]).to eq('TestNetwork')
       expect(state[:network_password]).to be_nil
@@ -76,7 +79,11 @@ describe WifiWand::NetworkStateManager do
       end
 
       it 'raises exceptions on connection failures' do
-        allow(mock_model).to receive_messages(wifi_on?: true, connected_network_name: 'OtherNetwork', preferred_network_password: 'testpass')
+        allow(mock_model).to receive_messages(
+          wifi_on?: true,
+          connected_network_name: 'OtherNetwork',
+          preferred_network_password: 'testpass'
+        )
         allow(mock_model).to receive(:connect).and_raise(StandardError.new('Network unavailable'))
 
         expect do
@@ -97,7 +104,11 @@ describe WifiWand::NetworkStateManager do
       end
 
       it 'swallows connection failures and logs to stderr' do
-        allow(mock_model).to receive_messages(wifi_on?: true, connected_network_name: 'OtherNetwork', preferred_network_password: 'testpass')
+        allow(mock_model).to receive_messages(
+          wifi_on?: true,
+          connected_network_name: 'OtherNetwork',
+          preferred_network_password: 'testpass'
+        )
         allow(mock_model).to receive(:connect).and_raise(StandardError.new('Network unavailable'))
         allow(mock_model).to receive(:till)
 

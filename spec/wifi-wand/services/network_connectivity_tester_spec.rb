@@ -120,7 +120,11 @@ describe WifiWand::NetworkConnectivityTester do
     let(:tester) { described_class.new(verbose: false) }
 
     it 'returns true when TCP, DNS, and captive portal check all pass' do
-      allow(tester).to receive_messages(tcp_connectivity?: true, dns_working?: true, captive_portal_free?: true)
+      allow(tester).to receive_messages(
+        tcp_connectivity?: true,
+        dns_working?: true,
+        captive_portal_free?: true
+      )
 
       expect(tester.connected_to_internet?).to be true
     end
@@ -144,7 +148,11 @@ describe WifiWand::NetworkConnectivityTester do
     end
 
     it 'returns false when captive portal is detected (TCP and DNS pass but portal intercepts)' do
-      allow(tester).to receive_messages(tcp_connectivity?: true, dns_working?: true, captive_portal_free?: false)
+      allow(tester).to receive_messages(
+        tcp_connectivity?: true,
+        dns_working?: true,
+        captive_portal_free?: false
+      )
 
       expect(tester.connected_to_internet?).to be false
     end
