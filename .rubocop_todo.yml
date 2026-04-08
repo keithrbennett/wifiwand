@@ -6,16 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 18
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyle, IndentationWidth.
-# SupportedStyles: with_first_element, with_fixed_indentation
-Layout/ArrayAlignment:
-  Exclude:
-    - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
-    - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
-    - 'spec/wifi-wand/os/mac_os_spec.rb'
-
 # Offense count: 7
 # This cop supports safe autocorrection (--autocorrect).
 # Configuration parameters: AllowMultipleStyles, EnforcedHashRocketStyle, EnforcedColonStyle, EnforcedLastArgumentHashStyle.

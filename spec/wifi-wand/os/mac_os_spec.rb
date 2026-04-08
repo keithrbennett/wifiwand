@@ -16,14 +16,14 @@ describe WifiWand::MacOs do
   describe '#current_os_is_this_os?' do
     detection_scenarios = [
       ['detects macOS with darwin host_os',                   'darwin',          true],
-        ['detects macOS with darwin-based host_os',             'x86_64-darwin21', true],
-        ['returns false for Linux system',                      'linux-gnu',       false],
-        ['returns false for Windows system',                    'mingw32',         false],
-        ['returns false for Windows mswin variant',             'mswin',           false],
-        ['returns false for cygwin environment',                'cygwin',          false],
-        ['returns false for uppercase DARWIN (case sensitive)', 'DARWIN',          false],
-        ['returns false for nil host_os',                       nil,               false],
-        ['returns false for empty host_os',                     '',                false],
+      ['detects macOS with darwin-based host_os',             'x86_64-darwin21', true],
+      ['returns false for Linux system',                      'linux-gnu',       false],
+      ['returns false for Windows system',                    'mingw32',         false],
+      ['returns false for Windows mswin variant',             'mswin',           false],
+      ['returns false for cygwin environment',                'cygwin',          false],
+      ['returns false for uppercase DARWIN (case sensitive)', 'DARWIN',          false],
+      ['returns false for nil host_os',                       nil,               false],
+      ['returns false for empty host_os',                     '',                false],
     ].map { |name, host_os, expected| { name:, host_os:, expected: } }
 
     detection_scenarios.each do |scenario|

@@ -347,7 +347,7 @@ module WifiWand
     #     raise an error
     def _preferred_network_password(preferred_network_name)
       run_os_command(['security', 'find-generic-password', '-D', 'AirPort network password', '-a',
-                      preferred_network_name, '-w']).stdout.chomp
+        preferred_network_name, '-w']).stdout.chomp
     rescue WifiWand::CommandExecutor::OsCommandError => e
       handle_keychain_error(preferred_network_name, e)
     end

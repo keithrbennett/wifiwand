@@ -68,14 +68,14 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
     test_cases = [
       ['colorizes text with red color when TTY',              :red,     "\e[31mtest text\e[0m", true],
-        ['colorizes text with green color when TTY',            :green,   "\e[32mtest text\e[0m", true],
-        ['colorizes text with yellow color when TTY',           :yellow,  "\e[33mtest text\e[0m", true],
-        ['colorizes text with blue color when TTY',             :blue,    "\e[34mtest text\e[0m", true],
-        ['colorizes text with cyan color when TTY',             :cyan,    "\e[36mtest text\e[0m", true],
-        ['colorizes text with magenta color when TTY',          :magenta, "\e[35mtest text\e[0m", true],
-        ['colorizes text with bold style when TTY',             :bold,    "\e[1mtest text\e[0m",  true],
-        ['returns plain text without color codes when not TTY', :red,     'test text',            false],
-        ['returns plain text when no color is provided',        nil,      'test text',            true],
+      ['colorizes text with green color when TTY',            :green,   "\e[32mtest text\e[0m", true],
+      ['colorizes text with yellow color when TTY',           :yellow,  "\e[33mtest text\e[0m", true],
+      ['colorizes text with blue color when TTY',             :blue,    "\e[34mtest text\e[0m", true],
+      ['colorizes text with cyan color when TTY',             :cyan,    "\e[36mtest text\e[0m", true],
+      ['colorizes text with magenta color when TTY',          :magenta, "\e[35mtest text\e[0m", true],
+      ['colorizes text with bold style when TTY',             :bold,    "\e[1mtest text\e[0m",  true],
+      ['returns plain text without color codes when not TTY', :red,     'test text',            false],
+      ['returns plain text when no color is provided',        nil,      'test text',            true],
     ].map { |name, color, expected_output, tty| { name:, color:, expected_output:, tty: } }
 
     test_cases.each do |data|

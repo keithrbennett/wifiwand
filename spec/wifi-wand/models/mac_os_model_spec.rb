@@ -517,10 +517,10 @@ module WifiWand
             allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
             if tc[:input] == :clear
               expect(model).to receive(:run_os_command).with(['networksetup', '-setdnsservers', 'Wi-Fi',
-                                                              'empty'])
+                'empty'])
             else
               expect(model).to receive(:run_os_command).with(['networksetup', '-setdnsservers',
-                                                              'Wi-Fi'] + tc[:input])
+                'Wi-Fi'] + tc[:input])
             end
             expect(model.set_nameservers(tc[:input])).to eq(tc[:input])
           end
@@ -539,7 +539,7 @@ module WifiWand
           ipv6_test_cases.each do |tc|
             allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
             expect(model).to receive(:run_os_command).with(['networksetup', '-setdnsservers',
-                                                            'Wi-Fi'] + tc[:input])
+              'Wi-Fi'] + tc[:input])
             expect(model.set_nameservers(tc[:input])).to eq(tc[:input])
           end
         end
@@ -753,7 +753,7 @@ module WifiWand
           allow(model).to receive(:preferred_networks).and_return([ssid])
 
           expected_cmd = ['security', 'find-generic-password', '-D', 'AirPort network password', '-a', ssid,
-                          '-w']
+            '-w']
           # Expect exact command, but avoid real execution by raising "not found" (exit 44)
           call_sequence = []
           allow(model).to receive(:run_os_command) do |command|

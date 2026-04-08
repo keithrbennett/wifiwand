@@ -928,13 +928,13 @@ describe 'Common WiFi Model Behavior (All OS)' do
     context 'when escaping special characters' do
       [
         ['Network;With;Semicolons', 'password,with,commas',
-         'WIFI:T:WPA;S:Network\;With\;Semicolons;P:password\,with\,commas;H:false;;'],
+          'WIFI:T:WPA;S:Network\;With\;Semicolons;P:password\,with\,commas;H:false;;'],
         ['Network:With:Colons', 'password:with:colons',
-         'WIFI:T:WPA;S:Network\:With\:Colons;P:password\:with\:colons;H:false;;'],
+          'WIFI:T:WPA;S:Network\:With\:Colons;P:password\:with\:colons;H:false;;'],
         ['Network\With\Backslashes', 'pass\word',
-         'WIFI:T:WPA;S:Network\\\\With\\\\Backslashes;P:pass\\\\word;H:false;;'],
+          'WIFI:T:WPA;S:Network\\\\With\\\\Backslashes;P:pass\\\\word;H:false;;'],
         ['Regular-Network_Name', 'regularPassword123',
-         'WIFI:T:WPA;S:Regular-Network_Name;P:regularPassword123;H:false;;']
+          'WIFI:T:WPA;S:Regular-Network_Name;P:regularPassword123;H:false;;']
       ].each do |test_network, test_password, expected_qr_string|
         it "properly escapes special characters in '#{test_network}' / '#{test_password}'" do
           allow(subject).to receive(:connected_network_name).and_return(test_network)
