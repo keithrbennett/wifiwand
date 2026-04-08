@@ -175,10 +175,12 @@ module WifiWand
     def cmd_t(*options)
       # Validate that target status argument was provided
       if options.empty? || options[0].nil?
-        raise WifiWand::ConfigurationError, "Missing target status argument.\n" \
-            "Usage: till conn|disc|on|off [timeout_secs] [interval_secs]\n" \
-            "Examples: 'till off 20' or 'till conn 30 0.5'\n" \
-            "#{help_hint}"
+        raise WifiWand::ConfigurationError, <<~MSG.chomp
+          Missing target status argument.
+          Usage: till conn|disc|on|off [timeout_secs] [interval_secs]
+          Examples: 'till off 20' or 'till conn 30 0.5'
+          #{help_hint}
+        MSG
       end
 
       target_status = options[0].to_sym
