@@ -81,21 +81,21 @@ module WifiWand
     end
 
     def call
-        options = parse_command_line
-        if options.version_requested
-          @out_stream.puts(WifiWand::VERSION)
-          return
-        end
-        # Ensure CLI and model share the main's output streams
-        options.out_stream = @out_stream
-        options.err_stream = @err_stream
-        WifiWand::CommandLineInterface.new(options).call
-      rescue => e
-        # For option parsing errors, we don't have options.verbose yet, so default to false
-        verbose = !!options&.verbose
-        handle_error(e, verbose)
-        # In non-interactive CLI mode, ensure failures return a non-zero exit code
-        exit(1) unless options&.interactive_mode
+      options = parse_command_line
+      if options.version_requested
+        @out_stream.puts(WifiWand::VERSION)
+        return
+      end
+      # Ensure CLI and model share the main's output streams
+      options.out_stream = @out_stream
+      options.err_stream = @err_stream
+      WifiWand::CommandLineInterface.new(options).call
+    rescue => e
+      # For option parsing errors, we don't have options.verbose yet, so default to false
+      verbose = !!options&.verbose
+      handle_error(e, verbose)
+      # In non-interactive CLI mode, ensure failures return a non-zero exit code
+      exit(1) unless options&.interactive_mode
     end
 
     private

@@ -20,9 +20,9 @@ module WifiWand
 
     describe 'error messages' do
       it 'provides meaningful NonSubclassInstantiationError message' do
-          described_class.new(:test, 'test')
-        rescue WifiWand::BaseOs::NonSubclassInstantiationError => e
-          expect(e.to_s).to include('can only be instantiated by subclasses')
+        described_class.new(:test, 'test')
+      rescue WifiWand::BaseOs::NonSubclassInstantiationError => e
+        expect(e.to_s).to include('can only be instantiated by subclasses')
       end
 
       it 'raises MethodNotImplementedError for abstract methods' do

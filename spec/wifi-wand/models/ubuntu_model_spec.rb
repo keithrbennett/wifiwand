@@ -57,7 +57,7 @@ module WifiWand
       describe '#_connect early return and branches' do
         # Helper method to set up common _connect test mocking
         def setup_connect_test(connected_network: nil, profile_name: nil, old_password: nil,
-                               security_param: nil)
+          security_param: nil)
           allow(subject).to receive(:_connected_network_name).and_return(connected_network)
           if profile_name
             allow(subject).to receive(:find_best_profile_for_ssid).and_return(profile_name)

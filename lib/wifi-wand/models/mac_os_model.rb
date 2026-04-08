@@ -324,8 +324,8 @@ module WifiWand
           # -3900: Generic CoreWLAN error
           # -3905: Network not found via CoreWLAN
           if e.text.include?('code: -3900') ||
-             e.text.include?('code: -3905') ||
-             e.text.downcase.include?('network not found')
+              e.text.include?('code: -3905') ||
+              e.text.downcase.include?('network not found')
             out_stream.puts "Swift/CoreWLAN failed (#{e.text.strip}). Trying networksetup fallback..." if verbose_mode
           else
             # For other errors, re-raise as they may indicate real problems

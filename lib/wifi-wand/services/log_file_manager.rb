@@ -58,10 +58,10 @@ module WifiWand
 
     # Set up the log file (open file in append mode)
     def setup_log_file
-        open_log_file
-        log_message("Log file initialized at #{@log_file_path}") if @verbose
-      rescue StandardError => e
-        log_error("Failed to initialize log file: #{e.message}")
+      open_log_file
+      log_message("Log file initialized at #{@log_file_path}") if @verbose
+    rescue StandardError => e
+      log_error("Failed to initialize log file: #{e.message}")
     end
 
     # Open the log file in append mode
