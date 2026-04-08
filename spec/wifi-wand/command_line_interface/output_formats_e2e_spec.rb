@@ -129,11 +129,11 @@ describe 'Output Format End-to-End Tests' do
           when 'i'
             expect(output).to eq('true')
           when 'j', 'k'
-            expect(JSON.parse(output)).to eq(true)
+            expect(JSON.parse(output)).to be(true)
           when 'p'
             expect(output).to eq('true')
           when 'y'
-            expect(YAML.safe_load(output)).to eq(true)
+            expect(YAML.safe_load(output)).to be(true)
           end
         end
 
@@ -366,7 +366,7 @@ describe 'Output Format End-to-End Tests' do
       expect(parsed['string']).to be_a(String)
       expect(parsed['integer']).to be_a(Integer)
       expect(parsed['float']).to be_a(Float)
-      expect(parsed['boolean']).to eq(true)
+      expect(parsed['boolean']).to be(true)
       expect(parsed['null']).to be_nil
       expect(parsed['array']).to be_a(Array)
       expect(parsed['nested']).to be_a(Hash)

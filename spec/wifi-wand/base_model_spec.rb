@@ -301,7 +301,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'can determine if connected to Internet' do
-      subject.connected_to_internet?
+      expect { subject.connected_to_internet? }.not_to raise_error
     end
 
     it 'can get wifi interface' do

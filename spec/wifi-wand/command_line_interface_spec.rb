@@ -135,10 +135,10 @@ describe WifiWand::CommandLineInterface do
         actions = %w[conn connec connect].map { |s| subject.find_command_action(s) }
 
         all_actions_identical = (actions.uniq.size == 1)
-        expect(all_actions_identical).to eq(true)
+        expect(all_actions_identical).to be(true)
 
         # must be callables (Proc, other object with 'call' method)
-        expect(all_actions_identical && actions.first.respond_to?(:call)).to eq(true)
+        expect(all_actions_identical && actions.first.respond_to?(:call)).to be(true)
       end
 
       specify 'invalid command strings will return nil' do

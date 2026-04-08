@@ -202,15 +202,6 @@ RSpec/AnyInstance:
     - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
     - 'spec/wifi-wand/operating_systems_spec.rb'
 
-# Offense count: 14
-# This cop supports unsafe autocorrection (--autocorrect-all).
-RSpec/BeEq:
-  Exclude:
-    - 'spec/wifi-wand/client_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formats_e2e_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formats_integration_spec.rb'
-    - 'spec/wifi-wand/command_line_interface_spec.rb'
-    - 'spec/wifi-wand/models/base_model_resource_spec.rb'
 
 # Offense count: 2
 RSpec/BeforeAfterAll:
@@ -310,13 +301,6 @@ RSpec/NamedSubject:
     - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
     - 'spec/wifi-wand/os/ubuntu_spec.rb'
     - 'spec/wifi-wand/services/connection_manager_spec.rb'
-
-# Offense count: 1
-# Configuration parameters: AllowedPatterns.
-# AllowedPatterns: ^expect_, ^assert_
-RSpec/NoExpectationExample:
-  Exclude:
-    - 'spec/wifi-wand/base_model_spec.rb'
 
 
 # Offense count: 1

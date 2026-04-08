@@ -53,7 +53,7 @@ RSpec.describe WifiWand::Client do
       # Verify that Hash was converted to OpenStruct before passing to create_model_for_current_os
       expect(WifiWand::OperatingSystems).to have_received(:create_model_for_current_os) do |arg|
         expect(arg).to be_a(OpenStruct)
-        expect(arg.verbose).to eq(true)
+        expect(arg.verbose).to be(true)
         expect(arg.wifi_interface).to eq('wlan0')
       end
     end
