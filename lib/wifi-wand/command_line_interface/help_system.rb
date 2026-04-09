@@ -61,7 +61,7 @@ module WifiWand
           qr [filespec|'-'] [password]
                                     - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats; optional password avoids macOS auth prompt
           ro[pen]                   - open web resources: #{resource_help}
-          s[tatus]                  - status line (WiFi, Network, TCP, DNS, Internet)
+          s[tatus]                  - status line (WiFi, Network, Internet; shows captive portal warning if login is required)
           t[ill]                    - wait until state is reached:
                                       Usage: till conn|disc|on|off [timeout_secs] [interval_secs]
                                       conn/disc = Internet connected?/disconnected; on/off = Wi‑Fi power state

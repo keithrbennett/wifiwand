@@ -788,44 +788,42 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   describe '#status_line_data' do
-    it 'returns a hash with the correct keys' do
-      allow(subject).to receive(:fast_connectivity?).and_return(true)
-
+    it 'returns a hash with the correct keys including captive_portal_login_required' do
       data = subject.status_line_data
       expect(data).to be_a(Hash)
 
-      # All models should have wifi_on, internet_connected, and network_name
-      expect(data.keys).to include(:wifi_on, :internet_connected, :network_name)
+      expect(data.keys).to include(:wifi_on, :internet_connected, :network_name, :captive_portal_login_required)
     end
 
-    test_cases = {
-      'when everything is working' => {
-        wifi_on:            true,
-        network_name:       'TestNetwork',
-        internet_connected: true
-      },
-      'when wifi is off'           => {
-        wifi_on:            false,
-        network_name:       nil,
-        internet_connected: false
-      }
-    }
+    it 'returns correct data when everything is working' do
+      allow(subject).to receive_messages(
+        wifi_on?: true,
+        connected_network_name: 'TestNetwork',
+        internet_tcp_connectivity?: true,
+        dns_working?: true,
+        captive_portal_free?: true
+      )
 
-    test_cases.each do |context, expected_data|
-      it "returns correct data #{context}" do
-        allow(subject).to receive_messages(
-          wifi_on?: expected_data[:wifi_on],
-          connected_network_name: expected_data[:network_name],
-          fast_connectivity?: expected_data[:internet_connected]
-        )
+      data = subject.status_line_data
 
-        data = subject.status_line_data
+      expect(data[:wifi_on]).to be true
+      expect(data[:internet_connected]).to be true
+      expect(data[:network_name]).to eq('TestNetwork')
+      expect(data[:captive_portal_login_required]).to eq(:no)
+    end
 
-        # All models should return wifi_on, internet_connected, and network_name
-        expect(data[:wifi_on]).to eq(expected_data[:wifi_on])
-        expect(data[:internet_connected]).to eq(expected_data[:internet_connected])
-        expect(data[:network_name]).to eq(expected_data[:network_name])
-      end
+    it 'returns correct data when wifi is off' do
+      allow(subject).to receive_messages(
+        wifi_on?: false,
+        connected_network_name: nil
+      )
+
+      data = subject.status_line_data
+
+      expect(data[:wifi_on]).to be false
+      expect(data[:internet_connected]).to be false
+      expect(data[:network_name]).to be_nil
+      expect(data[:captive_portal_login_required]).to eq(:no)
     end
 
     it 'returns nil when an exception is raised' do

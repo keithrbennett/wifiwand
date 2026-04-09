@@ -165,25 +165,59 @@ RSpec.describe WifiWand::BaseModel do
     let(:progress_updates) { [] }
 
     before do
-      allow(model).to receive_messages(wifi_on?: true, connected_network_name: 'Oasis Coffee')
+      allow(model).to receive_messages(wifi_on?: true, connected_network_name: 'HomeNetwork')
     end
 
-    it 'uses the full internet check rather than the fast TCP-only probe' do
-      expect(model).to receive(:connected_to_internet?).and_return(false)
+    it 'uses the full internet check (TCP+DNS+captive portal) rather than the fast TCP-only probe' do
+      allow(model).to receive(:internet_tcp_connectivity?).and_return(true)
+      allow(model).to receive(:dns_working?).and_return(true)
+      allow(model).to receive(:captive_portal_free?).and_return(true)
       expect(model).not_to receive(:fast_connectivity?)
+      expect(model).not_to receive(:connected_to_internet?)
 
       result = model.status_line_data(progress_callback: ->(data) { progress_updates << data })
 
       expect(result).to eq(
-        wifi_on:            true,
-        internet_connected: false,
-        network_name:       'Oasis Coffee'
+        wifi_on:                       true,
+        internet_connected:            true,
+        network_name:                  'HomeNetwork',
+        captive_portal_login_required: :no
       )
       expect(progress_updates).to eq([
-        { wifi_on: true, internet_connected: nil,   network_name: :pending },
-        { wifi_on: true, internet_connected: nil,   network_name: 'Oasis Coffee' },
-        { wifi_on: true, internet_connected: false, network_name: 'Oasis Coffee' }
+        { wifi_on: true, internet_connected: nil,  network_name: :pending,       captive_portal_login_required: :unknown },
+        { wifi_on: true, internet_connected: nil,  network_name: 'HomeNetwork', captive_portal_login_required: :unknown },
+        { wifi_on: true, internet_connected: true, network_name: 'HomeNetwork', captive_portal_login_required: :no }
       ])
+    end
+
+    it 'sets captive_portal_login_required to :yes when TCP and DNS work but captive portal is detected' do
+      allow(model).to receive(:internet_tcp_connectivity?).and_return(true)
+      allow(model).to receive(:dns_working?).and_return(true)
+      allow(model).to receive(:captive_portal_free?).and_return(false)
+
+      result = model.status_line_data
+
+      expect(result[:internet_connected]).to be false
+      expect(result[:captive_portal_login_required]).to eq(:yes)
+    end
+
+    it 'sets captive_portal_login_required to :no when TCP fails (no captive portal confidence)' do
+      allow(model).to receive(:internet_tcp_connectivity?).and_return(false)
+      allow(model).to receive(:dns_working?).and_return(false)
+
+      result = model.status_line_data
+
+      expect(result[:internet_connected]).to be false
+      expect(result[:captive_portal_login_required]).to eq(:no)
+    end
+
+    it 'sets captive_portal_login_required to :no when wifi is off' do
+      allow(model).to receive(:wifi_on?).and_return(false)
+
+      result = model.status_line_data
+
+      expect(result[:internet_connected]).to be false
+      expect(result[:captive_portal_login_required]).to eq(:no)
     end
   end
 

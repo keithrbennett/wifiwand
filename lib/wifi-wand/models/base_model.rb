@@ -308,15 +308,23 @@ module WifiWand
     # Network name and internet checks run concurrently using fibers to shorten
     # the perceived wait. Internet status uses the full connectivity path so
     # captive portals are reported as not connected.
+    # The returned hash includes :captive_portal_login_required (:yes/:no/:unknown)
+    # where :yes means a captive portal was confidently detected and login is needed.
     def status_line_data(progress_callback: nil)
       # Build initial partial hash with pending values
-      partial = { wifi_on: wifi_on?, internet_connected: nil, network_name: :pending }
+      partial = {
+        wifi_on:                       wifi_on?,
+        internet_connected:            nil,
+        network_name:                  :pending,
+        captive_portal_login_required: :unknown
+      }
 
       progress_callback&.call(partial.dup)
 
       unless partial[:wifi_on]
         partial[:network_name] = nil
         partial[:internet_connected] = false
+        partial[:captive_portal_login_required] = :no
         progress_callback&.call(partial.dup)
         return partial
       end
@@ -329,13 +337,26 @@ module WifiWand
           nil
         end
 
-        connectivity_task = task.async { connected_to_internet? }
+        # Full connectivity check: TCP + DNS + captive portal, computed separately
+        # so we can derive captive_portal_login_required independently.
+        connectivity_task = task.async do
+          tcp = begin; internet_tcp_connectivity?; rescue; false; end
+          dns = begin; dns_working?; rescue; false; end
+          if tcp && dns
+            captive_free = begin; captive_portal_free?; rescue; true; end
+            { internet_connected: captive_free, captive_portal_login_required: captive_free ? :no : :yes }
+          else
+            { internet_connected: false, captive_portal_login_required: :no }
+          end
+        end
 
         # Wait for tasks to complete
         partial[:network_name] = ssid_task.wait
         progress_callback&.call(partial.dup)
 
-        partial[:internet_connected] = connectivity_task.wait
+        connectivity = connectivity_task.wait
+        partial[:internet_connected] = connectivity[:internet_connected]
+        partial[:captive_portal_login_required] = connectivity[:captive_portal_login_required]
 
         final_data = partial.dup
         progress_callback&.call(final_data)

@@ -289,9 +289,10 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   describe '#status_line' do
     let(:status_data) do
       {
-        wifi_on:            true,
-        network_name:       'TestNetwork',
-        internet_connected: true
+        wifi_on:                       true,
+        network_name:                  'TestNetwork',
+        internet_connected:            true,
+        captive_portal_login_required: :no
       }
     end
 
@@ -341,6 +342,34 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         expect(result).to match(/WiFi.*status unavailable/)
         expect(result).to match(YELLOW_TEXT_REGEX) # Yellow warning
       end
+
+      context 'captive portal detection' do
+        it 'does not show captive portal warning when captive_portal_login_required is false' do
+          result = subject.status_line(status_data)
+          expect(result).not_to match(/Captive Portal/)
+        end
+
+        it 'does not show captive portal warning when captive_portal_login_required is :unknown' do
+          data = status_data.merge(captive_portal_login_required: :unknown)
+          result = subject.status_line(data)
+          expect(result).not_to match(/Captive Portal/)
+        end
+
+        it 'shows captive portal warning with icon and red color when captive_portal_login_required is :yes' do
+          data = status_data.merge(captive_portal_login_required: :yes, internet_connected: false)
+          result = subject.status_line(data)
+
+          expect(result).to match(/Captive Portal Login Required/)
+          expect(result).to include('⚠️')
+          expect(result).to match(RED_TEXT_REGEX)
+        end
+
+        it 'shows captive portal warning even when status_data has no captive_portal_login_required key' do
+          data = status_data.reject { |k, _| k == :captive_portal_login_required }
+          result = subject.status_line(data)
+          expect(result).not_to match(/Captive Portal/)
+        end
+      end
     end
 
     context 'when stdout is not a TTY' do
@@ -372,6 +401,22 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
         expect(result).to match(/WiFi.*status unavailable/)
         expect(result).not_to match(ANSI_COLOR_REGEX)
+      end
+
+      context 'captive portal detection' do
+        it 'shows captive portal warning text without ANSI color codes' do
+          data = status_data.merge(captive_portal_login_required: :yes, internet_connected: false)
+          result = subject.status_line(data)
+
+          expect(result).to match(/Captive Portal Login Required/)
+          expect(result).to include('⚠️')
+          expect(result).not_to match(ANSI_COLOR_REGEX)
+        end
+
+        it 'does not show captive portal warning when not required' do
+          result = subject.status_line(status_data)
+          expect(result).not_to match(/Captive Portal/)
+        end
       end
     end
   end

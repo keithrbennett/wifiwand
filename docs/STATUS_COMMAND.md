@@ -14,45 +14,108 @@ Display the current status once:
 wifi-wand status
 ```
 
-Output:
+Normal output:
 ```
-WiFi: ON | Network: "HomeNetwork" | TCP: YES | DNS: YES | Internet: YES
+WiFi: ✅ YES | Network: HomeNetwork | Internet: ✅ YES
+```
+
+When a captive portal is detected (e.g., hotel or coffee shop that requires a login):
+```
+WiFi: ✅ YES | Network: HotelWiFi | Internet: ❌ NO | ⚠️ Captive Portal Login Required
 ```
 
 ### Colorized Output
 
 On terminals that support it, the status is color-coded for at-a-glance readability:
 
-- **Green**: Connected/Working (WiFi ON, TCP/DNS working, Internet available)
-- **Red**: Disconnected/Not Working (WiFi OFF, not connected, connectivity issues)
+- **Green**: Connected/Working (WiFi ON, Internet available)
+- **Red**: Disconnected/Not Working (WiFi OFF, Internet unavailable)
 - **Cyan**: Network names
-
-Example output with colors:
-```
-WiFi: [GREEN]ON[RESET] | Network: [CYAN]"HomeNetwork"[RESET] | TCP: [GREEN]YES[RESET] | DNS: [GREEN]YES[RESET] | Internet: [GREEN]YES[RESET]
-```
+- **Yellow**: Warning states (captive portal detected, pending checks, or no network)
 
 ## Understanding the Status Components
 
 ### WiFi Status
-- **ON** - WiFi radio is powered on and available
-- **OFF** - WiFi radio is powered off
+- **YES** - WiFi radio is powered on and available
+- **NO** - WiFi radio is powered off
 
 ### Network
 - Shows the SSID (network name) you're connected to
-- If not connected: `N/A`
-
-### TCP Connectivity
-- **YES** - TCP connections working (can reach remote servers)
-- **NO** - TCP connectivity unavailable
-
-### DNS Connectivity
-- **YES** - DNS resolution working (can resolve domain names)
-- **NO** - DNS resolution unavailable
+- If not connected: `[none]`
 
 ### Internet Status
-- **YES** - Both TCP and DNS working (internet is available)
-- **NO** - Internet is not available (either TCP or DNS not working)
+- **YES** - TCP connectivity, DNS resolution, and no captive portal all confirmed
+- **NO** - Internet is not available (TCP failure, DNS failure, or captive portal detected)
+
+### Captive Portal Login Required *(shown only when detected)*
+- Appears as `⚠️ Captive Portal Login Required` appended to the status line
+- Only shown when a captive portal is **confidently** detected (TCP and DNS work, but HTTP
+  connectivity checks show portal interception)
+- Not shown when internet is simply down (TCP or DNS failure)
+
+## Captive Portal Detection
+
+A captive portal is a network that intercepts HTTP traffic to redirect users to a login page
+(common in hotels, airports, coffee shops, etc.). wifi-wand detects this by:
+
+1. Checking TCP connectivity (layer 4)
+2. Checking DNS resolution
+3. If both pass, making HTTP requests to known endpoints and verifying expected response codes
+
+If step 3 fails while steps 1–2 pass, a captive portal is confidently detected and
+`captive_portal_login_required` is set to `:yes` in the status data.
+
+## Machine-Readable Output
+
+The `captive_portal_login_required` field is present in all machine-readable output formats.
+
+### Key: `captive_portal_login_required`
+
+| Value       | Meaning                                                        |
+|-------------|----------------------------------------------------------------|
+| `"yes"`     | Captive portal confidently detected; login required            |
+| `"no"`      | No captive portal (or WiFi is off / no TCP+DNS connectivity)   |
+| `"unknown"` | In-progress / unknown (only during streaming progress updates) |
+
+### JSON example
+
+```bash
+wifi-wand -o j status | jq .
+```
+
+Normal connected state:
+```json
+{
+  "wifi_on": true,
+  "network_name": "HomeNetwork",
+  "internet_connected": true,
+  "captive_portal_login_required": "no"
+}
+```
+
+Captive portal detected:
+```json
+{
+  "wifi_on": true,
+  "network_name": "HotelWiFi",
+  "internet_connected": false,
+  "captive_portal_login_required": "yes"
+}
+```
+
+### YAML example
+
+```bash
+wifi-wand -o y status
+```
+
+```yaml
+---
+:wifi_on: true
+:network_name: HotelWiFi
+:internet_connected: false
+:captive_portal_login_required: :yes
+```
 
 ## Connectivity Detection Details
 
@@ -64,14 +127,14 @@ Checked directly via OS commands (`networksetup` on macOS, `nmcli` on Ubuntu).
 ### Network Connection
 Checks which network (if any) is currently connected.
 
-### TCP Connectivity
-Attempts to establish a TCP connection to a reliable server with a 5-second timeout. This verifies that the network path to the internet is working.
-
-### DNS Connectivity
-Performs a DNS lookup with a 5-second timeout. This verifies that DNS service is available and functional.
-
 ### Internet Availability
-Determined by the combination of TCP and DNS checks. Internet is considered available only when both are working.
+Determined by three sequential layers:
+1. **TCP Connectivity** — attempts TCP connections to reliable well-known hosts
+2. **DNS Resolution** — verifies DNS lookups work
+3. **Captive Portal Check** — makes HTTP requests to known endpoints; a wrong response
+   code indicates portal interception
+
+Internet is considered available only when all three pass.
 
 ## Status Checking Behavior
 
@@ -81,23 +144,10 @@ The status command uses carefully tuned timeout values to balance responsiveness
 
 - **TCP timeout**: 5 seconds
 - **DNS timeout**: 5 seconds
+- **HTTP captive portal timeout**: configurable (see TimingConstants)
 - **Overall connectivity check**: 6 seconds
 
 These timeouts prevent false negatives from temporary network slowdowns while still providing timely feedback.
-
-### Change Detection
-
-When used in conjunction with the `log` command, the status information is used to detect state changes:
-
-```bash
-# In one terminal, monitor state changes
-wifi-wand log --file --stdout
-
-# In another terminal, modify WiFi
-wifi-wand off          # Watch the log show state change
-```
-
-Remember: once you add `--file`, stdout is muted unless you include `--stdout`.
 
 ## Use Cases
 
@@ -126,56 +176,21 @@ Use JSON output for parsing in other tools:
 wifi-wand -o j status | jq .
 ```
 
-Returns JSON structure:
-```json
-{
-  "wifi_on": true,
-  "network_name": "HomeNetwork",
-  "tcp_working": true,
-  "dns_working": true,
-  "internet_connected": true,
-  "ip_address": "192.168.1.100",
-  "mac_address": "aa:bb:cc:dd:ee:ff"
-}
-```
+### Detect Captive Portal Programmatically
 
-## Status Command vs Info Command
-
-| Feature | `status` | `info` |
-|---------|----------|--------|
-| Output | Single line | Multi-line detailed data |
-| Speed | Fast (5-6 seconds) | Slower (more comprehensive) |
-| Connectivity checks | Yes (TCP/DNS) | No |
-| For scripts | Good | Better (structured data) |
-| For humans | Good (quick check) | Better (comprehensive info) |
-
-## Related Commands
-
-### See Full Details
 ```bash
-wifi-wand info    # Get comprehensive networking information
+# Exit non-zero if captive portal login is required
+if wifi-wand -o j status | jq -e '.captive_portal_login_required == "yes"' > /dev/null; then
+  echo "Captive portal detected — please log in before proceeding"
+  exit 1
+fi
 ```
-
-### Monitor Changes Over Time
-```bash
-wifi-wand log     # Log events as status changes
-```
-
-### Wait for State Change
-```bash
-wifi-wand till on        # Wait until WiFi turns on
-wifi-wand till conn      # Wait until internet connected
-```
-
-## Practical Examples
 
 ### Check if Internet is Available
 
 ```bash
-# Practical example
-if wifi-wand status | grep "Internet: YES" > /dev/null; then
+if wifi-wand status | grep -q "Internet:.*YES"; then
   echo "Internet OK - starting backup"
-  # Start backup operation
 else
   echo "No internet - postponing backup"
   exit 1
@@ -190,42 +205,6 @@ wifi-wand log --file debug.log --stdout
 
 # In another terminal, run status repeatedly
 watch -n 1 wifi-wand status
-
-# Observe changes in both outputs to identify issues
-```
-
-### Create a WiFi Status Dashboard
-
-```bash
-#!/bin/bash
-# Simple dashboard script
-while true; do
-  clear
-  echo "=== WiFi Status Dashboard ==="
-  echo "Time: $(date '+%H:%M:%S')"
-  echo "---"
-  wifi-wand status
-  echo "---"
-  echo "IP Address: $(wifi-wand info | grep -i 'ip_address' | head -1)"
-  echo ""
-  echo "Press Ctrl+C to exit"
-  sleep 2
-done
-```
-
-### Automated Network Recovery
-
-```bash
-#!/bin/bash
-# Restart WiFi if internet drops
-while true; do
-  if ! wifi-wand status | grep -q "Internet: YES"; then
-    echo "$(date): Internet down, reconnecting..."
-    wifi-wand cycle
-    sleep 10
-  fi
-  sleep 30
-done
 ```
 
 ## Output Formats
@@ -260,47 +239,31 @@ Use verbose mode to see which OS commands are being executed:
 wifi-wand -v status
 ```
 
-Shows:
-```
-[OS Command] networksetup -getairportpower en0
-WiFi: ON | Network: "HomeNetwork" | TCP: YES | DNS: YES | Internet: YES
-[OS Command] ... (other commands shown)
-```
+## Related Commands
 
-This is useful for understanding how the status is determined or debugging connection issues.
-
-## Color Output Detection
-
-The status command automatically detects if the terminal supports color:
-
-- **TTY (interactive terminal)**: Colors are enabled automatically
-- **Piped to file or script**: Colors are disabled
-- **Force color**: Set the `FORCE_COLOR` environment variable if needed
-
-Example:
+### See Full Details
 ```bash
-FORCE_COLOR=true wifi-wand status | less -R
+wifi-wand info    # Get comprehensive networking information
 ```
 
-## Performance Considerations
+### Monitor Changes Over Time
+```bash
+wifi-wand log     # Log events as status changes
+```
 
-### Timeout Impact
+### Wait for State Change
+```bash
+wifi-wand till on        # Wait until WiFi turns on
+wifi-wand till conn      # Wait until internet connected
+```
 
-The 5-6 second timeout for connectivity checks means:
-- Running `status` once takes approximately 5-6 seconds
-- Running it frequently (e.g., in a loop) with short sleep times works well
-- In watch mode (`watch -n 2`), updates happen every 2 seconds after the initial check completes
+## Status Command vs Info Command
 
-### Parallel Execution
-
-The TCP and DNS checks run in parallel using Ruby Fibers:
-- Both checks start at the same time
-- The result is ready as soon as the slower one completes
-- This is much faster than sequential checks would be
-
-### System Load
-
-The status command has minimal impact on system resources:
-- No excessive polling
-- Network operations only when explicitly requested
-- No background processes created
+| Feature                   | `status`                         | `info`                          |
+|---------------------------|----------------------------------|---------------------------------|
+| Output                    | Single line                      | Multi-line detailed data        |
+| Speed                     | Fast                             | Slower (more comprehensive)     |
+| Connectivity checks       | Yes (TCP/DNS/captive portal)     | Yes (same checks)               |
+| Captive portal detection  | Yes (in status data + display)   | Yes (captive_portal_free field) |
+| For scripts               | Good                             | Better (structured data)        |
+| For humans                | Good (quick check)               | Better (comprehensive info)     |

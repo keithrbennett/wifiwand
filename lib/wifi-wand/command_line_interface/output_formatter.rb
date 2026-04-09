@@ -74,7 +74,13 @@ module WifiWand
 
         network_display = colorize_text(network_text, network_color)
 
-        "WiFi: #{wifi_status} | Network: #{network_display} | Internet: #{internet_status}"
+        line = "WiFi: #{wifi_status} | Network: #{network_display} | Internet: #{internet_status}"
+
+        if status_data[:captive_portal_login_required] == :yes
+          line = "#{line} | #{colorize_text('⚠️ Captive Portal Login Required', :red)}"
+        end
+
+        line
       end
 
       # If a post-processor has been configured (e.g. YAML or JSON), use it.
