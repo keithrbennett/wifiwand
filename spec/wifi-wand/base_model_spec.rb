@@ -290,6 +290,94 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
+  describe '#till', :disruptive do
+    # These tests exercise the real OS predicates (wifi_on?, associated?,
+    # connected_to_internet?) wired through StatusWaiter against live hardware,
+    # covering the six explicit wait states introduced in the till redesign.
+
+    context 'when target is a wifi power state (:wifi_on / :wifi_off)' do
+      it 'returns nil immediately when WiFi is already on' do
+        subject.wifi_on
+        expect(subject.till(:wifi_on)).to be_nil
+      end
+
+      it 'returns nil immediately when WiFi is already off' do
+        subject.wifi_off
+        expect(subject.till(:wifi_off)).to be_nil
+      end
+
+      it 'raises WaitTimeoutError for :wifi_on when WiFi stays off and timeout expires' do
+        subject.wifi_off
+        expect do
+          subject.till(:wifi_on, timeout_in_secs: 1)
+        end.to raise_error(WifiWand::WaitTimeoutError)
+      end
+
+      it 'raises WaitTimeoutError for :wifi_off when WiFi stays on and timeout expires' do
+        subject.wifi_on
+        expect do
+          subject.till(:wifi_off, timeout_in_secs: 1)
+        end.to raise_error(WifiWand::WaitTimeoutError)
+      end
+    end
+
+    context 'when target is an association state (:associated / :disassociated)' do
+      before { subject.wifi_on }
+
+      it 'returns nil immediately for :disassociated after disconnecting' do
+        subject.disconnect
+        expect(subject.till(:disassociated)).to be_nil
+      end
+
+      it 'returns nil immediately for :associated when connected to a network' do
+        skip 'Not currently associated with any network' unless subject.associated?
+        expect(subject.till(:associated)).to be_nil
+      end
+
+      it 'raises WaitTimeoutError for :associated when disconnected and timeout expires' do
+        subject.disconnect
+        expect do
+          subject.till(:associated, timeout_in_secs: 1)
+        end.to raise_error(WifiWand::WaitTimeoutError)
+      end
+    end
+
+    context 'when target is an internet reachability state (:internet_on / :internet_off)' do
+      before { subject.wifi_on }
+
+      it 'returns nil immediately for :internet_on when Internet is reachable' do
+        skip 'Internet not reachable; cannot test :internet_on' unless subject.connected_to_internet?
+        expect(subject.till(:internet_on)).to be_nil
+      end
+
+      it 'raises WaitTimeoutError for :internet_off when Internet is reachable and timeout expires' do
+        skip 'Internet not reachable; :internet_off would return immediately' \
+          unless subject.connected_to_internet?
+        expect do
+          subject.till(:internet_off, timeout_in_secs: 1)
+        end.to raise_error(WifiWand::WaitTimeoutError)
+      end
+    end
+
+    context 'with removed legacy state names' do
+      it 'raises ArgumentError with migration hint for :conn' do
+        expect { subject.till(:conn) }.to raise_error(ArgumentError, /:conn.*was removed/i)
+      end
+
+      it 'raises ArgumentError with migration hint for :disc' do
+        expect { subject.till(:disc) }.to raise_error(ArgumentError, /:disc.*was removed/i)
+      end
+
+      it 'raises ArgumentError with migration hint for :on' do
+        expect { subject.till(:on) }.to raise_error(ArgumentError, /:on.*was removed/i)
+      end
+
+      it 'raises ArgumentError with migration hint for :off' do
+        expect { subject.till(:off) }.to raise_error(ArgumentError, /:off.*was removed/i)
+      end
+    end
+  end
+
 
   # The following tests run commands and verify they complete without error,
   # testing both wifi on and wifi off states
