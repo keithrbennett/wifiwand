@@ -18,10 +18,10 @@ module WifiWand
 
     def build_message
       msg = "Network '#{network_name}' not found"
-      if available_networks.any?
-        msg += ". Available networks: #{available_networks.join(', ')}"
+      msg += if available_networks.any?
+        ". Available networks: #{available_networks.join(', ')}"
       else
-        msg += '. No networks are currently available'
+        '. No networks are currently available'
       end
       msg
     end

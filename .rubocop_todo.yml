@@ -360,9 +360,6 @@ Style/ArgumentsForwarding:
 # ProceduralMethods: benchmark, bm, bmbm, create, each_with_object, measure, new, realtime, tap, with_object
 # FunctionalMethods: let, let!, subject, watch
 # AllowedMethods: lambda, proc, it
-Style/BlockDelimiters:
-  Exclude:
-    - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
 
 
 # Offense count: 1
@@ -371,15 +368,6 @@ Style/CommentedKeyword:
   Exclude:
     - 'spec/wifi-wand/command_line_interface/command_registry_spec.rb'
 
-# Offense count: 3
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyle, SingleLineConditionsOnly, IncludeTernaryExpressions.
-# SupportedStyles: assign_to_condition, assign_inside_condition
-Style/ConditionalAssignment:
-  Exclude:
-    - 'lib/wifi-wand/errors.rb'
-    - 'lib/wifi-wand/main.rb'
-    - 'lib/wifi-wand/services/command_executor.rb'
 
 # Offense count: 2
 # This cop supports unsafe autocorrection (--autocorrect-all).
@@ -390,25 +378,7 @@ Style/DoubleNegation:
     - 'lib/wifi-wand/command_line_interface.rb'
     - 'lib/wifi-wand/command_line_interface/output_formatter.rb'
 
-# Offense count: 6
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyle, AllowComments.
-# SupportedStyles: empty, nil, both
-Style/EmptyElse:
-  Exclude:
-    - 'lib/wifi-wand/command_line_interface.rb'
-    - 'lib/wifi-wand/models/base_model.rb'
-    - 'lib/wifi-wand/models/ubuntu_model.rb'
-    - 'lib/wifi-wand/services/event_logger.rb'
-    - 'lib/wifi-wand/services/network_state_manager.rb'
 
-# Offense count: 1
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: trailing_conditional, ternary
-Style/EmptyStringInsideInterpolation:
-  Exclude:
-    - 'lib/wifi-wand/models/helpers/resource_manager.rb'
 
 # Offense count: 4
 # This cop supports safe autocorrection (--autocorrect).
@@ -547,20 +517,6 @@ Style/SafeNavigationChainLength:
     - 'spec/wifi-wand/models/mac_os_model_spec.rb'
 
 
-# Offense count: 3
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: AllowAsExpressionSeparator.
-Style/Semicolon:
-  Exclude:
-    - 'lib/wifi-wand/main.rb'
-    - 'lib/wifi-wand/services/captive_portal_checker.rb'
-
-# Offense count: 3
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: AllowIfMethodIsEmpty.
-Style/SingleLineMethods:
-  Exclude:
-    - 'spec/support/rspec_configuration_spec.rb'
 
 # Offense count: 3
 # This cop supports unsafe autocorrection (--autocorrect-all).
@@ -587,13 +543,6 @@ Style/StructInheritance:
     - 'lib/wifi-wand/models/helpers/resource_manager.rb'
     - 'lib/wifi-wand/os/base_os.rb'
 
-# Offense count: 2
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: .
-# SupportedStyles: percent, brackets
-Style/SymbolArray:
-  EnforcedStyle: percent
-  MinSize: 5
 
 # Offense count: 5
 # This cop supports unsafe autocorrection (--autocorrect-all).

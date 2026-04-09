@@ -52,7 +52,9 @@ module WifiWand
       # Get error message for invalid codes
       def invalid_codes_error(invalid_codes)
         codes_string = invalid_codes.map { |code| "'#{code}'" }.join(', ')
-        "Invalid resource code#{invalid_codes.length > 1 ? 's' : ''}: #{codes_string}. Valid codes are:\n #{open_resources.help_string.gsub(',', "\n")}"
+        pluralized_codes = invalid_codes.length > 1 ? 'codes' : 'code'
+        resource_list_str = open_resources.help_string.gsub(',', "\n")
+        "Invalid resource #{pluralized_codes}: #{codes_string}. Valid codes are:\n #{resource_list_str}"
       end
 
       private

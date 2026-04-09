@@ -53,8 +53,6 @@ module WifiWand
           verbose:       @verbose,
           output:        @output
         )
-      else
-        nil
       end
       @previous_state = nil
       @running = false

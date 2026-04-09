@@ -46,9 +46,13 @@ module WifiWand
         endpoints.each do |ep|
           barrier.async do
             case attempt_captive_portal_check(ep)
-            when true  then results << :absent; barrier.stop
-            when false then results << :present
-            else              results << :error
+            when true
+              results << :absent
+              barrier.stop
+            when false
+              results << :present
+            else
+              results << :error
             end
           end
         end

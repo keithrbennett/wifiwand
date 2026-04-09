@@ -186,10 +186,10 @@ module WifiWand
       attr_reader :exitstatus, :command, :text, :result
 
       def initialize(result_or_exitstatus, command = nil, text = nil)
-        if result_or_exitstatus.is_a?(OsCommandResult)
-          @result = result_or_exitstatus
+        @result = if result_or_exitstatus.is_a?(OsCommandResult)
+          result_or_exitstatus
         else
-          @result = OsCommandResult.new(
+          OsCommandResult.new(
             stdout:          text,
             stderr:          '',
             combined_output: text,

@@ -176,9 +176,9 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           'disconnected',
           false
         ],
-      ].map { |name, input, expected_output, tty, has_color|
+      ].map do |name, input, expected_output, tty, has_color|
         { name:, input:, expected_output:, tty:, has_color: }
-      }
+      end
     }
   end
 
@@ -222,9 +222,9 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           'Networks: "Network1" and "Network2"',
           false
         ],
-      ].map { |name, input, expected_output, tty, has_color|
+      ].map do |name, input, expected_output, tty, has_color|
         { name:, input:, expected_output:, tty:, has_color: }
-      }
+      end
     }
   end
 
@@ -280,9 +280,9 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           'Signal: 75% on channel 11 at 192.168.1.1',
           false
         ],
-      ].map { |name, input, expected_output, tty, has_color|
+      ].map do |name, input, expected_output, tty, has_color|
         { name:, input:, expected_output:, tty:, has_color: }
-      }
+      end
     }
   end
 

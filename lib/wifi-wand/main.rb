@@ -37,7 +37,11 @@ module WifiWand
             'i' => ->(object) { object.inspect },
             'j' => ->(object) { object.to_json },
             'k' => ->(object) { JSON.pretty_generate(object) },
-            'p' => ->(object) { sio = StringIO.new; sio.puts(object); sio.string },
+            'p' => ->(object) do
+              sio = StringIO.new
+              sio.puts(object)
+              sio.string
+            end,
             'y' => ->(object) { object.to_yaml }
           }
 
@@ -135,15 +139,15 @@ module WifiWand
         @err_stream.puts "Error: #{error.message}"
       else
         # Unknown errors - show message but not stack trace unless verbose
-        if verbose_mode
-          message = <<~MESSAGE
+        message = if verbose_mode
+          <<~MESSAGE
             Error: #{error.message}
 
             Stack trace:
             #{error.backtrace.join("\n")}
           MESSAGE
         else
-          message = "Error: #{error.message}"
+          "Error: #{error.message}"
         end
         @err_stream.puts message
       end

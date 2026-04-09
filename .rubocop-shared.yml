@@ -186,8 +186,11 @@ Style/ClassAndModuleChildren:
 Style/Documentation:
   Enabled: false
 
+Style/EmptyElse:
+  Enabled: false
+
 Style/EmptyMethod:
-  EnforcedStyle: compact
+  Enabled: false
 
 Style/EndlessMethod:
   EnforcedStyle: allow_always

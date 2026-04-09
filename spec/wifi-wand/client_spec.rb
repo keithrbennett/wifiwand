@@ -109,7 +109,7 @@ RSpec.describe WifiWand::Client do
 
     # Test simple, no-argument delegations in a loop by referencing the authoritative list
     # from the Client class itself, excluding methods that require arguments.
-    methods_with_args = [:connect, :connected_to?, :remove_preferred_networks, :generate_qr_code]
+    methods_with_args = %i[connect connected_to? remove_preferred_networks generate_qr_code]
     delegated_methods_without_args = WifiWand::Client::DELEGATED_METHODS - methods_with_args
 
     delegated_methods_without_args.each do |method_name|

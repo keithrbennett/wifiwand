@@ -511,8 +511,6 @@ module WifiWand
         'WPA'
       when /WEP/i
         'WEP'
-      else
-        nil
       end
     end
 

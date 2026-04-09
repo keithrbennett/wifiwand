@@ -272,8 +272,6 @@ module WifiWand
         # Match exact profile name or NM duplicate suffixes: "MySSID", "MySSID 1", "MySSID 2", etc.
         if profile_matches_ssid?(name, ssid)
           { name: name, timestamp: timestamp.to_i }
-        else
-          nil
         end
       end.compact
 

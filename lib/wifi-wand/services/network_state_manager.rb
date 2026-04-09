@@ -30,8 +30,6 @@ module WifiWand
           @output.puts "Warning: Failed to retrieve password for #{network_name}: #{e.message}" if @verbose
           nil
         end
-      else
-        nil
       end
 
       {

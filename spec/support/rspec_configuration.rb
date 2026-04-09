@@ -44,7 +44,7 @@ module RSpecConfiguration
       end
     end
 
-    [:sudo_first, :groups, :examples, :global].each do |ordering|
+    %i[sudo_first groups examples global].each do |ordering|
       config.register_ordering(ordering) do |items|
         auth_items, other_items = auth_partition.(items)
         auth_items + other_items

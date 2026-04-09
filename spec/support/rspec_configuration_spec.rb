@@ -8,11 +8,13 @@ RSpec.describe RSpecConfiguration do
 
     def initialize = @derived_metadata_blocks = []
 
-    def example_status_persistence_file_path=(_path); end
+    def example_status_persistence_file_path=(_path)
+    end
 
     def filter_run_including(*_args) = nil
 
-    def run_all_when_everything_filtered=(_value); end
+    def run_all_when_everything_filtered=(_value)
+    end
 
     def only_failures? = false
 
@@ -26,7 +28,8 @@ RSpec.describe RSpecConfiguration do
 
     def register_ordering(*_args) = nil
 
-    def order=(_value); end
+    def order=(_value)
+    end
 
     def define_derived_metadata(&block) = @derived_metadata_blocks << block
   end
