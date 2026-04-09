@@ -26,7 +26,7 @@ describe 'QR Code Integration Tests' do
   let(:test_model) { create_test_model }
   let(:temp_dir) { Dir.mktmpdir('qr_test') }
 
-  after(:each) do
+  after do
     # Clean up test files
     FileUtils.rm_rf(temp_dir) if Dir.exist?(temp_dir)
     Dir.glob('*-qr-code.png').each { |f| File.delete(f) }
@@ -242,7 +242,7 @@ describe 'QR Code Integration Tests' do
         end
       end
 
-      expect { silence_output { test_model.generate_qr_code } } \
+      expect { silence_output { test_model.generate_qr_code } }
         .to raise_error(WifiWand::Error, /Failed to generate QR code/)
     end
   end

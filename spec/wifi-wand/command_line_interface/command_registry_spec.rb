@@ -16,6 +16,8 @@ end
 
 describe WifiWand::CommandLineInterface::CommandRegistry do
   # Create a test class that includes the module
+  subject { test_class.new }
+
   let(:test_class) do
     Class.new do
       include WifiWand::CommandLineInterface::CommandRegistry
@@ -25,7 +27,6 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
     end
   end
 
-  subject { test_class.new }
 
   describe 'Command.new instantiation coverage' do
     it 'forces creation of all Command objects to achieve line coverage' do

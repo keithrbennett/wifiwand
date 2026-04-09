@@ -7,7 +7,7 @@ require_relative '../../lib/wifi-wand/models/mac_os_model'
 module WifiWand
   describe 'Error Classes' do
     # Mock OS calls to prevent real system interaction during non-disruptive tests
-    before(:each) do
+    before do
       # Mock detect_wifi_interface for both OS types
       allow_any_instance_of(WifiWand::UbuntuModel).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
       if defined?(WifiWand::MacOsModel)
@@ -15,9 +15,9 @@ module WifiWand
       end
 
       # Mock NetworkConnectivityTester to prevent real network calls
-      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:connected_to_internet?) \
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:connected_to_internet?)
         .and_return(true)
-      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?) \
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?)
         .and_return(true)
       allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
     end
@@ -50,7 +50,7 @@ module WifiWand
       error_test_cases = [
         [NetworkNotFoundError,          ['MyNet'],
           "Network 'MyNet' not found. No networks are currently available"],
-        [NetworkNotFoundError,          ['MyNet', ['Net1', 'Net2']],
+        [NetworkNotFoundError,          ['MyNet', %w[Net1 Net2]],
           "Network 'MyNet' not found. Available networks: Net1, Net2"],
         [NetworkConnectionError,        ['MyNet'],
           "Failed to connect to network 'MyNet'"],
@@ -78,7 +78,7 @@ module WifiWand
           "'eth0' is not a valid WiFi interface"],
         [CommandNotFoundError,          ['iw'],
           'Missing required system command(s): iw'],
-        [CommandNotFoundError,          [['iw', 'nmcli']],
+        [CommandNotFoundError,          [%w[iw nmcli]],
           'Missing required system command(s): iw, nmcli'],
         [KeychainAccessDeniedError,     ['MyNet'],
           "Keychain access denied for network 'MyNet'. Please grant access when prompted"],
@@ -86,7 +86,7 @@ module WifiWand
           "Keychain access cancelled for network 'MyNet'"],
         [KeychainNonInteractiveError,   ['MyNet'],
           "Cannot access keychain for network 'MyNet' in non-interactive environment"],
-        [MultipleOSMatchError,          [['macOS', 'Ubuntu']],
+        [MultipleOSMatchError,          [%w[macOS Ubuntu]],
           'Multiple OS matches found: macOS, Ubuntu. This should not happen'],
         [NoSupportedOSError,            [],
           'No supported operating system detected. WifiWand supports macOS and Ubuntu Linux'],
@@ -144,7 +144,7 @@ module WifiWand
             allow(model).to receive_messages(wifi_on: true, connected_network_name: 'DifferentNetwork')
             # Mock the connection manager to prevent real connection attempts
             allow(model.connection_manager).to receive(:perform_connection)
-            allow(model.connection_manager).to receive(:verify_connection) \
+            allow(model.connection_manager).to receive(:verify_connection)
               .and_raise(WifiWand::NetworkConnectionError.new(
                 'TestNetwork', "connected to 'DifferentNetwork' instead"))
           }
@@ -227,9 +227,9 @@ module WifiWand
 
         it 'raises InvalidInterfaceError when specified interface is invalid during initialization' do
           current_model_class = create_test_model.class
-          allow_any_instance_of(current_model_class).to receive(:is_wifi_interface?) \
+          allow_any_instance_of(current_model_class).to receive(:is_wifi_interface?)
             .with('invalid_interface').and_return(false)
-          expect { create_test_model(wifi_interface: 'invalid_interface') } \
+          expect { create_test_model(wifi_interface: 'invalid_interface') }
             .to raise_error(InvalidInterfaceError)
         end
       end
@@ -263,7 +263,7 @@ module WifiWand
               raise WifiWand::CommandExecutor::OsCommandError.new(
                 test_case[:exit_code], 'security', test_case[:message])
             end
-            expect { mac_model.send(:_preferred_network_password, 'TestNetwork') } \
+            expect { mac_model.send(:_preferred_network_password, 'TestNetwork') }
               .to raise_error(test_case[:error])
           end
         end

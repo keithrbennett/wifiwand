@@ -50,7 +50,7 @@ describe 'Output Format Integration Tests' do
   let(:mock_model) { create_standard_mock_model }
   let(:mock_os) { create_mock_os_with_model(mock_model) }
 
-  before(:each) do
+  before do
     allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(mock_os)
     allow_any_instance_of(WifiWand::CommandLineInterface).to receive(:run_shell)
   end
@@ -84,10 +84,11 @@ describe 'Output Format Integration Tests' do
     output_formats.each do |format_name, format_config|
       describe "#{format_name} format (-o #{format_config[:code]})" do
         context 'with string data' do
+          subject { WifiWand::CommandLineInterface.new(options) }
+
           let(:test_data) { 'TestNetwork' }
           let(:options) { parse_options('-o', format_config[:code], 'ne') }
 
-          subject { WifiWand::CommandLineInterface.new(options) }
 
           it 'produces valid output that can be parsed' do
             allow(mock_model).to receive(:connected_network_name).and_return(test_data)
@@ -116,10 +117,11 @@ describe 'Output Format Integration Tests' do
         end
 
         context 'with boolean data' do
+          subject { WifiWand::CommandLineInterface.new(options) }
+
           let(:test_data) { true }
           let(:options) { parse_options('-o', format_config[:code], 'w') }
 
-          subject { WifiWand::CommandLineInterface.new(options) }
 
           it 'produces valid output for true' do
             allow(mock_model).to receive(:wifi_on?).and_return(true)
@@ -173,10 +175,11 @@ describe 'Output Format Integration Tests' do
         end
 
         context 'with array data' do
-          let(:test_data) { ['Network1', 'Network2', 'Network3'] }
+          subject { WifiWand::CommandLineInterface.new(options) }
+
+          let(:test_data) { %w[Network1 Network2 Network3] }
           let(:options) { parse_options('-o', format_config[:code], 'pr') }
 
-          subject { WifiWand::CommandLineInterface.new(options) }
 
           it 'produces valid output that can be parsed' do
             allow(mock_model).to receive(:preferred_networks).and_return(test_data)
@@ -207,10 +210,11 @@ describe 'Output Format Integration Tests' do
         end
 
         context 'with empty array data' do
+          subject { WifiWand::CommandLineInterface.new(options) }
+
           let(:test_data) { [] }
           let(:options) { parse_options('-o', format_config[:code], 'na') }
 
-          subject { WifiWand::CommandLineInterface.new(options) }
 
           it 'produces valid output for empty array' do
             allow(mock_model).to receive(:nameservers).and_return(test_data)
@@ -240,10 +244,11 @@ describe 'Output Format Integration Tests' do
         end
 
         context 'with hash data' do
+          subject { WifiWand::CommandLineInterface.new(options) }
+
           let(:test_data) { { 'ssid' => 'TestNet', 'channel' => 6, 'signal' => -50 } }
           let(:options) { parse_options('-o', format_config[:code], 'i') }
 
-          subject { WifiWand::CommandLineInterface.new(options) }
 
           it 'produces valid output that can be parsed' do
             allow(mock_model).to receive(:wifi_info).and_return(test_data)
@@ -280,6 +285,8 @@ describe 'Output Format Integration Tests' do
         end
 
         context 'with nested hash data' do
+          subject { WifiWand::CommandLineInterface.new(options) }
+
           let(:test_data) do
             {
               'wifi_on'    => true,
@@ -293,7 +300,6 @@ describe 'Output Format Integration Tests' do
           end
           let(:options) { parse_options('-o', format_config[:code], 'i') }
 
-          subject { WifiWand::CommandLineInterface.new(options) }
 
           it 'produces valid output for nested structures' do
             allow(mock_model).to receive(:wifi_info).and_return(test_data)
@@ -331,10 +337,11 @@ describe 'Output Format Integration Tests' do
         end
 
         context 'with nil data' do
+          subject { WifiWand::CommandLineInterface.new(options) }
+
           let(:test_data) { nil }
           let(:options) { parse_options('-o', format_config[:code], 'ne') }
 
-          subject { WifiWand::CommandLineInterface.new(options) }
 
           it 'produces valid output for nil' do
             allow(mock_model).to receive(:connected_network_name).and_return(nil)
@@ -416,12 +423,12 @@ describe 'Output Format Integration Tests' do
           'security'   => 'WPA2-PSK',
           'ip_address' => '192.168.1.100',
         },
-        'available_networks' => ['HomeNetwork', 'GuestNetwork', 'OfficeWiFi'],
+        'available_networks' => %w[HomeNetwork GuestNetwork OfficeWiFi],
         'nameservers'        => ['8.8.8.8', '8.8.4.4', '1.1.1.1'],
       }
     end
 
-    ['j', 'k', 'y'].each do |format_code|
+    %w[j k y].each do |format_code|
       format_name = case format_code
                     when 'j' then 'JSON'
                     when 'k' then 'Pretty JSON'
@@ -448,7 +455,7 @@ describe 'Output Format Integration Tests' do
         expect(parsed).to eq(complex_data)
         expect(parsed['wifi_status']['network_name']).to eq('HomeNetwork')
         expect(parsed['network_details']['channel']).to eq(11)
-        expect(parsed['available_networks']).to eq(['HomeNetwork', 'GuestNetwork', 'OfficeWiFi'])
+        expect(parsed['available_networks']).to eq(%w[HomeNetwork GuestNetwork OfficeWiFi])
         expect(parsed['nameservers'].length).to eq(3)
       end
     end

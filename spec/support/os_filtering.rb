@@ -19,7 +19,7 @@ module OSFiltering
   end
 
   def self.configure_os_filtering(config)
-    config.before(:each) do |example|
+    config.before do |example|
       skipped_tag = $incompatible_disruptive_tags.find { |t| example.metadata[t] }
       if skipped_tag
         skip "Skipping [:#{skipped_tag}] tests on current OS (#{$compatible_os_tag})"

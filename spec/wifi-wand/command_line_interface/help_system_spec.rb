@@ -6,6 +6,8 @@ require_relative '../../../lib/wifi-wand/version'
 require_relative '../../../lib/wifi-wand/timing_constants'
 
 describe WifiWand::CommandLineInterface::HelpSystem do
+  subject { test_class.new(model) }
+
   let(:test_class) do
     Class.new do
       include WifiWand::CommandLineInterface::HelpSystem
@@ -19,7 +21,6 @@ describe WifiWand::CommandLineInterface::HelpSystem do
   let(:resource_manager) { double('ResourceManager') }
   let(:model) { double('Model', resource_manager: resource_manager) }
 
-  subject { test_class.new(model) }
 
   before do
     open_resources = double('OpenResources', help_string: 'test resource help')

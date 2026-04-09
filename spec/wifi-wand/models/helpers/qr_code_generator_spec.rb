@@ -15,7 +15,7 @@ describe 'QR Code Generator (unit)' do
   let(:password) { 'password123' }
   let(:security) { 'WPA2' }
 
-  before(:each) do
+  before do
     model.verbose_mode = false
     allow(model).to receive(:command_available?).with('qrencode').and_return(true)
     allow(model).to receive_messages(
@@ -26,7 +26,7 @@ describe 'QR Code Generator (unit)' do
     )
   end
 
-  after(:each) do
+  after do
     FileUtils.rm_f('TestNetwork-qr-code.png')
     FileUtils.rm_f('out.svg')
     FileUtils.rm_f('out.eps')

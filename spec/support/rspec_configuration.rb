@@ -125,7 +125,7 @@ module RSpecConfiguration
 
   # Configure test stubbing to prevent keychain prompts during tests
   def self.configure_test_stubbing(config)
-    config.before(:each) do |example|
+    config.before do |example|
       next unless RSpecConfiguration.macos_model_available?
 
       begin

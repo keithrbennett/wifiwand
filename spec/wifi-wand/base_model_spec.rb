@@ -6,7 +6,10 @@ require_relative '../../lib/wifi-wand/models/mac_os_model'
 
 describe 'Common WiFi Model Behavior (All OS)' do
   # Mock OS calls to prevent real system interaction during non-disruptive tests
-  before(:each) do
+  # Automatically instantiate the correct model for the current OS
+  subject { create_test_model }
+
+  before do
     # Mock detect_wifi_interface for both OS types
     allow_any_instance_of(WifiWand::UbuntuModel).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
     if defined?(WifiWand::MacOsModel)
@@ -31,13 +34,13 @@ describe 'Common WiFi Model Behavior (All OS)' do
       # but allow higher-level methods to be called for testing
       allow(subject).to receive_messages(
         wifi_on?:                   true,
-        available_network_names:    ['TestNetwork1', 'TestNetwork2'],
+        available_network_names:    %w[TestNetwork1 TestNetwork2],
         connected_network_name:     'TestNetwork1',
         ip_address:                 '192.168.1.100',
         mac_address:                'aa:bb:cc:dd:ee:ff',
         default_interface:          'wlan0',
         nameservers:                ['8.8.8.8', '8.8.4.4'],
-        preferred_networks:         ['TestNetwork1', 'SavedNetwork1'],
+        preferred_networks:         %w[TestNetwork1 SavedNetwork1],
         internet_tcp_connectivity?: true,
         dns_working?:               true,
         captive_portal_free?:       true,
@@ -49,8 +52,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
-  # Automatically instantiate the correct model for the current OS
-  subject { create_test_model }
 
   # These tests run on any OS - interface consistency tests
   # Check current wifi state and create appropriate contexts
@@ -293,7 +294,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   # The following tests run commands and verify they complete without error,
   # testing both wifi on and wifi off states
   shared_examples 'interface commands complete without error' do |wifi_starts_on|
-    before(:each) do
+    before do
       # Only set wifi state in disruptive contexts
       if self.class.metadata[:disruptive]
         wifi_starts_on ? subject.wifi_on : subject.wifi_off
@@ -326,7 +327,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   # Non-disruptive context - only runs when wifi is already on
   context 'when wifi starts on', disruptive: false do
-    before(:each) do
+    before do
       skip 'Wifi is not currently on' unless current_wifi_on
     end
 
@@ -335,7 +336,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   # Non-disruptive context - only runs when wifi is already off
   context 'when wifi starts off', disruptive: false do
-    before(:each) do
+    before do
       skip 'Wifi is currently on' if current_wifi_on
     end
 
@@ -709,12 +710,12 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#remove_preferred_networks' do
     before do
-      allow(subject).to receive(:preferred_networks).and_return(['Network1', 'Network2', 'Network3'])
+      allow(subject).to receive(:preferred_networks).and_return(%w[Network1 Network2 Network3])
       allow(subject).to receive(:remove_preferred_network)
     end
 
     it 'handles array as first argument' do
-      networks_to_remove = ['Network1', 'Network2']
+      networks_to_remove = %w[Network1 Network2]
       subject.remove_preferred_networks(networks_to_remove)
 
       expect(subject).to have_received(:remove_preferred_network).with('Network1')
@@ -865,7 +866,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     let(:security_type) { 'WPA2' }
     let(:expected_filename) { 'TestNetwork-qr-code.png' }
 
-    before(:each) do
+    before do
       allow(subject).to receive(:command_available?).with('qrencode').and_return(true)
 
       # Mock all methods that could make real system calls
@@ -915,10 +916,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     context 'when generating QR codes with different security types' do
       [
-        ['WPA',  'WPA'],
-        ['WPA2', 'WPA'],
-        ['WPA3', 'WPA'],
-        ['WEP',  'WEP'],
+        %w[WPA WPA],
+        %w[WPA2 WPA],
+        %w[WPA3 WPA],
+        %w[WEP WEP],
         [nil,    'WPA'],
       ].each do |input_security, expected_qr_security|
         it "generates correct QR string for #{input_security || 'open network'}" do

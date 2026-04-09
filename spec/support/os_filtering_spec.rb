@@ -8,7 +8,7 @@ RSpec.describe OSFiltering do
 
     def initialize = @before_each_hooks = []
 
-    def before(scope, &block)
+    def before(scope = :each, &block)
       raise ArgumentError, 'expected :each scope' unless scope == :each
 
       @before_each_hooks << block

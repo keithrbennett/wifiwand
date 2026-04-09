@@ -16,7 +16,7 @@ describe 'QR Code Overwrite Confirmation' do
   let(:password) { 'password123' }
   let(:security) { 'WPA2' }
 
-  before(:each) do
+  before do
     # Stub environment and dependencies
     allow(model).to receive(:command_available?).with('qrencode').and_return(true)
     allow(model).to receive_messages(

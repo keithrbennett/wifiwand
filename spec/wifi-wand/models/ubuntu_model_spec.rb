@@ -8,7 +8,7 @@ module WifiWand
     let(:subject) { create_ubuntu_test_model }
 
     # Mock network connectivity tester to prevent real network calls during non-disruptive tests
-    before(:each) do
+    before do
       # Check if current test or any parent group is marked as disruptive
       example_disruptive = RSpec.current_example&.metadata&.[](:disruptive)
       group_meta = RSpec.current_example&.example_group&.metadata
@@ -213,7 +213,7 @@ module WifiWand
 
       describe '#remove_preferred_network' do
         it 'returns nil without deleting when network not present' do
-          allow(subject).to receive(:preferred_networks).and_return(['A', 'B'])
+          allow(subject).to receive(:preferred_networks).and_return(%w[A B])
           expect(subject).not_to receive(:run_os_command).with(/nmcli connection delete/)
           expect(subject.remove_preferred_network('C')).to be_nil
         end
@@ -302,13 +302,13 @@ module WifiWand
             IP4.DNS[2]:                      9.9.9.9
             some.other:                      value
           OUT
-          expect(subject).to receive(:run_os_command).with(['nmcli', 'connection', 'show', 'ConnX'], false)
+          expect(subject).to receive(:run_os_command).with(%w[nmcli connection show ConnX], false)
             .and_return(command_result(stdout: nmcli_output))
           expect(subject.send(:nameservers_from_connection, 'ConnX')).to eq(['1.1.1.1', '9.9.9.9'])
         end
 
         it 'returns empty array when nmcli connection show fails' do
-          expect(subject).to receive(:run_os_command).with(['nmcli', 'connection', 'show', 'ConnY'], false)
+          expect(subject).to receive(:run_os_command).with(%w[nmcli connection show ConnY], false)
             .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli connection show', 'failed'))
           expect(subject.send(:nameservers_from_connection, 'ConnY')).to eq([])
         end
@@ -320,7 +320,7 @@ module WifiWand
             IP6.DNS[2]:                      2606:4700:4700::1001
             some.other:                      value
           OUT
-          expect(subject).to receive(:run_os_command).with(['nmcli', 'connection', 'show', 'ConnZ'], false)
+          expect(subject).to receive(:run_os_command).with(%w[nmcli connection show ConnZ], false)
             .and_return(command_result(stdout: nmcli_output))
           expect(subject.send(:nameservers_from_connection, 'ConnZ'))
             .to eq(['2606:4700:4700::1111', '2606:4700:4700::1001'])
@@ -334,7 +334,7 @@ module WifiWand
             ipv6.dns[1]:                     2606:4700:4700::1111
             IP6.DNS[2]:                      2001:4860:4860::8888
           OUT
-          expect(subject).to receive(:run_os_command).with(['nmcli', 'connection', 'show', 'ConnM'], false)
+          expect(subject).to receive(:run_os_command).with(%w[nmcli connection show ConnM], false)
             .and_return(command_result(stdout: nmcli_output))
           result = subject.send(:nameservers_from_connection, 'ConnM')
           expect(result).to include('1.1.1.1', '9.9.9.9', '2606:4700:4700::1111', '2001:4860:4860::8888')
@@ -388,7 +388,7 @@ module WifiWand
           IW_OUTPUT
 
           allow(subject).to receive(:run_os_command)
-            .with(['iw', 'dev'])
+            .with(%w[iw dev])
             .and_return(command_result(stdout: iw_output))
 
           expect(subject.detect_wifi_interface).to eq('wlp3s0')
@@ -396,7 +396,7 @@ module WifiWand
 
         it 'returns nil when no interfaces found' do
           allow(subject).to receive(:run_os_command)
-            .with(['iw', 'dev'])
+            .with(%w[iw dev])
             .and_return(command_result(stdout: "phy#0\n    type managed"))
 
           expect(subject.detect_wifi_interface).to be_nil
@@ -404,7 +404,7 @@ module WifiWand
 
         it 'handles command failures gracefully' do
           allow(subject).to receive(:run_os_command)
-            .with(['iw', 'dev'])
+            .with(%w[iw dev])
             .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'iw dev', 'Command failed'))
 
           expect { subject.detect_wifi_interface }
@@ -523,7 +523,7 @@ module WifiWand
         it 'returns nil when no MAC address found' do
           allow(subject).to receive(:ensure_wifi_interface!).and_return('wlp3s0')
           allow(subject).to receive(:run_os_command)
-            .with(['ip', 'link', 'show', 'wlp3s0'], false)
+            .with(%w[ip link show wlp3s0], false)
             .and_return(command_result(stdout: ''))
 
           expect(subject.mac_address).to be_nil
@@ -536,7 +536,7 @@ module WifiWand
           "TestNetwork:WPA2\nOtherNetwork:WPA1 WPA2\nOpenNetwork:\nWEPNetwork:WEP"
         end
 
-        before(:each) do
+        before do
           allow(subject).to receive(:_connected_network_name).and_return(network_name)
         end
 
@@ -586,7 +586,7 @@ module WifiWand
         let(:network_name) { 'TestNetwork' }
         let(:profile_name) { 'TestNetwork' }
 
-        before(:each) do
+        before do
           allow(subject).to receive_messages(
             _connected_network_name:        network_name,
             active_connection_profile_name: profile_name,
@@ -695,7 +695,7 @@ module WifiWand
             .and_return(command_result(stdout: nmcli_output))
 
           result = subject.available_network_names
-          expect(result).to eq(['StrongNet', 'TestNet2', 'TestNet1', 'WeakNet'])
+          expect(result).to eq(%w[StrongNet TestNet2 TestNet1 WeakNet])
         end
 
         it 'removes duplicate network names' do
@@ -708,7 +708,7 @@ module WifiWand
             .and_return(command_result(stdout: nmcli_output))
 
           result = subject.available_network_names
-          expect(result).to eq(['OtherNet', 'TestNet'])
+          expect(result).to eq(%w[OtherNet TestNet])
         end
 
         it 'filters out empty SSIDs' do
@@ -722,7 +722,7 @@ module WifiWand
             .and_return(command_result(stdout: nmcli_output))
 
           result = subject.available_network_names
-          expect(result).to eq(['OtherNet', 'TestNet'])
+          expect(result).to eq(%w[OtherNet TestNet])
         end
       end
 

@@ -50,7 +50,7 @@ describe 'Output Format End-to-End Tests' do
   let(:mock_model) { create_standard_mock_model }
   let(:mock_os) { create_mock_os_with_model(mock_model) }
 
-  before(:each) do
+  before do
     allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(mock_os)
     allow_any_instance_of(WifiWand::CommandLineInterface).to receive(:run_shell)
   end
@@ -138,7 +138,7 @@ describe 'Output Format End-to-End Tests' do
         end
 
         it 'formats array output correctly' do
-          networks = ['Network1', 'Network2', 'Network3']
+          networks = %w[Network1 Network2 Network3]
           allow(mock_model).to receive(:preferred_networks).and_return(networks)
 
           options = parse_options('-o', format_code, 'pr')
@@ -286,7 +286,7 @@ describe 'Output Format End-to-End Tests' do
         test_data = { 'network' => '日本語ネットワーク', 'emoji' => '🔐 WiFi' }
         allow(mock_model).to receive(:wifi_info).and_return(test_data)
 
-        ['j', 'k', 'y'].each do |format_code|
+        %w[j k y].each do |format_code|
           options = parse_options('-o', format_code, 'info')
           cli = WifiWand::CommandLineInterface.new(options)
 
@@ -310,7 +310,7 @@ describe 'Output Format End-to-End Tests' do
   describe 'Multiple commands with different formats' do
     it 'can process multiple commands in sequence with consistent formatting' do
       test_info = { 'network' => 'TestNet' }
-      test_networks = ['Net1', 'Net2']
+      test_networks = %w[Net1 Net2]
 
       allow(mock_model).to receive_messages(wifi_info: test_info, preferred_networks: test_networks)
 

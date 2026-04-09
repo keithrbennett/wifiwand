@@ -323,7 +323,7 @@ module WifiWand
 
       def self.run_notarytool(args, apple_id:, apple_password:, team_id:,
         failure_message:, suppress_output: false)
-        command = ['xcrun', 'notarytool'] + args + [
+        command = %w[xcrun notarytool] + args + [
           '--apple-id', apple_id,
           '--team-id', team_id,
           '--password', apple_password

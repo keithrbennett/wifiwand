@@ -53,7 +53,7 @@ describe WifiWand::StatusWaiter do
           call_count <= 2  # Simulate wifi turning off after 2 checks
         end
         allow(waiter).to receive(:sleep)  # Mock sleep to speed up test
-        expect(waiter.wait_for(:off, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)) \
+        expect(waiter.wait_for(:off, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL))
           .to be_nil
       end
     end
@@ -75,7 +75,7 @@ describe WifiWand::StatusWaiter do
           call_count > 2  # Simulate connection after 2 checks
         end
         allow(waiter).to receive(:sleep)  # Mock sleep to speed up test
-        expect(waiter.wait_for(:conn, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)) \
+        expect(waiter.wait_for(:conn, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL))
           .to be_nil
       end
     end
@@ -97,7 +97,7 @@ describe WifiWand::StatusWaiter do
           call_count <= 2  # Simulate disconnection after 2 checks
         end
         allow(waiter).to receive(:sleep)  # Mock sleep to speed up test
-        expect(waiter.wait_for(:disc, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)) \
+        expect(waiter.wait_for(:disc, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL))
           .to be_nil
       end
     end

@@ -56,7 +56,7 @@ describe WifiWand::Helpers::ResourceManager do
     end
 
     it 'formats error message for multiple invalid codes' do
-      error = resource_manager.invalid_codes_error(['invalid1', 'invalid2'])
+      error = resource_manager.invalid_codes_error(%w[invalid1 invalid2])
       expect(error).to include("Invalid resource codes: 'invalid1', 'invalid2'")
       expect(error).to include('Valid codes are:')
     end
@@ -79,7 +79,7 @@ describe WifiWand::Helpers::ResourceManager do
 
     context 'with nil model' do
       it 'raises ArgumentError' do
-        expect { resource_manager.open_resources_by_codes(nil, 'ipw') } \
+        expect { resource_manager.open_resources_by_codes(nil, 'ipw') }
           .to raise_error(ArgumentError, 'Model cannot be nil')
       end
     end
@@ -90,7 +90,7 @@ describe WifiWand::Helpers::ResourceManager do
 
         expect(mock_model).to have_received(:open_resource).twice
         expect(result[:opened_resources].size).to eq(2)
-        expect(result[:opened_resources].map(&:code)).to eq(['test1', 'test2'])
+        expect(result[:opened_resources].map(&:code)).to eq(%w[test1 test2])
         expect(result[:invalid_codes]).to be_empty
       end
     end
@@ -101,7 +101,7 @@ describe WifiWand::Helpers::ResourceManager do
 
         expect(mock_model).not_to have_received(:open_resource)
         expect(result[:opened_resources]).to be_empty
-        expect(result[:invalid_codes]).to eq(['invalid1', 'invalid2'])
+        expect(result[:invalid_codes]).to eq(%w[invalid1 invalid2])
       end
     end
 
@@ -111,7 +111,7 @@ describe WifiWand::Helpers::ResourceManager do
 
         expect(mock_model).to have_received(:open_resource).twice
         expect(result[:opened_resources].size).to eq(2)
-        expect(result[:opened_resources].map(&:code)).to eq(['test1', 'test2'])
+        expect(result[:opened_resources].map(&:code)).to eq(%w[test1 test2])
         expect(result[:invalid_codes]).to eq(['invalid'])
       end
     end
@@ -171,7 +171,7 @@ describe 'ResourceManager error handling and edge cases' do
 
   describe '#load_resources' do
     it 'raises error when YAML file is missing' do
-      allow(resource_manager).to receive(:resource_file_path) \
+      allow(resource_manager).to receive(:resource_file_path)
         .and_return('/nonexistent/path/open_resources.yml')
 
       expect { resource_manager.open_resources }.to raise_error(Errno::ENOENT, /Resource file not found/)
@@ -194,7 +194,7 @@ describe 'ResourceManager error handling and edge cases' do
 
       allow(resource_manager).to receive(:resource_file_path).and_return(invalid_yaml_path)
 
-      expect { resource_manager.open_resources } \
+      expect { resource_manager.open_resources }
         .to raise_error(ArgumentError, /must contain a 'resources' key/)
 
       File.delete(invalid_yaml_path) if File.exist?(invalid_yaml_path)

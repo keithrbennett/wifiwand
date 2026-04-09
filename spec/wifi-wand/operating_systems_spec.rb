@@ -30,7 +30,7 @@ module WifiWand
     end
 
     describe '.current_os' do
-      before(:each) do
+      before do
         # Reset class variable to force re-detection
         described_class.instance_variable_set(:@current_os, nil)
       end
@@ -104,7 +104,7 @@ module WifiWand
     end
 
     describe '.create_model_for_current_os' do
-      before(:each) do
+      before do
         # Reset class variable to force re-detection
         described_class.instance_variable_set(:@current_os, nil)
       end

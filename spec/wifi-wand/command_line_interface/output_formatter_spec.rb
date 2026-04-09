@@ -12,6 +12,8 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   CYAN_TEXT_REGEX  = /\e\[36m.*\e\[0m/
 
   # Create a test class that includes the OutputFormatter module
+  subject { test_class.new(options, mock_model) }
+
   let(:test_class) do
     Class.new do
       include WifiWand::CommandLineInterface::OutputFormatter
@@ -37,7 +39,6 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
   let(:options) { OpenStruct.new(post_processor: nil) }
 
-  subject { test_class.new(options, mock_model) }
 
   # Shared examples for colorization methods
   shared_examples 'colorization method' do |test_cases|

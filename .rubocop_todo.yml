@@ -186,40 +186,9 @@ RSpec/ExpectOutput:
   Exclude:
     - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
 
-# Offense count: 22
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: implicit, each, example
-RSpec/HookArgument:
-  Exclude:
-    - 'spec/support/os_filtering.rb'
-    - 'spec/support/rspec_configuration.rb'
-    - 'spec/wifi-wand/base_model_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/main_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formats_e2e_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formats_integration_spec.rb'
-    - 'spec/wifi-wand/errors_spec.rb'
-    - 'spec/wifi-wand/models/helpers/qr_code_generator_spec.rb'
-    - 'spec/wifi-wand/models/helpers/qr_code_integration_spec.rb'
-    - 'spec/wifi-wand/models/helpers/qr_overwrite_spec.rb'
-    - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
-    - 'spec/wifi-wand/operating_systems_spec.rb'
 
 
 
-# Offense count: 15
-# This cop supports safe autocorrection (--autocorrect).
-RSpec/LeadingSubject:
-  Exclude:
-    - 'spec/wifi-wand/base_model_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/command_registry_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/help_system_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/main_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formats_integration_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/shell_interface_spec.rb'
-    - 'spec/wifi-wand/mac_os_helper_setup_spec.rb'
-    - 'spec/wifi-wand/services/connection_manager_spec.rb'
 
 # Offense count: 12
 RSpec/LeakyConstantDeclaration:
@@ -393,19 +362,6 @@ Style/OptionalBooleanParameter:
     - 'lib/wifi-wand/services/connection_manager.rb'
 
 
-# Offense count: 57
-# This cop supports safe autocorrection (--autocorrect).
-Style/RedundantLineContinuation:
-  Exclude:
-    - 'spec/wifi-wand/command_line_interface/shell_interface_spec.rb'
-    - 'spec/wifi-wand/command_line_interface_spec.rb'
-    - 'spec/wifi-wand/errors_spec.rb'
-    - 'spec/wifi-wand/models/helpers/qr_code_integration_spec.rb'
-    - 'spec/wifi-wand/models/helpers/resource_manager_spec.rb'
-    - 'spec/wifi-wand/models/mac_os_model_spec.rb'
-    - 'spec/wifi-wand/services/event_logger_spec.rb'
-    - 'spec/wifi-wand/services/network_state_manager_spec.rb'
-    - 'spec/wifi-wand/services/status_waiter_spec.rb'
 
 
 # Offense count: 13
@@ -468,18 +424,3 @@ Style/SymbolProc:
     - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
 
 
-# Offense count: 40
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyle, MinSize, WordRegex.
-# SupportedStyles: percent, brackets
-Style/WordArray:
-  Exclude:
-    - 'lib/wifi-wand/mac_helper_release.rb'
-    - 'spec/support/test_helpers.rb'
-    - 'spec/wifi-wand/base_model_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/main_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formats_e2e_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formats_integration_spec.rb'
-    - 'spec/wifi-wand/errors_spec.rb'
-    - 'spec/wifi-wand/models/helpers/resource_manager_spec.rb'
-    - 'spec/wifi-wand/models/ubuntu_model_spec.rb'

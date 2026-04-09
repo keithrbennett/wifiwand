@@ -6,6 +6,8 @@ require 'stringio'
 
 describe WifiWand::CommandLineInterface::ShellInterface do
   # Create a test class that includes the module
+  subject { test_class.new }
+
   let(:test_class) do
     Class.new do
       include WifiWand::CommandLineInterface::ShellInterface
@@ -32,7 +34,6 @@ describe WifiWand::CommandLineInterface::ShellInterface do
     end
   end
 
-  subject { test_class.new }
 
   describe '#method_missing' do
     it 'attempts to execute commands via attempt_command_action' do
@@ -43,7 +44,7 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       end
 
       # Should raise NoMethodError
-      expect { subject.invalid_command('arg1', 'arg2') } \
+      expect { subject.invalid_command('arg1', 'arg2') }
         .to raise_error(NoMethodError, /is not a valid command or option/)
     end
 
