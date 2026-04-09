@@ -64,7 +64,7 @@ module WifiWand
         end
         raise WifiWand::Error,
           "Required operating system dependency 'qrencode' library not found. " \
-          "Use #{install_command} to install it."
+            "Use #{install_command} to install it."
       end
 
       def require_connected_network_name(model)
@@ -139,7 +139,7 @@ module WifiWand
               File.delete(filename)
             rescue
               raise WifiWand::Error,
-              "QR code output file '#{filename}' already exists and could not be overwritten."
+                "QR code output file '#{filename}' already exists and could not be overwritten."
             end
             nil
           else
@@ -149,7 +149,7 @@ module WifiWand
           # Non-interactive: instruct the user to delete first
           raise WifiWand::Error,
             "QR code output file '#{filename}' already exists. " \
-            'Delete the file first or confirm overwrite in the client.'
+              'Delete the file first or confirm overwrite in the client.'
         end
       end
 

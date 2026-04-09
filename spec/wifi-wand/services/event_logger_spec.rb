@@ -416,7 +416,7 @@ describe WifiWand::EventLogger do
 
       expect(logger).to receive(:log_message) do |message|
         expect(message).to match(
-          /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi on, connected to TestNetwork, internet available/
+          /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi on, connected to TestNetwork, internet available/,
         )
       end
 
@@ -428,7 +428,7 @@ describe WifiWand::EventLogger do
 
       expect(logger).to receive(:log_message) do |message|
         expect(message).to match(
-          /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi off, not connected, internet unavailable/
+          /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi off, not connected, internet unavailable/,
         )
       end
 

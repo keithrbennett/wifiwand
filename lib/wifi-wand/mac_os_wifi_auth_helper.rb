@@ -366,8 +366,10 @@ module WifiWand
 
       def emit_install_failure(detail)
         stream = out_stream || $stdout
-        stream.puts("wifiwand helper: failed to install helper (#{detail}). " \
-          'Helper disabled until the next run.') if stream
+        if stream
+          stream.puts("wifiwand helper: failed to install helper (#{detail}). " \
+            'Helper disabled until the next run.')
+        end
       end
 
       def log_verbose(message)

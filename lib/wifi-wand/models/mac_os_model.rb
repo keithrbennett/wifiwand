@@ -47,7 +47,8 @@ module WifiWand
       128 => ->(network_name, _error) { raise KeychainAccessCancelledError, network_name },
       51  => ->(network_name, _error) { raise KeychainNonInteractiveError, network_name },
       25  => ->(network_name, _error) {
- raise KeychainError, "Invalid keychain search parameters for network '#{network_name}'" },
+        raise KeychainError, "Invalid keychain search parameters for network '#{network_name}'"
+      },
       1   => ->(network_name, error) {
         if error.text.include?('could not be found')
           nil
@@ -328,15 +329,19 @@ module WifiWand
           if e.text.include?('code: -3900') ||
               e.text.include?('code: -3905') ||
               e.text.downcase.include?('network not found')
-            out_stream.puts "Swift/CoreWLAN failed (#{e.text.strip}). " \
-              'Trying networksetup fallback...' if verbose_mode
+            if verbose_mode
+              out_stream.puts "Swift/CoreWLAN failed (#{e.text.strip}). " \
+                'Trying networksetup fallback...'
+            end
           else
             # For other errors, re-raise as they may indicate real problems
             raise
           end
         rescue => e
-          out_stream.puts "Swift/CoreWLAN failed: #{e.message}. " \
-            'Trying networksetup fallback...' if verbose_mode
+          if verbose_mode
+            out_stream.puts "Swift/CoreWLAN failed: #{e.message}. " \
+              'Trying networksetup fallback...'
+          end
         end
       end
 
@@ -418,8 +423,10 @@ module WifiWand
           run_swift_command('WifiNetworkDisconnector')
           return nil
         rescue => e
-          out_stream.puts "Swift/CoreWLAN disconnect failed: #{e.message}. " \
-            'Falling back to ifconfig...' if verbose_mode
+          if verbose_mode
+            out_stream.puts "Swift/CoreWLAN disconnect failed: #{e.message}. " \
+              'Falling back to ifconfig...'
+          end
           # Fall through to ifconfig fallback
         end
       elsif verbose_mode

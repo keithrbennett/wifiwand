@@ -892,8 +892,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
           allow(subject).to receive(:command_available?).with('qrencode').and_return(false)
           allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: os_id))
 
-          expect { silence_output {
- subject.generate_qr_code } }.to raise_error(WifiWand::Error, /#{Regexp.escape(expected_command)}/)
+          expect do
+            silence_output do
+              subject.generate_qr_code
+            end
+          end.to raise_error(WifiWand::Error, /#{Regexp.escape(expected_command)}/)
         end
       end
 

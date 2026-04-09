@@ -55,8 +55,8 @@ describe WifiWand::ConnectionManager do
       control_chars.each do |char|
         invalid_name = "bad#{char}name"
         expect { subject.send(:normalize_inputs, invalid_name, nil) }
-          .to raise_error(WifiWand::InvalidNetworkNameError, 
-/control characters/), "control char #{char.inspect}"
+          .to raise_error(WifiWand::InvalidNetworkNameError,
+            /control characters/), "control char #{char.inspect}"
       end
     end
 
