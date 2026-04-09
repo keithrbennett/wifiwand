@@ -10,8 +10,8 @@ module WifiWand
     # Mock network connectivity tester to prevent real network calls during non-disruptive tests
     before(:each) do
       # Check if current test or any parent group is marked as disruptive
-      example_disruptive = RSpec.current_example&.metadata[:disruptive]
-      group_disruptive = RSpec.current_example&.example_group&.metadata[:disruptive]
+      example_disruptive = RSpec.current_example&.metadata&.[](:disruptive)
+      group_disruptive = RSpec.current_example&.example_group&.metadata&.[](:disruptive)
       is_disruptive = example_disruptive || group_disruptive
 
       unless is_disruptive

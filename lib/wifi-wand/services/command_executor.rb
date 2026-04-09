@@ -103,7 +103,7 @@ module WifiWand
       status_string = "Exit code: #{result.exitstatus} (#{result.success? ? 'success' : 'error'})"
 
       if @verbose
-        @output.puts "#{status_string}, Duration: #{'%.4f' % duration} seconds -- #{Time.now.iso8601}"
+        @output.puts "#{status_string}, Duration: #{format('%.4f', duration)} seconds -- #{Time.now.iso8601}"
         unless result.stdout.empty?
           @output.puts CommandOutputFormatter.command_result_as_string("STDOUT:\n#{result.stdout}")
         end

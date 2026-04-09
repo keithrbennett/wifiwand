@@ -105,7 +105,7 @@ module WifiWand
     end
 
     def print_status_table(status)
-      row = ->(str1 = '', str2 = '') { @out_stream.puts format('  %-40s %s', str1, str2) }
+      row = ->(str1 = '', str2 = '') { @out_stream.puts format('  %-40<str1>s %<str2>s', str1:, str2:) }
       separator_line = '=' * 70
 
       row.()

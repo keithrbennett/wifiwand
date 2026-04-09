@@ -253,7 +253,7 @@ module WifiWand
 
       def available?
         return false if @disabled
-        return false if ENV.fetch(DISABLE_ENV_KEY, nil) == '1'
+        return false if ENV[DISABLE_ENV_KEY] == '1'
 
         version = macos_version
         return false unless version

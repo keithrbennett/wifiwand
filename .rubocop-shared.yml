@@ -195,6 +195,9 @@ Style/EmptyMethod:
 Style/EndlessMethod:
   EnforcedStyle: allow_always
 
+Style/FetchEnvVar:
+  Enabled: false
+
 Style/FrozenStringLiteralComment:
   Enabled: true
   EnforcedStyle: always

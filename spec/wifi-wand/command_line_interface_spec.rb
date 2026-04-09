@@ -779,7 +779,7 @@ describe WifiWand::CommandLineInterface do
       it 'does not create a log file by default (stdout-only)' do
         # This test ensures that the default behavior only outputs to stdout
         mock_log_command = instance_double(WifiWand::LogCommand)
-        expect(WifiWand::LogCommand).to receive(:new) do |model, output:, verbose:|
+        expect(WifiWand::LogCommand).to receive(:new) do |_model, output:, verbose:|
           expect(output).to eq(subject.send(:out_stream))
           mock_log_command
         end

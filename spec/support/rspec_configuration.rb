@@ -14,7 +14,6 @@ module RSpecConfiguration
     configure_helper_inclusions(config)
   end
 
-  private
 
   # Basic RSpec configuration
   def self.configure_basic_settings(config)
@@ -255,7 +254,6 @@ module RSpecConfiguration
     MESSAGE
   end
 
-  private
 
   def self.configure_disruptive_test_filtering(config)
     case ENV['RSPEC_DISRUPTIVE_TESTS']

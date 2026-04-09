@@ -112,8 +112,8 @@ module WifiWand
       return if env_args.empty?
 
       ARGV.unshift(*env_args)
-    rescue ArgumentError => error
-      raise ConfigurationError, "Invalid WIFIWAND_OPTS value: #{error.message}"
+    rescue ArgumentError => e
+      raise ConfigurationError, "Invalid WIFIWAND_OPTS value: #{e.message}"
     end
 
     def handle_error(error, verbose_mode)

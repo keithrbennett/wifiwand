@@ -30,8 +30,8 @@ module WifiWand
     EVENT_TYPES = {
       wifi_on:      'WiFi ON',
       wifi_off:     'WiFi OFF',
-      connected:    'Connected to %{network_name}',
-      disconnected: 'Disconnected from %{network_name}',
+      connected:    'Connected to %<network_name>s',
+      disconnected: 'Disconnected from %<network_name>s',
       internet_on:  'Internet available',
       internet_off: 'Internet unavailable'
     }.freeze

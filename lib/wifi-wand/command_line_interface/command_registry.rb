@@ -43,11 +43,12 @@ module WifiWand
       end
 
       # Look up the command name and, if found, run it. If not, execute the passed block.
-      def attempt_command_action(command, *args, &error_handler_block)
+      def attempt_command_action(command, *, &error_handler_block)
         action = find_command_action(command)
 
         if action
-          action.(*args)
+          action.(*)
+
         else
           error_handler_block.call
           nil

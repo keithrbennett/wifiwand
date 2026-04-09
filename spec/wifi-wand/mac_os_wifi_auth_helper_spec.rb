@@ -18,7 +18,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
 
 
   around do |example|
-    original = ENV.fetch('WIFIWAND_DISABLE_MAC_HELPER', nil)
+    original = ENV['WIFIWAND_DISABLE_MAC_HELPER']
     ENV.delete('WIFIWAND_DISABLE_MAC_HELPER')
     example.run
   ensure

@@ -62,7 +62,7 @@ describe WifiWand::NetworkConnectivityTester do
           { host: '1.1.1.1', port: 443 }
         ])
 
-        allow(Socket).to receive(:tcp) do |host, port, connect_timeout:, &block|
+        allow(Socket).to receive(:tcp) do |_host, port, connect_timeout:, &block|
           if port == 53
             raise Errno::ECONNREFUSED
           else
