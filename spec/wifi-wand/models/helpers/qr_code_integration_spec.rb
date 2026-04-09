@@ -170,11 +170,11 @@ describe 'QR Code Integration Tests' do
 
         # Mock methods that could make real system calls
         allow(test_model).to receive_messages(
-          connected_network_name: test_case[:network_name],
-          connected_network_password: test_case[:password],
-          connection_security_type: test_case[:security_type],
-          preferred_networks: [test_case[:network_name]],
-          preferred_network_password: test_case[:password],
+          connected_network_name:      test_case[:network_name],
+          connected_network_password:  test_case[:password],
+          connection_security_type:    test_case[:security_type],
+          preferred_networks:          [test_case[:network_name]],
+          preferred_network_password:  test_case[:password],
           _preferred_network_password: test_case[:password],
         )
 
@@ -224,11 +224,11 @@ describe 'QR Code Integration Tests' do
 
       # Mock methods that could make real system calls
       allow(test_model).to receive_messages(
-        connected_network_name: 'TestNetwork',
-        connected_network_password: 'password',
-        connection_security_type: 'WPA2',
-        preferred_networks: ['TestNetwork'],
-        preferred_network_password: 'password',
+        connected_network_name:      'TestNetwork',
+        connected_network_password:  'password',
+        connection_security_type:    'WPA2',
+        preferred_networks:          ['TestNetwork'],
+        preferred_network_password:  'password',
         _preferred_network_password: 'password',
       )
 
@@ -253,11 +253,11 @@ describe 'QR Code Integration Tests' do
 
       # Mock methods that could make real system calls
       allow(test_model).to receive_messages(
-        connected_network_name: 'TestNetwork',
-        connected_network_password: 'password123',
-        connection_security_type: 'WPA2',
-        preferred_networks: ['TestNetwork'],
-        preferred_network_password: 'password123',
+        connected_network_name:      'TestNetwork',
+        connected_network_password:  'password123',
+        connection_security_type:    'WPA2',
+        preferred_networks:          ['TestNetwork'],
+        preferred_network_password:  'password123',
         _preferred_network_password: 'password123',
       )
 
@@ -296,11 +296,11 @@ describe 'QR Code Integration Tests' do
 
         # Mock methods that could make real system calls
         allow(test_model).to receive_messages(
-          connected_network_name: config[:ssid],
-          connected_network_password: config[:password],
-          connection_security_type: config[:security],
-          preferred_networks: [config[:ssid]],
-          preferred_network_password: config[:password],
+          connected_network_name:      config[:ssid],
+          connected_network_password:  config[:password],
+          connection_security_type:    config[:security],
+          preferred_networks:          [config[:ssid]],
+          preferred_network_password:  config[:password],
           _preferred_network_password: config[:password],
         )
 

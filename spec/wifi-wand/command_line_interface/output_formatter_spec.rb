@@ -343,7 +343,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         expect(result).to match(YELLOW_TEXT_REGEX) # Yellow warning
       end
 
-      context 'captive portal detection' do
+      context 'when captive portal is detected' do
         it 'does not show captive portal warning when captive_portal_login_required is false' do
           result = subject.status_line(status_data)
           expect(result).not_to match(/Captive Portal/)
@@ -365,7 +365,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         end
 
         it 'shows captive portal warning even when status_data has no captive_portal_login_required key' do
-          data = status_data.reject { |k, _| k == :captive_portal_login_required }
+          data = status_data.except(:captive_portal_login_required)
           result = subject.status_line(data)
           expect(result).not_to match(/Captive Portal/)
         end
@@ -403,7 +403,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         expect(result).not_to match(ANSI_COLOR_REGEX)
       end
 
-      context 'captive portal detection' do
+      context 'when captive portal is detected' do
         it 'shows captive portal warning text without ANSI color codes' do
           data = status_data.merge(captive_portal_login_required: :yes, internet_connected: false)
           result = subject.status_line(data)

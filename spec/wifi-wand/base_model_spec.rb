@@ -30,21 +30,21 @@ describe 'Common WiFi Model Behavior (All OS)' do
       # Mock low-level OS command execution to prevent real system calls
       # but allow higher-level methods to be called for testing
       allow(subject).to receive_messages(
-        wifi_on?: true,
-        available_network_names: ['TestNetwork1', 'TestNetwork2'],
-        connected_network_name: 'TestNetwork1',
-        ip_address: '192.168.1.100',
-        mac_address: 'aa:bb:cc:dd:ee:ff',
-        default_interface: 'wlan0',
-        nameservers: ['8.8.8.8', '8.8.4.4'],
-        preferred_networks: ['TestNetwork1', 'SavedNetwork1'],
+        wifi_on?:                   true,
+        available_network_names:    ['TestNetwork1', 'TestNetwork2'],
+        connected_network_name:     'TestNetwork1',
+        ip_address:                 '192.168.1.100',
+        mac_address:                'aa:bb:cc:dd:ee:ff',
+        default_interface:          'wlan0',
+        nameservers:                ['8.8.8.8', '8.8.4.4'],
+        preferred_networks:         ['TestNetwork1', 'SavedNetwork1'],
         internet_tcp_connectivity?: true,
-        dns_working?: true,
-        captive_portal_free?: true,
-        fast_connectivity?: true,
-        public_ip_address_info: { 'ip' => '1.2.3.4' },
-        run_os_command: command_result(stdout: ''),
-        till: nil,
+        dns_working?:               true,
+        captive_portal_free?:       true,
+        fast_connectivity?:         true,
+        public_ip_address_info:     { 'ip' => '1.2.3.4' },
+        run_os_command:             command_result(stdout: ''),
+        till:                       nil,
       )
     end
   end
@@ -517,13 +517,13 @@ describe 'Common WiFi Model Behavior (All OS)' do
   describe '#wifi_info exception handling' do
     before do
       allow(subject).to receive_messages(
-        wifi_on?: true,
-        wifi_interface: 'wlan0',
-        default_interface: 'wlan0',
+        wifi_on?:               true,
+        wifi_interface:         'wlan0',
+        default_interface:      'wlan0',
         connected_network_name: 'TestNet',
-        ip_address: '192.168.1.100',
-        mac_address: 'aa:bb:cc:dd:ee:ff',
-        nameservers: ['8.8.8.8'],
+        ip_address:             '192.168.1.100',
+        mac_address:            'aa:bb:cc:dd:ee:ff',
+        nameservers:            ['8.8.8.8'],
       )
 
       # Remove the global mock for connected_to_internet? so we can test the real logic
@@ -540,17 +540,17 @@ describe 'Common WiFi Model Behavior (All OS)' do
         # Mock the necessary methods for wifi_info to work
         allow(model).to receive(:validate_os_preconditions)
         allow(model).to receive_messages(
-          detect_wifi_interface: 'wlan0',
-          is_wifi_interface?: true,
-          wifi_on?: true,
-          wifi_interface: 'wlan0',
-          default_interface: 'wlan0',
-          connected_network_name: 'TestNet',
-          ip_address: '192.168.1.100',
-          mac_address: 'aa:bb:cc:dd:ee:ff',
-          nameservers: ['8.8.8.8'],
+          detect_wifi_interface:      'wlan0',
+          is_wifi_interface?:         true,
+          wifi_on?:                   true,
+          wifi_interface:             'wlan0',
+          default_interface:          'wlan0',
+          connected_network_name:     'TestNet',
+          ip_address:                 '192.168.1.100',
+          mac_address:                'aa:bb:cc:dd:ee:ff',
+          nameservers:                ['8.8.8.8'],
           internet_tcp_connectivity?: true,
-          dns_working?: true,
+          dns_working?:               true,
         )
         allow(model).to receive(:sleep)  # Don\'t actually sleep
 
@@ -576,7 +576,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:dns_working?).and_raise(StandardError, 'DNS error')
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: true,
-        public_ip_address_info: { 'ip' => '1.2.3.4' },
+        public_ip_address_info:     { 'ip' => '1.2.3.4' },
       )
 
       result = subject.wifi_info
@@ -587,8 +587,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'does not call captive_portal_free? when TCP fails' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: false,
-        dns_working?: true,
-        public_ip_address_info: { 'ip' => '1.2.3.4' },
+        dns_working?:               true,
+        public_ip_address_info:     { 'ip' => '1.2.3.4' },
       )
       expect(subject).not_to receive(:captive_portal_free?)
 
@@ -598,8 +598,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'does not call captive_portal_free? when DNS fails' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: true,
-        dns_working?: false,
-        public_ip_address_info: { 'ip' => '1.2.3.4' },
+        dns_working?:               false,
+        public_ip_address_info:     { 'ip' => '1.2.3.4' },
       )
       expect(subject).not_to receive(:captive_portal_free?)
 
@@ -609,8 +609,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'does not call captive_portal_free? when both TCP and DNS fail' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: false,
-        dns_working?: false,
-        public_ip_address_info: { 'ip' => '1.2.3.4' },
+        dns_working?:               false,
+        public_ip_address_info:     { 'ip' => '1.2.3.4' },
       )
       expect(subject).not_to receive(:captive_portal_free?)
 
@@ -620,9 +620,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'calls captive_portal_free? when both TCP and DNS succeed' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: true,
-        dns_working?: true,
-        captive_portal_free?: true,
-        public_ip_address_info: { 'ip' => '1.2.3.4' },
+        dns_working?:               true,
+        captive_portal_free?:       true,
+        public_ip_address_info:     { 'ip' => '1.2.3.4' },
       )
       expect(subject).to receive(:captive_portal_free?).and_return(true)
 
@@ -799,11 +799,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     it 'returns correct data when everything is working' do
       allow(subject).to receive_messages(
-        wifi_on?: true,
-        connected_network_name: 'TestNetwork',
+        wifi_on?:                   true,
+        connected_network_name:     'TestNetwork',
         internet_tcp_connectivity?: true,
-        dns_working?: true,
-        captive_portal_free?: true,
+        dns_working?:               true,
+        captive_portal_free?:       true,
       )
 
       data = subject.status_line_data
@@ -816,7 +816,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     it 'returns correct data when wifi is off' do
       allow(subject).to receive_messages(
-        wifi_on?: false,
+        wifi_on?:               false,
         connected_network_name: nil,
       )
 
@@ -870,13 +870,13 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       # Mock all methods that could make real system calls
       allow(subject).to receive_messages(
-        connected_network_name: network_name,
-        connected_network_password: network_password,
-        connection_security_type: security_type,
-        network_hidden?: false,
-        run_os_command: command_result(stdout: ''),
-        preferred_networks: [network_name],
-        preferred_network_password: network_password,
+        connected_network_name:      network_name,
+        connected_network_password:  network_password,
+        connection_security_type:    security_type,
+        network_hidden?:             false,
+        run_os_command:              command_result(stdout: ''),
+        preferred_networks:          [network_name],
+        preferred_network_password:  network_password,
         _preferred_network_password: network_password,
       )
     end
@@ -956,7 +956,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       ].each do |test_network, test_password, expected_qr_string|
         it "properly escapes special characters in '#{test_network}' / '#{test_password}'" do
           allow(subject).to receive_messages(
-            connected_network_name: test_network,
+            connected_network_name:     test_network,
             connected_network_password: test_password,
           )
 

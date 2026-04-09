@@ -14,7 +14,6 @@ module RSpecConfiguration
     configure_helper_inclusions(config)
   end
 
-
   # Basic RSpec configuration
   def self.configure_basic_settings(config)
     config.example_status_persistence_file_path = 'rspec-errors.txt'
@@ -253,7 +252,6 @@ module RSpecConfiguration
 
     MESSAGE
   end
-
 
   def self.configure_disruptive_test_filtering(config)
     case ENV['RSPEC_DISRUPTIVE_TESTS']

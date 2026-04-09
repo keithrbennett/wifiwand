@@ -11,7 +11,8 @@ module WifiWand
     before(:each) do
       # Check if current test or any parent group is marked as disruptive
       example_disruptive = RSpec.current_example&.metadata&.[](:disruptive)
-      group_disruptive = RSpec.current_example&.example_group&.metadata&.[](:disruptive)
+      group_meta = RSpec.current_example&.example_group&.metadata
+      group_disruptive = group_meta&.[](:disruptive)
       is_disruptive = example_disruptive || group_disruptive
 
       unless is_disruptive
@@ -243,7 +244,7 @@ module WifiWand
         it 'returns connection-specific nameservers when present' do
           allow(subject).to receive_messages(
             active_connection_profile_name: 'Conn1',
-            _connected_network_name: 'SSID-Conn1',
+            _connected_network_name:        'SSID-Conn1',
           )
           expect(subject).to receive(:nameservers_from_connection).with('Conn1').and_return(['1.1.1.1'])
           expect(subject.nameservers).to eq(['1.1.1.1'])
@@ -252,7 +253,7 @@ module WifiWand
         it 'prefers the active profile name over the SSID when resolving DNS' do
           allow(subject).to receive_messages(
             active_connection_profile_name: 'RenamedProfile',
-            _connected_network_name: 'SSID-RenamedProfile',
+            _connected_network_name:        'SSID-RenamedProfile',
           )
           expect(subject).to receive(:nameservers_from_connection).with('RenamedProfile')
             .and_return(['9.9.9.9'])
@@ -269,7 +270,7 @@ module WifiWand
         it 'uses SSID as a fallback when profile name is unavailable' do
           allow(subject).to receive_messages(
             active_connection_profile_name: nil,
-            _connected_network_name: 'FallbackSSID',
+            _connected_network_name:        'FallbackSSID',
           )
           expect(subject).to receive(:nameservers_from_connection).with('FallbackSSID')
             .and_return(['4.4.4.4'])
@@ -587,7 +588,7 @@ module WifiWand
 
         before(:each) do
           allow(subject).to receive_messages(
-            _connected_network_name: network_name,
+            _connected_network_name:        network_name,
             active_connection_profile_name: profile_name,
           )
         end
@@ -801,7 +802,7 @@ module WifiWand
 
           allow(subject).to receive_messages(
             active_connection_profile_name: profile_name,
-            _connected_network_name: ssid_name,
+            _connected_network_name:        ssid_name,
           )
           allow(subject).to receive(:nameservers_from_connection).with(profile_name).and_return(nameservers)
 
@@ -1223,7 +1224,7 @@ module WifiWand
           # Mock no active connection
           allow(subject).to receive_messages(
             active_connection_profile_name: nil,
-            _connected_network_name: nil,
+            _connected_network_name:        nil,
           )
 
           expect { subject.set_nameservers(['8.8.8.8']) }
@@ -1289,8 +1290,8 @@ module WifiWand
           # Mock get_security_parameter to return nil (detection failure)
           # Mock the fallback connection attempt to avoid real network connection
           allow(subject).to receive_messages(
-            get_security_parameter: command_result(stdout: nil),
-            _connected_network_name: nil,
+            get_security_parameter:     command_result(stdout: nil),
+            _connected_network_name:    nil,
             find_best_profile_for_ssid: nil,
           )
           allow(subject).to receive(:run_os_command)

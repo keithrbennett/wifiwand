@@ -121,8 +121,8 @@ describe WifiWand::NetworkConnectivityTester do
 
     it 'returns true when TCP, DNS, and captive portal check all pass' do
       allow(tester).to receive_messages(
-        tcp_connectivity?: true,
-        dns_working?: true,
+        tcp_connectivity?:    true,
+        dns_working?:         true,
         captive_portal_free?: true,
       )
 
@@ -149,8 +149,8 @@ describe WifiWand::NetworkConnectivityTester do
 
     it 'returns false when captive portal is detected (TCP and DNS pass but portal intercepts)' do
       allow(tester).to receive_messages(
-        tcp_connectivity?: true,
-        dns_working?: true,
+        tcp_connectivity?:    true,
+        dns_working?:         true,
         captive_portal_free?: false,
       )
 

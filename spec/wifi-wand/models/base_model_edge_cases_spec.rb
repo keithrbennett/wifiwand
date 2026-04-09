@@ -169,9 +169,9 @@ RSpec.describe WifiWand::BaseModel do
     end
 
     it 'uses the full internet check (TCP+DNS+captive portal) rather than the fast TCP-only probe' do
-      allow(model).to receive(:internet_tcp_connectivity?).and_return(true)
-      allow(model).to receive(:dns_working?).and_return(true)
-      allow(model).to receive(:captive_portal_free?).and_return(true)
+      allow(model).to receive_messages(
+        internet_tcp_connectivity?: true, dns_working?: true, captive_portal_free?: true,
+      )
       expect(model).not_to receive(:fast_connectivity?)
       expect(model).not_to receive(:connected_to_internet?)
 
@@ -194,9 +194,9 @@ RSpec.describe WifiWand::BaseModel do
     end
 
     it 'sets captive_portal_login_required to :yes when TCP and DNS work but captive portal is detected' do
-      allow(model).to receive(:internet_tcp_connectivity?).and_return(true)
-      allow(model).to receive(:dns_working?).and_return(true)
-      allow(model).to receive(:captive_portal_free?).and_return(false)
+      allow(model).to receive_messages(
+        internet_tcp_connectivity?: true, dns_working?: true, captive_portal_free?: false,
+      )
 
       result = model.status_line_data
 
@@ -205,8 +205,7 @@ RSpec.describe WifiWand::BaseModel do
     end
 
     it 'sets captive_portal_login_required to :no when TCP fails (no captive portal confidence)' do
-      allow(model).to receive(:internet_tcp_connectivity?).and_return(false)
-      allow(model).to receive(:dns_working?).and_return(false)
+      allow(model).to receive_messages(internet_tcp_connectivity?: false, dns_working?: false)
 
       result = model.status_line_data
 
