@@ -1,3 +1,46 @@
+## Unreleased
+
+### Breaking Changes
+
+#### `till` wait-state vocabulary redesigned
+
+The `till` command now uses an explicit, unambiguous vocabulary. The old state names
+`conn`, `disc`, `on`, and `off` have been **removed**.
+
+**Why?** `conn` checked full Internet reachability (TCP + DNS + captive-portal free),
+not WiFi association. This caused semantic confusion: code that connected to a WiFi
+network then called `till(:conn)` was really asking "is the Internet up?" rather than
+"did I join the network?". The new vocabulary makes the distinction explicit.
+
+**New state names:**
+
+| State           | Meaning                                                         |
+|-----------------|-----------------------------------------------------------------|
+| `wifi_on`       | WiFi hardware is powered on                                     |
+| `wifi_off`      | WiFi hardware is powered off                                    |
+| `associated`    | WiFi is associated with an SSID (WiFi layer, not Internet)      |
+| `disassociated` | WiFi is not associated with any SSID                            |
+| `internet_on`   | Full Internet reachability (TCP + DNS + captive-portal free)    |
+| `internet_off`  | Internet reachability check fails                               |
+
+**Migration table:**
+
+| Old usage         | New usage                                         |
+|-------------------|---------------------------------------------------|
+| `till on`         | `till wifi_on`                                    |
+| `till off`        | `till wifi_off`                                   |
+| `till conn`       | `till internet_on` or `till associated`           |
+| `till disc`       | `till internet_off` or `till disassociated`       |
+
+Using a removed name now raises an `ArgumentError` with a clear message listing the
+valid state names.
+
+**Internal changes:** connection flows now wait for WiFi association (`:associated`)
+rather than Internet reachability; restore flows wait for WiFi power state
+(`:wifi_on`/`:wifi_off`) as appropriate.
+
+---
+
 ## v3.0.0.pre-alpha.1
 
 ### The Big Kahuna

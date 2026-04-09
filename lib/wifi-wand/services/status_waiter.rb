@@ -4,18 +4,26 @@ require_relative '../timing_constants'
 
 module WifiWand
   class StatusWaiter
+    PERMITTED_STATES = %i[wifi_on wifi_off associated disassociated internet_on internet_off].freeze
+
     def initialize(model, verbose: false, output: nil)
       @model = model
       @verbose = verbose
       @output = output
     end
 
-    # Waits for the Internet connection to be in the desired state.
-    # @param target_status must be in [:conn, :disc, :off, :on]; waits for that state
-    # @param timeout_in_secs after this many seconds, the method will raise a WaitTimeoutError;
+    # Waits for the WiFi/Internet connection to be in the desired state.
+    #
+    # @param target_status one of PERMITTED_STATES:
+    #   :wifi_on         – WiFi hardware is powered on
+    #   :wifi_off        – WiFi hardware is powered off
+    #   :associated      – WiFi is associated with an SSID (at the WiFi layer)
+    #   :disassociated   – WiFi is not associated with any SSID
+    #   :internet_on     – Full Internet reachability (TCP + DNS + captive-portal free)
+    #   :internet_off    – Internet reachability check fails
+    # @param timeout_in_secs after this many seconds the method raises WaitTimeoutError;
     #        if nil (default), waits indefinitely
-    # @param wait_interval_in_secs sleeps this interval between retries; if nil or absent,
-    #        a default will be provided
+    # @param wait_interval_in_secs sleeps this interval between retries; if nil, uses default
     def wait_for(target_status, timeout_in_secs: nil, wait_interval_in_secs: nil,
       stringify_permitted_values_in_error_msg: false)
       wait_interval_in_secs ||= TimingConstants::DEFAULT_WAIT_INTERVAL
@@ -28,21 +36,23 @@ module WifiWand
       end
 
       finished_predicates = {
-        conn: -> { @model.connected_to_internet? },
-        disc: -> { !@model.connected_to_internet? },
-        on:   -> { @model.wifi_on? },
-        off:  -> { !@model.wifi_on? },
+        wifi_on:       -> { @model.wifi_on? },
+        wifi_off:      -> { !@model.wifi_on? },
+        associated:    -> { @model.associated? },
+        disassociated: -> { !@model.associated? },
+        internet_on:   -> { @model.connected_to_internet? },
+        internet_off:  -> { !@model.connected_to_internet? },
       }
 
       finished_predicate = finished_predicates[target_status]
 
       if finished_predicate.nil?
         if stringify_permitted_values_in_error_msg
-          allowed = finished_predicates.keys.map(&:to_s).join(', ')
+          allowed = PERMITTED_STATES.join(', ')
           raise ArgumentError, "Option must be one of [#{allowed}]. Was: #{target_status}"
         else
           raise ArgumentError,
-            "Option must be one of #{finished_predicates.keys.inspect}. Was: #{target_status.inspect}"
+            "Option must be one of #{PERMITTED_STATES.inspect}. Was: #{target_status.inspect}"
         end
       end
 

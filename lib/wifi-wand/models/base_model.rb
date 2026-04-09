@@ -172,6 +172,15 @@ module WifiWand
       _connected_network_name
     end
 
+    # Returns true when WiFi is on and the interface is associated with an SSID.
+    # Returns false when WiFi is off or there is no active SSID association.
+    def associated?
+      name = connected_network_name
+      !name.nil? && !name.empty?
+    rescue WifiWand::Error
+      false
+    end
+
     def disconnect
       _disconnect if wifi_on?
       nil

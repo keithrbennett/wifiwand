@@ -618,29 +618,29 @@ describe WifiWand::CommandLineInterface do
     describe '#cmd_t (till)' do
       it 'calls model till method with target status' do
         expect(mock_model).to receive(:till).with(
-          :on,
+          :wifi_on,
           timeout_in_secs:                         nil,
           wait_interval_in_secs:                   nil,
           stringify_permitted_values_in_error_msg: true,
         )
-        subject.cmd_t('on')
+        subject.cmd_t('wifi_on')
       end
 
       it 'calls model till method with target status and wait interval' do
         expect(mock_model).to receive(:till).with(
-          :connected,
+          :internet_on,
           timeout_in_secs:                         2.5,
           wait_interval_in_secs:                   nil,
           stringify_permitted_values_in_error_msg: true,
         )
-        subject.cmd_t('connected', '2.5')
+        subject.cmd_t('internet_on', '2.5')
       end
 
       context 'when validating arguments' do
         it 'raises ConfigurationError when no arguments provided' do
           expect { subject.cmd_t }.to raise_error(WifiWand::ConfigurationError) do |error|
             expect(error.message).to include('Missing target status argument')
-            expect(error.message).to include('Usage: till conn|disc|on|off')
+            expect(error.message).to include('States: wifi_on, wifi_off, associated, disassociated, internet_on, internet_off')
             expect(error.message).to include('Use')
             expect(error.message).to include('help')
           end
@@ -653,7 +653,7 @@ describe WifiWand::CommandLineInterface do
         end
 
         it 'raises ConfigurationError when timeout is not numeric' do
-          expect { subject.cmd_t('on', 'invalid') }.to raise_error(WifiWand::ConfigurationError) do |error|
+          expect { subject.cmd_t('wifi_on', 'invalid') }.to raise_error(WifiWand::ConfigurationError) do |error|
             expect(error.message).to include('Invalid timeout value')
             expect(error.message).to include('invalid')
             expect(error.message).to include('must be a number')
@@ -662,7 +662,7 @@ describe WifiWand::CommandLineInterface do
 
         it 'raises ConfigurationError when interval is not numeric' do
           expect do
-            subject.cmd_t('on', '10', 'bad_value')
+            subject.cmd_t('wifi_on', '10', 'bad_value')
           end.to raise_error(WifiWand::ConfigurationError) do |error|
             expect(error.message).to include('Invalid interval value')
             expect(error.message).to include('bad_value')
@@ -672,22 +672,22 @@ describe WifiWand::CommandLineInterface do
 
         it 'accepts valid numeric timeout as string' do
           expect(mock_model).to receive(:till).with(
-            :on,
+            :wifi_on,
             timeout_in_secs:                         30.0,
             wait_interval_in_secs:                   nil,
             stringify_permitted_values_in_error_msg: true,
           )
-          expect { subject.cmd_t('on', '30') }.not_to raise_error
+          expect { subject.cmd_t('wifi_on', '30') }.not_to raise_error
         end
 
         it 'accepts valid numeric timeout and interval as strings' do
           expect(mock_model).to receive(:till).with(
-            :off,
+            :wifi_off,
             timeout_in_secs:                         20.0,
             wait_interval_in_secs:                   0.5,
             stringify_permitted_values_in_error_msg: true,
           )
-          expect { subject.cmd_t('off', '20', '0.5') }.not_to raise_error
+          expect { subject.cmd_t('wifi_off', '20', '0.5') }.not_to raise_error
         end
       end
     end

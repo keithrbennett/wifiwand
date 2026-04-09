@@ -63,10 +63,18 @@ module WifiWand
           ro[pen]                   - open web resources: #{resource_help}
           s[tatus]                  - status line (WiFi, Network, Internet; shows captive portal warning if login is required)
           t[ill]                    - wait until state is reached:
-                                      Usage: till conn|disc|on|off [timeout_secs] [interval_secs]
-                                      conn/disc = Internet connected?/disconnected; on/off = Wi‑Fi power state
+                                      Usage: till <state> [timeout_secs] [interval_secs]
+                                      States:
+                                        wifi_on        – WiFi hardware powered on
+                                        wifi_off       – WiFi hardware powered off
+                                        associated     – WiFi associated with an SSID (WiFi layer)
+                                        disassociated  – WiFi not associated with any SSID
+                                        internet_on    – Internet reachable (TCP + DNS + captive-portal free)
+                                        internet_off   – Internet not reachable
                                       Defaults: timeout = wait indefinitely; interval = #{WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL}
-                                      Examples: "till off 20"  "till off 30 0.5"
+                                      Examples: "till wifi_off 20"  "till internet_on 30 0.5"
+                                      Migration: old 'conn'→'internet_on' or 'associated'; old 'disc'→'internet_off' or 'disassociated';
+                                                 old 'on'→'wifi_on'; old 'off'→'wifi_off'
           w[ifi_on]                 - is the WiFi on?
           x[it]                     - exits this program (interactive shell mode only) (same as 'q')
 

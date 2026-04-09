@@ -160,7 +160,7 @@ module WifiWand
       model.wifi_on
       model._connect(network_name, password)
       begin
-        model.till(:conn, timeout_in_secs: WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT)
+        model.till(:associated, timeout_in_secs: WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT)
       rescue WifiWand::WaitTimeoutError
         # Allow verification step to decide success/failure based on actual state
       end
