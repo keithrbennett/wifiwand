@@ -364,6 +364,15 @@ Style/SafeNavigation:
     - 'spec/wifi-wand/models/helpers/qr_code_integration_spec.rb'
 
 # Offense count: 1
+# Style/StructInheritance: base_os.rb excluded because it defines nested classes
+# (NonSubclassInstantiationError, MethodNotImplementedError) that must live in the
+# WifiWand::BaseOs namespace. Changing to Struct.new do...end block form would
+# move those constants to the WifiWand namespace instead.
+Style/StructInheritance:
+  Exclude:
+    - 'lib/wifi-wand/os/base_os.rb'
+
+# Offense count: 1
 # Configuration parameters: Max.
 Style/SafeNavigationChainLength:
   Exclude:
@@ -373,13 +382,6 @@ Style/SafeNavigationChainLength:
 
 
 
-# Offense count: 3
-# This cop supports unsafe autocorrection (--autocorrect-all).
-Style/StructInheritance:
-  Exclude:
-    - 'lib/wifi-wand/command_line_interface/command_registry.rb'
-    - 'lib/wifi-wand/models/helpers/resource_manager.rb'
-    - 'lib/wifi-wand/os/base_os.rb'
 
 
 

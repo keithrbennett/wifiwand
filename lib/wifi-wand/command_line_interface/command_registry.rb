@@ -3,7 +3,7 @@
 module WifiWand
   class CommandLineInterface
     module CommandRegistry
-      class Command < Struct.new(:min_string, :max_string, :action); end
+      Command = Struct.new(:min_string, :max_string, :action)
 
       def commands
         @commands ||= [

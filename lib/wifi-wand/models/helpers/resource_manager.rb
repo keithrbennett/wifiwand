@@ -5,7 +5,7 @@ require 'yaml'
 module WifiWand
   module Helpers
     class ResourceManager
-      class OpenResource < Struct.new(:code, :url, :description)
+      OpenResource = Struct.new(:code, :url, :description) do
         def help_string = "'#{code}' (#{description})"
       end
 
@@ -86,7 +86,8 @@ module WifiWand
         OpenResources.new(resources)
       end
 
-      def resource_file_path = File.join(File.dirname(__FILE__), '..', '..', 'data', 'open_resources.yml')
+      def resource_file_path = File.join(File.dirname(__FILE__), '..', '..', 'data',
+        'open_resources.yml')
     end
   end
 end
