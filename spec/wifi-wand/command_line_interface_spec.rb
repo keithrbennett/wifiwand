@@ -455,7 +455,7 @@ describe WifiWand::CommandLineInterface do
         non_interactive_output: "Connected to Internet: true\n" },
       { cmd: :cmd_qr, model_method: :generate_qr_code, return_value: 'TestNetwork-qr-code.png',
         non_interactive_output: "QR code generated: TestNetwork-qr-code.png\n" },
-    ]
+    ].freeze
 
     COMMAND_TEST_CASES.each do |tc|
       describe "##{tc[:cmd]}" do

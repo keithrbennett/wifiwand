@@ -6,6 +6,7 @@
 # - Decoded payload matches expected WiFi components
 # Unit-level arg construction (stdout/custom filespec, type flags) is covered in qr_code_generator_spec.rb
 
+require 'English'
 require_relative '../../../spec_helper'
 require 'tempfile'
 require 'fileutils'
@@ -37,7 +38,7 @@ describe 'QR Code Integration Tests' do
     return nil unless File.exist?(filename)
 
     output = `zbarimg "#{filename}" 2>/dev/null`
-    return nil unless $?.success?
+    return nil unless $CHILD_STATUS.success?
 
     # Extract the QR code content (format: "QR-Code:CONTENT")
     lines = output.split("\n")

@@ -123,7 +123,7 @@ module WifiWand
         MSG
       end
 
-      WORKFLOW_SEPARATOR = <<~MSG
+      WORKFLOW_SEPARATOR = <<~MSG.freeze
 
         #{SECTION_SEPARATOR}
 
@@ -148,13 +148,13 @@ module WifiWand
         MSG
       end
 
-      SIGNATURE_VERIFICATION_HEADER = <<~MSG
+      SIGNATURE_VERIFICATION_HEADER = <<~MSG.freeze
 
         Signature Verification:
         #{SUBSECTION_SEPARATOR}
       MSG
 
-      NOTARIZATION_STATUS_HEADER = <<~MSG
+      NOTARIZATION_STATUS_HEADER = <<~MSG.freeze
 
         Notarization Status:
         #{SUBSECTION_SEPARATOR}

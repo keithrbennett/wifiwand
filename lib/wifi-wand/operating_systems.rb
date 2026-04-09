@@ -25,7 +25,7 @@ module WifiWand
 
       def current_os
         @current_os ||= begin
-          matches = supported_operating_systems.select { |os| os.current_os_is_this_os? }
+          matches = supported_operating_systems.select(&:current_os_is_this_os?)
           if matches.size > 1
             matching_names = matches.map(&:display_name)
             raise MultipleOSMatchError, matching_names

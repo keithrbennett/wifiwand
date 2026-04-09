@@ -446,7 +446,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
   describe '#post_processor' do
     context 'when options has post_processor' do
-      let(:processor) { ->(obj) { obj.to_s } }
+      let(:processor) { ->(x) { x.to_s } }
       let(:options) { OpenStruct.new(post_processor: processor) }
 
       it 'returns the post_processor from options' do

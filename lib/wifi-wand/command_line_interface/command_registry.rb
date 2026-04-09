@@ -6,7 +6,7 @@ module WifiWand
       class Command < Struct.new(:min_string, :max_string, :action); end
 
       def commands
-        @commands_ ||= [
+        @commands ||= [
           Command.new('a',   'avail_nets',    ->(*_options) { cmd_a             }),
           Command.new('ci',  'ci',            ->(*_options) { cmd_ci            }),
           Command.new('co',  'connect',       ->(*options)  { cmd_co(*options)  }),

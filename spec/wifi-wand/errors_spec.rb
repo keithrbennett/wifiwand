@@ -197,8 +197,7 @@ module WifiWand
         end
       end
 
-      it 'raises CommandNotFoundError from UbuntuModel#validate_os_preconditions ' \
-        + 'when required commands are missing' do
+      it 'raises CommandNotFoundError from UbuntuModel#validate_os_preconditions when required commands are missing' do
         ubuntu_model = create_ubuntu_test_model
         allow(ubuntu_model).to receive(:command_available?).with('iw').and_return(false)
         allow(ubuntu_model).to receive(:command_available?).with('nmcli').and_return(false)

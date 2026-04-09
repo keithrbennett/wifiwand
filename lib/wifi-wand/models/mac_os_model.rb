@@ -119,7 +119,7 @@ module WifiWand
 
     # Detects the Wi-Fi service name dynamically (e.g., "Wi-Fi", "AirPort", etc.)
     def detect_wifi_service_name
-      @wifi_service_name ||= begin
+      @detect_wifi_service_name ||= begin
         ports = fetch_hardware_ports
         detect_wifi_service_name_from_ports(ports)
       end

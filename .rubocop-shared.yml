@@ -57,7 +57,7 @@ Layout/LineEndStringConcatenationIndentation:
 Layout/LineLength:
   Max: 110
   AllowedPatterns:
-    - '\s*#'
+    - '^\s*#'
 
 Layout/MultilineMethodCallBraceLayout:
   Enabled: false
@@ -195,6 +195,9 @@ Style/EmptyMethod:
 Style/EndlessMethod:
   EnforcedStyle: allow_always
 
+Style/SpecialGlobalVars:
+  EnforcedStyle: use_english_names
+
 Style/FetchEnvVar:
   Enabled: false
 
@@ -246,6 +249,13 @@ Style/RescueStandardError:
 
 Style/SingleLineMethods:
   AllowIfMethodIsEmpty: false
+
+# Style/Lambda enforces `->` (proc literal) over `lambda`. Style/SymbolProc would
+# then suggest converting `->(x) { x.foo }` back to `lambda(&:foo)`, which
+# re-violates Style/Lambda. The two cops are irreconcilable for this pattern,
+# so SymbolProc is disabled in favour of the more readable `->` form.
+Style/SymbolProc:
+  Enabled: false
 
 Style/StringLiterals:
   EnforcedStyle: single_quotes

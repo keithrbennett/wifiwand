@@ -307,7 +307,7 @@ module WifiWand
 
           test_cases.each do |output, expected|
             # Clear any cached value and mock the command
-            model.instance_variable_set(:@wifi_service_name, nil)
+            model.instance_variable_set(:@detect_wifi_service_name, nil)
             allow(model).to receive(:run_os_command).with(%w[networksetup -listallhardwareports])
               .and_return(command_result(stdout: output))
             expect(model.detect_wifi_service_name).to eq(expected)
@@ -324,9 +324,9 @@ module WifiWand
 
         it 'derives service name from previous Hardware Port line for detected interface' do
           # Ensure cache does not interfere
-          model.instance_variable_set(:@wifi_service_name, nil)
+          model.instance_variable_set(:@detect_wifi_service_name, nil)
           output = "Hardware Port: SpecialWifi\nDevice: en0\nEthernet Address: aa:bb:cc:dd:ee:ff\n\n" \
-            + "Hardware Port: Ethernet\nDevice: en1\n"
+            "Hardware Port: Ethernet\nDevice: en1\n"
           allow(model).to receive(:run_os_command).with(%w[networksetup -listallhardwareports])
             .and_return(command_result(stdout: output))
           allow(model).to receive(:wifi_interface).and_return('en0')
@@ -360,7 +360,7 @@ module WifiWand
       describe '#detect_wifi_interface_using_networksetup' do
         it 'extracts WiFi interface from networksetup output' do
           output = "Hardware Port: Wi-Fi\nDevice: en0\nEthernet Address: aa:bb:cc\n\n" \
-            + "Hardware Port: Ethernet\nDevice: en1\n"
+            "Hardware Port: Ethernet\nDevice: en1\n"
           allow(model).to receive(:run_os_command).with(%w[networksetup -listallhardwareports])
             .and_return(command_result(stdout: output))
           # Also exercise dynamic service name path
@@ -595,8 +595,8 @@ module WifiWand
 
       describe '#mac_address' do
         it 'extracts MAC address from ifconfig output' do
-          ifconfig_output = "en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n\t" \
-            + "ether ac:bc:32:b9:a9:9d\n"
+          ifconfig_output = "en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n" \
+            "\tether ac:bc:32:b9:a9:9d\n"
           allow(model).to receive(:wifi_interface).and_return('en0')
           allow(model).to receive(:run_os_command).with(%w[ifconfig en0])
             .and_return(command_result(stdout: ifconfig_output))

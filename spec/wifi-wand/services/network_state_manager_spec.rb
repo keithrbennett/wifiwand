@@ -98,7 +98,7 @@ describe WifiWand::NetworkStateManager do
         allow(mock_model).to receive(:wifi_on).and_raise(StandardError.new('WiFi hardware error'))
 
         target = 'Warning: Could not restore network state: WiFi hardware error.*' \
-          + 'You may need to manually reconnect to: TestNetwork'
+          'You may need to manually reconnect to: TestNetwork'
         expect { state_manager.restore_network_state(valid_state, fail_silently: true) }
           .to output(/#{target}/m).to_stderr
       end

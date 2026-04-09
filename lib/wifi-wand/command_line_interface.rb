@@ -53,7 +53,7 @@ module WifiWand
     # Asserts that a command has been passed on the command line.
     def validate_command_line
       if ARGV.empty?
-        @err_stream.puts "Syntax is: #{File.basename($0)} [options] command [command_options]. #{help_hint}"
+        @err_stream.puts "Syntax is: #{File.basename($PROGRAM_NAME)} [options] command [command_options]. #{help_hint}"
         exit(-1)
       end
     end

@@ -105,14 +105,6 @@ Naming/FileName:
   Exclude:
     - 'lib/wifi-wand.rb'
 
-# Offense count: 2
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: EnforcedStyleForLeadingUnderscores.
-# SupportedStylesForLeadingUnderscores: disallowed, required, optional
-Naming/MemoizedInstanceVariableName:
-  Exclude:
-    - 'lib/wifi-wand/command_line_interface/command_registry.rb'
-    - 'lib/wifi-wand/models/mac_os_model.rb'
 
 # Offense count: 3
 # Configuration parameters: MinNameLength, AllowNamesEndingInNumbers, AllowedNames, ForbiddenNames.
@@ -338,14 +330,6 @@ Style/MultilineBlockChain:
     - 'spec/wifi-wand/command_line_interface_spec.rb'
     - 'spec/wifi-wand/models/mac_os_model_spec.rb'
 
-# Offense count: 4
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: literals, strict
-Style/MutableConstant:
-  Exclude:
-    - 'lib/wifi-wand/mac_helper_release.rb'
-    - 'spec/wifi-wand/command_line_interface_spec.rb'
 
 # Offense count: 32
 Style/OpenStructUse:
@@ -387,21 +371,6 @@ Style/SafeNavigationChainLength:
 
 
 
-# Offense count: 3
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: RequireEnglish.
-# SupportedStyles: use_perl_names, use_english_names, use_builtin_english_names
-Style/SpecialGlobalVars:
-  EnforcedStyle: use_perl_names
-
-# Offense count: 5
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: Mode.
-Style/StringConcatenation:
-  Exclude:
-    - 'spec/wifi-wand/errors_spec.rb'
-    - 'spec/wifi-wand/models/mac_os_model_spec.rb'
-    - 'spec/wifi-wand/services/network_state_manager_spec.rb'
 
 
 # Offense count: 3
@@ -413,14 +382,5 @@ Style/StructInheritance:
     - 'lib/wifi-wand/os/base_os.rb'
 
 
-# Offense count: 5
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: AllowMethodsWithArguments, AllowedMethods, AllowedPatterns, AllowComments.
-# AllowedMethods: define_method
-Style/SymbolProc:
-  Exclude:
-    - 'lib/wifi-wand/main.rb'
-    - 'lib/wifi-wand/operating_systems.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
 
 
