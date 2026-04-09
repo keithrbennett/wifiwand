@@ -18,7 +18,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
       installed:          installed,
       valid:              valid,
       authorized:         authorized,
-      permission_message: message
+      permission_message: message,
     )
   end
 
@@ -27,7 +27,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
       argv:       argv,
       setup:      setup,
       out_stream: out_stream,
-      in_stream:  in_stream
+      in_stream:  in_stream,
     )
   end
 

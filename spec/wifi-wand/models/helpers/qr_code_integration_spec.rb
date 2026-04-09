@@ -86,8 +86,8 @@ describe 'QR Code Integration Tests' do
           'T' => 'WPA',
           'S' => 'TestNetwork',
           'P' => 'password123',
-          'H' => 'false'
-        }
+          'H' => 'false',
+        },
       },
       {
         name:          'WPA3 network with complex password',
@@ -98,8 +98,8 @@ describe 'QR Code Integration Tests' do
           'T' => 'WPA',
           'S' => 'SecureNet-5G',
           'P' => 'C0mp1ex!P@ssw0rd',
-          'H' => 'false'
-        }
+          'H' => 'false',
+        },
       },
       {
         name:          'WEP network',
@@ -110,8 +110,8 @@ describe 'QR Code Integration Tests' do
           'T' => 'WEP',
           'S' => 'OldRouter',
           'P' => '1234567890',
-          'H' => 'false'
-        }
+          'H' => 'false',
+        },
       },
       {
         name:          'Open network (no password)',
@@ -122,8 +122,8 @@ describe 'QR Code Integration Tests' do
           'T' => 'nopass',
           'S' => 'FreeWiFi',
           'P' => '',
-          'H' => 'false'
-        }
+          'H' => 'false',
+        },
       },
       {
         name:          'Network name with spaces',
@@ -134,8 +134,8 @@ describe 'QR Code Integration Tests' do
           'T' => 'WPA',
           'S' => 'Coffee Shop WiFi',
           'P' => 'welcome123',
-          'H' => 'false'
-        }
+          'H' => 'false',
+        },
       },
       {
         name:          'Network with special characters in SSID',
@@ -146,8 +146,8 @@ describe 'QR Code Integration Tests' do
           'T' => 'WPA',
           'S' => 'Net;work:WiFi\\Test',
           'P' => 'p@ss,w0rd;test:data\\escape',
-          'H' => 'false'
-        }
+          'H' => 'false',
+        },
       },
       {
         name:          'Long network name and password',
@@ -158,9 +158,9 @@ describe 'QR Code Integration Tests' do
           'T' => 'WPA',
           'S' => 'VeryLongNetworkNameThatExceeds32Characters',
           'P' => 'ThisIsAVeryLongPasswordThatContainsLotsOfCharactersToTestLongStrings',
-          'H' => 'false'
-        }
-      }
+          'H' => 'false',
+        },
+      },
     ]
 
     test_cases.each do |test_case|
@@ -175,7 +175,7 @@ describe 'QR Code Integration Tests' do
           connection_security_type: test_case[:security_type],
           preferred_networks: [test_case[:network_name]],
           preferred_network_password: test_case[:password],
-          _preferred_network_password: test_case[:password]
+          _preferred_network_password: test_case[:password],
         )
 
         # Don't mock run_os_command - let it create real QR code files
@@ -229,7 +229,7 @@ describe 'QR Code Integration Tests' do
         connection_security_type: 'WPA2',
         preferred_networks: ['TestNetwork'],
         preferred_network_password: 'password',
-        _preferred_network_password: 'password'
+        _preferred_network_password: 'password',
       )
 
       # Mock qrencode to fail
@@ -258,7 +258,7 @@ describe 'QR Code Integration Tests' do
         connection_security_type: 'WPA2',
         preferred_networks: ['TestNetwork'],
         preferred_network_password: 'password123',
-        _preferred_network_password: 'password123'
+        _preferred_network_password: 'password123',
       )
 
       allow(test_model).to receive(:run_os_command) do |cmd|
@@ -301,7 +301,7 @@ describe 'QR Code Integration Tests' do
           connection_security_type: config[:security],
           preferred_networks: [config[:ssid]],
           preferred_network_password: config[:password],
-          _preferred_network_password: config[:password]
+          _preferred_network_password: config[:password],
         )
 
         allow(test_model).to receive(:run_os_command) do |cmd|

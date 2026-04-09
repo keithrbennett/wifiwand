@@ -32,7 +32,7 @@ module WifiWand
       model_options = OpenStruct.new({
         verbose:        options.verbose,
         wifi_interface: options.wifi_interface,
-        out_stream:     out_stream
+        out_stream:     out_stream,
       })
 
       # Skip model initialization when help was explicitly requested in non-interactive mode,
@@ -203,7 +203,7 @@ module WifiWand
         target_status,
         timeout_in_secs:                         timeout_in_secs,
         wait_interval_in_secs:                   interval_in_secs,
-        stringify_permitted_values_in_error_msg: !interactive_mode
+        stringify_permitted_values_in_error_msg: !interactive_mode,
       )
     end
 

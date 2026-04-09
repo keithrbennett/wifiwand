@@ -8,7 +8,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
     described_class.new(
       out_stream_proc:    -> { out_stream },
       verbose_proc:       -> { verbose_flag },
-      macos_version_proc: -> { macos_version }
+      macos_version_proc: -> { macos_version },
     )
   end
 
@@ -97,7 +97,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
   describe '#scan_networks' do
     it 'returns a result with network data payload' do
       raw_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
-        payload: { 'networks' => [{ 'ssid' => 'Cafe' }] }
+        payload: { 'networks' => [{ 'ssid' => 'Cafe' }] },
       )
       expect(client).to receive(:execute).with('scan-networks').and_return(raw_result)
       result = client.scan_networks

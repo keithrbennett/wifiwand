@@ -79,7 +79,7 @@ module WifiWand
         installed_bundle:     installed_bundle_path,
         installed_executable: installed_executable_path,
         source_bundle:        source_bundle_path,
-        source_swift:         source_swift_path
+        source_swift:         source_swift_path,
       }
     end
 
@@ -214,7 +214,7 @@ module WifiWand
       :payload,
       :location_services_blocked,
       :error_message,
-      keyword_init: true
+      keyword_init: true,
     ) do
       def location_services_blocked? = !!location_services_blocked
     end
@@ -237,7 +237,7 @@ module WifiWand
         HelperQueryResult.new(
           payload:                   ssid,
           location_services_blocked: result.location_services_blocked,
-          error_message:             result.error_message
+          error_message:             result.error_message,
         )
       end
 
@@ -247,7 +247,7 @@ module WifiWand
         HelperQueryResult.new(
           payload:                   networks,
           location_services_blocked: result.location_services_blocked,
-          error_message:             result.error_message
+          error_message:             result.error_message,
         )
       end
 
@@ -307,7 +307,7 @@ module WifiWand
           handle_error(error_msg)
           return HelperQueryResult.new(
             location_services_blocked: error_msg&.downcase&.include?('location services'),
-            error_message:             error_msg
+            error_message:             error_msg,
           )
         end
 

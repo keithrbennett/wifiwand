@@ -64,7 +64,7 @@ describe WifiWand::CommandExecutor do
           combined_output: "attempt #{call_count}",
           exitstatus:      0,
           command:         command,
-          duration:        0.0
+          duration:        0.0,
         )
       end
 
@@ -144,7 +144,7 @@ describe WifiWand::CommandExecutor do
       expect(error_hash).to eq({
         exitstatus: 1,
         command:    'false',
-        text:       'command failed'
+        text:       'command failed',
       })
     end
   end

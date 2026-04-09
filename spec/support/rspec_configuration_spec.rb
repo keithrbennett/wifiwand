@@ -86,7 +86,7 @@ RSpec.describe RSpecConfiguration do
     $compatible_os_tag = :os_ubuntu
 
     allow(described_class).to receive(:examples_to_run).and_return([
-      double('example', metadata: { disruptive: true })
+      double('example', metadata: { disruptive: true }),
     ])
 
     expect(described_class).to receive(:handle_network_state_capture).with(true)
@@ -101,7 +101,7 @@ RSpec.describe RSpecConfiguration do
     $compatible_os_tag = :os_mac
 
     allow(described_class).to receive(:examples_to_run).and_return([
-      double('example', metadata: { disruptive: true, needs_sudo_access: true })
+      double('example', metadata: { disruptive: true, needs_sudo_access: true }),
     ])
 
     expect(described_class).to receive(:handle_network_state_capture).with(true).once

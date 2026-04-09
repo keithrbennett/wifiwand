@@ -91,7 +91,7 @@ module WifiWand
 
         result
       end
-    rescue StandardError => e
+    rescue => e
       @output.puts "Captive portal check network error for #{endpoint[:url]}: #{e.class}" if @verbose
       nil
     end

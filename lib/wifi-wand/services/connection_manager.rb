@@ -74,7 +74,7 @@ module WifiWand
         field_label:          'Network name',
         error_class:          InvalidNetworkNameError,
         blank_message:        'Network name cannot be empty',
-        control_char_message: 'Network name cannot contain control characters'
+        control_char_message: 'Network name cannot contain control characters',
       )
 
       normalized_password = normalize_scalar_input(
@@ -84,7 +84,7 @@ module WifiWand
         field_label:          'Password',
         error_class:          InvalidNetworkPasswordError,
         blank_message:        nil,
-        control_char_message: nil
+        control_char_message: nil,
       )
 
       [normalized_network_name, normalized_password]
@@ -170,7 +170,7 @@ module WifiWand
       @last_connection_used_saved_password = used_saved_password
     end
 
-    def verify_connection(network_name, password)
+    def verify_connection(network_name, _password)
       actual_network_name = model.connected_network_name
 
       unless actual_network_name == network_name

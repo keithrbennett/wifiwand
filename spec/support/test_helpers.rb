@@ -34,13 +34,13 @@ module TestHelpers
       allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_return('en0')
       allow_any_instance_of(WifiWand::MacOsModel).to receive(:fetch_hardware_ports).and_return([
         { name: 'Wi-Fi', device: 'en0', ethernet_address: '34:b1:eb:f3:b8:1c' },
-        { name: 'Ethernet', device: 'en1', ethernet_address: 'aa:bb:cc:dd:ee:ff' }
+        { name: 'Ethernet', device: 'en1', ethernet_address: 'aa:bb:cc:dd:ee:ff' },
       ])
       empty_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
       helper_client = instance_double(
         WifiWand::MacOsWifiAuthHelper::Client,
         connected_network_name: empty_result,
-        scan_networks:          empty_result
+        scan_networks:          empty_result,
       )
       allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_client)
       WifiWand::MacOsModel.create_model(merged_options)
@@ -129,7 +129,7 @@ module TestHelpers
       available_resources_help:             'Available resources help text',
       open_resources_by_codes:              { opened_resources: [], invalid_codes: [] },
       resource_manager:                     double('resource_manager', invalid_codes_error: 'Invalid codes'),
-      generate_qr_code:                     'TestNetwork-qr-code.png'
+      generate_qr_code:                     'TestNetwork-qr-code.png',
     }
     double('model', defaults.merge(overrides))
   end
@@ -146,7 +146,7 @@ module TestHelpers
       verbose:          false,
       wifi_interface:   nil,
       interactive_mode: false,
-      post_processor:   nil
+      post_processor:   nil,
     }
     OpenStruct.new(defaults.merge(overrides))
   end

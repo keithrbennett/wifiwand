@@ -5,10 +5,10 @@ require_relative '../../lib/wifi-wand/operating_systems'
 module OSFiltering
   DISRUPTIVE_OS_TAGS = {
     disruptive_mac:    :os_mac,
-    disruptive_ubuntu: :os_ubuntu
+    disruptive_ubuntu: :os_ubuntu,
   }.freeze
 
-  def self.setup_os_detection(config)
+  def self.setup_os_detection(_config)
     current_os = WifiWand::OperatingSystems.current_os
     $compatible_os_tag = :"os_#{current_os.id}"
     $compatible_disruptive_tag = DISRUPTIVE_OS_TAGS.key($compatible_os_tag)

@@ -62,7 +62,7 @@ module WifiWand
         installed:          installed,
         valid:              valid,
         authorized:         authorized,
-        permission_message: permission_message
+        permission_message: permission_message,
       )
     end
 

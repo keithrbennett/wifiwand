@@ -18,7 +18,7 @@ module CoverageConfig
       # Generate multiple output formats
       formatter SimpleCov::Formatter::MultiFormatter.new([
         SimpleCov::Formatter::HTMLFormatter,
-        SimpleCov::Formatter::SimpleFormatter
+        SimpleCov::Formatter::SimpleFormatter,
       ])
 
       # Only track coverage when running the full test suite

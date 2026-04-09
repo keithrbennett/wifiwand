@@ -31,7 +31,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       connected_network_name:     'TestNetwork',
       internet_tcp_connectivity?: true,
       dns_working?:               true,
-      connected_to_internet?:     true
+      connected_to_internet?:     true,
     )
   end
 
@@ -96,55 +96,55 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           'colorizes "true" as green when TTY',
           'true',
           "\e[32mtrue\e[0m",
-          true
+          true,
         ],
         [
           'colorizes "on" as green when TTY',
           'on',
           "\e[32mon\e[0m",
-          true
+          true,
         ],
         [
           'colorizes "connected" as green when TTY',
           'connected',
           "\e[32mconnected\e[0m",
-          true
+          true,
         ],
         [
           'colorizes "yes" as green when TTY',
           'yes',
           "\e[32myes\e[0m",
-          true
+          true,
         ],
         [
           'colorizes "FALSE" as red (case insensitive) when TTY',
           'FALSE',
           "\e[31mFALSE\e[0m",
-          true
+          true,
         ],
         [
           'colorizes "false" as red when TTY',
           'false',
           "\e[31mfalse\e[0m",
-          true
+          true,
         ],
         [
           'colorizes "off" as red when TTY',
           'off',
           "\e[31moff\e[0m",
-          true
+          true,
         ],
         [
           'colorizes "disconnected" as red when TTY',
           'disconnected',
           "\e[31mdisconnected\e[0m",
-          true
+          true,
         ],
         [
           'colorizes "no" as red when TTY',
           'no',
           "\e[31mno\e[0m",
-          true
+          true,
         ],
         [
           'returns "unknown" unchanged (no word boundary match) when TTY',
@@ -162,23 +162,23 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           'returns plain text for positive status when not TTY',
           'true',
           'true',
-          false
+          false,
         ],
         [
           'returns plain text for negative status when not TTY',
           'false',
           'false',
-          false
+          false,
         ],
         [
           'returns plain text for disconnected when not TTY',
           'disconnected',
           'disconnected',
-          false
+          false,
         ],
       ].map do |name, input, expected_output, tty, has_color|
         { name:, input:, expected_output:, tty:, has_color: }
-      end
+      end,
     }
   end
 
@@ -190,13 +190,13 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           'colorizes quoted network names in cyan when TTY',
           'Connected to "MyNetwork" successfully',
           "Connected to \e[36m\"MyNetwork\"\e[0m successfully",
-          true
+          true,
         ],
         [
           'colorizes multiple quoted network names when TTY',
           'Networks: "Network1" and "Network2"',
           "Networks: \e[36m\"Network1\"\e[0m and \e[36m\"Network2\"\e[0m",
-          true
+          true,
         ],
         [
           'does not colorize unquoted text when TTY',
@@ -208,23 +208,23 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           'handles empty quotes when TTY',
           'Empty network name: ""',
           "Empty network name: \e[36m\"\"\e[0m",
-          true
+          true,
         ],
         [
           'returns plain text for quoted network names when not TTY',
           'Connected to "MyNetwork" successfully',
           'Connected to "MyNetwork" successfully',
-          false
+          false,
         ],
         [
           'returns plain text for multiple quoted network names when not TTY',
           'Networks: "Network1" and "Network2"',
           'Networks: "Network1" and "Network2"',
-          false
+          false,
         ],
       ].map do |name, input, expected_output, tty, has_color|
         { name:, input:, expected_output:, tty:, has_color: }
-      end
+      end,
     }
   end
 
@@ -236,25 +236,25 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           'colorizes percentages in blue when TTY',
           'Signal strength: 85%',
           "Signal strength: \e[34m85%\e[0m",
-          true
+          true,
         ],
         [
           'colorizes IP addresses in blue when TTY',
           'IP: 192.168.1.1',
           "IP: \e[34m192.168.1.1\e[0m",
-          true
+          true,
         ],
         [
           'colorizes standalone numbers in blue when TTY',
           'Channel: 6',
           "Channel: \e[34m6\e[0m",
-          true
+          true,
         ],
         [
           'colorizes multiple values in the same text when TTY',
           'Signal: 75% on channel 11 at 192.168.1.1',
           "Signal: \e[34m75%\e[0m on channel \e[34m11\e[0m at \e[34m192.168.1.1\e[0m",
-          true
+          true,
         ],
         [
           'does not colorize numbers that are part of words when TTY',
@@ -266,23 +266,23 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           'returns plain text for percentages when not TTY',
           'Signal strength: 85%',
           'Signal strength: 85%',
-          false
+          false,
         ],
         [
           'returns plain text for IP addresses when not TTY',
           'IP: 192.168.1.1',
           'IP: 192.168.1.1',
-          false
+          false,
         ],
         [
           'returns plain text for multiple values when not TTY',
           'Signal: 75% on channel 11 at 192.168.1.1',
           'Signal: 75% on channel 11 at 192.168.1.1',
-          false
+          false,
         ],
       ].map do |name, input, expected_output, tty, has_color|
         { name:, input:, expected_output:, tty:, has_color: }
-      end
+      end,
     }
   end
 
@@ -292,7 +292,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         wifi_on:                       true,
         network_name:                  'TestNetwork',
         internet_connected:            true,
-        captive_portal_login_required: :no
+        captive_portal_login_required: :no,
       }
     end
 
@@ -316,7 +316,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       hash_key_map = {
         wifi_on?:               :wifi_on,
         connected_network_name: :network_name,
-        connected_to_internet?: :internet_connected
+        connected_to_internet?: :internet_connected,
       }
 
       {
@@ -355,7 +355,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           expect(result).not_to match(/Captive Portal/)
         end
 
-        it 'shows captive portal warning with icon and red color when captive_portal_login_required is :yes' do
+        it 'shows captive portal warning with icon and red color when login_required is :yes' do
           data = status_data.merge(captive_portal_login_required: :yes, internet_connected: false)
           result = subject.status_line(data)
 

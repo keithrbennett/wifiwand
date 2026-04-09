@@ -65,20 +65,20 @@ describe 'Output Format Integration Tests' do
   describe 'Output format validation' do
     output_formats = {
       inspect:     {
-        code: 'i'
+        code: 'i',
       },
       json:        {
-        code: 'j'
+        code: 'j',
       },
       pretty_json: {
-        code: 'k'
+        code: 'k',
       },
       puts:        {
-        code: 'p'
+        code: 'p',
       },
       yaml:        {
-        code: 'y'
-      }
+        code: 'y',
+      },
     }
 
     output_formats.each do |format_name, format_config|
@@ -286,9 +286,9 @@ describe 'Output Format Integration Tests' do
               'network'    => {
                 'ssid'     => 'HomeNet',
                 'channel'  => 11,
-                'security' => 'WPA2'
+                'security' => 'WPA2',
               },
-              'ip_address' => '192.168.1.100'
+              'ip_address' => '192.168.1.100',
             }
           end
           let(:options) { parse_options('-o', format_config[:code], 'i') }
@@ -377,7 +377,7 @@ describe 'Output Format Integration Tests' do
         json:        'j',
         pretty_json: 'k',
         puts:        'p',
-        yaml:        'y'
+        yaml:        'y',
       }
 
       format_codes.each do |format_name, code|
@@ -408,16 +408,16 @@ describe 'Output Format Integration Tests' do
           'enabled'         => true,
           'connected'       => true,
           'network_name'    => 'HomeNetwork',
-          'signal_strength' => -45
+          'signal_strength' => -45,
         },
         'network_details'    => {
           'channel'    => 11,
           'frequency'  => '2.4GHz',
           'security'   => 'WPA2-PSK',
-          'ip_address' => '192.168.1.100'
+          'ip_address' => '192.168.1.100',
         },
         'available_networks' => ['HomeNetwork', 'GuestNetwork', 'OfficeWiFi'],
-        'nameservers'        => ['8.8.8.8', '8.8.4.4', '1.1.1.1']
+        'nameservers'        => ['8.8.8.8', '8.8.4.4', '1.1.1.1'],
       }
     end
 

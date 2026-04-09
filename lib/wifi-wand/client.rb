@@ -38,7 +38,7 @@ module WifiWand
       :wifi_info,
       :wifi_off,
       :wifi_on,
-      :wifi_on?
+      :wifi_on?,
     ].freeze
 
     # @!method available_network_names

@@ -186,7 +186,7 @@ module WifiWand
           /Secrets were required/i,
           /802-11-wireless-security.*No secrets/i,
           /authentication.*failed/i,
-          /Connection activation failed.*\(7\)/i
+          /Connection activation failed.*\(7\)/i,
         ].any? { |pattern| error_text.match?(pattern) }
           raise WifiWand::NetworkAuthenticationError, network_name
         end
@@ -194,7 +194,7 @@ module WifiWand
         # Check for device-related errors
         if [
           /No suitable device found/i,
-          /Device.*not found/i
+          /Device.*not found/i,
         ].any? { |pattern| error_text.match?(pattern) }
           raise WifiWand::WifiInterfaceError, wifi_interface
         end

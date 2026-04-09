@@ -8,7 +8,7 @@ module CommandResultHelper
       combined_output: [stdout, stderr].join,
       exitstatus:      exitstatus,
       command:         command,
-      duration:        duration
+      duration:        duration,
     )
   end
 

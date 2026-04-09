@@ -29,6 +29,6 @@ module WifiWand
 
     def current_os_is_this_os? = raise MethodNotImplementedError
 
-    def create_model(options) = raise MethodNotImplementedError
+    def create_model(_options) = raise MethodNotImplementedError
   end
 end

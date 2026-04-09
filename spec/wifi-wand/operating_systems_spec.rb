@@ -50,7 +50,7 @@ module WifiWand
           first_result = described_class.current_os
           second_result = described_class.current_os
 
-          expect(first_result).to be_equal(second_result)
+          expect(first_result).to equal(second_result)
         end
       end
 

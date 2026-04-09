@@ -76,7 +76,7 @@ module WifiWand
         # (or vice versa). Running concurrently prevents that deadlock.
         threads = [
           Thread.new { read_stream.call(stdout, :stdout) },
-          Thread.new { read_stream.call(stderr, :stderr) }
+          Thread.new { read_stream.call(stderr, :stderr) },
         ]
         # Wait for both threads to finish (i.e., both streams are fully read)
         # before asking for the exit status. This guarantees all output has been
@@ -97,7 +97,7 @@ module WifiWand
         combined_output: combined_chunks.join,
         exitstatus:      status.exitstatus,
         command:         command_display,
-        duration:        duration
+        duration:        duration,
       )
 
       status_string = "Exit code: #{result.exitstatus} (#{result.success? ? 'success' : 'error'})"
@@ -177,7 +177,7 @@ module WifiWand
           combined_output: combined_output,
           exitstatus:      exitstatus,
           command:         command,
-          duration:        duration
+          duration:        duration,
         }
       end
     end
@@ -195,7 +195,7 @@ module WifiWand
             combined_output: text,
             exitstatus:      result_or_exitstatus,
             command:         command,
-            duration:        nil
+            duration:        nil,
           )
         end
 

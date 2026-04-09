@@ -79,7 +79,7 @@ module RSpecConfiguration
     {
       disruptive: examples_to_run.any? { |ex| ex.metadata[:disruptive] },
       sudo:       examples_to_run.any? { |ex| ex.metadata[:needs_sudo_access] },
-      keychain:   examples_to_run.any? { |ex| ex.metadata[:keychain_integration] }
+      keychain:   examples_to_run.any? { |ex| ex.metadata[:keychain_integration] },
     }
   end
 

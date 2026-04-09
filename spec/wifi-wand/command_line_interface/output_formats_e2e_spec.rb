@@ -69,7 +69,7 @@ describe 'Output Format End-to-End Tests' do
         'channel'         => 6,
         'signal_strength' => -50,
         'security'        => 'WPA2',
-        'connected'       => true
+        'connected'       => true,
       }
     end
 
@@ -78,7 +78,7 @@ describe 'Output Format End-to-End Tests' do
       'j' => { name: 'JSON' },
       'k' => { name: 'Pretty JSON' },
       'p' => { name: 'puts' },
-      'y' => { name: 'YAML' }
+      'y' => { name: 'YAML' },
     }.each do |format_code, config|
       context "with -o #{format_code} (#{config[:name]}) option" do
         it 'formats wifi info output correctly' do
@@ -348,7 +348,7 @@ describe 'Output Format End-to-End Tests' do
         'boolean' => true,
         'null'    => nil,
         'array'   => [1, 2, 3],
-        'nested'  => { 'key' => 'value' }
+        'nested'  => { 'key' => 'value' },
       }
 
       allow(mock_model).to receive(:wifi_info).and_return(test_data)

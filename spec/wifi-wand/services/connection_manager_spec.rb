@@ -213,7 +213,7 @@ describe WifiWand::ConnectionManager do
     it 'tracks saved password usage correctly' do
       allow(mock_model).to receive_messages(
         preferred_networks: ['SavedNetwork'],
-        preferred_network_password: 'saved_password'
+        preferred_network_password: 'saved_password',
       )
       allow(mock_model).to receive(:connected_network_name).and_return(nil, 'SavedNetwork')
 
@@ -225,7 +225,7 @@ describe WifiWand::ConnectionManager do
       # First connection uses saved password
       allow(mock_model).to receive_messages(
         preferred_networks: ['SavedNetwork'],
-        preferred_network_password: 'saved_password'
+        preferred_network_password: 'saved_password',
       )
       allow(mock_model).to receive(:connected_network_name).and_return(nil, 'SavedNetwork')
 

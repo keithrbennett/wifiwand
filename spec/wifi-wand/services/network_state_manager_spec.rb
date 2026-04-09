@@ -13,7 +13,7 @@ describe WifiWand::NetworkStateManager do
       wifi_on:                    nil,
       wifi_off:                   nil,
       connect:                    nil,
-      till:                       nil
+      till:                       nil,
     )
   end
 
@@ -25,7 +25,7 @@ describe WifiWand::NetworkStateManager do
         wifi_enabled:     true,
         network_name:     'TestNetwork',
         network_password: 'testpass',
-        interface:        'wlan0'
+        interface:        'wlan0',
       )
     end
 
@@ -39,7 +39,7 @@ describe WifiWand::NetworkStateManager do
     it 'handles password retrieval failure' do
       allow(mock_model).to receive_messages(
         connected_network_name: 'TestNetwork',
-        preferred_network_password: nil
+        preferred_network_password: nil,
       )
       state = state_manager.capture_network_state
       expect(state[:network_name]).to eq('TestNetwork')
@@ -64,7 +64,7 @@ describe WifiWand::NetworkStateManager do
         wifi_enabled:     true,
         network_name:     'TestNetwork',
         network_password: 'testpass',
-        interface:        'wlan0'
+        interface:        'wlan0',
       }
     end
 
@@ -82,7 +82,7 @@ describe WifiWand::NetworkStateManager do
         allow(mock_model).to receive_messages(
           wifi_on?: true,
           connected_network_name: 'OtherNetwork',
-          preferred_network_password: 'testpass'
+          preferred_network_password: 'testpass',
         )
         allow(mock_model).to receive(:connect).and_raise(StandardError.new('Network unavailable'))
 
@@ -107,7 +107,7 @@ describe WifiWand::NetworkStateManager do
         allow(mock_model).to receive_messages(
           wifi_on?: true,
           connected_network_name: 'OtherNetwork',
-          preferred_network_password: 'testpass'
+          preferred_network_password: 'testpass',
         )
         allow(mock_model).to receive(:connect).and_raise(StandardError.new('Network unavailable'))
         allow(mock_model).to receive(:till)
@@ -170,7 +170,7 @@ describe WifiWand::NetworkStateManager do
         wifi_enabled:     false,
         network_name:     'TestNetwork',
         network_password: 'testpass',
-        interface:        'wlan0'
+        interface:        'wlan0',
       }
       allow(mock_model).to receive(:wifi_on?).and_return(false)
 
@@ -261,7 +261,7 @@ describe WifiWand::NetworkStateManager do
         wifi_enabled:     true,
         network_name:     'TestNetwork',
         network_password: 'testpass',
-        interface:        'wlan0'
+        interface:        'wlan0',
       }
 
       expect do

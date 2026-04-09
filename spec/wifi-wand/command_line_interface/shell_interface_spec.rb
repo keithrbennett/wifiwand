@@ -11,7 +11,7 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       include WifiWand::CommandLineInterface::ShellInterface
 
       # Mock required methods from CommandLineInterface
-      def attempt_command_action(command, *args, &block)
+      def attempt_command_action(command, *_args, &block)
         case command
         when 'info'
           'mock info result'

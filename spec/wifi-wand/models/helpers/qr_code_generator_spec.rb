@@ -22,7 +22,7 @@ describe 'QR Code Generator (unit)' do
       connected_network_name: ssid,
       connection_security_type: security,
       connected_network_password: password,
-      network_hidden?: false
+      network_hidden?: false,
     )
   end
 
@@ -85,7 +85,7 @@ describe 'QR Code Generator (unit)' do
 
   [
     { filespec: 'out.svg', type: 'SVG' },
-    { filespec: 'out.eps', type: 'EPS' }
+    { filespec: 'out.eps', type: 'EPS' },
   ].each do |tc|
     it "uses -t #{tc[:type]} flag when filespec ends with #{File.extname(tc[:filespec])}" do
       expect(model).to receive(:run_os_command) do |cmd|

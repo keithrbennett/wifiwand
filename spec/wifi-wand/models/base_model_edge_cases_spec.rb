@@ -181,12 +181,15 @@ RSpec.describe WifiWand::BaseModel do
         wifi_on:                       true,
         internet_connected:            true,
         network_name:                  'HomeNetwork',
-        captive_portal_login_required: :no
+        captive_portal_login_required: :no,
       )
       expect(progress_updates).to eq([
-        { wifi_on: true, internet_connected: nil,  network_name: :pending,       captive_portal_login_required: :unknown },
-        { wifi_on: true, internet_connected: nil,  network_name: 'HomeNetwork', captive_portal_login_required: :unknown },
-        { wifi_on: true, internet_connected: true, network_name: 'HomeNetwork', captive_portal_login_required: :no }
+        { wifi_on: true, internet_connected: nil,  network_name: :pending,
+          captive_portal_login_required: :unknown },
+        { wifi_on: true, internet_connected: nil,  network_name: 'HomeNetwork',
+          captive_portal_login_required: :unknown },
+        { wifi_on: true, internet_connected: true, network_name: 'HomeNetwork',
+          captive_portal_login_required: :no },
       ])
     end
 

@@ -13,7 +13,7 @@ describe WifiWand::EventLogger do
       fast_connectivity?:     true,
       wifi_on?:               true,
       connected_network_name: 'TestNetwork',
-      status_line_data:       { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
+      status_line_data:       { wifi_on: true, network_name: 'TestNetwork', internet_connected: true },
     )
   end
   let(:output) { StringIO.new }
@@ -63,7 +63,7 @@ describe WifiWand::EventLogger do
           mock_model,
           log_file_path:    log_file_path,
           output:           nil,
-          log_file_manager: mock_log_file_manager
+          log_file_manager: mock_log_file_manager,
         )
         expect(logger.output).to be_nil
         # Verify log_message doesn't call puts when output is nil
@@ -97,7 +97,7 @@ describe WifiWand::EventLogger do
       described_class.new(
         mock_model,
         output:           output,
-        log_file_manager: mock_log_file_manager
+        log_file_manager: mock_log_file_manager,
       )
     end
 
@@ -219,7 +219,7 @@ describe WifiWand::EventLogger do
       described_class.new(
         mock_model,
         output:           output,
-        log_file_manager: mock_log_file_manager
+        log_file_manager: mock_log_file_manager,
       )
     end
 
@@ -233,7 +233,7 @@ describe WifiWand::EventLogger do
           timestamp:      kind_of(Time),
           previous_state: previous_state,
           current_state:  current_state,
-          details:        {}
+          details:        {},
         )
       end
 
@@ -261,7 +261,7 @@ describe WifiWand::EventLogger do
       event = {
         type:      :wifi_on,
         timestamp: Time.new(2025, 10, 28, 14, 32, 30, 0),
-        details:   {}
+        details:   {},
       }
       message = logger.send(:format_event_message, event)
       expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} WiFi ON/)
@@ -271,7 +271,7 @@ describe WifiWand::EventLogger do
       event = {
         type:      :wifi_off,
         timestamp: Time.new(2025, 10, 28, 14, 32, 31, 0),
-        details:   {}
+        details:   {},
       }
       message = logger.send(:format_event_message, event)
       expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} WiFi OFF/)
@@ -281,7 +281,7 @@ describe WifiWand::EventLogger do
       event = {
         type:      :connected,
         timestamp: Time.new(2025, 10, 28, 14, 32, 32, 0),
-        details:   { network_name: 'TestNetwork' }
+        details:   { network_name: 'TestNetwork' },
       }
       message = logger.send(:format_event_message, event)
       expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Connected to TestNetwork/)
@@ -291,7 +291,7 @@ describe WifiWand::EventLogger do
       event = {
         type:      :disconnected,
         timestamp: Time.new(2025, 10, 28, 14, 32, 33, 0),
-        details:   { network_name: 'TestNetwork' }
+        details:   { network_name: 'TestNetwork' },
       }
       message = logger.send(:format_event_message, event)
       expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Disconnected from TestNetwork/)
@@ -301,7 +301,7 @@ describe WifiWand::EventLogger do
       event = {
         type:      :internet_on,
         timestamp: Time.new(2025, 10, 28, 14, 32, 30, 0),
-        details:   {}
+        details:   {},
       }
       message = logger.send(:format_event_message, event)
       expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Internet available/)
@@ -311,7 +311,7 @@ describe WifiWand::EventLogger do
       event = {
         type:      :internet_off,
         timestamp: Time.new(2025, 10, 28, 14, 33, 0, 0),
-        details:   {}
+        details:   {},
       }
       message = logger.send(:format_event_message, event)
       expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Internet unavailable/)
@@ -321,7 +321,7 @@ describe WifiWand::EventLogger do
       event = {
         type:      :unknown_type,
         timestamp: Time.new(2025, 10, 28, 14, 34, 0, 0),
-        details:   {}
+        details:   {},
       }
       message = logger.send(:format_event_message, event)
       expect(message).to match(/UNKNOWN EVENT: unknown_type/)
@@ -388,7 +388,7 @@ describe WifiWand::EventLogger do
         mock_model,
         output:           output,
         interval:         0,
-        log_file_manager: mock_log_file_manager
+        log_file_manager: mock_log_file_manager,
       )
       allow(logger).to receive(:sleep).and_raise(Interrupt)
       logger.run
@@ -437,7 +437,7 @@ describe WifiWand::EventLogger do
       logger = described_class.new(
         mock_model,
         output:           output,
-        log_file_manager: mock_log_file_manager
+        log_file_manager: mock_log_file_manager,
       )
       logger.cleanup
       expect(mock_log_file_manager).to have_received(:close)

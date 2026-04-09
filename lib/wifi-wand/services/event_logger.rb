@@ -33,7 +33,7 @@ module WifiWand
       connected:    'Connected to %<network_name>s',
       disconnected: 'Disconnected from %<network_name>s',
       internet_on:  'Internet available',
-      internet_off: 'Internet unavailable'
+      internet_off: 'Internet unavailable',
     }.freeze
 
     attr_reader :model, :interval, :verbose, :output, :log_file_manager
@@ -51,7 +51,7 @@ module WifiWand
         LogFileManager.new(
           log_file_path: log_file_path,
           verbose:       @verbose,
-          output:        @output
+          output:        @output,
         )
       end
       @previous_state = nil
@@ -118,7 +118,7 @@ module WifiWand
     # Uses status_line_data which performs checks concurrently for better performance.
     def fetch_current_state
       @model.status_line_data
-    rescue StandardError => e
+    rescue => e
       log_message("Error fetching status: #{e.message}") if @verbose
       nil
     end
@@ -158,7 +158,7 @@ module WifiWand
         timestamp:      Time.now,
         previous_state: previous_state,
         current_state:  current_state,
-        details:        details
+        details:        details,
       }
 
       log_event(event)

@@ -72,7 +72,7 @@ describe WifiWand::CaptivePortalChecker do
       let(:endpoints) do
         [
           { url: 'http://first.example.com/check', expected_code: 204 },
-          { url: 'http://second.example.com/check', expected_code: 204 }
+          { url: 'http://second.example.com/check', expected_code: 204 },
         ]
       end
 

@@ -42,7 +42,7 @@ module WifiWand
               sio.puts(object)
               sio.string
             end,
-            'y' => ->(object) { object.to_yaml }
+            'y' => ->(object) { object.to_yaml },
           }
 
           choice = v[0].downcase

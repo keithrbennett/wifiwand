@@ -143,7 +143,7 @@ module WifiWand
             test_scenarios = [
               [:wifi_on, true],
               [:wifi_off, false],
-              [:wifi_on, true]
+              [:wifi_on, true],
             ]
 
             test_scenarios.each do |method, expected_state|
@@ -187,7 +187,7 @@ module WifiWand
               ['invalid.ip.address'],
               ['999.999.999.999'],
               ['not.an.ip', '8.8.8.8'],
-              ['192.168.1.1', 'bad.ip']
+              ['192.168.1.1', 'bad.ip'],
             ]
 
             invalid_scenarios.each do |invalid_nameservers|
@@ -206,7 +206,7 @@ module WifiWand
               -> { subject.wifi_on },
               -> { expect(subject.wifi_on?).to be(true) },
               -> { subject.disconnect },
-              -> { expect(subject.wifi_on?).to be(true) } # Should still be on after disconnect
+              -> { expect(subject.wifi_on?).to be(true) }, # Should still be on after disconnect
             ]
 
             operations.each_with_index do |operation, index|
@@ -280,7 +280,7 @@ module WifiWand
       subject(:model) { create_mac_os_test_model }
       let(:success_result) do
         WifiWand::CommandExecutor::OsCommandResult.new(
-          stdout: '', stderr: '', combined_output: '', exitstatus: 0, command: '', duration: 0.1
+          stdout: '', stderr: '', combined_output: '', exitstatus: 0, command: '', duration: 0.1,
         )
       end
 
@@ -302,7 +302,7 @@ module WifiWand
             ["Hardware Port: AirPort\nDevice: en0", 'AirPort'],
             ["Hardware Port: Wireless\nDevice: en0", 'Wireless'],
             ["Hardware Port: WiFi\nDevice: en0", 'WiFi'],
-            ["Hardware Port: WLAN\nDevice: en0", 'WLAN']
+            ["Hardware Port: WLAN\nDevice: en0", 'WLAN'],
           ]
 
           test_cases.each do |output, expected|
@@ -339,7 +339,7 @@ module WifiWand
           test_cases = [
             ['en0', nil, true],   # WiFi interface (command succeeds)
             ['en1', 10, false],   # Non-WiFi interface (exit code 10)
-            ['en2', 5, true]      # WiFi interface (other non-10 exit code)
+            ['en2', 5, true],      # WiFi interface (other non-10 exit code)
           ]
 
           test_cases.each do |interface, exit_status, expected|
@@ -384,7 +384,7 @@ module WifiWand
           test_cases = [
             ["192.168.1.100\n", '192.168.1.100'],  # Valid IP
             ['10.0.0.5', '10.0.0.5'],              # No newline
-            [WifiWand::CommandExecutor::OsCommandError.new(1, 'ipconfig', ''), nil] # Interface down
+            [WifiWand::CommandExecutor::OsCommandError.new(1, 'ipconfig', ''), nil], # Interface down
           ]
 
           test_cases.each do |response, expected|
@@ -429,8 +429,8 @@ module WifiWand
           allow(model).to receive_messages(airport_data: { 'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
-                'spairport_current_network_information' => { '_name' => 'ProfilerNet' }
-              }]
+                'spairport_current_network_information' => { '_name' => 'ProfilerNet' },
+              }],
             }] }, ensure_wifi_interface!: 'en0')
 
           expect(model._connected_network_name).to eq('ProfilerNet')
@@ -442,8 +442,8 @@ module WifiWand
           allow(model).to receive_messages(airport_data: { 'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
-                'spairport_current_network_information' => nil
-              }]
+                'spairport_current_network_information' => nil,
+              }],
             }] }, ensure_wifi_interface!: 'en0')
 
           expect(model._connected_network_name).to be_nil
@@ -452,7 +452,7 @@ module WifiWand
         it 'does not fall back to airport data when helper is blocked by Location Services' do
           result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
             location_services_blocked: true,
-            error_message:             'Location Services denied'
+            error_message:             'Location Services denied',
           )
           allow(helper_double).to receive(:connected_network_name).and_return(result)
 
@@ -466,13 +466,13 @@ module WifiWand
           test_cases = [
             ["8.8.8.8\n1.1.1.1\n", ['8.8.8.8', '1.1.1.1']],
             ["There aren't any DNS Servers set on Wi-Fi.\n", []],
-            ['192.168.1.1', ['192.168.1.1']]
+            ['192.168.1.1', ['192.168.1.1']],
           ]
 
           test_cases.each do |output, expected|
             allow(model).to receive_messages(
               detect_wifi_service_name: 'Wi-Fi',
-              run_os_command: command_result(stdout: output)
+              run_os_command: command_result(stdout: output),
             )
             expect(model.nameservers_using_networksetup).to eq(expected)
           end
@@ -506,7 +506,7 @@ module WifiWand
           test_cases = [
             { input: ['8.8.8.8', '1.1.1.1'], expected_args: ['8.8.8.8', '1.1.1.1'] },
             { input: ['192.168.1.1'], expected_args: ['192.168.1.1'] },
-            { input: :clear, expected_args: ['empty'] }
+            { input: :clear, expected_args: ['empty'] },
           ]
 
           test_cases.each do |tc|
@@ -529,7 +529,7 @@ module WifiWand
             { input:         ['2001:4860:4860::8888'],
               expected_args: ['2001:4860:4860::8888'] },
             { input:         ['8.8.8.8', '2606:4700:4700::1111'],
-              expected_args: ['8.8.8.8', '2606:4700:4700::1111'] }
+              expected_args: ['8.8.8.8', '2606:4700:4700::1111'] },
           ]
 
           ipv6_test_cases.each do |tc|
@@ -555,7 +555,7 @@ module WifiWand
             [nil, true],  # Command succeeds
             [WifiWand::CommandExecutor::OsCommandError.new(127, 'swift', ''), false], # Swift not found
             [WifiWand::CommandExecutor::OsCommandError.new(1, 'swift', ''), false],   # CoreWLAN not available
-            [WifiWand::CommandExecutor::OsCommandError.new(2, 'swift', ''), false]    # Other error
+            [WifiWand::CommandExecutor::OsCommandError.new(2, 'swift', ''), false],    # Other error
           ]
 
           test_cases.each do |error, expected|
@@ -576,7 +576,7 @@ module WifiWand
             ["   interface: en0\n", 'en0'],
             ['   interface: wlan0', 'wlan0'],
             ['', nil],
-            [WifiWand::CommandExecutor::OsCommandError.new(1, 'route', ''), nil]
+            [WifiWand::CommandExecutor::OsCommandError.new(1, 'route', ''), nil],
           ]
 
           test_cases.each do |response, expected|
@@ -617,7 +617,7 @@ module WifiWand
             'Network"WithQuotes' =>
               'sudo networksetup -removepreferredwirelessnetwork en0 Network\"WithQuotes',
             "Network'WithSingleQuotes" =>
-              "sudo networksetup -removepreferredwirelessnetwork en0 Network\\'WithSingleQuotes"
+              "sudo networksetup -removepreferredwirelessnetwork en0 Network\\'WithSingleQuotes",
           }
           # rubocop:enable Layout/HashAlignment
 
@@ -634,7 +634,7 @@ module WifiWand
           test_cases = [
             'Safari',
             'Network Utility',
-            'App with spaces'
+            'App with spaces',
           ]
 
           test_cases.each do |app_name|
@@ -653,7 +653,7 @@ module WifiWand
           test_cases = [
             'http://example.com',
             'file:///path with spaces/file.txt',
-            '/Applications/Safari.app'
+            '/Applications/Safari.app',
           ]
 
           test_cases.each do |resource|
@@ -682,15 +682,15 @@ module WifiWand
             'SPNetworkDataType' => [
               { '_name' => 'Ethernet', 'interface' => 'en1' },
               { '_name' => 'Wi-Fi', 'interface' => 'en0' },
-              { '_name' => 'Bluetooth PAN', 'interface' => 'en3' }
-            ]
+              { '_name' => 'Bluetooth PAN', 'interface' => 'en3' },
+            ],
           }.to_json
         end
 
         it 'detects WiFi interface from system_profiler' do
           allow(model).to receive_messages(
             detect_wifi_service_name: 'Wi-Fi',
-            run_os_command: command_result(stdout: system_profiler_output)
+            run_os_command: command_result(stdout: system_profiler_output),
           )
           expect(model.detect_wifi_interface).to eq('en0')
         end
@@ -698,7 +698,7 @@ module WifiWand
         it 'returns nil when WiFi service not found' do
           allow(model).to receive_messages(
             detect_wifi_service_name: 'Wi-Fi',
-            run_os_command: command_result(stdout: '{"SPNetworkDataType": []}')
+            run_os_command: command_result(stdout: '{"SPNetworkDataType": []}'),
           )
           expect(model.detect_wifi_interface).to be_nil
         end
@@ -706,7 +706,7 @@ module WifiWand
         it 'handles JSON parse errors gracefully' do
           allow(model).to receive_messages(
             detect_wifi_service_name: 'Wi-Fi',
-            run_os_command: command_result(stdout: 'invalid json')
+            run_os_command: command_result(stdout: 'invalid json'),
           )
           expect { model.detect_wifi_interface }.to raise_error(JSON::ParserError)
         end
@@ -722,7 +722,7 @@ module WifiWand
             [WifiWand::CommandExecutor::OsCommandError.new(25, 'security', ''), WifiWand::KeychainError],
             [WifiWand::CommandExecutor::OsCommandError.new(1, 'security', 'could not be found'), nil],
             [WifiWand::CommandExecutor::OsCommandError.new(1, 'security', 'other error'), WifiWand::KeychainError],
-            %w[mypassword123 mypassword123]
+            %w[mypassword123 mypassword123],
           ]
 
           test_cases.each do |response, expected|
@@ -846,7 +846,7 @@ module WifiWand
           networksetup_output = "Preferred networks on en0:\n\tLibraryWiFi\n\t@thePAD/Magma\n\tHomeNetwork\n"
           allow(model).to receive_messages(
             wifi_interface: 'en0',
-            run_os_command: command_result(stdout: networksetup_output)
+            run_os_command: command_result(stdout: networksetup_output),
           )
 
           result = model.preferred_networks
@@ -856,7 +856,7 @@ module WifiWand
         it 'handles empty preferred networks list' do
           allow(model).to receive_messages(
             wifi_interface: 'en0',
-            run_os_command: command_result(stdout: "Preferred networks on en0:\n")
+            run_os_command: command_result(stdout: "Preferred networks on en0:\n"),
           )
 
           expect(model.preferred_networks).to eq([])
@@ -881,10 +881,10 @@ module WifiWand
                 'spairport_airport_local_wireless_networks' => [
                   { '_name' => 'StrongNetwork', 'spairport_signal_noise' => '85/10' },
                   { '_name' => 'WeakNetwork', 'spairport_signal_noise' => '45/10' },
-                  { '_name' => 'MediumNetwork', 'spairport_signal_noise' => '65/10' }
-                ]
-              }]
-            }]
+                  { '_name' => 'MediumNetwork', 'spairport_signal_noise' => '65/10' },
+                ],
+              }],
+            }],
           }
         end
 
@@ -893,7 +893,7 @@ module WifiWand
           allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_double)
           allow(helper_double).to receive_messages(
             scan_networks: default_scan_result,
-            connected_network_name: default_connected_result
+            connected_network_name: default_connected_result,
           )
           allow(model).to receive_messages(mac_helper_client: helper_double, ensure_wifi_interface!: 'en0')
         end
@@ -902,7 +902,7 @@ module WifiWand
           allow(model).to receive_messages(
             airport_data: mock_airport_data,
             wifi_interface: 'en0',
-            connected_network_name: nil
+            connected_network_name: nil,
           )
 
           result = model._available_network_names
@@ -918,7 +918,7 @@ module WifiWand
           allow(model).to receive_messages(
             airport_data: connected_data,
             wifi_interface: 'en0',
-            connected_network_name: 'CurrentNetwork'
+            connected_network_name: 'CurrentNetwork',
           )
 
           result = model._available_network_names
@@ -933,16 +933,16 @@ module WifiWand
                 'spairport_airport_local_wireless_networks' => [
                   { '_name' => 'DupeNetwork', 'spairport_signal_noise' => '85/10' },
                   { '_name' => 'DupeNetwork', 'spairport_signal_noise' => '45/10' },
-                  { '_name' => 'UniqueNetwork', 'spairport_signal_noise' => '65/10' }
-                ]
-              }]
-            }]
+                  { '_name' => 'UniqueNetwork', 'spairport_signal_noise' => '65/10' },
+                ],
+              }],
+            }],
           }
 
           allow(model).to receive_messages(
             airport_data: duplicate_data,
             wifi_interface: 'en0',
-            connected_network_name: nil
+            connected_network_name: nil,
           )
 
           result = model._available_network_names
@@ -954,8 +954,8 @@ module WifiWand
             payload: [
               { 'ssid' => '<hidden>' },
               { 'ssid' => '<redacted>' },
-              { 'ssid' => 'VisibleNetwork' }
-            ]
+              { 'ssid' => 'VisibleNetwork' },
+            ],
           )
           allow(helper_double).to receive(:scan_networks).and_return(result)
 
@@ -971,16 +971,16 @@ module WifiWand
                 'spairport_airport_local_wireless_networks' => [
                   { '_name' => '<redacted>', 'spairport_signal_noise' => '95/10' },
                   { '_name' => '<hidden>', 'spairport_signal_noise' => '85/10' },
-                  { '_name' => 'VisibleNetwork', 'spairport_signal_noise' => '75/10' }
-                ]
-              }]
-            }]
+                  { '_name' => 'VisibleNetwork', 'spairport_signal_noise' => '75/10' },
+                ],
+              }],
+            }],
           }
 
           allow(model).to receive_messages(
             airport_data: placeholder_data,
             wifi_interface: 'en0',
-            connected_network_name: nil
+            connected_network_name: nil,
           )
 
           result = model._available_network_names
@@ -991,7 +991,7 @@ module WifiWand
           result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
             payload:                   [],
             location_services_blocked: true,
-            error_message:             'Location Services denied'
+            error_message:             'Location Services denied',
           )
           allow(helper_double).to receive(:scan_networks).and_return(result)
 
@@ -1122,7 +1122,7 @@ module WifiWand
         before do
           allow(model).to receive_messages(
             _connected_network_name: network_name,
-            wifi_interface: wifi_interface
+            wifi_interface: wifi_interface,
           )
         end
 
@@ -1132,7 +1132,7 @@ module WifiWand
           ['WPA', 'WPA'],
           ['WPA1', 'WPA'],
           ['WEP', 'WEP'],
-          ['Unknown Security', nil]
+          ['Unknown Security', nil],
         ].each do |security_mode, expected_result|
           it "returns #{expected_result || 'nil'} for #{security_mode}" do
             airport_data = {
@@ -1141,10 +1141,10 @@ module WifiWand
                   '_name'                                     => wifi_interface,
                   'spairport_airport_local_wireless_networks' => [{
                     '_name'                   => network_name,
-                    'spairport_security_mode' => security_mode
-                  }]
-                }]
-              }]
+                    'spairport_security_mode' => security_mode,
+                  }],
+                }],
+              }],
             }
 
             allow(model).to receive(:airport_data).and_return(airport_data)
@@ -1170,9 +1170,9 @@ module WifiWand
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                     => 'other_interface',
-                'spairport_airport_local_wireless_networks' => []
-              }]
-            }]
+                'spairport_airport_local_wireless_networks' => [],
+              }],
+            }],
           }
 
           allow(model).to receive(:airport_data).and_return(airport_data)
@@ -1187,10 +1187,10 @@ module WifiWand
                 '_name'                                     => wifi_interface,
                 'spairport_airport_local_wireless_networks' => [{
                   '_name'                   => 'OtherNetwork',
-                  'spairport_security_mode' => 'WPA2'
-                }]
-              }]
-            }]
+                  'spairport_security_mode' => 'WPA2',
+                }],
+              }],
+            }],
           }
 
           allow(model).to receive(:airport_data).and_return(airport_data)
@@ -1204,11 +1204,11 @@ module WifiWand
               'spairport_airport_interfaces' => [{
                 '_name'                                     => wifi_interface,
                 'spairport_airport_local_wireless_networks' => [{
-                  '_name' => network_name
+                  '_name' => network_name,
                   # No spairport_security_mode key
-                }]
-              }]
-            }]
+                }],
+              }],
+            }],
           }
 
           allow(model).to receive(:airport_data).and_return(airport_data)
@@ -1224,7 +1224,7 @@ module WifiWand
         before do
           allow(model).to receive_messages(
             _connected_network_name: network_name,
-            wifi_interface: wifi_interface
+            wifi_interface: wifi_interface,
           )
         end
 
@@ -1234,14 +1234,14 @@ module WifiWand
               'spairport_airport_interfaces' => [{
                 '_name'                                     => wifi_interface,
                 'spairport_current_network_information'     => {
-                  '_name' => network_name
+                  '_name' => network_name,
                 },
                 'spairport_airport_local_wireless_networks' => [{
                   '_name'                  => network_name,
-                  'spairport_signal_noise' => '50/10'
-                }]
-              }]
-            }]
+                  'spairport_signal_noise' => '50/10',
+                }],
+              }],
+            }],
           }
 
           allow(model).to receive_messages(airport_data: airport_data, connected_network_name: network_name)
@@ -1255,14 +1255,14 @@ module WifiWand
               'spairport_airport_interfaces' => [{
                 '_name'                                     => wifi_interface,
                 'spairport_current_network_information'     => {
-                  '_name' => network_name
+                  '_name' => network_name,
                 },
                 'spairport_airport_local_wireless_networks' => [{
                   '_name'                  => 'OtherNetwork',
-                  'spairport_signal_noise' => '40/10'
-                }]
-              }]
-            }]
+                  'spairport_signal_noise' => '40/10',
+                }],
+              }],
+            }],
           }
 
           allow(model).to receive_messages(airport_data: airport_data, connected_network_name: network_name)
@@ -1288,10 +1288,10 @@ module WifiWand
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'other_interface',
                 'spairport_current_network_information' => {
-                  '_name' => network_name
-                }
-              }]
-            }]
+                  '_name' => network_name,
+                },
+              }],
+            }],
           }
 
           allow(model).to receive(:airport_data).and_return(airport_data)
@@ -1303,10 +1303,10 @@ module WifiWand
           airport_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name' => wifi_interface
+                '_name' => wifi_interface,
                 # No spairport_current_network_information
-              }]
-            }]
+              }],
+            }],
           }
 
           allow(model).to receive(:airport_data).and_return(airport_data)

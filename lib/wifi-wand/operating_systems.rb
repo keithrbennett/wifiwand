@@ -19,7 +19,7 @@ module WifiWand
       def supported_operating_systems
         @supported_operating_systems ||= [
           MacOs.new,
-          Ubuntu.new
+          Ubuntu.new,
         ]
       end
 

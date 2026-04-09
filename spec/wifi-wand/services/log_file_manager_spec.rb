@@ -162,7 +162,7 @@ describe WifiWand::LogFileManager do
       entries = [
         '[2025-10-28 14:30:15] WiFi ON',
         '[2025-10-28 14:30:20] Connected to "HomeNetwork"',
-        '[2025-10-28 14:45:30] Internet unavailable'
+        '[2025-10-28 14:45:30] Internet unavailable',
       ]
 
       entries.each { |entry| manager.write(entry) }

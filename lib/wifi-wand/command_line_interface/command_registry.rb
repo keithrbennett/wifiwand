@@ -29,7 +29,7 @@ module WifiWand
           Command.new('t',   'till',          ->(*options)  { cmd_t(*options)   }),
           Command.new('u',   'url',           ->(*_options) { PROJECT_URL       }),
           Command.new('w',   'wifi_on',       ->(*_options) { cmd_w             }),
-          Command.new('x',   'xit',           ->(*_options) { cmd_x             })
+          Command.new('x',   'xit',           ->(*_options) { cmd_x             }),
         ]
       end
 

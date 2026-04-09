@@ -18,7 +18,7 @@ module WifiWand
     STEP_LABELS = {
       install_helper:   'Install wifiwand-helper',
       reinstall_helper: 'Reinstall wifiwand-helper (invalid installation detected)',
-      grant_permission: 'Grant location permission in System Settings'
+      grant_permission: 'Grant location permission in System Settings',
     }.freeze
 
     # @param argv       [Array<String>]       command-line arguments (e.g. ARGV)

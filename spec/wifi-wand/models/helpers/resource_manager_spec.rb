@@ -10,8 +10,8 @@ describe WifiWand::Helpers::ResourceManager do
       'resources' => [
         { 'code' => 'test1', 'url' => 'https://example1.com', 'desc' => 'Test Resource 1' },
         { 'code' => 'test2', 'url' => 'https://example2.com', 'desc' => 'Test Resource 2' },
-        { 'code' => 'test3', 'url' => 'https://example3.com', 'desc' => 'Test Resource 3' }
-      ]
+        { 'code' => 'test3', 'url' => 'https://example3.com', 'desc' => 'Test Resource 3' },
+      ],
     }
   end
 
@@ -140,7 +140,7 @@ describe WifiWand::Helpers::ResourceManager::OpenResources do
     klass = WifiWand::Helpers::ResourceManager::OpenResource
     described_class.new([
       klass.new('test1', 'https://example1.com', 'Test Resource 1'),
-      klass.new('test2', 'https://example2.com', 'Test Resource 2')
+      klass.new('test2', 'https://example2.com', 'Test Resource 2'),
     ])
   end
 

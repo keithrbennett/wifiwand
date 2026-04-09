@@ -18,7 +18,7 @@ module WifiWand
           cyan:    "\e[36m",
           magenta: "\e[35m",
           bold:    "\e[1m",
-          reset:   "\e[0m"
+          reset:   "\e[0m",
         }
 
         "#{color_codes[color]}#{text}#{color_codes[:reset]}"

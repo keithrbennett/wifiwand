@@ -281,7 +281,7 @@ describe WifiWand::CommandLineInterface do
       it 'opens valid resources and reports success' do
         opened_resources = [
           double('resource', code: 'ipw', description: 'What is My IP'),
-          double('resource', code: 'spe', description: 'Speed Test')
+          double('resource', code: 'spe', description: 'Speed Test'),
         ]
 
         allow(mock_model).to receive(:open_resources_by_codes)
@@ -410,7 +410,7 @@ describe WifiWand::CommandLineInterface do
           # Reset mock for different error
           allow(mock_model).to receive(:generate_qr_code).with('other.png',
             hash_including(password: nil)).and_raise(
-            WifiWand::Error.new('Network connection failed')
+            WifiWand::Error.new('Network connection failed'),
           )
 
           expect { subject.cmd_qr('other.png') }.to raise_error(WifiWand::Error, 'Network connection failed')
@@ -454,7 +454,7 @@ describe WifiWand::CommandLineInterface do
       { cmd: :cmd_ci, model_method: :connected_to_internet?, return_value: true,
         non_interactive_output: "Connected to Internet: true\n" },
       { cmd: :cmd_qr, model_method: :generate_qr_code, return_value: 'TestNetwork-qr-code.png',
-        non_interactive_output: "QR code generated: TestNetwork-qr-code.png\n" }
+        non_interactive_output: "QR code generated: TestNetwork-qr-code.png\n" },
     ]
 
     COMMAND_TEST_CASES.each do |tc|
@@ -466,9 +466,9 @@ describe WifiWand::CommandLineInterface do
               non_interactive_tests: {
                 'outputs formatted message' => {
                   model_return:    tc[:return_value],
-                  expected_output: tc[:non_interactive_output]
-                }
-              }
+                  expected_output: tc[:non_interactive_output],
+                },
+              },
             }
         elsif !tc[:skip_non_interactive]
           it_behaves_like 'simple command delegation', tc[:cmd], tc[:model_method]
@@ -485,9 +485,9 @@ describe WifiWand::CommandLineInterface do
           non_interactive_tests: {
             'outputs formatted available networks message' => {
               model_return:    %w[TestNet1 TestNet2],
-              expected_output: /Available networks.*descending signal strength.*TestNet1.*TestNet2/m
-            }
-          }
+              expected_output: /Available networks.*descending signal strength.*TestNet1.*TestNet2/m,
+            },
+          },
         }
 
         it 'outputs a clear empty-scan message when no networks are returned' do
@@ -621,7 +621,7 @@ describe WifiWand::CommandLineInterface do
           :on,
           timeout_in_secs:                         nil,
           wait_interval_in_secs:                   nil,
-          stringify_permitted_values_in_error_msg: true
+          stringify_permitted_values_in_error_msg: true,
         )
         subject.cmd_t('on')
       end
@@ -631,7 +631,7 @@ describe WifiWand::CommandLineInterface do
           :connected,
           timeout_in_secs:                         2.5,
           wait_interval_in_secs:                   nil,
-          stringify_permitted_values_in_error_msg: true
+          stringify_permitted_values_in_error_msg: true,
         )
         subject.cmd_t('connected', '2.5')
       end
@@ -675,7 +675,7 @@ describe WifiWand::CommandLineInterface do
             :on,
             timeout_in_secs:                         30.0,
             wait_interval_in_secs:                   nil,
-            stringify_permitted_values_in_error_msg: true
+            stringify_permitted_values_in_error_msg: true,
           )
           expect { subject.cmd_t('on', '30') }.not_to raise_error
         end
@@ -685,7 +685,7 @@ describe WifiWand::CommandLineInterface do
             :off,
             timeout_in_secs:                         20.0,
             wait_interval_in_secs:                   0.5,
-            stringify_permitted_values_in_error_msg: true
+            stringify_permitted_values_in_error_msg: true,
           )
           expect { subject.cmd_t('off', '20', '0.5') }.not_to raise_error
         end
@@ -708,7 +708,7 @@ describe WifiWand::CommandLineInterface do
           network_name:       'TestNet',
           tcp_working:        true,
           dns_working:        true,
-          internet_connected: true
+          internet_connected: true,
         }
       end
 
@@ -848,7 +848,7 @@ describe WifiWand::CommandLineInterface do
       allow(subject).to receive(:exit)
       allow(subject).to receive_messages(
         process_command_line: 'command_result',
-        help_hint: 'Type help for usage'
+        help_hint: 'Type help for usage',
       )
     end
 

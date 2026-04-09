@@ -11,7 +11,7 @@ namespace :swift do
     helper.source_bundle_path,
     'Contents',
     'MacOS',
-    WifiWand::MacOsWifiAuthHelper::EXECUTABLE_NAME
+    WifiWand::MacOsWifiAuthHelper::EXECUTABLE_NAME,
   )
 
   file helper_binary => helper_source do

@@ -84,17 +84,6 @@ Lint/RedundantSafeNavigation:
 
 
 
-# Offense count: 6
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: AllowUnusedKeywordArguments, IgnoreEmptyMethods, IgnoreNotImplementedMethods, NotImplementedExceptions.
-# NotImplementedExceptions: NotImplementedError
-Lint/UnusedMethodArgument:
-  Exclude:
-    - 'lib/wifi-wand/os/base_os.rb'
-    - 'lib/wifi-wand/services/connection_manager.rb'
-    - 'spec/support/os_filtering.rb'
-    - 'spec/wifi-wand/command_line_interface/shell_interface_spec.rb'
-    - 'spec/wifi-wand/models/base_model_resource_spec.rb'
 
 
 
@@ -268,11 +257,6 @@ RSpec/NamedSubject:
     - 'spec/wifi-wand/services/connection_manager_spec.rb'
 
 
-# Offense count: 1
-# This cop supports safe autocorrection (--autocorrect).
-RSpec/RedundantPredicateMatcher:
-  Exclude:
-    - 'spec/wifi-wand/operating_systems_spec.rb'
 
 # Offense count: 2
 RSpec/RemoveConst:
@@ -423,16 +407,6 @@ Style/RedundantLineContinuation:
     - 'spec/wifi-wand/services/network_state_manager_spec.rb'
     - 'spec/wifi-wand/services/status_waiter_spec.rb'
 
-# Offense count: 9
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyle.
-# SupportedStyles: implicit, explicit
-Style/RescueStandardError:
-  Exclude:
-    - 'lib/wifi-wand/services/captive_portal_checker.rb'
-    - 'lib/wifi-wand/services/event_logger.rb'
-    - 'lib/wifi-wand/services/log_file_manager.rb'
-    - 'lib/wifi-wand/services/network_connectivity_tester.rb'
 
 # Offense count: 13
 # This cop supports unsafe autocorrection (--autocorrect-all).
@@ -493,24 +467,6 @@ Style/SymbolProc:
     - 'lib/wifi-wand/operating_systems.rb'
     - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
 
-# Offense count: 9
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyleForMultiline.
-# SupportedStylesForMultiline: comma, consistent_comma, diff_comma, no_comma
-Style/TrailingCommaInArrayLiteral:
-  Exclude:
-    - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
-    - 'spec/wifi-wand/errors_spec.rb'
-    - 'spec/wifi-wand/models/helpers/qr_code_integration_spec.rb'
-    - 'spec/wifi-wand/os/mac_os_spec.rb'
-
-# Offense count: 1
-# This cop supports safe autocorrection (--autocorrect).
-# Configuration parameters: EnforcedStyleForMultiline.
-# SupportedStylesForMultiline: comma, consistent_comma, diff_comma, no_comma
-Style/TrailingCommaInHashLiteral:
-  Exclude:
-    - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
 
 # Offense count: 40
 # This cop supports safe autocorrection (--autocorrect).

@@ -48,7 +48,7 @@ module WifiWand
         interval:      interval,
         verbose:       verbose_flag,
         log_file_path: log_file_path,
-        output:        (output_to_stdout ? output : nil)
+        output:        (output_to_stdout ? output : nil),
       )
 
       # Run the logger (blocks until Ctrl+C)

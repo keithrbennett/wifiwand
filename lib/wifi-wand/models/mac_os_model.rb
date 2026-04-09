@@ -15,14 +15,14 @@ module WifiWand
       /Wi[-\s]?Fi/i,
       /Air[-\s]?Port/i,
       /Wireless/i,
-      /WLAN/i
+      /WLAN/i,
     ].freeze
 
     CONNECTION_FAILURE_PATTERNS = [
       /Failed to join network/i,
       /Error:\s*-3900/,
       /Could not connect/i,
-      /Could not find network/i
+      /Could not find network/i,
     ].freeze
 
     AUTHENTICATION_FAILURE_PATTERNS = [
@@ -30,7 +30,7 @@ module WifiWand
       /incorrect password/i,
       /authentication (?:failed|timeout|timed out)/i,
       /802\.1x authentication failed/i,
-      /password required/i
+      /password required/i,
     ].freeze
 
     # Keychain exit code handlers for password retrieval
@@ -53,7 +53,7 @@ module WifiWand
         else
           raise KeychainError, "Keychain error accessing password for network '#{network_name}': #{error.text.strip}"
         end
-      }
+      },
     }.freeze
 
     def fetch_hardware_ports
@@ -402,7 +402,7 @@ module WifiWand
       @mac_helper_client ||= WifiWand::MacOsWifiAuthHelper::Client.new(
         out_stream_proc:    -> { out_stream },
         verbose_proc:       -> { verbose_mode },
-        macos_version_proc: -> { macos_version }
+        macos_version_proc: -> { macos_version },
       )
     end
 

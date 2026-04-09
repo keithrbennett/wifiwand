@@ -262,7 +262,7 @@ module WifiWand
         'ip_address'                => begin; ip_address; rescue Error; nil; end,
         'mac_address'               => mac_address,
         'nameservers'               => nameservers,
-        'timestamp'                 => Time.now
+        'timestamp'                 => Time.now,
       }
 
       if info['internet_on']
@@ -316,7 +316,7 @@ module WifiWand
         wifi_on:                       wifi_on?,
         internet_connected:            nil,
         network_name:                  :pending,
-        captive_portal_login_required: :unknown
+        captive_portal_login_required: :unknown,
       }
 
       progress_callback&.call(partial.dup)
@@ -420,7 +420,7 @@ module WifiWand
         target_status,
         timeout_in_secs:                         timeout_in_secs,
         wait_interval_in_secs:                   wait_interval_in_secs,
-        stringify_permitted_values_in_error_msg: stringify_permitted_values_in_error_msg
+        stringify_permitted_values_in_error_msg: stringify_permitted_values_in_error_msg,
       )
     end
 

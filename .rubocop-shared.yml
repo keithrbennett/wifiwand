@@ -260,10 +260,10 @@ Style/WordArray:
   EnforcedStyle: percent
 
 Style/TrailingCommaInArrayLiteral:
-  EnforcedStyleForMultiline: no_comma
+  EnforcedStyleForMultiline: comma
 
 Style/TrailingCommaInArguments:
-  EnforcedStyleForMultiline: no_comma
+  EnforcedStyleForMultiline: comma
 
 Style/TrailingCommaInHashLiteral:
-  EnforcedStyleForMultiline: no_comma
+  EnforcedStyleForMultiline: comma

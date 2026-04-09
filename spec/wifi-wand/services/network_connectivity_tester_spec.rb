@@ -59,7 +59,7 @@ describe WifiWand::NetworkConnectivityTester do
       before do
         allow(tester).to receive(:tcp_test_endpoints).and_return([
           { host: '1.1.1.1', port: 53 },
-          { host: '1.1.1.1', port: 443 }
+          { host: '1.1.1.1', port: 443 },
         ])
 
         allow(Socket).to receive(:tcp) do |_host, port, connect_timeout:, &block|
@@ -123,7 +123,7 @@ describe WifiWand::NetworkConnectivityTester do
       allow(tester).to receive_messages(
         tcp_connectivity?: true,
         dns_working?: true,
-        captive_portal_free?: true
+        captive_portal_free?: true,
       )
 
       expect(tester.connected_to_internet?).to be true
@@ -151,7 +151,7 @@ describe WifiWand::NetworkConnectivityTester do
       allow(tester).to receive_messages(
         tcp_connectivity?: true,
         dns_working?: true,
-        captive_portal_free?: false
+        captive_portal_free?: false,
       )
 
       expect(tester.connected_to_internet?).to be false

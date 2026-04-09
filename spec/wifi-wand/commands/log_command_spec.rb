@@ -12,8 +12,8 @@ describe WifiWand::LogCommand do
         network_name:       'HomeNetwork',
         tcp_working:        true,
         dns_working:        true,
-        internet_connected: true
-      }
+        internet_connected: true,
+      },
     )
   end
 
@@ -54,8 +54,8 @@ describe WifiWand::LogCommand do
           interval:      WifiWand::TimingConstants::EVENT_LOG_POLLING_INTERVAL,
           verbose:       false,
           log_file_path: nil,
-          output:        output
-        )
+          output:        output,
+        ),
       )
     end
 
@@ -73,7 +73,7 @@ describe WifiWand::LogCommand do
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
-          hash_including(interval: 10.0)
+          hash_including(interval: 10.0),
         )
       end
 
@@ -83,7 +83,7 @@ describe WifiWand::LogCommand do
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
-          hash_including(interval: 2.5)
+          hash_including(interval: 2.5),
         )
       end
 
@@ -116,7 +116,7 @@ describe WifiWand::LogCommand do
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
-          hash_including(log_file_path: '/tmp/custom.log', output: nil)
+          hash_including(log_file_path: '/tmp/custom.log', output: nil),
         )
       end
 
@@ -128,8 +128,8 @@ describe WifiWand::LogCommand do
           mock_model,
           hash_including(
             log_file_path: WifiWand::LogFileManager::DEFAULT_LOG_FILE,
-            output:        nil
-          )
+            output:        nil,
+          ),
         )
       end
     end
@@ -141,7 +141,7 @@ describe WifiWand::LogCommand do
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
-          hash_including(output: output)
+          hash_including(output: output),
         )
       end
 
@@ -153,8 +153,8 @@ describe WifiWand::LogCommand do
           mock_model,
           hash_including(
             log_file_path: '/tmp/test.log',
-            output:        output
-          )
+            output:        output,
+          ),
         )
       end
     end
@@ -166,7 +166,7 @@ describe WifiWand::LogCommand do
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
-          hash_including(verbose: true)
+          hash_including(verbose: true),
         )
       end
 
@@ -176,7 +176,7 @@ describe WifiWand::LogCommand do
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
-          hash_including(verbose: true)
+          hash_including(verbose: true),
         )
       end
     end
@@ -192,8 +192,8 @@ describe WifiWand::LogCommand do
             interval:      3.0,
             verbose:       true,
             log_file_path: '/tmp/test.log',
-            output:        nil
-          )
+            output:        nil,
+          ),
         )
       end
 
@@ -207,8 +207,8 @@ describe WifiWand::LogCommand do
             interval:      3.0,
             verbose:       true,
             log_file_path: '/tmp/test.log',
-            output:        output
-          )
+            output:        output,
+          ),
         )
       end
     end

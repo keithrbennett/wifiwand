@@ -62,7 +62,7 @@ module WifiWand
       fast_endpoints = [
         { host: '1.1.1.1', port: 443 },     # Cloudflare
         { host: '8.8.8.8', port: 443 },     # Google
-        { host: '180.76.76.76', port: 443 } # Baidu (China-friendly)
+        { host: '180.76.76.76', port: 443 }, # Baidu (China-friendly)
       ]
 
       if @verbose
@@ -194,7 +194,7 @@ module WifiWand
               end
 
               result
-            rescue StandardError => e
+            rescue => e
               # Catch and log any unexpected errors from the check.
               # Return false to indicate this check failed.
               log_unexpected_error(e)
@@ -246,7 +246,7 @@ module WifiWand
           true
         end
       end
-    rescue StandardError => e
+    rescue => e
       @output.puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if @verbose
       false
     end
@@ -267,7 +267,7 @@ module WifiWand
           true
         end
       end
-    rescue StandardError => e
+    rescue => e
       @output.puts "Fast check: failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if @verbose
       false
     end
@@ -295,7 +295,7 @@ module WifiWand
         @output.puts "Successfully resolved #{domain}" if @verbose
         true
       end
-    rescue StandardError => e
+    rescue => e
       @output.puts "Failed to resolve #{domain}: #{e.class}" if @verbose
       false
     end

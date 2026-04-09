@@ -16,7 +16,7 @@ Gem::Specification.new do |spec|
     'source_code_uri'       => 'https://github.com/keithrbennett/wifiwand',
     'bug_tracker_uri'       => 'https://github.com/keithrbennett/wifiwand/issues',
     'changelog_uri'         => 'https://github.com/keithrbennett/wifiwand/blob/main/RELEASE_NOTES.md',
-    'rubygems_mfa_required' => 'true'
+    'rubygems_mfa_required' => 'true',
   }
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do

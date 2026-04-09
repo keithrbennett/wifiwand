@@ -44,7 +44,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         fast_connectivity?: true,
         public_ip_address_info: { 'ip' => '1.2.3.4' },
         run_os_command: command_result(stdout: ''),
-        till: nil
+        till: nil,
       )
     end
   end
@@ -365,7 +365,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         wifi_enabled:     true,
         network_name:     'TestNetwork',
         network_password: 'testpass',
-        interface:        'wlan0'
+        interface:        'wlan0',
       }
     end
 
@@ -420,7 +420,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         "# This is a comment\n",
         "nameserver 8.8.8.8\n",
         "nameserver 1.1.1.1\n",
-        "search example.com\n"
+        "search example.com\n",
       ]
 
       allow(File).to receive(:readlines).with('/etc/resolv.conf').and_return(resolv_content)
@@ -523,7 +523,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         connected_network_name: 'TestNet',
         ip_address: '192.168.1.100',
         mac_address: 'aa:bb:cc:dd:ee:ff',
-        nameservers: ['8.8.8.8']
+        nameservers: ['8.8.8.8'],
       )
 
       # Remove the global mock for connected_to_internet? so we can test the real logic
@@ -550,7 +550,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
           mac_address: 'aa:bb:cc:dd:ee:ff',
           nameservers: ['8.8.8.8'],
           internet_tcp_connectivity?: true,
-          dns_working?: true
+          dns_working?: true,
         )
         allow(model).to receive(:sleep)  # Don\'t actually sleep
 
@@ -576,7 +576,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:dns_working?).and_raise(StandardError, 'DNS error')
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: true,
-        public_ip_address_info: { 'ip' => '1.2.3.4' }
+        public_ip_address_info: { 'ip' => '1.2.3.4' },
       )
 
       result = subject.wifi_info
@@ -588,7 +588,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: false,
         dns_working?: true,
-        public_ip_address_info: { 'ip' => '1.2.3.4' }
+        public_ip_address_info: { 'ip' => '1.2.3.4' },
       )
       expect(subject).not_to receive(:captive_portal_free?)
 
@@ -599,7 +599,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: true,
         dns_working?: false,
-        public_ip_address_info: { 'ip' => '1.2.3.4' }
+        public_ip_address_info: { 'ip' => '1.2.3.4' },
       )
       expect(subject).not_to receive(:captive_portal_free?)
 
@@ -610,7 +610,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: false,
         dns_working?: false,
-        public_ip_address_info: { 'ip' => '1.2.3.4' }
+        public_ip_address_info: { 'ip' => '1.2.3.4' },
       )
       expect(subject).not_to receive(:captive_portal_free?)
 
@@ -622,7 +622,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         internet_tcp_connectivity?: true,
         dns_working?: true,
         captive_portal_free?: true,
-        public_ip_address_info: { 'ip' => '1.2.3.4' }
+        public_ip_address_info: { 'ip' => '1.2.3.4' },
       )
       expect(subject).to receive(:captive_portal_free?).and_return(true)
 
@@ -792,7 +792,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
       data = subject.status_line_data
       expect(data).to be_a(Hash)
 
-      expect(data.keys).to include(:wifi_on, :internet_connected, :network_name, :captive_portal_login_required)
+      expect(data.keys).to include(
+        :wifi_on, :internet_connected, :network_name, :captive_portal_login_required
+      )
     end
 
     it 'returns correct data when everything is working' do
@@ -801,7 +803,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         connected_network_name: 'TestNetwork',
         internet_tcp_connectivity?: true,
         dns_working?: true,
-        captive_portal_free?: true
+        captive_portal_free?: true,
       )
 
       data = subject.status_line_data
@@ -815,7 +817,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'returns correct data when wifi is off' do
       allow(subject).to receive_messages(
         wifi_on?: false,
-        connected_network_name: nil
+        connected_network_name: nil,
       )
 
       data = subject.status_line_data
@@ -875,14 +877,14 @@ describe 'Common WiFi Model Behavior (All OS)' do
         run_os_command: command_result(stdout: ''),
         preferred_networks: [network_name],
         preferred_network_password: network_password,
-        _preferred_network_password: network_password
+        _preferred_network_password: network_password,
       )
     end
 
     context 'when checking dependencies' do
       [
         [:ubuntu, 'sudo apt install qrencode'],
-        [:mac, 'brew install qrencode']
+        [:mac, 'brew install qrencode'],
       ].each do |os_id, expected_command|
         it "raises error with correct install command for #{os_id}" do
           allow(subject).to receive(:command_available?).with('qrencode').and_return(false)
@@ -917,7 +919,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         ['WPA2', 'WPA'],
         ['WPA3', 'WPA'],
         ['WEP',  'WEP'],
-        [nil,    'WPA']
+        [nil,    'WPA'],
       ].each do |input_security, expected_qr_security|
         it "generates correct QR string for #{input_security || 'open network'}" do
           allow(subject).to receive(:connection_security_type).and_return(input_security)
@@ -950,12 +952,12 @@ describe 'Common WiFi Model Behavior (All OS)' do
         ['Network\With\Backslashes', 'pass\word',
           'WIFI:T:WPA;S:Network\\\\With\\\\Backslashes;P:pass\\\\word;H:false;;'],
         ['Regular-Network_Name', 'regularPassword123',
-          'WIFI:T:WPA;S:Regular-Network_Name;P:regularPassword123;H:false;;']
+          'WIFI:T:WPA;S:Regular-Network_Name;P:regularPassword123;H:false;;'],
       ].each do |test_network, test_password, expected_qr_string|
         it "properly escapes special characters in '#{test_network}' / '#{test_password}'" do
           allow(subject).to receive_messages(
             connected_network_name: test_network,
-            connected_network_password: test_password
+            connected_network_password: test_password,
           )
 
           silence_output { subject.generate_qr_code }
@@ -974,7 +976,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         ['SimpleNetwork',       'SimpleNetwork-qr-code.png'],
         ['Network With Spaces', 'Network_With_Spaces-qr-code.png'],
         ['Network@#$%^&*()!',   'Network__________-qr-code.png'],
-        ['cafe-reseau',         'cafe-reseau-qr-code.png']
+        ['cafe-reseau',         'cafe-reseau-qr-code.png'],
       ].each do |input_name, expected_filename|
         it "generates safe filename for '#{input_name}'" do
           allow(subject).to receive(:connected_network_name).and_return(input_name)
