@@ -16,30 +16,30 @@ wifi-wand status
 
 Normal output:
 ```
-WiFi: ✅ YES | Network: HomeNetwork | Internet: ✅ YES
+WiFi: ✅ ON | WiFi Network: HomeNetwork | Internet: ✅ YES
 ```
 
 When a captive portal is detected (e.g., hotel or coffee shop that requires a login):
 ```
-WiFi: ✅ YES | Network: HotelWiFi | Internet: ❌ NO | ⚠️ Captive Portal Login Required
+WiFi: ✅ ON | WiFi Network: HotelWiFi | Internet: ❌ NO | ⚠️ Captive Portal Login Required
 ```
 
 ### Colorized Output
 
 On terminals that support it, the status is color-coded for at-a-glance readability:
 
-- **Green**: Connected/Working (WiFi ON, Internet available)
-- **Red**: Disconnected/Not Working (WiFi OFF, Internet unavailable)
+- **Green**: Working/Available (WiFi ON, Internet available)
+- **Red**: Off/Unavailable (WiFi OFF, Internet unavailable)
 - **Cyan**: Network names
 - **Yellow**: Warning states (captive portal detected, pending checks, or no network)
 
 ## Understanding the Status Components
 
 ### WiFi Status
-- **YES** - WiFi radio is powered on and available
-- **NO** - WiFi radio is powered off
+- **ON** - WiFi radio is powered on and available
+- **OFF** - WiFi radio is powered off
 
-### Network
+### WiFi Network
 - Shows the SSID (network name) you're connected to
 - If not connected: `[none]`
 
@@ -68,6 +68,10 @@ If step 3 fails while steps 1–2 pass, a captive portal is confidently detected
 ## Machine-Readable Output
 
 The `captive_portal_login_required` field is present in all machine-readable output formats.
+
+If you are scripting against `wifi-wand`, prefer machine-readable output such as JSON (`-o j`)
+instead of parsing the human-formatted status line. Structured output is simpler to consume and
+less likely to change over time.
 
 ### Key: `captive_portal_login_required`
 
@@ -189,7 +193,7 @@ fi
 ### Check if Internet is Available
 
 ```bash
-if wifi-wand status | grep -q "Internet:.*YES"; then
+if wifi-wand -o j status | jq -e '.internet_connected == true' > /dev/null; then
   echo "Internet OK - starting backup"
 else
   echo "No internet - postponing backup"
@@ -265,5 +269,5 @@ wifi-wand till conn      # Wait until internet connected
 | Speed                     | Fast                             | Slower (more comprehensive)     |
 | Connectivity checks       | Yes (TCP/DNS/captive portal)     | Yes (same checks)               |
 | Captive portal detection  | Yes (in status data + display)   | Yes (captive_portal_free field) |
-| For scripts               | Good                             | Better (structured data)        |
+| For scripts               | Better with `-o j`               | Better (structured data)        |
 | For humans                | Good (quick check)               | Better (comprehensive info)     |

@@ -97,7 +97,7 @@ still rely on the flag before upgrading.
 ### Quick Start
 
 ```bash
-# Display networking status (e.g.: WiFi: ON | Network: "my_network" | TCP: YES | DNS: YES | Internet: YES)
+# Display networking status (e.g.: WiFi: ON | WiFi Network: my_network | Internet: YES)
 wifi-wand s
 
 # Display WiFi on/off status
@@ -184,7 +184,7 @@ q[uit]                    - exits this program (interactive shell mode only) (sa
 qr [filespec|'-'] [password]
                          - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats; optional password avoids macOS auth prompt
 ro[pen]                   - open web resources: 'cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page)
-s[tatus]                  - status line (WiFi, Network, TCP, DNS, Internet) with real-time connectivity checks
+s[tatus]                  - status line (WiFi, WiFi Network, Internet) with real-time connectivity checks
                             (see docs/STATUS_COMMAND.md for details on connectivity detection)
 t[ill]                    - wait until Internet connection reaches desired state:
                             'on'/:on (connected), 'off'/:off (disconnected), 'conn'/:conn (connected), 'disc'/:disc (disconnected)
@@ -207,6 +207,9 @@ The `awesome_print` gem is used for formatting output nicely in both non-interac
 You can specify that output in _noninteractive_ mode be in a certain format.
 Currently, JSON, "Pretty" JSON, YAML, inspect, and puts formats are supported.
 See the help for which command line switches to use.
+If you are scripting against the CLI, prefer machine-readable output such as JSON (`-o j`)
+instead of parsing human-formatted text. Structured output is simpler to consume and less likely
+to change over time.
 In _interactive_ mode, you can call the usual Ruby methods (`to_json`, `to_yaml`, etc.) instead.
 
 
@@ -322,7 +325,7 @@ wifi-wand qr          # generate PNG file: <SSID>-qr-code.png
 wifi-wand qr wifi.svg # generate SVG file: wifi.svg
 wifi-wand qr -        # print ANSI QR to terminal
 wifi-wand t on && say "Internet connected" # Play audible message when Internet becomes connected
-wifi-wand s           # display status (WiFi, Network, TCP, DNS, Internet)
+wifi-wand s           # display status (WiFi, WiFi Network, Internet)
 wifi-wand log         # monitor WiFi status changes in real-time (to terminal)
 wifi-wand log --file  # log WiFi events to wifiwand-events.log
 wifi-wand log --file --stdout        # log to file AND display in terminal

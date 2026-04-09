@@ -304,8 +304,8 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         result = subject.status_line(status_data)
 
         # Test logical content rather than exact formatting
-        expect(result).to match(/WiFi.*YES/)
-        expect(result).to match(/Network.*TestNetwork/)  # network_name is included in test data
+        expect(result).to match(/WiFi.*ON/)
+        expect(result).to match(/WiFi Network.*TestNetwork/)  # network_name is included in test data
         expect(result).to match(/Internet.*YES/)
 
         # Verify colorization is present
@@ -321,8 +321,8 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       }
 
       {
-        'WiFi off'         => [:wifi_on?,                false, /WiFi.*NO/,      RED_TEXT_REGEX],
-        'no network'       => [:connected_network_name,  nil,   /Network.*none/, YELLOW_TEXT_REGEX],
+        'WiFi off'         => [:wifi_on?,                false, /WiFi.*OFF/,             RED_TEXT_REGEX],
+        'no network'       => [:connected_network_name,  nil,   /WiFi Network.*none/,    YELLOW_TEXT_REGEX],
         'Internet failure' => [:connected_to_internet?,  false, /Internet.*NO/,  RED_TEXT_REGEX],
       }.each do |scenario, (mock_method, return_value, expected_pattern, expected_color)|
         it "displays error status when #{scenario}" do
@@ -380,8 +380,8 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         result = subject.status_line(status_data)
 
         # Test logical content
-        expect(result).to match(/WiFi.*YES/)
-        expect(result).to match(/Network.*TestNetwork/)  # network_name is included in test data
+        expect(result).to match(/WiFi.*ON/)
+        expect(result).to match(/WiFi Network.*TestNetwork/)  # network_name is included in test data
         expect(result).to match(/Internet.*YES/)
 
         # Verify no color codes
@@ -393,7 +393,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         data[:wifi_on] = false
         result = subject.status_line(data)
 
-        expect(result).to match(/WiFi.*NO/)
+        expect(result).to match(/WiFi.*OFF/)
         expect(result).not_to match(ANSI_COLOR_REGEX)
       end
 

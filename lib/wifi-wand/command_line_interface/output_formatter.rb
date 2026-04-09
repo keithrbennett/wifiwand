@@ -41,24 +41,24 @@ module WifiWand
         text.gsub(/\b\d+%|\b\d+\.\d+\.\d+\.\d+|\b\d+\b/) { |match| colorize_text(match, :blue) }
       end
 
-      def format_boolean_status(value, true_char: '✅ YES', false_char: '❌ NO', pending_char: '⏳ WAIT')
+      def format_boolean_status(value, true_str: '✅ YES', false_str: '❌ NO', pending_str: '⏳ WAIT')
         value = !!value unless value.nil? # convert non-Boolean non-nil values to true or false
-        char, color = case value
-                      when nil
-                        [pending_char, :yellow]
-                      when true
-                        [true_char, :green]
-                      when false
-                        [false_char, :red]
+        status_text, color = case value
+                             when nil
+                               [pending_str, :yellow]
+                             when true
+                               [true_str, :green]
+                             when false
+                               [false_str, :red]
         end
 
-        colorize_text(char, color)
+        colorize_text(status_text, color)
       end
 
       def status_line(status_data)
         return colorize_text('WiFi: [status unavailable]', :yellow) if status_data.nil?
 
-        wifi_status = format_boolean_status(status_data[:wifi_on])
+        wifi_status = format_boolean_status(status_data[:wifi_on], true_str: '✅ ON', false_str: '❌ OFF')
         internet_status = format_boolean_status(status_data[:internet_connected])
 
         # Format network name
@@ -72,9 +72,9 @@ module WifiWand
             [network_name.to_s, :cyan]
           end
 
-        network_display = colorize_text(network_text, network_color)
+        wifi_network_status = colorize_text(network_text, network_color)
 
-        line = "WiFi: #{wifi_status} | Network: #{network_display} | Internet: #{internet_status}"
+        line = "WiFi: #{wifi_status} | WiFi Network: #{wifi_network_status} | Internet: #{internet_status}"
 
         if status_data[:captive_portal_login_required] == :yes
           line = "#{line} | #{colorize_text('⚠️ Captive Portal Login Required', :red)}"
