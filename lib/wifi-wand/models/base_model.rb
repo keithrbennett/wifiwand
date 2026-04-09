@@ -172,6 +172,15 @@ module WifiWand
       _connected_network_name
     end
 
+    # Returns true when WiFi is on and the interface is associated with an SSID.
+    # Returns false when WiFi is off or there is no active SSID association.
+    def associated?
+      name = connected_network_name
+      !name.nil? && !name.empty?
+    rescue WifiWand::Error
+      false
+    end
+
     def disconnect
       _disconnect if wifi_on?
       nil
@@ -404,14 +413,15 @@ module WifiWand
     # Extracted for easier testing and overriding/mocking.
     def has_preferred_network?(network_name) = preferred_networks.include?(network_name.to_s)
 
-    # Waits for the Internet connection to be in the desired state.
-    # @param target_status must be in [:conn, :disc, :off, :on]; waits for that state
-    # @param timeout_in_secs after this many seconds, the method will raise a WaitTimeoutError;
+    # Waits for the WiFi/Internet state to reach target_status.
+    # @param target_status one of StatusWaiter::PERMITTED_STATES:
+    #   :wifi_on / :wifi_off         – WiFi hardware power state
+    #   :associated / :disassociated – WiFi SSID association state
+    #   :internet_on / :internet_off – full Internet reachability (TCP + DNS + captive-portal free)
+    # @param timeout_in_secs after this many seconds the method will raise a WaitTimeoutError;
     #        if nil (default), waits indefinitely
     # @param wait_interval_in_secs sleeps this interval between retries; if nil or absent,
     #        a default will be provided
-    #
-    # Connected is defined as being able to connect to an external web site.
     def till(target_status, timeout_in_secs: nil, wait_interval_in_secs: nil,
       stringify_permitted_values_in_error_msg: false)
       debug_method_entry(__method__, binding, %i[target_status timeout_in_secs wait_interval_in_secs])

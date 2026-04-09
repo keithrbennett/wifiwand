@@ -49,12 +49,12 @@ module WifiWand
         if state[:wifi_enabled]
           unless @model.wifi_on?
             @model.wifi_on
-            @model.till(:on, timeout_in_secs: TimingConstants::WIFI_STATE_CHANGE_WAIT)
+            @model.till(:wifi_on, timeout_in_secs: TimingConstants::WIFI_STATE_CHANGE_WAIT)
           end
         else
           if @model.wifi_on?
             @model.wifi_off
-            @model.till(:off, timeout_in_secs: TimingConstants::WIFI_STATE_CHANGE_WAIT)
+            @model.till(:wifi_off, timeout_in_secs: TimingConstants::WIFI_STATE_CHANGE_WAIT)
           end
           return # If WiFi should be off, we're done
         end
@@ -81,7 +81,7 @@ module WifiWand
 
           begin
             @model.connect(state[:network_name], password_to_use)
-            @model.till(:conn, timeout_in_secs: TimingConstants::NETWORK_CONNECTION_WAIT)
+            @model.till(:associated, timeout_in_secs: TimingConstants::NETWORK_CONNECTION_WAIT)
           rescue WifiWand::WaitTimeoutError => e
             begin
               actual_network = @model.connected_network_name

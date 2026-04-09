@@ -39,7 +39,7 @@ module WifiWand
           allow(subject).to receive(:wifi_on?).and_return(false, false)
           allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi on])
             .and_return(command_result(stdout: ''))
-          allow(subject).to receive(:till).with(:on, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT).and_return(nil)
+          allow(subject).to receive(:till).with(:wifi_on, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT).and_return(nil)
 
           expect { subject.wifi_on }.to raise_error(WifiWand::WifiEnableError)
         end
@@ -48,7 +48,7 @@ module WifiWand
           allow(subject).to receive(:wifi_on?).and_return(true, true)
           allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi off])
             .and_return(command_result(stdout: ''))
-          allow(subject).to receive(:till).with(:off, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT).and_return(nil)
+          allow(subject).to receive(:till).with(:wifi_off, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT).and_return(nil)
 
           expect { subject.wifi_off }.to raise_error(WifiWand::WifiDisableError)
         end
@@ -1138,7 +1138,7 @@ module WifiWand
             .and_return(command_result(stdout: 'disabled'))
 
           # Mock the till method to immediately raise WaitTimeoutError (which wifi_on catches and converts to WifiEnableError)
-          allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:on, 5))
+          allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:wifi_on, 5))
 
           expect { subject.wifi_on }.to raise_error(WifiWand::WifiEnableError)
         end
@@ -1153,7 +1153,7 @@ module WifiWand
             .and_return(command_result(stdout: 'enabled'))
 
           # Mock the till method to immediately raise WaitTimeoutError (which wifi_off catches and converts to WifiDisableError)
-          allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:off, 5))
+          allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:wifi_off, 5))
 
           expect { subject.wifi_off }.to raise_error(WifiWand::WifiDisableError)
         end

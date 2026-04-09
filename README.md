@@ -94,6 +94,36 @@ The interactive shell is now a dedicated subcommand: run it with `wifi-wand shel
 The legacy `-s/--shell` option has been removed—update any scripts or aliases that
 still rely on the flag before upgrading.
 
+### ⚠️ Breaking Change: `till` Wait-State Names
+
+The `till` command now uses an explicit, unambiguous vocabulary. The old names
+`conn`, `disc`, `on`, and `off` have been **removed**.
+
+| Old name  | Replace with              | Meaning                                        |
+|-----------|---------------------------|------------------------------------------------|
+| `on`      | `wifi_on`                 | WiFi hardware powered on                       |
+| `off`     | `wifi_off`                | WiFi hardware powered off                      |
+| `conn`    | `associated` or `internet_on` | WiFi associated with SSID *or* Internet up |
+| `disc`    | `disassociated` or `internet_off` | No SSID *or* Internet down             |
+
+**Why the change?** `conn` previously checked full Internet reachability (TCP + DNS),
+not WiFi association. This caused confusion when using `till conn` after a `connect`
+command—it was really asking "is the internet up?" rather than "did I join the
+network?". The new names make intent explicit:
+
+- `associated` / `disassociated` — WiFi layer: joined an SSID or not
+- `internet_on` / `internet_off` — Application layer: TCP + DNS + captive-portal free
+- `wifi_on` / `wifi_off` — Hardware: radio powered on or off
+
+**Migration examples:**
+```bash
+# Old → New
+wifi-wand t on         →  wifi-wand t wifi_on
+wifi-wand t off        →  wifi-wand t wifi_off
+wifi-wand t conn       →  wifi-wand t internet_on   # or: wifi-wand t associated
+wifi-wand t disc       →  wifi-wand t internet_off  # or: wifi-wand t disassociated
+```
+
 ### Quick Start
 
 ```bash
@@ -186,9 +216,17 @@ qr [filespec|'-'] [password]
 ro[pen]                   - open web resources: 'cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page)
 s[tatus]                  - status line (WiFi, WiFi Network, Internet) with real-time connectivity checks
                             (see docs/STATUS_COMMAND.md for details on connectivity detection)
-t[ill]                    - wait until Internet connection reaches desired state:
-                            'on'/:on (connected), 'off'/:off (disconnected), 'conn'/:conn (connected), 'disc'/:disc (disconnected)
-                            Optional: wait interval between checks in seconds (default: 0.5)
+t[ill]                    - wait until state is reached:
+                            Usage: till <state> [timeout_secs] [interval_secs]
+                            States:
+                              wifi_on        – WiFi hardware powered on
+                              wifi_off       – WiFi hardware powered off
+                              associated     – WiFi associated with an SSID (WiFi layer)
+                              disassociated  – WiFi not associated with any SSID
+                              internet_on    – Internet reachable (TCP + DNS + captive-portal free)
+                              internet_off   – Internet not reachable
+                            Defaults: timeout = wait indefinitely; interval = 0.5s
+                            Examples: "till wifi_off 20"  "till internet_on 30 0.5"
 w[ifi_on]                 - is the WiFi on?
 x[it]                     - exits this program (interactive shell mode only) (same as 'q')
 
@@ -324,7 +362,7 @@ wifi-wand co a-network            # connects to a network _not_ requiring a pass
 wifi-wand qr          # generate PNG file: <SSID>-qr-code.png
 wifi-wand qr wifi.svg # generate SVG file: wifi.svg
 wifi-wand qr -        # print ANSI QR to terminal
-wifi-wand t on && say "Internet connected" # Play audible message when Internet becomes connected
+wifi-wand t internet_on && say "Internet connected" # Play audible message when Internet becomes connected
 wifi-wand s           # display status (WiFi, WiFi Network, Internet)
 wifi-wand log         # monitor WiFi status changes in real-time (to terminal)
 wifi-wand log --file  # log WiFi events to wifiwand-events.log
@@ -464,7 +502,7 @@ There are 341 preferred networks.
 Connected!
 
 # Use the model's `till` method to simplify:
-> till :conn, 0.1
+> till :internet_on, wait_interval_in_secs: 0.1
 ```
 
 

@@ -63,7 +63,7 @@ module WifiWand
       return if wifi_on?
 
       run_os_command(%w[nmcli radio wifi on])
-      till(:on, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
+      till(:wifi_on, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
       wifi_on? ? nil : raise(WifiEnableError)
     rescue WifiWand::WaitTimeoutError
       raise WifiEnableError
@@ -73,7 +73,7 @@ module WifiWand
       return unless wifi_on?
 
       run_os_command(%w[nmcli radio wifi off])
-      till(:off, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
+      till(:wifi_off, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
       wifi_on? ? raise(WifiDisableError) : nil
     rescue WifiWand::WaitTimeoutError
       raise WifiDisableError

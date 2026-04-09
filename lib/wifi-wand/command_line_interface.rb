@@ -180,8 +180,9 @@ module WifiWand
       if options.empty? || options[0].nil?
         raise WifiWand::ConfigurationError, <<~MSG.chomp
           Missing target status argument.
-          Usage: till conn|disc|on|off [timeout_secs] [interval_secs]
-          Examples: 'till off 20' or 'till conn 30 0.5'
+          Usage: till <state> [timeout_secs] [interval_secs]
+          States: wifi_on, wifi_off, associated, disassociated, internet_on, internet_off
+          Examples: 'till wifi_off 20' or 'till internet_on 30 0.5'
           #{help_hint}
         MSG
       end
