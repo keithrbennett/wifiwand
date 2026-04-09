@@ -257,8 +257,11 @@ wifi-wand log     # Log events as status changes
 
 ### Wait for State Change
 ```bash
-wifi-wand till on        # Wait until WiFi turns on
-wifi-wand till conn      # Wait until internet connected
+wifi-wand till wifi_on       # Wait until WiFi radio turns on
+wifi-wand till wifi_off      # Wait until WiFi radio turns off
+wifi-wand till associated    # Wait until associated with an SSID (WiFi layer)
+wifi-wand till internet_on   # Wait until Internet becomes reachable
+wifi-wand till internet_off  # Wait until Internet becomes unreachable
 ```
 
 ## Status Command vs Info Command

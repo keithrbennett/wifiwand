@@ -136,12 +136,38 @@ describe WifiWand::StatusWaiter do
     end
 
     context 'with removed legacy state names' do
-      %i[conn disc on off].each do |legacy_state|
-        it "raises ArgumentError for removed state :#{legacy_state}" do
-          expect do
-            waiter.wait_for(legacy_state)
-          end.to raise_error(ArgumentError, /Option must be one of/)
+      it 'raises ArgumentError with migration hint for :conn' do
+        expect { waiter.wait_for(:conn) }.to raise_error(ArgumentError) do |e|
+          expect(e.message).to match(/:conn.*was removed/i)
+          expect(e.message).to include(':internet_on')
+          expect(e.message).to include(':associated')
         end
+      end
+
+      it 'raises ArgumentError with migration hint for :disc' do
+        expect { waiter.wait_for(:disc) }.to raise_error(ArgumentError) do |e|
+          expect(e.message).to match(/:disc.*was removed/i)
+          expect(e.message).to include(':internet_off')
+          expect(e.message).to include(':disassociated')
+        end
+      end
+
+      it 'raises ArgumentError with migration hint for :on' do
+        expect { waiter.wait_for(:on) }.to raise_error(ArgumentError) do |e|
+          expect(e.message).to match(/:on.*was removed/i)
+          expect(e.message).to include(':wifi_on')
+        end
+      end
+
+      it 'raises ArgumentError with migration hint for :off' do
+        expect { waiter.wait_for(:off) }.to raise_error(ArgumentError) do |e|
+          expect(e.message).to match(/:off.*was removed/i)
+          expect(e.message).to include(':wifi_off')
+        end
+      end
+
+      it 'always shows valid states in legacy hint error messages' do
+        expect { waiter.wait_for(:conn) }.to raise_error(ArgumentError, /Valid states:.*wifi_on/)
       end
     end
 
@@ -161,10 +187,10 @@ describe WifiWand::StatusWaiter do
         )
       end
 
-      it 'error message for legacy :conn names the replacement options' do
+      it 'legacy names take precedence over stringify flag in error messages' do
         expect do
           waiter.wait_for(:conn, stringify_permitted_values_in_error_msg: true)
-        end.to raise_error(ArgumentError, /internet_on.*associated|associated.*internet_on/i)
+        end.to raise_error(ArgumentError, /:conn.*was removed/i)
       end
     end
 

@@ -502,7 +502,7 @@ There are 341 preferred networks.
 Connected!
 
 # Use the model's `till` method to simplify:
-> till :internet_on, 0.1
+> till :internet_on, wait_interval_in_secs: 0.1
 ```
 
 

@@ -299,7 +299,7 @@ forget "Hotel_Guest"
 
 **[Type in shell]**
 ```ruby
-till :conn { puts "#{Time.now}: Waiting for connection..." }
+till :internet_on
 ```
 
 **[Sample Output]**

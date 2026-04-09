@@ -6,6 +6,17 @@ module WifiWand
   class StatusWaiter
     PERMITTED_STATES = %i[wifi_on wifi_off associated disassociated internet_on internet_off].freeze
 
+    # Migration hints for removed legacy state names.  Shown in error messages so users know
+    # exactly what to use instead.
+    LEGACY_STATE_HINTS = {
+      on:   "':on' was removed. Use ':wifi_on' to wait for the WiFi radio to be powered on.",
+      off:  "':off' was removed. Use ':wifi_off' to wait for the WiFi radio to be powered off.",
+      conn: "':conn' was removed. Use ':internet_on' to wait for full Internet reachability " \
+        "(TCP + DNS + captive-portal free), or ':associated' to wait for WiFi SSID association.",
+      disc: "':disc' was removed. Use ':internet_off' to wait for Internet reachability to be " \
+        "lost, or ':disassociated' to wait for WiFi to leave the current SSID.",
+    }.freeze
+
     def initialize(model, verbose: false, output: nil)
       @model = model
       @verbose = verbose
@@ -47,8 +58,11 @@ module WifiWand
       finished_predicate = finished_predicates[target_status]
 
       if finished_predicate.nil?
-        if stringify_permitted_values_in_error_msg
-          allowed = PERMITTED_STATES.join(', ')
+        allowed = PERMITTED_STATES.join(', ')
+        legacy_hint = LEGACY_STATE_HINTS[target_status]
+        if legacy_hint
+          raise ArgumentError, "#{legacy_hint}\nValid states: #{allowed}"
+        elsif stringify_permitted_values_in_error_msg
           raise ArgumentError, "Option must be one of [#{allowed}]. Was: #{target_status}"
         else
           raise ArgumentError,
