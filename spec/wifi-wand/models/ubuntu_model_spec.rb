@@ -1252,7 +1252,8 @@ module WifiWand
           # Mock iw dev info to fail without real commands
           allow(subject).to receive(:run_os_command)
             .with(/iw dev .* info 2>\/dev\/null/, false)
-            .and_return(command_result(stdout: ''))  # When command fails with raise_on_error=false, it returns empty string
+            # When command fails with raise_on_error=false, it returns empty string
+            .and_return(command_result(stdout: ''))
 
           expect(subject.is_wifi_interface?('wlan0')).to be(false)
         end

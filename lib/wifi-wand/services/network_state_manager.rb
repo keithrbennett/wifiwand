@@ -69,7 +69,8 @@ module WifiWand
             end
           rescue => e
             # If we can't determine current network, proceed with connection attempt
-            @output.puts "Warning: Unable to query current network (#{e.message}), proceeding with connection attempt" if @verbose
+            @output.puts "Warning: Unable to query current network (#{e.message}), " \
+              'proceeding with connection attempt' if @verbose
           end
 
           password_to_use = state[:network_password]
@@ -83,14 +84,19 @@ module WifiWand
             begin
               actual_network = @model.connected_network_name
               if @verbose
-                @output.puts "Warning: Connection timeout - expected #{state[:network_name].inspect}, currently connected to #{actual_network.inspect}"
+                @output.puts "Warning: Connection timeout - expected #{state[:network_name].inspect}, " \
+                  "currently connected to #{actual_network.inspect}"
               end
             rescue => name_error
-              @output.puts "Warning: Connection timeout and failed to query current network: #{name_error.message}" if @verbose
+              @output.puts "Warning: Connection timeout and failed to query current network: " \
+                "#{name_error.message}" if @verbose
               actual_network = nil
             end
 
-            error = WifiWand::NetworkConnectionError.new(state[:network_name], "timed out waiting for connection; currently connected to #{actual_network.inspect}")
+            error = WifiWand::NetworkConnectionError.new(
+              state[:network_name],
+              "timed out waiting for connection; currently connected to #{actual_network.inspect}",
+            )
             error.set_backtrace(e.backtrace)
             raise error
           end
@@ -122,7 +128,8 @@ module WifiWand
 
       @model.preferred_network_password(network_name)
     rescue => e
-      @output.puts "Warning: Failed to retrieve fallback password for #{network_name}: #{e.message}" if @verbose
+      @output.puts "Warning: Failed to retrieve fallback password for #{network_name}: " \
+        "#{e.message}" if @verbose
       nil
     end
   end

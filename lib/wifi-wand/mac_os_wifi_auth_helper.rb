@@ -199,7 +199,8 @@ module WifiWand
       stdout, stderr, status = Open3.capture3(*command)
 
       unless status.success?
-        raise "Failed to code sign helper bundle (status=#{status.exitstatus}): #{stderr.empty? ? stdout : stderr}"
+        raise "Failed to code sign helper bundle (status=#{status.exitstatus}): " \
+          "#{stderr.empty? ? stdout : stderr}"
       end
 
       out_stream&.puts 'Helper bundle signed successfully.'
@@ -365,7 +366,8 @@ module WifiWand
 
       def emit_install_failure(detail)
         stream = out_stream || $stdout
-        stream.puts("wifiwand helper: failed to install helper (#{detail}). Helper disabled until the next run.") if stream
+        stream.puts("wifiwand helper: failed to install helper (#{detail}). " \
+          'Helper disabled until the next run.') if stream
       end
 
       def log_verbose(message)

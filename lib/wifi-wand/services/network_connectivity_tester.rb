@@ -268,7 +268,8 @@ module WifiWand
         end
       end
     rescue => e
-      @output.puts "Fast check: failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if @verbose
+      @output.puts "Fast check: failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: " \
+        "#{e.class}" if @verbose
       false
     end
 

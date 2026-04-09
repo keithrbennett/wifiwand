@@ -7,7 +7,9 @@ end
 
 RSpec::Matchers.define :be_nil_or_a_string_matching do |regex|
   match { |actual| actual.nil? || (actual.is_a?(String) && actual.match?(regex)) }
-  failure_message { |actual| "expected that #{actual.inspect} would be nil or a String matching #{regex.inspect}" }
+  failure_message do |actual|
+    "expected that #{actual.inspect} would be nil or a String matching #{regex.inspect}"
+  end
 end
 
 RSpec::Matchers.define :be_nil_or_an_array_of_strings do

@@ -53,7 +53,8 @@ module WifiWand
               Output format "#{choice}" not in list of available formats (#{formatters.keys.join(', ')}).
 
             MESSAGE
-            raise ConfigurationError, "Invalid output format '#{choice}'. Available formats: #{formatters.keys.join(', ')}"
+            raise ConfigurationError,
+              "Invalid output format '#{choice}'. Available formats: #{formatters.keys.join(', ')}"
           end
 
           options.post_processor = formatters[choice]

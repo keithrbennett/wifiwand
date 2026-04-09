@@ -233,7 +233,8 @@ module WifiWand
         stdout, _stderr, status = Open3.capture3('security', 'find-identity', '-v', '-p', 'codesigning')
         return if status.success? && stdout.include?(identity)
 
-        abort "Error: Could not find code signing identity '#{identity}'\n\nRun: security find-identity -v -p codesigning"
+        abort "Error: Could not find code signing identity '#{identity}'\n\n" \
+          'Run: security find-identity -v -p codesigning'
       end
 
       def self.verify_signature(bundle_path)
@@ -389,7 +390,8 @@ module WifiWand
       helper = WifiWand::MacOsWifiAuthHelper
       bundle_path = helper.source_bundle_path
       zip_path = "#{bundle_path}.zip"
-      abort "Helper bundle not found at #{bundle_path}. Run: bin/mac-helper build" unless File.exist?(bundle_path)
+      abort "Helper bundle not found at #{bundle_path}. Run: bin/mac-helper build" \
+        unless File.exist?(bundle_path)
 
       stdout, _stderr, status = Open3.capture3('codesign', '-dv', bundle_path)
       if status.success? && stdout.include?('adhoc')

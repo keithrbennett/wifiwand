@@ -783,7 +783,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
         # Verify the pattern: first byte should be xxxxxx10 where x can be 0 or 1
         # This means the first byte should match the pattern where bits 0-1 are 10
         expected_pattern = first_byte & 0x03
-        expect(expected_pattern).to eq(2), "MAC #{mac} first byte #{first_byte.to_s(16)} does not match locally administered unicast pattern"
+        expect(expected_pattern).to eq(2),
+          "MAC #{mac} first byte #{first_byte.to_s(16)} does not match locally administered unicast pattern"
       end
     end
   end
@@ -891,7 +892,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
           allow(subject).to receive(:command_available?).with('qrencode').and_return(false)
           allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: os_id))
 
-          expect { silence_output { subject.generate_qr_code } }.to raise_error(WifiWand::Error, /#{Regexp.escape(expected_command)}/)
+          expect { silence_output {
+ subject.generate_qr_code } }.to raise_error(WifiWand::Error, /#{Regexp.escape(expected_command)}/)
         end
       end
 

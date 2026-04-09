@@ -850,7 +850,8 @@ module WifiWand
           )
 
           result = model.preferred_networks
-          expect(result).to eq(['@thePAD/Magma', 'HomeNetwork', 'LibraryWiFi']) # Sorted alphabetically, case insensitive
+          # Sorted alphabetically, case insensitive
+          expect(result).to eq(['@thePAD/Magma', 'HomeNetwork', 'LibraryWiFi'])
         end
 
         it 'handles empty preferred networks list' do

@@ -73,7 +73,8 @@ module WifiWand
         end
 
         unless data.is_a?(Hash) && data.key?('resources')
-          raise ArgumentError, "Resource file #{yaml_path} must contain a 'resources' key with an array of resources"
+          raise ArgumentError,
+            "Resource file #{yaml_path} must contain a 'resources' key with an array of resources"
         end
 
         resources = data['resources'].map do |resource|

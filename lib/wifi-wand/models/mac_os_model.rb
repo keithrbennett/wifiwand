@@ -46,12 +46,14 @@ module WifiWand
       45  => ->(network_name, _error) { raise KeychainAccessDeniedError, network_name },
       128 => ->(network_name, _error) { raise KeychainAccessCancelledError, network_name },
       51  => ->(network_name, _error) { raise KeychainNonInteractiveError, network_name },
-      25  => ->(network_name, _error) { raise KeychainError, "Invalid keychain search parameters for network '#{network_name}'" },
+      25  => ->(network_name, _error) {
+ raise KeychainError, "Invalid keychain search parameters for network '#{network_name}'" },
       1   => ->(network_name, error) {
         if error.text.include?('could not be found')
           nil
         else
-          raise KeychainError, "Keychain error accessing password for network '#{network_name}': #{error.text.strip}"
+          raise KeychainError,
+            "Keychain error accessing password for network '#{network_name}': #{error.text.strip}"
         end
       },
     }.freeze
@@ -326,13 +328,15 @@ module WifiWand
           if e.text.include?('code: -3900') ||
               e.text.include?('code: -3905') ||
               e.text.downcase.include?('network not found')
-            out_stream.puts "Swift/CoreWLAN failed (#{e.text.strip}). Trying networksetup fallback..." if verbose_mode
+            out_stream.puts "Swift/CoreWLAN failed (#{e.text.strip}). " \
+              'Trying networksetup fallback...' if verbose_mode
           else
             # For other errors, re-raise as they may indicate real problems
             raise
           end
         rescue => e
-          out_stream.puts "Swift/CoreWLAN failed: #{e.message}. Trying networksetup fallback..." if verbose_mode
+          out_stream.puts "Swift/CoreWLAN failed: #{e.message}. " \
+            'Trying networksetup fallback...' if verbose_mode
         end
       end
 
@@ -414,7 +418,8 @@ module WifiWand
           run_swift_command('WifiNetworkDisconnector')
           return nil
         rescue => e
-          out_stream.puts "Swift/CoreWLAN disconnect failed: #{e.message}. Falling back to ifconfig..." if verbose_mode
+          out_stream.puts "Swift/CoreWLAN disconnect failed: #{e.message}. " \
+            'Falling back to ifconfig...' if verbose_mode
           # Fall through to ifconfig fallback
         end
       elsif verbose_mode
@@ -497,7 +502,8 @@ module WifiWand
       if verbose_mode
         case e.exitstatus
         when 127
-          out_stream.puts "Swift command not found (exit code #{e.exitstatus}). Install Xcode Command Line Tools."
+          out_stream.puts "Swift command not found (exit code #{e.exitstatus}). " \
+            'Install Xcode Command Line Tools.'
         when 1
           out_stream.puts "CoreWLAN framework not available (exit code #{e.exitstatus}). Install Xcode."
         else
@@ -549,7 +555,8 @@ module WifiWand
     end
 
     def run_swift_command(basename, *args)
-      swift_filespec = File.absolute_path(File.join(File.dirname(__FILE__), "../../../swift/#{basename}.swift"))
+      swift_filespec = File.absolute_path(File.join(File.dirname(__FILE__),
+        "../../../swift/#{basename}.swift"))
       run_os_command(['swift', swift_filespec] + args)
     end
 
@@ -569,7 +576,8 @@ module WifiWand
         handler.call(network_name, error)
       else
         # Unknown error - provide detailed information for debugging
-        error_msg = "Unknown keychain error (exit code #{error.exitstatus}) accessing password for network '#{network_name}'"
+        error_msg = "Unknown keychain error (exit code #{error.exitstatus}) " \
+          "accessing password for network '#{network_name}'"
         error_msg += ": #{error.text.strip}" unless error.text.empty?
         raise KeychainError, error_msg
       end

@@ -23,7 +23,8 @@ module WifiWand
 
       if @verbose
         timeout_display = timeout_in_secs ? "#{timeout_in_secs}s" : 'never'
-        (@output || $stdout).puts "#{message_prefix} starting, timeout: #{timeout_display}, interval: #{wait_interval_in_secs}s"
+        (@output || $stdout).puts "#{message_prefix} starting, timeout: #{timeout_display}, " \
+          "interval: #{wait_interval_in_secs}s"
       end
 
       finished_predicates = {
@@ -40,7 +41,8 @@ module WifiWand
           allowed = finished_predicates.keys.map(&:to_s).join(', ')
           raise ArgumentError, "Option must be one of [#{allowed}]. Was: #{target_status}"
         else
-          raise ArgumentError, "Option must be one of #{finished_predicates.keys.inspect}. Was: #{target_status.inspect}"
+          raise ArgumentError,
+            "Option must be one of #{finished_predicates.keys.inspect}. Was: #{target_status.inspect}"
         end
       end
 

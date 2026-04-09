@@ -86,7 +86,8 @@ module WifiWand
 
         if @verbose
           status = result ? 'pass' : 'mismatch'
-          @output.puts "Captive portal check #{endpoint[:url]}: HTTP #{actual_code} (expected #{expected_code}) -> #{status}"
+          @output.puts "Captive portal check #{endpoint[:url]}: " \
+            "HTTP #{actual_code} (expected #{expected_code}) -> #{status}"
         end
 
         result
