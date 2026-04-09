@@ -16,237 +16,117 @@ describe WifiWand::StatusWaiter do
   let(:waiter) { described_class.new(mock_model, verbose: false) }
 
   describe '#wait_for' do
-    context 'with :wifi_on status' do
-      it 'returns immediately when wifi is already on' do
-        allow(mock_model).to receive(:wifi_on?).and_return(true)
+    # For each wait state, declare: which model predicate it polls, and what
+    # return value from that predicate satisfies the condition.
+    state_predicates = {
+      wifi_on:       [:wifi_on?,               true],
+      wifi_off:      [:wifi_on?,               false],
+      associated:    [:associated?,            true],
+      disassociated: [:associated?,            false],
+      internet_on:   [:connected_to_internet?, true],
+      internet_off:  [:connected_to_internet?, false],
+    }.freeze
 
-        expect(waiter).not_to receive(:sleep)
-        expect(waiter.wait_for(:wifi_on)).to be_nil
-      end
+    state_predicates.each do |state, (predicate, satisfied)|
+      context "with :#{state} status" do
+        it 'returns nil immediately when already in target state' do
+          allow(mock_model).to receive(predicate).and_return(satisfied)
 
-      it 'waits until wifi turns on' do
-        call_count = 0
-        allow(mock_model).to receive(:wifi_on?) do
-          call_count += 1
-          call_count > 2
+          expect(waiter).not_to receive(:sleep)
+          expect(waiter.wait_for(state)).to be_nil
         end
-        allow(waiter).to receive(:sleep)
-        expect(waiter.wait_for(:wifi_on)).to be_nil
-      end
-    end
 
-    context 'with :wifi_off status' do
-      it 'returns immediately when wifi is already off' do
-        allow(mock_model).to receive(:wifi_on?).and_return(false)
+        it 'polls until target state is reached, then returns nil' do
+          call_count = 0
+          allow(mock_model).to receive(predicate) do
+            # Return the unsatisfied value for the first two calls, then satisfied
+            (call_count += 1) > 2 ? satisfied : !satisfied
+          end
+          allow(waiter).to receive(:sleep)
 
-        expect(waiter).not_to receive(:sleep)
-        expect(waiter.wait_for(:wifi_off)).to be_nil
-      end
-
-      it 'waits until wifi turns off' do
-        call_count = 0
-        allow(mock_model).to receive(:wifi_on?) do
-          call_count += 1
-          call_count <= 2
+          expect(waiter.wait_for(state, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL))
+            .to be_nil
         end
-        allow(waiter).to receive(:sleep)
-        expect(waiter.wait_for(:wifi_off, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL))
-          .to be_nil
-      end
-    end
-
-    context 'with :associated status' do
-      it 'returns immediately when already associated' do
-        allow(mock_model).to receive(:associated?).and_return(true)
-
-        expect(waiter).not_to receive(:sleep)
-        expect(waiter.wait_for(:associated)).to be_nil
-      end
-
-      it 'waits until associated' do
-        call_count = 0
-        allow(mock_model).to receive(:associated?) do
-          call_count += 1
-          call_count > 2
-        end
-        allow(waiter).to receive(:sleep)
-        expect(waiter.wait_for(:associated, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL))
-          .to be_nil
-      end
-    end
-
-    context 'with :disassociated status' do
-      it 'returns immediately when already disassociated' do
-        allow(mock_model).to receive(:associated?).and_return(false)
-
-        expect(waiter).not_to receive(:sleep)
-        expect(waiter.wait_for(:disassociated)).to be_nil
-      end
-
-      it 'waits until disassociated' do
-        call_count = 0
-        allow(mock_model).to receive(:associated?) do
-          call_count += 1
-          call_count <= 2
-        end
-        allow(waiter).to receive(:sleep)
-        expect(waiter.wait_for(:disassociated, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL))
-          .to be_nil
-      end
-    end
-
-    context 'with :internet_on status' do
-      it 'returns immediately when already connected to internet' do
-        allow(mock_model).to receive(:connected_to_internet?).and_return(true)
-
-        expect(waiter).not_to receive(:sleep)
-        expect(waiter.wait_for(:internet_on)).to be_nil
-      end
-
-      it 'waits until connected to internet' do
-        call_count = 0
-        allow(mock_model).to receive(:connected_to_internet?) do
-          call_count += 1
-          call_count > 2
-        end
-        allow(waiter).to receive(:sleep)
-        expect(waiter.wait_for(:internet_on, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL))
-          .to be_nil
-      end
-    end
-
-    context 'with :internet_off status' do
-      it 'returns immediately when already disconnected from internet' do
-        allow(mock_model).to receive(:connected_to_internet?).and_return(false)
-
-        expect(waiter).not_to receive(:sleep)
-        expect(waiter.wait_for(:internet_off)).to be_nil
-      end
-
-      it 'waits until disconnected from internet' do
-        call_count = 0
-        allow(mock_model).to receive(:connected_to_internet?) do
-          call_count += 1
-          call_count <= 2
-        end
-        allow(waiter).to receive(:sleep)
-        expect(waiter.wait_for(:internet_off, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL))
-          .to be_nil
       end
     end
 
     context 'with removed legacy state names' do
-      it 'raises ArgumentError with migration hint for :conn' do
-        expect { waiter.wait_for(:conn) }.to raise_error(ArgumentError) do |e|
-          expect(e.message).to match(/:conn.*was removed/i)
-          expect(e.message).to include(':internet_on')
-          expect(e.message).to include(':associated')
+      # Map each removed name to the pattern and replacement names expected in the hint.
+      legacy_hints = {
+        conn: { pattern: /:conn.*was removed/i, replacements: %i[internet_on associated] },
+        disc: { pattern: /:disc.*was removed/i, replacements: %i[internet_off disassociated] },
+        on:   { pattern: /:on.*was removed/i,   replacements: %i[wifi_on] },
+        off:  { pattern: /:off.*was removed/i,  replacements: %i[wifi_off] },
+      }.freeze
+
+      legacy_hints.each do |legacy_state, config|
+        it "raises ArgumentError with actionable migration hint for :#{legacy_state}" do
+          expect { waiter.wait_for(legacy_state) }.to raise_error(ArgumentError) do |e|
+            expect(e.message).to match(config[:pattern])
+            config[:replacements].each { |r| expect(e.message).to include(":#{r}") }
+          end
         end
       end
 
-      it 'raises ArgumentError with migration hint for :disc' do
-        expect { waiter.wait_for(:disc) }.to raise_error(ArgumentError) do |e|
-          expect(e.message).to match(/:disc.*was removed/i)
-          expect(e.message).to include(':internet_off')
-          expect(e.message).to include(':disassociated')
-        end
-      end
-
-      it 'raises ArgumentError with migration hint for :on' do
-        expect { waiter.wait_for(:on) }.to raise_error(ArgumentError) do |e|
-          expect(e.message).to match(/:on.*was removed/i)
-          expect(e.message).to include(':wifi_on')
-        end
-      end
-
-      it 'raises ArgumentError with migration hint for :off' do
-        expect { waiter.wait_for(:off) }.to raise_error(ArgumentError) do |e|
-          expect(e.message).to match(/:off.*was removed/i)
-          expect(e.message).to include(':wifi_off')
-        end
-      end
-
-      it 'always shows valid states in legacy hint error messages' do
+      it 'always includes the full valid-states list in legacy hint messages' do
         expect { waiter.wait_for(:conn) }.to raise_error(ArgumentError, /Valid states:.*wifi_on/)
+      end
+
+      it 'legacy hint takes precedence over stringify_permitted_values_in_error_msg flag' do
+        expect { waiter.wait_for(:conn, stringify_permitted_values_in_error_msg: true) }
+          .to raise_error(ArgumentError, /:conn.*was removed/i)
       end
     end
 
-    context 'with invalid status' do
-      it 'raises ArgumentError for unknown status' do
-        expect do
-          waiter.wait_for(:invalid_status)
-        end.to raise_error(ArgumentError, /Option must be one of/)
+    context 'with an entirely unknown status' do
+      it 'raises ArgumentError listing permitted states' do
+        expect { waiter.wait_for(:invalid_status) }
+          .to raise_error(ArgumentError, /Option must be one of/)
       end
 
-      it 'can stringify permitted values in error message' do
-        expect do
-          waiter.wait_for(:bogus, stringify_permitted_values_in_error_msg: true)
-        end.to raise_error(
-          ArgumentError,
-          /Option must be one of \[wifi_on, wifi_off, associated, disassociated, internet_on, internet_off\]/
-        )
-      end
-
-      it 'legacy names take precedence over stringify flag in error messages' do
-        expect do
-          waiter.wait_for(:conn, stringify_permitted_values_in_error_msg: true)
-        end.to raise_error(ArgumentError, /:conn.*was removed/i)
+      it 'stringify_permitted_values_in_error_msg produces a bracketed list' do
+        all_states = /Option must be one of \[wifi_on, wifi_off, associated, disassociated,/
+        expect { waiter.wait_for(:bogus, stringify_permitted_values_in_error_msg: true) }
+          .to raise_error(ArgumentError, all_states)
       end
     end
 
     context 'with verbose mode enabled' do
       let(:verbose_waiter) { described_class.new(mock_model, verbose: true) }
 
-      it 'logs waiting information when condition is not met initially' do
+      before do
         call_count = 0
-        allow(mock_model).to receive(:wifi_on?) do
-          call_count += 1
-          call_count > 1
-        end
-
+        allow(mock_model).to receive(:wifi_on?) { (call_count += 1) > 1 }
         allow(verbose_waiter).to receive(:sleep)
+      end
 
+      it 'logs start message with timeout and interval' do
         expect do
           verbose_waiter.wait_for(:wifi_on, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)
         end.to output(
-          /StatusWaiter \(wifi_on\): starting, timeout: never, interval: #{WifiWand::TimingConstants::FAST_TEST_INTERVAL}s/
+          /StatusWaiter \(wifi_on\): starting, timeout: never, interval: #{WifiWand::TimingConstants::FAST_TEST_INTERVAL}s/,
         ).to_stdout
       end
 
       it 'logs completion message when condition is already met' do
         allow(mock_model).to receive(:wifi_on?).and_return(true)
-        expect do
-          verbose_waiter.wait_for(:wifi_on)
-        end.to output(/StatusWaiter \(wifi_on\): completed without needing to wait/).to_stdout
+        expect { verbose_waiter.wait_for(:wifi_on) }
+          .to output(/StatusWaiter \(wifi_on\): completed without needing to wait/).to_stdout
       end
 
-      it 'logs total wait time when waiting is required' do
-        call_count = 0
-        allow(mock_model).to receive(:wifi_on?) do
-          call_count += 1
-          call_count > 1
-        end
-
-        allow(verbose_waiter).to receive(:sleep)
-
+      it 'logs total wait time after polling' do
         expect do
           verbose_waiter.wait_for(:wifi_on, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)
         end.to output(/StatusWaiter \(wifi_on\): wait time \(seconds\):/).to_stdout
       end
     end
 
-    context 'when testing timing behavior' do
-      it 'measures wait time accurately' do
+    context 'when testing timing behaviour' do
+      it 'reports elapsed time accurately via monotonic clock' do
         call_count = 0
-        allow(mock_model).to receive(:wifi_on?) do
-          call_count += 1
-          call_count > 1
-        end
-
-        start_time = 1000.0
-        end_time = 1002.5
+        allow(mock_model).to receive(:wifi_on?) { (call_count += 1) > 1 }
         allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
-          .and_return(start_time, end_time)
+          .and_return(1000.0, 1002.5)
 
         verbose_waiter = described_class.new(mock_model, verbose: true)
         allow(verbose_waiter).to receive(:sleep)
@@ -258,18 +138,15 @@ describe WifiWand::StatusWaiter do
     end
 
     context 'with timeout' do
-      it 'raises WaitTimeoutError when timeout elapses' do
-        allow(mock_model).to receive_messages(wifi_on?: false, associated?: false, connected_to_internet?: false)
-
-        expect do
-          waiter.wait_for(:wifi_on, timeout_in_secs: 0)
-        end.to raise_error(WifiWand::WaitTimeoutError)
+      it 'raises WaitTimeoutError when timeout elapses before state is reached' do
+        expect { waiter.wait_for(:wifi_on, timeout_in_secs: 0) }
+          .to raise_error(WifiWand::WaitTimeoutError)
       end
     end
   end
 
   describe 'integration with BaseModel' do
-    it 'is accessible through BaseModel till method (delegates to wait_for)' do
+    it 'is accessible through BaseModel#till (delegates to wait_for)' do
       require_relative '../../../lib/wifi-wand/models/base_model'
       require 'ostruct'
       model = WifiWand::BaseModel.new(OpenStruct.new(verbose: false))
