@@ -231,25 +231,35 @@ module WifiWand
       @connectivity_tester.fast_connectivity?
     end
 
+    EXPECTED_NETWORK_ERRORS = [
+      SocketError,
+      IOError,
+      Errno::ECONNREFUSED,
+      Errno::ETIMEDOUT,
+      Errno::EHOSTUNREACH,
+      Errno::ENETUNREACH,
+      Timeout::Error,
+    ].freeze
+
     # Returns comprehensive WiFi information including connectivity details
     def wifi_info
       debug_method_entry(__method__)
       internet_tcp = begin
         internet_tcp_connectivity?
-      rescue
+      rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
         false
       end
 
       dns_working = begin
         dns_working?
-      rescue
+      rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
         false
       end
 
       captive_free = if internet_tcp && dns_working
         begin
           captive_portal_free?
-        rescue
+        rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
           true
         end
       else
@@ -267,8 +277,8 @@ module WifiWand
         'internet_on'               => connected,
         'interface'                 => wifi_interface,
         'default_interface'         => default_interface,
-        'network'                   => begin; connected_network_name; rescue Error; nil; end,
-        'ip_address'                => begin; ip_address; rescue Error; nil; end,
+        'network'                   => begin; connected_network_name; rescue WifiWand::Error; nil; end,
+        'ip_address'                => begin; ip_address; rescue WifiWand::Error; nil; end,
         'mac_address'               => mac_address,
         'nameservers'               => nameservers,
         'timestamp'                 => Time.now,
@@ -282,17 +292,14 @@ module WifiWand
           begin
             sleep(0.5)
             info['public_ip'] = public_ip_address_info
-          rescue => retry_error
-            # Still failed - silently degrade
+          rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error => retry_error
             out_stream.puts "Warning: Could not obtain public IP info: #{retry_error.class}" if @verbose_mode
             info['public_ip'] = nil
           end
         rescue JSON::ParserError
-          # Service returned invalid JSON - try alternate approach
           out_stream.puts 'Warning: Public IP service returned invalid data' if @verbose_mode
           info['public_ip'] = nil
-        rescue => e
-          # Other errors - log if verbose, gracefully degrade
+        rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error => e
           out_stream.puts "Warning: Public IP lookup failed: #{e.class}" if @verbose_mode
           info['public_ip'] = nil
         end
@@ -339,20 +346,30 @@ module WifiWand
       end
 
       Async do |task|
-        # Network name check
         ssid_task = task.async do
           connected_network_name
-        rescue
+        rescue WifiWand::Error, *EXPECTED_NETWORK_ERRORS => e
+          out_stream.puts "Warning: SSID lookup failed: #{e.class}: #{e.message}" if @verbose_mode
           nil
         end
 
-        # Full connectivity check: TCP + DNS + captive portal, computed separately
-        # so we can derive captive_portal_login_required independently.
         connectivity_task = task.async do
-          tcp = begin; internet_tcp_connectivity?; rescue; false; end
-          dns = begin; dns_working?; rescue; false; end
+          tcp = begin
+            internet_tcp_connectivity?
+          rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
+            false
+          end
+          dns = begin
+            dns_working?
+          rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
+            false
+          end
           if tcp && dns
-            captive_free = begin; captive_portal_free?; rescue; true; end
+            captive_free = begin
+              captive_portal_free?
+            rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
+              true
+            end
             { internet_connected: captive_free, captive_portal_login_required: captive_free ? :no : :yes }
           else
             { internet_connected: false, captive_portal_login_required: :no }
@@ -371,7 +388,8 @@ module WifiWand
         progress_callback&.call(final_data)
         final_data
       end.wait
-    rescue
+    rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error => e
+      out_stream.puts "Warning: status_line_data failed: #{e.class}: #{e.message}" if @verbose_mode
       progress_callback&.call(nil)
       nil
     end

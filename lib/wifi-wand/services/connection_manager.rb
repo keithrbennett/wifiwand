@@ -137,7 +137,7 @@ module WifiWand
 
       begin
         preferred = model.preferred_networks
-      rescue
+      rescue WifiWand::Error
         preferred = []
       end
 
@@ -147,7 +147,7 @@ module WifiWand
           unless saved_password.nil? || saved_password.empty?
             return [saved_password, true]
           end
-        rescue
+        rescue WifiWand::Error
           # If we can't get the saved password, continue without one
           # This could happen due to keychain access issues, etc.
         end

@@ -119,8 +119,8 @@ module RSpecConfiguration
         sleep 60
       end
     end
-  rescue
-    # If threading fails, don't break the suite
+  rescue ThreadError
+    warn 'Warning: Could not start sudo keepalive thread'
   end
 
   # Configure test stubbing to prevent keychain prompts during tests
@@ -128,12 +128,8 @@ module RSpecConfiguration
     config.before do |example|
       next unless RSpecConfiguration.macos_model_available?
 
-      begin
-        RSpecConfiguration.stub_keychain_access(example)
-        RSpecConfiguration.stub_security_commands
-      rescue
-        # If stubbing fails, don't break the suite
-      end
+      RSpecConfiguration.stub_keychain_access(example)
+      RSpecConfiguration.stub_security_commands
     end
   end
 
@@ -174,7 +170,7 @@ module RSpecConfiguration
   def self.configure_network_state_management(config)
     # Restore network state after each disruptive test
     config.after(:each, :disruptive) do
-      NetworkStateManager.restore_state
+      NetworkStateManager.restore_state(fail_silently: false)
     end
 
     # Attempt final restoration and cleanup at end of test suite
@@ -194,8 +190,8 @@ module RSpecConfiguration
 
     begin
       $sudo_keepalive_thread.kill
-    rescue
-      # Ignore cleanup errors
+    rescue ThreadError
+      # Thread may have already exited
     end
   end
 
@@ -210,13 +206,14 @@ module RSpecConfiguration
 
     puts "\n#{'=' * 60}"
     begin
-      NetworkStateManager.restore_state
+      NetworkStateManager.restore_state(fail_silently: false)
       puts "✅ Successfully restored network connection: #{network_state[:network_name]}"
-    rescue => e
+    rescue WifiWand::Error => e
       puts <<~ERROR_MESSAGE
         ⚠️  Could not restore network connection: #{e.message}
         You may need to manually reconnect to: #{network_state[:network_name]}
       ERROR_MESSAGE
+      raise
     end
     puts "#{'=' * 60}\n\n"
   end

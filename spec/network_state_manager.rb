@@ -10,10 +10,10 @@ module NetworkStateManager
     @network_state = model.capture_network_state
   end
 
-  def self.restore_state
+  def self.restore_state(fail_silently: true)
     return unless @network_state
 
-    model.restore_network_state(@network_state, fail_silently: true)
+    model.restore_network_state(@network_state, fail_silently: fail_silently)
   end
 
   def self.state_available?

@@ -649,7 +649,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'handles internet_tcp_connectivity exceptions' do
-      allow(subject).to receive(:internet_tcp_connectivity?).and_raise(StandardError, 'Network error')
+      allow(subject).to receive(:internet_tcp_connectivity?).and_raise(SocketError, 'Network error')
       allow(subject).to receive_messages(dns_working?: true, public_ip_address_info: { 'ip' => '1.2.3.4' })
 
       result = subject.wifi_info
@@ -662,7 +662,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'handles dns_working exceptions' do
-      allow(subject).to receive(:dns_working?).and_raise(StandardError, 'DNS error')
+      allow(subject).to receive(:dns_working?).and_raise(SocketError, 'DNS error')
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: true,
         public_ip_address_info:     { 'ip' => '1.2.3.4' },
@@ -763,14 +763,20 @@ describe 'Common WiFi Model Behavior (All OS)' do
           expect(captured_output.string).to match(/Warning: Public IP service returned invalid data/)
         end
 
-        it 'handles other exceptions' do
-          # Make public_ip_address_info fail with runtime error
+        it 'handles WifiWand errors' do
           allow(test_model).to receive(:public_ip_address_info)
-            .and_raise(RuntimeError, 'Unknown error')
+            .and_raise(WifiWand::PublicIPLookupError.new)
 
           result = test_model.wifi_info
           expect(result['public_ip']).to be_nil
-          expect(captured_output.string).to match(/Warning: Public IP lookup failed: RuntimeError/)
+          expect(captured_output.string).to match(/Warning: Public IP lookup failed: WifiWand::PublicIPLookupError/)
+        end
+
+        it 'propagates unexpected exceptions' do
+          allow(test_model).to receive(:public_ip_address_info)
+            .and_raise(RuntimeError, 'Unknown error')
+
+          expect { test_model.wifi_info }.to raise_error(RuntimeError, 'Unknown error')
         end
       end
     end
@@ -919,7 +925,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'returns nil when an exception is raised' do
-      allow(subject).to receive(:wifi_on?).and_raise(StandardError)
+      allow(subject).to receive(:wifi_on?).and_raise(WifiWand::Error)
       data = subject.status_line_data
       expect(data).to be_nil
     end

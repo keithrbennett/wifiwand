@@ -49,8 +49,22 @@ RSpec.describe RSpecConfiguration do
     end
   end
 
+  class HookConfigDouble
+    attr_reader :before_hooks, :after_hooks
+
+    def initialize
+      @before_hooks = []
+      @after_hooks = []
+    end
+
+    def before(*args, &block) = @before_hooks << [args, block]
+
+    def after(*args, &block) = @after_hooks << [args, block]
+  end
+
   let(:config_double) { PreflightConfigDouble.new }
   let(:basic_settings_config) { BasicSettingsConfigDouble.new }
+  let(:hook_config) { HookConfigDouble.new }
 
   # Ensure we never leak OS state between examples. The real code relies on the
   # global $compatible_os_tag that OS filtering sets up; the examples need
@@ -144,6 +158,68 @@ RSpec.describe RSpecConfiguration do
       allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: 'MyNetwork' })
 
       expect { described_class.handle_network_state_capture(true) }.not_to raise_error
+    end
+  end
+
+  describe '.configure_test_stubbing' do
+    let(:example) { double('example', metadata: {}) }
+
+    before do
+      $compatible_os_tag = :os_mac
+      allow(described_class).to receive(:macos_model_available?).and_return(true)
+      described_class.configure_test_stubbing(hook_config)
+    end
+
+    it 'fails loudly when stub installation raises an unexpected error' do
+      allow(described_class).to receive(:stub_keychain_access)
+        .with(example)
+        .and_raise(StandardError, 'stub failed')
+
+      expect { hook_config.before_hooks.first.last.call(example) }
+        .to raise_error(StandardError, 'stub failed')
+    end
+  end
+
+  describe '.configure_network_state_management' do
+    before do
+      described_class.configure_network_state_management(hook_config)
+    end
+
+    it 'restores state after each disruptive example without fail_silently' do
+      after_each_hook = hook_config.after_hooks.find { |args, _block| args == %i[each disruptive] }
+
+      expect(NetworkStateManager).to receive(:restore_state).with(fail_silently: false)
+      after_each_hook.last.call
+    end
+  end
+
+  describe '.attempt_final_network_restoration' do
+    before do
+      allow(described_class).to receive(:examples_to_run).and_return([
+        double('example', metadata: { disruptive: true }),
+      ])
+      allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: 'MyNetwork' })
+    end
+
+    it 'raises after printing a visible failure for expected restoration errors' do
+      error = WifiWand::NetworkConnectionError.new('MyNetwork', 'timed out')
+      allow(NetworkStateManager).to receive(:restore_state).with(fail_silently: false).and_raise(error)
+
+      expect do
+        described_class.attempt_final_network_restoration
+      end.to output(
+        /Could not restore network connection: Failed to connect to network 'MyNetwork': timed out/,
+      ).to_stdout
+        .and raise_error(WifiWand::NetworkConnectionError, /timed out/)
+    end
+
+    it 'propagates unexpected exceptions from final restoration' do
+      allow(NetworkStateManager).to receive(:restore_state).with(fail_silently: false)
+        .and_raise(NoMethodError, 'unexpected bug')
+
+      expect do
+        described_class.attempt_final_network_restoration
+      end.to raise_error(NoMethodError, 'unexpected bug')
     end
   end
 

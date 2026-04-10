@@ -4,6 +4,17 @@ require_relative '../timing_constants'
 
 module WifiWand
   class NetworkStateManager
+    EXPECTED_RESTORE_ERRORS = [
+      WifiWand::Error,
+      IOError,
+      SocketError,
+      Timeout::Error,
+      Errno::ECONNREFUSED,
+      Errno::ETIMEDOUT,
+      Errno::EHOSTUNREACH,
+      Errno::ENETUNREACH,
+    ].freeze
+
     def initialize(model, verbose: false, output: $stdout)
       @model = model
       @verbose = verbose
@@ -26,7 +37,7 @@ module WifiWand
       network_password = if network_name
         begin
           connected_network_password
-        rescue => e
+        rescue WifiWand::Error => e
           @output.puts "Warning: Failed to retrieve password for #{network_name}: #{e.message}" if @verbose
           nil
         end
@@ -67,8 +78,7 @@ module WifiWand
             if @model.wifi_on? == state[:wifi_enabled] && current_network == state[:network_name]
               return :already_connected
             end
-          rescue => e
-            # If we can't determine current network, proceed with connection attempt
+          rescue WifiWand::Error => e
             if @verbose
               @output.puts "Warning: Unable to query current network (#{e.message}), " \
                 'proceeding with connection attempt'
@@ -89,7 +99,7 @@ module WifiWand
                 @output.puts "Warning: Connection timeout - expected #{state[:network_name].inspect}, " \
                   "currently connected to #{actual_network.inspect}"
               end
-            rescue => name_error
+            rescue WifiWand::Error => name_error
               if @verbose
                 @output.puts 'Warning: Connection timeout and failed to query current network: ' \
                   "#{name_error.message}"
@@ -105,10 +115,10 @@ module WifiWand
             raise error
           end
         end
-      rescue => e
+      rescue *EXPECTED_RESTORE_ERRORS => e
         raise unless fail_silently
 
-        warn "Warning: Could not restore network state: #{e.message}"
+        warn "Warning: Could not restore network state (#{e.class}): #{e.message}"
         warn "You may need to manually reconnect to: #{state[:network_name]}" if state[:network_name]
         nil
       end
@@ -131,7 +141,7 @@ module WifiWand
       return nil unless network_name
 
       @model.preferred_network_password(network_name)
-    rescue => e
+    rescue WifiWand::Error => e
       if @verbose
         @output.puts "Warning: Failed to retrieve fallback password for #{network_name}: " \
           "#{e.message}"

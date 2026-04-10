@@ -177,7 +177,7 @@ describe WifiWand::ConnectionManager do
 
       it 'handles keychain access errors gracefully' do
         allow(mock_model).to receive(:preferred_network_password)
-          .and_raise(StandardError, 'Keychain access denied')
+          .and_raise(WifiWand::KeychainError, 'Keychain access denied')
         expect(mock_model).to receive(:_connect).with('SavedNetwork', nil)
 
         subject.connect('SavedNetwork')
@@ -243,7 +243,7 @@ describe WifiWand::ConnectionManager do
 
   describe 'resolve_password edge cases' do
     it 'treats preferred networks as empty when preferred_networks raises' do
-      allow(mock_model).to receive(:preferred_networks).and_raise(StandardError, 'boom')
+      allow(mock_model).to receive(:preferred_networks).and_raise(WifiWand::Error, 'boom')
       password, used_saved = subject.send(:resolve_password, 'AnyNet', nil)
       expect(password).to be_nil
       expect(used_saved).to be false
