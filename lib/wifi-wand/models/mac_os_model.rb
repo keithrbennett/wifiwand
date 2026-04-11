@@ -157,7 +157,7 @@ module WifiWand
     # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
     # Prefer the faster networksetup path and fall back to system_profiler if needed.
     # This may not detect WiFi ports with nonstandard names, such as USB WiFi devices.
-    def detect_wifi_interface
+    def probe_wifi_interface
       begin
         iface = detect_wifi_interface_using_networksetup
         return iface if iface && !iface.to_s.empty?
@@ -185,7 +185,7 @@ module WifiWand
       helper_networks = helper_available_network_names
       return helper_networks if helper_networks
 
-      iface = ensure_wifi_interface!
+      iface = wifi_interface
       data = airport_data
 
       interfaces = find_airport_interfaces(data)
@@ -231,7 +231,7 @@ module WifiWand
 
     # Returns data pertaining to "preferred" networks, many/most of which will probably not be available.
     def preferred_networks
-      iface = ensure_wifi_interface!
+      iface = wifi_interface
       lines = run_os_command(['networksetup', '-listpreferredwirelessnetworks', iface]).stdout.split("\n")
       # Produces something like this, unsorted, and with leading tabs:
       # Preferred networks on en0:
@@ -254,7 +254,7 @@ module WifiWand
     end
 
     def wifi_on?
-      iface = ensure_wifi_interface!
+      iface = wifi_interface
       output = run_os_command(['networksetup', '-getairportpower', iface]).stdout
       output.chomp.match?(/\): On$/)
     end
@@ -263,7 +263,7 @@ module WifiWand
       return false unless wifi_on?
 
       data = airport_data
-      iface = ensure_wifi_interface!
+      iface = wifi_interface
       wifi_interface_data = data['SPAirPortDataType']
         &.detect { |h| h.key?('spairport_airport_interfaces') }
         &.dig('spairport_airport_interfaces')
@@ -275,7 +275,7 @@ module WifiWand
     def wifi_on
       return if wifi_on?
 
-      iface = ensure_wifi_interface!
+      iface = wifi_interface
       run_os_command(['networksetup', '-setairportpower', iface, 'on'])
       wifi_on? ? nil : raise(WifiEnableError)
     end
@@ -284,7 +284,7 @@ module WifiWand
     def wifi_off
       return unless wifi_on?
 
-      iface = ensure_wifi_interface!
+      iface = wifi_interface
       run_os_command(['networksetup', '-setairportpower', iface, 'off'])
 
       wifi_on? ? raise(WifiDisableError) : nil
@@ -292,7 +292,7 @@ module WifiWand
 
     # This method is called by BaseModel#connect to do the OS-specific connection logic.
     def os_level_connect_using_networksetup(network_name, password = nil)
-      iface = ensure_wifi_interface!
+      iface = wifi_interface
       args = ['networksetup', '-setairportnetwork', iface, network_name]
       args << password if password
       result = run_os_command(args)
@@ -363,7 +363,7 @@ module WifiWand
 
     # Returns the IP address assigned to the WiFi interface, or nil if none.
     def _ip_address
-      iface = ensure_wifi_interface!
+      iface = wifi_interface
       run_os_command(['ipconfig', 'getifaddr', iface]).stdout.chomp
     rescue WifiWand::CommandExecutor::OsCommandError => e
       if e.exitstatus == 1
@@ -375,7 +375,7 @@ module WifiWand
 
     def remove_preferred_network(network_name)
       network_name = network_name.to_s
-      iface = ensure_wifi_interface!
+      iface = wifi_interface
       run_os_command(['sudo', 'networksetup', '-removepreferredwirelessnetwork', iface, network_name])
     end
 
@@ -390,7 +390,7 @@ module WifiWand
       airport_data = data.dig('SPAirPortDataType', 0, 'spairport_airport_interfaces')
       return nil unless airport_data
 
-      iface = ensure_wifi_interface!
+      iface = wifi_interface
       wifi_interface_data = airport_data.find do |interface|
         interface['_name'] == iface
       end
@@ -435,7 +435,7 @@ module WifiWand
 
       # Fallback to ifconfig (disassociate from current network)
       begin
-        iface = ensure_wifi_interface!
+        iface = wifi_interface
         run_os_command(['sudo', 'ifconfig', iface, 'disassociate'], false)
       rescue WifiWand::CommandExecutor::OsCommandError
         # If sudo ifconfig fails, try without sudo (may work on some systems)
@@ -445,7 +445,7 @@ module WifiWand
     end
 
     def mac_address
-      iface = ensure_wifi_interface!
+      iface = wifi_interface
       output = run_os_command(['ifconfig', iface]).stdout
       ether_line = output.split("\n").find { |line| line.include?('ether') }
       return nil unless ether_line
@@ -662,7 +662,7 @@ module WifiWand
       inner_key = 'spairport_airport_local_wireless_networks'
 
       # Get the networks data from the airport information
-      iface = ensure_wifi_interface!
+      iface = wifi_interface
       networks = data['SPAirPortDataType']
         &.detect { |h| h.key?('spairport_airport_interfaces') }
         &.dig('spairport_airport_interfaces')
@@ -693,7 +693,7 @@ module WifiWand
       # On macOS, we can check this via networksetup or by examining if the network
       # appears in the broadcast network list from system_profiler
       data = airport_data
-      iface = ensure_wifi_interface!
+      iface = wifi_interface
 
       # Get the current network information
       wifi_interface_data = data['SPAirPortDataType']

@@ -20,7 +20,8 @@ require_relative '../services/connection_manager'
 
 module WifiWand
   class BaseModel
-    attr_accessor :wifi_interface, :verbose_mode, :command_executor, :connectivity_tester, :state_manager,
+    attr_writer :wifi_interface
+    attr_accessor :verbose_mode, :command_executor, :connectivity_tester, :state_manager,
       :status_waiter, :connection_manager
 
     def self.create_model(options = {})
@@ -76,7 +77,7 @@ module WifiWand
           raise InvalidInterfaceError, @options.wifi_interface
         end
       else
-        @wifi_interface = detect_wifi_interface
+        @wifi_interface = probe_wifi_interface
       end
 
       # Validate that WiFi interface is a valid string
@@ -87,11 +88,9 @@ module WifiWand
       self
     end
 
-    # Ensures the WiFi interface has been initialized before it is used.
-    # Lazily runs the standard initialization flow the first time an interface
-    # is required, allowing callers that skip `init` to still function.
-    def ensure_wifi_interface!
-      init_wifi_interface unless @wifi_interface && !@wifi_interface.empty?
+    # Returns the WiFi interface, initializing it lazily when needed.
+    def wifi_interface
+      init_wifi_interface if @wifi_interface.nil?
       @wifi_interface
     end
 
@@ -102,8 +101,6 @@ module WifiWand
     rescue Errno::ENOENT
       nil
     end
-
-    protected :ensure_wifi_interface!
 
     # Define methods that must be implemented by subclasses in order to be called successfully:
     def self.define_subclass_required_method(method_name)
@@ -145,13 +142,13 @@ module WifiWand
       connected?
       connection_security_type
       default_interface
-      detect_wifi_interface
       is_wifi_interface?
       mac_address
       nameservers
       network_hidden?
       open_application
       open_resource
+      probe_wifi_interface
       preferred_networks
       remove_preferred_network
       set_nameservers

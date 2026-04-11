@@ -10,10 +10,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
   subject { create_test_model }
 
   before do
-    # Mock detect_wifi_interface for both OS types
-    allow_any_instance_of(WifiWand::UbuntuModel).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
+    # Mock interface discovery for both OS types
+    allow_any_instance_of(WifiWand::UbuntuModel).to receive(:probe_wifi_interface).and_return('wlp0s20f3')
     if defined?(WifiWand::MacOsModel)
-      allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_return('en0')
+      allow_any_instance_of(WifiWand::MacOsModel).to receive(:probe_wifi_interface).and_return('en0')
     end
 
     # Mock all OS-calling methods to prevent real system calls in non-disruptive tests
@@ -626,7 +626,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         # Mock the necessary methods for wifi_info to work
         allow(model).to receive(:validate_os_preconditions)
         allow(model).to receive_messages(
-          detect_wifi_interface:      'wlan0',
+          probe_wifi_interface:       'wlan0',
           is_wifi_interface?:         true,
           wifi_on?:                   true,
           wifi_interface:             'wlan0',

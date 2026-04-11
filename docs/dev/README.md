@@ -9,6 +9,10 @@ This directory is for `wifi-wand` maintainers and developers. These documents co
 - **[macOS Code Signing (Context)](MACOS_CODE_SIGNING_CONTEXT.md)** - Technical context for macOS code signing and notarization.
 - **[macOS Code Signing (Instructions)](MACOS_CODE_SIGNING_INSTRUCTIONS.md)** - Step-by-step instructions for maintainers to sign and notarize a release.
 
+## Developer Environment
+
+- **[Isolated AI Dev VM Setup](AI_VM_SETUP.md)** - Step-by-step guide for building an isolated VM-based development environment with Ansible, suitable for Linux now and Apple Silicon later.
+
 ## General Information
 
 - End-user documentation should be prioritized by contributors in the **[Main Documentation Index](../README.md)**.

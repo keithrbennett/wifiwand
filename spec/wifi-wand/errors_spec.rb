@@ -8,10 +8,10 @@ module WifiWand
   describe 'Error Classes' do
     # Mock OS calls to prevent real system interaction during non-disruptive tests
     before do
-      # Mock detect_wifi_interface for both OS types
-      allow_any_instance_of(WifiWand::UbuntuModel).to receive(:detect_wifi_interface).and_return('wlp0s20f3')
+      # Mock interface discovery for both OS types
+      allow_any_instance_of(WifiWand::UbuntuModel).to receive(:probe_wifi_interface).and_return('wlp0s20f3')
       if defined?(WifiWand::MacOsModel)
-        allow_any_instance_of(WifiWand::MacOsModel).to receive(:detect_wifi_interface).and_return('en0')
+        allow_any_instance_of(WifiWand::MacOsModel).to receive(:probe_wifi_interface).and_return('en0')
       end
 
       # Mock NetworkConnectivityTester to prevent real network calls
@@ -214,11 +214,11 @@ module WifiWand
           case current_os.id
           when :ubuntu
             model = WifiWand::UbuntuModel.new(merged_options)
-            allow(model).to receive_messages(command_available?: true, detect_wifi_interface: nil)
+            allow(model).to receive_messages(command_available?: true, probe_wifi_interface: nil)
             expect { model.init }.to raise_error(WifiInterfaceError)
           when :mac
             model = WifiWand::MacOsModel.new(merged_options)
-            allow(model).to receive(:detect_wifi_interface).and_return(nil)
+            allow(model).to receive(:probe_wifi_interface).and_return(nil)
             expect { model.init }.to raise_error(WifiInterfaceError)
           else
             skip 'Test not applicable for current OS'

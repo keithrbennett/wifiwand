@@ -233,7 +233,7 @@ module WifiWand
 
       describe '#_disconnect' do
         it 'returns nil when disconnect succeeds' do
-          allow(subject).to receive(:ensure_wifi_interface!).and_return('wlan0')
+          allow(subject).to receive(:wifi_interface).and_return('wlan0')
           expect(subject).to receive(:run_os_command).with(%w[nmcli dev disconnect wlan0])
             .and_return(command_result(stdout: ''))
           expect(subject.send(:_disconnect)).to be_nil
@@ -376,7 +376,7 @@ module WifiWand
         end
       end
 
-      describe '#detect_wifi_interface' do
+      describe '#probe_wifi_interface' do
         it 'returns first wireless interface from iw dev output' do
           iw_output = <<~IW_OUTPUT
             phy#0
@@ -391,7 +391,7 @@ module WifiWand
             .with(%w[iw dev])
             .and_return(command_result(stdout: iw_output))
 
-          expect(subject.detect_wifi_interface).to eq('wlp3s0')
+          expect(subject.probe_wifi_interface).to eq('wlp3s0')
         end
 
         it 'returns nil when no interfaces found' do
@@ -399,7 +399,7 @@ module WifiWand
             .with(%w[iw dev])
             .and_return(command_result(stdout: "phy#0\n    type managed"))
 
-          expect(subject.detect_wifi_interface).to be_nil
+          expect(subject.probe_wifi_interface).to be_nil
         end
 
         it 'handles command failures gracefully' do
@@ -407,7 +407,7 @@ module WifiWand
             .with(%w[iw dev])
             .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'iw dev', 'Command failed'))
 
-          expect { subject.detect_wifi_interface }
+          expect { subject.probe_wifi_interface }
             .to raise_error(WifiWand::CommandExecutor::OsCommandError)
         end
       end
@@ -450,15 +450,21 @@ module WifiWand
 
       describe '#nameservers' do
         it 'returns nameservers from resolv.conf' do
-          allow(subject).to receive(:nameservers_using_resolv_conf)
-            .and_return(['8.8.8.8', '8.8.4.4'])
+          allow(subject).to receive_messages(
+            active_connection_profile_name: nil,
+            _connected_network_name:        nil,
+            nameservers_using_resolv_conf:  ['8.8.8.8', '8.8.4.4'],
+          )
 
           expect(subject.nameservers).to eq(['8.8.8.8', '8.8.4.4'])
         end
 
         it 'returns empty array when no nameservers configured' do
-          allow(subject).to receive(:nameservers_using_resolv_conf)
-            .and_return([])
+          allow(subject).to receive_messages(
+            active_connection_profile_name: nil,
+            _connected_network_name:        nil,
+            nameservers_using_resolv_conf:  [],
+          )
 
           expect(subject.nameservers).to eq([])
         end
@@ -472,7 +478,7 @@ module WifiWand
           OUT
           wifi_interface = 'wlp3s0'
 
-          allow(subject).to receive(:ensure_wifi_interface!).and_return(wifi_interface)
+          allow(subject).to receive(:wifi_interface).and_return(wifi_interface)
           allow(subject).to receive(:run_os_command)
             .with(['ip', '-4', 'addr', 'show', wifi_interface], false)
             .and_return(command_result(stdout: ip_output))
@@ -481,7 +487,7 @@ module WifiWand
         end
 
         it 'returns nil when no IP address assigned' do
-          allow(subject).to receive(:ensure_wifi_interface!).and_return('wlp3s0')
+          allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
           allow(subject).to receive(:run_os_command)
             .with(['ip', '-4', 'addr', 'show', 'wlp3s0'], false)
             .and_return(command_result(stdout: ''))
@@ -495,7 +501,7 @@ module WifiWand
             inet 192.168.1.100/24 brd 192.168.1.255 scope global
             inet 10.0.0.50/24 brd 10.0.0.255 scope global secondary
           OUT
-          allow(subject).to receive(:ensure_wifi_interface!).and_return('wlp3s0')
+          allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
           allow(subject).to receive(:run_os_command)
             .with(['ip', '-4', 'addr', 'show', 'wlp3s0'], false)
             .and_return(command_result(stdout: ip_output))
@@ -512,7 +518,7 @@ module WifiWand
           OUT
           wifi_interface = 'wlp3s0'
 
-          allow(subject).to receive(:ensure_wifi_interface!).and_return(wifi_interface)
+          allow(subject).to receive(:wifi_interface).and_return(wifi_interface)
           allow(subject).to receive(:run_os_command)
             .with(['ip', 'link', 'show', wifi_interface], false)
             .and_return(command_result(stdout: mac_output))
@@ -521,7 +527,7 @@ module WifiWand
         end
 
         it 'returns nil when no MAC address found' do
-          allow(subject).to receive(:ensure_wifi_interface!).and_return('wlp3s0')
+          allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
           allow(subject).to receive(:run_os_command)
             .with(%w[ip link show wlp3s0], false)
             .and_return(command_result(stdout: ''))
@@ -1161,7 +1167,7 @@ module WifiWand
 
       describe '#disconnect' do
         it 'handles nmcli disconnect failures gracefully' do
-          allow(subject).to receive(:ensure_wifi_interface!).and_return('wlan0')
+          allow(subject).to receive(:wifi_interface).and_return('wlan0')
           allow(subject).to receive(:run_os_command)
             .with(%w[nmcli radio wifi], false)
             .and_return(command_result(stdout: 'enabled'))  # wifi_on? returns true
@@ -1175,7 +1181,7 @@ module WifiWand
         end
 
         it 'handles exit status 6 as normal disconnect behavior' do
-          allow(subject).to receive(:ensure_wifi_interface!).and_return('wlan0')
+          allow(subject).to receive(:wifi_interface).and_return('wlan0')
           allow(subject).to receive(:run_os_command)
             .with(%w[nmcli radio wifi], false)
             .and_return(command_result(stdout: 'enabled'))  # wifi_on? returns true
@@ -1431,7 +1437,7 @@ module WifiWand
 
       describe 'interface detection' do
         it 'detects WiFi interface correctly' do
-          interface = subject.detect_wifi_interface
+          interface = subject.probe_wifi_interface
           expect(interface).to match(WIFI_INTERFACE_REGEX) if interface
         end
 

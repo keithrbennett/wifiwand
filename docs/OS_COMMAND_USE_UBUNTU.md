@@ -15,7 +15,7 @@ Notes:
 ### `iw dev`
 - Description: Lists Wi-Fi interfaces so the model can pick the active wireless device.
 - Dynamic Values: None
-- Base Model Method(s): `detect_wifi_interface`
+- Base Model Method(s): `probe_wifi_interface`
 - CLI Command(s): Internal (model initialization for all Wi-Fi-aware commands)
 - Helpful Info: Parses the first `Interface <name>` line and caches the result (e.g., `wlp0s20f3`).
 

@@ -18,7 +18,7 @@ module WifiWand
         # Avoid macOS Keychain prompts during non-disruptive tests
         allow_any_instance_of(described_class).to receive(:preferred_network_password).and_return(nil)
         # Ensure initialization doesn’t fail due to interface detection during non-disruptive tests
-        allow_any_instance_of(described_class).to receive(:detect_wifi_interface).and_return('en0')
+        allow_any_instance_of(described_class).to receive(:probe_wifi_interface).and_return('en0')
 
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:internet_connectivity_state)
           .and_return(:reachable)
@@ -431,7 +431,7 @@ module WifiWand
               '_name'                                 => 'en0',
               'spairport_current_network_information' => { '_name' => 'ProfilerNet' },
             }],
-          }] }, ensure_wifi_interface!: 'en0')
+          }] }, wifi_interface: 'en0')
 
           expect(model._connected_network_name).to eq('ProfilerNet')
         end
@@ -444,7 +444,7 @@ module WifiWand
               '_name'                                 => 'en0',
               'spairport_current_network_information' => nil,
             }],
-          }] }, ensure_wifi_interface!: 'en0')
+          }] }, wifi_interface: 'en0')
 
           expect(model._connected_network_name).to be_nil
         end
@@ -666,10 +666,10 @@ module WifiWand
         end
       end
 
-      describe '#detect_wifi_interface' do
+      describe '#probe_wifi_interface' do
         # Restore original method behavior for these specific tests
         before do
-          allow_any_instance_of(described_class).to receive(:detect_wifi_interface).and_call_original
+          allow_any_instance_of(described_class).to receive(:probe_wifi_interface).and_call_original
           # Force fallback path to system_profiler for deterministic tests
           allow_any_instance_of(described_class).to receive(:detect_wifi_interface_using_networksetup)
             .and_return(nil)
@@ -692,7 +692,7 @@ module WifiWand
             detect_wifi_service_name: 'Wi-Fi',
             run_os_command:           command_result(stdout: system_profiler_output),
           )
-          expect(model.detect_wifi_interface).to eq('en0')
+          expect(model.probe_wifi_interface).to eq('en0')
         end
 
         it 'returns nil when WiFi service not found' do
@@ -700,7 +700,7 @@ module WifiWand
             detect_wifi_service_name: 'Wi-Fi',
             run_os_command:           command_result(stdout: '{"SPNetworkDataType": []}'),
           )
-          expect(model.detect_wifi_interface).to be_nil
+          expect(model.probe_wifi_interface).to be_nil
         end
 
         it 'handles JSON parse errors gracefully' do
@@ -708,7 +708,7 @@ module WifiWand
             detect_wifi_service_name: 'Wi-Fi',
             run_os_command:           command_result(stdout: 'invalid json'),
           )
-          expect { model.detect_wifi_interface }.to raise_error(JSON::ParserError)
+          expect { model.probe_wifi_interface }.to raise_error(JSON::ParserError)
         end
       end
 
@@ -896,7 +896,7 @@ module WifiWand
             scan_networks:          default_scan_result,
             connected_network_name: default_connected_result,
           )
-          allow(model).to receive_messages(mac_helper_client: helper_double, ensure_wifi_interface!: 'en0')
+          allow(model).to receive_messages(mac_helper_client: helper_double, wifi_interface: 'en0')
         end
 
         it 'returns networks sorted by signal strength descending' do
@@ -1359,7 +1359,7 @@ module WifiWand
 
     describe '#create_model with provided interface' do
       context 'when valid wifi_interface is provided' do
-        it 'uses the provided interface without calling detect_wifi_interface', :disruptive_mac do
+        it 'uses the provided interface without probing for another interface', :disruptive_mac do
           model = WifiWand::MacOsModel.create_model(wifi_interface: 'en0')
           expect(model.wifi_interface).to eq('en0')
         end
@@ -1376,9 +1376,9 @@ module WifiWand
       end
 
       context 'when no wifi_interface is provided' do
-        it 'initializes with nil interface for lazy discovery' do
+        it 'defers interface discovery until wifi_interface is requested' do
           model = WifiWand::MacOsModel.create_model
-          expect(model.wifi_interface).to be_nil
+          expect(model.instance_variable_get(:@wifi_interface)).to be_nil
         end
       end
     end

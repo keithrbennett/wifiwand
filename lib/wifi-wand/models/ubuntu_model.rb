@@ -30,7 +30,7 @@ module WifiWand
       :ok
     end
 
-    def detect_wifi_interface
+    def probe_wifi_interface
       debug_method_entry(__method__)
       interface_line = run_os_command(%w[iw dev])
         .stdout
@@ -54,7 +54,7 @@ module WifiWand
     def connected?
       return false unless wifi_on?
 
-      iface = ensure_wifi_interface!
+      iface = wifi_interface
       output = run_os_command(%w[nmcli -t -f DEVICE connection show --active], false).stdout
       output.split("\n").any? { |line| line.strip == iface }
     end
@@ -320,7 +320,7 @@ module WifiWand
     def _ip_address
       debug_method_entry(__method__)
 
-      output = run_os_command(['ip', '-4', 'addr', 'show', ensure_wifi_interface!], false).stdout
+      output = run_os_command(['ip', '-4', 'addr', 'show', wifi_interface], false).stdout
       inet_line = output.split("\n").find { |line| line.include?('inet ') }
       return nil unless inet_line
 
@@ -334,7 +334,7 @@ module WifiWand
     def mac_address
       debug_method_entry(__method__)
 
-      output = run_os_command(['ip', 'link', 'show', ensure_wifi_interface!], false).stdout
+      output = run_os_command(['ip', 'link', 'show', wifi_interface], false).stdout
       ether_line = output.split("\n").find { |line| line.include?('ether') }
       return nil unless ether_line
 
@@ -347,7 +347,7 @@ module WifiWand
     def _disconnect
       debug_method_entry(__method__)
 
-      interface = ensure_wifi_interface!
+      interface = wifi_interface
       begin
         run_os_command(['nmcli', 'dev', 'disconnect', interface])
       rescue WifiWand::CommandExecutor::OsCommandError => e

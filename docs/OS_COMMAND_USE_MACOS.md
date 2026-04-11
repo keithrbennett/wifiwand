@@ -15,7 +15,7 @@ Notes:
 ### `networksetup -listallhardwareports`
 - Description: Lists every hardware port so the Wi-Fi service name and interface device can be discovered.
 - Dynamic Values: None
-- Base Model Method(s): `detect_wifi_service_name`, `detect_wifi_interface_using_networksetup`, `detect_wifi_interface`
+- Base Model Method(s): `detect_wifi_service_name`, `detect_wifi_interface_using_networksetup`, `probe_wifi_interface`
 - CLI Command(s): Internal (interface/service detection shared by most commands)
 - Helpful Info: Populates cached `wifi_service_name`/`wifi_interface` values to avoid repeated probing.
 
@@ -89,7 +89,7 @@ Notes:
 ### `system_profiler -json SPNetworkDataType`
 - Description: Produces JSON metadata describing network services and interfaces.
 - Dynamic Values: None
-- Base Model Method(s): `detect_wifi_interface`
+- Base Model Method(s): `probe_wifi_interface`
 - CLI Command(s): Internal (fallback interface discovery used when `networksetup` detection fails)
 - Helpful Info: JSON is parsed to locate entries keyed by the detected Wi-Fi service name.
 

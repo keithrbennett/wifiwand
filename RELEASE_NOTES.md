@@ -49,7 +49,7 @@ The `ci` command no longer represents connectivity as `true` / `false`.
 The `till` command now uses an explicit, unambiguous vocabulary. The old state names
 `conn`, `disc`, `on`, and `off` have been **removed**.
 
-**Why?** `conn` checked full Internet reachability (TCP + DNS + captive-portal free),
+**Why?** `conn` checked full Internet reachability (`internet_connectivity_state == :reachable`),
 not WiFi association. This caused semantic confusion: code that connected to a WiFi
 network then called `till(:conn)` was really asking "is the Internet up?" rather than
 "did I join the network?". The new vocabulary makes the distinction explicit.
@@ -62,8 +62,14 @@ network then called `till(:conn)` was really asking "is the Internet up?" rather
 | `wifi_off`      | WiFi hardware is powered off                                    |
 | `associated`    | WiFi is associated with an SSID (WiFi layer, not Internet)      |
 | `disassociated` | WiFi is not associated with any SSID                            |
-| `internet_on`   | Full Internet reachability (TCP + DNS + captive-portal free)    |
-| `internet_off`  | Internet reachability check fails                               |
+| `internet_on`   | Internet connectivity state is reachable                        |
+| `internet_off`  | Internet connectivity state is unreachable                      |
+
+`internet_connectivity_state` can also be `:indeterminate` when TCP and DNS
+succeed but captive-portal checks cannot determine whether the Internet is
+actually reachable. There is no dedicated `till` target for this state;
+`internet_on` matches only `:reachable`, and `internet_off` matches only
+`:unreachable`.
 
 **Migration table:**
 

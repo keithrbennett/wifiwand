@@ -121,7 +121,7 @@ module WifiWand
       it 'creates a model even when no WiFi interface is detectable' do
         if described_class.current_os
           # Simulate a host with no detectable WiFi hardware
-          allow_any_instance_of(WifiWand::BaseModel).to receive(:detect_wifi_interface).and_return(nil)
+          allow_any_instance_of(WifiWand::BaseModel).to receive(:probe_wifi_interface).and_return(nil)
           allow_any_instance_of(WifiWand::BaseModel).to receive(:validate_os_preconditions).and_return(:ok)
 
           model = described_class.create_model_for_current_os

@@ -175,7 +175,7 @@ done
 
 | Command | Use Case | Output | Speed |
 |---------|----------|--------|-------|
-| `ci` | Single explicit connectivity state | reachable/unreachable/indeterminate | Fast |
+| `ci` | Single explicit connectivity state | reachable/unreachable/indeterminate | Several seconds |
 | `status` | Full network summary | Multi-field status | Several seconds |
 | `info` | Detailed network info | Complete data | Several seconds |
 

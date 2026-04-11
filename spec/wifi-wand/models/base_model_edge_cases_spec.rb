@@ -5,14 +5,14 @@ require 'ostruct'
 require 'stringio'
 
 RSpec.describe WifiWand::BaseModel do
-  describe '#ensure_wifi_interface!' do
+  describe '#wifi_interface' do
     let(:model) { described_class.allocate }
 
     it 'returns existing interface without reinitializing' do
       model.instance_variable_set(:@wifi_interface, 'wlan0')
 
       expect(model).not_to receive(:init_wifi_interface)
-      expect(model.send(:ensure_wifi_interface!)).to eq('wlan0')
+      expect(model.wifi_interface).to eq('wlan0')
     end
 
     it 'initializes lazily when interface missing' do
@@ -20,13 +20,13 @@ RSpec.describe WifiWand::BaseModel do
         model.instance_variable_set(:@wifi_interface, 'wlan0')
       end
 
-      expect(model.send(:ensure_wifi_interface!)).to eq('wlan0')
+      expect(model.wifi_interface).to eq('wlan0')
     end
 
     it 'propagates errors when initialization fails' do
       allow(model).to receive(:init_wifi_interface).and_raise('boom')
 
-      expect { model.send(:ensure_wifi_interface!) }.to raise_error('boom')
+      expect { model.wifi_interface }.to raise_error('boom')
     end
   end
 
@@ -55,7 +55,7 @@ RSpec.describe WifiWand::BaseModel do
             end
 
             def validate_os_preconditions = nil
-            def detect_wifi_interface = 'wlan0'
+            def probe_wifi_interface = 'wlan0'
             def connection_security_type = nil
             def is_wifi_interface?(_iface) = true
             def mac_address = '00:00:00:00:00:00'
