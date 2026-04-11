@@ -143,6 +143,24 @@ describe WifiWand::StatusWaiter do
           .to raise_error(WifiWand::WaitTimeoutError)
       end
     end
+
+    it 'does not treat an indeterminate internet result as :internet_on' do
+      allow(mock_model).to receive(:connected_to_internet?).and_return(nil)
+      allow(waiter).to receive(:sleep)
+
+      expect do
+        waiter.wait_for(:internet_on, timeout_in_secs: 0, wait_interval_in_secs: 0)
+      end.to raise_error(WifiWand::WaitTimeoutError)
+    end
+
+    it 'does not treat an indeterminate internet result as :internet_off' do
+      allow(mock_model).to receive(:connected_to_internet?).and_return(nil)
+      allow(waiter).to receive(:sleep)
+
+      expect do
+        waiter.wait_for(:internet_off, timeout_in_secs: 0, wait_interval_in_secs: 0)
+      end.to raise_error(WifiWand::WaitTimeoutError)
+    end
   end
 
   describe 'integration with BaseModel' do

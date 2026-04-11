@@ -22,15 +22,16 @@ module WifiWand
     # endpoint cannot cause a false captive-portal detection without adding the
     # serial worst-case latency of back-to-back HTTP timeouts. Returns +true+
     # if any endpoint returns the expected code, +false+ only when at least one
-    # endpoint returned a wrong status code and none succeeded, and +true+
-    # (assume free) when all endpoints had network errors.
+    # endpoint returned a wrong status code and none succeeded, and +nil+ when
+    # every endpoint failed with a network error so the result is indeterminate.
     #
     # For full details on endpoint redundancy, return-value rationale, decision
     # flow, and terminology ("mismatch"), see docs/CONNECTIVITY_CHECKING.md
     # section "Captive Portal Detection".
     #
-    # @return [Boolean] true if no captive portal is detected (or can't be determined),
-    #   false if a captive portal is confidently detected.
+    # @return [Boolean, nil] true if no captive portal is detected,
+    #   false if a captive portal is confidently detected,
+    #   nil if the result is indeterminate because all endpoints errored.
     # @see attempt_captive_portal_check for per-endpoint HTTP check details
     # @see captive_portal_check_endpoints for the configured endpoint list
     #
@@ -61,8 +62,23 @@ module WifiWand
         nil
       end.wait
 
-      free = results.include?(:absent) || !results.include?(:present)
-      @output.puts "Captive portal results: #{results.inspect} — #{free ? 'free' : 'detected'}" if @verbose
+      free = if results.include?(:absent)
+        true
+      elsif results.include?(:present)
+        false
+      else
+        nil
+      end
+
+      if @verbose
+        status = case free
+                 when true then 'free'
+                 when false then 'detected'
+                 else 'indeterminate'
+        end
+        @output.puts "Captive portal results: #{results.inspect} — #{status}"
+      end
+
       free
     end
 

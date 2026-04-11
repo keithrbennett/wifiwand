@@ -11,6 +11,8 @@ require_relative 'captive_portal_checker'
 
 module WifiWand
   class NetworkConnectivityTester
+    UNSET = Object.new.freeze
+
     attr_reader :captive_portal_checker
 
     def initialize(verbose: false, output: $stdout)
@@ -23,13 +25,18 @@ module WifiWand
     # Pre-computed values can be supplied for each component to avoid redundant network calls.
     # Captive portals complete the TCP handshake on behalf of external hosts, so tcp_working
     # alone is not sufficient — we also verify the absence of a captive portal.
-    def connected_to_internet?(tcp_working = nil, dns_working = nil, captive_free = nil)
+    # rubocop:disable Style/ReturnNilInPredicateMethodDefinition
+    def connected_to_internet?(tcp_working = nil, dns_working = nil, captive_free = UNSET)
       tcp = tcp_working.nil? ? tcp_connectivity? : tcp_working
       dns = dns_working.nil? ? dns_working? : dns_working
       return false unless tcp && dns
 
-      captive_free.nil? ? captive_portal_free? : captive_free
+      captive_free = captive_portal_free? if captive_free.equal?(UNSET)
+      return nil if captive_free.nil?
+
+      captive_free
     end
+    # rubocop:enable Style/ReturnNilInPredicateMethodDefinition
 
     # Delegates to CaptivePortalChecker#captive_portal_free?
     # See that class for full documentation on return-value semantics.

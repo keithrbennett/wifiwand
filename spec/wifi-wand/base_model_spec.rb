@@ -93,8 +93,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect([true, false]).to include(result['wifi_on'])
       expect([true, false]).to include(result['internet_tcp_connectivity'])
       expect([true, false]).to include(result['dns_working'])
-      expect([true, false]).to include(result['captive_portal_free'])
-      expect([true, false]).to include(result['internet_on'])
+      expect([true, false, nil]).to include(result['captive_portal_free'])
+      expect([true, false, nil]).to include(result['internet_on'])
       expect(result['timestamp']).to be_a(Time)
     end
   end
@@ -681,7 +681,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       )
       expect(subject).not_to receive(:captive_portal_free?)
 
-      subject.wifi_info
+      result = subject.wifi_info
+      expect(result['captive_portal_free']).to be_nil
     end
 
     it 'does not call captive_portal_free? when DNS fails' do
@@ -692,7 +693,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       )
       expect(subject).not_to receive(:captive_portal_free?)
 
-      subject.wifi_info
+      result = subject.wifi_info
+      expect(result['captive_portal_free']).to be_nil
     end
 
     it 'does not call captive_portal_free? when both TCP and DNS fail' do
@@ -703,7 +705,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       )
       expect(subject).not_to receive(:captive_portal_free?)
 
-      subject.wifi_info
+      result = subject.wifi_info
+      expect(result['captive_portal_free']).to be_nil
     end
 
     it 'calls captive_portal_free? when both TCP and DNS succeed' do
@@ -889,7 +892,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(data).to be_a(Hash)
 
       expect(data.keys).to include(
-        :wifi_on, :internet_connected, :network_name, :captive_portal_login_required
+        :wifi_on, :internet_connected, :internet_check_complete, :network_name, :captive_portal_login_required
       )
     end
 
@@ -906,6 +909,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       expect(data[:wifi_on]).to be true
       expect(data[:internet_connected]).to be true
+      expect(data[:internet_check_complete]).to be true
       expect(data[:network_name]).to eq('TestNetwork')
       expect(data[:captive_portal_login_required]).to eq(:no)
     end
@@ -920,6 +924,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       expect(data[:wifi_on]).to be false
       expect(data[:internet_connected]).to be false
+      expect(data[:internet_check_complete]).to be true
       expect(data[:network_name]).to be_nil
       expect(data[:captive_portal_login_required]).to eq(:no)
     end

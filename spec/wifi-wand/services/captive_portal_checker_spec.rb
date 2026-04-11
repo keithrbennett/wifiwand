@@ -32,8 +32,8 @@ describe WifiWand::CaptivePortalChecker do
         allow(Net::HTTP).to receive(:get_response).and_raise(Errno::ECONNREFUSED)
       end
 
-      it 'returns true (assumes free to avoid false negatives)' do
-        expect(checker.captive_portal_free?).to be true
+      it 'returns nil (indeterminate)' do
+        expect(checker.captive_portal_free?).to be_nil
       end
     end
 
@@ -95,10 +95,16 @@ describe WifiWand::CaptivePortalChecker do
         expect(checker.captive_portal_free?).to be false
       end
 
-      it 'returns true when all endpoints have network errors' do
-        allow(checker).to receive(:attempt_captive_portal_check).and_return(nil, nil)
-        expect(checker.captive_portal_free?).to be true
+      it 'returns false when one endpoint mismatches and another errors' do
+        allow(checker).to receive(:attempt_captive_portal_check).and_return(false, nil)
+        expect(checker.captive_portal_free?).to be false
       end
+
+      it 'returns nil when all endpoints have network errors' do
+        allow(checker).to receive(:attempt_captive_portal_check).and_return(nil, nil)
+        expect(checker.captive_portal_free?).to be_nil
+      end
+
     end
   end
 end

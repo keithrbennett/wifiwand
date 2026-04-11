@@ -180,15 +180,16 @@ RSpec.describe WifiWand::BaseModel do
       expect(result).to eq(
         wifi_on:                       true,
         internet_connected:            true,
+        internet_check_complete:       true,
         network_name:                  'HomeNetwork',
         captive_portal_login_required: :no,
       )
       expect(progress_updates).to eq([
-        { wifi_on: true, internet_connected: nil,  network_name: :pending,
+        { wifi_on: true, internet_connected: nil,  internet_check_complete: false, network_name: :pending,
           captive_portal_login_required: :unknown },
-        { wifi_on: true, internet_connected: nil,  network_name: 'HomeNetwork',
+        { wifi_on: true, internet_connected: nil, internet_check_complete: false, network_name: 'HomeNetwork',
           captive_portal_login_required: :unknown },
-        { wifi_on: true, internet_connected: true, network_name: 'HomeNetwork',
+        { wifi_on: true, internet_connected: true, internet_check_complete: true, network_name: 'HomeNetwork',
           captive_portal_login_required: :no },
       ])
     end
@@ -204,12 +205,25 @@ RSpec.describe WifiWand::BaseModel do
       expect(result[:captive_portal_login_required]).to eq(:yes)
     end
 
+    it 'preserves an indeterminate captive portal result when TCP and DNS succeed' do
+      allow(model).to receive_messages(
+        internet_tcp_connectivity?: true, dns_working?: true, captive_portal_free?: nil,
+      )
+
+      result = model.status_line_data
+
+      expect(result[:internet_connected]).to be_nil
+      expect(result[:internet_check_complete]).to be true
+      expect(result[:captive_portal_login_required]).to eq(:unknown)
+    end
+
     it 'sets captive_portal_login_required to :no when TCP fails (no captive portal confidence)' do
       allow(model).to receive_messages(internet_tcp_connectivity?: false, dns_working?: false)
 
       result = model.status_line_data
 
       expect(result[:internet_connected]).to be false
+      expect(result[:internet_check_complete]).to be true
       expect(result[:captive_portal_login_required]).to eq(:no)
     end
 
@@ -219,6 +233,7 @@ RSpec.describe WifiWand::BaseModel do
       result = model.status_line_data
 
       expect(result[:internet_connected]).to be false
+      expect(result[:internet_check_complete]).to be true
       expect(result[:captive_portal_login_required]).to eq(:no)
     end
   end

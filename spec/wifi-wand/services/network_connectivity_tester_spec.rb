@@ -157,6 +157,16 @@ describe WifiWand::NetworkConnectivityTester do
       expect(tester.connected_to_internet?).to be false
     end
 
+    it 'returns nil when TCP and DNS pass but captive portal status is indeterminate' do
+      allow(tester).to receive_messages(
+        tcp_connectivity?:    true,
+        dns_working?:         true,
+        captive_portal_free?: nil,
+      )
+
+      expect(tester.connected_to_internet?).to be_nil
+    end
+
     it 'skips captive portal check when TCP fails (short-circuit)' do
       allow(tester).to receive_messages(tcp_connectivity?: false, dns_working?: true)
       expect(tester).not_to receive(:captive_portal_free?)
@@ -169,6 +179,13 @@ describe WifiWand::NetworkConnectivityTester do
       expect(tester).not_to receive(:captive_portal_free?)
 
       expect(tester.connected_to_internet?(true, true, true)).to be true
+    end
+
+    it 'preserves a pre-computed indeterminate captive_free value' do
+      allow(tester).to receive_messages(tcp_connectivity?: true, dns_working?: true)
+      expect(tester).not_to receive(:captive_portal_free?)
+
+      expect(tester.connected_to_internet?(true, true, nil)).to be_nil
     end
   end
 
@@ -203,8 +220,8 @@ describe WifiWand::NetworkConnectivityTester do
         allow(Net::HTTP).to receive(:get_response).and_raise(Errno::ECONNREFUSED)
       end
 
-      it 'returns true (assumes free to avoid false negatives)' do
-        expect(tester.captive_portal_free?).to be true
+      it 'returns nil (indeterminate)' do
+        expect(tester.captive_portal_free?).to be_nil
       end
     end
 

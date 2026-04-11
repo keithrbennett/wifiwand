@@ -55,11 +55,19 @@ module WifiWand
         colorize_text(status_text, color)
       end
 
+      def format_internet_status(value, check_complete: false)
+        pending_str = check_complete ? '⚠️ UNKNOWN' : '⏳ WAIT'
+        format_boolean_status(value, pending_str: pending_str)
+      end
+
       def status_line(status_data)
         return colorize_text('WiFi: [status unavailable]', :yellow) if status_data.nil?
 
         wifi_status = format_boolean_status(status_data[:wifi_on], true_str: '✅ ON', false_str: '❌ OFF')
-        internet_status = format_boolean_status(status_data[:internet_connected])
+        internet_status = format_internet_status(
+          status_data[:internet_connected],
+          check_complete: status_data[:internet_check_complete],
+        )
 
         # Format network name
         network_name = status_data[:network_name]

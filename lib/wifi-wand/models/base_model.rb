@@ -199,7 +199,8 @@ module WifiWand
     # This method returns whether or not there is a working Internet connection.
     # Tests TCP connectivity, DNS resolution, and absence of a captive portal.
     # Pre-computed values can be supplied to avoid redundant network calls.
-    def connected_to_internet?(tcp_working = nil, dns_working = nil, captive_free = nil)
+    def connected_to_internet?(tcp_working = nil, dns_working = nil,
+      captive_free = NetworkConnectivityTester::UNSET)
       debug_method_entry(__method__)
       @connectivity_tester.connected_to_internet?(tcp_working, dns_working, captive_free)
     end
@@ -260,10 +261,10 @@ module WifiWand
         begin
           captive_portal_free?
         rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
-          true
+          nil
         end
       else
-        true
+        nil
       end
 
       # Pass all pre-computed values to avoid redundant network calls
@@ -331,6 +332,7 @@ module WifiWand
       partial = {
         wifi_on:                       wifi_on?,
         internet_connected:            nil,
+        internet_check_complete:       false,
         network_name:                  :pending,
         captive_portal_login_required: :unknown,
       }
@@ -340,6 +342,7 @@ module WifiWand
       unless partial[:wifi_on]
         partial[:network_name] = nil
         partial[:internet_connected] = false
+        partial[:internet_check_complete] = true
         partial[:captive_portal_login_required] = :no
         progress_callback&.call(partial.dup)
         return partial
@@ -368,11 +371,28 @@ module WifiWand
             captive_free = begin
               captive_portal_free?
             rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
-              true
+              nil
             end
-            { internet_connected: captive_free, captive_portal_login_required: captive_free ? :no : :yes }
+
+            captive_portal_login_required = if captive_free.nil?
+              :unknown
+            elsif captive_free
+              :no
+            else
+              :yes
+            end
+
+            {
+              internet_connected:            captive_free,
+              internet_check_complete:       true,
+              captive_portal_login_required: captive_portal_login_required,
+            }
           else
-            { internet_connected: false, captive_portal_login_required: :no }
+            {
+              internet_connected:            false,
+              internet_check_complete:       true,
+              captive_portal_login_required: :no,
+            }
           end
         end
 
@@ -382,6 +402,7 @@ module WifiWand
 
         connectivity = connectivity_task.wait
         partial[:internet_connected] = connectivity[:internet_connected]
+        partial[:internet_check_complete] = connectivity[:internet_check_complete]
         partial[:captive_portal_login_required] = connectivity[:captive_portal_login_required]
 
         final_data = partial.dup

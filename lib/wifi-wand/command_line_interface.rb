@@ -96,7 +96,8 @@ module WifiWand
 
     def cmd_ci
       connected = model.connected_to_internet?
-      handle_output(connected, -> { "Connected to Internet: #{connected}" })
+      display_value = connected.nil? ? 'indeterminate' : connected
+      handle_output(connected, -> { "Connected to Internet: #{display_value}" })
     end
 
     def cmd_co(network, password = nil)

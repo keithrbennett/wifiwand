@@ -513,6 +513,18 @@ describe WifiWand::CommandLineInterface do
       end
     end
 
+    describe '#cmd_ci' do
+      it_behaves_like 'interactive vs non-interactive command', :cmd_ci, :connected_to_internet?, {
+        return_value:          nil,
+        non_interactive_tests: {
+          'renders an indeterminate connectivity result explicitly' => {
+            model_return:    nil,
+            expected_output: "Connected to Internet: indeterminate\n",
+          },
+        },
+      }
+    end
+
     describe '#cmd_ne (network name)' do
       context 'when connected to a network' do
         it 'outputs current network name' do
@@ -640,7 +652,9 @@ describe WifiWand::CommandLineInterface do
         it 'raises ConfigurationError when no arguments provided' do
           expect { subject.cmd_t }.to raise_error(WifiWand::ConfigurationError) do |error|
             expect(error.message).to include('Missing target status argument')
-            expect(error.message).to include('States: wifi_on, wifi_off, associated, disassociated, internet_on, internet_off')
+            expect(error.message).to include(
+              'States: wifi_on, wifi_off, associated, disassociated, internet_on, internet_off',
+            )
             expect(error.message).to include('Use')
             expect(error.message).to include('help')
           end
@@ -653,7 +667,8 @@ describe WifiWand::CommandLineInterface do
         end
 
         it 'raises ConfigurationError when timeout is not numeric' do
-          expect { subject.cmd_t('wifi_on', 'invalid') }.to raise_error(WifiWand::ConfigurationError) do |error|
+          expect { subject.cmd_t('wifi_on', 'invalid') }
+            .to raise_error(WifiWand::ConfigurationError) do |error|
             expect(error.message).to include('Invalid timeout value')
             expect(error.message).to include('invalid')
             expect(error.message).to include('must be a number')

@@ -97,7 +97,7 @@ module WifiWand
       timestamp = Time.now.utc.iso8601
       wifi = state[:wifi_on] ? 'on' : 'off'
       network = state[:network_name] ? "connected to #{state[:network_name]}" : 'not connected'
-      internet = state[:internet_connected] ? 'available' : 'unavailable'
+      internet = internet_state_label(state[:internet_connected])
       log_message("[#{timestamp}] Current state: WiFi #{wifi}, #{network}, internet #{internet}")
     end
 
@@ -145,10 +145,24 @@ module WifiWand
         end
       end
 
-      if current_state[:internet_connected] != @previous_state[:internet_connected]
+      if emit_internet_event?(current_state[:internet_connected], @previous_state[:internet_connected])
         event_type = current_state[:internet_connected] ? :internet_on : :internet_off
         emit_event(event_type, {}, @previous_state, current_state)
       end
+    end
+
+    def internet_state_label(value)
+      case value
+      when true then 'available'
+      when false then 'unavailable'
+      else 'unknown'
+      end
+    end
+
+    def emit_internet_event?(current_value, previous_value)
+      [true, false].include?(current_value) &&
+        [true, false].include?(previous_value) &&
+        current_value != previous_value
     end
 
     # Create and process an event

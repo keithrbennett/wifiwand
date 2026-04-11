@@ -293,6 +293,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         wifi_on:                       true,
         network_name:                  'TestNetwork',
         internet_connected:            true,
+        internet_check_complete:       true,
         captive_portal_login_required: :no,
       }
     end
@@ -371,6 +372,14 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           expect(result).not_to match(/Captive Portal/)
         end
       end
+
+      it 'shows UNKNOWN when internet status is indeterminate after checks complete' do
+        data = status_data.merge(internet_connected: nil, captive_portal_login_required: :unknown)
+        result = subject.status_line(data)
+
+        expect(result).to match(/Internet.*UNKNOWN/)
+        expect(result).to match(YELLOW_TEXT_REGEX)
+      end
     end
 
     context 'when stdout is not a TTY' do
@@ -418,6 +427,14 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
           result = subject.status_line(status_data)
           expect(result).not_to match(/Captive Portal/)
         end
+      end
+
+      it 'shows UNKNOWN without ANSI color codes when internet status is indeterminate' do
+        data = status_data.merge(internet_connected: nil, captive_portal_login_required: :unknown)
+        result = subject.status_line(data)
+
+        expect(result).to match(/Internet.*UNKNOWN/)
+        expect(result).not_to match(ANSI_COLOR_REGEX)
       end
     end
   end

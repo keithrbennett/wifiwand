@@ -51,8 +51,8 @@ module WifiWand
         wifi_off:      -> { !@model.wifi_on? },
         associated:    -> { @model.associated? },
         disassociated: -> { !@model.associated? },
-        internet_on:   -> { @model.connected_to_internet? },
-        internet_off:  -> { !@model.connected_to_internet? },
+        internet_on:   -> { @model.connected_to_internet? == true },
+        internet_off:  -> { @model.connected_to_internet? == false },
       }
 
       finished_predicate = finished_predicates[target_status]

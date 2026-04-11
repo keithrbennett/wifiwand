@@ -189,6 +189,28 @@ describe WifiWand::EventLogger do
       logger.send(:detect_and_emit_events, current_state)
     end
 
+    it 'does not emit internet_off when connectivity becomes indeterminate' do
+      logger.instance_variable_set(:@previous_state,
+        { wifi_on: true, network_name: 'TestNetwork', internet_connected: true })
+
+      current_state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: nil }
+
+      expect(logger).not_to receive(:emit_event).with(:internet_off, anything, anything, anything)
+
+      logger.send(:detect_and_emit_events, current_state)
+    end
+
+    it 'does not emit internet_on when connectivity resolves from indeterminate' do
+      logger.instance_variable_set(:@previous_state,
+        { wifi_on: true, network_name: 'TestNetwork', internet_connected: nil })
+
+      current_state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: true }
+
+      expect(logger).not_to receive(:emit_event).with(:internet_on, anything, anything, anything)
+
+      logger.send(:detect_and_emit_events, current_state)
+    end
+
     it 'emits events in order: wifi, network, internet when multiple changes happen' do
       logger.instance_variable_set(:@previous_state,
         { wifi_on: false, network_name: nil, internet_connected: false })
@@ -429,6 +451,18 @@ describe WifiWand::EventLogger do
       expect(logger).to receive(:log_message) do |message|
         expect(message).to match(
           /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi off, not connected, internet unavailable/,
+        )
+      end
+
+      logger.send(:log_initial_state, state)
+    end
+
+    it 'logs initial state with indeterminate internet connectivity as unknown' do
+      state = { wifi_on: true, network_name: 'TestNetwork', internet_connected: nil }
+
+      expect(logger).to receive(:log_message) do |message|
+        expect(message).to match(
+          /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi on, connected to TestNetwork, internet unknown/,
         )
       end
 
