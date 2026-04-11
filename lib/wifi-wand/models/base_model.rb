@@ -17,6 +17,7 @@ require_relative '../services/network_connectivity_tester'
 require_relative '../services/network_state_manager'
 require_relative '../services/status_waiter'
 require_relative '../services/connection_manager'
+require_relative '../services/status_line_data_builder'
 
 module WifiWand
   class BaseModel
@@ -328,99 +329,12 @@ module WifiWand
     # The returned hash includes :internet_state and :captive_portal_state
     # plus the derived :captive_portal_login_required (:yes/:no/:unknown).
     def status_line_data(progress_callback: nil)
-      # Build initial partial hash with pending values
-      partial = {
-        wifi_on:                       wifi_on?,
-        internet_state:                ConnectivityStates::INTERNET_PENDING,
-        internet_check_complete:       false,
-        network_name:                  :pending,
-        captive_portal_state:          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
-        captive_portal_login_required: :unknown,
-      }
-
-      progress_callback&.call(partial.dup)
-
-      unless partial[:wifi_on]
-        partial[:network_name] = nil
-        partial[:internet_state] = ConnectivityStates::INTERNET_UNREACHABLE
-        partial[:internet_check_complete] = true
-        partial[:captive_portal_login_required] = :no
-        progress_callback&.call(partial.dup)
-        return partial
-      end
-
-      Async do |task|
-        ssid_task = task.async do
-          connected_network_name
-        rescue WifiWand::Error, *EXPECTED_NETWORK_ERRORS => e
-          out_stream.puts "Warning: SSID lookup failed: #{e.class}: #{e.message}" if @verbose_mode
-          nil
-        end
-
-        connectivity_task = task.async do
-          tcp = begin
-            internet_tcp_connectivity?
-          rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
-            false
-          end
-          dns = begin
-            dns_working?
-          rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
-            false
-          end
-          if tcp && dns
-            portal_state = begin
-              captive_portal_state
-            rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
-              ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
-            end
-
-            captive_portal_login_required = if portal_state == ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
-              :unknown
-            elsif portal_state == ConnectivityStates::CAPTIVE_PORTAL_FREE
-              :no
-            else
-              :yes
-            end
-
-            {
-              internet_state:                ConnectivityStates.internet_state_from(
-                tcp_working:          tcp,
-                dns_working:          dns,
-                captive_portal_state: portal_state,
-              ),
-              internet_check_complete:       true,
-              captive_portal_state:          portal_state,
-              captive_portal_login_required: captive_portal_login_required,
-            }
-          else
-            {
-              internet_state:                ConnectivityStates::INTERNET_UNREACHABLE,
-              internet_check_complete:       true,
-              captive_portal_state:          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
-              captive_portal_login_required: :no,
-            }
-          end
-        end
-
-        # Wait for tasks to complete
-        partial[:network_name] = ssid_task.wait
-        progress_callback&.call(partial.dup)
-
-        connectivity = connectivity_task.wait
-        partial[:internet_state] = connectivity[:internet_state]
-        partial[:internet_check_complete] = connectivity[:internet_check_complete]
-        partial[:captive_portal_state] = connectivity[:captive_portal_state]
-        partial[:captive_portal_login_required] = connectivity[:captive_portal_login_required]
-
-        final_data = partial.dup
-        progress_callback&.call(final_data)
-        final_data
-      end.wait
-    rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error => e
-      out_stream.puts "Warning: status_line_data failed: #{e.class}: #{e.message}" if @verbose_mode
-      progress_callback&.call(nil)
-      nil
+      StatusLineDataBuilder.new(
+        self,
+        verbose:                 @verbose_mode,
+        output:                  out_stream,
+        expected_network_errors: EXPECTED_NETWORK_ERRORS,
+      ).call(progress_callback: progress_callback)
     end
 
     def connected_to?(network_name)
