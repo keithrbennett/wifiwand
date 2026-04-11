@@ -380,13 +380,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
   # The following tests run commands and verify they complete without error,
   # testing both wifi on and wifi off states
   shared_examples 'interface commands complete without error' do |wifi_starts_on|
-    before do
-      # Only set wifi state in disruptive contexts
-      if self.class.metadata[:disruptive]
-        wifi_starts_on ? subject.wifi_on : subject.wifi_off
-      end
-    end
-
     it 'can determine if connected to Internet' do
       expect { subject.internet_connectivity_state }.not_to raise_error
     end
@@ -431,6 +424,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   # Disruptive contexts - only run with --tag disruptive flag
   context 'when wifi starts on (disruptive)', :disruptive do
+    before { subject.wifi_on }
+
     it_behaves_like 'interface commands complete without error', true
 
     it 'can query connected network name' do
@@ -439,6 +434,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   context 'when wifi starts off (disruptive)', :disruptive do
+    before { subject.wifi_off }
+
     it_behaves_like 'interface commands complete without error', false
 
     it 'raises WifiOffError when querying connected network name' do
