@@ -114,7 +114,7 @@ module TestHelpers
       wifi_on:                              nil,
       available_network_names:              %w[TestNet1 TestNet2],
       wifi_info:                            { 'status' => 'connected' },
-      connected_to_internet?:               true,
+      internet_connectivity_state:          :reachable,
       connected_network_name:               'TestNetwork',
       disconnect:                           nil,
       connect:                              nil,
@@ -173,8 +173,8 @@ module TestHelpers
     stub_const('WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT', 0.01)
   end
 
-  # Helper for mocking Net::HTTP to return a captive-portal-free response (HTTP 204)
-  def mock_captive_portal_free
+  # Helper for mocking Net::HTTP to return a portal-free response (HTTP 204)
+  def mock_captive_portal_free_state
     response = instance_double(Net::HTTPResponse, code: '204')
     allow(Net::HTTP).to receive(:get_response).and_return(response)
   end

@@ -2,6 +2,48 @@
 
 ### Breaking Changes
 
+#### `connected_to_internet?` replaced by `internet_connectivity_state`
+
+The old boolean-style `connected_to_internet?` API has been **removed** and
+replaced by `internet_connectivity_state`.
+
+| Old | New |
+|-----|-----|
+| `true` | `:reachable` |
+| `false` | `:unreachable` |
+| `nil` | `:indeterminate` |
+
+This change makes uncertainty explicit. `:indeterminate` means TCP and DNS
+worked, but captive-portal checks could not determine whether the network is
+actually open Internet or intercepted.
+
+The companion captive-portal API is now `captive_portal_state`, returning:
+
+- `:free`
+- `:present`
+- `:indeterminate`
+
+**Migration guidance:**
+
+```ruby
+# Old
+client.connected_to_internet? == true
+
+# New
+client.internet_connectivity_state == :reachable
+```
+
+Callers should replace boolean checks with explicit state comparisons and
+handle `:indeterminate` separately where appropriate.
+
+#### CLI `ci` output now reports explicit state values
+
+The `ci` command no longer represents connectivity as `true` / `false`.
+
+- Human-readable output: `Internet connectivity: reachable`
+- Plain output: `reachable`, `unreachable`, or `indeterminate`
+- JSON output: `"reachable"`, `"unreachable"`, or `"indeterminate"`
+
 #### `till` wait-state vocabulary redesigned
 
 The `till` command now uses an explicit, unambiguous vocabulary. The old state names
@@ -387,4 +429,3 @@ and `mac-wifi.rb` file.
 ## v1.0.0
 
 * First versioned release.
-

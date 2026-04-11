@@ -11,6 +11,21 @@ The `log` command continuously monitors WiFi power, network connection, and inte
 - Tracking outages and reconnections
 - Creating an audit trail of connectivity state changes
 
+## Breaking Change Context
+
+The main library connectivity API is now `internet_connectivity_state`, which
+returns `:reachable`, `:unreachable`, or `:indeterminate`.
+
+The log command still emits the historical event names `internet_on` and
+`internet_off`, but those events are derived from the explicit state model:
+
+- `internet_on` means the state changed to `:reachable`
+- `internet_off` means the state changed to `:unreachable`
+- no internet event is emitted for `:indeterminate`
+
+If the current state is indeterminate when logging starts, the initial snapshot
+will say `internet unknown`.
+
 ## Basic Usage
 
 ### Default Behavior (stdout only)
@@ -131,6 +146,9 @@ When multiple state changes occur in a single poll, events are emitted in this o
 2. **Network connection** (connected/disconnected)
 3. **Internet connectivity** (internet_on/internet_off)
 
+These event names are retained CLI/log vocabulary. The source of truth for the
+underlying state is still `internet_connectivity_state`.
+
 This ensures that related state changes are logged in a logical sequence.
 
 ### Network Roaming
@@ -220,9 +238,15 @@ The logger monitors three aspects of WiFi state:
 
 1. **WiFi Power**: Whether WiFi is turned on or off
 2. **Network Connection**: The name of the connected WiFi network (SSID)
-3. **Internet Connectivity**: Whether internet access is available (tested via fast parallel TCP probes)
+3. **Internet Connectivity**: Whether internet access is available
+   - Derived from `status_line_data`, which uses the explicit `internet_state`
+   - `:indeterminate` is preserved internally and reported as `internet unknown`
+     in the initial-state line
+   - Transition events are emitted only for `:reachable` and `:unreachable`
 
-The internet connectivity check uses fast parallel TCP probes to multiple well-known hosts (Cloudflare, Google, Baidu), optimized for continuous monitoring (~50–200ms per poll, 1s worst case).
+Unlike older boolean-style docs, connectivity is not always known with
+certainty. An indeterminate state means TCP and DNS succeeded but captive-portal
+checks could not reach a conclusion.
 
 ### macOS Performance Note
 

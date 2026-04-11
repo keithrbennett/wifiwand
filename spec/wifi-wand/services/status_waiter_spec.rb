@@ -7,9 +7,9 @@ require_relative '../../../lib/wifi-wand/timing_constants'
 describe WifiWand::StatusWaiter do
   let(:mock_model) do
     double('Model',
-      wifi_on?:               false,
-      associated?:            false,
-      connected_to_internet?: false,
+      wifi_on?:                    false,
+      associated?:                 false,
+      internet_connectivity_state: :unreachable,
     )
   end
 
@@ -23,8 +23,8 @@ describe WifiWand::StatusWaiter do
       wifi_off:      [:wifi_on?,               false],
       associated:    [:associated?,            true],
       disassociated: [:associated?,            false],
-      internet_on:   [:connected_to_internet?, true],
-      internet_off:  [:connected_to_internet?, false],
+      internet_on:   %i[internet_connectivity_state reachable],
+      internet_off:  %i[internet_connectivity_state unreachable],
     }.freeze
 
     state_predicates.each do |state, (predicate, satisfied)|
@@ -145,7 +145,7 @@ describe WifiWand::StatusWaiter do
     end
 
     it 'does not treat an indeterminate internet result as :internet_on' do
-      allow(mock_model).to receive(:connected_to_internet?).and_return(nil)
+      allow(mock_model).to receive(:internet_connectivity_state).and_return(:indeterminate)
       allow(waiter).to receive(:sleep)
 
       expect do
@@ -154,7 +154,7 @@ describe WifiWand::StatusWaiter do
     end
 
     it 'does not treat an indeterminate internet result as :internet_off' do
-      allow(mock_model).to receive(:connected_to_internet?).and_return(nil)
+      allow(mock_model).to receive(:internet_connectivity_state).and_return(:indeterminate)
       allow(waiter).to receive(:sleep)
 
       expect do

@@ -37,7 +37,6 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       it 'returns false when all endpoints fail' do
-        # Timeout wrapper ensures test doesn't hang if there's a bug
         result = Timeout.timeout(0.2) { tester.tcp_connectivity? }
         expect(result).to be false
       end
@@ -99,7 +98,6 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       it 'returns false when all domains fail to resolve' do
-        # Timeout wrapper ensures test doesn't hang if there's a bug
         result = Timeout.timeout(0.2) { tester.dns_working? }
         expect(result).to be false
       end
@@ -116,101 +114,101 @@ describe WifiWand::NetworkConnectivityTester do
     end
   end
 
-  describe '#connected_to_internet?' do
+  describe '#internet_connectivity_state' do
     let(:tester) { described_class.new(verbose: false) }
 
-    it 'returns true when TCP, DNS, and captive portal check all pass' do
+    it 'returns :reachable when TCP, DNS, and captive portal check all pass' do
       allow(tester).to receive_messages(
         tcp_connectivity?:    true,
         dns_working?:         true,
-        captive_portal_free?: true,
+        captive_portal_state: :free,
       )
 
-      expect(tester.connected_to_internet?).to be true
+      expect(tester.internet_connectivity_state).to eq(:reachable)
     end
 
-    it 'returns false when TCP fails' do
+    it 'returns :unreachable when TCP fails' do
       allow(tester).to receive_messages(tcp_connectivity?: false, dns_working?: true)
 
-      expect(tester.connected_to_internet?).to be false
+      expect(tester.internet_connectivity_state).to eq(:unreachable)
     end
 
-    it 'returns false when DNS fails' do
+    it 'returns :unreachable when DNS fails' do
       allow(tester).to receive_messages(tcp_connectivity?: true, dns_working?: false)
 
-      expect(tester.connected_to_internet?).to be false
+      expect(tester.internet_connectivity_state).to eq(:unreachable)
     end
 
-    it 'returns false when both TCP and DNS fail' do
+    it 'returns :unreachable when both TCP and DNS fail' do
       allow(tester).to receive_messages(tcp_connectivity?: false, dns_working?: false)
 
-      expect(tester.connected_to_internet?).to be false
+      expect(tester.internet_connectivity_state).to eq(:unreachable)
     end
 
-    it 'returns false when captive portal is detected (TCP and DNS pass but portal intercepts)' do
+    it 'returns :unreachable when captive portal is detected' do
       allow(tester).to receive_messages(
         tcp_connectivity?:    true,
         dns_working?:         true,
-        captive_portal_free?: false,
+        captive_portal_state: :present,
       )
 
-      expect(tester.connected_to_internet?).to be false
+      expect(tester.internet_connectivity_state).to eq(:unreachable)
     end
 
-    it 'returns nil when TCP and DNS pass but captive portal status is indeterminate' do
+    it 'returns :indeterminate when TCP and DNS pass but captive portal status is indeterminate' do
       allow(tester).to receive_messages(
         tcp_connectivity?:    true,
         dns_working?:         true,
-        captive_portal_free?: nil,
+        captive_portal_state: :indeterminate,
       )
 
-      expect(tester.connected_to_internet?).to be_nil
+      expect(tester.internet_connectivity_state).to eq(:indeterminate)
     end
 
     it 'skips captive portal check when TCP fails (short-circuit)' do
       allow(tester).to receive_messages(tcp_connectivity?: false, dns_working?: true)
-      expect(tester).not_to receive(:captive_portal_free?)
+      expect(tester).not_to receive(:captive_portal_state)
 
-      tester.connected_to_internet?
+      tester.internet_connectivity_state
     end
 
-    it 'accepts pre-computed captive_free value and does not re-check' do
+    it 'accepts a pre-computed captive portal state and does not re-check' do
       allow(tester).to receive_messages(tcp_connectivity?: true, dns_working?: true)
-      expect(tester).not_to receive(:captive_portal_free?)
+      expect(tester).not_to receive(:captive_portal_state)
 
-      expect(tester.connected_to_internet?(true, true, true)).to be true
+      expect(tester.internet_connectivity_state(true, true, :free)).to eq(:reachable)
     end
 
-    it 'preserves a pre-computed indeterminate captive_free value' do
+    it 'preserves a pre-computed indeterminate captive portal state' do
       allow(tester).to receive_messages(tcp_connectivity?: true, dns_working?: true)
-      expect(tester).not_to receive(:captive_portal_free?)
+      expect(tester).not_to receive(:captive_portal_state)
 
-      expect(tester.connected_to_internet?(true, true, nil)).to be_nil
+      expect(tester.internet_connectivity_state(true, true, :indeterminate)).to eq(:indeterminate)
     end
   end
 
-  describe '#captive_portal_free?' do
+  describe '#captive_portal_state' do
     let(:tester) { described_class.new(verbose: false) }
 
     it 'delegates to the captive_portal_checker' do
       checker = tester.captive_portal_checker
-      allow(checker).to receive(:captive_portal_free?).and_return(true)
-      expect(tester.captive_portal_free?).to be true
+      allow(checker).to receive(:captive_portal_state).and_return(:free)
+      expect(tester.captive_portal_state).to eq(:free)
     end
 
     context 'when the connectivity check endpoint returns 204' do
-      before { mock_captive_portal_free }
+      before { mock_captive_portal_free_state }
 
-      it 'returns true' do
-        expect(tester.captive_portal_free?).to be true
+      it 'returns :free' do
+        expect(tester.captive_portal_state).to eq(:free)
       end
     end
 
     context 'when the connectivity check endpoint returns a redirect (captive portal)' do
       before { mock_captive_portal_detected }
 
-      it 'returns false' do
-        expect(tester.captive_portal_free?).to be false
+      it 'returns :present' do
+        expect(tester.captive_portal_state).to eq(:present)
       end
     end
 
@@ -220,8 +218,8 @@ describe WifiWand::NetworkConnectivityTester do
         allow(Net::HTTP).to receive(:get_response).and_raise(Errno::ECONNREFUSED)
       end
 
-      it 'returns nil (indeterminate)' do
-        expect(tester.captive_portal_free?).to be_nil
+      it 'returns :indeterminate' do
+        expect(tester.captive_portal_state).to eq(:indeterminate)
       end
     end
 
@@ -229,15 +227,15 @@ describe WifiWand::NetworkConnectivityTester do
       let(:output) { StringIO.new }
       let(:tester) { described_class.new(verbose: true, output: output) }
 
-      before { mock_captive_portal_free }
+      before { mock_captive_portal_free_state }
 
       it 'logs the endpoints being checked' do
-        tester.captive_portal_free?
+        tester.captive_portal_state
         expect(output.string).to match(/Testing captive portal via HTTP:/)
       end
 
       it 'logs a pass result' do
-        tester.captive_portal_free?
+        tester.captive_portal_state
         expect(output.string).to include('pass')
       end
     end
@@ -249,7 +247,7 @@ describe WifiWand::NetworkConnectivityTester do
       before { mock_captive_portal_detected }
 
       it 'logs results array and detected status' do
-        tester.captive_portal_free?
+        tester.captive_portal_state
         expect(output.string).to include('mismatch')
         expect(output.string).to include('detected')
       end

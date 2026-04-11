@@ -4,6 +4,16 @@
 
 The `status` command (aliased as `s`) displays a concise, single-line summary of your WiFi and internet connectivity status. This command is optimized for accurate, reliable connectivity information and uses intentionally long timeouts to avoid false positives from temporary network slowdowns.
 
+## Breaking Change: Explicit Connectivity States
+
+In this major release, internet connectivity is no longer modeled as a simple
+boolean. The underlying library API now uses `internet_connectivity_state`
+(`:reachable`, `:unreachable`, `:indeterminate`), and the status command exposes
+that same model in structured output via `internet_state`.
+
+Human-readable `status` output still shows `Internet: YES`, `NO`, or `UNKNOWN`,
+but machine-readable output carries the explicit state values.
+
 ## Basic Usage
 
 ### Quick Status Check
@@ -46,6 +56,7 @@ On terminals that support it, the status is color-coded for at-a-glance readabil
 ### Internet Status
 - **YES** - TCP connectivity, DNS resolution, and no captive portal all confirmed
 - **NO** - Internet is not available (TCP failure, DNS failure, or captive portal detected)
+- **UNKNOWN** - TCP and DNS worked, but captive-portal checks could not determine the result
 
 ### Captive Portal Login Required *(shown only when detected)*
 - Appears as `⚠️ Captive Portal Login Required` appended to the status line
@@ -67,11 +78,32 @@ If step 3 fails while steps 1–2 pass, a captive portal is confidently detected
 
 ## Machine-Readable Output
 
-The `captive_portal_login_required` field is present in all machine-readable output formats.
+The `internet_state`, `captive_portal_state`, and `captive_portal_login_required` fields
+are present in all machine-readable output formats.
+
+In JSON they appear as strings. In Ruby-oriented formats such as inspect/YAML or
+in the interactive shell, they appear as symbols.
 
 If you are scripting against `wifi-wand`, prefer machine-readable output such as JSON (`-o j`)
 instead of parsing the human-formatted status line. Structured output is simpler to consume and
 less likely to change over time.
+
+### Key: `internet_state`
+
+| Value | Meaning |
+|-------|---------|
+| `"reachable"` | TCP, DNS, and captive portal checks all confirmed Internet access |
+| `"unreachable"` | TCP failed, DNS failed, or a captive portal was detected |
+| `"indeterminate"` | TCP and DNS worked, but captive portal status could not be determined |
+| `"pending"` | Temporary streaming-progress state before checks complete |
+
+### Key: `captive_portal_state`
+
+| Value | Meaning |
+|-------|---------|
+| `"free"` | No captive portal detected |
+| `"present"` | Captive portal detected |
+| `"indeterminate"` | Captive portal status could not be determined |
 
 ### Key: `captive_portal_login_required`
 
@@ -92,7 +124,8 @@ Normal connected state:
 {
   "wifi_on": true,
   "network_name": "HomeNetwork",
-  "internet_connected": true,
+  "internet_state": "reachable",
+  "captive_portal_state": "free",
   "captive_portal_login_required": "no"
 }
 ```
@@ -102,8 +135,20 @@ Captive portal detected:
 {
   "wifi_on": true,
   "network_name": "HotelWiFi",
-  "internet_connected": false,
+  "internet_state": "unreachable",
+  "captive_portal_state": "present",
   "captive_portal_login_required": "yes"
+}
+```
+
+Indeterminate result:
+```json
+{
+  "wifi_on": true,
+  "network_name": "CafeWiFi",
+  "internet_state": "indeterminate",
+  "captive_portal_state": "indeterminate",
+  "captive_portal_login_required": "unknown"
 }
 ```
 
@@ -117,7 +162,8 @@ wifi-wand -o y status
 ---
 :wifi_on: true
 :network_name: HotelWiFi
-:internet_connected: false
+:internet_state: :unreachable
+:captive_portal_state: :present
 :captive_portal_login_required: :yes
 ```
 
@@ -193,8 +239,11 @@ fi
 ### Check if Internet is Available
 
 ```bash
-if wifi-wand -o j status | jq -e '.internet_connected == true' > /dev/null; then
+if wifi-wand -o j status | jq -e '.internet_state == "reachable"' > /dev/null; then
   echo "Internet OK - starting backup"
+elif wifi-wand -o j status | jq -e '.internet_state == "indeterminate"' > /dev/null; then
+  echo "Internet state unknown - retrying later"
+  exit 2
 else
   echo "No internet - postponing backup"
   exit 1
@@ -271,6 +320,6 @@ wifi-wand till internet_off  # Wait until Internet becomes unreachable
 | Output                    | Single line                      | Multi-line detailed data        |
 | Speed                     | Fast                             | Slower (more comprehensive)     |
 | Connectivity checks       | Yes (TCP/DNS/captive portal)     | Yes (same checks)               |
-| Captive portal detection  | Yes (in status data + display)   | Yes (captive_portal_free field) |
+| Captive portal detection  | Yes (in status data + display)   | Yes (`captive_portal_state` field) |
 | For scripts               | Better with `-o j`               | Better (structured data)        |
 | For humans                | Good (quick check)               | Better (comprehensive info)     |

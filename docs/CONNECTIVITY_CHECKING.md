@@ -2,166 +2,227 @@
 
 ## Overview
 
-The `ci` command (connectivity info) is the primary tool for checking internet connectivity. It provides a simple true/false indication of whether TCP connectivity, DNS resolution, and captive-portal-free internet access are working.
+The `ci` command (connectivity info) is the primary CLI for checking the current
+internet-connectivity state.
+
+In this major release, `ci` no longer exposes a boolean result. It now reports
+one of three explicit states:
+
+- `reachable`
+- `unreachable`
+- `indeterminate`
+
+This matches the library API `internet_connectivity_state`, which returns the
+same values as Ruby symbols:
+
+- `:reachable`
+- `:unreachable`
+- `:indeterminate`
+
+## Breaking Change and Migration
+
+The old boolean-style API `connected_to_internet?` has been removed.
+
+| Old | New |
+|-----|-----|
+| `connected_to_internet? == true` | `internet_connectivity_state == :reachable` |
+| `connected_to_internet? == false` | `internet_connectivity_state == :unreachable` |
+| `connected_to_internet? == nil` | `internet_connectivity_state == :indeterminate` |
+
+Library example:
+
+```ruby
+case client.internet_connectivity_state
+when :reachable
+  upload_file
+when :unreachable
+  queue_retry
+when :indeterminate
+  warn 'Connectivity state unknown; retry later'
+end
+```
+
+Shell example:
+
+```bash
+if [ "$(wifi-wand -o p ci)" = "reachable" ]; then
+  echo "Internet reachable"
+fi
+```
+
+JSON/JQ example:
+
+```bash
+if wifi-wand -o j ci | jq -e '. == "reachable"' > /dev/null; then
+  echo "Internet reachable"
+fi
+```
 
 ## Basic Usage
-
-Check if internet is available:
 
 ```bash
 wifi-wand ci
 ```
 
-Output:
-```
-Connected to Internet: true
+Human-readable output:
+
+```text
+Internet connectivity: reachable
 ```
 
-Or if not connected:
+Other possible outputs:
+
+```text
+Internet connectivity: unreachable
+Internet connectivity: indeterminate
 ```
-Connected to Internet: false
+
+For scripts, prefer a machine-readable format:
+
+```bash
+wifi-wand -o p ci
+wifi-wand -o j ci
 ```
+
+Examples:
+
+```text
+reachable
+```
+
+```json
+"reachable"
+```
+
+## What the States Mean
+
+| State | Meaning |
+|-------|---------|
+| `reachable` / `:reachable` | Internet reachability is confirmed |
+| `unreachable` / `:unreachable` | Internet is known to be unavailable |
+| `indeterminate` / `:indeterminate` | The result is genuinely unknown |
+
+### What `indeterminate` Means
+
+`indeterminate` is not a special kind of `unreachable`.
+
+It means:
+
+- TCP connectivity succeeded
+- DNS resolution succeeded
+- but captive-portal checks could not determine whether the network is truly
+  open Internet or an intercepted login network
+
+So an indeterminate state may still correspond to a network that is actually
+reachable. It is reported separately because a boolean API would imply false
+certainty.
 
 ## Using in Scripts
 
-The `ci` command is specifically designed for use in shell scripts where you need a simple connectivity check:
+Check whether connectivity is confirmed:
 
 ```bash
 #!/bin/bash
-# Check if internet is available before proceeding
-if wifi-wand ci | grep -q true; then
+
+state="$(wifi-wand -o p ci)"
+
+if [ "$state" = "reachable" ]; then
   echo "Internet is available - proceeding with upload"
-  # Do something that requires internet
   curl https://example.com/upload --data @file.txt
+elif [ "$state" = "indeterminate" ]; then
+  echo "Internet state is unknown - avoiding a false claim either way"
+  exit 2
 else
   echo "Internet is unavailable - will retry later"
-  # Queue the operation for later
   exit 1
 fi
 ```
 
-### Exit Codes for Automation
-
-You can also use the exit code (though the above pattern with grep is simpler):
+Wait for internet to come back:
 
 ```bash
 #!/bin/bash
-# Retry operation until internet is available
-while ! wifi-wand ci | grep -q true; do
-  echo "Waiting for internet..."
-  sleep 10
+echo "Internet went down, waiting for it to come back..."
+
+while [ "$(wifi-wand -o p ci)" != "reachable" ]; do
+  sleep 5
 done
 
-echo "Internet is now available!"
-# Proceed with network operations
+echo "Internet is back!"
+```
+
+Monitor connectivity in a loop:
+
+```bash
+#!/bin/bash
+
+while true; do
+  state="$(wifi-wand -o p ci)"
+
+  if [ "$state" = "reachable" ]; then
+    echo "$(date): Internet available"
+  elif [ "$state" = "indeterminate" ]; then
+    echo "$(date): Internet state unknown"
+  else
+    echo "$(date): Internet unavailable"
+  fi
+
+  sleep 30
+done
 ```
 
 ## Comparing Connectivity Tools
 
 | Command | Use Case | Output | Speed |
 |---------|----------|--------|-------|
-| `ci` | Simple connectivity check | true/false | Fast |
+| `ci` | Single explicit connectivity state | reachable/unreachable/indeterminate | Fast |
 | `status` | Full network summary | Multi-field status | Several seconds |
 | `info` | Detailed network info | Complete data | Several seconds |
 
-Use `ci` when you just need to know "is the internet working?". Use `status` when you need the complete picture of your network state.
+Use `ci` when you want the current connectivity state as one value. Use `status`
+or `info` when you need the full network picture.
 
-## Understanding the Results
+## How Connectivity Is Determined
 
-`ci` checks three things:
+`internet_connectivity_state` combines three checks:
 
-1. **DNS Resolution**: Can the system resolve domain names?
-2. **TCP Connectivity**: Can the system establish TCP connections?
-3. **Captive Portal Detection**: If TCP and DNS work, does an HTTP connectivity-check endpoint return the expected status code rather than a portal redirect or login page?
+1. **TCP connectivity**: can the system establish TCP connections?
+2. **DNS resolution**: can the system resolve domain names?
+3. **Captive-portal detection**: if TCP and DNS work, do known HTTP
+   connectivity-check endpoints return the expected response codes?
 
-Internet is considered available only when all required checks pass.
-
-## Examples
-
-### Wait for Internet to Come Back Online
-
-```bash
-#!/bin/bash
-echo "Internet went down, waiting for it to come back..."
-
-while ! wifi-wand ci | grep -q true; do
-  sleep 5
-done
-
-echo "Internet is back!"
-mail -s "Internet restored" user@example.com < /dev/null
-```
-
-### Run a Task Only When Internet is Available
-
-```bash
-#!/bin/bash
-
-if wifi-wand ci | grep -q true; then
-  # Do something that requires internet
-  git push origin main
-  echo "Code pushed successfully"
-else
-  echo "No internet - skipping push"
-  exit 1
-fi
-```
-
-### Monitor Connectivity in a Loop
-
-```bash
-#!/bin/bash
-
-while true; do
-  if wifi-wand ci | grep -q true; then
-    echo "$(date): Internet available"
-  else
-    echo "$(date): Internet unavailable"
-  fi
-  sleep 30
-done
-```
-
-## Timeouts
-
-Like the `status` command, `ci` uses intentionally long timeouts (several seconds on macOS) to avoid false positives from temporary network slowdowns. This means each check takes several seconds to complete.
-
-If you need to check connectivity frequently, be mindful that each check will block for several seconds. Use appropriate sleep intervals between checks when polling in a loop.
+Internet is considered `reachable` only when all required checks pass.
 
 ## Captive Portal Detection
 
-Beyond basic TCP and DNS checks, wifi-wand can detect **captive portals** — the
-interception pages common in coffee shops, hotels, and airports that block real
+Beyond basic TCP and DNS checks, wifi-wand can detect **captive portals**: the
+interception pages common in hotels, airports, and coffee shops that block real
 internet access behind a login screen.
+
+### Companion API: `captive_portal_state`
+
+The captive-portal API is now explicit too:
+
+| State | Meaning |
+|-------|---------|
+| `:free` | No captive portal detected |
+| `:present` | Captive portal detected |
+| `:indeterminate` | Captive-portal state could not be determined |
 
 ### How It Works
 
-Captive portals intercept TCP connections and complete the handshake on behalf of
-external hosts. This makes plain TCP connectivity checks unreliable —
-`tcp_connectivity?` returns `true` even when real internet access is blocked.
+Captive portals intercept TCP connections and complete the handshake on behalf
+of external hosts. This makes plain TCP connectivity checks unreliable:
+`tcp_connectivity?` can return `true` even when real internet access is blocked.
 
-The `captive_portal_free?` method disambiguates by issuing real HTTP GET requests
-to well-known connectivity check endpoints (e.g. Google's `generate_204` endpoints)
-and verifying the response status codes. A `204 No Content` response can only come
-from the actual server — captive portals return `302` redirects or `200` HTML login
-pages instead.
+The `captive_portal_state` method disambiguates by issuing real HTTP GET
+requests to well-known connectivity-check endpoints (for example Google's
+`generate_204` endpoints) and verifying the response status codes. A `204 No
+Content` response can only come from the actual server. Captive portals return
+redirects or login pages instead.
 
-**HTTP (not HTTPS) is used intentionally:** captive portals must respond to plain
-HTTP requests themselves rather than silently forwarding them, which forces a
-detectable status code mismatch.
-
-### Terminology: "mismatch"
-
-A **mismatch** means an endpoint returned an HTTP status code different from the
-expected code configured for that endpoint (e.g. receiving a `302` or `200` when
-`204` was expected). This is distinct from a **network error** (timeout, connection
-refused, DNS failure), which produces no HTTP response at all.
-
-A mismatch is significant because it indicates the server *did* respond, but with
-unexpected content — the hallmark of a captive portal intercepting and rewriting
-the request. However, a single mismatch is not conclusive on its own (the endpoint
-could have been reconfigured or temporarily misbehaving), so the method continues
-checking remaining endpoints before making a final determination.
+HTTP, not HTTPS, is used intentionally: captive portals must respond to plain
+HTTP requests themselves rather than silently forwarding them.
 
 ### Endpoint Redundancy
 
@@ -169,56 +230,38 @@ Multiple endpoints are checked concurrently so that a single misbehaving or
 rewritten endpoint cannot cause a false captive-portal detection without adding
 serial worst-case timeout cost:
 
-- If **any** endpoint returns the expected status code, the method returns `true`
-  (real internet confirmed).
-- If an endpoint returns an unexpected HTTP status code, the method records a
-  "definite mismatch" but continues trying remaining endpoints in case one of them
-  succeeds.
-- If an endpoint fails with a network-level error, the method skips it and moves
-  on — the endpoint server itself may be unreachable, which does not indicate a
-  captive portal.
+- If any endpoint returns the expected status code, the result is `:free`
+- If an endpoint returns an unexpected status code, the method records a
+  mismatch and keeps checking
+- If an endpoint fails with a network-level error, the method skips it
 
 ### Return Values
 
 | Return | Condition | Meaning |
 |--------|-----------|---------|
-| `true` | At least one endpoint returned the expected status code | Real internet confirmed |
-| `false` | At least one endpoint returned a wrong status code **and** none succeeded | Captive portal detected |
-| `true` | All endpoints failed with network errors, none returned any HTTP response | Can't determine; assume free to avoid false negatives |
+| `:free` | At least one endpoint returned the expected status code | No captive portal detected |
+| `:present` | At least one endpoint returned a wrong status code and none succeeded | Captive portal detected |
+| `:indeterminate` | All endpoints failed with network errors | Captive-portal state could not be determined |
 
-The "assume free" fallback for all-network-error scenarios avoids false negatives
-that would falsely report captive-portal detection on networks with transient
-connectivity issues (e.g. the check servers themselves being temporarily
-unreachable).
+## How `internet_connectivity_state` Is Derived
 
-### Decision Flow
+The higher-level `internet_connectivity_state` API combines TCP, DNS, and
+captive-portal state into an explicit symbolic result:
 
-For each endpoint:
+| TCP | DNS | Captive portal | Internet connectivity |
+|-----|-----|----------------|-----------------------|
+| pass | pass | `:free` | `:reachable` |
+| fail | any | any | `:unreachable` |
+| any | fail | any | `:unreachable` |
+| pass | pass | `:present` | `:unreachable` |
+| pass | pass | `:indeterminate` | `:indeterminate` |
 
-1. Attempt HTTP GET via `attempt_captive_portal_check`.
-   - Returns `true` → expected code received; mark internet confirmed.
-   - Returns `false` → wrong code received (mismatch); record it.
-   - Returns `nil` → network error; ignore it for mismatch purposes.
+## Deferred Checking in `wifi_info`
 
-After the concurrent checks complete:
-
-- If any endpoint succeeded → return `true`.
-- Otherwise, if any mismatch was recorded → return `false` (captive portal detected).
-- Otherwise → return `true` (all errors, assume free).
-
-### Verbose Logging
-
-When verbose mode is enabled (`wifi-wand -v`), the method logs:
-
-- The list of endpoints being tested before the first request.
-- Per-endpoint results: `pass`, `mismatch`, or network error details.
-- A final decision message indicating the outcome.
-
-### Deferred Checking in `wifi_info`
-
-The `wifi_info` method (used by the `info` command) defers the captive portal
+The `wifi_info` method (used by the `info` command) skips the captive-portal
 HTTP check when TCP or DNS has already failed. Since a captive portal can only
-be present when both TCP and DNS are working (portals complete TCP handshakes
-and provide DNS), performing the HTTP request on an obviously-offline network
-adds unnecessary delay. When TCP or DNS is `false`, `captive_portal_free` is
-set to `true` without making any HTTP request.
+be present when both TCP and DNS are working, performing the HTTP request on an
+obviously offline network adds unnecessary delay.
+
+When TCP or DNS is `false`, `captive_portal_state` is set to `:indeterminate`
+without making any HTTP request.

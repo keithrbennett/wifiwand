@@ -114,8 +114,8 @@ describe 'Output Format End-to-End Tests' do
           end
         end
 
-        it 'formats boolean output correctly' do
-          allow(mock_model).to receive(:connected_to_internet?).and_return(true)
+        it 'formats symbolic connectivity output correctly' do
+          allow(mock_model).to receive(:internet_connectivity_state).and_return(:reachable)
 
           options = parse_options('-o', format_code, 'ci')
           cli = WifiWand::CommandLineInterface.new(options)
@@ -127,13 +127,13 @@ describe 'Output Format End-to-End Tests' do
 
           case format_code
           when 'i'
-            expect(output).to eq('true')
+            expect(output).to eq('"reachable"')
           when 'j', 'k'
-            expect(JSON.parse(output)).to be(true)
+            expect(JSON.parse(output)).to eq('reachable')
           when 'p'
-            expect(output).to eq('true')
+            expect(output).to eq('reachable')
           when 'y'
-            expect(YAML.safe_load(output)).to be(true)
+            expect(YAML.safe_load(output)).to eq('reachable')
           end
         end
 

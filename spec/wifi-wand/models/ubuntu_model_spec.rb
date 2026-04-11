@@ -17,7 +17,7 @@ module WifiWand
 
       unless is_disruptive
         tester = WifiWand::NetworkConnectivityTester
-        allow_any_instance_of(tester).to receive(:connected_to_internet?).and_return(true)
+        allow_any_instance_of(tester).to receive(:internet_connectivity_state).and_return(:reachable)
         allow_any_instance_of(tester).to receive(:tcp_connectivity?).and_return(true)
         allow_any_instance_of(tester).to receive(:dns_working?).and_return(true)
 

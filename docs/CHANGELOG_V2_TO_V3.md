@@ -43,6 +43,8 @@ This document summarizes the changes and improvements made in version 3.0 compar
 
 - Updated terminology from "Mac OS" to "macOS" throughout documentation
 - Prepared version bump to 3.0.0-alpha indicating major platform expansion
+- Documented the later major-version breaking change that replaces
+  `connected_to_internet?` with `internet_connectivity_state`
 
 ## Interactive Shell Improvements
 

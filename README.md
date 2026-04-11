@@ -94,6 +94,46 @@ The interactive shell is now a dedicated subcommand: run it with `wifi-wand shel
 The legacy `-s/--shell` option has been removed—update any scripts or aliases that
 still rely on the flag before upgrading.
 
+### ⚠️ Breaking Change: Internet Connectivity API
+
+The old boolean-style `connected_to_internet?` API has been **removed** in this
+major release. Use `internet_connectivity_state` instead.
+
+| Old result | New result | Meaning |
+|------------|------------|---------|
+| `true` | `:reachable` | Internet reachability confirmed |
+| `false` | `:unreachable` | Internet is known to be unavailable |
+| `nil` | `:indeterminate` | The result is unknown, not a confident "no" |
+
+`captive_portal_state` is now explicit too:
+
+| Method | Values |
+|--------|--------|
+| `captive_portal_state` | `:free`, `:present`, `:indeterminate` |
+
+Why this exists: sometimes TCP and DNS succeed, but captive-portal checks cannot
+determine whether the network is truly open Internet or an intercepted login
+network. A boolean API implied false certainty. The explicit-state API preserves
+that uncertainty.
+
+**Migration examples:**
+
+```ruby
+# Old
+client.connected_to_internet? == true
+
+# New
+client.internet_connectivity_state == :reachable
+```
+
+```bash
+# Old
+wifi-wand ci | grep -q true
+
+# New
+[ "$(wifi-wand -o p ci)" = "reachable" ]
+```
+
 ### ⚠️ Breaking Change: `till` Wait-State Names
 
 The `till` command now uses an explicit, unambiguous vocabulary. The old names
@@ -112,7 +152,7 @@ command—it was really asking "is the internet up?" rather than "did I join the
 network?". The new names make intent explicit:
 
 - `associated` / `disassociated` — WiFi layer: joined an SSID or not
-- `internet_on` / `internet_off` — Application layer: TCP + DNS + captive-portal free
+- `internet_on` / `internet_off` — Application layer: reachable/unreachable Internet state
 - `wifi_on` / `wifi_off` — Hardware: radio powered on or off
 
 **Migration examples:**
@@ -190,7 +230,7 @@ shell                     - start interactive shell (interactive pry REPL sessio
 Commands
 --------
 a[vail_nets]              - array of names of the available networks
-ci                        - state of Internet connectivity, defined as both DNS and TCP working
+ci                        - Internet connectivity state: reachable, unreachable, or indeterminate
 co[nnect] network-name    - connects to the specified network-name, turning WiFi on if necessary
 cy[cle]                   - toggles WiFi on/off state twice, regardless of starting state
 d[isconnect]              - disconnects from current network, does not turn off WiFi
@@ -201,7 +241,7 @@ i[nfo]                    - a hash of detailed networking information
 lo[g]                     - start event logging (polls WiFi status, logs changes)
                             options: --interval N (default 5 seconds), --file [PATH] (default: wifiwand-events.log),
                                      --stdout (keep stdout when file destination is used)
-                            Logs events: internet on/off
+                            Logs events: internet on/off (derived from explicit reachable/unreachable state)
                             Ctrl+C to stop (see docs/LOGGING.md for details)
 na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear,
                             or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
@@ -223,8 +263,8 @@ t[ill]                    - wait until state is reached:
                               wifi_off       – WiFi hardware powered off
                               associated     – WiFi associated with an SSID (WiFi layer)
                               disassociated  – WiFi not associated with any SSID
-                              internet_on    – Internet reachable (TCP + DNS + captive-portal free)
-                              internet_off   – Internet not reachable
+                              internet_on    – Internet connectivity state is reachable
+                              internet_off   – Internet connectivity state is unreachable
                             Defaults: timeout = wait indefinitely; interval = 0.5s
                             Examples: "till wifi_off 20"  "till internet_on 30 0.5"
 w[ifi_on]                 - is the WiFi on?
@@ -439,7 +479,8 @@ The `Client` object provides a comprehensive API for interacting with your Wi-Fi
 *   `connect(ssid, password)`
 *   `connected_network_name`
 *   `connected_to?(ssid)`
-*   `connected_to_internet?`
+*   `internet_connectivity_state` — returns `:reachable`, `:unreachable`, or `:indeterminate`
+*   `captive_portal_state` — returns `:free`, `:present`, or `:indeterminate`
 *   `cycle_network`
 *   `default_interface`
 *   `disconnect`
@@ -461,6 +502,26 @@ The `Client` object provides a comprehensive API for interacting with your Wi-Fi
 
 Please refer to the YARD documentation for a complete list of methods and their parameters.
 
+**Migration: `connected_to_internet?` → `internet_connectivity_state`**
+
+```ruby
+# Old
+client.connected_to_internet? == true
+
+# New
+client.internet_connectivity_state == :reachable
+```
+
+```ruby
+case client.internet_connectivity_state
+when :reachable
+  puts 'Internet reachable'
+when :unreachable
+  puts 'Internet unreachable'
+when :indeterminate
+  puts 'Internet state unknown'
+end
+```
 
 **More Examples**
 
@@ -497,7 +558,7 @@ There are 341 preferred networks.
 # Define a method to wait for the Internet connection to be active.
 # (This functionality is included in the `till` command.)
 # Call it, then output celebration message:
-> def wait_for_internet; loop do; break if ci; sleep 0.1; end; end
+> def wait_for_internet; loop do; break if internet_connectivity_state == :reachable; sleep 0.1; end; end
 > wait_for_internet; puts "Connected!"
 Connected!
 

@@ -20,8 +20,8 @@ module WifiWand
         # Ensure initialization doesn’t fail due to interface detection during non-disruptive tests
         allow_any_instance_of(described_class).to receive(:detect_wifi_interface).and_return('en0')
 
-        allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:connected_to_internet?)
-          .and_return(true)
+        allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:internet_connectivity_state)
+          .and_return(:reachable)
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?)
           .and_return(true)
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?)

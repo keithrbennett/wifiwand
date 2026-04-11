@@ -11,6 +11,7 @@ require_relative 'helpers/command_output_formatter'
 require_relative 'helpers/resource_manager'
 require_relative 'helpers/qr_code_generator'
 require_relative '../errors'
+require_relative '../connectivity_states'
 require_relative '../services/command_executor'
 require_relative '../services/network_connectivity_tester'
 require_relative '../services/network_state_manager'
@@ -196,13 +197,12 @@ module WifiWand
       @command_executor.run_os_command(command, raise_on_error)
     end
 
-    # This method returns whether or not there is a working Internet connection.
-    # Tests TCP connectivity, DNS resolution, and absence of a captive portal.
-    # Pre-computed values can be supplied to avoid redundant network calls.
-    def connected_to_internet?(tcp_working = nil, dns_working = nil,
-      captive_free = NetworkConnectivityTester::UNSET)
+    # Returns an explicit internet connectivity state:
+    # :reachable, :unreachable, or :indeterminate.
+    def internet_connectivity_state(tcp_working = nil, dns_working = nil,
+      captive_portal_state = NetworkConnectivityTester::UNSET)
       debug_method_entry(__method__)
-      @connectivity_tester.connected_to_internet?(tcp_working, dns_working, captive_free)
+      @connectivity_tester.internet_connectivity_state(tcp_working, dns_working, captive_portal_state)
     end
 
     # Tests TCP connectivity to internet hosts (not localhost)
@@ -217,11 +217,10 @@ module WifiWand
       @connectivity_tester.dns_working?
     end
 
-    # Returns true if the connection is not intercepted by a captive portal.
-    # See NetworkConnectivityTester#captive_portal_free? for details.
-    def captive_portal_free?
+    # Returns an explicit captive-portal state: :free, :present, or :indeterminate.
+    def captive_portal_state
       debug_method_entry(__method__)
-      @connectivity_tester.captive_portal_free?
+      @connectivity_tester.captive_portal_state
     end
 
     # Fast connectivity check optimized for continuous monitoring (e.g. `log` and `status` commands).
@@ -257,35 +256,39 @@ module WifiWand
         false
       end
 
-      captive_free = if internet_tcp && dns_working
+      portal_state = if internet_tcp && dns_working
         begin
-          captive_portal_free?
+          captive_portal_state
         rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
-          nil
+          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
         end
       else
-        nil
+        ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
       end
 
       # Pass all pre-computed values to avoid redundant network calls
-      connected = connected_to_internet?(internet_tcp, dns_working, captive_free)
+      connectivity_state = ConnectivityStates.internet_state_from(
+        tcp_working:          internet_tcp,
+        dns_working:          dns_working,
+        captive_portal_state: portal_state,
+      )
 
       info = {
-        'wifi_on'                   => wifi_on?,
-        'internet_tcp_connectivity' => internet_tcp,
-        'dns_working'               => dns_working,
-        'captive_portal_free'       => captive_free,
-        'internet_on'               => connected,
-        'interface'                 => wifi_interface,
-        'default_interface'         => default_interface,
-        'network'                   => begin; connected_network_name; rescue WifiWand::Error; nil; end,
-        'ip_address'                => begin; ip_address; rescue WifiWand::Error; nil; end,
-        'mac_address'               => mac_address,
-        'nameservers'               => nameservers,
-        'timestamp'                 => Time.now,
+        'wifi_on'                     => wifi_on?,
+        'internet_tcp_connectivity'   => internet_tcp,
+        'dns_working'                 => dns_working,
+        'captive_portal_state'        => portal_state,
+        'internet_connectivity_state' => connectivity_state,
+        'interface'                   => wifi_interface,
+        'default_interface'           => default_interface,
+        'network'                     => begin; connected_network_name; rescue WifiWand::Error; nil; end,
+        'ip_address'                  => begin; ip_address; rescue WifiWand::Error; nil; end,
+        'mac_address'                 => mac_address,
+        'nameservers'                 => nameservers,
+        'timestamp'                   => Time.now,
       }
 
-      if info['internet_on']
+      if connectivity_state == ConnectivityStates::INTERNET_REACHABLE
         begin
           info['public_ip'] = public_ip_address_info
         rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED, SocketError
@@ -324,16 +327,17 @@ module WifiWand
     # they're known so callers can stream updates.
     # Network name and internet checks run concurrently using fibers to shorten
     # the perceived wait. Internet status uses the full connectivity path so
-    # captive portals are reported as not connected.
-    # The returned hash includes :captive_portal_login_required (:yes/:no/:unknown)
-    # where :yes means a captive portal was confidently detected and login is needed.
+    # captive portals are reported as unreachable.
+    # The returned hash includes :internet_state and :captive_portal_state
+    # plus the derived :captive_portal_login_required (:yes/:no/:unknown).
     def status_line_data(progress_callback: nil)
       # Build initial partial hash with pending values
       partial = {
         wifi_on:                       wifi_on?,
-        internet_connected:            nil,
+        internet_state:                ConnectivityStates::INTERNET_PENDING,
         internet_check_complete:       false,
         network_name:                  :pending,
+        captive_portal_state:          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
         captive_portal_login_required: :unknown,
       }
 
@@ -341,7 +345,7 @@ module WifiWand
 
       unless partial[:wifi_on]
         partial[:network_name] = nil
-        partial[:internet_connected] = false
+        partial[:internet_state] = ConnectivityStates::INTERNET_UNREACHABLE
         partial[:internet_check_complete] = true
         partial[:captive_portal_login_required] = :no
         progress_callback&.call(partial.dup)
@@ -368,29 +372,35 @@ module WifiWand
             false
           end
           if tcp && dns
-            captive_free = begin
-              captive_portal_free?
+            portal_state = begin
+              captive_portal_state
             rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
-              nil
+              ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
             end
 
-            captive_portal_login_required = if captive_free.nil?
+            captive_portal_login_required = if portal_state == ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
               :unknown
-            elsif captive_free
+            elsif portal_state == ConnectivityStates::CAPTIVE_PORTAL_FREE
               :no
             else
               :yes
             end
 
             {
-              internet_connected:            captive_free,
+              internet_state:                ConnectivityStates.internet_state_from(
+                tcp_working:          tcp,
+                dns_working:          dns,
+                captive_portal_state: portal_state,
+              ),
               internet_check_complete:       true,
+              captive_portal_state:          portal_state,
               captive_portal_login_required: captive_portal_login_required,
             }
           else
             {
-              internet_connected:            false,
+              internet_state:                ConnectivityStates::INTERNET_UNREACHABLE,
               internet_check_complete:       true,
+              captive_portal_state:          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
               captive_portal_login_required: :no,
             }
           end
@@ -401,8 +411,9 @@ module WifiWand
         progress_callback&.call(partial.dup)
 
         connectivity = connectivity_task.wait
-        partial[:internet_connected] = connectivity[:internet_connected]
+        partial[:internet_state] = connectivity[:internet_state]
         partial[:internet_check_complete] = connectivity[:internet_check_complete]
+        partial[:captive_portal_state] = connectivity[:captive_portal_state]
         partial[:captive_portal_login_required] = connectivity[:captive_portal_login_required]
 
         final_data = partial.dup

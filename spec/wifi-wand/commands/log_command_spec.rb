@@ -8,11 +8,10 @@ describe WifiWand::LogCommand do
   let(:mock_model) do
     double('Model',
       status_line_data: {
-        wifi_on:            true,
-        network_name:       'HomeNetwork',
-        tcp_working:        true,
-        dns_working:        true,
-        internet_connected: true,
+        wifi_on:                 true,
+        network_name:            'HomeNetwork',
+        internet_state:          :reachable,
+        internet_check_complete: true,
       },
     )
   end

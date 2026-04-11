@@ -18,7 +18,8 @@ module WifiWand
       :connect,
       :connected_network_name,
       :connected_to?,
-      :connected_to_internet?,
+      :internet_connectivity_state,
+      :captive_portal_state,
       :cycle_network,
       :default_interface,
       :disconnect,
@@ -61,9 +62,13 @@ module WifiWand
     #   @param network_name [String] The SSID to check against.
     #   @return [Boolean] True if connected to the specified network.
 
-    # @!method connected_to_internet?
-    #   Checks for a working internet connection (TCP and DNS).
-    #   @return [Boolean] True if the internet is reachable.
+    # @!method internet_connectivity_state
+    #   Returns :reachable, :unreachable, or :indeterminate.
+    #   @return [Symbol] Explicit internet connectivity state.
+
+    # @!method captive_portal_state
+    #   Returns :free, :present, or :indeterminate.
+    #   @return [Symbol] Explicit captive-portal state.
 
     # @!method cycle_network
     #   Turns the Wi-Fi interface off and then on again.

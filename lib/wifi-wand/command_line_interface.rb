@@ -6,6 +6,7 @@ require 'ostruct'
 require_relative 'errors'
 require_relative 'version'
 require_relative 'timing_constants'
+require_relative 'connectivity_states'
 
 # Include extracted modules
 require_relative 'command_line_interface/help_system'
@@ -95,9 +96,9 @@ module WifiWand
     end
 
     def cmd_ci
-      connected = model.connected_to_internet?
-      display_value = connected.nil? ? 'indeterminate' : connected
-      handle_output(connected, -> { "Connected to Internet: #{display_value}" })
+      state = model.internet_connectivity_state
+      output_value = interactive_mode ? state : state.to_s
+      handle_output(output_value, -> { "Internet connectivity: #{state}" })
     end
 
     def cmd_co(network, password = nil)
@@ -262,7 +263,7 @@ module WifiWand
       progress_mode = status_progress_mode
       # Build initial snapshot with only the fields that will actually be populated
       # Start with required fields, network_name is added by first update if model includes it
-      current_snapshot = { wifi_on: nil, internet_connected: nil }
+      current_snapshot = { wifi_on: nil, internet_state: ConnectivityStates::INTERNET_PENDING }
       last_visible_length = 0
       inline_progress_printed = false
       saw_progress_error = false

@@ -29,11 +29,11 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
   let(:mock_model) do
     double('model',
-      wifi_on?:                   true,
-      connected_network_name:     'TestNetwork',
-      internet_tcp_connectivity?: true,
-      dns_working?:               true,
-      connected_to_internet?:     true,
+      wifi_on?:                    true,
+      connected_network_name:      'TestNetwork',
+      internet_tcp_connectivity?:  true,
+      dns_working?:                true,
+      internet_connectivity_state: :reachable,
     )
   end
 
@@ -292,7 +292,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       {
         wifi_on:                       true,
         network_name:                  'TestNetwork',
-        internet_connected:            true,
+        internet_state:                :reachable,
         internet_check_complete:       true,
         captive_portal_login_required: :no,
       }
@@ -316,15 +316,15 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       end
 
       hash_key_map = {
-        wifi_on?:               :wifi_on,
-        connected_network_name: :network_name,
-        connected_to_internet?: :internet_connected,
+        wifi_on?:                    :wifi_on,
+        connected_network_name:      :network_name,
+        internet_connectivity_state: :internet_state,
       }
 
       {
-        'WiFi off'         => [:wifi_on?,                false, /WiFi.*OFF/,             RED_TEXT_REGEX],
-        'no network'       => [:connected_network_name,  nil,   /WiFi Network.*none/,    YELLOW_TEXT_REGEX],
-        'Internet failure' => [:connected_to_internet?,  false, /Internet.*NO/,  RED_TEXT_REGEX],
+        'WiFi off'         => [:wifi_on?, false, /WiFi.*OFF/, RED_TEXT_REGEX],
+        'no network'       => [:connected_network_name, nil, /WiFi Network.*none/, YELLOW_TEXT_REGEX],
+        'Internet failure' => [:internet_connectivity_state, :unreachable, /Internet.*NO/, RED_TEXT_REGEX],
       }.each do |scenario, (mock_method, return_value, expected_pattern, expected_color)|
         it "displays error status when #{scenario}" do
           data = status_data.clone
@@ -358,7 +358,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         end
 
         it 'shows captive portal warning with icon and red color when login_required is :yes' do
-          data = status_data.merge(captive_portal_login_required: :yes, internet_connected: false)
+          data = status_data.merge(captive_portal_login_required: :yes, internet_state: :unreachable)
           result = subject.status_line(data)
 
           expect(result).to match(/Captive Portal Login Required/)
@@ -374,7 +374,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       end
 
       it 'shows UNKNOWN when internet status is indeterminate after checks complete' do
-        data = status_data.merge(internet_connected: nil, captive_portal_login_required: :unknown)
+        data = status_data.merge(internet_state: :indeterminate, captive_portal_login_required: :unknown)
         result = subject.status_line(data)
 
         expect(result).to match(/Internet.*UNKNOWN/)
@@ -415,7 +415,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
       context 'when captive portal is detected' do
         it 'shows captive portal warning text without ANSI color codes' do
-          data = status_data.merge(captive_portal_login_required: :yes, internet_connected: false)
+          data = status_data.merge(captive_portal_login_required: :yes, internet_state: :unreachable)
           result = subject.status_line(data)
 
           expect(result).to match(/Captive Portal Login Required/)
@@ -430,7 +430,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       end
 
       it 'shows UNKNOWN without ANSI color codes when internet status is indeterminate' do
-        data = status_data.merge(internet_connected: nil, captive_portal_login_required: :unknown)
+        data = status_data.merge(internet_state: :indeterminate, captive_portal_login_required: :unknown)
         result = subject.status_line(data)
 
         expect(result).to match(/Internet.*UNKNOWN/)

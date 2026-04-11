@@ -29,6 +29,7 @@ Welcome to the `wifi-wand` documentation! This directory contains comprehensive 
 
 ## Project History
 
+- **[Current Release Notes](../RELEASE_NOTES.md)** - Unreleased notes and breaking changes for the upcoming major release.
 - **[Version 3.0 Changes](CHANGELOG_V2_TO_V3.md)** - Summary of improvements and breaking changes in the latest major version.
 
 ---

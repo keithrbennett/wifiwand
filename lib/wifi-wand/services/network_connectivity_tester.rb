@@ -7,6 +7,7 @@ require 'ipaddr'
 require 'async'
 require 'async/barrier'
 require_relative '../timing_constants'
+require_relative '../connectivity_states'
 require_relative 'captive_portal_checker'
 
 module WifiWand
@@ -21,26 +22,23 @@ module WifiWand
       @captive_portal_checker = CaptivePortalChecker.new(verbose: verbose, output: output)
     end
 
-    # Tests TCP connectivity, DNS resolution, and absence of a captive portal.
-    # Pre-computed values can be supplied for each component to avoid redundant network calls.
-    # Captive portals complete the TCP handshake on behalf of external hosts, so tcp_working
-    # alone is not sufficient — we also verify the absence of a captive portal.
-    # rubocop:disable Style/ReturnNilInPredicateMethodDefinition
-    def connected_to_internet?(tcp_working = nil, dns_working = nil, captive_free = UNSET)
+    # Tests TCP connectivity, DNS resolution, and captive-portal state and returns
+    # an explicit connectivity state symbol.
+    def internet_connectivity_state(tcp_working = nil, dns_working = nil, captive_portal_state = UNSET)
       tcp = tcp_working.nil? ? tcp_connectivity? : tcp_working
       dns = dns_working.nil? ? dns_working? : dns_working
-      return false unless tcp && dns
+      return ConnectivityStates::INTERNET_UNREACHABLE unless tcp && dns
 
-      captive_free = captive_portal_free? if captive_free.equal?(UNSET)
-      return nil if captive_free.nil?
-
-      captive_free
+      captive_portal_state = self.captive_portal_state if captive_portal_state.equal?(UNSET)
+      ConnectivityStates.internet_state_from(
+        tcp_working:          tcp,
+        dns_working:          dns,
+        captive_portal_state: captive_portal_state,
+      )
     end
-    # rubocop:enable Style/ReturnNilInPredicateMethodDefinition
 
-    # Delegates to CaptivePortalChecker#captive_portal_free?
-    # See that class for full documentation on return-value semantics.
-    def captive_portal_free? = @captive_portal_checker.captive_portal_free?
+    # Delegates to CaptivePortalChecker#captive_portal_state.
+    def captive_portal_state = @captive_portal_checker.captive_portal_state
 
     # Fast connectivity check optimized for continuous monitoring (e.g., log command).
     #
@@ -63,7 +61,7 @@ module WifiWand
     # - Worst case: ~1 second (when all endpoints timeout)
     #
     # This is ideal for the log command where speed matters more than thoroughness.
-    # Use connected_to_internet? for comprehensive checks in status/info commands.
+    # Use internet_connectivity_state for comprehensive checks in status/info commands.
     #
     def fast_connectivity?
       fast_endpoints = [

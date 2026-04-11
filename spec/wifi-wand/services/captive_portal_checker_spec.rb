@@ -7,22 +7,22 @@ require_relative '../../../lib/wifi-wand/services/captive_portal_checker'
 describe WifiWand::CaptivePortalChecker do
   include TestHelpers
 
-  describe '#captive_portal_free?' do
+  describe '#captive_portal_state' do
     let(:checker) { described_class.new(verbose: false) }
 
     context 'when the connectivity check endpoint returns 204' do
-      before { mock_captive_portal_free }
+      before { mock_captive_portal_free_state }
 
-      it 'returns true' do
-        expect(checker.captive_portal_free?).to be true
+      it 'returns :free' do
+        expect(checker.captive_portal_state).to eq(:free)
       end
     end
 
     context 'when the connectivity check endpoint returns a redirect (captive portal)' do
       before { mock_captive_portal_detected }
 
-      it 'returns false' do
-        expect(checker.captive_portal_free?).to be false
+      it 'returns :present' do
+        expect(checker.captive_portal_state).to eq(:present)
       end
     end
 
@@ -32,8 +32,8 @@ describe WifiWand::CaptivePortalChecker do
         allow(Net::HTTP).to receive(:get_response).and_raise(Errno::ECONNREFUSED)
       end
 
-      it 'returns nil (indeterminate)' do
-        expect(checker.captive_portal_free?).to be_nil
+      it 'returns :indeterminate' do
+        expect(checker.captive_portal_state).to eq(:indeterminate)
       end
     end
 
@@ -41,15 +41,15 @@ describe WifiWand::CaptivePortalChecker do
       let(:output) { StringIO.new }
       let(:checker) { described_class.new(verbose: true, output: output) }
 
-      before { mock_captive_portal_free }
+      before { mock_captive_portal_free_state }
 
       it 'logs the endpoints being checked' do
-        checker.captive_portal_free?
+        checker.captive_portal_state
         expect(output.string).to match(/Testing captive portal via HTTP:/)
       end
 
       it 'logs a pass result' do
-        checker.captive_portal_free?
+        checker.captive_portal_state
         expect(output.string).to include('pass')
       end
     end
@@ -61,7 +61,7 @@ describe WifiWand::CaptivePortalChecker do
       before { mock_captive_portal_detected }
 
       it 'logs results array and detected status' do
-        checker.captive_portal_free?
+        checker.captive_portal_state
         expect(output.string).to include('mismatch')
         expect(output.string).to include('detected')
       end
@@ -80,31 +80,30 @@ describe WifiWand::CaptivePortalChecker do
         allow(checker).to receive(:captive_portal_check_endpoints).and_return(endpoints)
       end
 
-      it 'returns true when first endpoint returns wrong status but second returns 204' do
-        allow(checker).to receive(:attempt_captive_portal_check).and_return(false, true)
-        expect(checker.captive_portal_free?).to be true
+      it 'returns :free when first endpoint returns wrong status but second returns 204' do
+        allow(checker).to receive(:attempt_captive_portal_check).and_return(:present, :free)
+        expect(checker.captive_portal_state).to eq(:free)
       end
 
-      it 'returns true when first endpoint has network error and second returns 204' do
-        allow(checker).to receive(:attempt_captive_portal_check).and_return(nil, true)
-        expect(checker.captive_portal_free?).to be true
+      it 'returns :free when first endpoint has network error and second returns 204' do
+        allow(checker).to receive(:attempt_captive_portal_check).and_return(:indeterminate, :free)
+        expect(checker.captive_portal_state).to eq(:free)
       end
 
-      it 'returns false when all endpoints return wrong status' do
-        allow(checker).to receive(:attempt_captive_portal_check).and_return(false, false)
-        expect(checker.captive_portal_free?).to be false
+      it 'returns :present when all endpoints return wrong status' do
+        allow(checker).to receive(:attempt_captive_portal_check).and_return(:present, :present)
+        expect(checker.captive_portal_state).to eq(:present)
       end
 
-      it 'returns false when one endpoint mismatches and another errors' do
-        allow(checker).to receive(:attempt_captive_portal_check).and_return(false, nil)
-        expect(checker.captive_portal_free?).to be false
+      it 'returns :present when one endpoint mismatches and another errors' do
+        allow(checker).to receive(:attempt_captive_portal_check).and_return(:present, :indeterminate)
+        expect(checker.captive_portal_state).to eq(:present)
       end
 
-      it 'returns nil when all endpoints have network errors' do
-        allow(checker).to receive(:attempt_captive_portal_check).and_return(nil, nil)
-        expect(checker.captive_portal_free?).to be_nil
+      it 'returns :indeterminate when all endpoints have network errors' do
+        allow(checker).to receive(:attempt_captive_portal_check).and_return(:indeterminate, :indeterminate)
+        expect(checker.captive_portal_state).to eq(:indeterminate)
       end
-
     end
   end
 end

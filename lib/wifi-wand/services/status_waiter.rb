@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../timing_constants'
+require_relative '../connectivity_states'
 
 module WifiWand
   class StatusWaiter
@@ -51,8 +52,8 @@ module WifiWand
         wifi_off:      -> { !@model.wifi_on? },
         associated:    -> { @model.associated? },
         disassociated: -> { !@model.associated? },
-        internet_on:   -> { @model.connected_to_internet? == true },
-        internet_off:  -> { @model.connected_to_internet? == false },
+        internet_on:   -> { @model.internet_connectivity_state == ConnectivityStates::INTERNET_REACHABLE },
+        internet_off:  -> { @model.internet_connectivity_state == ConnectivityStates::INTERNET_UNREACHABLE },
       }
 
       finished_predicate = finished_predicates[target_status]

@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'awesome_print'
+require_relative '../connectivity_states'
 
 module WifiWand
   class CommandLineInterface
@@ -55,9 +56,19 @@ module WifiWand
         colorize_text(status_text, color)
       end
 
-      def format_internet_status(value, check_complete: false)
-        pending_str = check_complete ? '⚠️ UNKNOWN' : '⏳ WAIT'
-        format_boolean_status(value, pending_str: pending_str)
+      def format_internet_status(state, check_complete: false)
+        status_text, color = case state
+                             when ConnectivityStates::INTERNET_REACHABLE
+                               ['✅ YES', :green]
+                             when ConnectivityStates::INTERNET_UNREACHABLE
+                               ['❌ NO', :red]
+                             when ConnectivityStates::INTERNET_PENDING
+                               ['⏳ WAIT', :yellow]
+                             else
+                               [check_complete ? '⚠️ UNKNOWN' : '⏳ WAIT', :yellow]
+        end
+
+        colorize_text(status_text, color)
       end
 
       def status_line(status_data)
@@ -65,7 +76,7 @@ module WifiWand
 
         wifi_status = format_boolean_status(status_data[:wifi_on], true_str: '✅ ON', false_str: '❌ OFF')
         internet_status = format_internet_status(
-          status_data[:internet_connected],
+          status_data[:internet_state],
           check_complete: status_data[:internet_check_complete],
         )
 

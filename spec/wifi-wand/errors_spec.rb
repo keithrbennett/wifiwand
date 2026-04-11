@@ -15,8 +15,8 @@ module WifiWand
       end
 
       # Mock NetworkConnectivityTester to prevent real network calls
-      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:connected_to_internet?)
-        .and_return(true)
+      allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:internet_connectivity_state)
+        .and_return(:reachable)
       allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?)
         .and_return(true)
       allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)

@@ -37,7 +37,7 @@ module WifiWand
           Commands
           --------
           a[vail_nets]              - array of names of the available networks
-          ci                        - state of Internet connectivity, defined as both DNS and TCP working
+          ci                        - Internet connectivity state: reachable, unreachable, or indeterminate
           co[nnect] network-name    - connects to the specified network-name, turning WiFi on if necessary
           cy[cle]                   - toggles WiFi on/off state twice, regardless of starting state
           d[isconnect]              - disconnects from current network, does not turn off WiFi
@@ -49,6 +49,7 @@ module WifiWand
                                       options: --interval N (default 5 seconds), --file [PATH] (default: wifiwand-events.log),
                                                --stdout (keep stdout when file destination is used)
                                       Logs events: wifi on/off, connected/disconnected, internet on/off
+                                      Internet events are derived from reachable/unreachable state; indeterminate is preserved as unknown
                                       Ctrl+C to stop
           na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear,
                                       or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
@@ -69,8 +70,8 @@ module WifiWand
                                         wifi_off       – WiFi hardware powered off
                                         associated     – WiFi associated with an SSID (WiFi layer)
                                         disassociated  – WiFi not associated with any SSID
-                                        internet_on    – Internet reachable (TCP + DNS + captive-portal free)
-                                        internet_off   – Internet not reachable
+                                        internet_on    – Internet connectivity state is reachable
+                                        internet_off   – Internet connectivity state is unreachable
                                       Defaults: timeout = wait indefinitely; interval = #{WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL}
                                       Examples: "till wifi_off 20"  "till internet_on 30 0.5"
                                       Migration: old 'conn'→'internet_on' or 'associated'; old 'disc'→'internet_off' or 'disassociated';

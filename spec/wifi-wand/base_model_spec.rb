@@ -21,14 +21,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
     # Check both example-level and group-level metadata for :disruptive tag
     # Use RSpec.current_example to get the current running example
     unless is_disruptive?
-      # Don't mock connected_to_internet? globally - let tests override it when needed
-
       # Also mock the underlying NetworkConnectivityTester to prevent real network calls
-      # Don't mock connected_to_internet? - let it use the passed parameters
       tester = WifiWand::NetworkConnectivityTester
       allow_any_instance_of(tester).to receive(:tcp_connectivity?).and_return(true)
       allow_any_instance_of(tester).to receive(:dns_working?).and_return(true)
-      allow_any_instance_of(tester).to receive(:captive_portal_free?).and_return(true)
+      allow_any_instance_of(tester).to receive(:captive_portal_state).and_return(:free)
 
       # Mock low-level OS command execution to prevent real system calls
       # but allow higher-level methods to be called for testing
@@ -43,7 +40,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         preferred_networks:         %w[TestNetwork1 SavedNetwork1],
         internet_tcp_connectivity?: true,
         dns_working?:               true,
-        captive_portal_free?:       true,
+        captive_portal_state:       :free,
         fast_connectivity?:         true,
         public_ip_address_info:     { 'ip' => '1.2.3.4' },
         run_os_command:             command_result(stdout: ''),
@@ -85,16 +82,16 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       # All OSes must provide these fields with consistent types
       expect(result).to include(
-        'wifi_on', 'internet_tcp_connectivity', 'dns_working', 'captive_portal_free',
-        'internet_on', 'interface', 'default_interface', 'network', 'ip_address',
+        'wifi_on', 'internet_tcp_connectivity', 'dns_working', 'captive_portal_state',
+        'internet_connectivity_state', 'interface', 'default_interface', 'network', 'ip_address',
         'mac_address', 'nameservers', 'timestamp'
       )
 
       expect([true, false]).to include(result['wifi_on'])
       expect([true, false]).to include(result['internet_tcp_connectivity'])
       expect([true, false]).to include(result['dns_working'])
-      expect([true, false, nil]).to include(result['captive_portal_free'])
-      expect([true, false, nil]).to include(result['internet_on'])
+      expect(%i[free present indeterminate]).to include(result['captive_portal_state'])
+      expect(%i[reachable unreachable indeterminate]).to include(result['internet_connectivity_state'])
       expect(result['timestamp']).to be_a(Time)
     end
   end
@@ -292,7 +289,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#till', :disruptive do
     # These tests exercise the real OS predicates (wifi_on?, associated?,
-    # connected_to_internet?) wired through StatusWaiter against live hardware,
+    # internet_connectivity_state wired through StatusWaiter against live hardware,
     # covering the six explicit wait states introduced in the till redesign.
 
     context 'when target is a wifi power state (:wifi_on / :wifi_off)' do
@@ -346,13 +343,14 @@ describe 'Common WiFi Model Behavior (All OS)' do
       before { subject.wifi_on }
 
       it 'returns nil immediately for :internet_on when Internet is reachable' do
-        skip 'Internet not reachable; cannot test :internet_on' unless subject.connected_to_internet?
+        skip 'Internet not reachable; cannot test :internet_on' \
+          unless subject.internet_connectivity_state == :reachable
         expect(subject.till(:internet_on)).to be_nil
       end
 
       it 'raises WaitTimeoutError for :internet_off when Internet is reachable and timeout expires' do
         skip 'Internet not reachable; :internet_off would return immediately' \
-          unless subject.connected_to_internet?
+          unless subject.internet_connectivity_state == :reachable
         expect do
           subject.till(:internet_off, timeout_in_secs: 1)
         end.to raise_error(WifiWand::WaitTimeoutError)
@@ -390,7 +388,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'can determine if connected to Internet' do
-      expect { subject.connected_to_internet? }.not_to raise_error
+      expect { subject.internet_connectivity_state }.not_to raise_error
     end
 
     it 'can get wifi interface' do
@@ -615,8 +613,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         nameservers:            ['8.8.8.8'],
       )
 
-      # Remove the global mock for connected_to_internet? so we can test the real logic
-      allow(subject).to receive(:connected_to_internet?).and_call_original
+      allow(subject).to receive(:internet_connectivity_state).and_call_original
     end
 
     shared_context 'for verbose test model setup' do
@@ -654,11 +651,14 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       result = subject.wifi_info
 
-      # Test the connectivity method directly
-      subject.connected_to_internet?(result['internet_tcp_connectivity'], result['dns_working'])
+      subject.internet_connectivity_state(
+        result['internet_tcp_connectivity'],
+        result['dns_working'],
+        result['captive_portal_state'],
+      )
 
       expect(result['internet_tcp_connectivity']).to be false
-      expect(result['internet_on']).to be false  # Should be false due to TCP failure
+      expect(result['internet_connectivity_state']).to eq(:unreachable)
     end
 
     it 'handles dns_working exceptions' do
@@ -670,53 +670,53 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       result = subject.wifi_info
       expect(result['dns_working']).to be false
-      expect(result['internet_on']).to be false  # Should be false due to DNS failure
+      expect(result['internet_connectivity_state']).to eq(:unreachable)
     end
 
-    it 'does not call captive_portal_free? when TCP fails' do
+    it 'does not call captive_portal_state when TCP fails' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: false,
         dns_working?:               true,
         public_ip_address_info:     { 'ip' => '1.2.3.4' },
       )
-      expect(subject).not_to receive(:captive_portal_free?)
+      expect(subject).not_to receive(:captive_portal_state)
 
       result = subject.wifi_info
-      expect(result['captive_portal_free']).to be_nil
+      expect(result['captive_portal_state']).to eq(:indeterminate)
     end
 
-    it 'does not call captive_portal_free? when DNS fails' do
+    it 'does not call captive_portal_state when DNS fails' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: true,
         dns_working?:               false,
         public_ip_address_info:     { 'ip' => '1.2.3.4' },
       )
-      expect(subject).not_to receive(:captive_portal_free?)
+      expect(subject).not_to receive(:captive_portal_state)
 
       result = subject.wifi_info
-      expect(result['captive_portal_free']).to be_nil
+      expect(result['captive_portal_state']).to eq(:indeterminate)
     end
 
-    it 'does not call captive_portal_free? when both TCP and DNS fail' do
+    it 'does not call captive_portal_state when both TCP and DNS fail' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: false,
         dns_working?:               false,
         public_ip_address_info:     { 'ip' => '1.2.3.4' },
       )
-      expect(subject).not_to receive(:captive_portal_free?)
+      expect(subject).not_to receive(:captive_portal_state)
 
       result = subject.wifi_info
-      expect(result['captive_portal_free']).to be_nil
+      expect(result['captive_portal_state']).to eq(:indeterminate)
     end
 
-    it 'calls captive_portal_free? when both TCP and DNS succeed' do
+    it 'calls captive_portal_state when both TCP and DNS succeed' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: true,
         dns_working?:               true,
-        captive_portal_free?:       true,
+        captive_portal_state:       :free,
         public_ip_address_info:     { 'ip' => '1.2.3.4' },
       )
-      expect(subject).to receive(:captive_portal_free?).and_return(true)
+      expect(subject).to receive(:captive_portal_state).and_return(:free)
 
       subject.wifi_info
     end
@@ -892,7 +892,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(data).to be_a(Hash)
 
       expect(data.keys).to include(
-        :wifi_on, :internet_connected, :internet_check_complete, :network_name, :captive_portal_login_required
+        :wifi_on, :internet_state, :internet_check_complete, :network_name, :captive_portal_state,
+        :captive_portal_login_required
       )
     end
 
@@ -902,15 +903,16 @@ describe 'Common WiFi Model Behavior (All OS)' do
         connected_network_name:     'TestNetwork',
         internet_tcp_connectivity?: true,
         dns_working?:               true,
-        captive_portal_free?:       true,
+        captive_portal_state:       :free,
       )
 
       data = subject.status_line_data
 
       expect(data[:wifi_on]).to be true
-      expect(data[:internet_connected]).to be true
+      expect(data[:internet_state]).to eq(:reachable)
       expect(data[:internet_check_complete]).to be true
       expect(data[:network_name]).to eq('TestNetwork')
+      expect(data[:captive_portal_state]).to eq(:free)
       expect(data[:captive_portal_login_required]).to eq(:no)
     end
 
@@ -923,9 +925,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
       data = subject.status_line_data
 
       expect(data[:wifi_on]).to be false
-      expect(data[:internet_connected]).to be false
+      expect(data[:internet_state]).to eq(:unreachable)
       expect(data[:internet_check_complete]).to be true
       expect(data[:network_name]).to be_nil
+      expect(data[:captive_portal_state]).to eq(:indeterminate)
       expect(data[:captive_portal_login_required]).to eq(:no)
     end
 

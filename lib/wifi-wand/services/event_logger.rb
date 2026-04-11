@@ -2,6 +2,7 @@
 
 require 'json'
 require 'time'
+require_relative '../connectivity_states'
 require_relative 'log_file_manager'
 
 module WifiWand
@@ -97,7 +98,7 @@ module WifiWand
       timestamp = Time.now.utc.iso8601
       wifi = state[:wifi_on] ? 'on' : 'off'
       network = state[:network_name] ? "connected to #{state[:network_name]}" : 'not connected'
-      internet = internet_state_label(state[:internet_connected])
+      internet = internet_state_label(state[:internet_state])
       log_message("[#{timestamp}] Current state: WiFi #{wifi}, #{network}, internet #{internet}")
     end
 
@@ -124,7 +125,7 @@ module WifiWand
     end
 
     # Detect state changes and emit events
-    # Checks wifi_on, network_name, and internet_connected in that order
+    # Checks wifi_on, network_name, and internet_state in that order
     def detect_and_emit_events(current_state)
       return if @previous_state.nil?
 
@@ -145,23 +146,33 @@ module WifiWand
         end
       end
 
-      if emit_internet_event?(current_state[:internet_connected], @previous_state[:internet_connected])
-        event_type = current_state[:internet_connected] ? :internet_on : :internet_off
+      if emit_internet_event?(current_state[:internet_state], @previous_state[:internet_state])
+        event_type = if current_state[:internet_state] == ConnectivityStates::INTERNET_REACHABLE
+          :internet_on
+        else
+          :internet_off
+        end
         emit_event(event_type, {}, @previous_state, current_state)
       end
     end
 
     def internet_state_label(value)
       case value
-      when true then 'available'
-      when false then 'unavailable'
+      when ConnectivityStates::INTERNET_REACHABLE then 'available'
+      when ConnectivityStates::INTERNET_UNREACHABLE then 'unavailable'
       else 'unknown'
       end
     end
 
     def emit_internet_event?(current_value, previous_value)
-      [true, false].include?(current_value) &&
-        [true, false].include?(previous_value) &&
+      [
+        ConnectivityStates::INTERNET_REACHABLE,
+        ConnectivityStates::INTERNET_UNREACHABLE,
+      ].include?(current_value) &&
+        [
+          ConnectivityStates::INTERNET_REACHABLE,
+          ConnectivityStates::INTERNET_UNREACHABLE,
+        ].include?(previous_value) &&
         current_value != previous_value
     end
 

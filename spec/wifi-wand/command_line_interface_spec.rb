@@ -451,8 +451,8 @@ describe WifiWand::CommandLineInterface do
       { cmd: :cmd_a,  model_method: :available_network_names, skip_non_interactive: true },
       { cmd: :cmd_i,  model_method: :wifi_info, return_value: { 'status' => 'connected' },
         non_interactive_output: /status.*connected/m },
-      { cmd: :cmd_ci, model_method: :connected_to_internet?, return_value: true,
-        non_interactive_output: "Connected to Internet: true\n" },
+      { cmd: :cmd_ci, model_method: :internet_connectivity_state, return_value: :reachable,
+        non_interactive_output: "Internet connectivity: reachable\n" },
       { cmd: :cmd_qr, model_method: :generate_qr_code, return_value: 'TestNetwork-qr-code.png',
         non_interactive_output: "QR code generated: TestNetwork-qr-code.png\n" },
     ].freeze
@@ -514,12 +514,12 @@ describe WifiWand::CommandLineInterface do
     end
 
     describe '#cmd_ci' do
-      it_behaves_like 'interactive vs non-interactive command', :cmd_ci, :connected_to_internet?, {
-        return_value:          nil,
+      it_behaves_like 'interactive vs non-interactive command', :cmd_ci, :internet_connectivity_state, {
+        return_value:          :indeterminate,
         non_interactive_tests: {
           'renders an indeterminate connectivity result explicitly' => {
-            model_return:    nil,
-            expected_output: "Connected to Internet: indeterminate\n",
+            model_return:    :indeterminate,
+            expected_output: "Internet connectivity: indeterminate\n",
           },
         },
       }
@@ -719,11 +719,11 @@ describe WifiWand::CommandLineInterface do
     describe '#cmd_s (status)' do
       let(:status_data) do
         {
-          wifi_on:            true,
-          network_name:       'TestNet',
-          tcp_working:        true,
-          dns_working:        true,
-          internet_connected: true,
+          wifi_on:        true,
+          network_name:   'TestNet',
+          tcp_working:    true,
+          dns_working:    true,
+          internet_state: :reachable,
         }
       end
 

@@ -4,6 +4,16 @@
 
 The `info` command provides comprehensive network and WiFi information beyond what the `status` command offers. Use this when you need detailed data about your network configuration and status.
 
+## Breaking Change: Connectivity API
+
+In this major release, the old boolean-style `connected_to_internet?` API has
+been replaced by `internet_connectivity_state`.
+
+For `info`, that means connectivity is exposed as explicit state values:
+
+- Ruby / interactive shell: symbols such as `:reachable` and `:indeterminate`
+- JSON output: strings such as `"reachable"` and `"indeterminate"`
+
 ## Basic Usage
 
 Get detailed network information:
@@ -25,7 +35,19 @@ The `info` command returns a hash containing:
 ### Connectivity Status
 - **TCP Working**: Can establish TCP connections
 - **DNS Working**: Can resolve domain names
-- **Internet Connected**: Both TCP and DNS working
+- **Captive Portal State**: `:free`, `:present`, or `:indeterminate`
+- **Internet Connectivity State**: `:reachable`, `:unreachable`, or `:indeterminate`
+
+`internet_connectivity_state` is derived from TCP, DNS, and
+`captive_portal_state`:
+
+| TCP | DNS | Captive portal | Internet connectivity |
+|-----|-----|----------------|-----------------------|
+| pass | pass | `:free` | `:reachable` |
+| fail | any | any | `:unreachable` |
+| any | fail | any | `:unreachable` |
+| pass | pass | `:present` | `:unreachable` |
+| pass | pass | `:indeterminate` | `:indeterminate` |
 
 ### Network Configuration
 - **Nameservers**: Currently configured DNS servers
@@ -73,6 +95,25 @@ Perfect for parsing in scripts or sending to other tools:
 
 ```bash
 wifi-wand -o j info | jq '.ip_address'
+```
+
+Example connectivity fields in JSON:
+
+```json
+{
+  "internet_tcp_connectivity": true,
+  "dns_working": true,
+  "captive_portal_state": "free",
+  "internet_connectivity_state": "reachable"
+}
+```
+
+Example connectivity fields in interactive Ruby:
+
+```ruby
+data = info
+data['captive_portal_state']        #=> :free
+data['internet_connectivity_state'] #=> :reachable
 ```
 
 ### YAML
@@ -123,8 +164,8 @@ echo ""
 echo "Quick Status:"
 wifi-wand status
 echo ""
-echo "Is Internet working?"
-wifi-wand ci
+echo "Internet connectivity state:"
+wifi-wand -o p ci
 ```
 
 ### Extract Specific Data for Logging
@@ -133,7 +174,7 @@ wifi-wand ci
 #!/bin/bash
 # Log key network info periodically
 while true; do
-  wifi-wand -o j info | jq -r '"[\(.ip_address)] Connected to: \(.connected_network // "N/A")"'
+  wifi-wand -o j info | jq -r '"[\(.ip_address)] Connected to: \(.network // "N/A") | Internet: \(.internet_connectivity_state)"'
   sleep 300
 done >> network-log.txt
 ```
@@ -144,7 +185,7 @@ done >> network-log.txt
 #!/bin/bash
 # Display network configuration
 echo "Connected Network:"
-wifi-wand -o j info | jq '.connected_network'
+wifi-wand -o j info | jq '.network'
 
 echo "IP Address:"
 wifi-wand -o j info | jq '.ip_address'
@@ -173,6 +214,9 @@ In interactive shell mode (`wifi-wand shell`), you can use the full power of Rub
 
 [4] pry(#<WifiWand::CommandLineInterface>)> data.keys
 # See all available fields
+
+[5] pry(#<WifiWand::CommandLineInterface>)> data['internet_connectivity_state'] == :reachable
+# Explicit reachability check
 ```
 
 ## Performance Considerations
