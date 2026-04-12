@@ -31,12 +31,14 @@ describe WifiWand::StatusLineDataBuilder do
         captive_portal_login_required: :no,
       )
       expect(progress_updates).to eq([
-        { wifi_on: true, dns_working: nil, internet_state: :pending, internet_check_complete: false, network_name: :pending,
-          captive_portal_state: :indeterminate, captive_portal_login_required: :unknown },
-        { wifi_on: true, dns_working: nil, internet_state: :pending, internet_check_complete: false, network_name: 'HomeNetwork',
-          captive_portal_state: :indeterminate, captive_portal_login_required: :unknown },
-        { wifi_on: true, dns_working: true, internet_state: :reachable, internet_check_complete: true, network_name: 'HomeNetwork',
-          captive_portal_state: :free, captive_portal_login_required: :no },
+        { wifi_on: true, dns_working: nil, internet_state: :pending, internet_check_complete: false,
+          network_name: :pending, captive_portal_state: :indeterminate,
+          captive_portal_login_required: :unknown },
+        { wifi_on: true, dns_working: nil, internet_state: :pending, internet_check_complete: false,
+          network_name: 'HomeNetwork', captive_portal_state: :indeterminate,
+          captive_portal_login_required: :unknown },
+        { wifi_on: true, dns_working: true, internet_state: :reachable, internet_check_complete: true,
+          network_name: 'HomeNetwork', captive_portal_state: :free, captive_portal_login_required: :no },
       ])
     end
 

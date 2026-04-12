@@ -93,7 +93,6 @@ module WifiWand
       missing_command = missing_command_name(command, e)
       raise CommandNotFoundError, missing_command
     else
-
       duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
 
       result = OsCommandResult.new(

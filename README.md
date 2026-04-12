@@ -254,8 +254,8 @@ q[uit]                    - exits this program (interactive shell mode only) (sa
 qr [filespec|'-'] [password]
                          - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats; optional password avoids macOS auth prompt
 ro[pen]                   - open web resources: 'cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page)
-s[tatus]                  - status line (WiFi, WiFi Network, DNS, Internet) with real-time connectivity checks
-                            (see docs/STATUS_COMMAND.md for details on connectivity detection)
+s[tatus]                  - status line (WiFi, WiFi Network, DNS, Internet; shows captive portal warning if login is required)
+                            (see docs/STATUS_COMMAND.md for details on connectivity detection and machine-readable status fields)
 t[ill]                    - wait until state is reached:
                             Usage: till <state> [timeout_secs] [interval_secs]
                             States:

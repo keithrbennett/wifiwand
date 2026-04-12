@@ -185,6 +185,39 @@ describe 'Output Format End-to-End Tests' do
       end
     end
 
+    context 'with machine-readable status output' do
+      let(:status_data) do
+        {
+          wifi_on:                       true,
+          network_name:                  'HotelWiFi',
+          dns_working:                   true,
+          internet_state:                :unreachable,
+          captive_portal_state:          :present,
+          captive_portal_login_required: :yes,
+        }
+      end
+
+      it 'includes the captive portal login field in JSON status output without presentation text' do
+        allow(mock_model).to receive(:status_line_data).and_return(status_data)
+
+        options = parse_options('-o', 'j', 'status')
+        cli = WifiWand::CommandLineInterface.new(options)
+
+        output = silence_output do |stdout, _stderr|
+          cli.cmd_s
+          stdout.string.strip
+        end
+
+        parsed = JSON.parse(output)
+        expect(parsed['network_name']).to eq('HotelWiFi')
+        expect(parsed['internet_state']).to eq('unreachable')
+        expect(parsed['captive_portal_state']).to eq('present')
+        expect(parsed['captive_portal_login_required']).to eq('yes')
+        expect(output).not_to include('Captive Portal Login Required')
+        expect(output).not_to include('⚠️')
+      end
+    end
+
     context 'with invalid format option' do
       it 'raises configuration error' do
         expect do

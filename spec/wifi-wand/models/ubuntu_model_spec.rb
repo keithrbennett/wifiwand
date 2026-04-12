@@ -153,7 +153,7 @@ module WifiWand
           setup_connect_test
           allow(subject).to receive(:wifi_interface).and_return('wlan0')
 
-          expect(subject).to receive(:run_os_command) \
+          expect(subject).to receive(:run_os_command)
             .with(%w[nmcli dev wifi connect SSID5])
             .and_raise(WifiWand::CommandExecutor::OsCommandError.new(
               5, 'nmcli dev wifi connect', 'Error: No suitable device found'))

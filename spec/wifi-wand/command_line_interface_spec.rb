@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'json'
 require_relative '../spec_helper'
 require_relative '../../lib/wifi-wand/command_line_interface'
 require_relative '../../lib/wifi-wand/commands/log_command'
@@ -719,11 +720,12 @@ describe WifiWand::CommandLineInterface do
     describe '#cmd_s (status)' do
       let(:status_data) do
         {
-          wifi_on:        true,
-          network_name:   'TestNet',
-          tcp_working:    true,
-          dns_working:    true,
-          internet_state: :reachable,
+          wifi_on:                       true,
+          network_name:                  'TestNet',
+          tcp_working:                   true,
+          dns_working:                   true,
+          internet_state:                :reachable,
+          captive_portal_login_required: :no,
         }
       end
 
@@ -747,6 +749,26 @@ describe WifiWand::CommandLineInterface do
         allow(cli).to receive(:status_line).with(status_data).and_return('')
         cli.cmd_s
         expect(out_stream.string).to eq('')
+      end
+
+      it 'returns structured status data for machine-readable output' do
+        opts = create_cli_options(post_processor: ->(obj) { obj.to_json })
+        cli = described_class.new(opts)
+        allow(cli.model).to receive(:status_line_data).and_return(status_data)
+
+        result = nil
+        output = silence_output do |stdout, _stderr|
+          result = cli.cmd_s
+          stdout.string
+        end
+
+        expect(result).to eq(status_data)
+
+        parsed = JSON.parse(output)
+        expect(parsed['captive_portal_login_required']).to eq('no')
+        expect(parsed['internet_state']).to eq('reachable')
+        expect(output).not_to include('Captive Portal Login Required')
+        expect(output).not_to include('⚠️')
       end
     end
 
