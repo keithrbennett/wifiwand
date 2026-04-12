@@ -75,6 +75,7 @@ module WifiWand
         return colorize_text('WiFi: [status unavailable]', :yellow) if status_data.nil?
 
         wifi_status = format_boolean_status(status_data[:wifi_on], true_str: '✅ ON', false_str: '❌ OFF')
+        dns_status = format_boolean_status(status_data[:dns_working])
         internet_status = format_internet_status(
           status_data[:internet_state],
           check_complete: status_data[:internet_check_complete],
@@ -93,7 +94,7 @@ module WifiWand
 
         wifi_network_status = colorize_text(network_text, network_color)
 
-        line = "WiFi: #{wifi_status} | WiFi Network: #{wifi_network_status} | Internet: #{internet_status}"
+        line = "WiFi: #{wifi_status} | WiFi Network: #{wifi_network_status} | DNS: #{dns_status} | Internet: #{internet_status}"
 
         if status_data[:captive_portal_login_required] == :yes
           line = "#{line} | #{colorize_text('⚠️ Captive Portal Login Required', :red)}"

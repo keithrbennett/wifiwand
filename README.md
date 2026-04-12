@@ -167,7 +167,7 @@ wifi-wand t disc       →  wifi-wand t internet_off  # or: wifi-wand t disassoc
 ### Quick Start
 
 ```bash
-# Display networking status (e.g.: WiFi: ON | WiFi Network: my_network | Internet: YES)
+# Display networking status (e.g.: WiFi: ON | WiFi Network: my_network | DNS: YES | Internet: YES)
 wifi-wand s
 
 # Display WiFi on/off status
@@ -254,7 +254,7 @@ q[uit]                    - exits this program (interactive shell mode only) (sa
 qr [filespec|'-'] [password]
                          - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats; optional password avoids macOS auth prompt
 ro[pen]                   - open web resources: 'cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page)
-s[tatus]                  - status line (WiFi, WiFi Network, Internet) with real-time connectivity checks
+s[tatus]                  - status line (WiFi, WiFi Network, DNS, Internet) with real-time connectivity checks
                             (see docs/STATUS_COMMAND.md for details on connectivity detection)
 t[ill]                    - wait until state is reached:
                             Usage: till <state> [timeout_secs] [interval_secs]
@@ -403,7 +403,7 @@ wifi-wand qr          # generate PNG file: <SSID>-qr-code.png
 wifi-wand qr wifi.svg # generate SVG file: wifi.svg
 wifi-wand qr -        # print ANSI QR to terminal
 wifi-wand t internet_on && say "Internet connected" # Play audible message when Internet becomes connected
-wifi-wand s           # display status (WiFi, WiFi Network, Internet)
+wifi-wand s           # display status (WiFi, WiFi Network, DNS, Internet)
 wifi-wand log         # monitor WiFi status changes in real-time (to terminal)
 wifi-wand log --file  # log WiFi events to wifiwand-events.log
 wifi-wand log --file --stdout        # log to file AND display in terminal

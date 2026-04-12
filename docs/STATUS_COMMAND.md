@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `status` command (aliased as `s`) displays a concise, single-line summary of your WiFi and internet connectivity status. This command is optimized for accurate, reliable connectivity information and uses intentionally long timeouts to avoid false positives from temporary network slowdowns.
+The `status` command (aliased as `s`) displays a concise, single-line summary of your WiFi, current network, DNS, and internet connectivity status. This command is optimized for accurate, reliable connectivity information and uses intentionally long timeouts to avoid false positives from temporary network slowdowns.
 
 ## Breaking Change: Explicit Connectivity States
 
@@ -11,8 +11,9 @@ boolean. The underlying library API now uses `internet_connectivity_state`
 (`:reachable`, `:unreachable`, `:indeterminate`), and the status command exposes
 that same model in structured output via `internet_state`.
 
-Human-readable `status` output still shows `Internet: YES`, `NO`, or `UNKNOWN`,
-but machine-readable output carries the explicit state values.
+Human-readable `status` output still shows `DNS: YES`/`NO`/`WAIT` and
+`Internet: YES`/`NO`/`UNKNOWN`, while machine-readable output carries the
+explicit state values.
 
 ## Basic Usage
 
@@ -26,12 +27,12 @@ wifi-wand status
 
 Normal output:
 ```
-WiFi: ✅ ON | WiFi Network: HomeNetwork | Internet: ✅ YES
+WiFi: ✅ ON | WiFi Network: HomeNetwork | DNS: ✅ YES | Internet: ✅ YES
 ```
 
 When a captive portal is detected (e.g., hotel or coffee shop that requires a login):
 ```
-WiFi: ✅ ON | WiFi Network: HotelWiFi | Internet: ❌ NO | ⚠️ Captive Portal Login Required
+WiFi: ✅ ON | WiFi Network: HotelWiFi | DNS: ✅ YES | Internet: ❌ NO | ⚠️ Captive Portal Login Required
 ```
 
 ### Colorized Output
@@ -52,6 +53,11 @@ On terminals that support it, the status is color-coded for at-a-glance readabil
 ### WiFi Network
 - Shows the SSID (network name) you're connected to
 - If not connected: `[none]`
+
+### DNS Status
+- **YES** - DNS resolution is working
+- **NO** - DNS resolution failed
+- **WAIT** - The DNS check is still in progress
 
 ### Internet Status
 - **YES** - TCP connectivity, DNS resolution, and no captive portal all confirmed
@@ -78,8 +84,8 @@ If step 3 fails while steps 1–2 pass, a captive portal is confidently detected
 
 ## Machine-Readable Output
 
-The `internet_state`, `captive_portal_state`, and `captive_portal_login_required` fields
-are present in all machine-readable output formats.
+The `dns_working`, `internet_state`, `captive_portal_state`, and
+`captive_portal_login_required` fields are present in all machine-readable output formats.
 
 In JSON they appear as strings. In Ruby-oriented formats such as inspect/YAML or
 in the interactive shell, they appear as symbols.
@@ -87,6 +93,14 @@ in the interactive shell, they appear as symbols.
 If you are scripting against `wifi-wand`, prefer machine-readable output such as JSON (`-o j`)
 instead of parsing the human-formatted status line. Structured output is simpler to consume and
 less likely to change over time.
+
+### Key: `dns_working`
+
+| Value | Meaning |
+|-------|---------|
+| `true` | DNS resolution succeeded |
+| `false` | DNS resolution failed, was skipped because WiFi is off, or errored |
+| `nil` | Temporary streaming-progress state before checks complete |
 
 ### Key: `internet_state`
 
@@ -124,6 +138,7 @@ Normal connected state:
 {
   "wifi_on": true,
   "network_name": "HomeNetwork",
+  "dns_working": true,
   "internet_state": "reachable",
   "captive_portal_state": "free",
   "captive_portal_login_required": "no"
@@ -135,6 +150,7 @@ Captive portal detected:
 {
   "wifi_on": true,
   "network_name": "HotelWiFi",
+  "dns_working": true,
   "internet_state": "unreachable",
   "captive_portal_state": "present",
   "captive_portal_login_required": "yes"
@@ -146,6 +162,7 @@ Indeterminate result:
 {
   "wifi_on": true,
   "network_name": "CafeWiFi",
+  "dns_working": true,
   "internet_state": "indeterminate",
   "captive_portal_state": "indeterminate",
   "captive_portal_login_required": "unknown"
@@ -162,6 +179,7 @@ wifi-wand -o y status
 ---
 :wifi_on: true
 :network_name: HotelWiFi
+:dns_working: true
 :internet_state: :unreachable
 :captive_portal_state: :present
 :captive_portal_login_required: :yes

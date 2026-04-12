@@ -291,6 +291,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
     let(:status_data) do
       {
         wifi_on:                       true,
+        dns_working:                   true,
         network_name:                  'TestNetwork',
         internet_state:                :reachable,
         internet_check_complete:       true,
@@ -307,6 +308,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         # Test logical content rather than exact formatting
         expect(result).to match(/WiFi.*ON/)
         expect(result).to match(/WiFi Network.*TestNetwork/)  # network_name is included in test data
+        expect(result).to match(/DNS.*YES/)
         expect(result).to match(/Internet.*YES/)
 
         # Verify colorization is present
@@ -317,6 +319,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
       hash_key_map = {
         wifi_on?:                    :wifi_on,
+        dns_working?:                :dns_working,
         connected_network_name:      :network_name,
         internet_connectivity_state: :internet_state,
       }
@@ -324,6 +327,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       {
         'WiFi off'         => [:wifi_on?, false, /WiFi.*OFF/, RED_TEXT_REGEX],
         'no network'       => [:connected_network_name, nil, /WiFi Network.*none/, YELLOW_TEXT_REGEX],
+        'DNS failure'      => [:dns_working?, false, /DNS.*NO/, RED_TEXT_REGEX],
         'Internet failure' => [:internet_connectivity_state, :unreachable, /Internet.*NO/, RED_TEXT_REGEX],
       }.each do |scenario, (mock_method, return_value, expected_pattern, expected_color)|
         it "displays error status when #{scenario}" do
@@ -391,6 +395,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         # Test logical content
         expect(result).to match(/WiFi.*ON/)
         expect(result).to match(/WiFi Network.*TestNetwork/)  # network_name is included in test data
+        expect(result).to match(/DNS.*YES/)
         expect(result).to match(/Internet.*YES/)
 
         # Verify no color codes
@@ -400,9 +405,20 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       it 'shows error conditions without color codes' do
         data = status_data.clone
         data[:wifi_on] = false
+        data[:dns_working] = false
         result = subject.status_line(data)
 
         expect(result).to match(/WiFi.*OFF/)
+        expect(result).to match(/DNS.*NO/)
+        expect(result).not_to match(ANSI_COLOR_REGEX)
+      end
+
+      it 'shows DNS as WAIT when the check has not completed yet' do
+        data = status_data.merge(dns_working: nil, internet_state: :pending, internet_check_complete: false)
+        result = subject.status_line(data)
+
+        expect(result).to match(/DNS.*WAIT/)
+        expect(result).to match(/Internet.*WAIT/)
         expect(result).not_to match(ANSI_COLOR_REGEX)
       end
 

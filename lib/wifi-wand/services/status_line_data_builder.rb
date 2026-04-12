@@ -49,6 +49,7 @@ module WifiWand
     def initial_data
       {
         wifi_on:                       model.wifi_on?,
+        dns_working:                   nil,
         internet_state:                ConnectivityStates::INTERNET_PENDING,
         internet_check_complete:       false,
         network_name:                  :pending,
@@ -59,6 +60,7 @@ module WifiWand
 
     def data_when_wifi_off
       {
+        dns_working:                   false,
         network_name:                  nil,
         internet_state:                ConnectivityStates::INTERNET_UNREACHABLE,
         internet_check_complete:       true,
@@ -78,11 +80,12 @@ module WifiWand
       tcp_working = tcp_connectivity?
       dns_working = dns_working?
 
-      return data_when_internet_unreachable unless tcp_working && dns_working
+      return data_when_internet_unreachable(dns_working: dns_working) unless tcp_working && dns_working
 
       portal_state = captive_portal_state
 
       {
+        dns_working:                   dns_working,
         internet_state:                ConnectivityStates.internet_state_from(
           tcp_working:          tcp_working,
           dns_working:          dns_working,
@@ -123,8 +126,9 @@ module WifiWand
       end
     end
 
-    def data_when_internet_unreachable
+    def data_when_internet_unreachable(dns_working:)
       {
+        dns_working:                   dns_working,
         internet_state:                ConnectivityStates::INTERNET_UNREACHABLE,
         internet_check_complete:       true,
         captive_portal_state:          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,

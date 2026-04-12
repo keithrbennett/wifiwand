@@ -23,6 +23,7 @@ describe WifiWand::StatusLineDataBuilder do
 
       expect(result).to eq(
         wifi_on:                       true,
+        dns_working:                   true,
         internet_state:                :reachable,
         internet_check_complete:       true,
         network_name:                  'HomeNetwork',
@@ -30,11 +31,11 @@ describe WifiWand::StatusLineDataBuilder do
         captive_portal_login_required: :no,
       )
       expect(progress_updates).to eq([
-        { wifi_on: true, internet_state: :pending, internet_check_complete: false, network_name: :pending,
+        { wifi_on: true, dns_working: nil, internet_state: :pending, internet_check_complete: false, network_name: :pending,
           captive_portal_state: :indeterminate, captive_portal_login_required: :unknown },
-        { wifi_on: true, internet_state: :pending, internet_check_complete: false, network_name: 'HomeNetwork',
+        { wifi_on: true, dns_working: nil, internet_state: :pending, internet_check_complete: false, network_name: 'HomeNetwork',
           captive_portal_state: :indeterminate, captive_portal_login_required: :unknown },
-        { wifi_on: true, internet_state: :reachable, internet_check_complete: true, network_name: 'HomeNetwork',
+        { wifi_on: true, dns_working: true, internet_state: :reachable, internet_check_complete: true, network_name: 'HomeNetwork',
           captive_portal_state: :free, captive_portal_login_required: :no },
       ])
     end
@@ -48,6 +49,7 @@ describe WifiWand::StatusLineDataBuilder do
 
       expect(result).to eq(
         wifi_on:                       false,
+        dns_working:                   false,
         internet_state:                :unreachable,
         internet_check_complete:       true,
         network_name:                  nil,
@@ -65,6 +67,7 @@ describe WifiWand::StatusLineDataBuilder do
 
       result = builder.call
 
+      expect(result[:dns_working]).to be true
       expect(result[:internet_state]).to eq(:unreachable)
       expect(result[:captive_portal_state]).to eq(:present)
       expect(result[:captive_portal_login_required]).to eq(:yes)
@@ -79,6 +82,7 @@ describe WifiWand::StatusLineDataBuilder do
 
       result = builder.call
 
+      expect(result[:dns_working]).to be true
       expect(result[:internet_state]).to eq(:indeterminate)
       expect(result[:internet_check_complete]).to be true
       expect(result[:captive_portal_state]).to eq(:indeterminate)
@@ -90,6 +94,19 @@ describe WifiWand::StatusLineDataBuilder do
 
       result = builder.call
 
+      expect(result[:dns_working]).to be false
+      expect(result[:internet_state]).to eq(:unreachable)
+      expect(result[:internet_check_complete]).to be true
+      expect(result[:captive_portal_state]).to eq(:indeterminate)
+      expect(result[:captive_portal_login_required]).to eq(:no)
+    end
+
+    it 'preserves successful DNS status when TCP connectivity fails' do
+      allow(model).to receive_messages(internet_tcp_connectivity?: false, dns_working?: true)
+
+      result = builder.call
+
+      expect(result[:dns_working]).to be true
       expect(result[:internet_state]).to eq(:unreachable)
       expect(result[:internet_check_complete]).to be true
       expect(result[:captive_portal_state]).to eq(:indeterminate)

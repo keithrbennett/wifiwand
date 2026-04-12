@@ -58,6 +58,10 @@ describe WifiWand::CommandLineInterface::HelpSystem do
       expect(help).to include('Usage:                 wifi-wand [options] [subcommand] [args]')
     end
 
+    it 'documents DNS in the status command description' do
+      expect(help).to include('status line (WiFi, Network, DNS, Internet')
+    end
+
     context 'when model is not available' do
       subject { test_class.new(nil) }
 
