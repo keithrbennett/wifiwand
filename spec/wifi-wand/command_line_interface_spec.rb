@@ -79,13 +79,19 @@ describe WifiWand::CommandLineInterface do
       expect(cli.interactive_mode).to be(true)
     end
 
+    it 'does not start the shell from the constructor in interactive mode' do
+      interactive_options = create_cli_options(interactive_mode: true)
+      expect_any_instance_of(described_class).not_to receive(:run_shell)
+      described_class.new(interactive_options)
+    end
+
     it 'uses WifiWand.create_model to build the model with derived options' do
       # Ensure create_model is called and returns our mock model
       expect(WifiWand)
         .to receive(:create_model) do |model_options|
-          expect(model_options).to be_a(OpenStruct)
-          expect(model_options.verbose).to eq(options.verbose)
-          expect(model_options.wifi_interface).to eq(options.wifi_interface)
+          expect(model_options).to be_a(Hash)
+          expect(model_options[:verbose]).to eq(options.verbose)
+          expect(model_options[:wifi_interface]).to eq(options.wifi_interface)
           mock_model
         end
 
@@ -97,25 +103,21 @@ describe WifiWand::CommandLineInterface do
   describe 'command validation' do
     before do
       allow(subject).to receive(:print_help)
-      allow(subject).to receive(:exit)
     end
 
     describe '#validate_command_line' do
-      specify 'validation exits with error when no command is provided' do
-        stub_const('ARGV', [])
+      specify 'validation returns error when no command is provided' do
         err_stream = StringIO.new
         opts = options.dup
         opts.err_stream = err_stream
-        cli = described_class.new(opts)
-        expect(cli).to receive(:exit).with(-1)
-        cli.validate_command_line
+        cli = described_class.new(opts, argv: [])
+        expect(cli.validate_command_line).to eq(described_class::FAILURE_EXIT_CODE)
         expect(err_stream.string).to match(/Syntax is:/)
       end
 
-      specify 'validation does not exit when command is provided' do
-        stub_const('ARGV', ['info'])
-        expect(subject).not_to receive(:exit)
-        expect { subject.validate_command_line }.not_to output.to_stdout
+      specify 'validation succeeds when command is provided' do
+        cli = described_class.new(options, argv: ['info'])
+        expect(cli.validate_command_line).to eq(described_class::SUCCESS_EXIT_CODE)
       end
     end
   end
@@ -186,17 +188,17 @@ describe WifiWand::CommandLineInterface do
       end
 
       it 'processes valid commands' do
-        stub_const('ARGV', ['info'])
-        allow(subject).to receive(:cmd_i).and_return('info result')
+        cli = described_class.new(options, argv: ['info'])
+        allow(cli).to receive(:cmd_i).and_return('info result')
 
-        result = subject.process_command_line
+        result = cli.process_command_line
         expect(result).to eq('info result')
       end
 
       it 'raises BadCommandError for invalid commands' do
-        stub_const('ARGV', %w[invalid_command arg1 arg2])
+        cli = described_class.new(options, argv: %w[invalid_command arg1 arg2])
 
-        expect { subject.process_command_line }.to raise_error(WifiWand::BadCommandError) do |error|
+        expect { cli.process_command_line }.to raise_error(WifiWand::BadCommandError) do |error|
           expect(error.message).to include('Unrecognized command')
           expect(error.message).to include('invalid_command')
           expect(error.message).to include('arg1')
@@ -205,18 +207,18 @@ describe WifiWand::CommandLineInterface do
       end
 
       it 'passes command arguments correctly' do
-        stub_const('ARGV', %w[connect TestNetwork password123])
-        allow(subject).to receive(:cmd_co).with('TestNetwork', 'password123').and_return('connected')
+        cli = described_class.new(options, argv: %w[connect TestNetwork password123])
+        allow(cli).to receive(:cmd_co).with('TestNetwork', 'password123').and_return('connected')
 
-        result = subject.process_command_line
+        result = cli.process_command_line
         expect(result).to eq('connected')
       end
 
       it 'handles commands with no arguments' do
-        stub_const('ARGV', ['info'])
-        allow(subject).to receive(:cmd_i).and_return('info_output')
+        cli = described_class.new(options, argv: ['info'])
+        allow(cli).to receive(:cmd_i).and_return('info_output')
 
-        result = subject.process_command_line
+        result = cli.process_command_line
         expect(result).to eq('info_output')
       end
     end
@@ -881,8 +883,6 @@ describe WifiWand::CommandLineInterface do
 
   describe '#call (main entry point)' do
     before do
-      allow(subject).to receive(:validate_command_line)
-      allow(subject).to receive(:exit)
       allow(subject).to receive_messages(
         process_command_line: 'command_result',
         help_hint:            'Type help for usage',
@@ -890,10 +890,17 @@ describe WifiWand::CommandLineInterface do
     end
 
     it 'validates command line and processes commands successfully' do
-      expect(subject).to receive(:validate_command_line)
+      expect(subject).to receive(:validate_command_line).and_return(described_class::SUCCESS_EXIT_CODE)
       expect(subject).to receive(:process_command_line)
 
-      subject.call
+      expect(subject.call).to eq(described_class::SUCCESS_EXIT_CODE)
+    end
+
+    it 'starts the shell from call in interactive mode' do
+      cli = described_class.new(create_cli_options(interactive_mode: true))
+      expect(cli).to receive(:run_shell).and_return(0)
+
+      expect(cli.call).to eq(0)
     end
 
     it 'handles BadCommandError with error message and help hint' do
@@ -903,11 +910,12 @@ describe WifiWand::CommandLineInterface do
       opts = options.dup
       opts.err_stream = err_stream
       cli = described_class.new(opts)
-      allow(cli).to receive(:validate_command_line)
-      allow(cli).to receive(:help_hint).and_return('Type help for usage')
+      allow(cli).to receive_messages(
+        validate_command_line: described_class::SUCCESS_EXIT_CODE,
+        help_hint:             'Type help for usage',
+      )
       allow(cli).to receive(:process_command_line).and_raise(error)
-      expect(cli).to receive(:exit).with(-1)
-      cli.call
+      expect(cli.call).to eq(described_class::FAILURE_EXIT_CODE)
       expect(err_stream.string).to include('Invalid command')
       expect(err_stream.string).to include('Type help for usage')
     end
@@ -919,11 +927,12 @@ describe WifiWand::CommandLineInterface do
       opts = options.dup
       opts.err_stream = err_stream
       cli = described_class.new(opts)
-      allow(cli).to receive(:validate_command_line)
-      allow(cli).to receive(:help_hint).and_return('Type help for usage')
+      allow(cli).to receive_messages(
+        validate_command_line: described_class::SUCCESS_EXIT_CODE,
+        help_hint:             'Type help for usage',
+      )
       allow(cli).to receive(:process_command_line).and_raise(error)
-      expect(cli).to receive(:exit).with(-1)
-      cli.call
+      expect(cli.call).to eq(described_class::FAILURE_EXIT_CODE)
       expect(err_stream.string).to include('Missing required argument')
       expect(err_stream.string).to include('Type help for usage')
     end
@@ -936,11 +945,12 @@ describe WifiWand::CommandLineInterface do
       opts = options.dup
       opts.err_stream = err_stream
       cli = described_class.new(opts)
-      allow(cli).to receive(:validate_command_line)
-      allow(cli).to receive(:help_hint).and_return('Type help for usage')
+      allow(cli).to receive_messages(
+        validate_command_line: described_class::SUCCESS_EXIT_CODE,
+        help_hint:             'Type help for usage',
+      )
       allow(cli).to receive(:process_command_line).and_raise(error)
-      expect(cli).to receive(:exit).with(-1)
-      cli.call
+      expect(cli.call).to eq(described_class::FAILURE_EXIT_CODE)
       # Count occurrences of the help hint - should only appear once
       hint_count = err_stream.string.scan('Type help for usage').length
       expect(hint_count).to eq(1)

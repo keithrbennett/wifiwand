@@ -30,7 +30,12 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       # Mock interactive_mode for testing
       attr_accessor :interactive_mode
 
-      def initialize = @interactive_mode = true
+      def out_stream = @out_stream ||= StringIO.new
+
+      def initialize
+        @interactive_mode = true
+        @err_stream = StringIO.new
+      end
     end
   end
 
@@ -68,15 +73,17 @@ describe WifiWand::CommandLineInterface::ShellInterface do
   end
 
   describe '#quit' do
-    it 'calls exit with code 0 when in interactive mode' do
+    it 'throws a shell exit signal with code 0 when in interactive mode' do
       subject.interactive_mode = true
-      expect(subject).to receive(:exit).with(0)
-      subject.quit
+      expect { subject.quit }.to throw_symbol(:wifiwand_shell_exit, 0)
     end
 
-    it 'prints error message when not in interactive mode' do
+    it 'prints error message and returns 1 when not in interactive mode' do
       subject.interactive_mode = false
-      expect { subject.quit }.to output(/This command can only be run in shell mode/).to_stderr
+      result = subject.quit
+      expect(result).to eq(1)
+      expect(subject.instance_variable_get(:@err_stream).string)
+        .to include('This command can only be run in shell mode.')
     end
   end
 
@@ -102,19 +109,15 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       allow(subject).to receive(:require).with('pry')
       mock_pry_session
 
-      # Test the behavior and capture output while suppressing it during test runs
-      captured_output = silence_output do |stdout, _stderr|
-        subject.run_shell
-        stdout.string
-      end
-      expect(captured_output).to eq("For help, type 'h[Enter]' or 'help[Enter]'.\n")
+      subject.run_shell
+      expect(subject.out_stream.string).to eq("For help, type 'h[Enter]' or 'help[Enter]'.\n")
     end
 
     it 'requires pry gem' do
       expect(subject).to receive(:require).with('pry')
       mock_pry_session
 
-      silence_output { subject.run_shell }
+      subject.run_shell
     end
 
     it 'configures an exception handler that prints the exception message' do
@@ -132,13 +135,37 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       mock_binding = double('binding', pry: nil)
       allow(subject).to receive(:binding).and_return(mock_binding)
 
-      silence_output { subject.run_shell }
+      subject.run_shell
 
       # Call the captured handler and assert it prints exception message
       io = StringIO.new
       ex = RuntimeError.new('boom')
       captured_handler.call(io, ex, nil)
       expect(io.string).to include('boom')
+    end
+
+    it 'returns 0 when pry finishes normally' do
+      allow(subject).to receive(:require).with('pry')
+      mock_pry_session
+
+      expect(subject.run_shell).to eq(0)
+    end
+
+    it 'returns 0 when quit throws the shell exit signal' do
+      allow(subject).to receive(:require).with('pry')
+
+      pry_config = double('pry_config')
+      allow(pry_config).to receive(:command_prefix=)
+      allow(pry_config).to receive(:print=)
+      allow(pry_config).to receive(:exception_handler=)
+      pry_class = double('Pry', config: pry_config)
+      stub_const('Pry', pry_class)
+
+      mock_binding = double('binding')
+      allow(subject).to receive(:binding).and_return(mock_binding)
+      allow(mock_binding).to receive(:pry) { subject.quit }
+
+      expect(subject.run_shell).to eq(0)
     end
   end
 end

@@ -18,11 +18,12 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
     Class.new do
       include WifiWand::CommandLineInterface::OutputFormatter
 
-      attr_accessor :options, :model
+      attr_accessor :options, :model, :out_stream
 
       def initialize(options = nil, model = nil)
         @options = options || OpenStruct.new
         @model = model
+        @out_stream = StringIO.new
       end
     end
   end
@@ -44,7 +45,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   shared_examples 'colorization method' do |test_cases|
     test_cases[:tests].each do |data|
       it data[:name] do
-        allow($stdout).to receive(:tty?).and_return(data[:tty])
+        allow(subject.out_stream).to receive(:tty?).and_return(data[:tty])
         result = subject.public_send(test_cases[:method_name], data[:input])
         expect(result).to eq(data[:expected_output])
 
@@ -82,7 +83,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
     test_cases.each do |data|
       it data[:name] do
-        allow($stdout).to receive(:tty?).and_return(data[:tty])
+        allow(subject.out_stream).to receive(:tty?).and_return(data[:tty])
         result = subject.colorize_text(text, data[:color])
         expect(result).to eq(data[:expected_output])
       end
@@ -300,7 +301,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
     end
 
     context 'when stdout is a TTY' do
-      before { allow($stdout).to receive(:tty?).and_return(true) }
+      before { allow(subject.out_stream).to receive(:tty?).and_return(true) }
 
       it 'contains all status components with appropriate colors' do
         result = subject.status_line(status_data)
@@ -387,7 +388,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
     end
 
     context 'when stdout is not a TTY' do
-      before { allow($stdout).to receive(:tty?).and_return(false) }
+      before { allow(subject.out_stream).to receive(:tty?).and_return(false) }
 
       it 'contains all status components without color codes' do
         result = subject.status_line(status_data)

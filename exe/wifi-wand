@@ -9,4 +9,4 @@ Warning[:experimental] = false
 require_relative '../lib/wifi-wand'
 require_relative '../lib/wifi-wand/main'
 
-WifiWand::Main.new.call
+exit(WifiWand::Main.new.call)

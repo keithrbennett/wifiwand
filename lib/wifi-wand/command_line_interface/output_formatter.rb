@@ -9,7 +9,7 @@ module WifiWand
       def format_object(object) = object.awesome_inspect
 
       def colorize_text(text, color = nil)
-        return text unless $stdout.tty? && color
+        return text unless out_stream.respond_to?(:tty?) && out_stream.tty? && color
 
         color_codes = {
           red:     "\e[31m",

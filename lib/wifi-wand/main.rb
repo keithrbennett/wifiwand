@@ -16,16 +16,22 @@ require_relative 'version'
 
 module WifiWand
   class Main
-    def initialize(out_stream = $stdout, err_stream = $stderr)
+    SUCCESS_EXIT_CODE = 0
+    FAILURE_EXIT_CODE = 1
+
+    def initialize(out_stream = $stdout, err_stream = $stderr, argv: ARGV, env: ENV, in_stream: $stdin)
       @out_stream = out_stream
       @err_stream = err_stream
+      @in_stream = in_stream
+      @argv = argv
+      @env = env
     end
 
     # Parses the command line with Ruby's internal 'optparse'.
-    # optparse removes what it processes from ARGV, which simplifies our command parsing.
-    def parse_command_line
+    def parse_command_line(argv = @argv)
+      args = Array(argv).dup
       options = OpenStruct.new
-      prepend_env_options
+      prepend_env_options(args)
 
       OptionParser.new do |parser|
         parser.on('-v', '--[no-]verbose', 'Run verbosely') do |v|
@@ -66,7 +72,7 @@ module WifiWand
 
         parser.on('-h', '--help', 'Show help') do |_help_requested|
           options.help_requested = true
-          ARGV << 'h' # pass on the request to the command processor
+          args << 'h'
         end
 
         parser.on('-V', '--version', 'Show version') do
@@ -75,44 +81,45 @@ module WifiWand
         # Use order! instead of parse! to stop parsing at the first non-option argument (the command name).
         # This allows subcommands (like 'log') to have their own options that aren't parsed by the main parser.
         # .parse! would fail on unrecognized options like --file and --stdout that belong to subcommands.
-      end.order!
+      end.order!(args)
 
-      if ARGV.first == 'shell'
+      if args.first == 'shell'
         options.interactive_mode = true
-        ARGV.shift
+        args.shift
       end
 
+      options.argv = args
       options
     end
 
-    def call
-      options = parse_command_line
+    def call(argv = @argv)
+      options = parse_command_line(argv)
       if options.version_requested
         @out_stream.puts(WifiWand::VERSION)
-        return
+        return SUCCESS_EXIT_CODE
       end
       # Ensure CLI and model share the main's output streams
       options.out_stream = @out_stream
       options.err_stream = @err_stream
-      WifiWand::CommandLineInterface.new(options).call
+      options.in_stream = @in_stream
+      WifiWand::CommandLineInterface.new(options, argv: options.argv).call
     rescue => e
       # For option parsing errors, we don't have options.verbose yet, so default to false
       verbose = !!options&.verbose
       handle_error(e, verbose)
-      # In non-interactive CLI mode, ensure failures return a non-zero exit code
-      exit(1) unless options&.interactive_mode
+      FAILURE_EXIT_CODE
     end
 
     private
 
-    def prepend_env_options
-      raw_options = ENV['WIFIWAND_OPTS']
+    def prepend_env_options(args)
+      raw_options = @env['WIFIWAND_OPTS']
       return if raw_options.nil? || raw_options.strip.empty?
 
       env_args = Shellwords.shellsplit(raw_options)
       return if env_args.empty?
 
-      ARGV.unshift(*env_args)
+      args.unshift(*env_args)
     rescue ArgumentError => e
       raise ConfigurationError, "Invalid WIFIWAND_OPTS value: #{e.message}"
     end

@@ -6,7 +6,7 @@ module WifiWand
       # Runs a pry session in the context of this object.
       # Commands and options specified on the command line can also be specified in the shell.
       def run_shell
-        puts "For help, type 'h[Enter]' or 'help[Enter]'."
+        out_stream.puts "For help, type 'h[Enter]' or 'help[Enter]'."
         require 'pry'
 
         # Enable the line below if you have any problems with pry configuration being loaded
@@ -22,7 +22,10 @@ module WifiWand
           output.puts exception.message
         end
 
-        binding.pry # rubocop:disable Lint/Debugger
+        catch(:wifiwand_shell_exit) do
+          binding.pry # rubocop:disable Lint/Debugger
+          0
+        end
       end
 
       # For use by the shell when the user types the DSL commands
@@ -37,10 +40,11 @@ module WifiWand
 
       def quit
         if interactive_mode
-          exit(0)
+          throw(:wifiwand_shell_exit, 0)
         else
           io = @err_stream || $stderr
           io.puts 'This command can only be run in shell mode.'
+          1
         end
       end
     end

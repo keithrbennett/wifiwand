@@ -4,7 +4,7 @@ require_relative('../../spec_helper')
 require_relative('../../../lib/wifi-wand/main')
 
 describe WifiWand::Main do
-  subject { described_class.new(out_stream, err_stream) }
+  subject { described_class.new(out_stream, err_stream, argv: ARGV) }
 
   let(:out_stream) { StringIO.new }
   let(:err_stream) { StringIO.new }
@@ -12,7 +12,7 @@ describe WifiWand::Main do
 
   def parse_with_argv(*args)
     stub_const('ARGV', args)
-    subject.parse_command_line
+    described_class.new(out_stream, err_stream, argv: ARGV).parse_command_line
   end
 
   describe '#parse_command_line' do
@@ -39,10 +39,11 @@ describe WifiWand::Main do
       end
     end
 
-    it 'parses shell subcommand and removes it from ARGV' do
+    it 'parses shell subcommand into explicit argv without mutating ARGV' do
       options = parse_with_argv('shell')
       expect(options.interactive_mode).to be(true)
-      expect(ARGV).to be_empty
+      expect(options.argv).to eq([])
+      expect(ARGV).to eq(['shell'])
     end
 
     it 'parses wifi interface options' do
@@ -71,10 +72,11 @@ describe WifiWand::Main do
       expect { subject.parse_command_line }.to raise_error(OptionParser::InvalidOption)
     end
 
-    it 'parses help flag and adds h to ARGV' do
+    it 'parses help flag and adds h to the returned argv' do
       stub_const('ARGV', ['--help'])
-      subject.parse_command_line
-      expect(ARGV).to include('h')
+      options = subject.parse_command_line
+      expect(options.argv).to include('h')
+      expect(ARGV).to eq(['--help'])
     end
 
     it 'parses version flags' do
@@ -85,12 +87,12 @@ describe WifiWand::Main do
       expect(options.version_requested).to be(true)
     end
 
-    it 'removes parsed options from ARGV' do
+    it 'returns command argv without mutating ARGV' do
       stub_const('ARGV', ['-v', '-p', 'wlan0', 'connect', 'TestNetwork'])
-      subject.parse_command_line
+      options = subject.parse_command_line
 
-      # OptionParser should remove the parsed flags, leaving just the command and args
-      expect(ARGV).to eq(%w[connect TestNetwork])
+      expect(options.argv).to eq(%w[connect TestNetwork])
+      expect(ARGV).to eq(['-v', '-p', 'wlan0', 'connect', 'TestNetwork'])
     end
 
     it 'handles multiple flags together' do
@@ -109,7 +111,8 @@ describe WifiWand::Main do
       expect(options.verbose).to be(true)
       expect(options.wifi_interface).to eq('eth0')
       expect(options.interactive_mode).to be(true)
-      expect(ARGV).to be_empty
+      expect(options.argv).to eq([])
+      expect(ARGV).to eq(['-v', '-p', 'eth0', 'shell'])
     end
 
     it 'prepends options from WIFIWAND_OPTS before CLI arguments' do
@@ -120,6 +123,7 @@ describe WifiWand::Main do
       options = subject.parse_command_line
 
       expect(options.verbose).to be(true)
+      expect(options.argv).to eq(['info'])
       expect(ARGV).to eq(['info'])
     end
 
@@ -148,75 +152,86 @@ describe WifiWand::Main do
 
     before do
       # Mock the command line parsing to avoid complex setup
-      options = OpenStruct.new(verbose: false, interactive_mode: false)
+      options = OpenStruct.new(verbose: false, interactive_mode: false, argv: ['info'])
       allow(subject).to receive(:parse_command_line).and_return(options)
       # Mock CLI creation to avoid OS detection
       allow(WifiWand::CommandLineInterface).to receive(:new).and_return(mock_cli)
     end
 
     it 'creates CLI with parsed options and calls it' do
-      options = OpenStruct.new(verbose: true, wifi_interface: 'wlan0')
+      options = OpenStruct.new(verbose: true, wifi_interface: 'wlan0', argv: ['info'])
       allow(subject).to receive(:parse_command_line).and_return(options)
 
-      expect(WifiWand::CommandLineInterface).to receive(:new).with(options).and_return(mock_cli)
-      expect(mock_cli).to receive(:call)
+      expect(WifiWand::CommandLineInterface)
+        .to receive(:new).with(options, argv: ['info']).and_return(mock_cli)
+      expect(mock_cli).to receive(:call).and_return(0)
 
-      subject.call
+      expect(subject.call).to eq(0)
     end
 
-    it 'handles and prints exceptions and exits with code 1' do
+    it 'handles and prints exceptions and returns code 1' do
       allow(mock_cli).to receive(:call).and_raise(StandardError.new('Test error'))
-      expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
+      expect(subject.call).to eq(1)
       expect(err_stream.string).to match(/Error:.*Test error/m)
     end
 
-    it 'prints clean error messages without backtraces by default and exits with code 1' do
+    it 'prints clean error messages without backtraces by default and returns code 1' do
       ex = StandardError.new('Test error')
       allow(ex).to receive(:backtrace).and_return(%w[line1 line2 line3])
       allow(mock_cli).to receive(:call).and_raise(ex)
 
-      expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
+      expect(subject.call).to eq(1)
       expect(err_stream.string).to eq("Error: Test error\n")
     end
 
-    it 'prints backtrace only in verbose mode and exits with code 1' do
+    it 'prints backtrace only in verbose mode and returns code 1' do
       ex = StandardError.new('Test error')
       allow(ex).to receive(:backtrace).and_return(%w[line1 line2 line3])
       allow(mock_cli).to receive(:call).and_raise(ex)
 
       # Mock verbose mode
-      options = OpenStruct.new(verbose: true, interactive_mode: false)
+      options = OpenStruct.new(verbose: true, interactive_mode: false, argv: ['info'])
       allow(subject).to receive(:parse_command_line).and_return(options)
 
-      expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
+      expect(subject.call).to eq(1)
       expect(err_stream.string).to match(/Error: Test error/)
       expect(err_stream.string).to match(/Stack trace:/)
     end
 
+    it 'returns code 1 for interactive-mode failures too' do
+      ex = StandardError.new('Shell startup failed')
+      options = OpenStruct.new(verbose: false, interactive_mode: true, argv: [])
+      allow(subject).to receive(:parse_command_line).and_return(options)
+      allow(mock_cli).to receive(:call).and_raise(ex)
+
+      expect(subject.call).to eq(1)
+      expect(err_stream.string).to match(/Error: Shell startup failed/)
+    end
+
     it 'succeeds when no exceptions occur' do
-      expect(mock_cli).to receive(:call).and_return('success')
-      subject.call
+      expect(mock_cli).to receive(:call).and_return(0)
+      expect(subject.call).to eq(0)
       expect(out_stream.string).to be_empty
     end
 
     it 'prints version and skips CLI initialization when requested' do
       stub_const('ARGV', ['-V'])
-      allow(subject).to receive(:parse_command_line).and_call_original
+      main = described_class.new(out_stream, err_stream, argv: ARGV)
 
       expect(WifiWand::CommandLineInterface).not_to receive(:new)
 
-      subject.call
+      expect(main.call).to eq(0)
 
       expect(out_stream.string).to eq("#{WifiWand::VERSION}\n")
     end
 
     it 'returns immediately after printing version even when other arguments are present' do
       stub_const('ARGV', ['--version', 'info'])
-      allow(subject).to receive(:parse_command_line).and_call_original
+      main = described_class.new(out_stream, err_stream, argv: ARGV)
 
       expect(WifiWand::CommandLineInterface).not_to receive(:new)
 
-      subject.call
+      expect(main.call).to eq(0)
 
       expect(out_stream.string).to eq("#{WifiWand::VERSION}\n")
     end
@@ -295,27 +310,29 @@ describe WifiWand::Main do
     it 'parses arguments and executes CLI with correct options' do
       stub_const('ARGV', ['-v', '-p', 'wlan0', 'shell'])
 
-      expect(WifiWand::CommandLineInterface).to receive(:new) do |options|
+      expect(WifiWand::CommandLineInterface).to receive(:new) do |options, argv:|
         expect(options.verbose).to be(true)
         expect(options.interactive_mode).to be(true)
         expect(options.wifi_interface).to eq('wlan0')
+        expect(argv).to eq([])
         mock_cli
       end
-      expect(mock_cli).to receive(:call)
+      expect(mock_cli).to receive(:call).and_return(0)
 
-      subject.call
+      expect(subject.call).to eq(0)
     end
 
     it 'handles complete workflow with output formatting' do
       stub_const('ARGV', ['-o', 'j', 'info'])
 
-      expect(WifiWand::CommandLineInterface).to receive(:new) do |options|
+      expect(WifiWand::CommandLineInterface).to receive(:new) do |options, argv:|
         expect(options.post_processor).to respond_to(:call)
+        expect(argv).to eq(['info'])
         mock_cli
       end
-      expect(mock_cli).to receive(:call)
+      expect(mock_cli).to receive(:call).and_return(0)
 
-      subject.call
+      expect(subject.call).to eq(0)
     end
   end
 
@@ -323,12 +340,12 @@ describe WifiWand::Main do
     let(:mock_cli) { double('CommandLineInterface') }
 
     before do
-      options = OpenStruct.new(verbose: false, interactive_mode: false)
+      options = OpenStruct.new(verbose: false, interactive_mode: false, argv: ['info'])
       allow(subject).to receive(:parse_command_line).and_return(options)
       allow(WifiWand::CommandLineInterface).to receive(:new).and_return(mock_cli)
     end
 
-    it 'handles OsCommandError with specific error message and exits with code 1' do
+    it 'handles OsCommandError with specific error message and returns code 1' do
       ex = WifiWand::CommandExecutor::OsCommandError.new(1, 'a command', 'a message')
       allow(mock_cli).to receive(:call).and_raise(ex)
 
@@ -339,35 +356,35 @@ describe WifiWand::Main do
         Exit code: 1
       MESSAGE
 
-      expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
+      expect(subject.call).to eq(1)
       expect(err_stream.string).to eq(expected_output)
     end
 
-    it 'handles WifiWand::Error with a simple error message and exits with code 1' do
+    it 'handles WifiWand::Error with a simple error message and returns code 1' do
       ex = WifiWand::Error.new('a message')
       allow(mock_cli).to receive(:call).and_raise(ex)
 
-      expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
+      expect(subject.call).to eq(1)
       expect(err_stream.string).to eq("Error: a message\n")
     end
 
-    it 'handles other errors with a simple error message and exits with code 1' do
+    it 'handles other errors with a simple error message and returns code 1' do
       ex = StandardError.new('a message')
       allow(mock_cli).to receive(:call).and_raise(ex)
 
-      expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
+      expect(subject.call).to eq(1)
       expect(err_stream.string).to eq("Error: a message\n")
     end
 
-    it 'handles other errors with a stack trace in verbose mode and exits with code 1' do
+    it 'handles other errors with a stack trace in verbose mode and returns code 1' do
       ex = StandardError.new('a message')
       allow(ex).to receive(:backtrace).and_return(['line 1', 'line 2'])
       allow(mock_cli).to receive(:call).and_raise(ex)
       # Mock verbose mode
-      options = OpenStruct.new(verbose: true, interactive_mode: false)
+      options = OpenStruct.new(verbose: true, interactive_mode: false, argv: ['info'])
       allow(subject).to receive(:parse_command_line).and_return(options)
 
-      expect { subject.call }.to raise_error(SystemExit) { |e| expect(e.status).to eq(1) }
+      expect(subject.call).to eq(1)
       expect(err_stream.string).to match(/Error: a message/)
       expect(err_stream.string).to match(/Stack trace:/)
     end
@@ -383,7 +400,7 @@ describe WifiWand::Main do
       err_stream = StringIO.new
       main = described_class.new(out_stream, err_stream)
 
-      expect { main.call }.not_to raise_error
+      expect(main.call).to eq(0)
       expect(out_stream.string).to include('Command Line Switches')
     end
   end

@@ -24,17 +24,22 @@ module WifiWand
     attr_reader :interactive_mode, :model, :options
 
     PROJECT_URL = 'https://github.com/keithrbennett/wifiwand'
+    SUCCESS_EXIT_CODE = 0
+    FAILURE_EXIT_CODE = 1
 
-    def initialize(options)
+    def initialize(options, argv: nil)
       @options = options
+      parsed_argv = argv || (options.respond_to?(:argv) && options.argv)
+      @argv = Array(parsed_argv).dup
       @original_out_stream = options.respond_to?(:out_stream) && options.out_stream
       @err_stream = (options.respond_to?(:err_stream) && options.err_stream) || $stderr
+      @in_stream = (options.respond_to?(:in_stream) && options.in_stream) || $stdin
 
-      model_options = OpenStruct.new({
+      model_options = {
         verbose:        options.verbose,
         wifi_interface: options.wifi_interface,
         out_stream:     out_stream,
-      })
+      }
 
       # Skip model initialization when help was explicitly requested in non-interactive mode,
       # so that `--help` works even on systems without Wi‑Fi hardware or permissions.
@@ -43,7 +48,6 @@ module WifiWand
       skip_model_init = help_requested && !@interactive_mode
 
       @model = skip_model_init ? nil : WifiWand.create_model(model_options)
-      run_shell if @interactive_mode
     end
 
     def verbose_mode = options.verbose
@@ -52,12 +56,14 @@ module WifiWand
     def out_stream = @original_out_stream || $stdout
 
     # Asserts that a command has been passed on the command line.
-    def validate_command_line
-      if ARGV.empty?
+    def validate_command_line(argv = @argv)
+      if argv.empty?
         @err_stream.puts "Syntax is: #{File.basename($PROGRAM_NAME)} [options] command [command_options]. " \
           "#{help_hint}"
-        exit(-1)
+        return FAILURE_EXIT_CODE
       end
+
+      SUCCESS_EXIT_CODE
     end
 
     # Processes the command (ARGV[0]) and any relevant options (ARGV[1..-1]).
@@ -66,10 +72,10 @@ module WifiWand
     # be in a form that the Ruby interpreter will recognize as a string,
     # i.e. single or double quotes, %q, %Q, etc.
     # Otherwise it will assume it's a method name and pass it to method_missing!
-    def process_command_line
-      attempt_command_action(ARGV[0], *ARGV[1..]) do
+    def process_command_line(argv = @argv)
+      attempt_command_action(argv[0], *argv[1..]) do
         raise WifiWand::BadCommandError,
-          "Unrecognized command. Command was #{ARGV.first.inspect} and options were #{ARGV[1..].inspect}."
+          "Unrecognized command. Command was #{argv.first.inspect} and options were #{argv[1..].inspect}."
       end
     end
 
@@ -237,9 +243,9 @@ module WifiWand
         handle_output(result, -> { "QR code generated: #{result}" })
       end
     rescue WifiWand::Error => e
-      if e.message.include?('already exists') && $stdin.tty?
+      if e.message.include?('already exists') && @in_stream.tty?
         out_stream.print 'Output file exists. Overwrite? [y/N]: '
-        answer = $stdin.gets&.strip&.downcase
+        answer = @in_stream.gets&.strip&.downcase
         if %w[y yes].include?(answer)
           result = model.generate_qr_code(filespec, overwrite: true, password: password)
           handle_output(result, -> { "QR code generated: #{result}" })
@@ -353,17 +359,20 @@ module WifiWand
     # ===== MAIN ENTRY POINT =====
 
     def call
-      return if interactive_mode  # Shell already ran in constructor, nothing more to do
+      return run_shell if interactive_mode
 
-      validate_command_line
+      validation_status = validate_command_line
+      return validation_status unless validation_status == SUCCESS_EXIT_CODE
+
       begin
         # By this time, the Main class has removed the command line options, and all that is left
-        # in ARGV is the commands and their options.
+        # in argv is the command and its options.
         process_command_line
+        SUCCESS_EXIT_CODE
       rescue WifiWand::Error => e
         @err_stream.puts e.to_s
         @err_stream.puts help_hint unless e.message.include?(help_hint)
-        exit(-1)
+        FAILURE_EXIT_CODE
       end
     end
 
