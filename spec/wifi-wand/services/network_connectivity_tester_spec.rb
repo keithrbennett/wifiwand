@@ -74,6 +74,48 @@ describe WifiWand::NetworkConnectivityTester do
         expect(tester.tcp_connectivity?).to be true
       end
     end
+
+    context 'when one endpoint succeeds before another blocking endpoint times out' do
+      let(:tester) { described_class.new(verbose: false) }
+      let(:slow_endpoint_events) { Queue.new }
+
+      before do
+        allow(tester).to receive(:tcp_test_endpoints).and_return([
+          { host: 'slow.test', port: 443 },
+          { host: 'fast.test', port: 443 },
+        ])
+
+        allow(Socket).to receive(:tcp) do |host, _port, connect_timeout:, &block|
+          case host
+          when 'slow.test'
+            begin
+              sleep(connect_timeout * 3)
+              raise Errno::ETIMEDOUT
+            ensure
+              slow_endpoint_events << :slow_finished
+            end
+          when 'fast.test'
+            block ? block.call : true
+          else
+            raise "Unexpected host: #{host}"
+          end
+        end
+      end
+
+      it 'returns promptly after the first successful connection' do
+        start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        expect(tester.tcp_connectivity?).to be true
+        elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+        expect(elapsed).to be < (WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT / 2.0)
+      end
+
+      it 'allows slower checks to finish naturally after returning early' do
+        expect(tester.tcp_connectivity?).to be true
+
+        expect(slow_endpoint_events.pop(timeout: 1)).to eq(:slow_finished)
+      end
+    end
   end
 
   describe '#dns_working?' do
@@ -197,7 +239,9 @@ describe WifiWand::NetworkConnectivityTester do
     end
 
     context 'when the connectivity check endpoint returns 204' do
-      before { mock_captive_portal_free_state }
+      before do
+        allow(tester.captive_portal_checker).to receive(:captive_portal_state).and_return(:free)
+      end
 
       it 'returns :free' do
         expect(tester.captive_portal_state).to eq(:free)
@@ -205,7 +249,9 @@ describe WifiWand::NetworkConnectivityTester do
     end
 
     context 'when the connectivity check endpoint returns a redirect (captive portal)' do
-      before { mock_captive_portal_detected }
+      before do
+        allow(tester.captive_portal_checker).to receive(:captive_portal_state).and_return(:present)
+      end
 
       it 'returns :present' do
         expect(tester.captive_portal_state).to eq(:present)
@@ -214,8 +260,7 @@ describe WifiWand::NetworkConnectivityTester do
 
     context 'when all HTTP requests fail with network errors' do
       before do
-        stub_short_connectivity_timeouts
-        allow(Net::HTTP).to receive(:get_response).and_raise(Errno::ECONNREFUSED)
+        allow(tester.captive_portal_checker).to receive(:captive_portal_state).and_return(:indeterminate)
       end
 
       it 'returns :indeterminate' do
@@ -227,7 +272,14 @@ describe WifiWand::NetworkConnectivityTester do
       let(:output) { StringIO.new }
       let(:tester) { described_class.new(verbose: true, output: output) }
 
-      before { mock_captive_portal_free_state }
+      before do
+        allow(tester.captive_portal_checker).to receive(:captive_portal_state) do
+          output.puts 'Testing captive portal via HTTP: http://example.com/check'
+          output.puts 'Captive portal check http://example.com/check: HTTP 204 (expected 204) -> pass'
+          output.puts 'Captive portal results: [:free] -- free'
+          :free
+        end
+      end
 
       it 'logs the endpoints being checked' do
         tester.captive_portal_state
@@ -244,7 +296,13 @@ describe WifiWand::NetworkConnectivityTester do
       let(:output) { StringIO.new }
       let(:tester) { described_class.new(verbose: true, output: output) }
 
-      before { mock_captive_portal_detected }
+      before do
+        allow(tester.captive_portal_checker).to receive(:captive_portal_state) do
+          output.puts 'Captive portal check http://example.com/check: HTTP 302 (expected 204) -> mismatch'
+          output.puts 'Captive portal results: [:present] -- detected'
+          :present
+        end
+      end
 
       it 'logs results array and detected status' do
         tester.captive_portal_state

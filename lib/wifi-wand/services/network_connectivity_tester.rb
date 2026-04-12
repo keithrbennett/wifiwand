@@ -4,8 +4,6 @@ require 'socket'
 require 'timeout'
 require 'yaml'
 require 'ipaddr'
-require 'async'
-require 'async/barrier'
 require_relative '../timing_constants'
 require_relative '../connectivity_states'
 require_relative 'captive_portal_checker'
@@ -75,7 +73,7 @@ module WifiWand
         @output.puts "Fast connectivity check to: #{endpoints_list}"
       end
 
-      run_parallel_checks(fast_endpoints, TimingConstants::FAST_CONNECTIVITY_TIMEOUT) do |endpoint|
+      run_parallel_checks?(fast_endpoints, TimingConstants::FAST_CONNECTIVITY_TIMEOUT) do |endpoint|
         attempt_fast_tcp_connection(endpoint)
       end
     end
@@ -89,7 +87,7 @@ module WifiWand
         @output.puts "Testing internet TCP connectivity to: #{endpoints_list}"
       end
 
-      run_parallel_checks(test_endpoints, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do |endpoint|
+      run_parallel_checks?(test_endpoints, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do |endpoint|
         attempt_tcp_connection(endpoint)
       end
     end
@@ -102,33 +100,23 @@ module WifiWand
         @output.puts "Testing DNS resolution for domains: #{test_domains.join(', ')}"
       end
 
-      run_parallel_checks(test_domains, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do |domain|
+      run_parallel_checks?(test_domains, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do |domain|
         attempt_dns_resolution(domain)
       end
     end
 
     private
 
-    # Runs connectivity checks in parallel using fiber-based concurrency.
+    # Runs connectivity checks in parallel using native threads.
     #
-    # This method uses the `async` gem to run multiple checks concurrently with the following behavior:
+    # Blocking stdlib socket and DNS calls do not cooperate with Async cancellation,
+    # so we use threads here to allow true overlap and prompt early return on success.
+    # This method has the following behavior:
     # - Returns `true` as soon as ANY check succeeds (early exit optimization)
     # - Returns `false` if ALL checks fail OR the overall timeout is reached
     # - Each individual check runs with its own timeout (defined in the yielded block)
     # - All checks run concurrently within the overall timeout window
-    # - Tasks are cancelled as soon as first success is detected (true early exit)
-    #
-    # Implementation Details:
-    # The async gem uses fibers (not threads) for lightweight concurrency. Fibers are:
-    # - More memory-efficient than threads (uses cooperative multitasking)
-    # - Better for I/O-bound operations like network checks
-    # - Scheduled by the Ruby VM rather than the OS
-    #
-    # Why Async::Barrier?
-    # Barrier collects results from all concurrent tasks and provides:
-    # - Automatic task lifecycle management (no manual fiber cleanup needed)
-    # - Clean cancellation when first success occurs
-    # - Exception isolation per task (one failure doesn't crash others)
+    # - Remaining worker threads are allowed to finish naturally after return
     #
     # @param items [Array] Collection of items to check (endpoints, domains, etc.)
     # @param overall_timeout [Float] Maximum seconds to wait for any check to succeed
@@ -143,84 +131,42 @@ module WifiWand
     #     { host: '8.8.8.8', port: 443 }
     #   ]
     #
-    #   success = run_parallel_checks(endpoints, 5.0) do |endpoint|
+    #   success = run_parallel_checks?(endpoints, 5.0) do |endpoint|
     #     attempt_tcp_connection(endpoint)
     #   end
     #
-    # Performance Characteristics:
-    # - Best case: Returns immediately when first check succeeds (~50-200ms)
-    # - Worst case: Waits `overall_timeout` seconds when all checks fail
-    # - Memory: O(n) where n is number of items (one fiber per item)
-    # - CPU: Minimal, as checks are I/O-bound
-    #
-    def run_parallel_checks(items, overall_timeout)
+    def run_parallel_checks?(items, overall_timeout)
       return false if items.empty?
 
-      # Async.run creates a new reactor and blocks until completion.
-      # The block receives a task object that represents this async operation.
-      Async do |task|
-        # Set an overall timeout for the entire operation.
-        # If this expires, Async::TimeoutError is raised and caught below.
-        task.with_timeout(overall_timeout) do
-          # Barrier manages a collection of concurrent tasks.
-          # It coordinates task execution and cleanup.
-          barrier = Async::Barrier.new
+      results = Queue.new
+      items.each do |item|
+        Thread.new do
+          Thread.current.report_on_exception = false
 
-          # Flag to track if we've found a success (fiber-safe as explained below)
-          success_found = false
-
-          # Shared flag to track success status.
-          #
-          # Thread-safety note: This boolean flag is safe without mutex protection because:
-          # 1. Async uses cooperative (not preemptive) multitasking with fibers
-          # 2. Fibers only yield at explicit I/O operations, not during regular Ruby code
-          # 3. Boolean assignment is atomic at the Ruby level
-          # 4. We only ever set it to true (never back to false), avoiding race conditions
-          # 5. The check-and-stop operation completes before another fiber can execute
-          #
-          # Execution flow:
-          #   Fiber A: I/O (yields) → I/O completes → success_found = true (atomic) → barrier.stop
-          #   Fiber B: I/O (yields) → still running... → gets cancelled by barrier.stop
-          # The assignment and barrier.stop never interleave because they don't contain yield points.
-
-          # Spawn a concurrent fiber for each item.
-          # Each fiber runs independently and can succeed/fail without affecting others.
-          items.each do |item|
-            barrier.async do
-              # Call the provided block with the item.
-              # The block should return true on success, false on failure.
-              result = yield(item)
-
-              # If this check succeeded and we haven't found success yet, stop all tasks
-              if result && !success_found
-                success_found = true
-                # Stop barrier immediately - cancels remaining tasks
-                barrier.stop
-              end
-
-              result
-            rescue => e
-              # Catch and log any unexpected errors from the check.
-              # Return false to indicate this check failed.
-              log_unexpected_error(e)
-              false
-            end
-          end
-
-          # Wait for either:
-          # - First success (barrier.stop called)
-          # - All tasks to complete (all failed)
-          # - Overall timeout (Async::TimeoutError raised)
-          barrier.wait
-
-          # Return whether we found any successful check
-          success_found
+          result = yield(item)
+          results << result
+        rescue => e
+          log_unexpected_error(e)
+          results << false
         end
-      rescue Async::TimeoutError
-        # Overall timeout expired before any check succeeded.
-        # This is a normal flow control mechanism, not an error.
-        false
-      end.wait # Block until the async operation completes and return its result
+      end
+
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + overall_timeout
+      remaining_results = items.length
+
+      while remaining_results.positive?
+        timeout = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        break if timeout <= 0
+
+        result = results.pop(timeout: timeout)
+        break if result.nil?
+
+        return true if result
+
+        remaining_results -= 1
+      end
+
+      false
     end
 
     # Attempts to establish a TCP connection to a specific endpoint.
