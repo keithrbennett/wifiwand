@@ -541,9 +541,7 @@ module WifiWand
     def detect_macos_version
       output = run_os_command(%w[sw_vers -productVersion]).stdout
       version = output.strip
-      return nil if version.empty?
-
-      version
+      version.empty? ? nil : version
     rescue => e
       if verbose_mode
         out_stream.puts "Could not detect macOS version: #{e.message}."
