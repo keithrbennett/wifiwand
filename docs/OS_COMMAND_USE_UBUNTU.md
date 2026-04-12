@@ -112,14 +112,14 @@ Notes:
 - Dynamic Values: `network_name`
 - Base Model Method(s): `remove_preferred_network`
 - CLI Command(s): `f`
-- Helpful Info: Only runs when the profile is known to exist to avoid noisy “Unknown connection” errors.
+- Helpful Info: Only runs when the profile is known to exist in the saved Wi-Fi profile list, which avoids both noisy “Unknown connection” errors and accidental deletion of non-Wi-Fi profiles.
 
-### `nmcli -t -f NAME connection show`
-- Description: Returns all saved connection profile names.
+### `nmcli -t -f NAME,TYPE connection show`
+- Description: Returns saved connection profile names and types so Wi-Fi profiles can be filtered from other NetworkManager entries.
 - Dynamic Values: None
 - Base Model Method(s): `preferred_networks`
 - CLI Command(s): `co`, `pr`
-- Helpful Info: Output is sorted before returning so CLI listings remain stable across runs.
+- Helpful Info: Only `802-11-wireless` profiles are returned, and the final list is sorted so CLI listings remain stable across runs.
 
 ### `nmcli --show-secrets connection show <preferred_network_name>`
 - Description: Reads the stored pre-shared key for a saved network.
