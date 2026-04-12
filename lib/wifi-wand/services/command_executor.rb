@@ -2,6 +2,7 @@
 
 require 'open3'
 require_relative '../models/helpers/command_output_formatter'
+require_relative '../errors'
 
 module WifiWand
   class CommandExecutor
@@ -88,6 +89,10 @@ module WifiWand
         # process should already be done by this point in most cases.
         status = wait_thr.value
       end
+    rescue Errno::ENOENT => e
+      missing_command = missing_command_name(command, e)
+      raise CommandNotFoundError, missing_command
+    else
 
       duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
 
@@ -154,6 +159,13 @@ module WifiWand
       end
     end
 
+    private
+
+    def missing_command_name(command, error)
+      error_path_present = error.respond_to?(:path) && error.path && !error.path.empty?
+      error_path_present ? error.path : Array(command).first.to_s
+    end
+
     class OsCommandResult
       attr_reader :stdout, :stderr, :combined_output, :exitstatus, :command, :duration
 
@@ -182,7 +194,7 @@ module WifiWand
       end
     end
 
-    class OsCommandError < RuntimeError
+    class OsCommandError < WifiWand::Error
       attr_reader :exitstatus, :command, :text, :result
 
       def initialize(result_or_exitstatus, command = nil, text = nil)

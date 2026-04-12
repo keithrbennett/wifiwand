@@ -31,6 +31,12 @@ describe WifiWand::CommandExecutor do
         expect(result.stdout).to include('stdout')
         expect(result.stderr).to include('stderr')
       end
+
+      it 'raises CommandNotFoundError when an array command executable is missing' do
+        expect do
+          executor.run_os_command(['nonexistent_command_12345'])
+        end.to raise_error(WifiWand::CommandNotFoundError, /nonexistent_command_12345/)
+      end
     end
 
     context 'with verbose mode enabled' do
