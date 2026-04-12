@@ -39,28 +39,28 @@ wifi-wand status
 
 ## Test Configuration Variables
 
-### `RSPEC_DISRUPTIVE_TESTS`
+### `WIFIWAND_REAL_ENV_TESTS`
 
-Control which test categories run.
+Control whether tests that touch the real host environment run.
 
 **Values:**
-- `exclude` or unset (default) - Only safe, read-only tests
-- `only` - Only tests that modify network state
-- `include` - All tests including disruptive ones
+- `none` or unset (default) - Run only ordinary mocked/hermetic tests
+- `read_only` - Also run tests tagged `:real_env_read_only`
+- `all` - Run both `:real_env_read_only` and `:real_env_read_write`
 
 **Usage:**
 ```bash
 # Default: safe tests only
 bundle exec rspec
 
-# Run only disruptive tests
-RSPEC_DISRUPTIVE_TESTS=only bundle exec rspec
+# Run real-host read-only tests too
+WIFIWAND_REAL_ENV_TESTS=read_only bundle exec rspec
 
-# Run all tests
-RSPEC_DISRUPTIVE_TESTS=include bundle exec rspec
+# Run all real-host tests, including mutating ones
+WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
 ```
 
-**⚠️ WARNING:** Never use `only` or `include` in CI environments. Disruptive tests require WiFi hardware and will modify network state.
+**⚠️ WARNING:** Never use `read_only` or `all` in CI environments. Real-environment tests depend on host hardware and machine state. `all` additionally runs host-mutating tests.
 
 ### `RSPEC_RUNNING`
 
@@ -85,16 +85,38 @@ COVERAGE_BRANCH=true bundle exec rspec
 
 **Note:** Branch coverage is more detailed but slower than line coverage. Use for thorough analysis before commits or releases.
 
+### `WIFIWAND_COVERAGE_MODE`
+
+Select which SimpleCov resultset filename is authoritative for the current run.
+
+**Values:**
+- `default` or unset - Write coverage to `coverage/.resultset.json`
+- `native_all` - Write coverage to `coverage/.resultset.json.<os>.all`
+
+**Usage:**
+```bash
+# Default safe-suite artifact
+bundle exec rspec
+
+# Native full-suite artifact for MCP/cov-loupe review
+WIFIWAND_COVERAGE_MODE=native_all \
+  WIFIWAND_REAL_ENV_TESTS=all \
+  bundle exec rspec
+```
+
+**Validation:** `native_all` is accepted only when the full native suite is being run (`WIFIWAND_REAL_ENV_TESTS=all`). This prevents partial or stale `.ubuntu.all` / `.mac.all` artifacts from being treated as authoritative.
+
 ## CI/CD Guidelines
 
-**Default behavior is CI-safe:** When `RSPEC_DISRUPTIVE_TESTS` is unset, only safe, read-only tests run.
+**Default behavior is CI-safe:** When `WIFIWAND_REAL_ENV_TESTS` is unset, only safe, mocked/hermetic tests run.
 
 **Never set these in CI:**
-- `RSPEC_DISRUPTIVE_TESTS=include`
-- `RSPEC_DISRUPTIVE_TESTS=only`
+- `WIFIWAND_REAL_ENV_TESTS=read_only`
+- `WIFIWAND_REAL_ENV_TESTS=all`
 
 **Why?**
 - CI runners typically lack WiFi hardware
+- Even read-only real-host tests depend on runner-specific state
 - Modifying network state disrupts the CI server
 - CI may not be running a supported OS (macOS or Ubuntu)
 

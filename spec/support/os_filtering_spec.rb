@@ -19,16 +19,10 @@ RSpec.describe OSFiltering do
 
   around do |example|
     original_os_tag = defined?($compatible_os_tag) ? $compatible_os_tag : nil
-    original_compatible_disruptive_tag =
-      defined?($compatible_disruptive_tag) ? $compatible_disruptive_tag : nil
-    original_incompatible_disruptive_tags =
-      defined?($incompatible_disruptive_tags) ? $incompatible_disruptive_tags : nil
 
     example.run
 
     $compatible_os_tag = original_os_tag
-    $compatible_disruptive_tag = original_compatible_disruptive_tag
-    $incompatible_disruptive_tags = original_incompatible_disruptive_tags
   end
 
   def configured_hook
@@ -36,23 +30,21 @@ RSpec.describe OSFiltering do
     config_double.before_each_hooks.fetch(0)
   end
 
-  it 'skips disruptive_mac examples on ubuntu hosts' do
+  it 'skips real_env examples tagged for another OS' do
     $compatible_os_tag = :os_ubuntu
-    $incompatible_disruptive_tags = [:disruptive_mac]
 
     example = instance_double(RSpec::Core::Example,
-      metadata: { disruptive_mac: true })
+      metadata: { real_env: true, real_env_os: :os_mac })
 
-    expect(self).to receive(:skip).with(/disruptive_mac/)
+    expect(self).to receive(:skip).with(/real_env/)
     instance_exec(example, &configured_hook)
   end
 
-  it 'does not skip matching disruptive_ubuntu examples on ubuntu hosts' do
+  it 'does not skip matching real_env examples on the current OS' do
     $compatible_os_tag = :os_ubuntu
-    $incompatible_disruptive_tags = [:disruptive_mac]
 
     example = instance_double(RSpec::Core::Example,
-      metadata: { disruptive_ubuntu: true })
+      metadata: { real_env: true, real_env_os: :os_ubuntu })
 
     expect(self).not_to receive(:skip)
     instance_exec(example, &configured_hook)
@@ -60,7 +52,6 @@ RSpec.describe OSFiltering do
 
   it 'does not skip untagged examples' do
     $compatible_os_tag = :os_ubuntu
-    $incompatible_disruptive_tags = [:disruptive_mac]
 
     example = instance_double(RSpec::Core::Example, metadata: {})
 

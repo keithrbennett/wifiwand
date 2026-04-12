@@ -67,12 +67,12 @@ module TestHelpers
     end
   end
 
-  def is_disruptive?
+  def uses_real_env?
     current_example = RSpec.current_example
-    example_disruptive = current_example&.metadata&.fetch(:disruptive, nil)
-    group_disruptive = self.class.metadata[:disruptive] ||
-      self.class.parent_groups.any? { |group| group.metadata[:disruptive] }
-    example_disruptive || group_disruptive
+    example_real_env = current_example&.metadata&.fetch(:real_env, nil)
+    group_real_env = self.class.metadata[:real_env] ||
+      self.class.parent_groups.any? { |group| group.metadata[:real_env] }
+    example_real_env || group_real_env
   end
 
   private

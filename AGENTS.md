@@ -44,11 +44,11 @@ using OS-specific utilities under the hood while presenting a unified API.
 
 ### Testing
 ```bash
-# Run non-disruptive tests (default, safe for CI/development)
+# Run default tests (safe for CI/development)
 bundle exec rspec
 
-# Run non-disruptive tests (explicitly)
-RSPEC_DISRUPTIVE_TESTS=exclude bundle exec rspec
+# Run real-environment read-only tests too
+WIFIWAND_REAL_ENV_TESTS=read_only bundle exec rspec
 
 # Run specific test file
 bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb
@@ -56,11 +56,11 @@ bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb
 # Run with verbose WiFi command output
 WIFIWAND_VERBOSE=true bundle exec rspec
 
-# Run disruptive tests only
-RSPEC_DISRUPTIVE_TESTS=only bundle exec rspec
+# Run all native OS tests, including real-environment read-write tests
+WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
 
-# Run all native OS tests (disruptive + non-disruptive)
-RSPEC_DISRUPTIVE_TESTS=include bundle exec rspec
+# Generate the authoritative native coverage artifact
+WIFIWAND_COVERAGE_MODE=native_all WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
 
 # Run tests with branch coverage enabled
 COVERAGE_BRANCH=true bundle exec rspec
@@ -142,12 +142,13 @@ The macOS model uses Swift scripts with the CoreWLAN framework for improved WiFi
 
 ### Test Categories
 - **Safe Tests** (default): Read-only operations, safe for CI
-- **Disruptive Tests**: Modify network state, require manual cleanup
+- **Real Env Read-Only Tests**: Touch the real host environment without intentionally mutating it
+- **Real Env Read-Write Tests**: Modify network state and require restoration safeguards
 - **OS-Specific Tests**: Automatically filtered based on current OS
 
 ### Test Environment
 - Tests automatically detect current OS and filter incompatible tests
-- Network state is captured/restored for disruptive tests
+- Network state is captured/restored for `:real_env_read_write` tests
 - Use `WIFIWAND_VERBOSE=true` to debug underlying OS commands
 - ResourceManager tracks and cleans up test resources
 

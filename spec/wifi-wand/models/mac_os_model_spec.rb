@@ -6,18 +6,12 @@ require_relative '../../../lib/wifi-wand/models/mac_os_model'
 
 module WifiWand
   describe MacOsModel do
-    # Prevent accidental Keychain UI prompts in all tests (both disruptive and non-disruptive)
+    # Prevent accidental Keychain UI prompts in all tests (both real-env and mocked)
     before do
-      # Mock network connectivity tester to prevent real network calls during non-disruptive tests
-      # Check if current test or any parent group is marked as disruptive
-      example_disruptive = RSpec.current_example&.metadata&.[](:disruptive)
-      group_disruptive = RSpec.current_example&.example_group&.metadata&.[](:disruptive)
-      is_disruptive = example_disruptive || group_disruptive
-
-      unless is_disruptive || RSpec.current_example&.metadata&.[](:keychain_integration)
-        # Avoid macOS Keychain prompts during non-disruptive tests
+      unless uses_real_env? || RSpec.current_example&.metadata&.[](:keychain_integration)
+        # Avoid macOS Keychain prompts during mocked tests
         allow_any_instance_of(described_class).to receive(:preferred_network_password).and_return(nil)
-        # Ensure initialization doesn’t fail due to interface detection during non-disruptive tests
+        # Ensure initialization doesn’t fail due to interface detection during mocked tests
         allow_any_instance_of(described_class).to receive(:probe_wifi_interface).and_return('en0')
 
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:internet_connectivity_state)
@@ -50,8 +44,9 @@ module WifiWand
         end
       end
 
-      # System-modifying tests (will change wifi state)
-      context 'when running system-modifying operations', :disruptive_mac do
+      # Real-environment read-write tests (will change wifi state)
+      context 'when running system-modifying operations',
+        :real_env_read_write, real_env_os: :os_mac do
         subject { create_mac_os_test_model }
 
         describe '#wifi_on' do
@@ -89,7 +84,8 @@ module WifiWand
       end
 
       # Network connection tests (highest risk)
-      context 'when running network connection operations', :disruptive_mac do
+      context 'when running network connection operations',
+        :real_env_read_write, real_env_os: :os_mac do
         subject { create_mac_os_test_model }
 
         describe '#_connect' do
@@ -101,8 +97,9 @@ module WifiWand
         end
       end
 
-      # Additional disruptive tests for system-modifying operations
-      context 'when running extended disruptive operations', :disruptive_mac do
+      # Additional real-environment read-write tests
+      context 'when running extended real-environment operations',
+        :real_env_read_write, real_env_os: :os_mac do
         subject { create_mac_os_test_model }
 
         before(:all) do
@@ -275,7 +272,7 @@ module WifiWand
       end
     end
 
-    # Non-disruptive tests for core functionality
+    # Mocked tests for core functionality
     context 'when testing core functionality' do
       subject(:model) { create_mac_os_test_model }
       let(:success_result) do
@@ -787,7 +784,7 @@ module WifiWand
         end
       end
 
-      describe '#macos_version (real system)', :disruptive_mac do
+      describe '#macos_version (real system)', :real_env_read_only, real_env_os: :os_mac do
         # For these real-system checks, allow actual OS command execution
         before do
           allow_any_instance_of(described_class).to receive(:run_os_command).and_call_original
@@ -1359,7 +1356,8 @@ module WifiWand
 
     describe '#create_model with provided interface' do
       context 'when valid wifi_interface is provided' do
-        it 'uses the provided interface without probing for another interface', :disruptive_mac do
+        it 'uses the provided interface without probing for another interface',
+          :real_env_read_only, real_env_os: :os_mac do
           model = WifiWand::MacOsModel.create_model(wifi_interface: 'en0')
           expect(model.wifi_interface).to eq('en0')
         end

@@ -6,7 +6,7 @@ require_relative '../../lib/wifi-wand/models/mac_os_model'
 
 module WifiWand
   describe 'Error Classes' do
-    # Mock OS calls to prevent real system interaction during non-disruptive tests
+    # Mock OS calls to prevent real system interaction during ordinary tests
     before do
       # Mock interface discovery for both OS types
       allow_any_instance_of(WifiWand::UbuntuModel).to receive(:probe_wifi_interface).and_return('wlp0s20f3')

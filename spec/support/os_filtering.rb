@@ -3,16 +3,9 @@
 require_relative '../../lib/wifi-wand/operating_systems'
 
 module OSFiltering
-  DISRUPTIVE_OS_TAGS = {
-    disruptive_mac:    :os_mac,
-    disruptive_ubuntu: :os_ubuntu,
-  }.freeze
-
   def self.setup_os_detection(_config)
     current_os = WifiWand::OperatingSystems.current_os
     $compatible_os_tag = :"os_#{current_os.id}"
-    $compatible_disruptive_tag = DISRUPTIVE_OS_TAGS.key($compatible_os_tag)
-    $incompatible_disruptive_tags = (DISRUPTIVE_OS_TAGS.keys - [$compatible_disruptive_tag]).freeze
   rescue => e
     puts "Warning: Could not detect current OS for test filtering: #{e.message}"
     puts 'Running all tests - some may fail due to OS incompatibility'
@@ -20,10 +13,12 @@ module OSFiltering
 
   def self.configure_os_filtering(config)
     config.before do |example|
-      skipped_tag = $incompatible_disruptive_tags.find { |t| example.metadata[t] }
-      if skipped_tag
-        skip "Skipping [:#{skipped_tag}] tests on current OS (#{$compatible_os_tag})"
-      end
+      next unless example.metadata[:real_env]
+
+      required_os = example.metadata[:real_env_os]
+      next unless required_os && defined?($compatible_os_tag) && required_os != $compatible_os_tag
+
+      skip "Skipping [:real_env] test for #{required_os} on current OS (#{$compatible_os_tag})"
     end
   end
 end

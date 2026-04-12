@@ -7,15 +7,9 @@ module WifiWand
   describe UbuntuModel do
     let(:subject) { create_ubuntu_test_model }
 
-    # Mock network connectivity tester to prevent real network calls during non-disruptive tests
+    # Mock network connectivity tester to prevent real network calls during mocked tests
     before do
-      # Check if current test or any parent group is marked as disruptive
-      example_disruptive = RSpec.current_example&.metadata&.[](:disruptive)
-      group_meta = RSpec.current_example&.example_group&.metadata
-      group_disruptive = group_meta&.[](:disruptive)
-      is_disruptive = example_disruptive || group_disruptive
-
-      unless is_disruptive
+      unless uses_real_env?
         tester = WifiWand::NetworkConnectivityTester
         allow_any_instance_of(tester).to receive(:internet_connectivity_state).and_return(:reachable)
         allow_any_instance_of(tester).to receive(:tcp_connectivity?).and_return(true)
@@ -32,8 +26,8 @@ module WifiWand
     WIFI_INTERFACE_REGEX = /wl[a-z0-9]+/
     NMCLI_RADIO_CMD = 'nmcli radio wifi'
 
-    # Non-disruptive tests with proper mocking
-    context 'when running core functionality tests (non-disruptive)' do
+    # Mocked tests with proper stubbing
+    context 'when running core functionality tests' do
       describe '#wifi_on and #wifi_off failure paths' do
         it 'raises WifiEnableError when WiFi remains disabled after enable attempt' do
           allow(subject).to receive(:wifi_on?).and_return(false, false)
@@ -1136,7 +1130,7 @@ module WifiWand
       end
     end
 
-    context 'when running error handling tests (non-disruptive)' do
+    context 'when running error handling tests' do
       describe '#wifi_on' do
         it 'raises WifiEnableError when command succeeds but wifi remains off' do
           # Mock specific command calls to avoid real system calls
@@ -1315,7 +1309,8 @@ module WifiWand
     end
 
     # System-modifying tests (will change wifi state)
-    context 'when running system-modifying operations', :disruptive_ubuntu do
+    context 'when running system-modifying operations',
+      :real_env_read_write, real_env_os: :os_ubuntu do
       describe '#wifi_on' do
         it 'turns wifi on when it is off' do
           subject.wifi_off
@@ -1408,8 +1403,9 @@ module WifiWand
       end
     end
 
-    # System-modifying tests (will change WiFi state)
-    context 'when running integration tests', :disruptive_ubuntu do
+    # Real-environment tests
+    context 'when running read-write integration tests',
+      :real_env_read_write, real_env_os: :os_ubuntu do
       describe 'WiFi state management' do
         it 'can toggle WiFi on and off successfully' do
           original_state = subject.wifi_on?
@@ -1427,16 +1423,10 @@ module WifiWand
           end
         end
       end
+    end
 
-      describe 'network scanning' do
-        it 'can scan for available networks' do
-          subject.wifi_on unless subject.wifi_on?
-          networks = subject.available_network_names
-          expect(networks).to be_an(Array)
-          # Don't require specific networks, just that scanning works
-        end
-      end
-
+    context 'when running read-only real-environment checks',
+      :real_env_read_only, real_env_os: :os_ubuntu do
       describe 'interface detection' do
         it 'detects WiFi interface correctly' do
           interface = subject.probe_wifi_interface
@@ -1460,6 +1450,15 @@ module WifiWand
 
         it 'retrieves nameservers' do
           expect(subject.nameservers).to be_an(Array)
+        end
+      end
+
+      describe 'network scanning' do
+        it 'can scan for available networks when WiFi is already on' do
+          skip 'WiFi is currently off' unless subject.wifi_on?
+
+          networks = subject.available_network_names
+          expect(networks).to be_an(Array)
         end
       end
     end

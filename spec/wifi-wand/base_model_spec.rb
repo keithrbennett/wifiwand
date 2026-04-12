@@ -5,7 +5,7 @@ require_relative '../../lib/wifi-wand/models/ubuntu_model'
 require_relative '../../lib/wifi-wand/models/mac_os_model'
 
 describe 'Common WiFi Model Behavior (All OS)' do
-  # Mock OS calls to prevent real system interaction during non-disruptive tests
+  # Mock OS calls to prevent real system interaction during ordinary tests
   # Automatically instantiate the correct model for the current OS
   subject { create_test_model }
 
@@ -16,11 +16,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow_any_instance_of(WifiWand::MacOsModel).to receive(:probe_wifi_interface).and_return('en0')
     end
 
-    # Mock all OS-calling methods to prevent real system calls in non-disruptive tests
-    # Only mock for non-disruptive tests (those not tagged with :disruptive)
-    # Check both example-level and group-level metadata for :disruptive tag
+    # Mock all OS-calling methods to prevent real system calls in ordinary tests
+    # Only skip these mocks for examples that intentionally use the real environment.
     # Use RSpec.current_example to get the current running example
-    unless is_disruptive?
+    unless uses_real_env?
       # Also mock the underlying NetworkConnectivityTester to prevent real network calls
       tester = WifiWand::NetworkConnectivityTester
       allow_any_instance_of(tester).to receive(:tcp_connectivity?).and_return(true)
@@ -194,7 +193,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
-  describe '#disconnect', :disruptive do
+  describe '#disconnect', :real_env_read_write do
     it 'disconnects from network and handles subsequent calls gracefully',
       needs_sudo_access: (WifiWand::OperatingSystems.current_id == :mac) do
       subject.wifi_on
@@ -218,7 +217,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(subject).not_to have_received(:run_os_command)
     end
 
-    it 'can turn wifi on when it is off', :disruptive do
+    it 'can turn wifi on when it is off', :real_env_read_write do
       subject.wifi_off
       expect(subject.wifi_on?).to be(false)
 
@@ -237,7 +236,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(subject).not_to have_received(:run_os_command)
     end
 
-    it 'can turn wifi off when it is on', :disruptive do
+    it 'can turn wifi off when it is on', :real_env_read_write do
       subject.wifi_on
       expect(subject.wifi_on?).to be(true)
 
@@ -280,14 +279,14 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
-  describe '#available_network_names', :disruptive do
+  describe '#available_network_names', :real_env_read_write do
     it 'can list available networks' do
       subject.wifi_on
       expect(subject.available_network_names).to be_nil_or_an_array_of_strings
     end
   end
 
-  describe '#till', :disruptive do
+  describe '#till', :real_env_read_write do
     # These tests exercise the real OS predicates (wifi_on?, associated?,
     # internet_connectivity_state wired through StatusWaiter against live hardware,
     # covering the six explicit wait states introduced in the till redesign.
@@ -404,8 +403,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
 
-  # Non-disruptive context - only runs when wifi is already on
-  context 'when wifi starts on', disruptive: false do
+  # Ordinary context - only runs when wifi is already on
+  context 'when wifi starts on' do
     before do
       skip 'Wifi is not currently on' unless current_wifi_on
     end
@@ -413,8 +412,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it_behaves_like 'interface commands complete without error', true
   end
 
-  # Non-disruptive context - only runs when wifi is already off
-  context 'when wifi starts off', disruptive: false do
+  # Ordinary context - only runs when wifi starts off
+  context 'when wifi starts off' do
     before do
       skip 'Wifi is currently on' if current_wifi_on
     end
@@ -422,8 +421,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it_behaves_like 'interface commands complete without error', false
   end
 
-  # Disruptive contexts - only run with --tag disruptive flag
-  context 'when wifi starts on (disruptive)', :disruptive do
+  # Real-environment read-write contexts
+  context 'when wifi starts on (real environment)', :real_env_read_write do
     before { subject.wifi_on }
 
     it_behaves_like 'interface commands complete without error', true
@@ -433,7 +432,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
-  context 'when wifi starts off (disruptive)', :disruptive do
+  context 'when wifi starts off (real environment)', :real_env_read_write do
     before { subject.wifi_off }
 
     it_behaves_like 'interface commands complete without error', false

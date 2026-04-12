@@ -94,13 +94,13 @@ RSpec.describe RSpecConfiguration do
 
   # Ubuntu (and other Linux hosts) do not require sudo/keychain prompts, but
   # they still depend on network state capture to restore connectivity after
-  # disruptive specs. This example fails if the capture hook stops running
-  # outside the macOS path, so we get an early warning if it regresses.
-  it 'captures network state when disruptive tests run on non-macOS hosts' do
+  # real_env_read_write specs. This example fails if the capture hook stops
+  # running outside the macOS path, so we get an early warning if it regresses.
+  it 'captures network state when real_env_read_write tests run on non-macOS hosts' do
     $compatible_os_tag = :os_ubuntu
 
     allow(described_class).to receive(:examples_to_run).and_return([
-      double('example', metadata: { disruptive: true }),
+      double('example', metadata: { real_env: true, real_env_read_write: true }),
     ])
 
     expect(described_class).to receive(:handle_network_state_capture).with(true)
@@ -111,11 +111,11 @@ RSpec.describe RSpecConfiguration do
   # issue the network capture once for the suite. This ensures the refactor did
   # not introduce duplicate calls and that the sudo path remains gated
   # behind macOS detection.
-  it 'captures network state exactly once when disruptive auth tests run on macOS' do
+  it 'captures network state exactly once when real_env auth tests run on macOS' do
     $compatible_os_tag = :os_mac
 
     allow(described_class).to receive(:examples_to_run).and_return([
-      double('example', metadata: { disruptive: true, needs_sudo_access: true }),
+      double('example', metadata: { real_env: true, real_env_read_write: true, needs_sudo_access: true }),
     ])
 
     expect(described_class).to receive(:handle_network_state_capture).with(true).once
@@ -128,10 +128,11 @@ RSpec.describe RSpecConfiguration do
     let(:mock_model) { double('model') }
 
     before do
+      allow(NetworkStateManager).to receive(:start_session)
       allow(NetworkStateManager).to receive(:model).and_return(mock_model)
     end
 
-    it 'does nothing when no disruptive tests will run' do
+    it 'does nothing when no real_env_read_write tests will run' do
       expect(mock_model).not_to receive(:connected?)
       described_class.handle_network_state_capture(false)
     end
@@ -140,7 +141,10 @@ RSpec.describe RSpecConfiguration do
       allow(mock_model).to receive(:connected?).and_return(false)
 
       expect { described_class.handle_network_state_capture(true) }
-        .to raise_error(RuntimeError, /active network connection/)
+        .to raise_error(
+          RuntimeError,
+          /Real-environment read-write tests require an active network connection/,
+        )
     end
 
     it 'raises when connected but captured state has no network name' do
@@ -149,7 +153,7 @@ RSpec.describe RSpecConfiguration do
       allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: nil })
 
       expect { described_class.handle_network_state_capture(true) }
-        .to raise_error(RuntimeError, /restorable network state/)
+        .to raise_error(RuntimeError, /Real-environment read-write tests require a restorable network state/)
     end
 
     it 'succeeds when connected and network name is captured' do
@@ -192,18 +196,40 @@ RSpec.describe RSpecConfiguration do
       described_class.configure_network_state_management(hook_config)
     end
 
-    it 'restores state after each disruptive example without fail_silently' do
-      after_each_hook = hook_config.after_hooks.find { |args, _block| args == %i[each disruptive] }
+    it 'refreshes sudo ticket before each sudo-tagged example' do
+      before_each_hook = hook_config.before_hooks.find { |args, _block| args == %i[each needs_sudo_access] }
+
+      expect(described_class).to receive(:refresh_sudo_ticket!)
+      before_each_hook.last.call
+    end
+
+    it 'restores state after each real_env_read_write example without fail_silently' do
+      after_each_hook = hook_config.after_hooks.find { |args, _block| args == %i[each real_env_read_write] }
 
       expect(NetworkStateManager).to receive(:restore_state).with(fail_silently: false)
       after_each_hook.last.call
     end
   end
 
+  describe '.refresh_sudo_ticket!' do
+    it 'returns normally when sudo refresh succeeds' do
+      allow(described_class).to receive(:system).with('sudo -n -v >/dev/null 2>&1').and_return(true)
+
+      expect { described_class.refresh_sudo_ticket! }.not_to raise_error
+    end
+
+    it 'raises when sudo refresh fails' do
+      allow(described_class).to receive(:system).with('sudo -n -v >/dev/null 2>&1').and_return(false)
+
+      expect { described_class.refresh_sudo_ticket! }
+        .to raise_error(RuntimeError, /sudo authentication expired/)
+    end
+  end
+
   describe '.attempt_final_network_restoration' do
     before do
       allow(described_class).to receive(:examples_to_run).and_return([
-        double('example', metadata: { disruptive: true }),
+        double('example', metadata: { real_env: true, real_env_read_write: true }),
       ])
       allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: 'MyNetwork' })
     end
@@ -230,24 +256,24 @@ RSpec.describe RSpecConfiguration do
     end
   end
 
-  it 'marks disruptive_mac examples as disruptive and slow' do
-    metadata = apply_derived_metadata(disruptive_mac: true)
+  it 'marks real_env_read_only examples as real_env' do
+    metadata = apply_derived_metadata(real_env_read_only: true)
 
-    expect(metadata[:disruptive]).to be(true)
+    expect(metadata[:real_env]).to be(true)
+    expect(metadata).not_to have_key(:slow)
+  end
+
+  it 'marks real_env_read_write examples as real_env and slow' do
+    metadata = apply_derived_metadata(real_env_read_write: true)
+
+    expect(metadata[:real_env]).to be(true)
     expect(metadata[:slow]).to be(true)
   end
 
-  it 'marks disruptive_ubuntu examples as disruptive and slow' do
-    metadata = apply_derived_metadata(disruptive_ubuntu: true)
-
-    expect(metadata[:disruptive]).to be(true)
-    expect(metadata[:slow]).to be(true)
-  end
-
-  it 'leaves non-disruptive examples unchanged' do
+  it 'leaves ordinary examples unchanged' do
     metadata = apply_derived_metadata({})
 
-    expect(metadata).not_to have_key(:disruptive)
+    expect(metadata).not_to have_key(:real_env)
     expect(metadata).not_to have_key(:slow)
   end
 end

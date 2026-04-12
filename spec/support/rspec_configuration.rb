@@ -5,6 +5,8 @@ require_relative 'test_helpers'
 require_relative 'os_filtering'
 
 module RSpecConfiguration
+  VALID_REAL_ENV_TEST_OPTIONS = %w[none read_only all].freeze
+
   def self.configure(config)
     configure_basic_settings(config)
     configure_test_ordering(config)
@@ -20,13 +22,13 @@ module RSpecConfiguration
     config.filter_run_including focus: true
     config.run_all_when_everything_filtered = !config.only_failures?
 
-    configure_disruptive_test_filtering(config)
+    configure_real_env_filtering(config)
     OSFiltering.setup_os_detection(config)
     OSFiltering.configure_os_filtering(config)
 
     config.define_derived_metadata do |meta|
-      meta[:disruptive] = true if meta[:disruptive_mac] || meta[:disruptive_ubuntu]
-      meta[:slow] = true if meta[:disruptive]
+      meta[:real_env] = true if meta[:real_env_read_only] || meta[:real_env_read_write]
+      meta[:slow] = true if meta[:real_env_read_write]
     end
   end
 
@@ -58,7 +60,7 @@ module RSpecConfiguration
       examples_to_run = RSpecConfiguration.examples_to_run
       test_types = RSpecConfiguration.analyze_test_types(examples_to_run)
 
-      RSpecConfiguration.handle_network_state_capture(test_types[:disruptive])
+      RSpecConfiguration.handle_network_state_capture(test_types[:real_env_read_write])
 
       if RSpecConfiguration.macos_and_auth_tests_will_run?(test_types)
         RSpecConfiguration.handle_sudo_preflight(test_types[:sudo])
@@ -76,51 +78,49 @@ module RSpecConfiguration
 
   def self.analyze_test_types(examples_to_run)
     {
-      disruptive: examples_to_run.any? { |ex| ex.metadata[:disruptive] },
-      sudo:       examples_to_run.any? { |ex| ex.metadata[:needs_sudo_access] },
-      keychain:   examples_to_run.any? { |ex| ex.metadata[:keychain_integration] },
+      real_env:            examples_to_run.any? { |ex| ex.metadata[:real_env] },
+      real_env_read_write: examples_to_run.any? { |ex| ex.metadata[:real_env_read_write] },
+      sudo:                examples_to_run.any? { |ex| ex.metadata[:needs_sudo_access] },
+      keychain:            examples_to_run.any? { |ex| ex.metadata[:keychain_integration] },
     }
   end
 
   def self.macos_and_auth_tests_will_run?(test_types)
     defined?($compatible_os_tag) && $compatible_os_tag == :os_mac &&
-      (test_types[:disruptive] || test_types[:sudo] || test_types[:keychain])
+      (test_types[:real_env] || test_types[:sudo] || test_types[:keychain])
   end
 
   def self.handle_sudo_preflight(sudo_tests_will_run)
     return unless sudo_tests_will_run
 
     system('sudo -v')
-    RSpecConfiguration.keep_sudo_alive
   end
 
-  def self.handle_network_state_capture(disruptive_tests_will_run)
-    return unless disruptive_tests_will_run
+  def self.refresh_sudo_ticket!
+    return if system('sudo -n -v >/dev/null 2>&1')
+
+    raise 'sudo authentication expired before a :needs_sudo_access example ran. ' \
+      'Re-run the suite and authenticate again.'
+  end
+
+  def self.handle_network_state_capture(real_env_read_write_tests_will_run)
+    return unless real_env_read_write_tests_will_run
+
+    NetworkStateManager.start_session
 
     unless NetworkStateManager.model.connected?
-      raise 'Disruptive tests require an active network connection. ' \
-        'Please connect to a WiFi network before running disruptive tests.'
+      raise 'Real-environment read-write tests require an active network connection. ' \
+        'Please connect to a WiFi network before running the read-write suite.'
     end
 
     NetworkStateManager.capture_state
 
     unless NetworkStateManager.network_state[:network_name]
-      raise 'Disruptive tests require a restorable network state. ' \
+      raise 'Real-environment read-write tests require a restorable network state. ' \
         'Connected state was detected but network name could not be determined.'
     end
 
     puts "\nCaptured network state for restoration: #{NetworkStateManager.network_state[:network_name]}\n"
-  end
-
-  def self.keep_sudo_alive
-    $sudo_keepalive_thread = Thread.new do
-      loop do
-        system('sudo -n -v >/dev/null 2>&1')
-        sleep 60
-      end
-    end
-  rescue ThreadError
-    warn 'Warning: Could not start sudo keepalive thread'
   end
 
   # Configure macOS-specific test stubbing that keeps ordinary specs isolated
@@ -168,17 +168,21 @@ module RSpecConfiguration
     config.include(TestHelpers)
   end
 
-  # Configure network state management for disruptive tests
+  # Configure network state management for real-environment tests
   def self.configure_network_state_management(config)
-    # Restore network state after each disruptive test
-    config.after(:each, :disruptive) do
+    config.before(:each, :needs_sudo_access) do
+      RSpecConfiguration.refresh_sudo_ticket!
+    end
+
+    # Restore network state after each real-environment read-write test
+    config.after(:each, :real_env_read_write) do
       NetworkStateManager.restore_state(fail_silently: false)
     end
 
     # Attempt final restoration and cleanup at end of test suite
     config.after(:suite) do
-      RSpecConfiguration.cleanup_sudo_keepalive
       RSpecConfiguration.attempt_final_network_restoration
+      NetworkStateManager.clear_session
     end
 
     # Show usage information
@@ -187,21 +191,11 @@ module RSpecConfiguration
     end
   end
 
-  def self.cleanup_sudo_keepalive
-    return unless defined?($sudo_keepalive_thread) && $sudo_keepalive_thread&.alive?
-
-    begin
-      $sudo_keepalive_thread.kill
-    rescue ThreadError
-      # Thread may have already exited
-    end
-  end
-
   def self.attempt_final_network_restoration
     examples_to_run = RSpecConfiguration.examples_to_run
-    disruptive_tests_ran = examples_to_run.any? { |ex| ex.metadata[:disruptive] }
+    real_env_read_write_tests_ran = examples_to_run.any? { |ex| ex.metadata[:real_env_read_write] }
 
-    return unless disruptive_tests_ran
+    return unless real_env_read_write_tests_ran
 
     network_state = NetworkStateManager.network_state
     return unless network_state && network_state[:network_name]
@@ -226,16 +220,19 @@ module RSpecConfiguration
       #{'=' * 60}
       TEST FILTERING OPTIONS:
       #{'=' * 60}
-      Run only read-only (nondisruptive) tests:
+      Run only default mocked/hermetic tests:
         bundle exec rspec
-        or
-        RSPEC_DISRUPTIVE_TESTS=exclude bundle exec rspec
 
-      Run ONLY disruptive native OS tests:
-        RSPEC_DISRUPTIVE_TESTS=only bundle exec rspec
+      Run read-only real-environment tests, but skip host-mutating ones:
+        WIFIWAND_REAL_ENV_TESTS=read_only bundle exec rspec
 
-      Run ALL native OS tests (including disruptive):
-        RSPEC_DISRUPTIVE_TESTS=include bundle exec rspec
+      Run all real-environment tests, including read-write ones:
+        WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
+
+      Generate the authoritative native OS coverage artifact:
+        WIFIWAND_COVERAGE_MODE=native_all WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
+
+      Current real environment setting: WIFIWAND_REAL_ENV_TESTS=#{ENV['WIFIWAND_REAL_ENV_TESTS'] || 'none'}
 
       Verbose mode for WifiWand commands can be enabled by setting WIFIWAND_VERBOSE=true.
       Current environment setting: WIFIWAND_VERBOSE=#{ENV['WIFIWAND_VERBOSE'] || '[undefined]'}
@@ -243,25 +240,30 @@ module RSpecConfiguration
       Coverage tracking is enabled via SimpleCov.
       HTML coverage report will be generated in coverage/index.html
       Enable branch coverage with COVERAGE_BRANCH=true
+      Default authoritative resultset: coverage/.resultset.json
+      Native full-suite resultset: coverage/.resultset.json.<os>.all
 
-      ⚠️  IMPORTANT: Never run disruptive tests in CI environments.
-      The default (RSPEC_DISRUPTIVE_TESTS unset) runs only safe tests.
+      ⚠️  IMPORTANT: Never run real-environment tests in CI environments.
+      The default (WIFIWAND_REAL_ENV_TESTS unset) runs only safe tests.
 
       #{'=' * 60}
 
     MESSAGE
   end
 
-  def self.configure_disruptive_test_filtering(config)
-    case ENV['RSPEC_DISRUPTIVE_TESTS']
-    when 'only'
-      config.filter_run_including disruptive: true
-    when 'include'
-      # Run both disruptive and non-disruptive (no filters)
-    when 'exclude', '', nil
-      config.filter_run_excluding disruptive: true
-    else
-      raise "Invalid RSPEC_DISRUPTIVE_TESTS option. Valid options: 'only', 'include', 'exclude', '', nil"
+  def self.configure_real_env_filtering(config)
+    option = ENV.fetch('WIFIWAND_REAL_ENV_TESTS', 'none')
+    unless VALID_REAL_ENV_TEST_OPTIONS.include?(option)
+      raise "Invalid WIFIWAND_REAL_ENV_TESTS option. Valid options: #{VALID_REAL_ENV_TEST_OPTIONS.join(', ')}"
+    end
+
+    case option
+    when 'none'
+      config.filter_run_excluding real_env: true
+    when 'read_only'
+      config.filter_run_excluding real_env_read_write: true
+    when 'all'
+      # Run both ordinary and real-environment tests
     end
   end
 end

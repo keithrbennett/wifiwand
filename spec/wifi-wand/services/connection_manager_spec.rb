@@ -269,7 +269,7 @@ describe WifiWand::ConnectionManager do
     end
   end
 
-  describe 'integration with real model', :disruptive do
+  describe 'integration with real model' do
     subject { create_test_model }
 
     it 'can be accessed through model' do
