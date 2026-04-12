@@ -73,7 +73,7 @@ RSpec.describe RSpecConfiguration do
     original_os_tag = defined?($compatible_os_tag) ? $compatible_os_tag : nil
 
     example.run
-
+  ensure
     $compatible_os_tag = original_os_tag
   end
 
@@ -161,21 +161,28 @@ RSpec.describe RSpecConfiguration do
     end
   end
 
+  # This group tests the global `before` hook added by
+  # `RSpecConfiguration.configure_test_stubbing`.
+  #
+  # On macOS, that hook installs stubs that stop ordinary specs from triggering
+  # keychain lookups or `security find-generic-password` calls.
+  #
+  # This example checks the failure path: if installing those stubs breaks for
+  # some unexpected reason, the hook should raise that error immediately instead
+  # of hiding it and causing confusing follow-on failures in later specs.
   describe '.configure_test_stubbing' do
     let(:example) { double('example', metadata: {}) }
+    let(:hook_block) { hook_config.before_hooks.first.last }
 
     before do
       $compatible_os_tag = :os_mac
-      allow(described_class).to receive(:macos_model_available?).and_return(true)
       described_class.configure_test_stubbing(hook_config)
     end
 
     it 'fails loudly when stub installation raises an unexpected error' do
-      allow(described_class).to receive(:stub_keychain_access)
-        .with(example)
-        .and_raise(StandardError, 'stub failed')
+      allow(self).to receive(:allow_any_instance_of).and_raise(StandardError, 'stub failed')
 
-      expect { hook_config.before_hooks.first.last.call(example) }
+      expect { instance_exec(example, &hook_block) }
         .to raise_error(StandardError, 'stub failed')
     end
   end

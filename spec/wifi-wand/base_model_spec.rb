@@ -379,7 +379,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   # The following tests run commands and verify they complete without error,
   # testing both wifi on and wifi off states
-  shared_examples 'interface commands complete without error' do |wifi_starts_on|
+  shared_examples 'interface commands complete without error' do
     it 'can determine if connected to Internet' do
       expect { subject.internet_connectivity_state }.not_to raise_error
     end

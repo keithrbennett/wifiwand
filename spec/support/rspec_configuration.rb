@@ -123,42 +123,44 @@ module RSpecConfiguration
     warn 'Warning: Could not start sudo keepalive thread'
   end
 
-  # Configure test stubbing to prevent keychain prompts during tests
+  # Configure macOS-specific test stubbing that keeps ordinary specs isolated
+  # from Keychain-backed password lookup behavior.
+  #
+  # In normal unit/read-only specs, we do not want `MacOsModel` to fall through
+  # to real password retrieval paths, because those can trigger interactive
+  # system prompts or depend on machine-specific Keychain state. The default
+  # behavior here is therefore: if a spec is running in macOS test context and
+  # is not explicitly tagged `:keychain_integration`, stub
+  # `preferred_network_password` to return nil.
+  #
+  # Specs that intentionally exercise real Keychain behavior should opt in with
+  # `:keychain_integration` so they can bypass this safety stub.
   def self.configure_test_stubbing(config)
     config.before do |example|
-      next unless RSpecConfiguration.macos_model_available?
+      next unless RSpecConfiguration.running_on_mac_os?
 
-      RSpecConfiguration.stub_keychain_access(example)
-      RSpecConfiguration.stub_security_commands
+      unless example.metadata[:keychain_integration]
+        allow_any_instance_of(WifiWand::MacOsModel)
+          .to receive(:preferred_network_password)
+          .and_return(nil)
+      end
+
+      security_regex = /\bsecurity\s+find-generic-password\b/
+
+      allow_any_instance_of(WifiWand::CommandExecutor)
+        .to receive(:run_os_command)
+        .and_wrap_original do |method, command, *args|
+          if command.to_s.match?(security_regex)
+            raise WifiWand::CommandExecutor::OsCommandError.new(44, 'security', '')
+          end
+
+          method.call(command, *args)
+        end
     end
   end
 
-  def self.macos_model_available?
-    defined?(WifiWand::MacOsModel) && ($compatible_os_tag == :os_mac)
-  end
-
-  def self.stub_keychain_access(example)
-    return if example.metadata[:keychain_integration]
-
-    allow_any_instance_of(WifiWand::MacOsModel)
-      .to receive(:preferred_network_password)
-      .and_return(nil)
-  end
-
-  # This method intercepts security commands to prevent keychain prompts
-  # while allowing other OS commands to execute normally via .and_wrap_original
-  def self.stub_security_commands
-    security_regex = /\bsecurity\s+find-generic-password\b/
-
-    allow_any_instance_of(WifiWand::CommandExecutor)
-      .to receive(:run_os_command)
-      .and_wrap_original do |method, command, *args|
-        if command.to_s.match?(security_regex)
-          raise WifiWand::CommandExecutor::OsCommandError.new(44, 'security', '')
-        end
-
-        method.call(command, *args)
-      end
+  def self.running_on_mac_os?
+    defined?($compatible_os_tag) && $compatible_os_tag == :os_mac
   end
 
   # Configure helper method inclusions
