@@ -248,6 +248,25 @@ describe WifiWand::ConnectionManager do
       expect(password).to be_nil
       expect(used_saved).to be false
     end
+
+    it 'propagates unexpected errors from preferred_networks' do
+      allow(mock_model).to receive(:preferred_networks).and_raise(NoMethodError, 'unexpected bug')
+
+      expect do
+        subject.send(:resolve_password, 'AnyNet', nil)
+      end.to raise_error(NoMethodError, 'unexpected bug')
+    end
+
+    it 'propagates unexpected errors from preferred_network_password' do
+      allow(mock_model).to receive(:preferred_networks).and_return(['SavedNetwork'])
+      allow(mock_model).to receive(:preferred_network_password)
+        .with('SavedNetwork')
+        .and_raise(NoMethodError, 'unexpected bug')
+
+      expect do
+        subject.send(:resolve_password, 'SavedNetwork', nil)
+      end.to raise_error(NoMethodError, 'unexpected bug')
+    end
   end
 
   describe 'integration with real model', :disruptive do
