@@ -22,15 +22,6 @@ namespace :test do
     run_rspec({ 'WIFIWAND_REAL_ENV_TESTS' => 'all' })
   end
 
-  desc 'Run specs with verbose WiFi command output (WIFIWAND_VERBOSE=true)'
-  task :verbose do
-    run_rspec({ 'WIFIWAND_VERBOSE' => 'true' })
-  end
-
-  desc 'Run specs with branch coverage enabled (COVERAGE_BRANCH=true)'
-  task :branch do
-    run_rspec({ 'COVERAGE_BRANCH' => 'true' })
-  end
 end
 
 desc 'Run the default safe RSpec suite'
