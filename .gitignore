@@ -3,6 +3,7 @@
 *.rbc
 .bundle
 .claude/
+.codex/
 .config
 .devcontainer/
 .idea/
