@@ -24,6 +24,7 @@ Prefer project-local tools and scripts (for example, `bin/` scripts, `package.js
 - Use the project's Ruby version.
 - Prefer `bundle exec` for project tools.
 - Prefer binstubs when present (e.g., `bin/rspec`, `bin/rubocop`).
+- Avoid early returns for simple Ruby branches when a direct conditional expression is clearer.
 - Before editing, inspect:
   - `Gemfile`
   - `Gemfile.lock`
@@ -43,27 +44,21 @@ using OS-specific utilities under the hood while presenting a unified API.
 ## Development Commands
 
 ### Testing
+
+Rake tasks select the test scope:
 ```bash
-# Run default tests (safe for CI/development)
-bundle exec rspec
+bundle exec rake test:safe          # default safe suite (CI-safe)
+bundle exec rake test:read_only     # + real-env read-only tests
+bundle exec rake test:all           # + real-env read-write tests
+```
 
-# Run real-environment read-only tests too
-WIFIWAND_REAL_ENV_TESTS=read_only bundle exec rspec
+Env vars are orthogonal modifiers — combine them with any rake task or plain rspec:
+```bash
+WIFIWAND_VERBOSE=true bundle exec rake test:safe   # show underlying OS commands
+COVERAGE_BRANCH=true bundle exec rake test:safe    # enable branch coverage analysis
 
-# Run specific test file
+# Run a specific file directly
 bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb
-
-# Run with verbose WiFi command output
-WIFIWAND_VERBOSE=true bundle exec rspec
-
-# Run all native OS tests, including real-environment read-write tests
-WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
-
-# Generate the authoritative native coverage artifact
-WIFIWAND_COVERAGE_MODE=native_all WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
-
-# Run tests with branch coverage enabled
-COVERAGE_BRANCH=true bundle exec rspec
 ```
 
 ### Development Setup

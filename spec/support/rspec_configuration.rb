@@ -233,19 +233,17 @@ module RSpecConfiguration
       Run all real-environment tests, including read-write ones:
         WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
 
-      Generate the authoritative native OS coverage artifact:
-        WIFIWAND_COVERAGE_MODE=native_all WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
-
       Current real environment setting: WIFIWAND_REAL_ENV_TESTS=#{ENV['WIFIWAND_REAL_ENV_TESTS'] || 'none'}
 
-      Verbose mode for WifiWand commands can be enabled by setting WIFIWAND_VERBOSE=true.
-      Current environment setting: WIFIWAND_VERBOSE=#{ENV['WIFIWAND_VERBOSE'] || '[undefined]'}
+      Modifier env vars (orthogonal to test scope — combine with any of the above):
+        WIFIWAND_VERBOSE=true  - show underlying OS commands
+        COVERAGE_BRANCH=true   - enable branch coverage analysis
+      Current: WIFIWAND_VERBOSE=#{ENV['WIFIWAND_VERBOSE'] || '[undefined]'}
 
       Coverage tracking is enabled via SimpleCov.
       HTML coverage report will be generated in coverage/index.html
-      Enable branch coverage with COVERAGE_BRANCH=true
       Default authoritative resultset: coverage/.resultset.json
-      Native full-suite resultset: coverage/.resultset.json.<os>.all
+      Real-environment resultset: coverage/.resultset.<os>.json
 
       ⚠️  IMPORTANT: Never run real-environment tests in CI environments.
       The default (WIFIWAND_REAL_ENV_TESTS unset) runs only safe tests.

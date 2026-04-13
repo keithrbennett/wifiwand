@@ -4,12 +4,9 @@ require 'simplecov'
 
 module CoverageConfig
   DEFAULT_RESULTSET_BASENAME = '.resultset.json'
-  NATIVE_FULL_RESULTSET_TEMPLATE = '.resultset.json.%<os>s.all'
-  VALID_COVERAGE_MODES = %w[default native_all].freeze
+  REAL_ENV_RESULTSET_TEMPLATE = '.resultset.%<os>s.json'
 
   def self.setup
-    validate_coverage_mode!
-
     SimpleCov.start do
       add_filter '/spec/'
       add_filter '/vendor/'
@@ -32,21 +29,13 @@ module CoverageConfig
     end
 
     configure_resultset_path!
-    SimpleCov.command_name("rspec-#{coverage_mode}")
+    SimpleCov.command_name("rspec-#{coverage_label}")
   end
 
-  def self.coverage_mode
-    mode = ENV.fetch('WIFIWAND_COVERAGE_MODE', 'default')
-    return mode if VALID_COVERAGE_MODES.include?(mode)
-
-    raise ArgumentError,
-      "Invalid WIFIWAND_COVERAGE_MODE=#{mode.inspect}. Valid options: #{VALID_COVERAGE_MODES.join(', ')}"
-  end
+  def self.coverage_label = real_env_run? ? 'real_env' : 'default'
 
   def self.resultset_basename
-    return DEFAULT_RESULTSET_BASENAME unless coverage_mode == 'native_all'
-
-    format(NATIVE_FULL_RESULTSET_TEMPLATE, os: native_os_name)
+    real_env_run? ? format(REAL_ENV_RESULTSET_TEMPLATE, os: native_os_name) : DEFAULT_RESULTSET_BASENAME
   end
 
   def self.resultset_path
@@ -64,20 +53,12 @@ module CoverageConfig
     when /linux/i
       'ubuntu'
     else
-      raise ArgumentError, 'WIFIWAND_COVERAGE_MODE=native_all requires a native macOS or Ubuntu host'
+      raise ArgumentError, 'Real-environment coverage requires a native macOS or Ubuntu host'
     end
   end
 
-  def self.native_all_run?
-    ENV.fetch('WIFIWAND_REAL_ENV_TESTS', 'none') == 'all'
-  end
-
-  def self.validate_coverage_mode!
-    return unless coverage_mode == 'native_all'
-    return if native_all_run?
-
-    raise ArgumentError,
-      'WIFIWAND_COVERAGE_MODE=native_all requires WIFIWAND_REAL_ENV_TESTS=all'
+  def self.real_env_run?
+    ENV.fetch('WIFIWAND_REAL_ENV_TESTS', 'none') != 'none'
   end
 
   def self.configure_resultset_path!

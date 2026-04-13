@@ -12,10 +12,12 @@ Enable verbose output showing underlying OS commands and their output.
 
 **Usage:**
 ```bash
-WIFIWAND_VERBOSE=true wifi-wand info
+WIFIWAND_VERBOSE=true wifi-wand info          # runtime
+WIFIWAND_VERBOSE=true bundle exec rspec       # during tests
+WIFIWAND_VERBOSE=true bundle exec rake test:all  # combined with rake task
 ```
 
-**Alternative:** Use the `-v` command-line flag instead:
+**Alternative (runtime only):** Use the `-v` command-line flag instead:
 ```bash
 wifi-wand -v info
 ```
@@ -81,30 +83,31 @@ Enable SimpleCov branch coverage analysis.
 **Usage:**
 ```bash
 COVERAGE_BRANCH=true bundle exec rspec
+COVERAGE_BRANCH=true bundle exec rake test:all
 ```
 
-**Note:** Branch coverage is more detailed but slower than line coverage. Use for thorough analysis before commits or releases.
+**Note:** Branch coverage is orthogonal to test scope — it can be combined with any rake task or rspec invocation. It is more detailed but slower than line coverage.
 
-### `WIFIWAND_COVERAGE_MODE`
+### Coverage Resultset Files
 
-Select which SimpleCov resultset filename is authoritative for the current run.
+SimpleCov chooses the resultset filename from `WIFIWAND_REAL_ENV_TESTS`.
 
-**Values:**
-- `default` or unset - Write coverage to `coverage/.resultset.json`
-- `native_all` - Write coverage to `coverage/.resultset.json.<os>.all`
+**Behavior:**
+- Unset or `none` - Write coverage to `coverage/.resultset.json`
+- `read_only` - Write coverage to `coverage/.resultset.<os>.json`
+- `all` - Write coverage to `coverage/.resultset.<os>.json`
 
 **Usage:**
 ```bash
 # Default safe-suite artifact
 bundle exec rspec
 
-# Native full-suite artifact for MCP/cov-loupe review
-WIFIWAND_COVERAGE_MODE=native_all \
-  WIFIWAND_REAL_ENV_TESTS=all \
-  bundle exec rspec
+# Real-environment artifact for the current OS
+WIFIWAND_REAL_ENV_TESTS=read_only bundle exec rspec
+WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
 ```
 
-**Validation:** `native_all` is accepted only when the full native suite is being run (`WIFIWAND_REAL_ENV_TESTS=all`). This prevents partial or stale `.ubuntu.all` / `.mac.all` artifacts from being treated as authoritative.
+`<os>` resolves to `mac` on macOS and `ubuntu` on Linux.
 
 ## CI/CD Guidelines
 

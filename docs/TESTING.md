@@ -23,9 +23,6 @@ WIFIWAND_REAL_ENV_TESTS=read_only bundle exec rspec
 
 # Include the full native-host suite, including read-write tests
 WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
-
-# Authoritative native coverage artifact
-WIFIWAND_COVERAGE_MODE=native_all WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
 ```
 
 ## CI Guidance
@@ -96,23 +93,30 @@ On macOS, examples tagged `:needs_sudo_access` refresh the sudo ticket immediate
 
 ## Coverage Artifacts
 
-Two resultset filenames are supported, but only one is authoritative for a given run mode:
+Two resultset filenames are used depending on whether the run touches the real host:
 
 - `coverage/.resultset.json`
-  This is authoritative for ordinary runs, including the default safe suite.
+  This is used for ordinary runs, including the default safe suite.
 
-- `coverage/.resultset.json.<os>.all`
-  This is authoritative only for a full native-host run started with:
-  `WIFIWAND_COVERAGE_MODE=native_all WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec`
+- `coverage/.resultset.<os>.json`
+  This is used for any real-environment run, including both:
+  `WIFIWAND_REAL_ENV_TESTS=read_only bundle exec rspec`
+  and
+  `WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec`
 
-The suite rejects `WIFIWAND_COVERAGE_MODE=native_all` unless `WIFIWAND_REAL_ENV_TESTS=all` is also set. That prevents partial or stale native artifacts from being treated as valid.
+The OS suffix appears only for real-environment runs so those host-dependent artifacts
+do not overwrite the default mocked/hermetic resultset.
 
-## Verbose Mode
+## Modifier Env Vars
 
-Use `WIFIWAND_VERBOSE=true` to show the actual OS commands executed during tests.
+These env vars are orthogonal to test scope and can be combined with any rake task or rspec invocation:
 
 ```bash
-WIFIWAND_VERBOSE=true bundle exec rspec
+# Show underlying OS commands during tests
+WIFIWAND_VERBOSE=true bundle exec rake test:read_only
+
+# Enable branch coverage analysis
+COVERAGE_BRANCH=true bundle exec rake test:safe
 ```
 
 ## Writing Tests
