@@ -13,7 +13,6 @@ describe WifiWand::EventLogger do
       fast_connectivity?:     true,
       wifi_on?:               true,
       connected_network_name: 'TestNetwork',
-      status_line_data:       { wifi_on: true, network_name: 'TestNetwork', internet_state: :reachable },
     )
   end
   let(:output) { StringIO.new }
@@ -74,16 +73,40 @@ describe WifiWand::EventLogger do
   end
 
   describe '#fetch_current_state' do
-    it 'fetches state from model using status_line_data' do
+    it 'builds state from the lightweight polling methods' do
       logger = described_class.new(mock_model, output: output)
-      state = { wifi_on: true, network_name: 'TestNetwork', internet_state: :reachable }
-      expect(mock_model).to receive(:status_line_data).and_return(state)
+      state = {
+        wifi_on:        true,
+        network_name:   'TestNetwork',
+        internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE,
+      }
+
+      expect(mock_model).to receive(:wifi_on?).and_return(true)
+      expect(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      expect(mock_model).to receive(:fast_connectivity?).and_return(true)
+      expect(mock_model).not_to receive(:status_line_data)
+
+      expect(logger.send(:fetch_current_state)).to eq(state)
+    end
+
+    it 'skips SSID and connectivity checks when WiFi is off' do
+      logger = described_class.new(mock_model, output: output)
+      state = {
+        wifi_on:        false,
+        network_name:   nil,
+        internet_state: WifiWand::ConnectivityStates::INTERNET_UNREACHABLE,
+      }
+
+      expect(mock_model).to receive(:wifi_on?).and_return(false)
+      expect(mock_model).not_to receive(:connected_network_name)
+      expect(mock_model).not_to receive(:fast_connectivity?)
+      expect(mock_model).not_to receive(:status_line_data)
 
       expect(logger.send(:fetch_current_state)).to eq(state)
     end
 
     it 'returns nil and logs message when model raises error in verbose mode' do
-      allow(mock_model).to receive(:status_line_data).and_raise(StandardError, 'Test error')
+      allow(mock_model).to receive(:wifi_on?).and_raise(StandardError, 'Test error')
       logger = described_class.new(mock_model, output: output, verbose: true)
 
       expect(logger).to receive(:log_message).with(/Test error/)
@@ -386,9 +409,6 @@ describe WifiWand::EventLogger do
         call_count += 1
         logger.stop if call_count >= 2
       end
-      # For initial state
-      allow(mock_model).to receive(:status_line_data).and_return({ wifi_on: true })
-
       logger.run
       expect(call_count).to eq(2)
     end

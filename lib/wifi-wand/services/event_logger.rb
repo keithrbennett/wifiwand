@@ -7,6 +7,10 @@ require_relative 'log_file_manager'
 
 module WifiWand
   # EventLogger continuously monitors WiFi status and logs state changes.
+  # Each poll uses a lightweight snapshot path that checks WiFi power, current
+  # SSID, and fast internet reachability only. It intentionally avoids the
+  # richer status pipeline so long-running `log` sessions do not perform DNS
+  # checks or captive-portal subprocess fan-out on every interval.
   class EventLogger
     EVENT_TYPES = {
       wifi_on:      'WiFi ON',
@@ -94,10 +98,24 @@ module WifiWand
     private
 
     def fetch_current_state
-      @model.status_line_data
+      wifi_on = @model.wifi_on?
+
+      {
+        wifi_on:        wifi_on,
+        network_name:   wifi_on ? @model.connected_network_name : nil,
+        internet_state: wifi_on ? lightweight_internet_state : ConnectivityStates::INTERNET_UNREACHABLE,
+      }
     rescue => e
       log_message("Error fetching status: #{e.message}") if @verbose
       nil
+    end
+
+    def lightweight_internet_state
+      if @model.fast_connectivity?
+        ConnectivityStates::INTERNET_REACHABLE
+      else
+        ConnectivityStates::INTERNET_UNREACHABLE
+      end
     end
 
     def detect_and_emit_events(current_state)
