@@ -74,8 +74,8 @@ module WifiWand
         if state[:network_name] && state[:wifi_enabled]
           # If we are already connected to the original network, no need to proceed
           begin
-            current_network = @model.connected_network_name
-            if @model.wifi_on? == state[:wifi_enabled] && current_network == state[:network_name]
+            if @model.wifi_on? == state[:wifi_enabled] &&
+                @model.connection_ready?(state[:network_name])
               return :already_connected
             end
           rescue WifiWand::Error => e

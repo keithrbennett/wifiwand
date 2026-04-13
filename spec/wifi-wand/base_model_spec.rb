@@ -25,6 +25,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow_any_instance_of(tester).to receive(:tcp_connectivity?).and_return(true)
       allow_any_instance_of(tester).to receive(:dns_working?).and_return(true)
       allow_any_instance_of(tester).to receive(:captive_portal_state).and_return(:free)
+      allow(subject.connection_manager).to receive(:wait_for_connection_activation)
 
       # Mock low-level OS command execution to prevent real system calls
       # but allow higher-level methods to be called for testing
@@ -147,6 +148,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       # Mock that the network is in preferred networks
       allow(subject).to receive(:preferred_networks).and_return([network_name])
       allow(subject).to receive(:preferred_network_password).with(network_name).and_return(saved_password)
+      allow(subject).to receive(:connection_ready?).and_return(false, true)
+      allow(subject).to receive(:connected?).and_return(false, true)
       allow(subject).to receive(:connected_network_name).and_return(nil, network_name)
       allow(subject).to receive(:wifi_on)
       allow(subject).to receive(:_connect)
@@ -164,6 +167,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       provided_password = 'provided_password'
 
       allow(subject).to receive(:preferred_networks).and_return([network_name])
+      allow(subject).to receive(:connection_ready?).and_return(false, true)
+      allow(subject).to receive(:connected?).and_return(false, true)
       allow(subject).to receive(:connected_network_name).and_return(nil, network_name)
       allow(subject).to receive(:wifi_on)
       allow(subject).to receive(:_connect)
@@ -180,6 +185,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       network_name = 'UnknownNetwork'
 
       allow(subject).to receive(:preferred_networks).and_return(['SavedNetwork1'])
+      allow(subject).to receive(:connection_ready?).and_return(false, true)
+      allow(subject).to receive(:connected?).and_return(false, true)
       allow(subject).to receive(:connected_network_name).and_return(nil, network_name)
       allow(subject).to receive(:wifi_on)
       allow(subject).to receive(:_connect)
@@ -457,7 +464,12 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'returns :already_connected when already on correct network' do
-      allow(subject).to receive_messages(wifi_on?: true, connected_network_name: 'TestNetwork')
+      allow(subject).to receive_messages(
+        connection_ready?:      true,
+        wifi_on?:               true,
+        connected?:             true,
+        connected_network_name: 'TestNetwork',
+      )
 
       expect(subject.restore_network_state(valid_state)).to eq(:already_connected)
     end

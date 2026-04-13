@@ -11,10 +11,16 @@ describe WifiWand::ConnectionManager do
 
   before do
     # Mock common model methods
-    allow(mock_model).to receive_messages(connected_network_name: nil, preferred_networks: [])
+    allow(mock_model).to receive_messages(
+      connected?:             false,
+      connected_network_name: nil,
+      connection_ready?:      false,
+      preferred_networks:     [],
+    )
     allow(mock_model).to receive(:wifi_on)
     allow(mock_model).to receive(:_connect)
     allow(mock_model).to receive(:till)
+    allow(subject).to receive(:wait_for_connection_activation)
   end
 
   describe '#initialize' do
@@ -109,7 +115,11 @@ describe WifiWand::ConnectionManager do
 
     context 'when already connected to target network' do
       before do
-        allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+        allow(mock_model).to receive_messages(
+          connected?:             true,
+          connected_network_name: 'TestNetwork',
+          connection_ready?:      true,
+        )
       end
 
       it 'returns early without attempting connection' do
@@ -120,8 +130,23 @@ describe WifiWand::ConnectionManager do
       end
     end
 
+    context 'when associated to target SSID but not fully connected yet' do
+      before do
+        allow(mock_model).to receive(:connection_ready?).and_return(false, true)
+        allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      end
+
+      it 'still performs the connection activation path' do
+        expect(mock_model).to receive(:wifi_on).ordered
+        expect(mock_model).to receive(:_connect).with('TestNetwork', nil).ordered
+
+        subject.connect('TestNetwork')
+      end
+    end
+
     context 'with successful connection' do
       before do
+        allow(mock_model).to receive(:connection_ready?).and_return(false, true)
         allow(mock_model).to receive(:connected_network_name).and_return(nil, 'TestNetwork')
       end
 
@@ -150,6 +175,7 @@ describe WifiWand::ConnectionManager do
         allow(mock_model).to receive(:preferred_networks).and_return(['SavedNetwork'])
         allow(mock_model).to receive(:preferred_network_password).with('SavedNetwork')
           .and_return('saved_password')
+        allow(mock_model).to receive(:connection_ready?).and_return(false, true)
         allow(mock_model).to receive(:connected_network_name).and_return(nil, 'SavedNetwork')
       end
 
@@ -187,7 +213,8 @@ describe WifiWand::ConnectionManager do
 
     context 'when connection verification fails' do
       before do
-        allow(mock_model).to receive(:connected_network_name).and_return(nil, 'WrongNetwork')
+        allow(mock_model).to receive(:connection_ready?).and_return(false, false)
+        allow(mock_model).to receive(:connected_network_name).and_return('WrongNetwork', 'WrongNetwork')
       end
 
       it 'raises NetworkConnectionError when connected to wrong network' do
@@ -198,6 +225,7 @@ describe WifiWand::ConnectionManager do
       end
 
       it 'raises NetworkConnectionError when no connection established' do
+        allow(mock_model).to receive(:connection_ready?).and_return(false, false)
         allow(mock_model).to receive(:connected_network_name).and_return(nil, nil)
 
         expect { subject.connect('TestNetwork') }.to raise_error(WifiWand::NetworkConnectionError) do |error|
@@ -217,6 +245,7 @@ describe WifiWand::ConnectionManager do
         preferred_networks:         ['SavedNetwork'],
         preferred_network_password: 'saved_password',
       )
+      allow(mock_model).to receive(:connection_ready?).and_return(false, true)
       allow(mock_model).to receive(:connected_network_name).and_return(nil, 'SavedNetwork')
 
       subject.connect('SavedNetwork')
@@ -229,12 +258,14 @@ describe WifiWand::ConnectionManager do
         preferred_networks:         ['SavedNetwork'],
         preferred_network_password: 'saved_password',
       )
+      allow(mock_model).to receive(:connection_ready?).and_return(false, true)
       allow(mock_model).to receive(:connected_network_name).and_return(nil, 'SavedNetwork')
 
       subject.connect('SavedNetwork')
       expect(subject.last_connection_used_saved_password?).to be true
 
       # Second connection with manual password should reset flag
+      allow(mock_model).to receive(:connection_ready?).and_return(false, true)
       allow(mock_model).to receive(:connected_network_name).and_return(nil, 'SavedNetwork')
       subject.connect('SavedNetwork', 'manual_password')
       expect(subject.last_connection_used_saved_password?).to be false
@@ -279,6 +310,8 @@ describe WifiWand::ConnectionManager do
     it 'connects properly through BaseModel delegation' do
       # Mock the connection to avoid real network calls
       allow(subject).to receive(:wifi_on?)
+      allow(subject.connection_manager).to receive(:wait_for_connection_activation)
+      allow(subject).to receive(:connection_ready?).and_return(false, true)
       allow(subject).to receive(:connected_network_name).and_return(nil, 'TestNetwork')
       allow(subject).to receive(:preferred_networks).and_return([])
       allow(subject).to receive(:wifi_on)

@@ -185,6 +185,15 @@ module WifiWand
       nil
     end
 
+    # Returns true when the model considers the requested network fully usable.
+    # Subclasses may override this to require stronger OS-specific readiness.
+    def connection_ready?(network_name)
+      connected? && connected_network_name == network_name
+    rescue WifiWand::Error => e
+      out_stream.puts("connection_ready? check failed: #{e.class}: #{e.message}") if @verbose_mode
+      false
+    end
+
     def ip_address
       raise Error, 'Cannot get IP address: not connected to a network.' unless connected?
 

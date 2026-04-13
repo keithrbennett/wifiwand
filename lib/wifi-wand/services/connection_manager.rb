@@ -97,7 +97,7 @@ module WifiWand
     end
 
     def already_connected?(network_name)
-      network_name == model.connected_network_name
+      active_connection_matches?(network_name)
     rescue WifiWand::Error
       false
     end
@@ -159,11 +159,7 @@ module WifiWand
     def perform_connection(network_name, password)
       model.wifi_on
       model._connect(network_name, password)
-      begin
-        model.till(:associated, timeout_in_secs: WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT)
-      rescue WifiWand::WaitTimeoutError
-        # Allow verification step to decide success/failure based on actual state
-      end
+      wait_for_connection_activation(network_name)
     end
 
     def store_saved_password_usage(used_saved_password)
@@ -171,13 +167,45 @@ module WifiWand
     end
 
     def verify_connection(network_name, _password)
-      actual_network_name = model.connected_network_name
+      actual_network_name = begin
+        model.connected_network_name
+      rescue WifiWand::Error
+        nil
+      end
 
-      unless actual_network_name == network_name
+      unless active_connection_matches?(network_name)
         error_detail = actual_network_name \
           ? "connected to '#{actual_network_name}' instead" \
           : 'unable to connect to any network'
         raise NetworkConnectionError.new(network_name, error_detail)
+      end
+    end
+
+    def active_connection_matches?(network_name)
+      model.connection_ready?(network_name)
+    end
+
+    def wait_for_connection_activation(network_name)
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      begin
+        model.till(:associated, timeout_in_secs: WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT)
+      rescue WifiWand::WaitTimeoutError
+        # Fall through to explicit active-connection polling so verification can
+        # distinguish "associated but not fully active" from a real failure.
+      end
+
+      loop do
+        begin
+          return if active_connection_matches?(network_name)
+        rescue WifiWand::Error
+          # NetworkManager can transiently report no active connection while
+          # activation is still settling; keep polling until timeout.
+        end
+
+        elapsed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+        return if elapsed_time >= WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT
+
+        sleep(WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL)
       end
     end
 

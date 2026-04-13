@@ -32,12 +32,16 @@ module WifiWand
 
     def probe_wifi_interface
       debug_method_entry(__method__)
-      interface_line = run_os_command(%w[iw dev])
-        .stdout
-        .lines
-        .map(&:strip)
-        .detect { |line| line.start_with?('Interface') }
-      interface_line ? interface_line.split[1] : nil
+      lines = run_os_command(%w[iw dev]).stdout.lines.map(&:strip)
+      current_interface = nil
+      lines.each do |line|
+        if line.start_with?('Interface ')
+          current_interface = line.split[1]
+        elsif line.start_with?('type managed') && current_interface
+          return current_interface
+        end
+      end
+      nil
     end
 
     def is_wifi_interface?(interface) # rubocop:disable Naming/PredicatePrefix
@@ -57,6 +61,17 @@ module WifiWand
       iface = wifi_interface
       output = run_os_command(%w[nmcli -t -f DEVICE connection show --active], false).stdout
       output.split("\n").any? { |line| line.strip == iface }
+    end
+
+    def connection_ready?(network_name)
+      return false unless _connected_network_name == network_name
+      return false if active_connection_profile_name.nil?
+      return false unless connected?
+
+      true
+    rescue WifiWand::Error => e
+      out_stream.puts("connection_ready? check failed: #{e.class}: #{e.message}") if @verbose_mode
+      false
     end
 
     def wifi_on
@@ -134,7 +149,7 @@ module WifiWand
 
       debug_method_entry(__method__)
 
-      if _connected_network_name == network_name
+      if connected? && _connected_network_name == network_name
         return
       end
 

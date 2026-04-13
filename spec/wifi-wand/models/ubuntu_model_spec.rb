@@ -63,8 +63,18 @@ module WifiWand
         end
 
         it 'returns immediately when already connected to target network' do
+          allow(subject).to receive(:connected?).and_return(true)
           setup_connect_test(connected_network: 'NetA')
           expect(subject).not_to receive(:run_os_command)
+          expect { subject._connect('NetA') }.not_to raise_error
+        end
+
+        it 'does not return early when SSID matches but NetworkManager is not fully connected' do
+          allow(subject).to receive(:connected?).and_return(false)
+          setup_connect_test(connected_network: 'NetA', profile_name: 'NetA')
+
+          expect(subject).to receive(:run_os_command).with(%w[nmcli connection up NetA])
+            .and_return(command_result(stdout: ''))
           expect { subject._connect('NetA') }.not_to raise_error
         end
 
@@ -373,7 +383,7 @@ module WifiWand
       end
 
       describe '#probe_wifi_interface' do
-        it 'returns first wireless interface from iw dev output' do
+        it 'returns first managed wireless interface from iw dev output' do
           iw_output = <<~IW_OUTPUT
             phy#0
                 Interface wlp3s0
@@ -390,7 +400,23 @@ module WifiWand
           expect(subject.probe_wifi_interface).to eq('wlp3s0')
         end
 
-        it 'returns nil when no interfaces found' do
+        it 'skips p2p-dev virtual interface and returns the managed interface' do
+          iw_output = <<~IW_OUTPUT
+            phy#0
+                Interface p2p-dev-wlp3s0
+                type P2P-device
+                Interface wlp3s0
+                type managed
+          IW_OUTPUT
+
+          allow(subject).to receive(:run_os_command)
+            .with(%w[iw dev])
+            .and_return(command_result(stdout: iw_output))
+
+          expect(subject.probe_wifi_interface).to eq('wlp3s0')
+        end
+
+        it 'returns nil when no managed interfaces found' do
           allow(subject).to receive(:run_os_command)
             .with(%w[iw dev])
             .and_return(command_result(stdout: "phy#0\n    type managed"))
@@ -950,6 +976,29 @@ module WifiWand
         end
       end
 
+      describe '#connection_ready?' do
+        it 'returns true for an active matching connection even without an IPv4 address' do
+          allow(subject).to receive_messages(
+            _connected_network_name:        'NetA',
+            active_connection_profile_name: 'NetA',
+            connected?:                     true,
+            _ip_address:                    nil,
+          )
+
+          expect(subject.connection_ready?('NetA')).to be(true)
+        end
+
+        it 'returns false when the active profile is missing' do
+          allow(subject).to receive_messages(
+            _connected_network_name:        'NetA',
+            active_connection_profile_name: nil,
+            connected?:                     true,
+          )
+
+          expect(subject.connection_ready?('NetA')).to be(false)
+        end
+      end
+
       describe 'private helper methods' do
         describe '#get_security_parameter' do
           it 'detects WPA2 security and returns correct parameter' do
@@ -1362,6 +1411,7 @@ module WifiWand
 
         it 'sets valid nameservers' do
           subject.wifi_on
+          subject.till(:associated, timeout_in_secs: WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT)
           result = subject.set_nameservers(valid_nameservers)
           expect(result).to eq(valid_nameservers)
         end
