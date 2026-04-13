@@ -178,21 +178,6 @@ module WifiWand
             end
             expect(subject.nameservers_using_networksetup).to include(alternate_nameservers.first)
           end
-
-          it 'validates IP address format before setting' do
-            invalid_scenarios = [
-              ['invalid.ip.address'],
-              ['999.999.999.999'],
-              ['not.an.ip', '8.8.8.8'],
-              ['192.168.1.1', 'bad.ip'],
-            ]
-
-            invalid_scenarios.each do |invalid_nameservers|
-              expect { subject.set_nameservers(invalid_nameservers) }
-                .to raise_error(WifiWand::InvalidIPAddressError),
-                  "Should reject invalid nameservers: #{invalid_nameservers}"
-            end
-          end
         end
 
         describe 'WiFi state consistency' do
@@ -213,13 +198,49 @@ module WifiWand
           end
         end
 
+        describe 'error resilience' do
+          it 'handles temporary network unavailability gracefully' do
+            # Turn WiFi off temporarily
+            subject.wifi_off
+
+            # These should not crash even with WiFi off
+            expect { subject._ip_address }.not_to raise_error
+            expect { subject._connected_network_name }.not_to raise_error
+            expect { subject.default_interface }.not_to raise_error
+
+            # Restore WiFi
+            subject.wifi_on
+          end
+        end
+      end
+
+      context 'when running read-only real-environment inspections',
+        :real_env_read_only, real_env_os: :os_mac do
+        subject { create_mac_os_test_model }
+
+        describe '#set_nameservers' do
+          it 'validates IP address format before setting' do
+            invalid_scenarios = [
+              ['invalid.ip.address'],
+              ['999.999.999.999'],
+              ['not.an.ip', '8.8.8.8'],
+              ['192.168.1.1', 'bad.ip'],
+            ]
+
+            invalid_scenarios.each do |invalid_nameservers|
+              expect { subject.set_nameservers(invalid_nameservers) }
+                .to raise_error(WifiWand::InvalidIPAddressError),
+                  "Should reject invalid nameservers: #{invalid_nameservers}"
+            end
+          end
+        end
+
         describe 'interface detection consistency' do
           it 'consistently detects same WiFi interface across calls' do
             first_interface = subject.wifi_interface
             expect(first_interface).not_to be_nil
             expect(first_interface).to match(/^en\d+$/)
 
-            # Multiple calls should return same interface (cached)
             2.times do
               expect(subject.wifi_interface).to eq(first_interface)
             end
@@ -229,7 +250,6 @@ module WifiWand
             first_service = subject.detect_wifi_service_name
             expect(first_service).not_to be_nil
 
-            # Multiple calls should return same service name (cached)
             2.times do
               expect(subject.detect_wifi_service_name).to eq(first_service)
             end
@@ -252,21 +272,6 @@ module WifiWand
             else
               skip 'macOS version detection failed'
             end
-          end
-        end
-
-        describe 'error resilience' do
-          it 'handles temporary network unavailability gracefully' do
-            # Turn WiFi off temporarily
-            subject.wifi_off
-
-            # These should not crash even with WiFi off
-            expect { subject._ip_address }.not_to raise_error
-            expect { subject._connected_network_name }.not_to raise_error
-            expect { subject.default_interface }.not_to raise_error
-
-            # Restore WiFi
-            subject.wifi_on
           end
         end
       end

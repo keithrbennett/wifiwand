@@ -327,22 +327,32 @@ describe 'Common WiFi Model Behavior (All OS)' do
     context 'when target is an internet reachability state (:internet_on / :internet_off)' do
       before { subject.wifi_on }
 
+      def require_reachable_internet!(model, description)
+        return if model.internet_connectivity_state == :reachable
+
+        raise "Cannot run #{description} because Internet connectivity is not currently reachable."
+      end
+
       it 'returns nil immediately for :internet_on when Internet is reachable' do
-        skip 'Internet not reachable; cannot test :internet_on' \
-          unless subject.internet_connectivity_state == :reachable
+        require_reachable_internet!(subject, ':internet_on real-environment check')
         expect(subject.till(:internet_on)).to be_nil
       end
 
       it 'raises WaitTimeoutError for :internet_off when Internet is reachable and timeout expires' do
-        skip 'Internet not reachable; :internet_off would return immediately' \
-          unless subject.internet_connectivity_state == :reachable
+        require_reachable_internet!(subject, ':internet_off timeout real-environment check')
         expect do
-          subject.till(:internet_off, timeout_in_secs: 1)
+          subject.till(:internet_off, timeout_in_secs: 1, wait_interval_in_secs: 0.1)
         end.to raise_error(WifiWand::WaitTimeoutError)
       end
     end
+  end
 
+  describe '#till' do
     context 'with removed legacy state names' do
+      before do
+        allow(subject).to receive(:till).and_call_original
+      end
+
       it 'raises ArgumentError with migration hint for :conn' do
         expect { subject.till(:conn) }.to raise_error(ArgumentError, /:conn.*was removed/i)
       end
@@ -388,6 +398,20 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
+  def verify_interface_commands_complete_without_error
+    aggregate_failures 'interface commands' do
+      expect { subject.internet_connectivity_state }.not_to raise_error
+      expect(subject.wifi_interface).to be_nil_or_a_string
+      expect(subject.wifi_info).to be_a(Hash)
+
+      preferred_networks = subject.preferred_networks
+      expect(preferred_networks).to be_a(Array)
+      expect(preferred_networks).to all(be_a(String))
+
+      expect([true, false]).to include(subject.wifi_on?)
+    end
+  end
+
 
   # Ordinary context - only runs when wifi is already on
   context 'when wifi starts on' do
@@ -411,7 +435,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
   context 'when wifi starts on (real environment)', :real_env_read_write do
     before { subject.wifi_on }
 
-    it_behaves_like 'interface commands complete without error', true
+    it 'runs the interface command checks while WiFi is on' do
+      verify_interface_commands_complete_without_error
+    end
 
     it 'can query connected network name' do
       expect(subject.connected_network_name).to be_a(String).or be_nil
@@ -421,7 +447,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
   context 'when wifi starts off (real environment)', :real_env_read_write do
     before { subject.wifi_off }
 
-    it_behaves_like 'interface commands complete without error', false
+    it 'runs the interface command checks while WiFi is off' do
+      verify_interface_commands_complete_without_error
+    end
 
     it 'raises WifiOffError when querying connected network name' do
       expect { subject.connected_network_name }.to raise_error(WifiWand::WifiOffError)

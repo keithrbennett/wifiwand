@@ -6,6 +6,7 @@ require_relative 'os_filtering'
 
 module RSpecConfiguration
   VALID_REAL_ENV_TEST_OPTIONS = %w[none read_only all].freeze
+  @sudo_tests_will_run = false
 
   def self.configure(config)
     configure_basic_settings(config)
@@ -59,6 +60,7 @@ module RSpecConfiguration
     config.before(:suite) do
       examples_to_run = RSpecConfiguration.examples_to_run
       test_types = RSpecConfiguration.analyze_test_types(examples_to_run)
+      RSpecConfiguration.note_auth_requirements(test_types)
 
       RSpecConfiguration.handle_network_state_capture(test_types[:real_env_read_write])
 
@@ -66,6 +68,10 @@ module RSpecConfiguration
         RSpecConfiguration.handle_sudo_preflight(test_types[:sudo])
       end
     end
+  end
+
+  def self.note_auth_requirements(test_types)
+    @sudo_tests_will_run = test_types[:sudo]
   end
 
   def self.examples_to_run
@@ -96,11 +102,18 @@ module RSpecConfiguration
     system('sudo -v')
   end
 
-  def self.refresh_sudo_ticket!
+  def self.refresh_sudo_ticket!(allow_prompt: false)
     return if system('sudo -n -v >/dev/null 2>&1')
+    return if allow_prompt && system('sudo -v')
 
     raise 'sudo authentication expired before a :needs_sudo_access example ran. ' \
       'Re-run the suite and authenticate again.'
+  end
+
+  def self.keep_sudo_ticket_alive_for_real_env_write!
+    return unless running_on_mac_os? && @sudo_tests_will_run
+
+    refresh_sudo_ticket!
   end
 
   def self.handle_network_state_capture(real_env_read_write_tests_will_run)
@@ -177,10 +190,11 @@ module RSpecConfiguration
   # Configure network state management for real-environment tests
   def self.configure_network_state_management(config)
     config.before(:each, :needs_sudo_access) do
-      RSpecConfiguration.refresh_sudo_ticket!
+      RSpecConfiguration.refresh_sudo_ticket!(allow_prompt: true)
     end
 
     config.before(:each, :real_env_read_write) do
+      RSpecConfiguration.keep_sudo_ticket_alive_for_real_env_write!
       RSpecConfiguration.ensure_network_state_capture!
     end
 

@@ -75,6 +75,7 @@ RSpec.describe RSpecConfiguration do
     example.run
   ensure
     $compatible_os_tag = original_os_tag
+    described_class.note_auth_requirements(sudo: false)
   end
 
   # Helper to mirror the real configure-preflight hook and immediately execute
@@ -215,7 +216,7 @@ RSpec.describe RSpecConfiguration do
     it 'refreshes sudo ticket before each sudo-tagged example' do
       before_each_hook = hook_config.before_hooks.find { |args, _block| args == %i[each needs_sudo_access] }
 
-      expect(described_class).to receive(:refresh_sudo_ticket!)
+      expect(described_class).to receive(:refresh_sudo_ticket!).with(allow_prompt: true)
       before_each_hook.last.call
     end
 
@@ -229,6 +230,16 @@ RSpec.describe RSpecConfiguration do
     it 'ensures capture before each real_env_read_write example' do
       before_each_hook = hook_config.before_hooks.find { |args, _block| args == %i[each real_env_read_write] }
 
+      expect(described_class).to receive(:ensure_network_state_capture!)
+      before_each_hook.last.call
+    end
+
+    it 'refreshes sudo for macOS real_env_read_write examples when sudo tests are in the suite' do
+      before_each_hook = hook_config.before_hooks.find { |args, _block| args == %i[each real_env_read_write] }
+      $compatible_os_tag = :os_mac
+      described_class.note_auth_requirements(sudo: true)
+
+      expect(described_class).to receive(:refresh_sudo_ticket!)
       expect(described_class).to receive(:ensure_network_state_capture!)
       before_each_hook.last.call
     end
@@ -246,6 +257,47 @@ RSpec.describe RSpecConfiguration do
 
       expect { described_class.refresh_sudo_ticket! }
         .to raise_error(RuntimeError, /sudo authentication expired/)
+    end
+
+    it 'falls back to interactive sudo refresh when prompting is allowed' do
+      allow(described_class).to receive(:system).with('sudo -n -v >/dev/null 2>&1').and_return(false)
+      allow(described_class).to receive(:system).with('sudo -v').and_return(true)
+
+      expect { described_class.refresh_sudo_ticket!(allow_prompt: true) }.not_to raise_error
+    end
+
+    it 'raises when both non-interactive and interactive sudo refresh fail' do
+      allow(described_class).to receive(:system).with('sudo -n -v >/dev/null 2>&1').and_return(false)
+      allow(described_class).to receive(:system).with('sudo -v').and_return(false)
+
+      expect { described_class.refresh_sudo_ticket!(allow_prompt: true) }
+        .to raise_error(RuntimeError, /sudo authentication expired/)
+    end
+  end
+
+  describe '.keep_sudo_ticket_alive_for_real_env_write!' do
+    it 'refreshes sudo on macOS when sudo-tagged examples are part of the run' do
+      $compatible_os_tag = :os_mac
+      described_class.note_auth_requirements(sudo: true)
+
+      expect(described_class).to receive(:refresh_sudo_ticket!)
+      described_class.keep_sudo_ticket_alive_for_real_env_write!
+    end
+
+    it 'does nothing on non-macOS hosts' do
+      $compatible_os_tag = :os_ubuntu
+      described_class.note_auth_requirements(sudo: true)
+
+      expect(described_class).not_to receive(:refresh_sudo_ticket!)
+      described_class.keep_sudo_ticket_alive_for_real_env_write!
+    end
+
+    it 'does nothing when no sudo-tagged examples are part of the run' do
+      $compatible_os_tag = :os_mac
+      described_class.note_auth_requirements(sudo: false)
+
+      expect(described_class).not_to receive(:refresh_sudo_ticket!)
+      described_class.keep_sudo_ticket_alive_for_real_env_write!
     end
   end
 
