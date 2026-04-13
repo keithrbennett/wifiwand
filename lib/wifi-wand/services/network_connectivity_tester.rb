@@ -167,6 +167,15 @@ module WifiWand
       end
 
       false
+    ensure
+      cleanup_worker_threads(workers)
+    end
+
+    def cleanup_worker_threads(workers)
+      Array(workers).each do |worker|
+        worker.kill if worker&.alive?
+        worker&.join
+      end
     end
 
     # Attempts to establish a TCP connection to a specific endpoint.

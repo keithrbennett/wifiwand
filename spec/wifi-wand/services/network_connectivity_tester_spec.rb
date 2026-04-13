@@ -79,7 +79,7 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { described_class.new(verbose: false) }
       let(:slow_endpoint_events) { Queue.new }
       let(:slow_endpoint_blocker) { Queue.new }
-      let(:worker_threads) { [] }
+      let(:observed_worker_threads) { Queue.new }
 
       before do
         allow(tester).to receive(:tcp_test_endpoints).and_return([
@@ -87,13 +87,9 @@ describe WifiWand::NetworkConnectivityTester do
           { host: 'fast.test', port: 443 },
         ])
 
-        allow(Thread).to receive(:new).and_wrap_original do |original, *args, &block|
-          thread = original.call(*args, &block)
-          worker_threads << thread
-          thread
-        end
-
         allow(Socket).to receive(:tcp) do |host, _port, connect_timeout:, &block|
+          observed_worker_threads << Thread.current
+
           case host
           when 'slow.test'
             begin
@@ -114,15 +110,16 @@ describe WifiWand::NetworkConnectivityTester do
         end
       end
 
-      it 'returns promptly and cleans up slower checks before returning' do
+      it 'returns promptly and leaves no observed worker threads running after return' do
         start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         expect(tester.tcp_connectivity?).to be true
         elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+        observed_threads = [observed_worker_threads.pop(timeout: 1), observed_worker_threads.pop(timeout: 1)]
 
         expect(elapsed).to be < (WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT / 2.0)
         expect(slow_endpoint_events.pop(timeout: 1)).to eq(:slow_finished)
-        expect(worker_threads.size).to eq(2)
-        expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
+        expect(observed_threads).to all(satisfy { |thread| !thread.alive? })
+        expect(observed_threads).to all(satisfy { |thread| thread.join(0) == thread })
       end
     end
   end
@@ -130,16 +127,21 @@ describe WifiWand::NetworkConnectivityTester do
   describe '#run_parallel_checks?' do
     let(:tester) { described_class.new(verbose: false) }
     let(:worker_threads) { [] }
+    let(:joined_threads) { [] }
 
     before do
       allow(Thread).to receive(:new).and_wrap_original do |original, *args, &block|
         thread = original.call(*args, &block)
+        allow(thread).to receive(:join).and_wrap_original do |join_original, *join_args|
+          joined_threads << thread
+          join_original.call(*join_args)
+        end
         worker_threads << thread
         thread
       end
     end
 
-    it 'does not leave worker threads alive after an early success' do
+    it 'joins all spawned workers before returning after an early success' do
       slow_check_started = Queue.new
       slow_check_blocker = Queue.new
 
@@ -157,10 +159,11 @@ describe WifiWand::NetworkConnectivityTester do
 
       expect(result).to be true
       expect(worker_threads.size).to eq(2)
+      expect(joined_threads).to match_array(worker_threads)
       expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
     end
 
-    it 'does not leave worker threads alive after the overall timeout expires' do
+    it 'joins all spawned workers before returning after the overall timeout expires' do
       slow_checks_started = Queue.new
       slow_check_blocker = Queue.new
 
@@ -177,6 +180,7 @@ describe WifiWand::NetworkConnectivityTester do
       expect(result).to be false
       expect(elapsed).to be < 0.5
       expect(worker_threads.size).to eq(2)
+      expect(joined_threads).to match_array(worker_threads)
       expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
     end
 
@@ -187,6 +191,7 @@ describe WifiWand::NetworkConnectivityTester do
 
       expect(result).to be false
       expect(worker_threads.size).to eq(2)
+      expect(joined_threads).to match_array(worker_threads)
       expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
     end
   end
