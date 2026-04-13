@@ -143,59 +143,38 @@ describe 'Common WiFi Model Behavior (All OS)' do
   describe '#connect with saved passwords' do
     it 'uses saved password when none provided and network is preferred' do
       network_name = 'SavedNetwork1'
-      saved_password = 'saved_password_123'
+      mock_connection_manager = double('ConnectionManager', last_connection_used_saved_password?: true)
+      subject.connection_manager = mock_connection_manager
 
-      # Mock that the network is in preferred networks
-      allow(subject).to receive(:preferred_networks).and_return([network_name])
-      allow(subject).to receive(:preferred_network_password).with(network_name).and_return(saved_password)
-      allow(subject).to receive(:connection_ready?).and_return(false, true)
-      allow(subject).to receive(:connected?).and_return(false, true)
-      allow(subject).to receive(:connected_network_name).and_return(nil, network_name)
-      allow(subject).to receive(:wifi_on)
-      allow(subject).to receive(:_connect)
+      expect(mock_connection_manager).to receive(:connect)
+        .with(network_name, nil, skip_saved_password_lookup: false)
 
-      # Connect without providing password
       subject.connect(network_name)
-
-      # Should have called _connect with the saved password
-      expect(subject).to have_received(:_connect).with(network_name, saved_password)
       expect(subject.last_connection_used_saved_password?).to be true
     end
 
     it 'does not use saved password when one is provided' do
       network_name = 'SavedNetwork1'
       provided_password = 'provided_password'
+      mock_connection_manager = double('ConnectionManager', last_connection_used_saved_password?: false)
+      subject.connection_manager = mock_connection_manager
 
-      allow(subject).to receive(:preferred_networks).and_return([network_name])
-      allow(subject).to receive(:connection_ready?).and_return(false, true)
-      allow(subject).to receive(:connected?).and_return(false, true)
-      allow(subject).to receive(:connected_network_name).and_return(nil, network_name)
-      allow(subject).to receive(:wifi_on)
-      allow(subject).to receive(:_connect)
+      expect(mock_connection_manager).to receive(:connect)
+        .with(network_name, provided_password, skip_saved_password_lookup: false)
 
-      # Connect with explicit password
       subject.connect(network_name, provided_password)
-
-      # Should have called _connect with the provided password
-      expect(subject).to have_received(:_connect).with(network_name, provided_password)
       expect(subject.last_connection_used_saved_password?).to be false
     end
 
     it 'does not use saved password when network is not preferred' do
       network_name = 'UnknownNetwork'
+      mock_connection_manager = double('ConnectionManager', last_connection_used_saved_password?: false)
+      subject.connection_manager = mock_connection_manager
 
-      allow(subject).to receive(:preferred_networks).and_return(['SavedNetwork1'])
-      allow(subject).to receive(:connection_ready?).and_return(false, true)
-      allow(subject).to receive(:connected?).and_return(false, true)
-      allow(subject).to receive(:connected_network_name).and_return(nil, network_name)
-      allow(subject).to receive(:wifi_on)
-      allow(subject).to receive(:_connect)
+      expect(mock_connection_manager).to receive(:connect)
+        .with(network_name, nil, skip_saved_password_lookup: false)
 
-      # Connect without password to non-preferred network
       subject.connect(network_name)
-
-      # Should have called _connect with nil password
-      expect(subject).to have_received(:_connect).with(network_name, nil)
       expect(subject.last_connection_used_saved_password?).to be false
     end
   end

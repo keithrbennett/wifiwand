@@ -134,9 +134,21 @@ module WifiWand
     describe 'Method integration tests' do
       let(:model) { create_test_model }
 
+      connect_invalid_name_base_case = {
+        method: :connect,
+        error:  InvalidNetworkNameError,
+      }.freeze
+
       error_raising_test_cases = [
-        { method: :connect, args: [''], error: InvalidNetworkNameError },
-        { method: :connect, args: [nil], error: InvalidNetworkNameError },
+        ['', nil].map do |network_name|
+          connect_invalid_name_base_case.merge(
+            args: [network_name],
+            before: lambda {
+              allow(model.connection_manager).to receive(:connect)
+                .and_raise(InvalidNetworkNameError.new(network_name, 'Network name cannot be empty'))
+            },
+          )
+        end,
         {
           method: :connect, args: ['TestNetwork'], error: NetworkConnectionError,
           before: -> {
@@ -180,7 +192,7 @@ module WifiWand
             allow(model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:wifi_off, 5))
           }
         },
-      ]
+      ].flatten(1)
 
       error_raising_test_cases.each do |test_case|
         t = test_case

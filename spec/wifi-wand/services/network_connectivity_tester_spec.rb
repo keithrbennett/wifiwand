@@ -78,6 +78,7 @@ describe WifiWand::NetworkConnectivityTester do
     context 'when one endpoint succeeds before another blocking endpoint times out' do
       let(:tester) { described_class.new(verbose: false) }
       let(:slow_endpoint_events) { Queue.new }
+      let(:slow_endpoint_release) { Queue.new }
 
       before do
         allow(tester).to receive(:tcp_test_endpoints).and_return([
@@ -89,7 +90,8 @@ describe WifiWand::NetworkConnectivityTester do
           case host
           when 'slow.test'
             begin
-              sleep(connect_timeout * 3)
+              slow_endpoint_events << :slow_started
+              slow_endpoint_release.pop
               raise Errno::ETIMEDOUT
             ensure
               slow_endpoint_events << :slow_finished
@@ -108,11 +110,16 @@ describe WifiWand::NetworkConnectivityTester do
         elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
 
         expect(elapsed).to be < (WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT / 2.0)
+        slow_endpoint_release << :release
+        expect(slow_endpoint_events.pop(timeout: 1)).to eq(:slow_started)
+        expect(slow_endpoint_events.pop(timeout: 1)).to eq(:slow_finished)
       end
 
       it 'allows slower checks to finish naturally after returning early' do
         expect(tester.tcp_connectivity?).to be true
 
+        expect(slow_endpoint_events.pop(timeout: 1)).to eq(:slow_started)
+        slow_endpoint_release << :release
         expect(slow_endpoint_events.pop(timeout: 1)).to eq(:slow_finished)
       end
     end
