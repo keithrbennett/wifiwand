@@ -78,7 +78,8 @@ describe WifiWand::NetworkConnectivityTester do
     context 'when one endpoint succeeds before another blocking endpoint times out' do
       let(:tester) { described_class.new(verbose: false) }
       let(:slow_endpoint_events) { Queue.new }
-      let(:slow_endpoint_release) { Queue.new }
+      let(:slow_endpoint_blocker) { Queue.new }
+      let(:worker_threads) { [] }
 
       before do
         allow(tester).to receive(:tcp_test_endpoints).and_return([
@@ -86,17 +87,26 @@ describe WifiWand::NetworkConnectivityTester do
           { host: 'fast.test', port: 443 },
         ])
 
+        allow(Thread).to receive(:new).and_wrap_original do |original, *args, &block|
+          thread = original.call(*args, &block)
+          worker_threads << thread
+          thread
+        end
+
         allow(Socket).to receive(:tcp) do |host, _port, connect_timeout:, &block|
           case host
           when 'slow.test'
             begin
               slow_endpoint_events << :slow_started
-              slow_endpoint_release.pop
+              slow_endpoint_blocker.pop
               raise Errno::ETIMEDOUT
             ensure
               slow_endpoint_events << :slow_finished
             end
           when 'fast.test'
+            started_event = slow_endpoint_events.pop(timeout: 1)
+            raise 'Slow endpoint did not start' unless started_event == :slow_started
+
             block ? block.call : true
           else
             raise "Unexpected host: #{host}"
@@ -104,24 +114,80 @@ describe WifiWand::NetworkConnectivityTester do
         end
       end
 
-      it 'returns promptly after the first successful connection' do
+      it 'returns promptly and cleans up slower checks before returning' do
         start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
         expect(tester.tcp_connectivity?).to be true
         elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
 
         expect(elapsed).to be < (WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT / 2.0)
-        slow_endpoint_release << :release
-        expect(slow_endpoint_events.pop(timeout: 1)).to eq(:slow_started)
         expect(slow_endpoint_events.pop(timeout: 1)).to eq(:slow_finished)
+        expect(worker_threads.size).to eq(2)
+        expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
+      end
+    end
+  end
+
+  describe '#run_parallel_checks?' do
+    let(:tester) { described_class.new(verbose: false) }
+    let(:worker_threads) { [] }
+
+    before do
+      allow(Thread).to receive(:new).and_wrap_original do |original, *args, &block|
+        thread = original.call(*args, &block)
+        worker_threads << thread
+        thread
+      end
+    end
+
+    it 'does not leave worker threads alive after an early success' do
+      slow_check_started = Queue.new
+      slow_check_blocker = Queue.new
+
+      result = tester.send(:run_parallel_checks?, %i[slow success], 1.0) do |item|
+        case item
+        when :slow
+          slow_check_started << :started
+          slow_check_blocker.pop
+          false
+        when :success
+          expect(slow_check_started.pop(timeout: 1)).to eq(:started)
+          true
+        end
       end
 
-      it 'allows slower checks to finish naturally after returning early' do
-        expect(tester.tcp_connectivity?).to be true
+      expect(result).to be true
+      expect(worker_threads.size).to eq(2)
+      expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
+    end
 
-        expect(slow_endpoint_events.pop(timeout: 1)).to eq(:slow_started)
-        slow_endpoint_release << :release
-        expect(slow_endpoint_events.pop(timeout: 1)).to eq(:slow_finished)
+    it 'does not leave worker threads alive after the overall timeout expires' do
+      slow_checks_started = Queue.new
+      slow_check_blocker = Queue.new
+
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      result = tester.send(:run_parallel_checks?, %i[slow_a slow_b], 0.05) do |_item|
+        slow_checks_started << :started
+        slow_check_blocker.pop
+        false
       end
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+      expect(slow_checks_started.pop(timeout: 1)).to eq(:started)
+      expect(slow_checks_started.pop(timeout: 1)).to eq(:started)
+      expect(result).to be false
+      expect(elapsed).to be < 0.5
+      expect(worker_threads.size).to eq(2)
+      expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
+    end
+
+    it 'returns false when all checks fail' do
+      result = tester.send(:run_parallel_checks?, %i[fail_a fail_b], 1.0) do |_item|
+        false
+      end
+
+      expect(result).to be false
+      expect(worker_threads.size).to eq(2)
+      expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
     end
   end
 

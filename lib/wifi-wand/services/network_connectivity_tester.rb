@@ -116,7 +116,7 @@ module WifiWand
     # - Returns `false` if ALL checks fail OR the overall timeout is reached
     # - Each individual check runs with its own timeout (defined in the yielded block)
     # - All checks run concurrently within the overall timeout window
-    # - Remaining worker threads are allowed to finish naturally after return
+    # - Remaining worker threads are cancelled and joined before return
     #
     # @param items [Array] Collection of items to check (endpoints, domains, etc.)
     # @param overall_timeout [Float] Maximum seconds to wait for any check to succeed
@@ -139,7 +139,7 @@ module WifiWand
       return false if items.empty?
 
       results = Queue.new
-      items.each do |item|
+      workers = items.map do |item|
         Thread.new do
           Thread.current.report_on_exception = false
 
