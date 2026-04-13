@@ -4,6 +4,7 @@
 .bundle
 .claude/
 .config
+.devcontainer/
 .idea/
 .yardoc
 Gemfile.lock
