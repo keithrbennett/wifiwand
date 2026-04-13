@@ -198,7 +198,7 @@ module RSpecConfiguration
       RSpecConfiguration.ensure_network_state_capture!
     end
 
-    config.after(:each, :real_env_read_write) do |example|
+    config.after(:each, :real_env_read_write) do |_example|
       NetworkStateManager.restore_state(fail_silently: false)
     end
 

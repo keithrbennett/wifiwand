@@ -28,12 +28,21 @@ describe WifiWand::LogFileManager do
     it 'creates an instance with custom log file path' do
       manager = described_class.new(log_file_path: log_file_path)
       expect(manager.log_file_path).to eq(log_file_path)
+      manager.close
     end
 
     it 'opens log file in append mode' do
       manager = described_class.new(log_file_path: log_file_path)
       expect(File.exist?(log_file_path)).to be true
       manager.close
+    end
+
+    it 'raises when the parent directory does not exist' do
+      missing_path = File.join(temp_dir, 'missing', 'test.log')
+
+      expect do
+        described_class.new(log_file_path: missing_path)
+      end.to raise_error(WifiWand::LogFileInitializationError, /Cannot open log file/)
     end
 
     it 'accepts verbose flag' do
@@ -73,7 +82,6 @@ describe WifiWand::LogFileManager do
     end
 
     it 'preserves existing content in append mode' do
-      # Write initial content
       File.write(log_file_path, "Initial content\n")
 
       manager = described_class.new(log_file_path: log_file_path)
@@ -85,20 +93,20 @@ describe WifiWand::LogFileManager do
       expect(content).to include('New message')
     end
 
-    it 'handles write errors gracefully' do
+    it 'raises write errors instead of swallowing them' do
       manager = described_class.new(log_file_path: log_file_path)
-      manager.instance_variable_set(:@file_handle, nil)  # Simulate closed file
+      file_handle = manager.instance_variable_get(:@file_handle)
+      allow(file_handle).to receive(:puts).and_raise(IOError, 'disk full')
 
       expect do
         manager.write('Test message')
-      end.not_to raise_error
+      end.to raise_error(WifiWand::LogWriteError, /disk full/)
     end
 
     it 'flushes after each write' do
       manager = described_class.new(log_file_path: log_file_path)
       manager.write('Flushed message')
 
-      # File should be readable immediately
       content = File.read(log_file_path)
       expect(content).to include('Flushed message')
 
@@ -144,24 +152,13 @@ describe WifiWand::LogFileManager do
     end
   end
 
-  describe 'error handling' do
-    it 'handles permission errors gracefully when directory exists' do
-      # Create a log file that should work
-      manager = described_class.new(log_file_path: log_file_path)
-      manager.close
-
-      # Verify the file was created
-      expect(File.exist?(log_file_path)).to be true
-    end
-  end
-
   describe 'integration' do
     it 'creates a properly formatted log file with multiple entries' do
       manager = described_class.new(log_file_path: log_file_path)
 
       entries = [
         '[2025-10-28 14:30:15] WiFi ON',
-        '[2025-10-28 14:30:20] Connected to "HomeNetwork"',
+        '[2025-10-28 14:30:20] Connected to HomeNetwork',
         '[2025-10-28 14:45:30] Internet unavailable',
       ]
 

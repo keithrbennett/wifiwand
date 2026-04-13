@@ -131,6 +131,19 @@ describe WifiWand::LogCommand do
           ),
         )
       end
+
+      it 'fails fast when the requested log file cannot be opened and stdout is disabled' do
+        command = described_class.new(mock_model, output: output)
+        allow(WifiWand::EventLogger).to receive(:new)
+          .and_raise(
+            WifiWand::LogFileInitializationError,
+            'Cannot open log file /missing/events.log: No such file or directory',
+          )
+
+        expect do
+          command.execute('--file', '/missing/events.log')
+        end.to raise_error(WifiWand::ConfigurationError, /Cannot open log file \/missing\/events.log/)
+      end
     end
 
     context 'with --stdout option' do
@@ -155,6 +168,29 @@ describe WifiWand::LogCommand do
             output:        output,
           ),
         )
+      end
+
+      it 'falls back to stdout with a warning when file setup fails' do
+        command = described_class.new(mock_model, output: output)
+        allow(WifiWand::EventLogger).to receive(:new)
+          .with(mock_model, hash_including(log_file_path: '/missing/events.log', output: output))
+          .and_raise(WifiWand::LogFileInitializationError,
+            'Cannot open log file /missing/events.log: No such file or directory')
+        allow(WifiWand::EventLogger).to receive(:new)
+          .with(
+            mock_model,
+            interval: WifiWand::TimingConstants::EVENT_LOG_POLLING_INTERVAL,
+            verbose:  false,
+            output:   output,
+          )
+          .and_return(mock_logger)
+
+        command.execute('--file', '/missing/events.log', '--stdout')
+
+        expect(output.string).to include(
+  'WARNING: File logging is disabled. Stdout is the only remaining log destination.',
+)
+        expect(mock_logger).to have_received(:run)
       end
     end
 

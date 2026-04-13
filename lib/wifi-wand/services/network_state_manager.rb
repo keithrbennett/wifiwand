@@ -160,8 +160,6 @@ module WifiWand
 
         sleep(TimingConstants::DEFAULT_WAIT_INTERVAL)
       end
-    rescue WifiWand::Error
-      raise
     end
   end
 end

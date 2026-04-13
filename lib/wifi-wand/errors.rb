@@ -159,6 +159,15 @@ module WifiWand
   class ConfigurationError < Error
   end
 
+  class LogFileError < Error
+  end
+
+  class LogFileInitializationError < LogFileError
+  end
+
+  class LogWriteError < LogFileError
+  end
+
   # === EXTERNAL SERVICE ERRORS ===
   class PublicIPLookupError < Error
     attr_reader :status_code, :status_message

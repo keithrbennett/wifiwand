@@ -3,6 +3,18 @@
 # Pre-commit hook to run unit tests before allowing commit
 # Only runs safe (non-disruptive) tests to avoid modifying network state
 
+echo "Running RuboCop before commit..."
+
+bundle exec rubocop
+
+if [ $? -ne 0 ]; then
+    echo "❌ RuboCop failed. Commit aborted."
+    echo "Fix the offenses and try again."
+    exit 1
+fi
+
+echo "✅ RuboCop passed."
+
 echo "Running unit tests before commit..."
 
 # Run the safe tests (default behavior)

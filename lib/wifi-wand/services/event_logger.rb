@@ -7,26 +7,6 @@ require_relative 'log_file_manager'
 
 module WifiWand
   # EventLogger continuously monitors WiFi status and logs state changes.
-  #
-  # This service polls the WiFi model at regular intervals and emits events
-  # when meaningful state changes are detected (e.g., WiFi turned on/off,
-  # network connected/disconnected, internet became available/unavailable).
-  #
-  # Architecture:
-  # 1. Maintains previous state to detect changes
-  # 2. Polls at configurable intervals checking wifi_on?, connected_network_name, and fast_connectivity?
-  # 3. Compares current state with previous state
-  # 4. Logs events only when state actually changes (no duplicate logging)
-  # 5. Handles Ctrl+C gracefully to close log files properly
-  #
-  # Event emission order when multiple changes occur in one poll:
-  #   1. WiFi power (wifi_on/wifi_off)
-  #   2. Network connection (connected/disconnected)
-  #   3. Internet connectivity (internet_on/internet_off)
-  #
-  # Example usage:
-  #   logger = EventLogger.new(model, interval: 5, output: $stdout)
-  #   logger.run  # Blocks until Ctrl+C is pressed
   class EventLogger
     EVENT_TYPES = {
       wifi_on:      'WiFi ON',
@@ -57,6 +37,7 @@ module WifiWand
       end
       @previous_state = nil
       @running = false
+      @file_logging_warning_emitted = false
     end
 
     # Start polling loop. This method blocks until stop is called or Ctrl+C is pressed.
@@ -93,7 +74,6 @@ module WifiWand
       end
     end
 
-    # Log initial state at startup
     def log_initial_state(state)
       timestamp = Time.now.utc.iso8601
       wifi = state[:wifi_on] ? 'on' : 'off'
@@ -102,7 +82,6 @@ module WifiWand
       log_message("[#{timestamp}] Current state: WiFi #{wifi}, #{network}, internet #{internet}")
     end
 
-    # Cleanup resources
     def cleanup
       if @log_file_manager
         @log_file_manager.close
@@ -110,13 +89,10 @@ module WifiWand
       end
     end
 
-    # Stop polling loop
     def stop = @running = false
 
     private
 
-    # Fetch current WiFi state from model.
-    # Uses status_line_data which performs checks concurrently for better performance.
     def fetch_current_state
       @model.status_line_data
     rescue => e
@@ -124,8 +100,6 @@ module WifiWand
       nil
     end
 
-    # Detect state changes and emit events
-    # Checks wifi_on, network_name, and internet_state in that order
     def detect_and_emit_events(current_state)
       return if @previous_state.nil?
 
@@ -176,7 +150,6 @@ module WifiWand
         current_value != previous_value
     end
 
-    # Create and process an event
     def emit_event(event_type, details, previous_state, current_state)
       event = {
         type:           event_type,
@@ -189,13 +162,11 @@ module WifiWand
       log_event(event)
     end
 
-    # Format and output an event
     def log_event(event)
       formatted_message = format_event_message(event)
       log_message(formatted_message)
     end
 
-    # Format event for human-readable output
     def format_event_message(event)
       timestamp = event[:timestamp].utc.iso8601
       event_type = event[:type]
@@ -213,11 +184,57 @@ module WifiWand
       "[#{timestamp}] #{message}"
     end
 
-    # Output a message to the configured output stream and log file
+    # Preserve the current stdout-first behavior, then enforce file-sink health explicitly.
     def log_message(message)
       @output.puts(message) if @output
       @output.flush if @output&.respond_to?(:flush)
-      @log_file_manager.write(message) if @log_file_manager
+      write_to_log_file(message) if @log_file_manager
+    end
+
+    def write_to_log_file(message)
+      @log_file_manager.write(message)
+    rescue WifiWand::LogWriteError => e
+      handle_log_file_failure(e)
+    end
+
+    # Once the file sink fails, detach it immediately. Continue only when stdout is still available.
+    def handle_log_file_failure(error)
+      close_error = detach_log_file_manager
+
+      if @output
+        emit_file_logging_warning(compose_log_file_failure_message(error, close_error))
+        return
+      end
+
+      raise error
+    end
+
+    def detach_log_file_manager
+      manager = @log_file_manager
+      @log_file_manager = nil
+      return unless manager
+
+      manager.close
+      nil
+    rescue => e
+      e
+    end
+
+    def compose_log_file_failure_message(error, close_error)
+      return error.message unless close_error
+
+      "#{error.message}. Cleanup also failed: #{close_error.message}"
+    end
+
+    # Emit the fallback warning once so long-running sessions stay readable.
+    def emit_file_logging_warning(error_message)
+      return if @file_logging_warning_emitted
+
+      @file_logging_warning_emitted = true
+      warning =
+        "WARNING: File logging is disabled. Stdout is the only remaining log destination. #{error_message}"
+      @output.puts(warning)
+      @output.flush if @output.respond_to?(:flush)
     end
   end
 end

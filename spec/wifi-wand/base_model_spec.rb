@@ -435,9 +435,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   context 'when wifi starts on (real environment)', :real_env_read_write do
     before { subject.wifi_on }
 
-    it 'runs the interface command checks while WiFi is on' do
-      verify_interface_commands_complete_without_error
-    end
+    it_behaves_like 'interface commands complete without error'
 
     it 'can query connected network name' do
       expect(subject.connected_network_name).to be_a(String).or be_nil
@@ -447,9 +445,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   context 'when wifi starts off (real environment)', :real_env_read_write do
     before { subject.wifi_off }
 
-    it 'runs the interface command checks while WiFi is off' do
-      verify_interface_commands_complete_without_error
-    end
+    it_behaves_like 'interface commands complete without error'
 
     it 'raises WifiOffError when querying connected network name' do
       expect { subject.connected_network_name }.to raise_error(WifiWand::WifiOffError)

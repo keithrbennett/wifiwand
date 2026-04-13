@@ -21,7 +21,6 @@ namespace :test do
   task :all do
     run_rspec({ 'WIFIWAND_REAL_ENV_TESTS' => 'all' })
   end
-
 end
 
 desc 'Run the default safe RSpec suite'

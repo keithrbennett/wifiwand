@@ -41,17 +41,15 @@ module WifiWand
     # Execute the log command with the provided options
     def execute(*options)
       interval, log_file_path, output_to_stdout, verbose_flag = parse_options(options)
+      logger_output = output_to_stdout ? output : nil
 
-      # Create and run event logger
-      logger = WifiWand::EventLogger.new(
-        model,
+      logger = build_logger(
         interval:      interval,
-        verbose:       verbose_flag,
+        verbose_flag:  verbose_flag,
         log_file_path: log_file_path,
-        output:        (output_to_stdout ? output : nil),
+        logger_output: logger_output,
       )
 
-      # Run the logger (blocks until Ctrl+C)
       logger.run
     end
 
@@ -62,8 +60,8 @@ module WifiWand
     def parse_options(options)
       interval = TimingConstants::EVENT_LOG_POLLING_INTERVAL
       log_file_path = nil
-      output_to_stdout = true  # Default: stdout only
-      verbose_flag = @verbose  # Start with initialization value, override if --verbose specified
+      output_to_stdout = true
+      verbose_flag = @verbose
       stdout_explicit = false
       file_destination_requested = false
 
@@ -73,19 +71,16 @@ module WifiWand
         end
 
         opts.on('--file [PATH]') do |v|
-          # If --file is specified, use provided path or default filename
           log_file_path = v || LogFileManager::DEFAULT_LOG_FILE
           file_destination_requested = true
         end
 
         opts.on('--stdout') do
-          # Explicitly enable stdout output
           output_to_stdout = true
           stdout_explicit = true
         end
 
         opts.on('--verbose', '-v') do
-          # Enable verbose mode for logging output
           verbose_flag = true
         end
       end
@@ -103,7 +98,35 @@ module WifiWand
       [interval, log_file_path, output_to_stdout, verbose_flag]
     end
 
-    # Validate that interval is positive
+    # --file becomes a required sink unless stdout is also available as an explicit fallback.
+    def build_logger(interval:, verbose_flag:, log_file_path:, logger_output:)
+      WifiWand::EventLogger.new(
+        model,
+        interval:      interval,
+        verbose:       verbose_flag,
+        log_file_path: log_file_path,
+        output:        logger_output,
+      )
+    rescue WifiWand::LogFileInitializationError => e
+      raise WifiWand::ConfigurationError, e.message unless logger_output
+
+      warn_file_logging_fallback(e.message)
+      WifiWand::EventLogger.new(
+        model,
+        interval: interval,
+        verbose:  verbose_flag,
+        output:   logger_output,
+      )
+    end
+
+    # Surface the fallback immediately so the user does not assume the file sink is still active.
+    def warn_file_logging_fallback(error_message)
+      warning =
+        "WARNING: File logging is disabled. Stdout is the only remaining log destination. #{error_message}"
+      output.puts(warning)
+      output.flush if output.respond_to?(:flush)
+    end
+
     def validate_interval(interval)
       return interval if interval > 0
 

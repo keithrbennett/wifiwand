@@ -489,4 +489,58 @@ describe WifiWand::EventLogger do
       expect(logger.instance_variable_get(:@log_file_manager)).to be_nil
     end
   end
+
+  describe 'log file failures' do
+    it 'warns and falls back to stdout when a log file write fails after initialization' do
+      logger = described_class.new(
+        mock_model,
+        output:           output,
+        log_file_manager: mock_log_file_manager,
+      )
+      allow(mock_log_file_manager).to receive(:write)
+        .and_raise(WifiWand::LogWriteError, 'Failed to write to log file /tmp/test.log: disk full')
+
+      expect { logger.send(:log_message, 'test message') }.not_to raise_error
+      expect(output.string).to include('test message')
+      expect(output.string).to include(
+        'WARNING: File logging is disabled. Stdout is the only remaining log destination.',
+      )
+      expect(mock_log_file_manager).to have_received(:close)
+      expect(logger.log_file_manager).to be_nil
+    end
+
+    it 'falls back to stdout even when closing the broken log file also fails' do
+      logger = described_class.new(
+        mock_model,
+        output:           output,
+        log_file_manager: mock_log_file_manager,
+      )
+      allow(mock_log_file_manager).to receive(:write)
+        .and_raise(WifiWand::LogWriteError, 'Failed to write to log file /tmp/test.log: disk full')
+      allow(mock_log_file_manager).to receive(:close).and_raise(StandardError, 'close failed')
+
+      expect { logger.send(:log_message, 'test message') }.not_to raise_error
+      expect(output.string).to include(
+        'WARNING: File logging is disabled. Stdout is the only remaining log destination.',
+      )
+      expect(output.string).to include('Cleanup also failed: close failed')
+      expect(logger.log_file_manager).to be_nil
+    end
+
+    it 'raises when a log file write fails and no stdout fallback exists' do
+      logger = described_class.new(
+        mock_model,
+        output:           nil,
+        log_file_manager: mock_log_file_manager,
+      )
+      allow(mock_log_file_manager).to receive(:write)
+        .and_raise(WifiWand::LogWriteError, 'Failed to write to log file /tmp/test.log: disk full')
+
+      expect do
+        logger.send(:log_message, 'test message')
+      end.to raise_error(WifiWand::LogWriteError, /disk full/)
+      expect(mock_log_file_manager).to have_received(:close)
+      expect(logger.log_file_manager).to be_nil
+    end
+  end
 end
