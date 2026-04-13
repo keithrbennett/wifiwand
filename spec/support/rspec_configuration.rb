@@ -123,6 +123,12 @@ module RSpecConfiguration
     puts "\nCaptured network state for restoration: #{NetworkStateManager.network_state[:network_name]}\n"
   end
 
+  def self.ensure_network_state_capture!
+    return if NetworkStateManager.state_available?
+
+    handle_network_state_capture(true)
+  end
+
   # Configure macOS-specific test stubbing that keeps ordinary specs isolated
   # from Keychain-backed password lookup behavior.
   #
@@ -174,8 +180,11 @@ module RSpecConfiguration
       RSpecConfiguration.refresh_sudo_ticket!
     end
 
-    # Restore network state after each real-environment read-write test
-    config.after(:each, :real_env_read_write) do
+    config.before(:each, :real_env_read_write) do
+      RSpecConfiguration.ensure_network_state_capture!
+    end
+
+    config.after(:each, :real_env_read_write) do |example|
       NetworkStateManager.restore_state(fail_silently: false)
     end
 
@@ -192,11 +201,6 @@ module RSpecConfiguration
   end
 
   def self.attempt_final_network_restoration
-    examples_to_run = RSpecConfiguration.examples_to_run
-    real_env_read_write_tests_ran = examples_to_run.any? { |ex| ex.metadata[:real_env_read_write] }
-
-    return unless real_env_read_write_tests_ran
-
     network_state = NetworkStateManager.network_state
     return unless network_state && network_state[:network_name]
 

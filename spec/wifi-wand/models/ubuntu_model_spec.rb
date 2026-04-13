@@ -1411,7 +1411,6 @@ module WifiWand
 
         it 'sets valid nameservers' do
           subject.wifi_on
-          subject.till(:associated, timeout_in_secs: WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT)
           result = subject.set_nameservers(valid_nameservers)
           expect(result).to eq(valid_nameservers)
         end

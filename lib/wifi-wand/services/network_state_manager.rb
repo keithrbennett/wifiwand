@@ -91,7 +91,7 @@ module WifiWand
 
           begin
             @model.connect(state[:network_name], password_to_use)
-            @model.till(:associated, timeout_in_secs: TimingConstants::NETWORK_CONNECTION_WAIT)
+            wait_for_connection_restoration(state[:network_name])
           rescue WifiWand::WaitTimeoutError => e
             begin
               actual_network = @model.connected_network_name
@@ -147,6 +147,21 @@ module WifiWand
           "#{e.message}"
       end
       nil
+    end
+
+    def wait_for_connection_restoration(network_name)
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) +
+        TimingConstants::NETWORK_CONNECTION_WAIT
+
+      loop do
+        return if @model.connection_ready?(network_name)
+        raise WifiWand::WaitTimeoutError.new(:associated, TimingConstants::NETWORK_CONNECTION_WAIT) \
+          if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+
+        sleep(TimingConstants::DEFAULT_WAIT_INTERVAL)
+      end
+    rescue WifiWand::Error
+      raise
     end
   end
 end

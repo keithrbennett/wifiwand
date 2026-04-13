@@ -165,6 +165,22 @@ RSpec.describe RSpecConfiguration do
     end
   end
 
+  describe '.ensure_network_state_capture!' do
+    it 'does nothing when state is already available' do
+      allow(NetworkStateManager).to receive(:state_available?).and_return(true)
+
+      expect(described_class).not_to receive(:handle_network_state_capture)
+      described_class.ensure_network_state_capture!
+    end
+
+    it 'captures state when no restore state is available yet' do
+      allow(NetworkStateManager).to receive(:state_available?).and_return(false)
+
+      expect(described_class).to receive(:handle_network_state_capture).with(true)
+      described_class.ensure_network_state_capture!
+    end
+  end
+
   # This group tests the global `before` hook added by
   # `RSpecConfiguration.configure_test_stubbing`.
   #
@@ -209,6 +225,13 @@ RSpec.describe RSpecConfiguration do
       expect(NetworkStateManager).to receive(:restore_state).with(fail_silently: false)
       after_each_hook.last.call
     end
+
+    it 'ensures capture before each real_env_read_write example' do
+      before_each_hook = hook_config.before_hooks.find { |args, _block| args == %i[each real_env_read_write] }
+
+      expect(described_class).to receive(:ensure_network_state_capture!)
+      before_each_hook.last.call
+    end
   end
 
   describe '.refresh_sudo_ticket!' do
@@ -228,9 +251,6 @@ RSpec.describe RSpecConfiguration do
 
   describe '.attempt_final_network_restoration' do
     before do
-      allow(described_class).to receive(:examples_to_run).and_return([
-        double('example', metadata: { real_env: true, real_env_read_write: true }),
-      ])
       allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: 'MyNetwork' })
     end
 

@@ -6,8 +6,12 @@ RSpec.describe 'NetworkStateManager' do
   let(:model) { double('model') }
   let(:session) { NetworkStateManager::Session.new(model: model) }
 
-  after do
-    NetworkStateManager.clear_session
+  around do |example|
+    original_session = NetworkStateManager.instance_variable_get(:@session)
+
+    example.run
+  ensure
+    NetworkStateManager.instance_variable_set(:@session, original_session)
   end
 
   describe NetworkStateManager::Session do
