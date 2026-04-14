@@ -109,6 +109,12 @@ WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
 
 `<os>` resolves to `mac` on macOS and `ubuntu` on Linux.
 
+**Important:** the filename only tells you which test scope wrote the file; it does not guarantee that the run was unfiltered or current.
+
+- A filtered or partial run still writes one of the filenames above.
+- A resultset becomes stale after relevant source files change.
+- For whole-codebase coverage analysis, developers should first run a fresh unfiltered suite, then inspect the resulting file.
+
 ## CI/CD Guidelines
 
 **Default behavior is CI-safe:** When `WIFIWAND_REAL_ENV_TESTS` is unset, only safe, mocked/hermetic tests run.

@@ -12,6 +12,7 @@ This directory is for `wifi-wand` maintainers and developers. These documents co
 ## Developer Environment
 
 - **[Isolated AI Dev VM Setup](AI_VM_SETUP.md)** - Step-by-step guide for building an isolated VM-based development environment with Ansible, suitable for Linux now and Apple Silicon later.
+- **[Reviewed Agent Issues](REVIEWED_AGENT_ISSUES.md)** - Previously reviewed objections that agents/reviewers should not re-raise without new evidence.
 
 ## General Information
 

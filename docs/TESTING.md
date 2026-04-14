@@ -107,6 +107,21 @@ Two resultset filenames are used depending on whether the run touches the real h
 The OS suffix appears only for real-environment runs so those host-dependent artifacts
 do not overwrite the default mocked/hermetic resultset.
 
+### Interpreting Coverage Correctly
+
+Coverage artifacts are only authoritative for the exact test run that generated them.
+
+- If you run a filtered test subset, the resultset reflects that subset only.
+- If source files change after the resultset is written, coverage tools may report stale entries such as `length_mismatch`.
+- Developers and agents must not treat an existing coverage file as proof of whole-codebase coverage unless they intentionally ran a fresh unfiltered suite for that purpose.
+
+Practical rule:
+
+- For codebase-wide review or planning, first run a fresh unfiltered suite such as `bundle exec rspec` or `bundle exec rake test:safe`, then inspect the newly generated resultset.
+- For targeted local work, it is fine to rely on targeted coverage artifacts, but only for the code exercised by that run.
+
+This is an operator responsibility, not an automatic guarantee provided by the resultset filenames.
+
 ## Modifier Env Vars
 
 These env vars are orthogonal to test scope and can be combined with any rake task or rspec invocation:
