@@ -23,9 +23,9 @@ wifi-wand -v info
 ```
 
 ### `WIFIWAND_OPTS`
-Prepend default command-line switches from the environment, parsed with shell-style quoting so complex values work just like they do in the shell.
-**Values:** Space-delimited options (e.g., `--output_format y`, `--verbose`)
-**Usage examples:**
+Prepend default command-line switches from the environment, parsed with shell-style quoting so complex values
+work just like they do in the shell. **Values:** Space-delimited options (e.g., `--output_format y`,
+`--verbose`) **Usage examples:**
 ```bash
 export WIFIWAND_OPTS="--output_format y" # YAML
 wifi-wand info
@@ -35,9 +35,12 @@ wifi-wand info
 export WIFIWAND_OPTS="--verbose"
 wifi-wand status
 ```
-- **Overrides:** Later command-line arguments can override most defaults, but subcommands (e.g., `shell`) cannot be negated, nor can their options be overridden from the environment.
-- **Scope:** `WIFIWAND_OPTS` only supports top-level flags; subcommand options (like `log --file`) must still be passed on the command line when you invoke the subcommand.
-- **Parsing errors:** If the value contains unmatched quotes or otherwise cannot be parsed, wifi-wand aborts with a configuration error.
+- **Overrides:** Later command-line arguments can override most defaults, but subcommands (e.g., `shell`)
+  cannot be negated, nor can their options be overridden from the environment.
+- **Scope:** `WIFIWAND_OPTS` only supports top-level flags; subcommand options (like `log --file`) must still
+  be passed on the command line when you invoke the subcommand.
+- **Parsing errors:** If the value contains unmatched quotes or otherwise cannot be parsed, wifi-wand aborts
+  with a configuration error.
 
 ## Test Configuration Variables
 
@@ -62,7 +65,8 @@ WIFIWAND_REAL_ENV_TESTS=read_only bundle exec rspec
 WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
 ```
 
-**⚠️ WARNING:** Never use `read_only` or `all` in CI environments. Real-environment tests depend on host hardware and machine state. `all` additionally runs host-mutating tests.
+**⚠️ WARNING:** Never use `read_only` or `all` in CI environments. Real-environment tests depend on host
+hardware and machine state. `all` additionally runs host-mutating tests.
 
 ### `RSPEC_RUNNING`
 
@@ -86,7 +90,8 @@ COVERAGE_BRANCH=true bundle exec rspec
 COVERAGE_BRANCH=true bundle exec rake test:all
 ```
 
-**Note:** Branch coverage is orthogonal to test scope — it can be combined with any rake task or rspec invocation. It is more detailed but slower than line coverage.
+**Note:** Branch coverage is orthogonal to test scope — it can be combined with any rake task or rspec
+invocation. It is more detailed but slower than line coverage.
 
 ### Coverage Resultset Files
 
@@ -109,15 +114,18 @@ WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
 
 `<os>` resolves to `mac` on macOS and `ubuntu` on Linux.
 
-**Important:** the filename only tells you which test scope wrote the file; it does not guarantee that the run was unfiltered or current.
+**Important:** the filename only tells you which test scope wrote the file; it does not guarantee that the run
+was unfiltered or current.
 
 - A filtered or partial run still writes one of the filenames above.
 - A resultset becomes stale after relevant source files change.
-- For whole-codebase coverage analysis, developers should first run a fresh unfiltered suite, then inspect the resulting file.
+- For whole-codebase coverage analysis, developers should first run a fresh unfiltered suite, then inspect the
+  resulting file.
 
 ## CI/CD Guidelines
 
-**Default behavior is CI-safe:** When `WIFIWAND_REAL_ENV_TESTS` is unset, only safe, mocked/hermetic tests run.
+**Default behavior is CI-safe:** When `WIFIWAND_REAL_ENV_TESTS` is unset, only safe, mocked/hermetic tests
+run.
 
 **Never set these in CI:**
 - `WIFIWAND_REAL_ENV_TESTS=read_only`

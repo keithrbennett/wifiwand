@@ -2,7 +2,8 @@
 
 > Audience: wifi-wand end users who need to install or troubleshoot the macOS helper.
 
-This document explains the native macOS helper application that wifi-wand uses to access WiFi information on macOS 14 (Sonoma) and later.
+This document explains the native macOS helper application that wifi-wand uses to access WiFi information on
+macOS 14 (Sonoma) and later.
 
 ---
 
@@ -20,7 +21,8 @@ This document explains the native macOS helper application that wifi-wand uses t
 
 ## What is the Helper?
 
-The `wifiwand-helper` is a small native macOS application written in Swift that wifi-wand uses to retrieve WiFi network information (SSID, BSSID, signal strength, etc.) on modern versions of macOS.
+The `wifiwand-helper` is a small native macOS application written in Swift that wifi-wand uses to retrieve
+WiFi network information (SSID, BSSID, signal strength, etc.) on modern versions of macOS.
 
 **Location:**
 ```
@@ -44,7 +46,8 @@ The `wifiwand-helper` is a small native macOS application written in Swift that 
 
 ### The macOS Security Changes
 
-Starting with **macOS Sonoma (14.0)** (and continuing in Sequoia 15.x), Apple requires additional authorization before command-line tools can see WiFi metadata:
+Starting with **macOS Sonoma (14.0)** (and continuing in Sequoia 15.x), Apple requires additional
+authorization before command-line tools can see WiFi metadata:
 
 #### Before macOS 14:
 ```bash
@@ -57,11 +60,14 @@ Current Wi-Fi Network: MyNetwork
 $ networksetup -getairportnetwork en0
 Current Wi-Fi Network: <redacted>
 ```
-Once the calling process (for example, Terminal.app) is approved for Location Services, those tools return the full SSID again—but approval is scoped per executable. Your shell might work while `/usr/bin/ruby` (or a CI runner) is still blocked, which is why the helper remains necessary.
+Once the calling process (for example, Terminal.app) is approved for Location Services, those tools return the
+full SSID again—but approval is scoped per executable. Your shell might work while `/usr/bin/ruby` (or a CI
+runner) is still blocked, which is why the helper remains necessary.
 
 ### What Changed?
 
-1. **SSID Redaction by Default**: Command-line tools like `networksetup` and `system_profiler` return `<redacted>` or blank values until the calling process is granted Location Services access.
+1. **SSID Redaction by Default**: Command-line tools like `networksetup` and `system_profiler` return
+   `<redacted>` or blank values until the calling process is granted Location Services access.
 
 2. **Location Services Requirement**: To access unredacted WiFi information, apps must:
    - Use Apple's CoreWLAN framework (not available from Ruby)
@@ -86,7 +92,8 @@ A native Swift helper application that:
 
 ## Location Services Permissions
 
-> When installing the gem on macOS, wifi-wand prints a reminder pointing back to this document so you know how to grant Location Services access after the helper runs the first time.
+> When installing the gem on macOS, wifi-wand prints a reminder pointing back to this document so you know how
+> to grant Location Services access after the helper runs the first time.
 
 ### Why Location Services?
 
@@ -117,9 +124,13 @@ The helper has **no access** to:
 
 ### When Does macOS Prompt?
 
-- The first wifi-wand command that needs WiFi details launches `wifiwand-helper`, and macOS immediately asks for Location Services access.
-- The dialog can appear behind other windows; if the command seems stuck, look for the prompt or open **System Settings → Privacy & Security → Location Services** to grant access manually once the helper appears there.
-- macOS does **not** list `wifiwand-helper` in Location Services until the helper has run at least once. To register the helper with macOS and walk through permission granting in one step, run:
+- The first wifi-wand command that needs WiFi details launches `wifiwand-helper`, and macOS immediately asks
+  for Location Services access.
+- The dialog can appear behind other windows; if the command seems stuck, look for the prompt or
+  open **System Settings → Privacy & Security → Location Services** to grant access manually once
+  the helper appears there.
+- macOS does **not** list `wifiwand-helper` in Location Services until the helper has run at least once. To
+  register the helper with macOS and walk through permission granting in one step, run:
   ```bash
   wifi-wand-macos-setup
   ```
@@ -151,7 +162,8 @@ This command:
 wifi-wand-macos-setup --repair
 ```
 
-Use this when the helper is already installed but wifi-wand still shows `<hidden>` or `<redacted>` for network names. It force-replaces the helper bundle and re-runs the authorization flow.
+Use this when the helper is already installed but wifi-wand still shows `<hidden>` or `<redacted>` for network
+names. It force-replaces the helper bundle and re-runs the authorization flow.
 
 ### Revoke Location Permission
 
@@ -162,11 +174,13 @@ To remove wifi-wand's access to WiFi names:
 3. Find **wifiwand-helper** in the list
 4. Toggle the switch to off
 
-After revoking, wifi-wand will fall back to system commands and will typically show `<redacted>` for network names on macOS 14+.
+After revoking, wifi-wand will fall back to system commands and will typically show `<redacted>` for network
+names on macOS 14+.
 
 ### Disable the Helper Entirely
 
-If you prefer not to use the helper (accepting redacted WiFi names), set this environment variable before running wifi-wand:
+If you prefer not to use the helper (accepting redacted WiFi names), set this environment variable before
+running wifi-wand:
 
 ```bash
 export WIFIWAND_DISABLE_MAC_HELPER=1
@@ -178,7 +192,8 @@ You can also manage permissions directly via System Settings:
 
 1. Open **System Settings**
 2. Go to **Privacy & Security → Location Services**
-3. Scroll to find **wifiwand-helper** (the helper only appears here after it has run at least once — run any wifi-wand command or `wifi-wand-macos-setup` to seed the entry)
+3. Scroll to find **wifiwand-helper** (the helper only appears here after it has run at least once — run any
+   wifi-wand command or `wifi-wand-macos-setup` to seed the entry)
 4. Toggle permission on or off
 
 ---
@@ -220,7 +235,8 @@ open "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationSe
 wifi-wand-macos-setup --repair
 ```
 
-If the prompt still does not appear after repair, open System Settings manually and look for **wifiwand-helper** under Location Services. If it is present, toggle it off and back on.
+If the prompt still does not appear after repair, open System Settings manually and look for
+**wifiwand-helper** under Location Services. If it is present, toggle it off and back on.
 
 ---
 
@@ -246,7 +262,8 @@ wifi-wand-macos-setup
 
 ### Helper Works Without Permission?
 
-**Observation:** On some macOS versions (notably 15.6.1), the helper successfully returns WiFi information without creating a persistent TCC entry.
+**Observation:** On some macOS versions (notably 15.6.1), the helper successfully returns WiFi information
+without creating a persistent TCC entry.
 
 **Why this happens:**
 This appears to be a quirk of macOS 15.x behavior where:
@@ -279,7 +296,8 @@ The helper:
 - ✅ Does not run in the background
 - ✅ Does not access your location coordinates
 
-**You are in full control.** The helper only runs when you use wifi-wand, and you can revoke permissions at any time via System Settings.
+**You are in full control.** The helper only runs when you use wifi-wand, and you can revoke permissions at
+any time via System Settings.
 
 ### Auditing the Helper
 
@@ -363,18 +381,26 @@ Each wifi-wand version installs its helper to a versioned directory:
     └── wifiwand-helper.app
 ```
 
-Old versions are not automatically removed (in case you have multiple wifi-wand versions installed). You can safely delete old version directories.
+Old versions are not automatically removed (in case you have multiple wifi-wand versions installed). You can
+safely delete old version directories.
 
 ### Permission Identity and Version Upgrades
 
-macOS identifies the helper by its **bundle identifier** (`com.wifiwand.helper`), not by its installed path. This means:
+macOS identifies the helper by its **bundle identifier** (`com.wifiwand.helper`), not by its installed path.
+This means:
 
-- **Same gem version**: After granting Location Services permission once, subsequent uses don't require re-authorization.
-- **New gem version**: Permission should continue automatically because the helper keeps the same bundle identifier and signing identity. Upgrading to a new wifi-wand version normally does not require another permission grant.
+- **Same gem version**: After granting Location Services permission once, subsequent uses don't require
+  re-authorization.
+- **New gem version**: Permission should continue automatically because the helper keeps the same bundle
+  identifier and signing identity. Upgrading to a new wifi-wand version normally does not require another
+  permission grant.
 
-> **Note:** macOS TCC (Transparency, Consent, and Control) behavior can sometimes be sensitive to path, signature, or OS-version quirks. If macOS prompts for permission again after a gem upgrade, run `wifi-wand-macos-setup --repair` to force re-registration.
+> **Note:** macOS TCC (Transparency, Consent, and Control) behavior can sometimes be sensitive to path,
+> signature, or OS-version quirks. If macOS prompts for permission again after a gem upgrade, run
+> `wifi-wand-macos-setup --repair` to force re-registration.
 
-Multiple installed helper copies may exist on disk (one per gem version), but they present as one logical macOS app identity for permission purposes via the stable bundle identifier `com.wifiwand.helper`.
+Multiple installed helper copies may exist on disk (one per gem version), but they present as one logical
+macOS app identity for permission purposes via the stable bundle identifier `com.wifiwand.helper`.
 
 ### Disabling the Helper
 
@@ -383,14 +409,17 @@ If you prefer not to use the helper (accepting that WiFi names will be redacted)
 export WIFIWAND_DISABLE_MAC_HELPER=1
 ```
 
-wifi-wand will fall back to traditional methods and will typically show `<redacted>` for network names on macOS 14+ unless the invoking process already has Location Services approval.
+wifi-wand will fall back to traditional methods and will typically show `<redacted>` for network names on
+macOS 14+ unless the invoking process already has Location Services approval.
 
 ---
 
 ## For Gem Maintainers
 
-If you're interested in the code signing and notarization process used to build the helper, see the maintainer documentation in the repository:
-- **[docs/dev/MACOS_CODE_SIGNING.md](https://github.com/keithrbennett/wifiwand/blob/main/docs/dev/MACOS_CODE_SIGNING.md)** (not included in gem distribution)
+If you're interested in the code signing and notarization process used to build the helper, see the maintainer
+documentation in the repository:
+- [docs/dev/MACOS_CODE_SIGNING.md](dev/MACOS_CODE_SIGNING.md)
+  (not included in gem distribution)
 
 ---
 
@@ -398,8 +427,10 @@ If you're interested in the code signing and notarization process used to build 
 
 - [wifi-wand Repository](https://github.com/keithrbennett/wifiwand)
 - [Report Issues](https://github.com/keithrbennett/wifiwand/issues)
-- [Apple Developer: Protecting User Privacy](https://developer.apple.com/documentation/corelocation/protecting_user_privacy)
-- [Apple Support: Location Services](https://support.apple.com/guide/mac-help/change-location-services-settings-mh35873/mac)
+- [Apple Developer: Protecting User
+  Privacy](https://developer.apple.com/documentation/corelocation/protecting_user_privacy)
+- [Apple Support: Location
+  Services](https://support.apple.com/guide/mac-help/change-location-services-settings-mh35873/mac)
 
 ---
 

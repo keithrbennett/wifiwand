@@ -2,9 +2,12 @@
 
 ## Why is this needed?
 
-Starting with macOS 10.15 Catalina, Apple requires location permission for apps using the CoreWLAN framework to access WiFi network names (SSIDs). wifi-wand uses a native helper with CoreWLAN for fast WiFi scanning. Without location permission, the helper returns `<hidden>` for network names.
+Starting with macOS 10.15 Catalina, Apple requires location permission for apps using the CoreWLAN framework
+to access WiFi network names (SSIDs). wifi-wand uses a native helper with CoreWLAN for fast WiFi scanning.
+Without location permission, the helper returns `<hidden>` for network names.
 
-On macOS 15 and earlier, wifi-wand can fall back to slower system commands. On newer macOS versions, CoreWLAN with location permission may be the only way to access network names.
+On macOS 15 and earlier, wifi-wand can fall back to slower system commands. On newer macOS versions, CoreWLAN
+with location permission may be the only way to access network names.
 
 Granting location permission ensures wifi-wand works reliably across all macOS versions.
 
@@ -68,4 +71,6 @@ wifi-wand-macos-setup --repair
 
 **Q: Does wifi-wand track my location?**
 
-No. Location permission is only used to access WiFi network names. wifi-wand does not access your physical location, GPS coordinates, or any location data. This is an Apple requirement for accessing WiFi information, not something wifi-wand uses.
+No. Location permission is only used to access WiFi network names. wifi-wand does not access your physical
+location, GPS coordinates, or any location data. This is an Apple requirement for accessing WiFi information,
+not something wifi-wand uses.

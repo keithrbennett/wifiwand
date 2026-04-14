@@ -1,6 +1,7 @@
 # Isolated AI Dev VM Setup
 
-This guide describes a VM-based development workflow for `wifi-wand` when you want stronger isolation than a standard devcontainer provides.
+This guide describes a VM-based development workflow for `wifi-wand` when you want stronger isolation than a
+standard devcontainer provides.
 
 The core idea is:
 
@@ -9,11 +10,13 @@ The core idea is:
 - use Ansible to make the VM reproducible
 - connect RubyMine to the VM over SSH
 
-This gives you a clearer security boundary than a normal devcontainer. Later, on an Apple Silicon Mac, you can recreate the same environment by creating a new ARM64 Ubuntu VM and rerunning the same Ansible playbooks.
+This gives you a clearer security boundary than a normal devcontainer. Later, on an Apple Silicon Mac, you can
+recreate the same environment by creating a new ARM64 Ubuntu VM and rerunning the same Ansible playbooks.
 
 ## Why This Approach
 
-A standard devcontainer usually mounts the host project tree into the container. That is good for reproducible tooling, but it is not a strong host filesystem isolation boundary.
+A standard devcontainer usually mounts the host project tree into the container. That is good for reproducible
+tooling, but it is not a strong host filesystem isolation boundary.
 
 A VM is a better fit if your goal is:
 
@@ -34,7 +37,8 @@ A VM is a better fit if your goal is:
 
 ## Step 1: Install VM Tooling on This Ubuntu Host
 
-Ubuntu’s current virtualization docs recommend KVM/libvirt for Linux hosts and `virt-manager` for GUI management.
+Ubuntu’s current virtualization docs recommend KVM/libvirt for Linux hosts and `virt-manager` for GUI
+management.
 
 Run on the host:
 
@@ -60,7 +64,8 @@ Then log out and back in.
 References:
 
 - Ubuntu libvirt guide: <https://documentation.ubuntu.com/server/how-to/virtualisation/libvirt/>
-- Ubuntu virt-manager guide: <https://documentation.ubuntu.com/server/how-to/virtualisation/virtual-machine-manager/>
+- Ubuntu virt-manager guide:
+  <https://documentation.ubuntu.com/server/how-to/virtualisation/virtual-machine-manager/>
 
 ## Step 2: Create the First VM
 
@@ -117,7 +122,8 @@ Do not proceed until passwordless SSH works reliably.
 
 ## Step 4: Install Ansible on the Host Control Node
 
-Ansible is agentless. It runs on one control node and connects to the VM over SSH. The host laptop or desktop is the natural control node.
+Ansible is agentless. It runs on one control node and connects to the VM over SSH. The host laptop or desktop
+is the natural control node.
 
 The Ansible docs recommend `pipx` as a clean installation route.
 
@@ -281,7 +287,8 @@ This role should be enough to prove Ansible connectivity and package installatio
 
 Keep this simple at first. Use the distro Ruby or a version manager only if you actually need it.
 
-Because `wifi-wand` currently requires Ruby `>= 3.2.0`, ensure your VM’s Ruby satisfies that. If the distro package is too old, install a version manager in this role instead.
+Because `wifi-wand` currently requires Ruby `>= 3.2.0`, ensure your VM’s Ruby satisfies that. If the distro
+package is too old, install a version manager in this role instead.
 
 Minimum tasks:
 
@@ -393,7 +400,8 @@ References:
 
 - RubyMine remote development overview: <https://www.jetbrains.com/help/ruby/remote-development-overview.html>
 - RubyMine SSH setup: <https://www.jetbrains.com/help/ruby/running-ssh-terminal.html>
-- RubyMine remote server connection flow: <https://www.jetbrains.com/help/ruby/remote-development-starting-page.html>
+- RubyMine remote server connection flow:
+  <https://www.jetbrains.com/help/ruby/remote-development-starting-page.html>
 
 ## Step 14: Decide What Lives in Git and What Does Not
 
@@ -444,7 +452,8 @@ UTM is a practical local VM option on Apple Silicon. Its docs note:
 
 - Apple Virtualization works only when guest architecture matches host architecture.
 - For Linux on Apple Silicon, use `aarch64`/ARM64 for best results.
-- Rosetta is available for some `x86_64` Linux executable compatibility in Apple-virtualized Linux guests, but it should be a fallback, not your base plan.
+- Rosetta is available for some `x86_64` Linux executable compatibility in Apple-virtualized Linux guests, but
+  it should be a fallback, not your base plan.
 
 References:
 

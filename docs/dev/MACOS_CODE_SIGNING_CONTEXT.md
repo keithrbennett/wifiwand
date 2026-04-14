@@ -10,7 +10,8 @@
 - [Why Code Signing is Required](#why-code-signing-is-required)
 - [Development vs Distribution](#development-vs-distribution)
 - [Getting an Apple Developer ID](#getting-an-apple-developer-id)
-- [Managing Credentials with 1Password CLI (Recommended)](#managing-credentials-with-1password-cli-recommended)
+- [Managing Credentials with 1Password CLI
+  (Recommended)](#managing-credentials-with-1password-cli-recommended)
 - [Signing and Notarization Workflow](#signing-and-notarization-workflow)
 - [Rake Tasks Reference](#rake-tasks-reference)
 - [Troubleshooting](#troubleshooting)
@@ -22,17 +23,24 @@
 
 ### The macOS 15.x SSID Redaction Problem
 
-Starting with **macOS Sonoma (14.0)** and continuing in **macOS Sequoia (15.x)**, Apple introduced significant security changes to WiFi network information access:
+Starting with **macOS Sonoma (14.0)** and continuing in **macOS Sequoia (15.x)**, Apple introduced significant
+security changes to WiFi network information access:
 
-1. **SSID/BSSID redaction by default**: Command-line tools like `networksetup` and `system_profiler` return `<redacted>` or empty values until the calling process has Location Services authorization.
-2. **Location Services requirement**: The CoreWLAN framework (which provides programmatic WiFi access) now requires Location Services authorization to return unredacted SSID information
-3. **TCC (Transparency, Consent, and Control) enforcement**: macOS strictly manages which applications can access location data through the TCC database
+1. **SSID/BSSID redaction by default**: Command-line tools like `networksetup` and `system_profiler` return
+   `<redacted>` or empty values until the calling process has Location Services authorization.
+2. **Location Services requirement**: The CoreWLAN framework (which provides programmatic WiFi access) now
+   requires Location Services authorization to return unredacted SSID information
+3. **TCC (Transparency, Consent, and Control) enforcement**: macOS strictly manages which applications can
+   access location data through the TCC database
 
-Once a shell or application is granted Location Services access, the legacy tools resume returning real SSIDs—but that approval is scoped to the specific binary. Terminal.app might already be approved while `/usr/bin/ruby` (or your CI runner) is not, which is why the helper still matters.
+Once a shell or application is granted Location Services access, the legacy tools resume returning real
+SSIDs—but that approval is scoped to the specific binary. Terminal.app might already be approved while
+`/usr/bin/ruby` (or your CI runner) is not, which is why the helper still matters.
 
 ### Why wifi-wand Needs a Helper Application
 
-Because of these restrictions, `wifi-wand` cannot directly access WiFi information from Ruby. The solution is a native macOS helper application written in Swift that:
+Because of these restrictions, `wifi-wand` cannot directly access WiFi information from Ruby. The solution is
+a native macOS helper application written in Swift that:
 
 - Uses the CoreWLAN framework to access WiFi interfaces
 - Requests Location Services authorization via CoreLocation
@@ -53,7 +61,9 @@ This behavior is inconsistent with documented macOS TCC requirements and may be:
 - Temporary authorization for apps with proper Info.plist keys
 - Development mode behavior
 
-**Note:** wifi-wand now requires Developer ID signing for the helper. The temporary authorization observed above is not reliable enough for production use, and permission management requires persistent TCC entries that only proper code signing provides.
+**Note:** wifi-wand now requires Developer ID signing for the helper. The temporary authorization observed
+above is not reliable enough for production use, and permission management requires persistent TCC entries
+that only proper code signing provides.
 
 **With Developer ID signing**, you get:
 - Persistent TCC entries are created
@@ -77,7 +87,8 @@ Code signing serves multiple critical purposes:
 
 ### Developer ID Code Signing Required
 
-The wifiwand helper **requires** proper code signing with a Developer ID certificate. Ad-hoc signing (using `-` as the identity) does **not** work for this use case because:
+The wifiwand helper **requires** proper code signing with a Developer ID certificate. Ad-hoc signing (using
+`-` as the identity) does **not** work for this use case because:
 
 - ❌ Ad-hoc signing does not create persistent TCC database entries
 - ❌ Permission management rake tasks cannot function
@@ -193,7 +204,9 @@ You should see something like:
 1) A1B2C3D4E5F6... "Developer ID Application: Your Name (TEAM123)"
 ```
 
-Copy the full identity string (inside the quotes) — you'll paste it into the `CODESIGN_IDENTITY` constant in `lib/wifi-wand/mac_helper_release.rb`. The 10-character suffix in parentheses is your Apple Team ID; confirm it matches the value shown on developer.apple.com because you'll set `APPLE_TEAM_ID` to that exact string.
+Copy the full identity string (inside the quotes) — you'll paste it into the `CODESIGN_IDENTITY` constant in
+`lib/wifi-wand/mac_helper_release.rb`. The 10-character suffix in parentheses is your Apple Team ID; confirm
+it matches the value shown on developer.apple.com because you'll set `APPLE_TEAM_ID` to that exact string.
 
 ### Step 4: Update Hardcoded Public Values
 
@@ -205,7 +218,8 @@ APPLE_TEAM_ID = 'TEAM123ABCD'
 CODESIGN_IDENTITY = 'Developer ID Application: Your Name (TEAM123ABCD)'
 ```
 
-These values are public (visible in all signed binaries via `codesign -dv`), so they don't need to be hidden in 1Password. Update them whenever you switch to a different Developer ID certificate.
+These values are public (visible in all signed binaries via `codesign -dv`), so they don't need to be hidden
+in 1Password. Update them whenever you switch to a different Developer ID certificate.
 
 ### Step 5: Create an App-Specific Password
 
@@ -222,7 +236,8 @@ For notarization, you need an app-specific password:
 
 ## Managing Credentials with 1Password CLI (Recommended)
 
-For better security and convenience, you can use [1Password CLI](https://developer.1password.com/docs/cli) to manage your signing credentials.
+For better security and convenience, you can use [1Password CLI](https://developer.1password.com/docs/cli) to
+manage your signing credentials.
 
 ### Benefits
 
@@ -255,7 +270,8 @@ eval $(op signin)
 
 #### 3. Create a 1Password Item
 
-Create (or rename) a Secure Note in your vault. Keeping the item name lowercase with no spaces avoids escaping headaches later.
+Create (or rename) a Secure Note in your vault. Keeping the item name lowercase with no spaces avoids escaping
+headaches later.
 
 1. Open 1Password.
 2. Choose **Secure Note** as the item type (or edit your existing note).
@@ -264,13 +280,17 @@ Create (or rename) a Secure Note in your vault. Keeping the item name lowercase 
    - **APPLE_DEV_ID** (type **Text**): `you@example.com`
    - **APPLE_DEV_PASSWORD** (type **Password**): `xxxx-xxxx-xxxx-xxxx`
 5. Leave any additional narrative text or attachments (like `.p12` exports) in the same item as needed.
-6. Save to the vault you plan to reference (personal accounts usually default to **Personal**, shared accounts often use **Private**).
+6. Save to the vault you plan to reference (personal accounts usually default to **Personal**, shared accounts
+   often use **Private**).
 
-> **Note**: Team ID and codesign identity live directly in `lib/wifi-wand/mac_helper_release.rb`. They're public values (visible in signed binaries), so you only need to copy them into 1Password if it helps documentation or coordination.
+> **Note**: Team ID and codesign identity live directly in `lib/wifi-wand/mac_helper_release.rb`. They're
+> public values (visible in signed binaries), so you only need to copy them into 1Password if it helps
+> documentation or coordination.
 
 #### 4. Edit `.env.release`
 
-The repository now includes `.env.release` directly; treat it as the template plus configuration file. Open it and set the `op://` references to match your vault/item/field names. Example for a personal account:
+The repository now includes `.env.release` directly; treat it as the template plus configuration file. Open it
+and set the `op://` references to match your vault/item/field names. Example for a personal account:
 
 ```bash
 # Private credentials only - Team ID and identity live in lib/wifi-wand/mac_helper_release.rb
@@ -431,7 +451,8 @@ All developer tasks are in the `dev:` namespace and are **not included in the di
 
 ### `dev:build_signed_helper`
 
-**Purpose:** Compile and sign the helper with Developer ID (uses the credentials in `lib/wifi-wand/mac_helper_release.rb`)
+**Purpose:** Compile and sign the helper with Developer ID (uses the credentials in
+`lib/wifi-wand/mac_helper_release.rb`)
 
 **Environment Variables:** None
 
@@ -465,19 +486,25 @@ bin/mac-helper test
 - Helper execution
 - WiFi information retrieval
 
-> **Prerequisite:** macOS only lists `wifiwand-helper` in Location Services after the helper runs once (for example via `bin/mac-helper test`). Make sure it appears under **System Settings → Privacy & Security → Location Services** and toggle it on before running the test to avoid a hidden prompt that makes the task appear stuck. For the shipped end-user flow, use `wifi-wand-macos-setup`.
+> **Prerequisite:** macOS only lists `wifiwand-helper` in Location Services after the helper runs once (for
+> example via `bin/mac-helper test`). Make sure it appears under **System Settings → Privacy & Security →
+> Location Services** and toggle it on before running the test to avoid a hidden prompt that makes the task
+> appear stuck. For the shipped end-user flow, use `wifi-wand-macos-setup`.
 
 ---
 
 ### Automatic 1Password wrapping
 
-The `bin/mac-helper` script automatically re-execs itself via `bin/op-wrap` when commands need Apple credentials but they're not already set. You can customize this behavior with:
+The `bin/mac-helper` script automatically re-execs itself via `bin/op-wrap` when commands need Apple
+credentials but they're not already set. You can customize this behavior with:
 
 - `WIFIWAND_OP_RUN_ENV` – override the `.env.release` path used by the wrapper
 - `WIFIWAND_OP_BIN` – override the `op` binary location/name invoked by the wrapper
 - `WIFIWAND_OP_WRAP_BIN` – point at a custom wrapper script (defaults to `bin/op-wrap`)
 
-The script automatically detects when credentials are missing and re-execs via `bin/op-wrap`. You can run the wrapper directly for ad-hoc commands whenever you want the same behavior (e.g., `bin/op-wrap bundle exec exe/wifi-wand shell`).
+The script automatically detects when credentials are missing and re-execs via `bin/op-wrap`. You can run the
+wrapper directly for ad-hoc commands whenever you want the same behavior (e.g., `bin/op-wrap bundle exec
+exe/wifi-wand shell`).
 
 ---
 
@@ -489,7 +516,8 @@ The script automatically detects when credentials are missing and re-execs via `
 - `WIFIWAND_APPLE_DEV_ID` (required) - Your Apple ID email
 - `WIFIWAND_APPLE_DEV_PASSWORD` (required) - App-specific password
 
-**Note:** Team ID is hardcoded in `lib/wifi-wand/mac_helper_release.rb` (it's a public value visible in signed binaries).
+**Note:** Team ID is hardcoded in `lib/wifi-wand/mac_helper_release.rb` (it's a public value visible in signed
+binaries).
 
 **Example:**
 ```bash
@@ -504,7 +532,8 @@ WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
 3. Polls for status (usually 2-5 minutes)
 4. Staples ticket on success
 
-If the task exits early (for example because `notarytool --wait` timed out) but you later confirm the submission shows `Accepted`, staple manually:
+If the task exits early (for example because `notarytool --wait` timed out) but you later confirm the
+submission shows `Accepted`, staple manually:
 ```
 xcrun stapler staple libexec/macos/wifiwand-helper.app
 ```
@@ -519,7 +548,8 @@ xcrun stapler staple libexec/macos/wifiwand-helper.app
 - `WIFIWAND_APPLE_DEV_ID` (required) - Your Apple ID email
 - `WIFIWAND_APPLE_DEV_PASSWORD` (required) - App-specific password
 
-**Note:** Team ID is hardcoded in `lib/wifi-wand/mac_helper_release.rb` (it's a public value visible in signed binaries).
+**Note:** Team ID is hardcoded in `lib/wifi-wand/mac_helper_release.rb` (it's a public value visible in signed
+binaries).
 
 **Example:**
 ```bash
@@ -553,7 +583,8 @@ bin/mac-helper status
 
 ### `dev:notarization_history`
 
-**Purpose:** Show the most recent notarization submissions tied to your Apple ID and team. Helpful when `dev:notarize_helper` appears to hang.
+**Purpose:** Show the most recent notarization submissions tied to your Apple ID and team. Helpful when
+`dev:notarize_helper` appears to hang.
 
 **Environment Variables:**
 - `WIFIWAND_APPLE_DEV_ID` (required)
@@ -572,7 +603,9 @@ bin/op-wrap bin/mac-helper history
 
 **Purpose:** Show the current status for a submission (accepted, in progress, invalid, etc.).
 
-**Environment Variables:** Same as above. `WIFIWAND_SUBMISSION_ID=<uuid>` (or `ID`/`NOTARY_ID`) is optional—if omitted, the task automatically selects the newest submission from `notarytool history`, preferring one that is still `In Progress`.
+**Environment Variables:** Same as above. `WIFIWAND_SUBMISSION_ID=<uuid>` (or `ID`/`NOTARY_ID`)
+is optional. If omitted, the task automatically selects the newest submission from
+`notarytool history`, preferring one that is still `In Progress`.
 
 **Example:**
 ```bash
@@ -593,7 +626,8 @@ op run --env-file=.env.release -- \
 
 **Purpose:** Fetch the full notarization log for a submission (useful when Apple rejects the upload).
 
-**Environment Variables:** Same as `dev:notarization_status`; `WIFIWAND_SUBMISSION_ID` is optional and falls back to the latest submission if omitted.
+**Environment Variables:** Same as `dev:notarization_status`; `WIFIWAND_SUBMISSION_ID` is optional and falls
+back to the latest submission if omitted.
 
 **Example:**
 ```bash
@@ -612,9 +646,11 @@ op run --env-file=.env.release -- \
 
 ### `dev:notarization_cancel`
 
-**Purpose:** Remove a stuck notarization submission from Apple's queue (for example when you uploaded the wrong binary or want to re-submit). The task only targets submissions still marked `In Progress`.
+**Purpose:** Remove a stuck notarization submission from Apple's queue (for example when you uploaded the
+wrong binary or want to re-submit). The task only targets submissions still marked `In Progress`.
 
-**Environment Variables:** Same as the other notary queue tasks. `WIFIWAND_SUBMISSION_ID=<uuid>` is optional—omit it to let the task auto-select the oldest candidate.
+**Environment Variables:** Same as the other notary queue tasks. `WIFIWAND_SUBMISSION_ID=<uuid>` is
+optional—omit it to let the task auto-select the oldest candidate.
 
 **Example:**
 ```bash
@@ -627,7 +663,8 @@ op run --env-file=.env.release -- \
   bin/op-wrap bin/mac-helper cancel
 ```
 
-**Output:** The underlying `xcrun notarytool queue remove` response plus a confirmation message when the removal succeeds (or an error if no pending submissions remain).
+**Output:** The underlying `xcrun notarytool queue remove` response plus a confirmation message when the
+removal succeeds (or an error if no pending submissions remain).
 
 ---
 
@@ -742,11 +779,13 @@ softwareupdate --install --all
 
 ### Why is the signed binary committed to git?
 
-So that users get a working, signed helper when they install the gem. Without this, users would need to compile and sign it themselves, which is impractical.
+So that users get a working, signed helper when they install the gem. Without this, users would need to
+compile and sign it themselves, which is impractical.
 
 ### How often do I need to re-notarize?
 
-Every time you release a new gem version with an updated helper. The binary's hash changes with each compilation, requiring new notarization.
+Every time you release a new gem version with an updated helper. The binary's hash changes with each
+compilation, requiring new notarization.
 
 ### Can I use the same Developer ID for multiple projects?
 
@@ -801,10 +840,13 @@ Common issues:
 
 ## Additional Resources
 
-- [Apple Developer Documentation - Notarizing macOS Software](https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution)
+- [Apple Developer Documentation - Notarizing macOS
+  Software](https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution)
 - [Apple Developer Documentation - Code Signing](https://developer.apple.com/support/code-signing/)
-- [Apple Developer Documentation - Hardened Runtime](https://developer.apple.com/documentation/security/hardened_runtime)
-- [TN3147: Code signing and notarizing issues](https://developer.apple.com/documentation/technotes/tn3147-resolving-common-notarization-issues)
+- [Apple Developer Documentation - Hardened
+  Runtime](https://developer.apple.com/documentation/security/hardened_runtime)
+- [TN3147: Code signing and notarizing
+  issues](https://developer.apple.com/documentation/technotes/tn3147-resolving-common-notarization-issues)
 - [wifi-wand Repository](https://github.com/keithrbennett/wifiwand)
 
 ---

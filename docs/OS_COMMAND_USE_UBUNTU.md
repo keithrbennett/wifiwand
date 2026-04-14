@@ -5,8 +5,10 @@
 This document outlines the shell commands used by `wifi-wand` on the Ubuntu operating system.
 
 Notes:
-- Ubuntu support relies on NetworkManager; `nmcli connection ...` operates on saved profiles that may differ from visible SSIDs (e.g., `"MySSID 1"`).
-- All invocations run through `BaseModel#run_os_command`, which centralizes logging, timeouts, and non-raising retries when requested.
+- Ubuntu support relies on NetworkManager; `nmcli connection ...` operates on saved profiles that may differ
+  from visible SSIDs (e.g., `"MySSID 1"`).
+- All invocations run through `BaseModel#run_os_command`, which centralizes logging, timeouts, and non-raising
+  retries when requested.
 
 ## `iw`
 
@@ -35,7 +37,8 @@ Notes:
 - Dynamic Values: None
 - Base Model Method(s): `wifi_on?`
 - CLI Command(s): `a`, `ci`, `cy`, `d`, `i`, `na`, `ne`, `of`, `on`, `s`, `w`
-- Helpful Info: Interprets `enabled`/`disabled` text; failures are non-fatal (queried with `raise_on_error: false`).
+- Helpful Info: Interprets `enabled`/`disabled` text; failures are non-fatal (queried with `raise_on_error:
+  false`).
 
 ### `nmcli radio wifi on`
 - Description: Turns on the Wi-Fi radio before connection attempts.
@@ -56,21 +59,24 @@ Notes:
 - Dynamic Values: None
 - Base Model Method(s): `_available_network_names`
 - CLI Command(s): `a`
-- Helpful Info: Produces colon-delimited `SSID:SIGNAL` lines that are sorted by descending signal and deduplicated.
+- Helpful Info: Produces colon-delimited `SSID:SIGNAL` lines that are sorted by descending signal and
+  deduplicated.
 
 ### `nmcli -t -f active,ssid device wifi`
 - Description: Retrieves the active Wi-Fi connection and SSID.
 - Dynamic Values: None
 - Base Model Method(s): `_connected_network_name`
 - CLI Command(s): `ci`, `co`, `i`, `na`, `ne`, `s`
-- Helpful Info: Looks for the first line beginning with `yes:`; executed with `raise_on_error: false` to allow offline polling.
+- Helpful Info: Looks for the first line beginning with `yes:`; executed with `raise_on_error: false` to allow
+  offline polling.
 
 ### `nmcli connection modify <profile> <security_param> <password>`
 - Description: Updates a saved connection profile with a new PSK/WEP credential.
 - Dynamic Values: `profile`, `security_param`, `password`
 - Base Model Method(s): `_connect`
 - CLI Command(s): `co`
-- Helpful Info: `security_param` is derived from a fresh scan (`802-11-wireless-security.psk`, `.wep-key0`, etc.) to match the network’s security suite.
+- Helpful Info: `security_param` is derived from a fresh scan (`802-11-wireless-security.psk`, `.wep-key0`,
+  etc.) to match the network’s security suite.
 
 ### `nmcli dev wifi connect <network_name> password <password>`
 - Description: Creates or activates a connection using the provided SSID and password.
@@ -84,49 +90,57 @@ Notes:
 - Dynamic Values: `profile`
 - Base Model Method(s): `_connect`, `set_nameservers`
 - CLI Command(s): `co`, `na`
-- Helpful Info: Used both after credential updates and after DNS edits to apply profile changes without recreating the connection.
+- Helpful Info: Used both after credential updates and after DNS edits to apply profile changes without
+  recreating the connection.
 
 ### `nmcli dev wifi connect <network_name>`
 - Description: Attempts to join an open network when no password is supplied.
 - Dynamic Values: `network_name`
 - Base Model Method(s): `_connect`
 - CLI Command(s): `co`
-- Helpful Info: Assumes the target network is unsecured or already has stored credentials within NetworkManager.
+- Helpful Info: Assumes the target network is unsecured or already has stored credentials within
+  NetworkManager.
 
 ### `nmcli -t -f SSID,SECURITY dev wifi list`
 - Description: Scans for networks and their advertised security suites.
 - Dynamic Values: None
 - Base Model Method(s): `get_security_parameter`, `connection_security_type`
 - CLI Command(s): `co`, `qr`
-- Helpful Info: Runs with `raise_on_error: false` to tolerate transient scan failures; results like `WPA2 WPA3` are normalized to canonical values.
+- Helpful Info: Runs with `raise_on_error: false` to tolerate transient scan failures; results like `WPA2
+  WPA3` are normalized to canonical values.
 
 ### `nmcli -t -f NAME,TIMESTAMP connection show`
 - Description: Lists saved connection profiles with their last-used timestamps.
 - Dynamic Values: None
 - Base Model Method(s): `find_best_profile_for_ssid`
 - CLI Command(s): `co`
-- Helpful Info: Helps disambiguate duplicate profiles (`SSID`, `SSID 1`, etc.) by picking the most recently used entry.
+- Helpful Info: Helps disambiguate duplicate profiles (`SSID`, `SSID 1`, etc.) by picking the most recently
+  used entry.
 
 ### `nmcli connection delete <network_name>`
 - Description: Removes a stored NetworkManager profile.
 - Dynamic Values: `network_name`
 - Base Model Method(s): `remove_preferred_network`
 - CLI Command(s): `f`
-- Helpful Info: Only runs when the profile is known to exist in the saved Wi-Fi profile list, which avoids both noisy “Unknown connection” errors and accidental deletion of non-Wi-Fi profiles.
+- Helpful Info: Only runs when the profile is known to exist in the saved Wi-Fi profile list, which avoids
+  both noisy “Unknown connection” errors and accidental deletion of non-Wi-Fi profiles.
 
 ### `nmcli -t -f NAME,TYPE connection show`
-- Description: Returns saved connection profile names and types so Wi-Fi profiles can be filtered from other NetworkManager entries.
+- Description: Returns saved connection profile names and types so Wi-Fi profiles can be filtered from other
+  NetworkManager entries.
 - Dynamic Values: None
 - Base Model Method(s): `preferred_networks`
 - CLI Command(s): `co`, `pr`
-- Helpful Info: Only `802-11-wireless` profiles are returned, and the final list is sorted so CLI listings remain stable across runs.
+- Helpful Info: Only `802-11-wireless` profiles are returned, and the final list is sorted so CLI listings
+  remain stable across runs.
 
 ### `nmcli --show-secrets connection show <preferred_network_name>`
 - Description: Reads the stored pre-shared key for a saved network.
 - Dynamic Values: `preferred_network_name`
 - Base Model Method(s): `_preferred_network_password`
 - CLI Command(s): `co`, `pa`
-- Helpful Info: Searches for `802-11-wireless-security.psk:` lines and strips blank passwords; invoked with `raise_on_error: false` to handle locked secrets.
+- Helpful Info: Searches for `802-11-wireless-security.psk:` lines and strips blank passwords; invoked with
+  `raise_on_error: false` to handle locked secrets.
 
 ### `nmcli dev disconnect <interface>`
 - Description: Requests a disconnect from the given Wi-Fi interface.
@@ -172,7 +186,8 @@ Notes:
 - Dynamic Values: `current_connection`, `ipv4_dns_string`
 - Base Model Method(s): `set_nameservers`
 - CLI Command(s): `na`
-- Helpful Info: Accepts space-separated IPv4 addresses and pairs with `ipv4.ignore-auto-dns yes` to prevent DHCP overrides.
+- Helpful Info: Accepts space-separated IPv4 addresses and pairs with `ipv4.ignore-auto-dns yes` to prevent
+  DHCP overrides.
 
 ### `nmcli connection modify <current_connection> ipv4.ignore-auto-dns yes`
 - Description: Instructs NetworkManager to prefer the configured IPv4 DNS servers.
@@ -200,21 +215,24 @@ Notes:
 - Dynamic Values: `current_connection`
 - Base Model Method(s): `set_nameservers`
 - CLI Command(s): `na`
-- Helpful Info: Runs with `raise_on_error: false` because the connection may already be active yet still needs a reload.
+- Helpful Info: Runs with `raise_on_error: false` because the connection may already be active yet still needs
+  a reload.
 
 ### `nmcli -t -f GENERAL.CONNECTION dev show <interface>`
 - Description: Resolves the Connection profile bound to a specific device.
 - Dynamic Values: `interface`
 - Base Model Method(s): `active_connection_profile_name`
 - CLI Command(s): `i`, `na`, `qr`
-- Helpful Info: Pulls `GENERAL.CONNECTION:<name>` and ignores blank entries to avoid treating wired profiles as Wi-Fi.
+- Helpful Info: Pulls `GENERAL.CONNECTION:<name>` and ignores blank entries to avoid treating wired profiles
+  as Wi-Fi.
 
 ### `nmcli connection show <connection_name>`
 - Description: Dumps full connection settings, including runtime DNS fields.
 - Dynamic Values: `connection_name`
 - Base Model Method(s): `nameservers_from_connection`
 - CLI Command(s): `i`, `na`
-- Helpful Info: Filters lines matching `/ipv4\.dns/` and `/IP4.DNS/` (and IPv6 variants) to merge static and runtime resolvers.
+- Helpful Info: Filters lines matching `/ipv4\.dns/` and `/IP4.DNS/` (and IPv6 variants) to merge static and
+  runtime resolvers.
 
 ### `nmcli -t -f 802-11-wireless.hidden connection show <profile_name>`
 - Description: Determines whether the active network is marked as hidden.
@@ -232,14 +250,16 @@ Notes:
 - Dynamic Values: `wifi_interface`
 - Base Model Method(s): `_ip_address`
 - CLI Command(s): `i`, `s`
-- Helpful Info: Extracts the first `inet` token (`x.y.z.w/nn`) and strips the prefix length to return the host address.
+- Helpful Info: Extracts the first `inet` token (`x.y.z.w/nn`) and strips the prefix length to return the host
+  address.
 
 ### `ip link show <wifi_interface>`
 - Description: Retrieves link-layer details, including the MAC address.
 - Dynamic Values: `wifi_interface`
 - Base Model Method(s): `mac_address`
 - CLI Command(s): `i`, `s`
-- Helpful Info: Reads the token after `link/ether`; gracefully returns `nil` if the interface is down or unnamed.
+- Helpful Info: Reads the token after `link/ether`; gracefully returns `nil` if the interface is down or
+  unnamed.
 
 ### `ip route show default`
 - Description: Identifies the interface handling the system’s default route.
@@ -255,7 +275,8 @@ Notes:
 - Dynamic Values: `resource_url`
 - Base Model Method(s): `open_resource`
 - CLI Command(s): `ro`
-- Helpful Info: Delegates to the desktop environment; failures raise if the handler is missing or the URL is malformed.
+- Helpful Info: Delegates to the desktop environment; failures raise if the handler is missing or the URL is
+  malformed.
 
 ## `qrencode`
 
@@ -266,11 +287,13 @@ Notes:
 - Dynamic Values: `file`, `wifi_qr_string`
 - Base Model Method(s): `BaseModel#generate_qr_code` via `Helpers::QrCodeGenerator#run_qrencode_file`
 - CLI Command(s): `qr`
-- Helpful Info: Overwrite prompts occur before the command runs; ensure the `qrencode` package is installed (`sudo apt install qrencode`).
+- Helpful Info: Overwrite prompts occur before the command runs; ensure the `qrencode` package is installed
+  (`sudo apt install qrencode`).
 
 ### `qrencode -t ANSI <wifi_qr_string>`
 - Description: Prints the QR code as ANSI art for inline terminal display.
 - Dynamic Values: `wifi_qr_string`
 - Base Model Method(s): `BaseModel#generate_qr_code` via `Helpers::QrCodeGenerator#run_qrencode_text`
 - CLI Command(s): `qr -`
-- Helpful Info: Interactive shells return the ANSI string so callers can `puts` it; non-interactive runs stream the art directly to stdout.
+- Helpful Info: Interactive shells return the ANSI string so callers can `puts` it; non-interactive runs
+  stream the art directly to stdout.

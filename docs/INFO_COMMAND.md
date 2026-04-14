@@ -2,7 +2,8 @@
 
 ## Overview
 
-The `info` command provides comprehensive network and WiFi information beyond what the `status` command offers. Use this when you need detailed data about your network configuration and status.
+The `info` command provides comprehensive network and WiFi information beyond what the `status` command
+offers. Use this when you need detailed data about your network configuration and status.
 
 ## Breaking Change: Connectivity API
 
@@ -221,14 +222,16 @@ In interactive shell mode (`wifi-wand shell`), you can use the full power of Rub
 
 ## Performance Considerations
 
-Like `status`, the `info` command takes several seconds to complete due to comprehensive system queries. Each call requires querying:
+Like `status`, the `info` command takes several seconds to complete due to comprehensive system queries. Each
+call requires querying:
 - WiFi power state
 - Network connection information
 - Connectivity status (DNS/TCP checks)
 - Interface configuration
 - Available networks
 
-Don't use `info` in tight loops. If you're checking frequently, use `status` for quick checks and fall back to `info` only when you need the detailed data.
+Don't use `info` in tight loops. If you're checking frequently, use `status` for quick checks and fall back to
+`info` only when you need the detailed data.
 
 ## Verbose Mode
 

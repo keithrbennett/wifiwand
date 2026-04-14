@@ -2,7 +2,9 @@
 
 ## Overview
 
-The `status` command (aliased as `s`) displays a concise, single-line summary of your WiFi, current network, DNS, and internet connectivity status. This command is optimized for accurate, reliable connectivity information and uses intentionally long timeouts to avoid false positives from temporary network slowdowns.
+The `status` command (aliased as `s`) displays a concise, single-line summary of your WiFi, current network,
+DNS, and internet connectivity status. This command is optimized for accurate, reliable connectivity
+information and uses intentionally long timeouts to avoid false positives from temporary network slowdowns.
 
 ## Breaking Change: Explicit Connectivity States
 

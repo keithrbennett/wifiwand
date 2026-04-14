@@ -3,8 +3,10 @@
 * You are a senior software architect and code reviewer.  
 * Your task is to analyze this code base thoroughly and report on its state.  
 * Focus on identifying weaknesses, risks, and areas for improvement.  
-* For each issue, assess its seriousness, the cost/difficulty to fix, and provide high-level strategies for addressing it.
-* If you are unable to use the simplecov-mcp MCP server, use `simplecov-mcp` in CLI mode (run `simplecov-mcp -h` for help).
+* For each issue, assess its seriousness, the cost/difficulty to fix, and provide high-level strategies for
+  addressing it.
+* If you are unable to use the simplecov-mcp MCP server, use `simplecov-mcp` in CLI mode (run `simplecov-mcp
+  -h` for help).
 
 Write your analysis in a Markdown file whose name is:
 * today's date in YYYY-MM-DD format +
@@ -18,13 +20,15 @@ The file should have the following structure:
 ### Executive Summary
 - Provide a concise overview of the overall health of the code base.
 - Identify the strongest areas and the weakest areas.
-- Give a **one-line summary verdict** (e.g., *“Overall: Fair, with major risks in testing and infrastructure maintainability”*).
+- Give a **one-line summary verdict** (e.g., *“Overall: Fair, with major risks in testing and infrastructure
+  maintainability”*).
 - **Overall Weighted Score (1–10):** Show the score at the end of this summary.
 
 ---
 
 ### Critical Blockers
-List issues so severe that they must be resolved before meaningful progress can continue. For each blocker, include:
+List issues so severe that they must be resolved before meaningful progress can continue. For each blocker,
+include:
 - **Description**
 - **Impact**
 - **Urgency**
@@ -116,13 +120,14 @@ Provide a table of the top issues found, with the following columns:
 |-------|----------|-------------|------------------------|
 | Example issue description | High | Medium | Major reliability risks |
 
-The order should take both severity and cost-to-fix into account such that performing them in descending order would
-result in the optimal value addition velocity.
+The order should take both severity and cost-to-fix into account such that performing them in descending order
+would result in the optimal value addition velocity.
 
 ---
 
 ### High-Level Recommendations
-- Suggest general strategies for improvement (e.g., refactoring approach, improving test coverage, upgrading dependencies, modularization).
+- Suggest general strategies for improvement (e.g., refactoring approach, improving test coverage, upgrading
+  dependencies, modularization).
 - Highlight where incremental vs. large-scale changes are most appropriate.
 
 ---
@@ -148,7 +153,8 @@ Suggest prompts to a coding AI tool that would be helpful in addressing the majo
 | Formatting & Style        | ?%         |
 | Best Practices & Conciseness | ?%      |
 
-- **Weighted Score Calculation:** Multiply each section’s score by its chosen weight, then sum to compute the **Overall Weighted Score (1–10)**.
+- **Weighted Score Calculation:** Multiply each section’s score by its chosen weight, then sum
+  to compute the **Overall Weighted Score (1–10)**.
 - Report the final **Overall Weighted Score** with justification.  
 
 ### Summarize suggested changes

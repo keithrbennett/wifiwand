@@ -1,6 +1,7 @@
 # Testing Documentation for wifi-wand
 
-This document describes how wifi-wand's test suite is organized and how to run the right scope for local development, CI, and native-host verification.
+This document describes how wifi-wand's test suite is organized and how to run the right scope for local
+development, CI, and native-host verification.
 
 ## Overview
 
@@ -8,9 +9,11 @@ The suite has three practical buckets:
 
 - Default tests: mocked or otherwise hermetic tests. These are safe for CI and run by default.
 - `:real_env_read_only`: tests that read the real host environment but do not intentionally mutate it.
-- `:real_env_read_write`: tests that mutate the real host environment and therefore require capture/restore safeguards.
+- `:real_env_read_write`: tests that mutate the real host environment and therefore require capture/restore
+  safeguards.
 
-The `:real_env` tag is derived automatically whenever either `:real_env_read_only` or `:real_env_read_write` is present. That makes it easy for the harness to exclude all real-host tests by default.
+The `:real_env` tag is derived automatically whenever either `:real_env_read_only` or `:real_env_read_write`
+is present. That makes it easy for the harness to exclude all real-host tests by default.
 
 ## Quick Start
 
@@ -77,7 +80,8 @@ It is used for:
 
 Mocked tests run on any supported host.
 
-Real-host tests can additionally declare `real_env_os: :os_mac` or `real_env_os: :os_ubuntu`. The suite detects the current OS and skips foreign real-host examples automatically.
+Real-host tests can additionally declare `real_env_os: :os_mac` or `real_env_os: :os_ubuntu`. The suite
+detects the current OS and skips foreign real-host examples automatically.
 
 ## Network Restore Behavior
 
@@ -89,7 +93,8 @@ Behavior:
 - after each `:real_env_read_write` example, the suite restores that state
 - at suite end, the suite attempts a final restoration and raises if restoration fails
 
-On macOS, examples tagged `:needs_sudo_access` refresh the sudo ticket immediately before the example instead of using a background keepalive thread.
+On macOS, examples tagged `:needs_sudo_access` refresh the sudo ticket immediately before the example instead
+of using a background keepalive thread.
 
 ## Coverage Artifacts
 
@@ -112,13 +117,17 @@ do not overwrite the default mocked/hermetic resultset.
 Coverage artifacts are only authoritative for the exact test run that generated them.
 
 - If you run a filtered test subset, the resultset reflects that subset only.
-- If source files change after the resultset is written, coverage tools may report stale entries such as `length_mismatch`.
-- Developers and agents must not treat an existing coverage file as proof of whole-codebase coverage unless they intentionally ran a fresh unfiltered suite for that purpose.
+- If source files change after the resultset is written, coverage tools may report stale entries such as
+  `length_mismatch`.
+- Developers and agents must not treat an existing coverage file as proof of whole-codebase coverage unless
+  they intentionally ran a fresh unfiltered suite for that purpose.
 
 Practical rule:
 
-- For codebase-wide review or planning, first run a fresh unfiltered suite such as `bundle exec rspec` or `bundle exec rake test:safe`, then inspect the newly generated resultset.
-- For targeted local work, it is fine to rely on targeted coverage artifacts, but only for the code exercised by that run.
+- For codebase-wide review or planning, first run a fresh unfiltered suite such as `bundle exec rspec` or
+  `bundle exec rake test:safe`, then inspect the newly generated resultset.
+- For targeted local work, it is fine to rely on targeted coverage artifacts, but only for the code exercised
+  by that run.
 
 This is an operator responsibility, not an automatic guarantee provided by the resultset filenames.
 
@@ -164,7 +173,7 @@ Guidelines:
 
 ## Related Files
 
-- [spec/spec_helper.rb](/home/kbennett/code/wifiwand/primary/spec/spec_helper.rb)
-- [spec/support/rspec_configuration.rb](/home/kbennett/code/wifiwand/primary/spec/support/rspec_configuration.rb)
-- [spec/support/coverage_config.rb](/home/kbennett/code/wifiwand/primary/spec/support/coverage_config.rb)
-- [docs/ENVIRONMENT_VARIABLES.md](/home/kbennett/code/wifiwand/primary/docs/ENVIRONMENT_VARIABLES.md)
+- [spec/spec_helper.rb](../spec/spec_helper.rb)
+- [spec/support/rspec_configuration.rb](../spec/support/rspec_configuration.rb)
+- [spec/support/coverage_config.rb](../spec/support/coverage_config.rb)
+- [docs/ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md)

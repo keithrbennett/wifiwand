@@ -1,12 +1,14 @@
 # DNS Configuration Guide
 
-This guide covers DNS configuration on Ubuntu and macOS, explaining the differences between network management approaches and providing practical commands for each platform.
+This guide covers DNS configuration on Ubuntu and macOS, explaining the differences between network management
+approaches and providing practical commands for each platform.
 
 ## Ubuntu (NetworkManager)
 
 ### Understanding NetworkManager's Approach
 
-Ubuntu uses **NetworkManager** which operates on **connection profiles** rather than interfaces directly. This means:
+Ubuntu uses **NetworkManager** which operates on **connection profiles** rather than interfaces directly. This
+means:
 
 - DNS settings are tied to specific network connections (e.g., "Home WiFi", "Office WiFi")
 - Each Wi-Fi network can have different DNS settings
@@ -205,7 +207,8 @@ dig @1.1.1.1 example.com
 
 ### Understanding systemd-resolved on Ubuntu
 
-Ubuntu uses **systemd-resolved** which creates a local DNS stub resolver at `127.0.0.53`. This is normal and expected:
+Ubuntu uses **systemd-resolved** which creates a local DNS stub resolver at `127.0.0.53`. This is normal and
+expected:
 
 ```bash
 # /etc/resolv.conf will show:

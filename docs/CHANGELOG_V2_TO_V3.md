@@ -5,7 +5,8 @@ This document summarizes the changes and improvements made in version 3.0 compar
 ## Configuration & Testing Infrastructure
 
 - Added `.rspec` configuration file with documentation format, color output, and automatic spec_helper loading
-- Created comprehensive testing documentation in `docs/TESTING.md` covering test categories, OS detection, and verbose mode
+- Created comprehensive testing documentation in `docs/TESTING.md` covering test categories, OS detection, and
+  verbose mode
 - Implemented automatic OS detection and filtering in test suite to run only compatible tests
 - Added support for disruptive vs non-disruptive test categorization with automatic network state restoration
 
@@ -27,7 +28,8 @@ This document summarizes the changes and improvements made in version 3.0 compar
 ## Test Suite Improvements
 
 - Created OS-agnostic common interface tests that work across all supported platforms
-- Added tags to enable separation of disruptive (to system) and nondisruptive tests; default mode runs only nondisruptive tests
+- Added tags to enable separation of disruptive (to system) and nondisruptive tests; default mode runs only
+  nondisruptive tests
 - Made verbose mode accessible to tests via a WIFIWAND_VERBOSE environment variable
 - Implemented automatic network state capture and restoration for disruptive tests
 - Added helper methods for consistent test model creation across different OS platforms
@@ -48,7 +50,8 @@ This document summarizes the changes and improvements made in version 3.0 compar
 
 ## Interactive Shell Improvements
 
-- Suppressed pry stack traces for exceptions to provide a cleaner, more user-friendly shell experience. Errors now display a simple message without internal implementation details.
+- Suppressed pry stack traces for exceptions to provide a cleaner, more user-friendly shell experience. Errors
+  now display a simple message without internal implementation details.
 
 ## Event Logging System (New Feature)
 
@@ -72,7 +75,8 @@ This document summarizes the changes and improvements made in version 3.0 compar
 
 - Added comprehensive `status` command for real-time connectivity monitoring
 - Displays WiFi power state, network connection, TCP connectivity, DNS resolution, and overall internet status
-- Progressive display for interactive terminals (TTY mode) - results appear incrementally as they become available
+- Progressive display for interactive terminals (TTY mode) - results appear incrementally as they become
+  available
 - Implements `BaseModel#status_line_data` method for structured status data
 - Progress callback architecture for non-blocking status checks
 - Proper timeout handling for connectivity checks to avoid false negatives

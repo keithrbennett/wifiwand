@@ -93,42 +93,61 @@ rather than Internet reachability; restore flows wait for WiFi power state
 
 ### The Big Kahuna
 
-* **Added first-class Ubuntu (and compatible Linux) support alongside macOS, exposing a single unified interface across platforms.**
+* **Added first-class Ubuntu (and compatible Linux) support alongside macOS, exposing a single unified
+  interface across platforms.**
 
 ### Breaking Changes
-* `cycle_network` now toggles WiFi state twice regardless of starting state (on or off). Previously it unconditionally did off, then on.
-* Removed macOS Speedtest application launch support; the web site is still available via the `ro spe` command.
-* Removed `fancy_print`.  Awesome Print is now a required gem so it is always available, so there is no need for fancy_print.
-* We no longer assume that if WiFi is off there is no Internet connectivity, since that connectivity can be provided by an Ethernet connection
-  * The 'ci' (connected to Internet) command can now return true if WiFi is off but there is another Internet connection.
-* The `-s`/`--shell` command-line option has been replaced with a `shell` subcommand (e.g. `wifi-wand shell` instead of `wifi-wand -s`).
-* All environment variables have been renamed to use the `WIFIWAND_` prefix (e.g. `WIFIWAND_VERBOSE`, `WIFIWAND_OPTS`).
+* `cycle_network` now toggles WiFi state twice regardless of starting state (on or off). Previously it
+  unconditionally did off, then on.
+* Removed macOS Speedtest application launch support; the web site is still available via the `ro spe`
+  command.
+* Removed `fancy_print`. Awesome Print is now a required gem so it is always available, so there is no need
+  for fancy_print.
+* We no longer assume that if WiFi is off there is no Internet connectivity, since that connectivity can be
+  provided by an Ethernet connection
+  * The 'ci' (connected to Internet) command can now return true if WiFi is off but there is another Internet
+    connection.
+* The `-s`/`--shell` command-line option has been replaced with a `shell` subcommand (e.g. `wifi-wand shell`
+  instead of `wifi-wand -s`).
+* All environment variables have been renamed to use the `WIFIWAND_` prefix (e.g. `WIFIWAND_VERBOSE`,
+  `WIFIWAND_OPTS`).
 * Removed the `l`/`ls_avail_nets` command; it is no longer operational.
-* The `--hook` option for the `log` subcommand has been removed. The hook execution feature was incomplete and never properly tested; its removal simplifies the codebase and eliminates a security concern.
+* The `--hook` option for the `log` subcommand has been removed. The hook execution feature was incomplete and
+  never properly tested; its removal simplifies the codebase and eliminates a security concern.
 
 ### New Commands & Features
 
 * **`-V`/`--version`** — Print the version and exit.
-* **`log` subcommand** — Monitor and log internet connectivity events (connect/disconnect) to stdout and/or a file. Detects outages using fast multi-endpoint TCP probes.
-* **`qr` command** — Generate a QR code for the currently connected WiFi network (or a specified network), enabling easy sharing with mobile devices. Supports output to stdout or a file.
+* **`log` subcommand** — Monitor and log internet connectivity events
+  (connect/disconnect) to stdout and/or a file. Detects outages using fast multi-endpoint TCP probes.
+* **`qr` command** — Generate a QR code for the currently connected WiFi network (or a specified network),
+  enabling easy sharing with mobile devices. Supports output to stdout or a file.
 * **`shell` subcommand** — Launch an interactive REPL shell (replaces the `-s`/`--shell` option).
-* **Sort order option** (`-o`/`--sort-order`) — Control the sort order (`a`/`ascending` or `d`/`descending`) of the available networks list.
+* **Sort order option** (`-o`/`--sort-order`) — Control the sort order (`a`/`ascending` or `d`/`descending`)
+  of the available networks list.
 
 ### macOS: New Signed Helper Application
 
-* Replaced Swift/CoreWLAN scripts with a signed, notarized macOS helper application (`wifiwand-helper`) that enables WifiWand to access WiFi network names without triggering repeated authorization prompts.
-* The helper is a Universal binary (ARM + Intel) and requires macOS 14.0 or later for location-based network scanning.
+* Replaced Swift/CoreWLAN scripts with a signed, notarized macOS helper application (`wifiwand-helper`) that
+  enables WifiWand to access WiFi network names without triggering repeated authorization prompts.
+* The helper is a Universal binary (ARM + Intel) and requires macOS 14.0 or later for location-based network
+  scanning.
 * A `wifi-wand-macos-setup` script is provided to guide users through granting the necessary permissions.
 * A post-install gem message directs macOS users to the setup documentation.
 
 ### User Experience Improvements
 
-* Added support for `WIFIWAND_VERBOSE` environment variable to simulate `-v` flag. This is especially useful for testing.
-* Added `WIFIWAND_OPTS` environment variable to prepend default command-line options before parsing user input.
-* Added a `status`/`s` command for displaying a 1-line network status summary with DNS and TCP connectivity icons.
+* Added support for `WIFIWAND_VERBOSE` environment variable to simulate `-v` flag. This is especially useful
+  for testing.
+* Added `WIFIWAND_OPTS` environment variable to prepend default command-line options before parsing user
+  input.
+* Added a `status`/`s` command for displaying a 1-line network status summary with DNS and TCP connectivity
+  icons.
 * Help output is now styled with a formatted banner.
-* In non-interactive mode, the process now exits with code 1 if any errors occur (unless only help text was requested).
-* Empty-string passwords are now treated as deliberate open-network connection attempts, skipping saved credential lookups.
+* In non-interactive mode, the process now exits with code 1 if any errors occur (unless only help text was
+  requested).
+* Empty-string passwords are now treated as deliberate open-network connection attempts, skipping saved
+  credential lookups.
 * Improved validation for user-provided SSIDs and passwords.
 
 ### Architectural Improvements
@@ -138,47 +157,67 @@ cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
 * The system automatically detects the OS and loads the appropriate model for that OS.
 * Extracted hardcoded data into YAML configuration files.
 * **Client class** — A new `WifiWand::Client` class provides a clean programmatic API for use as a library.
-* **Secure command execution** — All OS commands are now executed using `Open3` with argument arrays, eliminating shell interpolation and command injection vulnerabilities.
+* **Secure command execution** — All OS commands are now executed using `Open3` with argument arrays,
+  eliminating shell interpolation and command injection vulnerabilities.
 * Switched from threads to the `async` gem for concurrent network detection.
-* **`CaptivePortalChecker` service class** — Captive-portal detection logic has been extracted from `NetworkConnectivityTester` into a dedicated class for better separation of concerns.
+* **`CaptivePortalChecker` service class** — Captive-portal detection logic has been extracted from
+  `NetworkConnectivityTester` into a dedicated class for better separation of concerns.
 
 ### Network Management & Reporting Improvements
 
 * The 'connected to Internet?' functionality has been improved:
   * wifi off will no longer by itself cause it to return false, since there may be an Ethernet connection
   * DNS and TCP tests are both done, with separate indicators in the new 'status' command's output.
-  * An HTTP application-layer check is now performed after the TCP probes to detect expired captive portal sessions. A `GET` to `http://connectivitycheck.gstatic.com/generate_204` must return `204 No Content`; a redirect or HTML response is treated as no connectivity. Plain HTTP is used deliberately so that TLS-intercepting portals cannot silently forward the check. If all HTTP check requests fail with network errors the method errs on the side of reporting connected (fail-open).
-  * The `wifi_info` hash now includes a `captive_portal_free` boolean key alongside `connected_to_internet`, `dns_working`, and `tcp_working`.
-* Internet connectivity checks now use fast multi-endpoint TCP probes (~50–200ms typical, 1s worst case) instead of slower DNS+TCP checks.
+  * An HTTP application-layer check is now performed after the TCP probes to detect expired captive portal
+    sessions. A `GET` to `http://connectivitycheck.gstatic.com/generate_204` must return `204 No Content`; a
+    redirect or HTML response is treated as no connectivity. Plain HTTP is used deliberately so that
+    TLS-intercepting portals cannot silently forward the check. If all HTTP check requests fail with network
+    errors the method errs on the side of reporting connected (fail-open).
+  * The `wifi_info` hash now includes a `captive_portal_free` boolean key alongside `connected_to_internet`,
+    `dns_working`, and `tcp_working`.
+* Internet connectivity checks now use fast multi-endpoint TCP probes (~50–200ms typical, 1s worst case)
+  instead of slower DNS+TCP checks.
 * IPv6 nameservers are now supported.
 * `public_ip_address_info` now uses Ruby's `Net::HTTP` instead of `curl`, removing the external dependency.
 
 ### Error Handling Improvements
 * Added comprehensive error classes and improved error messaging.
 * Stack traces are no longer displayed unless in verbose mode.
-* Added `WifiOffError`, a specific error class raised when an operation is attempted that requires WiFi to be on.
+* Added `WifiOffError`, a specific error class raised when an operation is attempted that requires WiFi to be
+  on.
 
 ### Testing Improvements
 * Massive increase in test coverage.
 * Added test coverage configuration.
 * Tests are divided into disruptive (system state changing) and nondisruptive tests.
 * By default, only nondisruptive tests are run.
-* Disruptive test inclusion and exclusion can be controlled with the `RSPEC_DISRUPTIVE_TESTS` environment variable.
-* Tests save state at start of test suite and restore that state after each "disruptive" test and at the end of the test suite.
+* Disruptive test inclusion and exclusion can be controlled with the `RSPEC_DISRUPTIVE_TESTS` environment
+  variable.
+* Tests save state at start of test suite and restore that state after each "disruptive" test and at the end
+  of the test suite.
 * OS-specific tests are tagged with their OS and excluded when not the native OS.
-* The number of tests that do real OS calls has been greatly reduced, speeding testing and enabling the more frequent testing of some behavior.
-* **Simplified disruptive-test tags.** The two-tag pattern `:disruptive, :os_mac` / `:disruptive, :os_ubuntu` has been replaced with single combined tags `:disruptive_mac` / `:disruptive_ubuntu`. A `define_derived_metadata` block back-fills `:disruptive` so all existing filtering, after-hooks, and network-state management continue to work unchanged.
-* **Disruptive-test preflight enforcement.** The test suite now aborts immediately (rather than silently skipping) if the required preconditions for disruptive tests — WiFi on and connected to a network — are not met at suite start.
-* **Disruptive-test state capture hardened.** Errors in state capture now propagate as failures instead of being silently rescued.
+* The number of tests that do real OS calls has been greatly reduced, speeding testing and enabling the more
+  frequent testing of some behavior.
+* **Simplified disruptive-test tags.** The two-tag pattern `:disruptive, :os_mac` / `:disruptive, :os_ubuntu`
+  has been replaced with single combined tags `:disruptive_mac` / `:disruptive_ubuntu`. A
+  `define_derived_metadata` block back-fills `:disruptive` so all existing filtering, after-hooks, and
+  network-state management continue to work unchanged.
+* **Disruptive-test preflight enforcement.** The test suite now aborts immediately
+  (rather than silently skipping) if the required preconditions for disruptive tests — WiFi on
+  and connected to a network — are not met at suite start.
+* **Disruptive-test state capture hardened.** Errors in state capture now propagate as failures instead of
+  being silently rescued.
 * Added regression specs for OS tag filtering and disruptive-test skip logic.
-* New captive-portal specs covering `captive_portal_free?`: 204 pass, 302 fail, all-network-errors failsafe, and verbose output paths.
+* New captive-portal specs covering `captive_portal_free?`: 204 pass, 302 fail, all-network-errors failsafe,
+  and verbose output paths.
 
 ### Documentation Improvements
 
 * README has been improved and updated to reflect the changes.
 * A TESTING.md file has been added.
 * A CLAUDE.md file generated and used by Claude Code has helpful information about the code base.
-* Prompts located in a `prompts/` directory are used to create and update some documents using AI, such as "OS Command Use" for each supported OS.
+* Prompts located in a `prompts/` directory are used to create and update some documents using AI, such as "OS
+  Command Use" for each supported OS.
 * Comprehensive `docs/` directory with separate user and developer documentation indexes.
 
 ### Bug Fixes
@@ -196,14 +235,17 @@ cohesive classes and files (HelpSystem, OutputFormatter, ErrorHandling, etc.).
   * Added version constraints where there were none.
   * Ruby version constraint updated to >= 3.2 (required by the `async` gem via `traces`).
   * Added `rubygems_mfa_required` metadata.
-* **Ruby 3 endless method syntax** — All simple single-line methods (`def f; expr; end`) across `lib/` and `spec/` have been converted to the endless form (`def f = expr`).
-* **Comprehensive RuboCop compliance pass** — Hundreds of Layout, Style, Lint, and Naming offenses corrected across the entire codebase.
+* **Ruby 3 endless method syntax** — All simple single-line methods (`def f; expr; end`) across `lib/` and
+  `spec/` have been converted to the endless form (`def f = expr`).
+* **Comprehensive RuboCop compliance pass** — Hundreds of Layout, Style, Lint, and Naming offenses corrected
+  across the entire codebase.
 * **Replaced `eval` with `JSON.parse`** in output-format specs (RuboCop `Security/Eval`).
 * **Status monitoring** - Enhanced connection status monitoring with configurable timeouts
 * **Mock testing** - Removed real OS commands from non-disruptive unit tests
 * Added a `bin/op-wrap` script to simplify using 1Password for credential management during development.
 
-This major release represents a complete rewrite focused on cross-platform support while maintaining backward compatibility for existing macOS users.
+This major release represents a complete rewrite focused on cross-platform support while maintaining backward
+compatibility for existing macOS users.
 
 
 ## v2.20.0
@@ -247,7 +289,8 @@ This major release represents a complete rewrite focused on cross-platform suppo
 
 ## v2.16.1
 
-* Fix airport deprecations' removal of listing all networks and disconnecting from a network by using Swift scripts.
+* Fix airport deprecations' removal of listing all networks and disconnecting from a network by using Swift
+  scripts.
 
 
 ## v2.16.0 (2024-04)
@@ -268,7 +311,8 @@ This major release represents a complete rewrite focused on cross-platform suppo
 
 ## v2.15.1
 
-* Fix bug; when calling connect with an SSID with leading spaces, a warning was erroneously issued about the SSID.
+* Fix bug; when calling connect with an SSID with leading spaces, a warning was erroneously issued about the
+  SSID.
 
 
 ## v2.15.0
@@ -285,26 +329,32 @@ This major release represents a complete rewrite focused on cross-platform suppo
 
 ## v2.13.0
 
-* Fix: network names could not be displayed when one contained a nonstandard character (e.g. D5 for a special apostrophe in Mac Roman encoding).
+* Fix: network names could not be displayed when one contained a nonstandard character (e.g. D5 for a special
+  apostrophe in Mac Roman encoding).
 * Fix: some operations that didn't make sense with WiFi off were attempted anyway; this was removed.
 
 ## v2.12.0
 
-* Change connected_to_internet?. Use 'dig' to test name resolution first, then HTTP get. Also, add baidu.com for China where google.com is blocked.
-* Remove ping test from connected_to_internet?. It was failing on a network that had connectivity (Syma in France).
+* Change connected_to_internet?. Use 'dig' to test name resolution first, then HTTP get. Also, add baidu.com
+  for China where google.com is blocked.
+* Remove ping test from connected_to_internet?. It was failing on a network that had connectivity (Syma in
+  France).
 * Remove trailing newline from MAC address.
-* Fix nameservers command to return empty array instead of ["There aren't any DNS Servers set on Wi-Fi."] (output of underlying command)when no nameservers.
+* Fix nameservers command to return empty array instead of ["There aren't any DNS Servers set on Wi-Fi."]
+  (output of underlying command)when no nameservers.
 
 
 ## v2.11.0
 
 * Various fixes and clarifications.
-* Change implementation of available_network_names to use REXML; first implemented w/position number, then XPath.
+* Change implementation of available_network_names to use REXML; first implemented w/position number, then
+  XPath.
 * Add attempt count to try_os_command_until in verbose mode.
 
 ## v2.10.1
 
-* Fix egregious bug; the 'a' command did not work if `airport` was not in the path; I should have been using the AIRPORT_CMD constant but hard coded `airport` instead.
+* Fix egregious bug; the 'a' command did not work if `airport` was not in the path; I should have been using
+  the AIRPORT_CMD constant but hard coded `airport` instead.
 
 ## v2.10.0
 
@@ -317,7 +367,8 @@ This major release represents a complete rewrite focused on cross-platform suppo
 * Add MAC address to info hash.
 * Reduce ping timeout to 3 seconds for faster return for `info`, `ci` commands.
 * Replace ipchicken.com link with iplocation.net link for 'ropen'; iplocation aggregates several info sources.
-* Fix bug where if there were no duplicate network names, result was nil, because uniq! returns nil if no changes!!!
+* Fix bug where if there were no duplicate network names, result was nil, because uniq! returns nil if no
+  changes!!!
 * Suppress error throw on ping error when not connected; it was printing useless output.
 
 ## v2.8.0

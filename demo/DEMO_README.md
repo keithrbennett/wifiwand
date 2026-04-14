@@ -5,7 +5,8 @@ This directory contains materials for creating demonstrations and presentations 
 ## Files
 
 ### `demo-wifi-wand.sh`
-A wrapper script that provides anonymized output for sensitive commands while running real wifi-wand commands for safe operations.
+A wrapper script that provides anonymized output for sensitive commands while running real wifi-wand commands
+for safe operations.
 
 **Usage:**
 ```bash
@@ -41,8 +42,10 @@ The demo script uses consistent anonymized data:
 
 ## Usage Tips
 
-1. **For Video Recording**: Use `demo-wifi-wand.sh` instead of `wifi-wand` to get consistent, anonymized output
-2. **For Live Demos**: The script provides predictable results while still running real commands under the hood
+1. **For Video Recording**: Use `demo-wifi-wand.sh` instead of `wifi-wand` to get consistent, anonymized
+   output
+2. **For Live Demos**: The script provides predictable results while still running real commands under the
+   hood
 3. **For Testing**: Safe to run without affecting your actual network configuration (for demo commands)
 
 ## Security Notes

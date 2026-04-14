@@ -14,7 +14,8 @@ or, you may need to precede that command with `sudo` to install it system-wide:
 
 `sudo gem install wifi-wand`
 
-**Note for macOS users:** macOS ships with Ruby 2.6. If you get an installation error about Ruby version or the `traces` gem, install a modern Ruby. The simplest way is with Homebrew:
+**Note for macOS users:** macOS ships with Ruby 2.6. If you get an installation error about Ruby version or
+the `traces` gem, install a modern Ruby. The simplest way is with Homebrew:
 
 ```bash
 brew install ruby
@@ -30,7 +31,8 @@ export PATH="/usr/local/opt/ruby/bin:$PATH"
 <details>
 <summary><strong>Unsupported workaround for Ruby < 3.2</strong></summary>
 
-If you must use an older Ruby version (not supported), you can try modifying `wifi-wand.gemspec` before building:
+If you must use an older Ruby version (not supported), you can try modifying `wifi-wand.gemspec` before
+building:
 
 ```ruby
 spec.required_ruby_version = ">= 2.7.0"    # change from ">= 3.2.0"
@@ -70,7 +72,8 @@ These are typically pre-installed on Ubuntu systems.
 wifi-wand-macos-setup
 ```
 
-This grants location permission needed for WiFi network access. Without it, network names may appear as `<hidden>` or `<redacted>`. See the **[macOS Setup Guide](docs/MACOS_SETUP.md)** for details.
+This grants location permission needed for WiFi network access. Without it, network names may appear as
+`<hidden>` or `<redacted>`. See the **[macOS Setup Guide](docs/MACOS_SETUP.md)** for details.
 
 ---
 
@@ -85,7 +88,8 @@ However, the code encapsulates the OS-specific logic in model subclasses with id
 method names and argument lists, so that they present a unified interface for use in:
 
 * command line invocation (e.g. `wifi-wand co my-network my-password` to connect to a network)
-* interactive shell (REPL) sessions where the WiFi-wand methods are effectively DSL commands (`wifi-wand shell` to run in interactive mode)
+* interactive shell (REPL) sessions where the WiFi-wand methods are effectively DSL commands (`wifi-wand
+  shell` to run in interactive mode)
 * other Ruby applications as a gem (library) (`require wifi-wand`)
 
 ### ⚠️ Breaking Change: Interactive Shell
@@ -199,13 +203,16 @@ wifi-wand -v ...
 
 For detailed information about specific features:
 
-- **[Event Logging (`log` command)](docs/LOGGING.md)** - Continuously monitor WiFi state changes, log events over time, and detect network issues
+- **[Event Logging (`log` command)](docs/LOGGING.md)** - Continuously monitor WiFi state changes, log events
+  over time, and detect network issues
 - **[Status Command](docs/STATUS_COMMAND.md)** - Understand WiFi and connectivity status display
 - **[Info Command](docs/INFO_COMMAND.md)** - Get detailed network configuration and status information
-- **[Connectivity Checking (`ci` command)](docs/CONNECTIVITY_CHECKING.md)** - Check internet availability in scripts and automation
+- **[Connectivity Checking (`ci` command)](docs/CONNECTIVITY_CHECKING.md)** - Check internet availability in
+  scripts and automation
 - **[Testing Guide](docs/TESTING.md)** - Running tests, coverage reports, and test categories
 - **[DNS Configuration Guide](docs/DNS_Configuration_Guide.md)** - Managing nameservers and DNS settings
-- **[Environment Variables Reference](docs/ENVIRONMENT_VARIABLES.md)** - Configuration via environment variables (including the `WIFIWAND_OPTS` default-options helper)
+- **[Environment Variables Reference](docs/ENVIRONMENT_VARIABLES.md)** - Configuration via environment
+  variables (including the `WIFIWAND_OPTS` default-options helper)
 
 ### Usage
 
@@ -280,7 +287,8 @@ When in interactive shell mode:
 
 ### Pretty Output
 
-The `awesome_print` gem is used for formatting output nicely in both non-interactive and interactive (shell) modes.
+The `awesome_print` gem is used for formatting output nicely in both non-interactive and interactive (shell)
+modes.
 
 ### JSON, YAML, and Other Output Formats
 
@@ -439,7 +447,8 @@ of preferred networks, so you might want to suppress their output:
 
 ### Using as a Library
 
-The `wifi-wand` gem can be used as a library in your own Ruby applications. The primary entry point for the library is the `WifiWand::Client` class.
+The `wifi-wand` gem can be used as a library in your own Ruby applications. The primary entry point for the
+library is the `WifiWand::Client` class.
 
 #### Basic Usage
 
@@ -461,7 +470,8 @@ puts client.available_network_names.map { |n| "  - #{n}" }
 
 #### Passing Options
 
-You can pass options to the client during initialization, such as `:verbose` to see underlying OS commands or `:wifi_interface` to specify a network interface.
+You can pass options to the client during initialization, such as `:verbose` to see underlying OS commands or
+`:wifi_interface` to specify a network interface.
 
 ```ruby
 require 'wifi-wand'
@@ -475,7 +485,8 @@ puts client.wifi_info
 
 #### Available Methods
 
-The `Client` object provides a comprehensive API for interacting with your Wi-Fi interface. All public methods on the underlying OS-specific models are delegated to the client. Key methods include:
+The `Client` object provides a comprehensive API for interacting with your Wi-Fi interface. All public methods
+on the underlying OS-specific models are delegated to the client. Key methods include:
 
 *   `available_network_names`
 *   `connect(ssid, password)`
@@ -582,9 +593,13 @@ You can create QR codes for the currently connected network to share credentials
 
 Notes:
 - Requires `qrencode` to be installed (macOS: `brew install qrencode`, Ubuntu: `sudo apt install qrencode`).
-- When a target file already exists, wifi-wand prompts before overwriting in interactive terminals; in non-interactive use, it errors instead.
-- For PDF, generate an SVG first and convert with a separate tool (e.g., `rsvg-convert`, `inkscape`, or ImageMagick's `magick`).
-- **Interactive shell QR display**: When using `qr '-'` in the interactive shell, wrap the result with `puts` (e.g., `puts qr('-')`) to properly render the ANSI characters. Without `puts`, pry calls `inspect` on the string, which escapes the ANSI codes and prevents the QR code from displaying correctly.
+- When a target file already exists, wifi-wand prompts before overwriting in interactive terminals; in
+  non-interactive use, it errors instead.
+- For PDF, generate an SVG first and convert with a separate tool (e.g., `rsvg-convert`, `inkscape`, or
+  ImageMagick's `magick`).
+- **Interactive shell QR display**: When using `qr '-'` in the interactive shell, wrap the result with `puts`
+  (e.g., `puts qr('-')`) to properly render the ANSI characters. Without `puts`, pry calls `inspect` on the
+  string, which escapes the ANSI codes and prevents the QR code from displaying correctly.
 
 
 ### Public IP Information
@@ -627,12 +642,17 @@ functionality relies has been disabled and will presumably eventually be removed
 
 #### Swift/CoreWLAN Wrappers
 
-To maintain functionality after airport deprecation, wifi-wand now uses Swift scripts with the CoreWLAN framework for several operations:
+To maintain functionality after airport deprecation, wifi-wand now uses Swift scripts with the CoreWLAN
+framework for several operations:
 
-* **Connecting to networks** - Uses `WifiNetworkConnector.swift` (preferred method, with automatic fallback to `networksetup`)
-* **Disconnecting from networks** - Uses `WifiNetworkDisconnector.swift` (with the added benefit that sudo access is no longer required, falls back to `ifconfig`)
+* **Connecting to networks** - Uses `WifiNetworkConnector.swift` (preferred method, with automatic fallback to
+  `networksetup`)
+* **Disconnecting from networks** - Uses `WifiNetworkDisconnector.swift` (with the added benefit that sudo
+  access is no longer required, falls back to `ifconfig`)
 
-These Swift wrappers are **optional dependencies**. If Swift or CoreWLAN are not available (e.g., Xcode Command Line Tools not installed), wifi-wand automatically falls back to traditional command-line utilities (`networksetup`, `ifconfig`) with slightly reduced functionality.
+These Swift wrappers are **optional dependencies**. If Swift or CoreWLAN are not available (e.g., Xcode
+Command Line Tools not installed), wifi-wand automatically falls back to traditional command-line utilities
+(`networksetup`, `ifconfig`) with slightly reduced functionality.
 
 To install Swift and CoreWLAN support:
 ```bash
@@ -644,16 +664,21 @@ The following tasks were restored by using `networksetup` and `system_profiler`:
 * the name of the currently connected network
 * listing names of all available networks
 
-The only remaining issue is that we were getting some extended information from airport for each available network. This extended information has now been removed in version 2.17.0.
+The only remaining issue is that we were getting some extended information from airport for each available
+network. This extended information has now been removed in version 2.17.0.
 
-In addition, the extended information about the available networks (`ls_avail_nets`) has been removed in version 2.17.0.
+In addition, the extended information about the available networks (`ls_avail_nets`) has been removed in
+version 2.17.0.
 
 
 ### macOS Helper Cleanup (macOS Sonoma+)
 
-On macOS Sonoma (14.0) and later, wifi-wand installs a native helper app to `~/Library/Application Support/WifiWand/<version>/` to provide unredacted WiFi information. Each gem version creates its own helper directory to support running multiple gem versions simultaneously.
+On macOS Sonoma (14.0) and later, wifi-wand installs a native helper app to `~/Library/Application
+Support/WifiWand/<version>/` to provide unredacted WiFi information. Each gem version creates its own helper
+directory to support running multiple gem versions simultaneously.
 
-Over time, old helper versions may accumulate as you upgrade. Each helper is ~100-200KB, so this is rarely a concern, but you can clean them up if desired.
+Over time, old helper versions may accumulate as you upgrade. Each helper is ~100-200KB, so this is rarely a
+concern, but you can clean them up if desired.
 
 **List installed helper versions:**
 ```bash
@@ -681,7 +706,8 @@ Apache 2 License (see LICENSE.txt)
 
 ### Logo
 
-Logo designed and generously contributed by Anhar Ismail (Github: [@anharismail](https://github.com/anharismail), Twitter: [@aizenanhar](https://twitter.com/aizenanhar)).
+Logo designed and generously contributed by Anhar Ismail (Github:
+[@anharismail](https://github.com/anharismail), Twitter: [@aizenanhar](https://twitter.com/aizenanhar)).
 
 
 ### Contact Me

@@ -9,7 +9,8 @@ Create or modify a markdown file with the information I will describe below.
 * Else:
   * Build a default filespec using "docs/os-command-use-#{os_name}" and adding "-#{model_abbrev}" 
     if you know which model you are.
-  * Prompt the user to ask for a filespec, offering the default, to which the user can reply '.' to use the default.
+  * Prompt the user to ask for a filespec, offering the default, to which the user can reply '.' to use the
+    default.
   * Use the reply as the filespec, where '.' is replaced by your default filespec
 
 ### OS Selection
@@ -31,13 +32,14 @@ Create or modify a markdown file with the information I will describe below.
 ----
 
 * In that document, for each operating system commands it uses:
-  * Print briefly any useful information that is not obvious (e.g. SSID's vs. network profiles in Network Manager)
+  * Print briefly any useful information that is not obvious (e.g. SSID's vs. network profiles in Network
+    Manager)
   * For each form (that is, commands, subcommands, parameters), output, in the following order:
     * 1 line description
     * dynamic values coming from ruby variables
     * base model method name(s) that use this command
     * command line interface commands that call any of those methods
-    * any other helpful detailed info, esp. re: Ubuntu network profiles                                                                            
+    * any other helpful detailed info, esp. re: Ubuntu network profiles
 
 More:
 

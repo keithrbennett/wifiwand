@@ -23,11 +23,13 @@ This works, but it is harder to read and reason about because:
 3. The method contract is incomplete unless the caller also knows to inspect side state
 4. Tests must understand implementation details rather than a clean public result contract
 
-The goal of this refactor is to replace that pattern with an explicit return value that contains both data and status.
+The goal of this refactor is to replace that pattern with an explicit return value that contains both data and
+status.
 
 ## Goal
 
-Refactor the macOS helper client so helper query methods return a single explicit result object/value containing:
+Refactor the macOS helper client so helper query methods return a single explicit result object/value
+containing:
 
 - the requested payload
 - whether Location Services blocked the query
@@ -134,7 +136,8 @@ Likely methods:
 - `connected_network_name`
 - `scan_networks`
 
-You may also choose to introduce lower-level explicit result methods and keep convenience wrappers if that makes migration easier.
+You may also choose to introduce lower-level explicit result methods and keep convenience wrappers if that
+makes migration easier.
 
 2. Remove or reduce hidden side-state reliance
 
@@ -143,7 +146,9 @@ Specifically review:
 - `@last_error_message`
 - `location_services_blocked?`
 
-If possible, remove `location_services_blocked?` entirely from the public contract. If it must remain temporarily for compatibility, make it a thin adapter over the new result shape and mark it as transitional in comments.
+If possible, remove `location_services_blocked?` entirely from the public contract. If it must remain
+temporarily for compatibility, make it a thin adapter over the new result shape and mark it as transitional in
+comments.
 
 3. Update `MacOsModel` to use the explicit result contract
 
@@ -195,7 +200,8 @@ If behavior shifts in user-facing output, update specs accordingly.
 
 The refactor is successful if:
 
-1. No model code depends on calling one helper method and then separately reading hidden helper-client state to understand the result
+1. No model code depends on calling one helper method and then separately reading hidden helper-client state
+   to understand the result
 2. The helper client’s public query contract is explicit about payload and authorization failure status
 3. Existing behavior around suppressing redacted fallback remains intact
 4. Targeted specs pass

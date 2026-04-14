@@ -1,20 +1,28 @@
 # Developer Documentation Index
 
-This directory is for `wifi-wand` maintainers and developers. These documents contain deep technical details, research, and internal strategy.
+This directory is for `wifi-wand` maintainers and developers. These documents contain deep technical details,
+research, and internal strategy.
 
 ## macOS Helper Development
 
-- **[macOS Helper Research](MAC_HELPER_RESEARCH.md)** - Original research into why and how the native macOS helper was implemented.
-- **[macOS Helper Permissions](MAC_HELPER_PERMISSIONS.md)** - Documentation of the helper's permission behavior and the "com.wifiwand.helper" bundle identity.
-- **[macOS Code Signing (Context)](MACOS_CODE_SIGNING_CONTEXT.md)** - Technical context for macOS code signing and notarization.
-- **[macOS Code Signing (Instructions)](MACOS_CODE_SIGNING_INSTRUCTIONS.md)** - Step-by-step instructions for maintainers to sign and notarize a release.
+- **[macOS Helper Research](MAC_HELPER_RESEARCH.md)** - Original research into why and how the native macOS
+  helper was implemented.
+- **[macOS Helper Permissions](MAC_HELPER_PERMISSIONS.md)** - Documentation of the helper's permission
+  behavior and the "com.wifiwand.helper" bundle identity.
+- **[macOS Code Signing (Context)](MACOS_CODE_SIGNING_CONTEXT.md)** - Technical context for macOS code signing
+  and notarization.
+- **[macOS Code Signing (Instructions)](MACOS_CODE_SIGNING_INSTRUCTIONS.md)** - Step-by-step instructions for
+  maintainers to sign and notarize a release.
 
 ## Developer Environment
 
-- **[Isolated AI Dev VM Setup](AI_VM_SETUP.md)** - Step-by-step guide for building an isolated VM-based development environment with Ansible, suitable for Linux now and Apple Silicon later.
-- **[Reviewed Agent Issues](REVIEWED_AGENT_ISSUES.md)** - Previously reviewed objections that agents/reviewers should not re-raise without new evidence.
+- **[Isolated AI Dev VM Setup](AI_VM_SETUP.md)** - Step-by-step guide for building an isolated VM-based
+  development environment with Ansible, suitable for Linux now and Apple Silicon later.
+- **[Reviewed Agent Issues](REVIEWED_AGENT_ISSUES.md)** - Previously reviewed objections that agents/reviewers
+  should not re-raise without new evidence.
 
 ## General Information
 
-- End-user documentation should be prioritized by contributors in the **[Main Documentation Index](../README.md)**.
+- End-user documentation should be prioritized by contributors in the **[Main Documentation
+  Index](../README.md)**.
 - For internal testing strategies and CI details, refer to the **[Testing Guide](../TESTING.md)**.

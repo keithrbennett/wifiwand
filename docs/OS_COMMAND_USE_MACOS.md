@@ -5,8 +5,10 @@
 This document outlines the shell commands used by `wifi-wand` on the macOS operating system.
 
 Notes:
-- macOS differentiates network service labels (e.g., "Wi-Fi") from interface devices (e.g., `en0`). `wifi-wand` captures both so each command receives the argument it expects.
-- Several commands warm detection caches that later operations reuse; listed CLI commands indicate where users may observe the behavior.
+- macOS differentiates network service labels (e.g., "Wi-Fi") from interface devices (e.g., `en0`).
+  `wifi-wand` captures both so each command receives the argument it expects.
+- Several commands warm detection caches that later operations reuse; listed CLI commands indicate where users
+  may observe the behavior.
 
 ## `networksetup`
 
@@ -15,7 +17,8 @@ Notes:
 ### `networksetup -listallhardwareports`
 - Description: Lists every hardware port so the Wi-Fi service name and interface device can be discovered.
 - Dynamic Values: None
-- Base Model Method(s): `detect_wifi_service_name`, `detect_wifi_interface_using_networksetup`, `probe_wifi_interface`
+- Base Model Method(s): `detect_wifi_service_name`, `detect_wifi_interface_using_networksetup`,
+  `probe_wifi_interface`
 - CLI Command(s): Internal (interface/service detection shared by most commands)
 - Helpful Info: Populates cached `wifi_service_name`/`wifi_interface` values to avoid repeated probing.
 
@@ -23,7 +26,8 @@ Notes:
 - Description: Retrieves the saved (preferred) network SSIDs for the specified interface.
 - Dynamic Values: `interface` (from `wifi_interface`)
 - Base Model Method(s): `preferred_networks`, `is_wifi_interface?`
-- CLI Command(s): `pr` (preferred networks), `pa` (preferred password lookup), `f` (forget), `co` (connect via saved password path)
+- CLI Command(s): `pr` (preferred networks), `pa` (preferred password lookup), `f` (forget), `co` (connect via
+  saved password path)
 - Helpful Info: The first line of output is dropped and results are sorted case-insensitively before use.
 
 ### `networksetup -getairportpower <interface>`
@@ -52,7 +56,8 @@ Notes:
 - Dynamic Values: `interface` (from `wifi_interface`), `network_name`, `password` (optional)
 - Base Model Method(s): `os_level_connect_using_networksetup`, `_connect`
 - CLI Command(s): `co`
-- Helpful Info: `networksetup` exits with code 0 even on failure; the implementation inspects the combined output for error patterns and raises on authentication failures.
+- Helpful Info: `networksetup` exits with code 0 even on failure; the implementation inspects the combined
+  output for error patterns and raises on authentication failures.
 
 ### `sudo networksetup -removepreferredwirelessnetwork <interface> <network_name>`
 - Description: Removes a saved network profile from macOS preferences.
@@ -66,21 +71,24 @@ Notes:
 - Dynamic Values: `service_name` (from `wifi_service_name`)
 - Base Model Method(s): `set_nameservers`
 - CLI Command(s): `na` (clear)
-- Helpful Info: The `empty` token is specific to macOS; successful execution resets both IPv4 and IPv6 settings to automatic.
+- Helpful Info: The `empty` token is specific to macOS; successful execution resets both IPv4 and IPv6
+  settings to automatic.
 
 ### `networksetup -setdnsservers <service_name> <nameserver...>`
 - Description: Assigns one or more DNS servers to the Wi-Fi service.
 - Dynamic Values: `service_name` (from `wifi_service_name`), `nameservers` (validated IPv4/IPv6 strings)
 - Base Model Method(s): `set_nameservers`
 - CLI Command(s): `na` (set)
-- Helpful Info: Inputs are checked with `IPAddr`; any invalid address triggers `InvalidIPAddressError` before the OS call.
+- Helpful Info: Inputs are checked with `IPAddr`; any invalid address triggers `InvalidIPAddressError` before
+  the OS call.
 
 ### `networksetup -getdnsservers <service_name>`
 - Description: Reads the DNS servers configured for the Wi-Fi service.
 - Dynamic Values: `service_name` (from `wifi_service_name`)
 - Base Model Method(s): `nameservers_using_networksetup`
 - CLI Command(s): `na` (diagnostics), `i` (info aggregation)
-- Helpful Info: The method normalizes Apple's “There aren't any DNS Servers set...” message to an empty list.
+- Helpful Info: The method normalizes Apple's “There aren't any DNS Servers set...” message to
+  an empty list.
 
 ## `system_profiler`
 
@@ -96,9 +104,11 @@ Notes:
 ### `system_profiler -json SPAirPortDataType`
 - Description: Generates detailed Wi-Fi telemetry including SSIDs, signal levels, and security information.
 - Dynamic Values: None
-- Base Model Method(s): `airport_data`, `_available_network_names`, `_connected_network_name`, `connection_security_type`, `network_hidden?`
+- Base Model Method(s): `airport_data`, `_available_network_names`, `_connected_network_name`,
+  `connection_security_type`, `network_hidden?`
 - CLI Command(s): `a` (available networks), `i` (info), `ne` (network name), `qr` (QR code generation)
-- Helpful Info: The model caches parsed results and extracts signal strength noise ratios to sort networks by quality.
+- Helpful Info: The model caches parsed results and extracts signal strength noise ratios to sort networks by
+  quality.
 
 ## `security`
 
@@ -109,7 +119,8 @@ The `security` tool integrates with the macOS Keychain to retrieve stored Wi-Fi 
 - Dynamic Values: `network_name`
 - Base Model Method(s): `_preferred_network_password`
 - CLI Command(s): `pa`, `co`, `qr`
-- Helpful Info: Exit codes map to custom exceptions (e.g., 45 → `KeychainAccessDeniedError`); a missing item returns `nil` without raising.
+- Helpful Info: Exit codes map to custom exceptions (e.g., 45 → `KeychainAccessDeniedError`); a missing item
+  returns `nil` without raising.
 
 ## `ipconfig`
 
@@ -131,7 +142,8 @@ The `security` tool integrates with the macOS Keychain to retrieve stored Wi-Fi 
 - Dynamic Values: `interface` (from `wifi_interface`)
 - Base Model Method(s): `_disconnect`
 - CLI Command(s): `d`
-- Helpful Info: Falls back to `ifconfig <interface> disassociate` without sudo if the privileged form fails; both invocations suppress exceptions (`raise_on_error = false`) so alternate paths can run.
+- Helpful Info: Falls back to `ifconfig <interface> disassociate` without sudo if the privileged form fails;
+  both invocations suppress exceptions (`raise_on_error = false`) so alternate paths can run.
 
 ### `ifconfig <interface>`
 - Description: Retrieves interface details to extract the MAC address.
@@ -149,7 +161,8 @@ The `security` tool integrates with the macOS Keychain to retrieve stored Wi-Fi 
 - Dynamic Values: None
 - Base Model Method(s): `nameservers_using_scutil`, `nameservers`
 - CLI Command(s): `na` (get), `i`, `s`, `log`
-- Helpful Info: Lines starting with `nameserver[` are deduplicated so repeated entries do not surface in CLI output.
+- Helpful Info: Lines starting with `nameserver[` are deduplicated so repeated entries do not surface in CLI
+  output.
 
 ## `swift`
 
@@ -160,14 +173,16 @@ Swift helpers leverage the CoreWLAN framework for rich Wi-Fi control when the to
 - Dynamic Values: None
 - Base Model Method(s): `swift_and_corewlan_present?`
 - CLI Command(s): `co`, `d`, `qr`
-- Helpful Info: Verbose mode prints actionable guidance for exit statuses 127 (Swift missing) and 1 (CoreWLAN unavailable).
+- Helpful Info: Verbose mode prints actionable guidance for exit statuses 127 (Swift missing) and 1 (CoreWLAN
+  unavailable).
 
 ### `swift swift/WifiNetworkConnector.swift <network_name> [password]`
 - Description: Uses a Swift helper to connect via CoreWLAN when available.
 - Dynamic Values: `swift_filespec` (absolute path to the helper), `network_name`, `password` (optional)
 - Base Model Method(s): `run_swift_command`, `os_level_connect_using_swift`, `_connect`
 - CLI Command(s): `co`
-- Helpful Info: The CoreWLAN path is attempted before the `networksetup` fallback; specific CoreWLAN error codes trigger retries with the legacy command.
+- Helpful Info: The CoreWLAN path is attempted before the `networksetup` fallback; specific CoreWLAN error
+  codes trigger retries with the legacy command.
 
 ### `swift swift/WifiNetworkDisconnector.swift`
 - Description: Invokes a Swift helper to disconnect using CoreWLAN.
@@ -196,7 +211,8 @@ Swift helpers leverage the CoreWLAN framework for rich Wi-Fi control when the to
 - Dynamic Values: None
 - Base Model Method(s): `detect_macos_version`
 - CLI Command(s): Internal (used for diagnostics and verbose reporting)
-- Helpful Info: Errors are suppressed in non-verbose mode; verbose mode prints a warning when the OS version cannot be determined.
+- Helpful Info: Errors are suppressed in non-verbose mode; verbose mode prints a warning when the OS version
+  cannot be determined.
 
 ## `open`
 
@@ -225,11 +241,13 @@ The `open` utility launches macOS applications and resources via the default han
 - Dynamic Values: `file` (from CLI/filespec), `wifi_qr_string` (escapes SSID/password/hidden flags)
 - Base Model Method(s): `BaseModel#generate_qr_code` via `Helpers::QrCodeGenerator#run_qrencode_file`
 - CLI Command(s): `qr` (file output)
-- Helpful Info: Output type switches to SVG/EPS when the filename extension matches; overwrite prompts run before the command executes.
+- Helpful Info: Output type switches to SVG/EPS when the filename extension matches; overwrite prompts run
+  before the command executes.
 
 ### `qrencode -t ANSI <wifi_qr_string>`
 - Description: Emits an ANSI-art QR code to stdout.
 - Dynamic Values: `wifi_qr_string`
 - Base Model Method(s): `BaseModel#generate_qr_code` via `Helpers::QrCodeGenerator#run_qrencode_text`
 - CLI Command(s): `qr -`
-- Helpful Info: In non-interactive CLI mode the ANSI output streams directly to stdout; interactive shells return the string so callers can `puts` it manually.
+- Helpful Info: In non-interactive CLI mode the ANSI output streams directly to stdout; interactive shells
+  return the string so callers can `puts` it manually.

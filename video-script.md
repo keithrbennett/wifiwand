@@ -8,7 +8,9 @@
 
 **[SCREEN: Terminal with clear prompt]**
 
-**Narrator:** "Welcome to WiFi-Wand, a cross-platform Ruby gem that makes WiFi management simple and powerful. Whether you're on macOS or Ubuntu Linux, WiFi-Wand provides a unified interface for all your wireless networking needs."
+**Narrator:** "Welcome to WiFi-Wand, a cross-platform Ruby gem that makes WiFi management simple and powerful.
+Whether you're on macOS or Ubuntu Linux, WiFi-Wand provides a unified interface for all your wireless
+networking needs."
 
 **[Type command]**
 ```bash
@@ -157,7 +159,8 @@ wifi-wand -s
 [1] pry(#<WifiWand::CommandLineInterface>)> 
 ```
 
-**Narrator:** "We're now in an interactive Ruby shell with all WiFi-Wand commands available. This is perfect for exploration and combining commands. Let's save our WiFi info in a variable."
+**Narrator:** "We're now in an interactive Ruby shell with all WiFi-Wand commands available. This is perfect
+for exploration and combining commands. Let's save our WiFi info in a variable."
 
 **[Type in shell]**
 ```ruby
@@ -176,7 +179,8 @@ wifi_info = info
 }
 ```
 
-**Narrator:** "In shell mode, we get nicely formatted output using Ruby's awesome_print gem. Now we can use that data in Ruby expressions."
+**Narrator:** "In shell mode, we get nicely formatted output using Ruby's awesome_print gem. Now we can use
+that data in Ruby expressions."
 
 **[Type in shell]**
 ```ruby
@@ -216,7 +220,8 @@ preferred = pref_nets
 => "I have 5 saved networks"
 ```
 
-**Narrator:** "Let's look up the password for our current network. Commands can be abbreviated - we can use 'pa' for password and 'ne' for network_name."
+**Narrator:** "Let's look up the password for our current network. Commands can be abbreviated - we can use
+'pa' for password and 'ne' for network_name."
 
 **[Type in shell]**
 ```ruby
@@ -260,7 +265,8 @@ nameservers
 ]
 ```
 
-**Narrator:** "We can modify nameservers too. Let's clear them first, then set custom ones using the abbreviated form."
+**Narrator:** "We can modify nameservers too. Let's clear them first, then set custom ones using the
+abbreviated form."
 
 **[Type in shell]**
 ```ruby
@@ -295,7 +301,8 @@ forget "Hotel_Guest"
 => ["Hotel_Guest"]
 ```
 
-**Narrator:** "We can also remove multiple networks at once. Now let's see the 'till' command - it waits for a specific network state and can run a block while waiting."
+**Narrator:** "We can also remove multiple networks at once. Now let's see the 'till' command - it waits for a
+specific network state and can run a block while waiting."
 
 **[Type in shell]**
 ```ruby
@@ -335,7 +342,8 @@ exit
 
 **[Back to regular terminal]**
 
-**Narrator:** "That's WiFi-Wand! A powerful, cross-platform WiFi management tool that works great both for quick command-line tasks and interactive exploration. Key features include:"
+**Narrator:** "That's WiFi-Wand! A powerful, cross-platform WiFi management tool that works great both for
+quick command-line tasks and interactive exploration. Key features include:"
 
 **[SCREEN: Text overlay while narrator speaks]**
 - ✅ Cross-platform support (macOS & Ubuntu)
@@ -344,7 +352,8 @@ exit
 - 🔍 Comprehensive network information
 - 🛠️ Network management capabilities
 
-**Narrator:** "Install it with 'gem install wifi-wand' and visit github.com/keithrbennett/wifiwand for documentation. Thanks for watching!"
+**Narrator:** "Install it with 'gem install wifi-wand' and visit github.com/keithrbennett/wifiwand for
+documentation. Thanks for watching!"
 
 ---
 

@@ -2,7 +2,8 @@
 
 ## Overview
 
-The `log` command continuously monitors WiFi power, network connection, and internet connectivity, logging events when any of these states change. This is useful for:
+The `log` command continuously monitors WiFi power, network connection, and internet connectivity, logging
+events when any of these states change. This is useful for:
 
 - Monitoring WiFi power state changes
 - Tracking network connections and disconnections
@@ -70,7 +71,8 @@ Logs to the specified file path instead of stdout.
 
 ### Outputting to Both File and stdout
 
-When you add any destination besides stdout, the command assumes you want to silence the console unless you opt back in. To see events on the terminal while also saving them to a file, include `--stdout` explicitly:
+When you add any destination besides stdout, the command assumes you want to silence the console unless you
+opt back in. To see events on the terminal while also saving them to a file, include `--stdout` explicitly:
 
 ```bash
 wifi-wand log --file --stdout
@@ -97,7 +99,8 @@ When this option is used alone, output goes to file only (stdout is disabled).
 
 ### `--stdout`
 
-Explicitly enables stdout output. Standard output is used by default, but it is disabled automatically once `--file` is specified unless `--stdout` is also provided.
+Explicitly enables stdout output. Standard output is used by default, but it is disabled automatically once
+`--file` is specified unless `--stdout` is also provided.
 
 - Include after `--file` to keep seeing events in the terminal
 - Without any other destinations, stdout is already active by default
@@ -153,7 +156,8 @@ This ensures that related state changes are logged in a logical sequence.
 
 ### Network Roaming
 
-When the network name changes from one non-nil value to another (e.g., "NetworkA" to "NetworkB"), both events are emitted in this order:
+When the network name changes from one non-nil value to another (e.g., "NetworkA" to "NetworkB"), both events
+are emitted in this order:
 
 1. `Disconnected from NetworkA`
 2. `Connected to NetworkB`
@@ -223,7 +227,8 @@ cat debug.log
 
 ## How It Works
 
-1. **Initial State**: The logger captures and logs the current WiFi state (power, network, internet) when started
+1. **Initial State**: The logger captures and logs the current WiFi state (power, network, internet) when
+   started
 2. **Polling Loop**: At regular intervals (default 5 seconds), the following are queried:
    - `wifi_on?` - WiFi power state
    - `connected_network_name` - Currently connected network
@@ -250,7 +255,8 @@ checks could not reach a conclusion.
 
 ### macOS Performance Note
 
-On macOS, `connected_network_name` can be slow without the Swift/CoreWLAN helper installed (see [MACOS_SETUP.md](./MACOS_SETUP.md)). This affects logging performance on macOS systems without the helper.
+On macOS, `connected_network_name` can be slow without the Swift/CoreWLAN helper installed (see
+[MACOS_SETUP.md](./MACOS_SETUP.md)). This affects logging performance on macOS systems without the helper.
 
 ## File Permission Errors
 

@@ -4,7 +4,10 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-**wifi-wand** is a Ruby gem that provides unified WiFi management across Mac and Ubuntu systems. It operates through both command-line interface and interactive shell modes, using OS-specific utilities under the hood while presenting a consistent API. The gem serves as both a standalone CLI tool and a library for other Ruby applications.
+**wifi-wand** is a Ruby gem that provides unified WiFi management across Mac and Ubuntu systems. It operates
+through both command-line interface and interactive shell modes, using OS-specific utilities under the hood
+while presenting a consistent API. The gem serves as both a standalone CLI tool and a library for other Ruby
+applications.
 
 ## Development Commands
 
@@ -61,7 +64,8 @@ bundle exec exe/wifi-wand available_networks
 
 ### High-Level Design Pattern
 
-The codebase follows a **layered architecture with OS abstraction**, designed to provide a unified interface across different operating systems while encapsulating OS-specific implementation details.
+The codebase follows a **layered architecture with OS abstraction**, designed to provide a unified interface
+across different operating systems while encapsulating OS-specific implementation details.
 
 #### Core Architecture Layers
 
@@ -90,7 +94,8 @@ The codebase follows a **layered architecture with OS abstraction**, designed to
 
 5. **Model Layer** (`lib/wifi-wand/models/`)
    - `BaseModel` - defines unified interface with wrapper methods
-   - `MacOsModel` - implements macOS-specific WiFi operations using `networksetup`, `system_profiler`, Swift/CoreWLAN
+   - `MacOsModel` - implements macOS-specific WiFi operations using `networksetup`, `system_profiler`,
+     Swift/CoreWLAN
    - `UbuntuModel` - implements Ubuntu-specific operations using `nmcli`, `iw`, `ip`
 
 6. **Service Layer** (`lib/wifi-wand/services/`)
@@ -130,7 +135,8 @@ To add support for a new operating system:
 ### Model Layer Deep Dive
 
 #### BaseModel Wrapper Pattern
-The `BaseModel` uses a wrapper pattern where public methods check WiFi state before delegating to underscore-prefixed implementation methods:
+The `BaseModel` uses a wrapper pattern where public methods check WiFi state before delegating to
+underscore-prefixed implementation methods:
 
 ```ruby
 # Public wrapper - checks WiFi state
@@ -202,4 +208,5 @@ The Pry-based interactive shell (`-s` flag) provides:
 - No plaintext password storage in memory or logs
 - Secure password comparison to avoid unnecessary profile modifications
 
-This architecture enables rapid development of new WiFi management features while maintaining cross-platform compatibility and testability.
+This architecture enables rapid development of new WiFi management features while maintaining cross-platform
+compatibility and testability.

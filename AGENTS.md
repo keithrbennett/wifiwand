@@ -1,24 +1,32 @@
 # AGENTS.md
 
-This file provides guidance to AI agents (such as Gemini CLI, Claude Code, etc.) when working with code in this repository. Treat it as the canonical reference for workflows, tooling, and expectations; update it directly whenever new agent instructions are required.
+This file provides guidance to AI agents (such as Gemini CLI, Claude Code, etc.) when working with code in
+this repository. Treat it as the canonical reference for workflows, tooling, and expectations; update it
+directly whenever new agent instructions are required.
 
 ## Mission
-- Pull accurate information and project facts for users by driving available tools rather than reasoning from scratch.
+- Pull accurate information and project facts for users by driving available tools rather than reasoning from
+  scratch.
 - Keep workflow transparent: explain what you did, why it matters, and what the user should consider next.
-- Leave the repository tidy; only touch files that advance the request. If you find other opportunities for improvement along the way, mention them in the form of a prompt the user can use later.
+- Leave the repository tidy; only touch files that advance the request. If you find other opportunities for
+  improvement along the way, mention them in the form of a prompt the user can use later.
 
 ## Running External Commands
 
-- When running shell commands on this project, use a Bash login shell where possible: run commands via `bash -lc '<command>'` (or the platform's equivalent) rather than relying on the default shell.
+- When running shell commands on this project, use a Bash login shell where possible: run commands via `bash
+  -lc '<command>'` (or the platform's equivalent) rather than relying on the default shell.
 - If practical, use workdir features of the agent rather than relying on `cd` in the command string.
 
 ## Environment & Execution
 
-Prefer project-local tools and scripts (for example, `bin/` scripts, `package.json` scripts, Makefile targets) instead of ad-hoc one-off commands when building, testing, or running the project.
+Prefer project-local tools and scripts (for example, `bin/` scripts, `package.json` scripts, Makefile targets)
+instead of ad-hoc one-off commands when building, testing, or running the project.
 
 - Prefer `rg`/`rg --files` for searches; switch only if ripgrep is unavailable.
-- Planning tool: skip for trivial chores; otherwise create a multi-step plan and keep it updated as you work (max one `in_progress` step).
-- When moving or renaming tracked files, use `git mv` (or `git mv -k`) instead of plain `mv` so history stays intact.
+- Planning tool: skip for trivial chores; otherwise create a multi-step plan and keep it updated as you work
+  (max one `in_progress` step).
+- When moving or renaming tracked files, use `git mv` (or `git mv -k`) instead of plain `mv` so history stays
+  intact.
 
 ## Ruby Guidelines
 - Use the project's Ruby version.
@@ -113,7 +121,8 @@ The CLI uses modular design with mixins:
 
 ### Key Models
 - **BaseModel** - common interface for all OS implementations
-- **MacOsModel** - macOS-specific WiFi operations using `networksetup`, `system_profiler`, and optional Swift/CoreWLAN wrappers
+- **MacOsModel** - macOS-specific WiFi operations using `networksetup`, `system_profiler`, and optional
+  Swift/CoreWLAN wrappers
 - **UbuntuModel** - Ubuntu-specific operations using `nmcli`, `iw`, `ip`
 
 ### Swift/CoreWLAN Wrappers (macOS)
@@ -152,15 +161,17 @@ The macOS model uses Swift scripts with the CoreWLAN framework for improved WiFi
 - HTML reports are saved to `coverage/index.html`
 - Coverage is grouped by component (Models, Services, OS Detection, Core)
 - Branch coverage can be enabled with `COVERAGE_BRANCH=true`
-- Use the **cov-loupe** MCP tool (or CLI) to query coverage data — prefer it over reading `.resultset.json` directly or reasoning from scratch. For example: `cov-loupe summary lib/wifi-wand/models/mac_os_model.rb` or, when available, call the `file_coverage_summary` / `project_coverage` MCP tools.
+- Use the **cov-loupe** MCP tool (or CLI) to query coverage data — prefer it over reading `.resultset.json`
+  directly or reasoning from scratch. For example: `cov-loupe summary lib/wifi-wand/models/mac_os_model.rb`
+  or, when available, call the `file_coverage_summary` / `project_coverage` MCP tools.
 
 ### Test Refactoring Guidelines
 
 When improving test coverage or adding new tests, follow these patterns to eliminate duplication:
 
 #### Unified Testing Pattern for Methods with Contextual Behavior
-For methods that behave differently based on context/configuration (e.g., TTY status, user permissions, feature flags),
-use this unified pattern:
+For methods that behave differently based on context/configuration (e.g., TTY status, user permissions,
+feature flags), use this unified pattern:
 
 ```ruby
 # Shared examples for methods with contextual behavior
@@ -196,7 +207,8 @@ include_examples 'contextual method', {
 
 #### Key Principles
 1. **Embed context settings in test data** instead of separate context blocks
-2. **Use edge case flags** for special behaviors that don't follow normal patterns (e.g., `special_case: false`)
+2. **Use edge case flags** for special behaviors that don't follow normal patterns (e.g., `special_case:
+   false`)
 3. **Properly verify both scenarios**: Test behavior when context is enabled/disabled
 4. **Avoid duplicate context blocks** - unify different contextual states in single test structure
 5. **Use data-driven testing** with hashes for cleaner test organization
@@ -294,9 +306,12 @@ This copies hooks from the tracked `hooks/` directory to `.git/hooks/` and makes
    ```bash
    bundle exec rspec
    ```
-2. **Do Not Commit:** Never execute `git commit` directly. Instead, stage changes with `git add` and propose a clear, concise commit message for the user to use.
-3. **Selective Staging:** Never assume that all uncommitted files are intended to be committed. Do not use `git add .` or similar catch-all commands. Explicitly stage only the files relevant to the current task.
-4. **Use `--no-pager`:** When running git commands that may produce long output (e.g., `git diff`, `git log`), include `--no-pager` between `git` and the subcommand to prevent paging issues in automated environments:
+2. **Do Not Commit:** Never execute `git commit` directly. Instead, stage changes with `git add` and propose a
+   clear, concise commit message for the user to use.
+3. **Selective Staging:** Never assume that all uncommitted files are intended to be committed. Do not use
+   `git add .` or similar catch-all commands. Explicitly stage only the files relevant to the current task.
+4. **Use `--no-pager`:** When running git commands that may produce long output (e.g., `git diff`, `git log`),
+   include `--no-pager` between `git` and the subcommand to prevent paging issues in automated environments:
    ```sh
    git --no-pager diff
    git --no-pager log --oneline
@@ -304,9 +319,12 @@ This copies hooks from the tracked `hooks/` directory to `.git/hooks/` and makes
 
 ## Response Expectations
 - Be concise and collaborative. Lead with the change/insight; follow with necessary detail.
-- Reference files with inline clickable paths (e.g., `lib/wifi-wand/models/mac_os_model.rb:42`). Avoid ranges and external URIs.
-- When providing content intended for the user to copy and paste (like commit messages or configuration snippets), do not include line numbers or any other decorators that would interfere with direct usage.
-- Summaries use plain bullets (`-`). Offer next steps only when they flow naturally (tests, commits, builds, validation).
+- Reference files with inline clickable paths (e.g., `lib/wifi-wand/models/mac_os_model.rb:42`). Avoid ranges
+  and external URIs.
+- When providing content intended for the user to copy and paste (like commit messages or configuration
+  snippets), do not include line numbers or any other decorators that would interfere with direct usage.
+- Summaries use plain bullets (`-`). Offer next steps only when they flow naturally (tests, commits, builds,
+  validation).
 - Do not dump entire files; mention paths. Keep tone factual, note open questions, and highlight testing gaps.
 
 ## Rubocop Linting
@@ -314,9 +332,16 @@ This copies hooks from the tracked `hooks/` directory to `.git/hooks/` and makes
 Rubocop is used to enforce consistent code styling and best programming practices.
 Write code consistent with the configured Rubocop rules, e.g. indentation.
 
+### Markdown Line Length
+
+Respect the Rubocop-configured line length maximum (currently 110 characters, set in `.rubocop-shared.yml`)
+when writing or editing Markdown text paragraphs in this repository. Hard-wrap prose at that limit. This rule
+applies only to flowing text — do not wrap code blocks, tables, list item bullets, headers, or URLs mid-token.
+
 ### Sandbox Environments
 
-If running RuboCop in a sandboxed environment (e.g., AI coding assistants with file system restrictions), you may encounter cache write failures:
+If running RuboCop in a sandboxed environment (e.g., AI coding assistants with file system restrictions), you
+may encounter cache write failures:
 
 ```
 Read-only file system @ rb_sysopen
@@ -328,4 +353,5 @@ Read-only file system @ rb_sysopen
 bundle exec rubocop --cache false
 ```
 
-This disables caching and adds a few seconds to execution time but ensures successful analysis in sandboxed environments.
+This disables caching and adds a few seconds to execution time but ensures successful analysis in sandboxed
+environments.
