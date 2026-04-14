@@ -11,6 +11,8 @@ Ubuntu uses **NetworkManager** which operates on **connection profiles** rather 
 - DNS settings are tied to specific network connections (e.g., "Home WiFi", "Office WiFi")
 - Each Wi-Fi network can have different DNS settings
 - Settings persist automatically when reconnecting to the same network
+- `wifi-wand na ...` is an exact replacement operation on Ubuntu: if you set only IPv4 DNS,
+  any previously custom IPv6 DNS is cleared, and vice versa
 
 ### Key Commands
 
@@ -28,15 +30,20 @@ nmcli connection show --active
 
 #### Configure DNS Settings
 ```bash
-# Set custom DNS servers for a connection
+# Set custom IPv4 DNS servers for a connection
 sudo nmcli connection modify "Wi-Fi Connection Name" ipv4.dns "1.1.1.1 8.8.8.8"
 
-# Ignore automatic DNS from router/DHCP
+# Ignore automatic IPv4 DNS from router/DHCP
 sudo nmcli connection modify "Wi-Fi Connection Name" ipv4.ignore-auto-dns yes
 
 # Apply changes by restarting the connection
 sudo nmcli connection up "Wi-Fi Connection Name"
 ```
+
+When you use `wifi-wand na ...` on Ubuntu, the requested nameserver list becomes the full DNS
+configuration for that profile. Setting IPv4-only DNS clears any previously custom IPv6 DNS
+and resets `ipv6.ignore-auto-dns` to DHCP/router-provided DNS; setting IPv6-only DNS clears
+any previously custom IPv4 DNS. Use `na clear` to clear both families explicitly.
 
 #### Example: Complete DNS Setup
 ```bash
@@ -131,6 +138,9 @@ Both systems **permanently modify** DNS settings when you configure custom serve
 - Custom DNS settings are saved to the **specific connection profile**
 - Settings persist across reboots and reconnections to that network
 - Each Wi-Fi network maintains independent DNS configuration
+- `na` applies DNS as an exact replacement for the active profile, not a partial merge
+- If you set only IPv4 servers, prior custom IPv6 DNS is cleared; if you set only IPv6
+  servers, prior custom IPv4 DNS is cleared
 - Other networks are unaffected
 
 **macOS:**

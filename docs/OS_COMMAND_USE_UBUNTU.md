@@ -140,7 +140,9 @@ Notes:
 - Dynamic Values: `current_connection`
 - Base Model Method(s): `set_nameservers`
 - CLI Command(s): `na`
-- Helpful Info: Paired with `ipv4.ignore-auto-dns no` to hand DNS control back to DHCP; executed with `raise_on_error: false`.
+- Helpful Info: Paired with `ipv4.ignore-auto-dns no` to hand DNS control back to DHCP;
+  executed with `raise_on_error: false`. This also happens during IPv6-only replacement
+  updates so `na` does not leave stale IPv4 DNS behind.
 
 ### `nmcli connection modify <current_connection> ipv4.ignore-auto-dns no`
 - Description: Re-enables automatic IPv4 DNS acquisition.
@@ -154,7 +156,9 @@ Notes:
 - Dynamic Values: `current_connection`
 - Base Model Method(s): `set_nameservers`
 - CLI Command(s): `na`
-- Helpful Info: Mirrors the IPv4 clear path so dual-stack networks return to automatic DNS.
+- Helpful Info: Mirrors the IPv4 clear path so dual-stack networks return to
+  DHCP/router-provided DNS. This also happens during IPv4-only replacement
+  updates so `na` does not leave stale IPv6 DNS behind.
 
 ### `nmcli connection modify <current_connection> ipv6.ignore-auto-dns no`
 - Description: Re-enables automatic IPv6 DNS acquisition.

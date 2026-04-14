@@ -902,6 +902,86 @@ module WifiWand
           expect(result).to eq(mixed_nameservers)
         end
 
+        it 'replaces a previously dual-stack profile with IPv4-only DNS' do
+          connection_name = 'MyHomeNetwork'
+          nameservers = ['8.8.8.8', '1.1.1.1']
+
+          allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8 1.1.1.1'], false)
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'], false)
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''], false)
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'], false)
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'up', connection_name], false)
+            .ordered.and_return(command_result(stdout: ''))
+
+          result = subject.set_nameservers(nameservers)
+          expect(result).to eq(nameservers)
+        end
+
+        it 'replaces a previously dual-stack profile with IPv6-only DNS' do
+          connection_name = 'MyHomeNetwork'
+          nameservers = ['2606:4700:4700::1111', '2606:4700:4700::1001']
+
+          allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''], false)
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns',
+              '2606:4700:4700::1111 2606:4700:4700::1001'], false)
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'], false)
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'up', connection_name], false)
+            .ordered.and_return(command_result(stdout: ''))
+
+          result = subject.set_nameservers(nameservers)
+          expect(result).to eq(nameservers)
+        end
+
+        it 'replaces a previously single-stack profile with the opposite address family' do
+          connection_name = 'MyHomeNetwork'
+          nameservers = ['2606:4700:4700::1111']
+
+          allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''], false)
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns',
+              '2606:4700:4700::1111'], false)
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'], false)
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'up', connection_name], false)
+            .ordered.and_return(command_result(stdout: ''))
+
+          result = subject.set_nameservers(nameservers)
+          expect(result).to eq(nameservers)
+        end
+
         it 'clears both IPv4 and IPv6 nameservers when :clear is specified' do
           connection_name = 'MyHomeNetwork'
 
