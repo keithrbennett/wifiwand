@@ -620,7 +620,7 @@ describe WifiWand::CommandLineInterface do
     describe '#cmd_f (forget/remove preferred networks)' do
       it 'removes specified networks and outputs result' do
         networks_to_remove = %w[Network1 Network2]
-        removed_networks = ['Network1']
+        removed_networks = ['Network1', 'Network1 1']
 
         expect(mock_model).to receive(:remove_preferred_networks).with(*networks_to_remove)
           .and_return(removed_networks)

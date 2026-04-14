@@ -299,12 +299,29 @@ module WifiWand
     def remove_preferred_network(network_name)
       debug_method_entry(__method__, binding, :network_name)
 
-      # Check if the network exists first
-      existing_networks = preferred_networks
-      return nil unless existing_networks.include?(network_name)
+      matching_profiles = preferred_networks_matching_ssid(network_name)
+      return [] if matching_profiles.empty?
 
-      run_os_command(['nmcli', 'connection', 'delete', network_name])
-      nil
+      matching_profiles.each do |profile_name|
+        run_os_command(['nmcli', 'connection', 'delete', profile_name])
+      end
+      matching_profiles
+    end
+
+    def has_preferred_network?(network_name) # rubocop:disable Naming/PredicatePrefix
+      preferred_networks_matching_ssid(network_name.to_s).any?
+    end
+
+    def preferred_network_password(preferred_network_name)
+      debug_method_entry(__method__, binding, :preferred_network_name)
+      preferred_network_name = preferred_network_name.to_s
+      if has_preferred_network?(preferred_network_name)
+        resolved_profile_name =
+          preferred_networks_matching_ssid(preferred_network_name).first || preferred_network_name
+        _preferred_network_password(resolved_profile_name)
+      else
+        raise PreferredNetworkNotFoundError, preferred_network_name
+      end
     end
 
     def preferred_networks
@@ -535,6 +552,10 @@ module WifiWand
     def nmcli_split(line, limit = nil)
       parts = limit ? line.split(/(?<!\\):/, limit) : line.split(/(?<!\\):/)
       parts.map { |p| p.gsub('\\:', ':') }
+    end
+
+    def preferred_networks_matching_ssid(ssid)
+      preferred_networks.select { |profile_name| profile_matches_ssid?(profile_name, ssid.to_s) }
     end
 
     # Returns true when a connection profile name corresponds to a given SSID.

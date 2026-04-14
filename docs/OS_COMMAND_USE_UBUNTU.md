@@ -120,12 +120,14 @@ stored DNS state, not a partial merge.
   used entry.
 
 ### `nmcli connection delete <network_name>`
-- Description: Removes a stored NetworkManager profile.
+- Description: Removes one or more stored NetworkManager Wi-Fi profiles.
 - Dynamic Values: `network_name`
 - Base Model Method(s): `remove_preferred_network`
 - CLI Command(s): `f`
-- Helpful Info: Only runs when the profile is known to exist in the saved Wi-Fi profile list, which avoids
-  both noisy “Unknown connection” errors and accidental deletion of non-Wi-Fi profiles.
+- Helpful Info: For Ubuntu forget operations, an SSID matches the base profile plus NetworkManager duplicate
+  variants such as `SSID 1` and `SSID 2`. Only saved Wi-Fi profiles in that exact SSID family are deleted,
+  which avoids both noisy “Unknown connection” errors and accidental deletion of non-Wi-Fi profiles or prefix
+  collisions such as `OfficeGuest`.
 
 ### `nmcli -t -f NAME,TYPE connection show`
 - Description: Returns saved connection profile names and types so Wi-Fi profiles can be filtered from other

@@ -377,6 +377,7 @@ module WifiWand
       network_name = network_name.to_s
       iface = wifi_interface
       run_os_command(['sudo', 'networksetup', '-removepreferredwirelessnetwork', iface, network_name])
+      [network_name]
     end
 
     # Returns the network currently connected to, or nil if none.

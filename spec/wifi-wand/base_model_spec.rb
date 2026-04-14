@@ -843,6 +843,34 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(subject).to have_received(:remove_preferred_network).with('Network1')
       expect(subject).not_to have_received(:remove_preferred_network).with('NonExistent')
     end
+
+    it 'uses has_preferred_network? instead of exact preferred_network string matches' do
+      allow(subject).to receive(:has_preferred_network?).with('Network1').and_return(true)
+      allow(subject).to receive(:has_preferred_network?).with('AliasForNetwork2').and_return(true)
+      allow(subject).to receive(:has_preferred_network?).with('NonExistent').and_return(false)
+
+      subject.remove_preferred_networks('Network1', 'AliasForNetwork2', 'NonExistent')
+
+      expect(subject).to have_received(:remove_preferred_network).with('Network1')
+      expect(subject).to have_received(:remove_preferred_network).with('AliasForNetwork2')
+      expect(subject).not_to have_received(:remove_preferred_network).with('NonExistent')
+    end
+
+    it 'returns the actual deleted profile names reported by the model' do
+      allow(subject).to receive(:has_preferred_network?).with('Network1').and_return(true)
+      allow(subject).to receive(:has_preferred_network?).with('NonExistent').and_return(false)
+      allow(subject).to receive(:remove_preferred_network).with('Network1')
+        .and_return(['Network1', 'Network1 1'])
+
+      expect(subject.remove_preferred_networks('Network1', 'NonExistent')).to eq(['Network1', 'Network1 1'])
+    end
+
+    it 'falls back to the requested network name when a model returns nil' do
+      allow(subject).to receive(:has_preferred_network?).with('Network1').and_return(true)
+      allow(subject).to receive(:remove_preferred_network).with('Network1').and_return(nil)
+
+      expect(subject.remove_preferred_networks('Network1')).to eq(['Network1'])
+    end
   end
 
   describe '#try_os_command_until' do

@@ -218,22 +218,54 @@ module WifiWand
       end
 
       describe '#remove_preferred_network' do
-        it 'returns nil without deleting when network not present' do
+        it 'returns an empty array without deleting when network not present' do
           allow(subject).to receive(:preferred_networks).and_return(%w[A B])
           expect(subject).not_to receive(:run_os_command).with(/nmcli connection delete/)
-          expect(subject.remove_preferred_network('C')).to be_nil
+
+          expect(subject.remove_preferred_network('C')).to eq([])
         end
 
-        it 'deletes existing preferred network and returns nil' do
+        it 'deletes an existing preferred network and returns the deleted profile name' do
           allow(subject).to receive(:preferred_networks).and_return(['Home'])
           expect(subject).to receive(:run_os_command).with(%w[nmcli connection delete Home])
-          expect(subject.remove_preferred_network('Home')).to be_nil
+
+          expect(subject.remove_preferred_network('Home')).to eq(['Home'])
+        end
+
+        it 'deletes duplicate NetworkManager profiles for an SSID without touching unrelated profiles' do
+          allow(subject).to receive(:preferred_networks)
+            .and_return(['MySSID', 'MySSID 1', 'MySSID 2', 'MySSIDGuest'])
+          expect(subject).to receive(:run_os_command)
+            .with(%w[nmcli connection delete MySSID]).ordered
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'delete', 'MySSID 1']).ordered
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'delete', 'MySSID 2']).ordered
+
+          expect(subject.remove_preferred_network('MySSID')).to eq(['MySSID', 'MySSID 1', 'MySSID 2'])
+        end
+
+        it 'treats duplicate NetworkManager profiles as saved for has_preferred_network?' do
+          allow(subject).to receive(:preferred_networks).and_return(['MySSID 1', 'MySSID 2'])
+
+          expect(subject.has_preferred_network?('MySSID')).to be(true)
+          expect(subject.has_preferred_network?('OtherSSID')).to be(false)
+        end
+
+        it 'uses the matching duplicate profile when looking up a preferred network password' do
+          allow(subject).to receive(:preferred_networks).and_return(['MySSID 1'])
+          allow(subject).to receive(:run_os_command)
+            .with(['nmcli', '--show-secrets', 'connection', 'show', 'MySSID 1'], false)
+            .and_return(command_result(stdout: '802-11-wireless-security.psk:    duplicate-secret'))
+
+          expect(subject.preferred_network_password('MySSID')).to eq('duplicate-secret')
         end
 
         it 'does not delete non-Wi-Fi profile even if name matches' do
           allow(subject).to receive(:preferred_networks).and_return(['MyWifiNetwork'])
           expect(subject).not_to receive(:run_os_command).with(/nmcli connection delete/)
-          expect(subject.remove_preferred_network('Wired connection 1')).to be_nil
+
+          expect(subject.remove_preferred_network('Wired connection 1')).to eq([])
         end
       end
 

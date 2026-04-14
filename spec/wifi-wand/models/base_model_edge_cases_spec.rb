@@ -177,9 +177,9 @@ RSpec.describe WifiWand::BaseModel do
   describe '#preferred_network_password' do
     let(:model) { described_class.allocate }
 
-    it 'returns stored password when network exists' do
+    it 'returns the stored password using the resolved lookup name' do
       allow(model).to receive(:preferred_networks).and_return(['CafeNet'])
-      allow(model).to receive(:_preferred_network_password).with('CafeNet').and_return('secret')
+      expect(model).to receive(:_preferred_network_password).with('CafeNet').and_return('secret')
 
       expect(model.preferred_network_password('CafeNet')).to eq('secret')
     end

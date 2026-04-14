@@ -626,7 +626,8 @@ module WifiWand
           test_cases.each do |network_name, expected_command_str|
             expected_command_array = Shellwords.split(expected_command_str)
             expect(model).to receive(:run_os_command).with(expected_command_array)
-            model.remove_preferred_network(network_name)
+
+            expect(model.remove_preferred_network(network_name)).to eq([network_name])
           end
         end
       end

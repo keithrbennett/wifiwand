@@ -365,8 +365,14 @@ module WifiWand
     # @return names of the networks that were removed (excludes non-preexisting networks)
     def remove_preferred_networks(*network_names)
       network_names = network_names.first if network_names.first.is_a?(Array) && network_names.size == 1
-      networks_to_remove = network_names & preferred_networks # exclude any nonexistent networks
-      networks_to_remove.each { |name| remove_preferred_network(name.to_s) }
+      network_names = network_names.map(&:to_s)
+
+      network_names.select { |name| has_preferred_network?(name) }
+        .flat_map do |name|
+          removed_names = Array(remove_preferred_network(name))
+          removed_names.empty? ? [name] : removed_names
+        end
+        .uniq
     end
 
     def preferred_network_password(preferred_network_name)
