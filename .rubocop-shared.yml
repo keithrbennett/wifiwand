@@ -1,3 +1,6 @@
+plugins:
+  - rubocop-rspec
+
 inherit_mode:
   merge:
     - Exclude
