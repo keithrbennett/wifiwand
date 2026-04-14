@@ -13,8 +13,9 @@ means:
 - DNS settings are tied to specific network connections (e.g., "Home WiFi", "Office WiFi")
 - Each Wi-Fi network can have different DNS settings
 - Settings persist automatically when reconnecting to the same network
-- `wifi-wand na ...` is an exact replacement operation on Ubuntu: if you set only IPv4 DNS,
-  any previously custom IPv6 DNS is cleared, and vice versa
+- `wifi-wand na ...` is an exact replacement operation on Ubuntu
+- Setting IPv4-only DNS clears previously custom IPv6 DNS
+- Setting IPv6-only DNS clears previously custom IPv4 DNS
 
 ### Key Commands
 
@@ -45,7 +46,8 @@ sudo nmcli connection up "Wi-Fi Connection Name"
 When you use `wifi-wand na ...` on Ubuntu, the requested nameserver list becomes the full DNS
 configuration for that profile. Setting IPv4-only DNS clears any previously custom IPv6 DNS
 and resets `ipv6.ignore-auto-dns` to DHCP/router-provided DNS; setting IPv6-only DNS clears
-any previously custom IPv4 DNS. Use `na clear` to clear both families explicitly.
+any previously custom IPv4 DNS and resets `ipv4.ignore-auto-dns` to DHCP/router-provided DNS.
+Use `na clear` to clear both families explicitly.
 
 #### Example: Complete DNS Setup
 ```bash

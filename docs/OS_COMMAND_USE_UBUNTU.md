@@ -31,6 +31,8 @@ Notes:
 ## `nmcli`
 
 `nmcli` drives NetworkManager for radio state, connection management, DNS, and credential handling.
+For DNS updates via `na`, the requested nameserver list is an exact replacement for the profile's
+stored DNS state, not a partial merge.
 
 ### `nmcli radio wifi`
 - Description: Reports whether the Wi-Fi radio is enabled.

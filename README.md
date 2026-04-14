@@ -252,8 +252,8 @@ lo[g]                     - start event logging (polls WiFi status, logs changes
                             Ctrl+C to stop (see docs/LOGGING.md for details)
 na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear,
                             or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
-                            on Ubuntu, setting nameservers replaces the profile DNS state;
-                            omitted IPv4/IPv6 families are cleared back to DHCP/router-provided DNS
+                            on Ubuntu, this replaces the profile DNS state;
+                            omitted IPv4/IPv6 families revert to DHCP/router-provided DNS
 ne[twork_name]            - name (SSID) of currently connected WiFi network
 on                        - turns WiFi on
 of[f]                     - turns WiFi off
