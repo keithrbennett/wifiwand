@@ -148,9 +148,8 @@ module WifiWand
         {
           method: :connect, args: ['TestNetwork'], error: NetworkConnectionError,
           before: -> {
-            allow(model).to receive(:_connect).with('TestNetwork', nil).and_return(true)
-            allow(model).to receive_messages(wifi_on: true, connected_network_name: 'DifferentNetwork')
-            # Mock the connection manager to prevent real connection attempts
+            allow(model.connection_manager).to receive_messages(
+              already_connected?: false, resolve_password: [nil, false])
             allow(model.connection_manager).to receive(:perform_connection)
             allow(model.connection_manager).to receive(:verify_connection)
               .and_raise(WifiWand::NetworkConnectionError.new(
