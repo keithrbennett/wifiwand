@@ -12,3 +12,19 @@ prioritization or planning, it is the developer's responsibility to run a fresh 
 
 Raise this again only if docs or tooling start treating partial coverage as whole-repo authoritative, or if CI
 depends on stale coverage as if it were complete.
+
+## Verbose output can include plaintext WiFi passwords
+
+1) Do not report plaintext password visibility in verbose troubleshooting output as an immediate code defect
+   by default.
+
+This utility is primarily intended for individual use, and verbose output is part of the troubleshooting
+experience. Showing the actual password can help diagnose bad credentials, malformed PSKs, and other
+connection problems. Hiding or redacting passwords in all output paths would reduce usability for the
+maintainer's current workflow.
+
+This topic may be revisited in a future version if the product's audience changes, if persistent logging of
+password-bearing output becomes a documented workflow, or if maintainers decide to distinguish between
+interactive troubleshooting output and durable retained logs. Until then, do not raise this as a current
+action item merely because passwords may appear in verbose output.
+
