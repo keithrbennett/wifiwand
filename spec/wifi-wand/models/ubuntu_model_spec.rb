@@ -215,6 +215,14 @@ module WifiWand
             .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'Error'))
           expect(subject.send(:find_best_profile_for_ssid, 'SSID')).to be_nil
         end
+
+        it 'prefers the most recent duplicate profile over an older exact-name profile' do
+          expect(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
+            .and_return(command_result(stdout: "MySSID:100\nMySSID 1:300\nMySSID 2:200\nOtherSSID:999"))
+
+          expect(subject.send(:find_best_profile_for_ssid, 'MySSID')).to eq('MySSID 1')
+        end
       end
 
       describe '#remove_preferred_network' do
@@ -252,13 +260,37 @@ module WifiWand
           expect(subject.has_preferred_network?('OtherSSID')).to be(false)
         end
 
-        it 'uses the matching duplicate profile when looking up a preferred network password' do
-          allow(subject).to receive(:preferred_networks).and_return(['MySSID 1'])
-          allow(subject).to receive(:run_os_command)
+        it 'uses the saved password from the most recent matching profile' do
+          allow(subject).to receive(:preferred_networks).and_return(['MySSID', 'MySSID 1'])
+          expect(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
+            .and_return(command_result(stdout: "MySSID:100\nMySSID 1:300"))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', '--show-secrets', 'connection', 'show', 'MySSID 1'], false)
+            .and_return(command_result(stdout: '802-11-wireless-security.psk:    fresh-secret'))
+
+          expect(subject.preferred_network_password('MySSID')).to eq('fresh-secret')
+        end
+
+        it 'uses the saved WEP key from the most recent matching profile' do
+          allow(subject).to receive(:preferred_networks).and_return(['MySSID', 'MySSID 1'])
+          expect(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
+            .and_return(command_result(stdout: "MySSID:100\nMySSID 1:300"))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', '--show-secrets', 'connection', 'show', 'MySSID 1'], false)
+            .and_return(command_result(stdout: '802-11-wireless-security.wep-key0:    fresh-wep-key'))
+
+          expect(subject.preferred_network_password('MySSID')).to eq('fresh-wep-key')
+        end
+
+        it 'preserves exact duplicate profile name lookups' do
+          allow(subject).to receive(:preferred_networks).and_return(['MySSID', 'MySSID 1'])
+          expect(subject).to receive(:run_os_command)
             .with(['nmcli', '--show-secrets', 'connection', 'show', 'MySSID 1'], false)
             .and_return(command_result(stdout: '802-11-wireless-security.psk:    duplicate-secret'))
 
-          expect(subject.preferred_network_password('MySSID')).to eq('duplicate-secret')
+          expect(subject.preferred_network_password('MySSID 1')).to eq('duplicate-secret')
         end
 
         it 'does not delete non-Wi-Fi profile even if name matches' do
@@ -266,6 +298,44 @@ module WifiWand
           expect(subject).not_to receive(:run_os_command).with(/nmcli connection delete/)
 
           expect(subject.remove_preferred_network('Wired connection 1')).to eq([])
+        end
+      end
+
+      describe 'saved password connect flow' do
+        it 'passes the saved password from the best matching profile into _connect' do
+          allow(subject).to receive(:wifi_on)
+          allow(subject.connection_manager).to receive(:wait_for_connection_activation)
+          allow(subject).to receive(:connection_ready?).and_return(false, true)
+          allow(subject).to receive(:connected_network_name).and_return(nil, 'MySSID')
+          allow(subject).to receive(:preferred_networks).and_return(['MySSID', 'MySSID 1'])
+          expect(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
+            .and_return(command_result(stdout: "MySSID:100\nMySSID 1:300"))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', '--show-secrets', 'connection', 'show', 'MySSID 1'], false)
+            .and_return(command_result(stdout: '802-11-wireless-security.psk:    fresh-secret'))
+          expect(subject).to receive(:_connect).with('MySSID', 'fresh-secret')
+
+          subject.connect('MySSID')
+          expect(subject.last_connection_used_saved_password?).to be true
+        end
+
+        it 'passes the saved WEP key from the best matching profile into _connect' do
+          allow(subject).to receive(:wifi_on)
+          allow(subject.connection_manager).to receive(:wait_for_connection_activation)
+          allow(subject).to receive(:connection_ready?).and_return(false, true)
+          allow(subject).to receive(:connected_network_name).and_return(nil, 'MySSID')
+          allow(subject).to receive(:preferred_networks).and_return(['MySSID', 'MySSID 1'])
+          expect(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
+            .and_return(command_result(stdout: "MySSID:100\nMySSID 1:300"))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', '--show-secrets', 'connection', 'show', 'MySSID 1'], false)
+            .and_return(command_result(stdout: '802-11-wireless-security.wep-key0:    fresh-wep-key'))
+          expect(subject).to receive(:_connect).with('MySSID', 'fresh-wep-key')
+
+          subject.connect('MySSID')
+          expect(subject.last_connection_used_saved_password?).to be true
         end
       end
 

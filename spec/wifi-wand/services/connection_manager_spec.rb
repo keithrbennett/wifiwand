@@ -15,6 +15,7 @@ describe WifiWand::ConnectionManager do
       connected?:             false,
       connected_network_name: nil,
       connection_ready?:      false,
+      has_preferred_network?: false,
       preferred_networks:     [],
     )
     allow(mock_model).to receive(:wifi_on)
@@ -197,7 +198,7 @@ describe WifiWand::ConnectionManager do
 
     context 'with saved passwords' do
       before do
-        allow(mock_model).to receive(:preferred_networks).and_return(['SavedNetwork'])
+        allow(mock_model).to receive(:has_preferred_network?).with('SavedNetwork').and_return(true)
         allow(mock_model).to receive(:preferred_network_password).with('SavedNetwork')
           .and_return('saved_password')
         allow(mock_model).to receive(:connection_ready?).and_return(false, true)
@@ -267,7 +268,7 @@ describe WifiWand::ConnectionManager do
 
     it 'tracks saved password usage correctly' do
       allow(mock_model).to receive_messages(
-        preferred_networks:         ['SavedNetwork'],
+        has_preferred_network?:     true,
         preferred_network_password: 'saved_password',
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, true)
@@ -280,7 +281,7 @@ describe WifiWand::ConnectionManager do
     it 'resets flag on each connection attempt' do
       # First connection uses saved password
       allow(mock_model).to receive_messages(
-        preferred_networks:         ['SavedNetwork'],
+        has_preferred_network?:     true,
         preferred_network_password: 'saved_password',
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, true)
@@ -298,15 +299,15 @@ describe WifiWand::ConnectionManager do
   end
 
   describe 'resolve_password edge cases' do
-    it 'treats preferred networks as empty when preferred_networks raises' do
-      allow(mock_model).to receive(:preferred_networks).and_raise(WifiWand::Error, 'boom')
+    it 'treats preferred networks as empty when has_preferred_network? raises' do
+      allow(mock_model).to receive(:has_preferred_network?).and_raise(WifiWand::Error, 'boom')
       password, used_saved = subject.send(:resolve_password, 'AnyNet', nil)
       expect(password).to be_nil
       expect(used_saved).to be false
     end
 
-    it 'propagates unexpected errors from preferred_networks' do
-      allow(mock_model).to receive(:preferred_networks).and_raise(NoMethodError, 'unexpected bug')
+    it 'propagates unexpected errors from has_preferred_network?' do
+      allow(mock_model).to receive(:has_preferred_network?).and_raise(NoMethodError, 'unexpected bug')
 
       expect do
         subject.send(:resolve_password, 'AnyNet', nil)
@@ -314,7 +315,7 @@ describe WifiWand::ConnectionManager do
     end
 
     it 'propagates unexpected errors from preferred_network_password' do
-      allow(mock_model).to receive(:preferred_networks).and_return(['SavedNetwork'])
+      allow(mock_model).to receive(:has_preferred_network?).with('SavedNetwork').and_return(true)
       allow(mock_model).to receive(:preferred_network_password)
         .with('SavedNetwork')
         .and_raise(NoMethodError, 'unexpected bug')

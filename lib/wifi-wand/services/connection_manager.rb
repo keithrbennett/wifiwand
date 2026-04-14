@@ -155,12 +155,12 @@ module WifiWand
       return [password, false] if password_provided
 
       begin
-        preferred = model.preferred_networks
+        preferred_network_exists = model.has_preferred_network?(network_name)
       rescue WifiWand::Error
-        preferred = []
+        preferred_network_exists = false
       end
 
-      if preferred.include?(network_name)
+      if preferred_network_exists
         begin
           saved_password = model.preferred_network_password(network_name)
           unless saved_password.nil? || saved_password.empty?

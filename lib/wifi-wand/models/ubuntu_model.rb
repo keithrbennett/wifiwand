@@ -321,8 +321,7 @@ module WifiWand
       debug_method_entry(__method__, binding, :preferred_network_name)
       preferred_network_name = preferred_network_name.to_s
       if has_preferred_network?(preferred_network_name)
-        resolved_profile_name =
-          preferred_networks_matching_ssid(preferred_network_name).first || preferred_network_name
+        resolved_profile_name = resolve_saved_profile_name(preferred_network_name)
         _preferred_network_password(resolved_profile_name)
       else
         raise PreferredNetworkNotFoundError, preferred_network_name
@@ -566,6 +565,17 @@ module WifiWand
 
     def preferred_networks_matching_ssid(ssid)
       preferred_networks.select { |profile_name| profile_matches_ssid?(profile_name, ssid.to_s) }
+    end
+
+    def resolve_saved_profile_name(network_name)
+      explicit_duplicate_profile =
+        duplicate_profile_name?(network_name) && preferred_networks.include?(network_name)
+
+      explicit_duplicate_profile ? network_name : find_best_profile_for_ssid(network_name) || network_name
+    end
+
+    def duplicate_profile_name?(network_name)
+      network_name.match?(/\A.+ \d+\z/)
     end
 
     # Returns true when a connection profile name corresponds to a given SSID.
