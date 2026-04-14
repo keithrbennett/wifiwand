@@ -525,14 +525,25 @@ module WifiWand
 
     def command_available?(command) = @command_executor.command_available?(command)
 
-    # QR code generator helper
-    def debug_method_entry(method_name, binding = nil, param_names = nil)
+    # Emits a verbose method-entry trace for debugging.
+    #
+    # When caller_binding and param_names are provided, the named local variables are
+    # read from the caller binding and included in the formatted output.
+    #
+    # Example:
+    #   debug_method_entry(__method__, binding, %i[network_name password])
+    #
+    # @param method_name [String, Symbol] the method being entered
+    # @param caller_binding [Binding, nil] caller binding used to resolve parameter values
+    # @param param_names [Symbol, Array<Symbol>, nil] local variable names to include
+    # @return [void]
+    def debug_method_entry(method_name, caller_binding = nil, param_names = nil)
       return unless verbose_mode
 
       s = "Entered #{self.class.name.split('::').last}##{method_name}"
       param_names = Array(param_names) # force to array if passed a single symbol
       if param_names
-        values = param_names.map { |name| binding.local_variable_get(name) }
+        values = param_names.map { |name| caller_binding.local_variable_get(name) }
         s += "(#{values.map(&:to_s).map(&:inspect).join(', ')})"
       end
       out_stream.puts s
