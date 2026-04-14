@@ -136,6 +136,32 @@ describe WifiWand::CaptivePortalChecker do
       )
     end
 
+    it 'returns :free when both code and expected body match' do
+      endpoint_with_body = {
+        url:           'http://example.com/connecttest.txt',
+        expected_code: 200,
+        expected_body: 'Microsoft Connect Test',
+      }
+      mock_captive_portal_free_state(code: '200', body: 'Microsoft Connect Test')
+
+      expect(checker.send(:perform_captive_portal_check, endpoint_with_body)).to eq(
+        state: :free, actual_code: 200,
+      )
+    end
+
+    it 'returns :present when the code matches but the body does not' do
+      endpoint_with_body = {
+        url:           'http://example.com/connecttest.txt',
+        expected_code: 200,
+        expected_body: 'Microsoft Connect Test',
+      }
+      mock_captive_portal_detected(code: '200', body: '<html>Login</html>')
+
+      expect(checker.send(:perform_captive_portal_check, endpoint_with_body)).to eq(
+        state: :present, actual_code: 200,
+      )
+    end
+
     it 'returns :indeterminate metadata on network errors' do
       stub_short_connectivity_timeouts
       allow(Net::HTTP).to receive(:get_response).and_raise(Errno::ECONNREFUSED)

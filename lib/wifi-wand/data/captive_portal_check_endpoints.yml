@@ -10,3 +10,20 @@ endpoints:
   - url: "http://clients3.google.com/generate_204"
     expected_code: 204
     desc: "Google connectivity check alternate host - returns 204 No Content on real internet"
+  - url: "http://www.gstatic.com/generate_204"
+    expected_code: 204
+    desc: "Google static host alternate - returns 204 No Content on real internet"
+  - url: "http://connect.rom.miui.com/generate_204"
+    expected_code: 204
+    desc: "Xiaomi/MIUI connectivity check - China-accessible 204 endpoint"
+  - url: "http://connectivitycheck.platform.hicloud.com/generate_204"
+    expected_code: 204
+    desc: "Huawei connectivity check - China-accessible 204 endpoint"
+  - url: "http://www.msftconnecttest.com/connecttest.txt"
+    expected_code: 200
+    expected_body: "Microsoft Connect Test"
+    desc: "Windows NCSI current endpoint - returns 200 with Microsoft Connect Test body"
+  - url: "http://www.msftncsi.com/ncsi.txt"
+    expected_code: 200
+    expected_body: "Microsoft NCSI"
+    desc: "Windows NCSI legacy endpoint - returns 200 with Microsoft NCSI body"

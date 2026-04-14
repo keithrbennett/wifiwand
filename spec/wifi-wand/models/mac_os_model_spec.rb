@@ -1067,6 +1067,40 @@ module WifiWand
 
           model._connect('TestNetwork')
         end
+
+        it 'falls back to networksetup for transient tmpErr Swift failures' do
+          allow(model).to receive(:swift_and_corewlan_present?).and_return(true)
+          allow(model).to receive(:os_level_connect_using_swift)
+            .with('TestNetwork', 'password')
+            .and_raise(
+              WifiWand::CommandExecutor::OsCommandError.new(
+                1,
+                'swift',
+                "Error connecting: The operation couldn't be completed. tmpErr (code: 82)",
+              ),
+            )
+          expect(model).to receive(:os_level_connect_using_networksetup).with('TestNetwork', 'password')
+
+          model._connect('TestNetwork', 'password')
+        end
+
+        it 're-raises Swift errors that are not fallback candidates' do
+          allow(model).to receive(:swift_and_corewlan_present?).and_return(true)
+          allow(model).to receive(:os_level_connect_using_swift)
+            .with('TestNetwork', 'password')
+            .and_raise(
+              WifiWand::CommandExecutor::OsCommandError.new(
+                1,
+                'swift',
+                'Error connecting: permission denied',
+              ),
+            )
+          expect(model).not_to receive(:os_level_connect_using_networksetup)
+
+          expect do
+            model._connect('TestNetwork', 'password')
+          end.to raise_error(WifiWand::CommandExecutor::OsCommandError, /permission denied/)
+        end
       end
 
       describe '#os_level_connect_using_networksetup' do

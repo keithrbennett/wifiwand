@@ -33,6 +33,14 @@ module WifiWand
       /password required/i,
     ].freeze
 
+    SWIFT_CONNECT_FALLBACK_PATTERNS = [
+      /code:\s*-3900/i,
+      /code:\s*-3905/i,
+      /network not found/i,
+      /tmpErr\s*\(code:\s*82\)/i,
+      /couldn(?:\?\?\?|')t be completed.*tmpErr/i,
+    ].freeze
+
     # Keychain exit code handlers for password retrieval
     # Exit codes and their meanings:
     # 44  - Item not found in keychain
@@ -323,12 +331,7 @@ module WifiWand
           os_level_connect_using_swift(network_name, password)
           return
         rescue WifiWand::CommandExecutor::OsCommandError => e
-          # Specific error codes that indicate we should try networksetup instead
-          # -3900: Generic CoreWLAN error
-          # -3905: Network not found via CoreWLAN
-          if e.text.include?('code: -3900') ||
-              e.text.include?('code: -3905') ||
-              e.text.downcase.include?('network not found')
+          if swift_connect_should_fallback?(e.text)
             if verbose_mode
               out_stream.puts "Swift/CoreWLAN failed (#{e.text.strip}). " \
                 'Trying networksetup fallback...'
@@ -346,6 +349,10 @@ module WifiWand
       end
 
       os_level_connect_using_networksetup(network_name, password)
+    end
+
+    def swift_connect_should_fallback?(error_text)
+      SWIFT_CONNECT_FALLBACK_PATTERNS.any? { |pattern| pattern.match?(error_text.to_s) }
     end
 
     # @return:

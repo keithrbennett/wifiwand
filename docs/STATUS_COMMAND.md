@@ -79,7 +79,11 @@ A captive portal is a network that intercepts HTTP traffic to redirect users to 
 
 1. Checking TCP connectivity (layer 4)
 2. Checking DNS resolution
-3. If both pass, making HTTP requests to known endpoints and verifying expected response codes
+3. If both pass, making HTTP requests to known endpoints and verifying each
+   endpoint's expected response contract
+
+For some endpoints that contract is just an HTTP status code. For others it is
+the combination of status code and expected response body.
 
 If step 3 fails while steps 1–2 pass, a captive portal is confidently detected and
 `captive_portal_login_required` is set to `:yes` in the status data.

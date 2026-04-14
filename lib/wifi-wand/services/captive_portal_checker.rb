@@ -138,6 +138,7 @@ module WifiWand
         captive_portal_probe_helper_path,
         endpoint[:url],
         endpoint[:expected_code].to_s,
+        endpoint[:expected_body].to_s,
       ]
     end
 
@@ -240,11 +241,17 @@ module WifiWand
     def perform_captive_portal_check(endpoint)
       uri = URI(endpoint[:url])
       expected_code = endpoint[:expected_code]
+      expected_body = endpoint[:expected_body]
 
       Timeout.timeout(TimingConstants::HTTP_CONNECTIVITY_TIMEOUT) do
         response = Net::HTTP.get_response(uri)
         actual_code = response.code.to_i
-        state = actual_code == expected_code ? ConnectivityStates::CAPTIVE_PORTAL_FREE : ConnectivityStates::CAPTIVE_PORTAL_PRESENT
+        body_matches = expected_body.nil? || response.body.to_s.include?(expected_body)
+        state = if actual_code == expected_code && body_matches
+          ConnectivityStates::CAPTIVE_PORTAL_FREE
+        else
+          ConnectivityStates::CAPTIVE_PORTAL_PRESENT
+        end
         { state: state, actual_code: actual_code }
       end
     rescue => e

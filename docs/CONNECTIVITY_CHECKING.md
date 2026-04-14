@@ -216,10 +216,12 @@ of external hosts. This makes plain TCP connectivity checks unreliable:
 `tcp_connectivity?` can return `true` even when real internet access is blocked.
 
 The `captive_portal_state` method disambiguates by issuing real HTTP GET
-requests to well-known connectivity-check endpoints (for example Google's
-`generate_204` endpoints) and verifying the response status codes. A `204 No
-Content` response can only come from the actual server. Captive portals return
-redirects or login pages instead.
+requests to well-known connectivity-check endpoints and verifying each
+endpoint's expected response contract. For some endpoints that contract is only
+an HTTP status code (for example Google's `generate_204` endpoints). For
+others, such as Microsoft's NCSI endpoints, the response body must also match
+the expected content. A captive portal commonly returns redirects or login
+pages instead.
 
 HTTP, not HTTPS, is used intentionally: captive portals must respond to plain
 HTTP requests themselves rather than silently forwarding them.
@@ -230,17 +232,20 @@ Multiple endpoints are checked concurrently so that a single misbehaving or
 rewritten endpoint cannot cause a false captive-portal detection without adding
 serial worst-case timeout cost:
 
-- If any endpoint returns the expected status code, the result is `:free`
+- If any endpoint satisfies its expected response contract, the result is
+  `:free`
 - If an endpoint returns an unexpected status code, the method records a
   mismatch and keeps checking
+- If an endpoint returns the expected status code but the wrong body for a
+  body-validated probe, that also counts as a mismatch
 - If an endpoint fails with a network-level error, the method skips it
 
 ### Return Values
 
 | Return | Condition | Meaning |
 |--------|-----------|---------|
-| `:free` | At least one endpoint returned the expected status code | No captive portal detected |
-| `:present` | At least one endpoint returned a wrong status code and none succeeded | Captive portal detected |
+| `:free` | At least one endpoint satisfied its expected response contract | No captive portal detected |
+| `:present` | At least one endpoint mismatched its expected response contract and none succeeded | Captive portal detected |
 | `:indeterminate` | All endpoints failed with network errors | Captive-portal state could not be determined |
 
 ## How `internet_connectivity_state` Is Derived

@@ -174,14 +174,14 @@ module TestHelpers
   end
 
   # Helper for mocking Net::HTTP to return a portal-free response (HTTP 204)
-  def mock_captive_portal_free_state
-    response = instance_double(Net::HTTPResponse, code: '204')
+  def mock_captive_portal_free_state(code: '204', body: '')
+    response = instance_double(Net::HTTPResponse, code: code, body: body)
     allow(Net::HTTP).to receive(:get_response).and_return(response)
   end
 
   # Helper for mocking Net::HTTP to simulate a captive portal (HTTP 302 redirect)
-  def mock_captive_portal_detected
-    response = instance_double(Net::HTTPResponse, code: '302')
+  def mock_captive_portal_detected(code: '302', body: '')
+    response = instance_double(Net::HTTPResponse, code: code, body: body)
     allow(Net::HTTP).to receive(:get_response).and_return(response)
   end
 end
