@@ -419,7 +419,7 @@ module WifiWand
       @mac_helper_client ||= WifiWand::MacOsWifiAuthHelper::Client.new(
         out_stream_proc:    -> { out_stream },
         verbose_proc:       -> { verbose_mode },
-        macos_version_proc: -> { macos_version },
+        macos_version_proc: -> { macos_version }
       )
     end
 

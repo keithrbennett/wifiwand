@@ -241,7 +241,7 @@ describe WifiWand::NetworkConnectivityTester do
       allow(tester).to receive_messages(
         tcp_connectivity?:    true,
         dns_working?:         true,
-        captive_portal_state: :free,
+        captive_portal_state: :free
       )
 
       expect(tester.internet_connectivity_state).to eq(:reachable)
@@ -269,7 +269,7 @@ describe WifiWand::NetworkConnectivityTester do
       allow(tester).to receive_messages(
         tcp_connectivity?:    true,
         dns_working?:         true,
-        captive_portal_state: :present,
+        captive_portal_state: :present
       )
 
       expect(tester.internet_connectivity_state).to eq(:unreachable)
@@ -279,7 +279,7 @@ describe WifiWand::NetworkConnectivityTester do
       allow(tester).to receive_messages(
         tcp_connectivity?:    true,
         dns_working?:         true,
-        captive_portal_state: :indeterminate,
+        captive_portal_state: :indeterminate
       )
 
       expect(tester.internet_connectivity_state).to eq(:indeterminate)

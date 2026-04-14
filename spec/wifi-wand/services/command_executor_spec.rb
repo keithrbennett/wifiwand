@@ -70,7 +70,7 @@ describe WifiWand::CommandExecutor do
           combined_output: "attempt #{call_count}",
           exitstatus:      0,
           command:         command,
-          duration:        0.0,
+          duration:        0.0
         )
       end
 

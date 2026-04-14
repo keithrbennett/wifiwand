@@ -142,7 +142,7 @@ module WifiWand
       error_raising_test_cases = [
         ['', nil].map do |network_name|
           connect_invalid_name_base_case.merge(
-            args: [network_name],
+            args: [network_name]
           )
         end,
         {

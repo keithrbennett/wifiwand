@@ -413,7 +413,7 @@ describe WifiWand::CommandLineInterface do
           # Reset mock for different error
           allow(mock_model).to receive(:generate_qr_code).with('other.png',
             hash_including(password: nil)).and_raise(
-            WifiWand::Error.new('Network connection failed'),
+            WifiWand::Error.new('Network connection failed')
           )
 
           expect { subject.cmd_qr('other.png') }.to raise_error(WifiWand::Error, 'Network connection failed')
@@ -636,7 +636,7 @@ describe WifiWand::CommandLineInterface do
           :wifi_on,
           timeout_in_secs:                         nil,
           wait_interval_in_secs:                   nil,
-          stringify_permitted_values_in_error_msg: true,
+          stringify_permitted_values_in_error_msg: true
         )
         subject.cmd_t('wifi_on')
       end
@@ -646,7 +646,7 @@ describe WifiWand::CommandLineInterface do
           :internet_on,
           timeout_in_secs:                         2.5,
           wait_interval_in_secs:                   nil,
-          stringify_permitted_values_in_error_msg: true,
+          stringify_permitted_values_in_error_msg: true
         )
         subject.cmd_t('internet_on', '2.5')
       end
@@ -656,7 +656,7 @@ describe WifiWand::CommandLineInterface do
           expect { subject.cmd_t }.to raise_error(WifiWand::ConfigurationError) do |error|
             expect(error.message).to include('Missing target status argument')
             expect(error.message).to include(
-              'States: wifi_on, wifi_off, associated, disassociated, internet_on, internet_off',
+              'States: wifi_on, wifi_off, associated, disassociated, internet_on, internet_off'
             )
             expect(error.message).to include('Use')
             expect(error.message).to include('help')
@@ -693,7 +693,7 @@ describe WifiWand::CommandLineInterface do
             :wifi_on,
             timeout_in_secs:                         30.0,
             wait_interval_in_secs:                   nil,
-            stringify_permitted_values_in_error_msg: true,
+            stringify_permitted_values_in_error_msg: true
           )
           expect { subject.cmd_t('wifi_on', '30') }.not_to raise_error
         end
@@ -703,7 +703,7 @@ describe WifiWand::CommandLineInterface do
             :wifi_off,
             timeout_in_secs:                         20.0,
             wait_interval_in_secs:                   0.5,
-            stringify_permitted_values_in_error_msg: true,
+            stringify_permitted_values_in_error_msg: true
           )
           expect { subject.cmd_t('wifi_off', '20', '0.5') }.not_to raise_error
         end
@@ -885,7 +885,7 @@ describe WifiWand::CommandLineInterface do
     before do
       allow(subject).to receive_messages(
         process_command_line: 'command_result',
-        help_hint:            'Type help for usage',
+        help_hint:            'Type help for usage'
       )
     end
 
@@ -912,7 +912,7 @@ describe WifiWand::CommandLineInterface do
       cli = described_class.new(opts)
       allow(cli).to receive_messages(
         validate_command_line: described_class::SUCCESS_EXIT_CODE,
-        help_hint:             'Type help for usage',
+        help_hint:             'Type help for usage'
       )
       allow(cli).to receive(:process_command_line).and_raise(error)
       expect(cli.call).to eq(described_class::FAILURE_EXIT_CODE)
@@ -929,7 +929,7 @@ describe WifiWand::CommandLineInterface do
       cli = described_class.new(opts)
       allow(cli).to receive_messages(
         validate_command_line: described_class::SUCCESS_EXIT_CODE,
-        help_hint:             'Type help for usage',
+        help_hint:             'Type help for usage'
       )
       allow(cli).to receive(:process_command_line).and_raise(error)
       expect(cli.call).to eq(described_class::FAILURE_EXIT_CODE)
@@ -947,7 +947,7 @@ describe WifiWand::CommandLineInterface do
       cli = described_class.new(opts)
       allow(cli).to receive_messages(
         validate_command_line: described_class::SUCCESS_EXIT_CODE,
-        help_hint:             'Type help for usage',
+        help_hint:             'Type help for usage'
       )
       allow(cli).to receive(:process_command_line).and_raise(error)
       expect(cli.call).to eq(described_class::FAILURE_EXIT_CODE)

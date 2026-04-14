@@ -31,7 +31,7 @@ module WifiWand
       ConnectivityStates.internet_state_from(
         tcp_working:          tcp,
         dns_working:          dns,
-        captive_portal_state: captive_portal_state,
+        captive_portal_state: captive_portal_state
       )
     end
 

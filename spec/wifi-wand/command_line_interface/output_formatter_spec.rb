@@ -34,7 +34,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       connected_network_name:      'TestNetwork',
       internet_tcp_connectivity?:  true,
       dns_working?:                true,
-      internet_connectivity_state: :reachable,
+      internet_connectivity_state: :reachable
     )
   end
 

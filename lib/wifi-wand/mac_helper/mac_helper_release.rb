@@ -312,7 +312,7 @@ module WifiWand
           apple_id:        apple_id,
           apple_password:  apple_password,
           team_id:         team_id,
-          failure_message: 'Notarization failed. Check the output above for details.',
+          failure_message: 'Notarization failed. Check the output above for details.'
         )
       end
 
@@ -420,7 +420,7 @@ module WifiWand
       Operations.run_notarytool(
         ['history'],
         **creds,
-        failure_message: 'Unable to fetch notarization history.',
+        failure_message: 'Unable to fetch notarization history.'
       )
     end
 
@@ -434,7 +434,7 @@ module WifiWand
       Operations.run_notarytool(
         ['info', submission_id],
         **creds,
-        failure_message: 'Unable to fetch notarization status. Check the submission ID and try again.',
+        failure_message: 'Unable to fetch notarization status. Check the submission ID and try again.'
       )
     end
 
@@ -448,7 +448,7 @@ module WifiWand
       Operations.run_notarytool(
         ['log', submission_id],
         **creds,
-        failure_message: 'Unable to fetch notarization log. Check the submission ID and try again.',
+        failure_message: 'Unable to fetch notarization log. Check the submission ID and try again.'
       )
     end
 
@@ -462,7 +462,7 @@ module WifiWand
       Operations.run_notarytool(
         ['queue', 'remove', submission_id],
         **creds,
-        failure_message: 'Unable to cancel notarization request.',
+        failure_message: 'Unable to cancel notarization request.'
       )
       puts "✓ Submission #{submission_id} removed from notary queue."
     end
@@ -478,7 +478,7 @@ module WifiWand
         ['history', '--output-format', 'json'],
         **creds,
         failure_message: 'Unable to fetch notarization history.',
-        suppress_output: true,
+        suppress_output: true
       )
       data = JSON.parse(response)
       entries = data['history'] || []

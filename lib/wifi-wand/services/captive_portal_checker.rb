@@ -115,7 +115,7 @@ module WifiWand
         probes.map { |probe| probe[:reader] },
         nil,
         nil,
-        timeout,
+        timeout
       )
       ready_readers
     end

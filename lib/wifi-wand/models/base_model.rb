@@ -277,7 +277,7 @@ module WifiWand
       connectivity_state = ConnectivityStates.internet_state_from(
         tcp_working:          internet_tcp,
         dns_working:          dns_working,
-        captive_portal_state: portal_state,
+        captive_portal_state: portal_state
       )
 
       info = {
@@ -342,7 +342,7 @@ module WifiWand
         self,
         verbose:                 @verbose_mode,
         output:                  out_stream,
-        expected_network_errors: EXPECTED_NETWORK_ERRORS,
+        expected_network_errors: EXPECTED_NETWORK_ERRORS
       ).call(progress_callback: progress_callback)
     end
 
@@ -406,7 +406,7 @@ module WifiWand
         target_status,
         timeout_in_secs:                         timeout_in_secs,
         wait_interval_in_secs:                   wait_interval_in_secs,
-        stringify_permitted_values_in_error_msg: stringify_permitted_values_in_error_msg,
+        stringify_permitted_values_in_error_msg: stringify_permitted_values_in_error_msg
       )
     end
 

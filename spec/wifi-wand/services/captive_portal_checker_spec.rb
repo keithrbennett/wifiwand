@@ -58,7 +58,7 @@ describe WifiWand::CaptivePortalChecker do
     it 'returns promptly after a helper reports :free and terminates slower helpers' do
       allow(checker).to receive(:start_captive_portal_probe).and_return(
         spawn_probe(endpoint: endpoints.first, payload: { state: 'free', actual_code: 204 }),
-        spawn_probe(endpoint: endpoints.last, delay: 5),
+        spawn_probe(endpoint: endpoints.last, delay: 5)
       )
 
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -86,7 +86,7 @@ describe WifiWand::CaptivePortalChecker do
 
       it 'logs a pass result' do
         allow(checker).to receive(:start_captive_portal_probe).and_return(
-          spawn_probe(endpoint: endpoints.first, payload: { state: 'free', actual_code: 204 }),
+          spawn_probe(endpoint: endpoints.first, payload: { state: 'free', actual_code: 204 })
         )
 
         checker.captive_portal_state
@@ -103,8 +103,8 @@ describe WifiWand::CaptivePortalChecker do
           captive_portal_check_endpoints: [endpoints.first],
           start_captive_portal_probe:     spawn_probe(
             endpoint: endpoints.first,
-            payload:  { state: 'present', actual_code: 302 },
-          ),
+            payload:  { state: 'present', actual_code: 302 }
+          )
         )
       end
 
@@ -124,7 +124,7 @@ describe WifiWand::CaptivePortalChecker do
       mock_captive_portal_free_state
 
       expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
-        state: :free, actual_code: 204,
+        state: :free, actual_code: 204
       )
     end
 
@@ -132,7 +132,7 @@ describe WifiWand::CaptivePortalChecker do
       mock_captive_portal_detected
 
       expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
-        state: :present, actual_code: 302,
+        state: :present, actual_code: 302
       )
     end
 
@@ -145,7 +145,7 @@ describe WifiWand::CaptivePortalChecker do
       mock_captive_portal_free_state(code: '200', body: 'Microsoft Connect Test')
 
       expect(checker.send(:perform_captive_portal_check, endpoint_with_body)).to eq(
-        state: :free, actual_code: 200,
+        state: :free, actual_code: 200
       )
     end
 
@@ -158,7 +158,7 @@ describe WifiWand::CaptivePortalChecker do
       mock_captive_portal_detected(code: '200', body: '<html>Login</html>')
 
       expect(checker.send(:perform_captive_portal_check, endpoint_with_body)).to eq(
-        state: :present, actual_code: 200,
+        state: :present, actual_code: 200
       )
     end
 
@@ -167,7 +167,7 @@ describe WifiWand::CaptivePortalChecker do
       allow(Net::HTTP).to receive(:get_response).and_raise(Errno::ECONNREFUSED)
 
       expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
-        state: :indeterminate, error_class: 'Errno::ECONNREFUSED',
+        state: :indeterminate, error_class: 'Errno::ECONNREFUSED'
       )
     end
   end

@@ -144,7 +144,7 @@ RSpec.describe RSpecConfiguration do
       expect { described_class.handle_network_state_capture(true) }
         .to raise_error(
           RuntimeError,
-          /Real-environment read-write tests require an active network connection/,
+          /Real-environment read-write tests require an active network connection/
         )
     end
 
@@ -313,7 +313,7 @@ RSpec.describe RSpecConfiguration do
       expect do
         described_class.attempt_final_network_restoration
       end.to output(
-        /Could not restore network connection: Failed to connect to network 'MyNetwork': timed out/,
+        /Could not restore network connection: Failed to connect to network 'MyNetwork': timed out/
       ).to_stdout
         .and raise_error(WifiWand::NetworkConnectionError, /timed out/)
     end

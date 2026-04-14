@@ -10,7 +10,7 @@ describe WifiWand::StatusLineDataBuilder do
       connected_network_name:     'HomeNetwork',
       internet_tcp_connectivity?: true,
       dns_working?:               true,
-      captive_portal_state:       :free,
+      captive_portal_state:       :free
     )
   end
 
@@ -28,7 +28,7 @@ describe WifiWand::StatusLineDataBuilder do
         internet_check_complete:       true,
         network_name:                  'HomeNetwork',
         captive_portal_state:          :free,
-        captive_portal_login_required: :no,
+        captive_portal_login_required: :no
       )
       expect(progress_updates).to eq([
         { wifi_on: true, dns_working: nil, internet_state: :pending, internet_check_complete: false,
@@ -56,7 +56,7 @@ describe WifiWand::StatusLineDataBuilder do
         internet_check_complete:       true,
         network_name:                  nil,
         captive_portal_state:          :indeterminate,
-        captive_portal_login_required: :no,
+        captive_portal_login_required: :no
       )
     end
 
@@ -64,7 +64,7 @@ describe WifiWand::StatusLineDataBuilder do
       allow(model).to receive_messages(
         internet_tcp_connectivity?: true,
         dns_working?:               true,
-        captive_portal_state:       :present,
+        captive_portal_state:       :present
       )
 
       result = builder.call
@@ -79,7 +79,7 @@ describe WifiWand::StatusLineDataBuilder do
       allow(model).to receive_messages(
         internet_tcp_connectivity?: true,
         dns_working?:               true,
-        captive_portal_state:       :indeterminate,
+        captive_portal_state:       :indeterminate
       )
 
       result = builder.call

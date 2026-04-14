@@ -44,7 +44,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         fast_connectivity?:         true,
         public_ip_address_info:     { 'ip' => '1.2.3.4' },
         run_os_command:             command_result(stdout: ''),
-        till:                       nil,
+        till:                       nil
       )
     end
   end
@@ -471,7 +471,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         connection_ready?:      true,
         wifi_on?:               true,
         connected?:             true,
-        connected_network_name: 'TestNetwork',
+        connected_network_name: 'TestNetwork'
       )
 
       expect(subject.restore_network_state(valid_state)).to eq(:already_connected)
@@ -621,7 +621,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         connected_network_name: 'TestNet',
         ip_address:             '192.168.1.100',
         mac_address:            'aa:bb:cc:dd:ee:ff',
-        nameservers:            ['8.8.8.8'],
+        nameservers:            ['8.8.8.8']
       )
 
       allow(subject).to receive(:internet_connectivity_state).and_call_original
@@ -647,7 +647,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
           mac_address:                'aa:bb:cc:dd:ee:ff',
           nameservers:                ['8.8.8.8'],
           internet_tcp_connectivity?: true,
-          dns_working?:               true,
+          dns_working?:               true
         )
         allow(model).to receive(:sleep)  # Don\'t actually sleep
 
@@ -665,7 +665,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       subject.internet_connectivity_state(
         result['internet_tcp_connectivity'],
         result['dns_working'],
-        result['captive_portal_state'],
+        result['captive_portal_state']
       )
 
       expect(result['internet_tcp_connectivity']).to be false
@@ -676,7 +676,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:dns_working?).and_raise(SocketError, 'DNS error')
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: true,
-        public_ip_address_info:     { 'ip' => '1.2.3.4' },
+        public_ip_address_info:     { 'ip' => '1.2.3.4' }
       )
 
       result = subject.wifi_info
@@ -688,7 +688,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: false,
         dns_working?:               true,
-        public_ip_address_info:     { 'ip' => '1.2.3.4' },
+        public_ip_address_info:     { 'ip' => '1.2.3.4' }
       )
       expect(subject).not_to receive(:captive_portal_state)
 
@@ -700,7 +700,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: true,
         dns_working?:               false,
-        public_ip_address_info:     { 'ip' => '1.2.3.4' },
+        public_ip_address_info:     { 'ip' => '1.2.3.4' }
       )
       expect(subject).not_to receive(:captive_portal_state)
 
@@ -712,7 +712,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: false,
         dns_working?:               false,
-        public_ip_address_info:     { 'ip' => '1.2.3.4' },
+        public_ip_address_info:     { 'ip' => '1.2.3.4' }
       )
       expect(subject).not_to receive(:captive_portal_state)
 
@@ -725,7 +725,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         internet_tcp_connectivity?: true,
         dns_working?:               true,
         captive_portal_state:       :free,
-        public_ip_address_info:     { 'ip' => '1.2.3.4' },
+        public_ip_address_info:     { 'ip' => '1.2.3.4' }
       )
       expect(subject).to receive(:captive_portal_state).and_return(:free)
 
@@ -934,7 +934,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         subject,
         verbose:                 subject.verbose_mode,
         output:                  subject.out_stream,
-        expected_network_errors: WifiWand::BaseModel::EXPECTED_NETWORK_ERRORS,
+        expected_network_errors: WifiWand::BaseModel::EXPECTED_NETWORK_ERRORS
       ).and_return(builder)
       expect(builder).to receive(:call).with(progress_callback: progress_callback).and_return({})
 
@@ -991,7 +991,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         run_os_command:              command_result(stdout: ''),
         preferred_networks:          [network_name],
         preferred_network_password:  network_password,
-        _preferred_network_password: network_password,
+        _preferred_network_password: network_password
       )
     end
 
@@ -1075,7 +1075,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         it "properly escapes special characters in '#{test_network}' / '#{test_password}'" do
           allow(subject).to receive_messages(
             connected_network_name:     test_network,
-            connected_network_password: test_password,
+            connected_network_password: test_password
           )
 
           silence_output { subject.generate_qr_code }

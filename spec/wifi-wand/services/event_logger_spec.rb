@@ -12,7 +12,7 @@ describe WifiWand::EventLogger do
     double('Model',
       fast_connectivity?:     true,
       wifi_on?:               true,
-      connected_network_name: 'TestNetwork',
+      connected_network_name: 'TestNetwork'
     )
   end
   let(:output) { StringIO.new }
@@ -62,7 +62,7 @@ describe WifiWand::EventLogger do
           mock_model,
           log_file_path:    log_file_path,
           output:           nil,
-          log_file_manager: mock_log_file_manager,
+          log_file_manager: mock_log_file_manager
         )
         expect(logger.output).to be_nil
         # Verify log_message doesn't call puts when output is nil
@@ -120,7 +120,7 @@ describe WifiWand::EventLogger do
       described_class.new(
         mock_model,
         output:           output,
-        log_file_manager: mock_log_file_manager,
+        log_file_manager: mock_log_file_manager
       )
     end
 
@@ -264,7 +264,7 @@ describe WifiWand::EventLogger do
       described_class.new(
         mock_model,
         output:           output,
-        log_file_manager: mock_log_file_manager,
+        log_file_manager: mock_log_file_manager
       )
     end
 
@@ -278,7 +278,7 @@ describe WifiWand::EventLogger do
           timestamp:      kind_of(Time),
           previous_state: previous_state,
           current_state:  current_state,
-          details:        {},
+          details:        {}
         )
       end
 
@@ -430,7 +430,7 @@ describe WifiWand::EventLogger do
         mock_model,
         output:           output,
         interval:         0,
-        log_file_manager: mock_log_file_manager,
+        log_file_manager: mock_log_file_manager
       )
       allow(logger).to receive(:sleep).and_raise(Interrupt)
       logger.run
@@ -458,7 +458,7 @@ describe WifiWand::EventLogger do
 
       expect(logger).to receive(:log_message) do |message|
         expect(message).to match(
-          /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi on, connected to TestNetwork, internet available/,
+          /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi on, connected to TestNetwork, internet available/
         )
       end
 
@@ -470,7 +470,7 @@ describe WifiWand::EventLogger do
 
       expect(logger).to receive(:log_message) do |message|
         expect(message).to match(
-          /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi off, not connected, internet unavailable/,
+          /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi off, not connected, internet unavailable/
         )
       end
 
@@ -482,7 +482,7 @@ describe WifiWand::EventLogger do
 
       expect(logger).to receive(:log_message) do |message|
         expect(message).to match(
-          /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi on, connected to TestNetwork, internet unknown/,
+          /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi on, connected to TestNetwork, internet unknown/
         )
       end
 
@@ -495,7 +495,7 @@ describe WifiWand::EventLogger do
       logger = described_class.new(
         mock_model,
         output:           output,
-        log_file_manager: mock_log_file_manager,
+        log_file_manager: mock_log_file_manager
       )
       logger.cleanup
       expect(mock_log_file_manager).to have_received(:close)
@@ -515,7 +515,7 @@ describe WifiWand::EventLogger do
       logger = described_class.new(
         mock_model,
         output:           output,
-        log_file_manager: mock_log_file_manager,
+        log_file_manager: mock_log_file_manager
       )
       allow(mock_log_file_manager).to receive(:write)
         .and_raise(WifiWand::LogWriteError, 'Failed to write to log file /tmp/test.log: disk full')
@@ -523,7 +523,7 @@ describe WifiWand::EventLogger do
       expect { logger.send(:log_message, 'test message') }.not_to raise_error
       expect(output.string).to include('test message')
       expect(output.string).to include(
-        'WARNING: File logging is disabled. Stdout is the only remaining log destination.',
+        'WARNING: File logging is disabled. Stdout is the only remaining log destination.'
       )
       expect(mock_log_file_manager).to have_received(:close)
       expect(logger.log_file_manager).to be_nil
@@ -533,7 +533,7 @@ describe WifiWand::EventLogger do
       logger = described_class.new(
         mock_model,
         output:           output,
-        log_file_manager: mock_log_file_manager,
+        log_file_manager: mock_log_file_manager
       )
       allow(mock_log_file_manager).to receive(:write)
         .and_raise(WifiWand::LogWriteError, 'Failed to write to log file /tmp/test.log: disk full')
@@ -541,7 +541,7 @@ describe WifiWand::EventLogger do
 
       expect { logger.send(:log_message, 'test message') }.not_to raise_error
       expect(output.string).to include(
-        'WARNING: File logging is disabled. Stdout is the only remaining log destination.',
+        'WARNING: File logging is disabled. Stdout is the only remaining log destination.'
       )
       expect(output.string).to include('Cleanup also failed: close failed')
       expect(logger.log_file_manager).to be_nil
@@ -551,7 +551,7 @@ describe WifiWand::EventLogger do
       logger = described_class.new(
         mock_model,
         output:           nil,
-        log_file_manager: mock_log_file_manager,
+        log_file_manager: mock_log_file_manager
       )
       allow(mock_log_file_manager).to receive(:write)
         .and_raise(WifiWand::LogWriteError, 'Failed to write to log file /tmp/test.log: disk full')

@@ -78,7 +78,7 @@ module WifiWand
         field_label:          'Network name',
         error_class:          InvalidNetworkNameError,
         blank_message:        'Network name cannot be empty',
-        control_char_message: 'Network name cannot contain control characters',
+        control_char_message: 'Network name cannot contain control characters'
       )
 
       normalized_password = normalize_scalar_input(
@@ -88,7 +88,7 @@ module WifiWand
         field_label:          'Password',
         error_class:          InvalidNetworkPasswordError,
         blank_message:        nil,
-        control_char_message: 'Password cannot contain control characters',
+        control_char_message: 'Password cannot contain control characters'
       )
 
       validate_password(normalized_password)

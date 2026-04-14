@@ -176,7 +176,7 @@ describe 'QR Code Integration Tests' do
           connection_security_type:    test_case[:security_type],
           preferred_networks:          [test_case[:network_name]],
           preferred_network_password:  test_case[:password],
-          _preferred_network_password: test_case[:password],
+          _preferred_network_password: test_case[:password]
         )
 
         # Don't mock run_os_command - let it create real QR code files
@@ -230,7 +230,7 @@ describe 'QR Code Integration Tests' do
         connection_security_type:    'WPA2',
         preferred_networks:          ['TestNetwork'],
         preferred_network_password:  'password',
-        _preferred_network_password: 'password',
+        _preferred_network_password: 'password'
       )
 
       # Mock qrencode to fail
@@ -259,7 +259,7 @@ describe 'QR Code Integration Tests' do
         connection_security_type:    'WPA2',
         preferred_networks:          ['TestNetwork'],
         preferred_network_password:  'password123',
-        _preferred_network_password: 'password123',
+        _preferred_network_password: 'password123'
       )
 
       allow(test_model).to receive(:run_os_command) do |cmd|
@@ -302,7 +302,7 @@ describe 'QR Code Integration Tests' do
           connection_security_type:    config[:security],
           preferred_networks:          [config[:ssid]],
           preferred_network_password:  config[:password],
-          _preferred_network_password: config[:password],
+          _preferred_network_password: config[:password]
         )
 
         allow(test_model).to receive(:run_os_command) do |cmd|

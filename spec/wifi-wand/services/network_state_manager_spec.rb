@@ -15,7 +15,7 @@ describe WifiWand::NetworkStateManager do
       wifi_on:                    nil,
       wifi_off:                   nil,
       connect:                    nil,
-      till:                       nil,
+      till:                       nil
     )
   end
 
@@ -27,7 +27,7 @@ describe WifiWand::NetworkStateManager do
         wifi_enabled:     true,
         network_name:     'TestNetwork',
         network_password: 'testpass',
-        interface:        'wlan0',
+        interface:        'wlan0'
       )
     end
 
@@ -41,7 +41,7 @@ describe WifiWand::NetworkStateManager do
     it 'handles password retrieval failure' do
       allow(mock_model).to receive_messages(
         connected_network_name:     'TestNetwork',
-        preferred_network_password: nil,
+        preferred_network_password: nil
       )
       state = state_manager.capture_network_state
       expect(state[:network_name]).to eq('TestNetwork')
@@ -86,7 +86,7 @@ describe WifiWand::NetworkStateManager do
           connection_ready?:          false,
           wifi_on?:                   true,
           connected_network_name:     'OtherNetwork',
-          preferred_network_password: 'testpass',
+          preferred_network_password: 'testpass'
         )
         allow(mock_model).to receive(:connect).and_raise(WifiWand::NetworkConnectionError.new('TestNetwork',
           'Network unavailable'))
@@ -114,7 +114,7 @@ describe WifiWand::NetworkStateManager do
           connection_ready?:          false,
           wifi_on?:                   true,
           connected_network_name:     'OtherNetwork',
-          preferred_network_password: 'testpass',
+          preferred_network_password: 'testpass'
         )
         allow(mock_model).to receive(:connect).and_raise(WifiWand::NetworkConnectionError.new('TestNetwork',
           'Network unavailable'))
@@ -133,7 +133,7 @@ describe WifiWand::NetworkStateManager do
           connection_ready?:          false,
           wifi_on?:                   true,
           connected_network_name:     'OtherNetwork',
-          preferred_network_password: 'testpass',
+          preferred_network_password: 'testpass'
         )
         allow(mock_model).to receive(:connect).and_raise(SocketError, 'lookup failed')
 
@@ -149,7 +149,7 @@ describe WifiWand::NetworkStateManager do
           connection_ready?:          false,
           wifi_on?:                   true,
           connected_network_name:     'OtherNetwork',
-          preferred_network_password: 'testpass',
+          preferred_network_password: 'testpass'
         )
         allow(mock_model).to receive(:connect).and_raise(NoMethodError, 'unexpected bug')
 
@@ -166,7 +166,7 @@ describe WifiWand::NetworkStateManager do
     it 'returns :already_connected when already on correct network' do
       allow(mock_model).to receive_messages(
         wifi_on?:          true,
-        connection_ready?: true,
+        connection_ready?: true
       )
       expect(state_manager.restore_network_state(valid_state)).to eq(:already_connected)
     end
@@ -174,7 +174,7 @@ describe WifiWand::NetworkStateManager do
     it 'reconnects when SSID matches but the connection is not yet active' do
       allow(mock_model).to receive_messages(
         wifi_on?:               true,
-        connected_network_name: 'TestNetwork',
+        connected_network_name: 'TestNetwork'
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
       allow(state_manager).to receive(:sleep)
@@ -188,7 +188,7 @@ describe WifiWand::NetworkStateManager do
       wifi_off_state = valid_state.merge(wifi_enabled: true)
       allow(mock_model).to receive_messages(
         wifi_on?:               false,
-        connected_network_name: 'TestNetwork',
+        connected_network_name: 'TestNetwork'
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
       allow(state_manager).to receive(:sleep)
@@ -216,7 +216,7 @@ describe WifiWand::NetworkStateManager do
       state_without_password = valid_state.merge(network_password: nil)
       allow(mock_model).to receive_messages(
         wifi_on?:               true,
-        connected_network_name: 'OtherNetwork',
+        connected_network_name: 'OtherNetwork'
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
       allow(state_manager).to receive(:sleep)
@@ -257,7 +257,7 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:connected_network_name).and_return('ActualNetwork')
       allow(mock_model).to receive_messages(
         wifi_on?:                   true,
-        preferred_network_password: 'testpass',
+        preferred_network_password: 'testpass'
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false)
       allow(mock_model).to receive(:connect)
@@ -277,7 +277,7 @@ describe WifiWand::NetworkStateManager do
         'OtherNetwork').and_raise(WifiWand::Error.new('Network query failed'))
       allow(mock_model).to receive_messages(
         wifi_on?:                   true,
-        preferred_network_password: 'testpass',
+        preferred_network_password: 'testpass'
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false)
       allow(mock_model).to receive(:connect)
@@ -296,7 +296,7 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:connected_network_name).and_return('ActualNetwork')
       allow(mock_model).to receive_messages(
         wifi_on?:                   true,
-        preferred_network_password: 'testpass',
+        preferred_network_password: 'testpass'
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false)
       allow(mock_model).to receive(:connect)
@@ -319,7 +319,7 @@ describe WifiWand::NetworkStateManager do
         'OtherNetwork').and_raise(WifiWand::Error.new('Network query failed'))
       allow(mock_model).to receive_messages(
         wifi_on?:                   true,
-        preferred_network_password: 'testpass',
+        preferred_network_password: 'testpass'
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false)
       allow(mock_model).to receive(:connect)

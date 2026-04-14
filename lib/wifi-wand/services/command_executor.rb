@@ -101,7 +101,7 @@ module WifiWand
         combined_output: combined_chunks.join,
         exitstatus:      status.exitstatus,
         command:         command_display,
-        duration:        duration,
+        duration:        duration
       )
 
       status_string = "Exit code: #{result.exitstatus} (#{result.success? ? 'success' : 'error'})"
@@ -206,7 +206,7 @@ module WifiWand
             combined_output: text,
             exitstatus:      result_or_exitstatus,
             command:         command,
-            duration:        nil,
+            duration:        nil
           )
         end
 

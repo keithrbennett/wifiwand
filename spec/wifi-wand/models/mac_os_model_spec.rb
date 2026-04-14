@@ -282,7 +282,7 @@ module WifiWand
       subject(:model) { create_mac_os_test_model }
       let(:success_result) do
         WifiWand::CommandExecutor::OsCommandResult.new(
-          stdout: '', stderr: '', combined_output: '', exitstatus: 0, command: '', duration: 0.1,
+          stdout: '', stderr: '', combined_output: '', exitstatus: 0, command: '', duration: 0.1
         )
       end
 
@@ -454,7 +454,7 @@ module WifiWand
         it 'does not fall back to airport data when helper is blocked by Location Services' do
           result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
             location_services_blocked: true,
-            error_message:             'Location Services denied',
+            error_message:             'Location Services denied'
           )
           allow(helper_double).to receive(:connected_network_name).and_return(result)
 
@@ -474,7 +474,7 @@ module WifiWand
           test_cases.each do |output, expected|
             allow(model).to receive_messages(
               detect_wifi_service_name: 'Wi-Fi',
-              run_os_command:           command_result(stdout: output),
+              run_os_command:           command_result(stdout: output)
             )
             expect(model.nameservers_using_networksetup).to eq(expected)
           end
@@ -693,7 +693,7 @@ module WifiWand
         it 'detects WiFi interface from system_profiler' do
           allow(model).to receive_messages(
             detect_wifi_service_name: 'Wi-Fi',
-            run_os_command:           command_result(stdout: system_profiler_output),
+            run_os_command:           command_result(stdout: system_profiler_output)
           )
           expect(model.probe_wifi_interface).to eq('en0')
         end
@@ -701,7 +701,7 @@ module WifiWand
         it 'returns nil when WiFi service not found' do
           allow(model).to receive_messages(
             detect_wifi_service_name: 'Wi-Fi',
-            run_os_command:           command_result(stdout: '{"SPNetworkDataType": []}'),
+            run_os_command:           command_result(stdout: '{"SPNetworkDataType": []}')
           )
           expect(model.probe_wifi_interface).to be_nil
         end
@@ -709,7 +709,7 @@ module WifiWand
         it 'handles JSON parse errors gracefully' do
           allow(model).to receive_messages(
             detect_wifi_service_name: 'Wi-Fi',
-            run_os_command:           command_result(stdout: 'invalid json'),
+            run_os_command:           command_result(stdout: 'invalid json')
           )
           expect { model.probe_wifi_interface }.to raise_error(JSON::ParserError)
         end
@@ -849,7 +849,7 @@ module WifiWand
           networksetup_output = "Preferred networks on en0:\n\tLibraryWiFi\n\t@thePAD/Magma\n\tHomeNetwork\n"
           allow(model).to receive_messages(
             wifi_interface: 'en0',
-            run_os_command: command_result(stdout: networksetup_output),
+            run_os_command: command_result(stdout: networksetup_output)
           )
 
           result = model.preferred_networks
@@ -860,7 +860,7 @@ module WifiWand
         it 'handles empty preferred networks list' do
           allow(model).to receive_messages(
             wifi_interface: 'en0',
-            run_os_command: command_result(stdout: "Preferred networks on en0:\n"),
+            run_os_command: command_result(stdout: "Preferred networks on en0:\n")
           )
 
           expect(model.preferred_networks).to eq([])
@@ -897,7 +897,7 @@ module WifiWand
           allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_double)
           allow(helper_double).to receive_messages(
             scan_networks:          default_scan_result,
-            connected_network_name: default_connected_result,
+            connected_network_name: default_connected_result
           )
           allow(model).to receive_messages(mac_helper_client: helper_double, wifi_interface: 'en0')
         end
@@ -906,7 +906,7 @@ module WifiWand
           allow(model).to receive_messages(
             airport_data:           mock_airport_data,
             wifi_interface:         'en0',
-            connected_network_name: nil,
+            connected_network_name: nil
           )
 
           result = model._available_network_names
@@ -922,7 +922,7 @@ module WifiWand
           allow(model).to receive_messages(
             airport_data:           connected_data,
             wifi_interface:         'en0',
-            connected_network_name: 'CurrentNetwork',
+            connected_network_name: 'CurrentNetwork'
           )
 
           result = model._available_network_names
@@ -946,7 +946,7 @@ module WifiWand
           allow(model).to receive_messages(
             airport_data:           duplicate_data,
             wifi_interface:         'en0',
-            connected_network_name: nil,
+            connected_network_name: nil
           )
 
           result = model._available_network_names
@@ -959,7 +959,7 @@ module WifiWand
               { 'ssid' => '<hidden>' },
               { 'ssid' => '<redacted>' },
               { 'ssid' => 'VisibleNetwork' },
-            ],
+            ]
           )
           allow(helper_double).to receive(:scan_networks).and_return(result)
 
@@ -984,7 +984,7 @@ module WifiWand
           allow(model).to receive_messages(
             airport_data:           placeholder_data,
             wifi_interface:         'en0',
-            connected_network_name: nil,
+            connected_network_name: nil
           )
 
           result = model._available_network_names
@@ -995,7 +995,7 @@ module WifiWand
           result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
             payload:                   [],
             location_services_blocked: true,
-            error_message:             'Location Services denied',
+            error_message:             'Location Services denied'
           )
           allow(helper_double).to receive(:scan_networks).and_return(result)
 
@@ -1076,8 +1076,8 @@ module WifiWand
               WifiWand::CommandExecutor::OsCommandError.new(
                 1,
                 'swift',
-                "Error connecting: The operation couldn't be completed. tmpErr (code: 82)",
-              ),
+                "Error connecting: The operation couldn't be completed. tmpErr (code: 82)"
+              )
             )
           expect(model).to receive(:os_level_connect_using_networksetup).with('TestNetwork', 'password')
 
@@ -1092,8 +1092,8 @@ module WifiWand
               WifiWand::CommandExecutor::OsCommandError.new(
                 1,
                 'swift',
-                'Error connecting: permission denied',
-              ),
+                'Error connecting: permission denied'
+              )
             )
           expect(model).not_to receive(:os_level_connect_using_networksetup)
 
@@ -1160,7 +1160,7 @@ module WifiWand
         before do
           allow(model).to receive_messages(
             _connected_network_name: network_name,
-            wifi_interface:          wifi_interface,
+            wifi_interface:          wifi_interface
           )
         end
 
@@ -1262,7 +1262,7 @@ module WifiWand
         before do
           allow(model).to receive_messages(
             _connected_network_name: network_name,
-            wifi_interface:          wifi_interface,
+            wifi_interface:          wifi_interface
           )
         end
 

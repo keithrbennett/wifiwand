@@ -12,7 +12,7 @@ describe WifiWand::LogCommand do
         network_name:            'HomeNetwork',
         internet_state:          :reachable,
         internet_check_complete: true,
-      },
+      }
     )
   end
 
@@ -53,8 +53,8 @@ describe WifiWand::LogCommand do
           interval:      WifiWand::TimingConstants::EVENT_LOG_POLLING_INTERVAL,
           verbose:       false,
           log_file_path: nil,
-          output:        output,
-        ),
+          output:        output
+        )
       )
     end
 
@@ -72,7 +72,7 @@ describe WifiWand::LogCommand do
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
-          hash_including(interval: 10.0),
+          hash_including(interval: 10.0)
         )
       end
 
@@ -82,7 +82,7 @@ describe WifiWand::LogCommand do
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
-          hash_including(interval: 2.5),
+          hash_including(interval: 2.5)
         )
       end
 
@@ -115,7 +115,7 @@ describe WifiWand::LogCommand do
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
-          hash_including(log_file_path: '/tmp/custom.log', output: nil),
+          hash_including(log_file_path: '/tmp/custom.log', output: nil)
         )
       end
 
@@ -127,8 +127,8 @@ describe WifiWand::LogCommand do
           mock_model,
           hash_including(
             log_file_path: WifiWand::LogFileManager::DEFAULT_LOG_FILE,
-            output:        nil,
-          ),
+            output:        nil
+          )
         )
       end
 
@@ -137,7 +137,7 @@ describe WifiWand::LogCommand do
         allow(WifiWand::EventLogger).to receive(:new)
           .and_raise(
             WifiWand::LogFileInitializationError,
-            'Cannot open log file /missing/events.log: No such file or directory',
+            'Cannot open log file /missing/events.log: No such file or directory'
           )
 
         expect do
@@ -153,7 +153,7 @@ describe WifiWand::LogCommand do
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
-          hash_including(output: output),
+          hash_including(output: output)
         )
       end
 
@@ -165,8 +165,8 @@ describe WifiWand::LogCommand do
           mock_model,
           hash_including(
             log_file_path: '/tmp/test.log',
-            output:        output,
-          ),
+            output:        output
+          )
         )
       end
 
@@ -181,14 +181,14 @@ describe WifiWand::LogCommand do
             mock_model,
             interval: WifiWand::TimingConstants::EVENT_LOG_POLLING_INTERVAL,
             verbose:  false,
-            output:   output,
+            output:   output
           )
           .and_return(mock_logger)
 
         command.execute('--file', '/missing/events.log', '--stdout')
 
         expect(output.string).to include(
-  'WARNING: File logging is disabled. Stdout is the only remaining log destination.',
+  'WARNING: File logging is disabled. Stdout is the only remaining log destination.'
 )
         expect(mock_logger).to have_received(:run)
       end
@@ -201,7 +201,7 @@ describe WifiWand::LogCommand do
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
-          hash_including(verbose: true),
+          hash_including(verbose: true)
         )
       end
 
@@ -211,7 +211,7 @@ describe WifiWand::LogCommand do
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
-          hash_including(verbose: true),
+          hash_including(verbose: true)
         )
       end
     end
@@ -227,8 +227,8 @@ describe WifiWand::LogCommand do
             interval:      3.0,
             verbose:       true,
             log_file_path: '/tmp/test.log',
-            output:        nil,
-          ),
+            output:        nil
+          )
         )
       end
 
@@ -242,8 +242,8 @@ describe WifiWand::LogCommand do
             interval:      3.0,
             verbose:       true,
             log_file_path: '/tmp/test.log',
-            output:        output,
-          ),
+            output:        output
+          )
         )
       end
     end

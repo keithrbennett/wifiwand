@@ -109,7 +109,7 @@ module WifiWand
 
             error = WifiWand::NetworkConnectionError.new(
               state[:network_name],
-              "timed out waiting for connection; currently connected to #{actual_network.inspect}",
+              "timed out waiting for connection; currently connected to #{actual_network.inspect}"
             )
             error.set_backtrace(e.backtrace)
             raise error

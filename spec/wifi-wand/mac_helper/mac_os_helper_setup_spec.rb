@@ -19,7 +19,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
         installed:          installed,
         valid:              valid,
         authorized:         authorized,
-        permission_message: message,
+        permission_message: message
       )
     end
 
@@ -287,7 +287,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
     it 'opens the macOS Location Services system preferences URL' do
       expect(setup).to receive(:system).with(
         'open',
-        'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices',
+        'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices'
       )
       setup.open_location_settings
     end

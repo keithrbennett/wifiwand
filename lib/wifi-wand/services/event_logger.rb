@@ -36,7 +36,7 @@ module WifiWand
         LogFileManager.new(
           log_file_path: log_file_path,
           verbose:       @verbose,
-          output:        @output,
+          output:        @output
         )
       end
       @previous_state = nil

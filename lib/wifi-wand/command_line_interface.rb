@@ -217,7 +217,7 @@ module WifiWand
         target_status,
         timeout_in_secs:                         timeout_in_secs,
         wait_interval_in_secs:                   interval_in_secs,
-        stringify_permitted_values_in_error_msg: !interactive_mode,
+        stringify_permitted_values_in_error_msg: !interactive_mode
       )
     end
 

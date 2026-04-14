@@ -78,7 +78,7 @@ module WifiWand
         dns_status = format_boolean_status(status_data[:dns_working])
         internet_status = format_internet_status(
           status_data[:internet_state],
-          check_complete: status_data[:internet_check_complete],
+          check_complete: status_data[:internet_check_complete]
         )
 
         # Format network name

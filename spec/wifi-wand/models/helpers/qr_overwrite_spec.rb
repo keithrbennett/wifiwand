@@ -23,7 +23,7 @@ describe 'QR Code Overwrite Confirmation' do
       connected_network_name:     ssid,
       connection_security_type:   security,
       connected_network_password: password,
-      network_hidden?:            false,
+      network_hidden?:            false
     )
   end
 

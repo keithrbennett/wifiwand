@@ -9,7 +9,7 @@ describe WifiWand::StatusWaiter do
     double('Model',
       wifi_on?:                    false,
       associated?:                 false,
-      internet_connectivity_state: :unreachable,
+      internet_connectivity_state: :unreachable
     )
   end
 
@@ -104,7 +104,7 @@ describe WifiWand::StatusWaiter do
         expect do
           verbose_waiter.wait_for(:wifi_on, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)
         end.to output(
-          /StatusWaiter \(wifi_on\): starting, timeout: never, interval: #{WifiWand::TimingConstants::FAST_TEST_INTERVAL}s/,
+          /StatusWaiter \(wifi_on\): starting, timeout: never, interval: #{WifiWand::TimingConstants::FAST_TEST_INTERVAL}s/
         ).to_stdout
       end
 

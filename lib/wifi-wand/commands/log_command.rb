@@ -47,7 +47,7 @@ module WifiWand
         interval:      interval,
         verbose_flag:  verbose_flag,
         log_file_path: log_file_path,
-        logger_output: logger_output,
+        logger_output: logger_output
       )
 
       logger.run
@@ -105,7 +105,7 @@ module WifiWand
         interval:      interval,
         verbose:       verbose_flag,
         log_file_path: log_file_path,
-        output:        logger_output,
+        output:        logger_output
       )
     rescue WifiWand::LogFileInitializationError => e
       raise WifiWand::ConfigurationError, e.message unless logger_output
@@ -115,7 +115,7 @@ module WifiWand
         model,
         interval: interval,
         verbose:  verbose_flag,
-        output:   logger_output,
+        output:   logger_output
       )
     end
 
