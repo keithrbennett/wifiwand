@@ -139,11 +139,12 @@ stored DNS state, not a partial merge.
   remain stable across runs.
 
 ### `nmcli --show-secrets connection show <preferred_network_name>`
-- Description: Reads the stored pre-shared key for a saved network.
+- Description: Reads the stored Wi-Fi credential for a saved network, including PSK and WEP secrets.
 - Dynamic Values: `preferred_network_name`
 - Base Model Method(s): `_preferred_network_password`
 - CLI Command(s): `co`, `pa`
-- Helpful Info: Searches for `802-11-wireless-security.psk:` lines and strips blank passwords; invoked with
+- Helpful Info: Searches for `802-11-wireless-security.psk:` or
+  `802-11-wireless-security.wep-key0:` lines and strips blank passwords; invoked with
   `raise_on_error: false` to handle locked secrets.
 
 ### `nmcli dev disconnect <interface>`

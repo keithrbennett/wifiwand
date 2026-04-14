@@ -1166,7 +1166,7 @@ module WifiWand
         end
 
         describe '#_preferred_network_password' do
-          it 'retrieves stored password for connection profile' do
+          it 'retrieves stored PSK password for connection profile' do
             password_output = '802-11-wireless-security.psk:    my-secret-password'
             allow(subject).to receive(:run_os_command)
               .with(%w[nmcli --show-secrets connection show MyProfile], false)
@@ -1176,10 +1176,24 @@ module WifiWand
             expect(result).to eq('my-secret-password')
           end
 
-          it 'returns nil when no password is stored' do
+          it 'retrieves stored WEP password for connection profile' do
+            password_output = '802-11-wireless-security.wep-key0:    legacy-wep-key'
             allow(subject).to receive(:run_os_command)
               .with(%w[nmcli --show-secrets connection show MyProfile], false)
-              .and_return(command_result(stdout: ''))
+              .and_return(command_result(stdout: password_output))
+
+            result = subject.send(:_preferred_network_password, 'MyProfile')
+            expect(result).to eq('legacy-wep-key')
+          end
+
+          it 'returns nil when no password is stored' do
+            password_output = <<~OUTPUT
+              connection.id: MyProfile
+              802-11-wireless-security.key-mgmt: none
+            OUTPUT
+            allow(subject).to receive(:run_os_command)
+              .with(%w[nmcli --show-secrets connection show MyProfile], false)
+              .and_return(command_result(stdout: password_output))
 
             expect(subject.send(:_preferred_network_password, 'MyProfile')).to be_nil
           end

@@ -142,11 +142,7 @@ module WifiWand
       error_raising_test_cases = [
         ['', nil].map do |network_name|
           connect_invalid_name_base_case.merge(
-            args:   [network_name],
-            before: -> {
-              allow(model.connection_manager).to receive(:connect)
-                .and_raise(InvalidNetworkNameError.new(network_name, 'Network name cannot be empty'))
-            },
+            args: [network_name],
           )
         end,
         {

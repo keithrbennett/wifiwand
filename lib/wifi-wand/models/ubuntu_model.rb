@@ -7,6 +7,11 @@ require_relative '../errors'
 
 module WifiWand
   class UbuntuModel < BaseModel
+    PREFERRED_NETWORK_SECRET_FIELDS = %w[
+      802-11-wireless-security.psk
+      802-11-wireless-security.wep-key0
+    ].freeze
+
     def initialize(options = {}) = super
 
     def self.os_id
@@ -341,12 +346,17 @@ module WifiWand
 
       output = run_os_command(['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name],
         false).stdout
-      psk_line = output.split("\n").find { |line| line.include?('802-11-wireless-security.psk:') }
-      return nil unless psk_line
+      extract_preferred_network_secret(output)
+    end
 
-      # Extract everything after the first colon
-      password = psk_line.split(':', 2).last&.strip
-      password.empty? ? nil : password
+    def extract_preferred_network_secret(connection_output)
+      secret_line = connection_output.split("\n").find do |line|
+        PREFERRED_NETWORK_SECRET_FIELDS.any? { |field_name| line.include?("#{field_name}:") }
+      end
+      return nil unless secret_line
+
+      secret = secret_line.split(':', 2).last&.strip
+      secret.empty? ? nil : secret
     end
 
     def _ip_address
