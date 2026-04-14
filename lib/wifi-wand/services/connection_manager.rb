@@ -5,7 +5,9 @@ require_relative '../errors'
 module WifiWand
   class ConnectionManager
     MAX_NETWORK_NAME_LENGTH = 32
-    MAX_PASSWORD_LENGTH = 63
+    MAX_PASSWORD_LENGTH = 64
+    MAX_PASSPHRASE_LENGTH = 63
+    RAW_PSK_PATTERN = /\A\h{64}\z/
     CONTROL_CHAR_PATTERN = /\p{Cntrl}/
 
     attr_reader :model, :verbose_mode
@@ -56,15 +58,17 @@ module WifiWand
     #
     # Accepted input types:
     # - Network name: String or Symbol (required, max 32 printable characters)
-    # - Password: String, Symbol, or nil (optional WPA/WPA2/3 pre-shared key up to 63 characters)
+    # - Password: String, Symbol, or nil (optional WPA/WPA2/3 pre-shared key:
+    #   1-63 character passphrase, or exactly 64 hexadecimal characters)
     #
     # Symbols are converted to Strings, nil passwords are preserved, and control characters
-    # are rejected to avoid sending malformed SSIDs.
+    # are rejected to avoid sending malformed connection inputs.
     #
     # @param network_name [String, Symbol] SSID or network name to connect to.
     # @param password [String, Symbol, nil] Optional pre-shared key.
     # @raise [InvalidNetworkNameError] when the network name is missing or malformed.
-    # @raise [InvalidNetworkPasswordError] when the password is not a String/Symbol or exceeds 63 chars.
+    # @raise [InvalidNetworkPasswordError] when the password is not a String/Symbol,
+    #   contains control characters, or is neither a valid passphrase nor raw PSK.
     # @return [Array(String, String,nil)] normalized `[network_name, password]`.
     def normalize_inputs(network_name, password)
       normalized_network_name = normalize_scalar_input(
@@ -84,8 +88,10 @@ module WifiWand
         field_label:          'Password',
         error_class:          InvalidNetworkPasswordError,
         blank_message:        nil,
-        control_char_message: nil,
+        control_char_message: 'Password cannot contain control characters',
       )
+
+      validate_password(normalized_password)
 
       [normalized_network_name, normalized_password]
     end
@@ -94,6 +100,19 @@ module WifiWand
       if network_name.nil? || network_name.empty?
         raise InvalidNetworkNameError, network_name || ''
       end
+    end
+
+    def validate_password(password)
+      return if password.nil? || password.empty?
+      return if password.length <= MAX_PASSPHRASE_LENGTH || password.match?(RAW_PSK_PATTERN)
+
+      reason = if password.length == MAX_PASSWORD_LENGTH
+        'Password must be 1-63 characters, or exactly 64 hexadecimal characters'
+      else
+        'Password cannot exceed 64 characters'
+      end
+
+      raise InvalidNetworkPasswordError.new(password, reason)
     end
 
     def already_connected?(network_name)

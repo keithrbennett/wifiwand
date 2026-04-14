@@ -71,10 +71,17 @@ describe WifiWand::ConnectionManager do
         .to raise_error(WifiWand::InvalidNetworkNameError, /String or Symbol/)
     end
 
-    it 'raises for passwords longer than 63 characters' do
-      long_password = 'p' * 64
-      expect { subject.send(:normalize_inputs, 'ValidNetwork', long_password) }
-        .to raise_error(WifiWand::InvalidNetworkPasswordError, /exceed 63 characters/)
+    it 'allows valid 64-character hexadecimal PSKs' do
+      raw_psk = 'a' * 64
+      network_name, password = subject.send(:normalize_inputs, 'ValidNetwork', raw_psk)
+      expect(network_name).to eq('ValidNetwork')
+      expect(password).to eq(raw_psk)
+    end
+
+    it 'rejects 64-character passwords that are not hexadecimal PSKs' do
+      invalid_psk = 'g' * 64
+      expect { subject.send(:normalize_inputs, 'ValidNetwork', invalid_psk) }
+        .to raise_error(WifiWand::InvalidNetworkPasswordError, /64 hexadecimal characters/)
     end
 
     it 'allows passwords exactly 63 characters long' do
@@ -84,9 +91,20 @@ describe WifiWand::ConnectionManager do
       expect(password).to eq(max_password)
     end
 
+    it 'raises for passwords longer than 64 characters' do
+      long_password = 'p' * 65
+      expect { subject.send(:normalize_inputs, 'ValidNetwork', long_password) }
+        .to raise_error(WifiWand::InvalidNetworkPasswordError, /exceed 64 characters/)
+    end
+
     it 'raises when password type is not String or Symbol' do
       expect { subject.send(:normalize_inputs, 'ValidNetwork', [:array]) }
         .to raise_error(WifiWand::InvalidNetworkPasswordError, /String or Symbol/)
+    end
+
+    it 'raises for passwords containing control characters' do
+      expect { subject.send(:normalize_inputs, 'ValidNetwork', "bad\npassword") }
+        .to raise_error(WifiWand::InvalidNetworkPasswordError, /control characters/)
     end
 
     it 'allows empty strings for passwords' do
@@ -167,6 +185,13 @@ describe WifiWand::ConnectionManager do
         expect(mock_model).to receive(:_connect).with('TestNetwork', 'password123')
 
         subject.connect('TestNetwork', 'password123')
+      end
+
+      it 'passes valid raw PSKs through unchanged' do
+        raw_psk = 'A' * 64
+        expect(mock_model).to receive(:_connect).with('TestNetwork', raw_psk)
+
+        subject.connect('TestNetwork', raw_psk)
       end
     end
 
