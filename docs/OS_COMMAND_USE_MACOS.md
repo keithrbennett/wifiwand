@@ -176,7 +176,7 @@ Swift helpers leverage the CoreWLAN framework for rich Wi-Fi control when the to
 - Helpful Info: Verbose mode prints actionable guidance for exit statuses 127 (Swift missing) and 1 (CoreWLAN
   unavailable).
 
-### `swift swift/WifiNetworkConnector.swift <network_name> [password]`
+### `swift lib/wifi-wand/mac_helper/swift/WifiNetworkConnector.swift <network_name> [password]`
 - Description: Uses a Swift helper to connect via CoreWLAN when available.
 - Dynamic Values: `swift_filespec` (absolute path to the helper), `network_name`, `password` (optional)
 - Base Model Method(s): `run_swift_command`, `os_level_connect_using_swift`, `_connect`
@@ -184,7 +184,7 @@ Swift helpers leverage the CoreWLAN framework for rich Wi-Fi control when the to
 - Helpful Info: The CoreWLAN path is attempted before the `networksetup` fallback; specific CoreWLAN error
   codes trigger retries with the legacy command.
 
-### `swift swift/WifiNetworkDisconnector.swift`
+### `swift lib/wifi-wand/mac_helper/swift/WifiNetworkDisconnector.swift`
 - Description: Invokes a Swift helper to disconnect using CoreWLAN.
 - Dynamic Values: `swift_filespec` (absolute path to the helper)
 - Base Model Method(s): `_disconnect`

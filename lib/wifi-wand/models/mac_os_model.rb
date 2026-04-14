@@ -6,7 +6,7 @@ require 'shellwords'
 
 require_relative 'base_model'
 require_relative '../errors'
-require_relative '../mac_os_wifi_auth_helper'
+require_relative '../mac_helper/mac_os_wifi_auth_helper'
 
 
 module WifiWand
@@ -562,7 +562,7 @@ module WifiWand
 
     def run_swift_command(basename, *args)
       swift_filespec = File.absolute_path(File.join(File.dirname(__FILE__),
-        "../../../swift/#{basename}.swift"))
+        "../mac_helper/swift/#{basename}.swift"))
       run_os_command(['swift', swift_filespec] + args)
     end
 

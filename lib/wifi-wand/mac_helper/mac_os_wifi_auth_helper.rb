@@ -13,7 +13,7 @@ require 'fileutils'
 require 'json'
 require 'open3'
 require 'rubygems/version'
-require_relative 'version'
+require_relative '../version'
 
 module WifiWand
   module MacOsWifiAuthHelper
@@ -39,13 +39,13 @@ module WifiWand
     #
     # @return [String] absolute path to wifiwand-helper.swift source file
     #   Example: /path/to/gem/libexec/macos/src/wifiwand-helper.swift
-    def source_swift_path = File.expand_path('../../libexec/macos/src/wifiwand-helper.swift', __dir__)
+    def source_swift_path = File.expand_path('../../../libexec/macos/src/wifiwand-helper.swift', __dir__)
 
     # Returns the path to the app bundle template in the gem's libexec directory
     #
     # @return [String] absolute path to the bundle template directory
     #   Example: /path/to/gem/libexec/macos/wifiwand-helper.app
-    def source_bundle_path = File.expand_path('../../libexec/macos/wifiwand-helper.app', __dir__)
+    def source_bundle_path = File.expand_path('../../../libexec/macos/wifiwand-helper.app', __dir__)
 
     # Returns the versioned installation directory in user's Library folder
     #
@@ -182,7 +182,7 @@ module WifiWand
         'Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)'
 
       # Path to entitlements file
-      entitlements_path = File.expand_path('../../libexec/macos/wifiwand-helper.entitlements', __dir__)
+      entitlements_path = File.expand_path('../../../libexec/macos/wifiwand-helper.entitlements', __dir__)
 
       command = [
         'codesign',

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'rbconfig'
-require_relative '../wifi-wand/mac_os_wifi_auth_helper'
+require_relative '../wifi-wand/mac_helper/mac_os_wifi_auth_helper'
 
 namespace :swift do
   helper = WifiWand::MacOsWifiAuthHelper

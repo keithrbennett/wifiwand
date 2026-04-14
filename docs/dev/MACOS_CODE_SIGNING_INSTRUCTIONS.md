@@ -15,7 +15,7 @@ step (or deeper troubleshooting), jump to `MACOS_CODE_SIGNING_CONTEXT.md`.
 - Xcode Command Line Tools installed (`xcode-select --install`) so `codesign`, `notarytool`, etc. are
   available.
 - Ruby environment that can run `bin/mac-helper` (no bundler required for the script itself).
-- Access to `lib/wifi-wand/mac_helper_release.rb` in the repo so you can update the public signing constants.
+- Access to `lib/wifi-wand/mac_helper/mac_helper_release.rb` in the repo so you can update the public signing constants.
 
 ---
 
@@ -32,7 +32,7 @@ step (or deeper troubleshooting), jump to `MACOS_CODE_SIGNING_CONTEXT.md`.
      Copy the exact identity string (e.g., `Developer ID Application: Your Name (TEAM123ABCD)`).
 
 2. **Record the public values in the release helper**
-   - Edit `lib/wifi-wand/mac_helper_release.rb` and replace `APPLE_TEAM_ID` and `CODESIGN_IDENTITY` with the
+   - Edit `lib/wifi-wand/mac_helper/mac_helper_release.rb` and replace `APPLE_TEAM_ID` and `CODESIGN_IDENTITY` with the
      values from the previous step.
    - These values are embedded in every signed binary, so storing them in git is expected.
 
@@ -167,7 +167,7 @@ bin/op-wrap bin/mac-helper history
 
 - Background, troubleshooting, and the rationale for each requirement:
   `docs/dev/MACOS_CODE_SIGNING_CONTEXT.md`
-- Script implementation lives in `bin/mac-helper` (CLI) and `lib/wifi-wand/mac_helper_release.rb` (core
+- Script implementation lives in `bin/mac-helper` (CLI) and `lib/wifi-wand/mac_helper/mac_helper_release.rb` (core
   logic).
 - Forget the commands? Run `bin/mac-helper help` for a quick reminder.
 

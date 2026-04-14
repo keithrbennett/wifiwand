@@ -17,7 +17,7 @@ require 'pathname'
 lib_path = Pathname.new(__FILE__).dirname.parent.join('lib')
 $LOAD_PATH.unshift(lib_path) unless $LOAD_PATH.include?(lib_path.to_s)
 
-require 'wifi-wand/mac_helper_release'
+require 'wifi-wand/mac_helper/mac_helper_release'
 
 module MacHelperCLI
   SUBCOMMANDS = {

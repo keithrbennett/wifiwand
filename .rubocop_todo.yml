@@ -120,8 +120,8 @@ Naming/MethodParameterName:
 # WaywardPredicates: nonzero?
 Naming/PredicateMethod:
   Exclude:
-    - 'lib/wifi-wand/mac_helper_release.rb'
-    - 'lib/wifi-wand/mac_os_setup_cli.rb'
+    - 'lib/wifi-wand/mac_helper/mac_helper_release.rb'
+    - 'lib/wifi-wand/mac_helper/mac_os_setup_cli.rb'
 
 # Offense count: 1
 # Configuration parameters: NamePrefix, ForbiddenPrefixes, AllowedMethods, MethodDefinitionMacros, UseSorbetSigs.
@@ -140,7 +140,7 @@ Naming/PredicatePrefix:
 # AllowedIdentifiers: TLS1_1, TLS1_2, capture3, iso8601, rfc1123_date, rfc822, rfc2822, rfc3339, x86_64
 Naming/VariableNumber:
   Exclude:
-    - 'lib/wifi-wand/mac_helper_release.rb'
+    - 'lib/wifi-wand/mac_helper/mac_helper_release.rb'
 
 # Offense count: 37
 RSpec/AnyInstance:
@@ -152,7 +152,7 @@ RSpec/AnyInstance:
     - 'spec/wifi-wand/command_line_interface/output_formats_integration_spec.rb'
     - 'spec/wifi-wand/command_line_interface_spec.rb'
     - 'spec/wifi-wand/errors_spec.rb'
-    - 'spec/wifi-wand/mac_os_setup_cli_spec.rb'
+    - 'spec/wifi-wand/mac_helper/mac_os_setup_cli_spec.rb'
     - 'spec/wifi-wand/models/mac_os_model_spec.rb'
     - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
     - 'spec/wifi-wand/operating_systems_spec.rb'
@@ -257,8 +257,8 @@ RSpec/SubjectStub:
     - 'spec/wifi-wand/command_line_interface/main_spec.rb'
     - 'spec/wifi-wand/command_line_interface/shell_interface_spec.rb'
     - 'spec/wifi-wand/command_line_interface_spec.rb'
-    - 'spec/wifi-wand/mac_os_helper_setup_spec.rb'
-    - 'spec/wifi-wand/mac_os_wifi_auth_helper_spec.rb'
+    - 'spec/wifi-wand/mac_helper/mac_os_helper_setup_spec.rb'
+    - 'spec/wifi-wand/mac_helper/mac_os_wifi_auth_helper_spec.rb'
     - 'spec/wifi-wand/services/connection_manager_spec.rb'
 
 
@@ -357,7 +357,7 @@ Style/SafeNavigation:
   Exclude:
     - 'lib/wifi-wand/command_line_interface.rb'
     - 'lib/wifi-wand/command_line_interface/command_registry.rb'
-    - 'lib/wifi-wand/mac_os_wifi_auth_helper.rb'
+    - 'lib/wifi-wand/mac_helper/mac_os_wifi_auth_helper.rb'
     - 'lib/wifi-wand/models/helpers/qr_code_generator.rb'
     - 'lib/wifi-wand/services/event_logger.rb'
     - 'lib/wifi-wand/services/log_file_manager.rb'

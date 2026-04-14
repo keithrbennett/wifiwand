@@ -138,7 +138,7 @@ When users install the `wifi-wand` gem, they receive a **pre-signed, pre-notariz
 As the gem maintainer, you perform signing and notarization **before releasing** a new gem version:
 
 ```bash
-# 1. Sign with your Developer ID (uses values from lib/wifi-wand/mac_helper_release.rb)
+# 1. Sign with your Developer ID (uses values from lib/wifi-wand/mac_helper/mac_helper_release.rb)
 bin/mac-helper build
 
 # 2. Notarize with Apple
@@ -205,12 +205,12 @@ You should see something like:
 ```
 
 Copy the full identity string (inside the quotes) — you'll paste it into the `CODESIGN_IDENTITY` constant in
-`lib/wifi-wand/mac_helper_release.rb`. The 10-character suffix in parentheses is your Apple Team ID; confirm
+`lib/wifi-wand/mac_helper/mac_helper_release.rb`. The 10-character suffix in parentheses is your Apple Team ID; confirm
 it matches the value shown on developer.apple.com because you'll set `APPLE_TEAM_ID` to that exact string.
 
 ### Step 4: Update Hardcoded Public Values
 
-Edit `lib/wifi-wand/mac_helper_release.rb` and replace the placeholders with your real values:
+Edit `lib/wifi-wand/mac_helper/mac_helper_release.rb` and replace the placeholders with your real values:
 
 ```ruby
 # Public signing credentials (visible in all signed binaries - no need to hide)
@@ -283,7 +283,7 @@ headaches later.
 6. Save to the vault you plan to reference (personal accounts usually default to **Personal**, shared accounts
    often use **Private**).
 
-> **Note**: Team ID and codesign identity live directly in `lib/wifi-wand/mac_helper_release.rb`. They're
+> **Note**: Team ID and codesign identity live directly in `lib/wifi-wand/mac_helper/mac_helper_release.rb`. They're
 > public values (visible in signed binaries), so you only need to copy them into 1Password if it helps
 > documentation or coordination.
 
@@ -293,7 +293,7 @@ The repository now includes `.env.release` directly; treat it as the template pl
 and set the `op://` references to match your vault/item/field names. Example for a personal account:
 
 ```bash
-# Private credentials only - Team ID and identity live in lib/wifi-wand/mac_helper_release.rb
+# Private credentials only - Team ID and identity live in lib/wifi-wand/mac_helper/mac_helper_release.rb
 WIFIWAND_APPLE_DEV_ID=op://Personal/wifiwand-release/APPLE_DEV_ID
 WIFIWAND_APPLE_DEV_PASSWORD=op://Personal/wifiwand-release/APPLE_DEV_PASSWORD
 ```
@@ -329,7 +329,7 @@ bin/op-wrap bin/mac-helper notarize
 If you don't use 1Password, you can still set environment variables directly:
 
 ```bash
-# Private credentials only - Team ID and identity live in lib/wifi-wand/mac_helper_release.rb
+# Private credentials only - Team ID and identity live in lib/wifi-wand/mac_helper/mac_helper_release.rb
 export WIFIWAND_APPLE_DEV_ID="you@example.com"
 export WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx"
 
@@ -354,7 +354,7 @@ bin/op-wrap bin/mac-helper release
 **Option 2: Using Environment Variables**
 
 ```bash
-# Set private credentials (team ID and codesign identity are hardcoded in lib/wifi-wand/mac_helper_release.rb)
+# Set private credentials (team ID and codesign identity are hardcoded in lib/wifi-wand/mac_helper/mac_helper_release.rb)
 export WIFIWAND_APPLE_DEV_ID="you@example.com"
 export WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx"
 
@@ -452,7 +452,7 @@ All developer tasks are in the `dev:` namespace and are **not included in the di
 ### `dev:build_signed_helper`
 
 **Purpose:** Compile and sign the helper with Developer ID (uses the credentials in
-`lib/wifi-wand/mac_helper_release.rb`)
+`lib/wifi-wand/mac_helper/mac_helper_release.rb`)
 
 **Environment Variables:** None
 
@@ -516,7 +516,7 @@ exe/wifi-wand shell`).
 - `WIFIWAND_APPLE_DEV_ID` (required) - Your Apple ID email
 - `WIFIWAND_APPLE_DEV_PASSWORD` (required) - App-specific password
 
-**Note:** Team ID is hardcoded in `lib/wifi-wand/mac_helper_release.rb` (it's a public value visible in signed
+**Note:** Team ID is hardcoded in `lib/wifi-wand/mac_helper/mac_helper_release.rb` (it's a public value visible in signed
 binaries).
 
 **Example:**
@@ -548,7 +548,7 @@ xcrun stapler staple libexec/macos/wifiwand-helper.app
 - `WIFIWAND_APPLE_DEV_ID` (required) - Your Apple ID email
 - `WIFIWAND_APPLE_DEV_PASSWORD` (required) - App-specific password
 
-**Note:** Team ID is hardcoded in `lib/wifi-wand/mac_helper_release.rb` (it's a public value visible in signed
+**Note:** Team ID is hardcoded in `lib/wifi-wand/mac_helper/mac_helper_release.rb` (it's a public value visible in signed
 binaries).
 
 **Example:**
@@ -704,7 +704,7 @@ Error: Could not find code signing identity 'Developer ID Application: ...'
 # List available identities
 security find-identity -v -p codesigning
 
-# Use exact name from output (update CODESIGN_IDENTITY in lib/wifi-wand/mac_helper_release.rb)
+# Use exact name from output (update CODESIGN_IDENTITY in lib/wifi-wand/mac_helper/mac_helper_release.rb)
 bin/mac-helper build
 ```
 
@@ -725,7 +725,7 @@ status: Invalid
 3. Check entitlements are applied
 
 ```bash
-# Rebuild with correct signing (after updating CODESIGN_IDENTITY in lib/wifi-wand/mac_helper_release.rb)
+# Rebuild with correct signing (after updating CODESIGN_IDENTITY in lib/wifi-wand/mac_helper/mac_helper_release.rb)
 bin/mac-helper build
 
 # Verify before notarizing

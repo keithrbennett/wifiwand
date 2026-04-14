@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 require 'stringio'
-require 'wifi-wand/mac_os_setup_cli'
+require 'wifi-wand/mac_helper/mac_os_setup_cli'
 
 RSpec.describe WifiWand::MacOsSetupCli do
   before { allow_any_instance_of(described_class).to receive(:sleep) }

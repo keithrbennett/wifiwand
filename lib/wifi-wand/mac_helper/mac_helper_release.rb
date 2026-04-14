@@ -218,7 +218,7 @@ module WifiWand
         abort <<~ERROR
           Error: CODESIGN_IDENTITY is not configured.
 
-          Please update the values in lib/wifi-wand/mac_helper_release.rb:
+          Please update the values in lib/wifi-wand/mac_helper/mac_helper_release.rb:
             APPLE_TEAM_ID = 'TEAM123'
             CODESIGN_IDENTITY = 'Developer ID Application: Your Name (TEAM123)'
 
@@ -261,7 +261,7 @@ module WifiWand
         abort <<~ERROR if team_id == 'YOUR_TEAM_ID_HERE'
           Error: APPLE_TEAM_ID is not configured.
 
-          Please update the value in lib/wifi-wand/mac_helper_release.rb:
+          Please update the value in lib/wifi-wand/mac_helper/mac_helper_release.rb:
             APPLE_TEAM_ID = 'TEAM123'
 
           See docs/dev/MACOS_CODE_SIGNING.md for detailed instructions.
@@ -293,7 +293,7 @@ module WifiWand
 
           The script will automatically use bin/op-wrap if credentials are not set.
 
-          Note: Team ID and codesign identity are hardcoded in lib/wifi-wand/mac_helper_release.rb
+          Note: Team ID and codesign identity are hardcoded in lib/wifi-wand/mac_helper/mac_helper_release.rb
           (they're public values visible in signed binaries anyway).
 
           See docs/dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md for detailed instructions.

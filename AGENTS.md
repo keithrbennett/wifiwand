@@ -27,6 +27,9 @@ instead of ad-hoc one-off commands when building, testing, or running the projec
   (max one `in_progress` step).
 - When moving or renaming tracked files, use `git mv` (or `git mv -k`) instead of plain `mv` so history stays
   intact.
+- If `git mv` is blocked by the sandbox or `.git/index.lock` is not writable, stop and leave the tracked file in
+  place. Do not simulate the move with delete-plus-add; ask the user to run the `git mv` command outside the
+  sandbox.
 
 ## Ruby Guidelines
 - Use the project's Ruby version.
@@ -129,7 +132,7 @@ The CLI uses modular design with mixins:
 
 The macOS model uses Swift scripts with the CoreWLAN framework for improved WiFi operations:
 
-**Location**: `swift/` directory
+**Location**: `lib/wifi-wand/mac_helper/swift/` directory
 - `WifiNetworkConnector.swift` - Connects to WiFi networks (preferred over `networksetup`)
 - `WifiNetworkDisconnector.swift` - Disconnects from networks (no sudo required)
 - `AvailableWifiNetworkLister.swift` - Legacy/unused (network listing uses `system_profiler` instead)
