@@ -270,6 +270,13 @@ module WifiWand
     def connected?
       return false unless wifi_on?
 
+      # On Sonoma+, system_profiler may omit spairport_current_network_information
+      # entirely when SSID data is redacted. Check the helper first; a real SSID
+      # from the helper means the interface is connected even if system_profiler
+      # shows nothing.
+      result = mac_helper_client.connected_network_name
+      return true if result.payload && !placeholder_network_name?(result.payload)
+
       data = airport_data
       iface = wifi_interface
       wifi_interface_data = data['SPAirPortDataType']

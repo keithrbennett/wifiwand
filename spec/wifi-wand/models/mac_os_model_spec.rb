@@ -463,6 +463,108 @@ module WifiWand
         end
       end
 
+      describe '#connected?' do
+        let(:helper_double) do
+          instance_double(WifiWand::MacOsWifiAuthHelper::Client)
+        end
+
+        before do
+          model.instance_variable_set(:@mac_helper_client, nil)
+          allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_double)
+          allow(model).to receive(:wifi_on?).and_return(true)
+        end
+
+        it 'returns true when the helper provides a real SSID (Sonoma redaction case)' do
+          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: 'MyNetwork')
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+
+          expect(model).not_to receive(:airport_data)
+          expect(model.connected?).to be(true)
+        end
+
+        it 'returns false when wifi is off, without consulting the helper' do
+          allow(model).to receive(:wifi_on?).and_return(false)
+
+          expect(helper_double).not_to receive(:connected_network_name)
+          expect(model.connected?).to be(false)
+        end
+
+        it 'falls back to system_profiler when helper returns nil' do
+          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+          allow(model).to receive_messages(
+            airport_data:   { 'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                 => 'en0',
+                'spairport_current_network_information' => { '_name' => 'SomeNet' },
+              }],
+            }] },
+            wifi_interface: 'en0'
+          )
+
+          expect(model.connected?).to be(true)
+        end
+
+        it 'returns false when helper returns nil and system_profiler lacks current-network info' do
+          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+          allow(model).to receive_messages(
+            airport_data:   { 'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name' => 'en0',
+              }],
+            }] },
+            wifi_interface: 'en0'
+          )
+
+          expect(model.connected?).to be(false)
+        end
+
+        it 'does not treat a placeholder SSID from the helper as connected' do
+          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: '<redacted>')
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+          allow(model).to receive_messages(
+            airport_data:   { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [] }] },
+            wifi_interface: 'en0'
+          )
+
+          expect(model.connected?).to be(false)
+        end
+      end
+
+      describe 'Sonoma SSID redaction: helper succeeds but system_profiler lacks current-network data' do
+        let(:helper_double) { instance_double(WifiWand::MacOsWifiAuthHelper::Client) }
+        let(:airport_data_without_current_network) do
+          { 'SPAirPortDataType' => [{
+            'spairport_airport_interfaces' => [{ '_name' => 'en0' }],
+          }] }
+        end
+
+        before do
+          model.instance_variable_set(:@mac_helper_client, nil)
+          allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_double)
+          allow(model).to receive(:wifi_on?).and_return(true)
+          allow(model).to receive(:wifi_interface).and_return('en0')
+          # Helper returns real SSID; system_profiler has no current-network key
+          helper_ssid_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: 'SonomaNet')
+          allow(helper_double).to receive(:connected_network_name).and_return(helper_ssid_result)
+          allow(model).to receive(:airport_data).and_return(airport_data_without_current_network)
+        end
+
+        it 'connected? returns true' do
+          expect(model.connected?).to be(true)
+        end
+
+        it 'connection_ready? succeeds when the network name matches' do
+          expect(model.connection_ready?('SonomaNet')).to be(true)
+        end
+
+        it 'ip_address does not raise and delegates to _ip_address' do
+          allow(model).to receive(:_ip_address).and_return('10.0.0.42')
+          expect(model.ip_address).to eq('10.0.0.42')
+        end
+      end
+
       describe '#nameservers_using_networksetup' do
         it 'parses networksetup DNS output correctly' do
           test_cases = [
