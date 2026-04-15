@@ -14,8 +14,19 @@ def find_op_command
   ENV.fetch('WIFIWAND_OP_BIN', 'op')
 end
 
+def op_executable?(op_bin)
+  if op_bin.include?(File::SEPARATOR)
+    File.file?(op_bin) && File.executable?(op_bin)
+  else
+    ENV.fetch('PATH', '').split(File::PATH_SEPARATOR).any? do |dir|
+      path = File.join(dir, op_bin)
+      File.file?(path) && File.executable?(path)
+    end
+  end
+end
+
 def check_op_available!(op_bin)
-  return if system("command -v #{op_bin} > /dev/null 2>&1")
+  return if op_executable?(op_bin)
 
   warn "Error: 1Password CLI \"#{op_bin}\" not found in PATH."
   warn "Install op (https://developer.1password.com/docs/cli/) or set WIFIWAND_OP_BIN to its path."
@@ -29,12 +40,14 @@ def show_usage_and_exit
   exit 64
 end
 
-# Main execution
-op_bin = find_op_command
-env_file = ENV.fetch('WIFIWAND_OP_RUN_ENV', '.env.release')
+if __FILE__ == $PROGRAM_NAME
+  # Main execution
+  op_bin = find_op_command
+  env_file = ENV.fetch('WIFIWAND_OP_RUN_ENV', '.env.release')
 
-check_op_available!(op_bin)
-show_usage_and_exit if ARGV.empty?
+  check_op_available!(op_bin)
+  show_usage_and_exit if ARGV.empty?
 
-# Execute the command with 1Password environment injection
-exec(op_bin, 'run', "--env-file=#{env_file}", '--', *ARGV)
+  # Execute the command with 1Password environment injection
+  exec(op_bin, 'run', "--env-file=#{env_file}", '--', *ARGV)
+end
