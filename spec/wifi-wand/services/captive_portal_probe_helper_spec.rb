@@ -114,9 +114,33 @@ describe WifiWand::CaptivePortalProbeHelper do
       File.expand_path('../../../lib/wifi-wand/services/captive_portal_probe_helper.rb', __dir__)
     end
 
-    def run_helper(*args)
-      stdout, _status = Open3.capture2(RbConfig.ruby, helper_script, *args.map(&:to_s))
-      stdout
+    # Spawns the helper as a child process, captures its stdout, then ensures the
+    # process is reaped regardless of outcome.  Returns the raw output string.
+    def run_helper(*args, timeout: 5)
+      pid = nil
+      reader, writer = IO.pipe
+      pid = Process.spawn(RbConfig.ruby, helper_script, *args.map(&:to_s), out: writer, err: File::NULL)
+      writer.close
+
+      reader.wait_readable(timeout) ? reader.read : ''
+    ensure
+      begin
+        reader.close
+      rescue IOError
+        nil
+      end
+      if pid
+        begin
+          Process.kill('KILL', pid)
+        rescue Errno::ESRCH
+          nil
+        end
+        begin
+          Process.wait(pid)
+        rescue Errno::ECHILD
+          nil
+        end
+      end
     end
 
     it 'outputs valid indeterminate JSON when called with no arguments' do
@@ -132,7 +156,7 @@ describe WifiWand::CaptivePortalProbeHelper do
       expect(result[:state]).to eq('indeterminate')
     end
 
-    # The following three tests open a loopback TCP server and are skipped in
+    # The following tests open a loopback TCP server and are skipped in
     # sandboxed environments where socket binding is not permitted.
     context 'with a real loopback HTTP server', :loopback_socket do
       it 'outputs JSON with state "free" when the endpoint responds with the expected code' do
@@ -163,6 +187,32 @@ describe WifiWand::CaptivePortalProbeHelper do
         result = JSON.parse(raw, symbolize_names: true)
         expect(result[:state]).to eq('indeterminate')
         expect(result[:error_class]).to be_a(String)
+      end
+
+      it 'outputs state "free" when both HTTP code and body match the expected values' do
+        with_local_http_server(response_code: 200, response_body: 'Microsoft Connect Test') do |port|
+          raw = run_helper("http://127.0.0.1:#{port}/check", '200', 'Microsoft Connect Test')
+          result = JSON.parse(raw, symbolize_names: true)
+          expect(result[:state]).to eq('free')
+          expect(result[:actual_code]).to eq(200)
+        end
+      end
+
+      it 'outputs state "present" when the HTTP code matches but the body does not' do
+        with_local_http_server(response_code: 200, response_body: '<html>Login</html>') do |port|
+          raw = run_helper("http://127.0.0.1:#{port}/check", '200', 'Microsoft Connect Test')
+          result = JSON.parse(raw, symbolize_names: true)
+          expect(result[:state]).to eq('present')
+        end
+      end
+
+      it 'omits expected_body check when the third argument is empty' do
+        with_local_http_server(response_code: 204) do |port|
+          # Passing an empty third argument should behave the same as no body constraint.
+          raw = run_helper("http://127.0.0.1:#{port}/check", '204', '')
+          result = JSON.parse(raw, symbolize_names: true)
+          expect(result[:state]).to eq('free')
+        end
       end
     end
   end
