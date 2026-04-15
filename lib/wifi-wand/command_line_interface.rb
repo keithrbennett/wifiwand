@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'yaml'
 require 'awesome_print'
 require_relative 'operating_systems'
 require 'ostruct'
@@ -124,6 +125,22 @@ module WifiWand
     def cmd_i
       info = model.wifi_info
       handle_output(info, -> { format_object(info) })
+    end
+
+    def cmd_public_ip(selector = 'both')
+      normalized_selector = normalize_public_ip_selector(selector)
+
+      case normalized_selector
+      when 'address'
+        address = model.public_ip_address
+        handle_output(address, -> { "Public IP Address: #{address}" })
+      when 'country'
+        country = model.public_ip_country
+        handle_output(country, -> { "Public IP Country: #{country}" })
+      when 'both'
+        info = model.public_ip_info
+        handle_output(info, -> { "Public IP Address: #{info['address']}  Country: #{info['country']}" })
+      end
     end
 
     # Performs nameserver functionality.
@@ -370,7 +387,7 @@ module WifiWand
         process_command_line
         SUCCESS_EXIT_CODE
       rescue WifiWand::Error => e
-        @err_stream.puts e.to_s
+        @err_stream.puts(verbose_mode && e.respond_to?(:to_h) ? YAML.dump(e.to_h) : e.to_s)
         @err_stream.puts help_hint unless e.message.include?(help_hint)
         FAILURE_EXIT_CODE
       end
@@ -394,6 +411,23 @@ module WifiWand
     # Strips ANSI escape codes from a string so we can measure visible length
     # when padding inline terminal updates.
     def strip_ansi(text) = text.to_s.gsub(/\e\[[\d;]*m/, '')
+
+    def normalize_public_ip_selector(selector)
+      normalized_selector = selector.to_s.strip.downcase
+      normalized_selector = 'both' if normalized_selector.empty?
+
+      case normalized_selector
+      when 'address', 'a'
+        'address'
+      when 'country', 'c'
+        'country'
+      when 'both', 'b'
+        'both'
+      else
+        raise WifiWand::ConfigurationError,
+          "Invalid selector '#{selector}'. Use one of: address (a), country (c), both (b)."
+      end
+    end
 
     def empty_available_networks_message
       if model.is_a?(WifiWand::MacOsModel)

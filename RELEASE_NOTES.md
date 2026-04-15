@@ -44,6 +44,60 @@ The `ci` command no longer represents connectivity as `true` / `false`.
 - Plain output: `reachable`, `unreachable`, or `indeterminate`
 - JSON output: `"reachable"`, `"unreachable"`, or `"indeterminate"`
 
+#### Breaking: Public IP info removed from `info`
+
+This is a breaking change in both location and data shape.
+
+The `info` command no longer returns `public_ip`. The entire
+`info["public_ip"]` container has been removed. Public IP lookup is now an
+explicit CLI feature exposed through `public_ip` and its short alias `pi`.
+
+**What changed:**
+
+| Old | New |
+|-----|-----|
+| `info["public_ip"]` | `wifi-wand public_ip` / `wifi-wand pi` |
+| nested `public_ip` object inside `info` | dedicated command result |
+| broader unauthenticated IPinfo payload | narrower result with only `address` and `country` |
+
+**Fields no longer provided:**
+
+The old `info["public_ip"]` payload could include these fields, which are no
+longer returned by the new command:
+
+- `hostname`
+- `city`
+- `region`
+- `loc`
+- `org`
+- `postal`
+- `timezone`
+- `readme`
+
+The new command supports only:
+
+- `address`
+- `country`
+
+**Migration guidance:**
+
+- old: `info["public_ip"]`
+- new, both fields: `wifi-wand public_ip` or `wifi-wand pi`
+- new, address only: `wifi-wand public_ip address` or `wifi-wand pi a`
+- new, country only: `wifi-wand public_ip country` or `wifi-wand pi c`
+
+**Current result shape:**
+
+```json
+{
+  "address": "203.0.113.5",
+  "country": "TH"
+}
+```
+
+This change keeps `info` focused on local network state and makes external
+public-IP lookup explicit.
+
 #### `till` wait-state vocabulary redesigned
 
 The `till` command now uses an explicit, unambiguous vocabulary. The old state names

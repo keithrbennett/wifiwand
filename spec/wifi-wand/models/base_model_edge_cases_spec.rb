@@ -192,22 +192,88 @@ RSpec.describe WifiWand::BaseModel do
     end
   end
 
-  describe '#public_ip_address_info' do
+  describe 'public IP lookups' do
     let(:model) { described_class.allocate }
+    let(:fake_http) { double('http') }
 
-    it 'parses successful responses' do
-      fake_http = double('http')
-      fake_response = double('response', body: '{"ip":"203.0.113.5"}')
-
-      allow(fake_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+    before do
       allow(fake_http).to receive(:use_ssl=)
       allow(fake_http).to receive(:open_timeout=)
       allow(fake_http).to receive(:read_timeout=)
       allow(fake_http).to receive(:respond_to?).with(:write_timeout=).and_return(false)
-      allow(fake_http).to receive(:request).and_return(fake_response)
       allow(Net::HTTP).to receive(:new).and_return(fake_http)
+    end
 
-      expect(model.public_ip_address_info).to eq('ip' => '203.0.113.5')
+    it 'parses successful info responses' do
+      fake_response = double('response', body: '{"ip":"203.0.113.5","country":"TH"}')
+      allow(fake_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+      allow(fake_http).to receive(:request).and_return(fake_response)
+
+      expect(model.public_ip_info).to eq('address' => '203.0.113.5', 'country' => 'TH')
+    end
+
+    it 'parses successful IPv6 info responses' do
+      fake_response = double('response', body: '{"ip":"2001:db8::1","country":"TH"}')
+      allow(fake_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+      allow(fake_http).to receive(:request).and_return(fake_response)
+
+      expect(model.public_ip_info).to eq('address' => '2001:db8::1', 'country' => 'TH')
+    end
+
+    it 'parses successful address responses' do
+      fake_response = double('response', body: '203.0.113.5')
+      allow(fake_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+      allow(fake_http).to receive(:request).and_return(fake_response)
+
+      expect(model.public_ip_address).to eq('203.0.113.5')
+    end
+
+    it 'raises timeout errors clearly' do
+      allow(fake_http).to receive(:request).and_raise(Net::ReadTimeout)
+
+      expect { model.public_ip_address }
+        .to raise_error(WifiWand::PublicIPLookupError, 'Public IP lookup failed: timeout')
+    end
+
+    it 'preserves the request URL on transport errors' do
+      allow(fake_http).to receive(:request).and_raise(SocketError, 'lookup failed')
+
+      expect { model.public_ip_address }.to raise_error(WifiWand::PublicIPLookupError) { |error|
+        expect(error.message).to eq('Public IP lookup failed: network error')
+        expect(error.url).to eq('https://api.ipify.org')
+      }
+    end
+
+    it 'raises transport errors clearly' do
+      allow(fake_http).to receive(:request).and_raise(SocketError, 'lookup failed')
+
+      expect { model.public_ip_address }
+        .to raise_error(WifiWand::PublicIPLookupError, 'Public IP lookup failed: network error')
+    end
+
+    it 'stores malformed response details on the error in verbose mode' do
+      output = StringIO.new
+      fake_response = double('response', body: '{"ip":"not-an-ip","country":"TH"}')
+      model.instance_variable_set(:@verbose_mode, true)
+      model.instance_variable_set(:@original_out_stream, output)
+      allow(fake_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+      allow(fake_http).to receive(:request).and_return(fake_response)
+
+      expect { model.public_ip_info }.to raise_error(WifiWand::PublicIPLookupError) { |error|
+        expect(error.message).to eq('Public IP lookup failed: malformed response')
+        expect(error.url).to eq('https://api.country.is/')
+        expect(error.body).to eq('{"ip":"not-an-ip","country":"TH"}')
+      }
+      expect(output.string).to eq('')
+    end
+
+    it 'raises rate limit errors clearly' do
+      fake_response = instance_double(Net::HTTPResponse, code: '429', message: 'Too Many Requests')
+      allow(fake_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(false)
+      allow(fake_http).to receive(:request).and_return(fake_response)
+
+      expect { model.public_ip_info }
+        .to raise_error(WifiWand::PublicIPLookupError, 'Public IP lookup failed: rate limited')
     end
   end
 

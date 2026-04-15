@@ -124,6 +124,22 @@ module WifiWand
         expect(err.status_message).to eq('Service Unavailable')
       end
 
+      it 'returns structured verbose data via to_h' do
+        err = described_class.new(
+          message: 'Public IP lookup failed: malformed response',
+          url:     'https://api.country.is/',
+          body:    '{"ip":"bad"}'
+        )
+
+        expect(err.to_h).to eq(
+          message:        'Public IP lookup failed: malformed response',
+          url:            'https://api.country.is/',
+          status_code:    nil,
+          status_message: nil,
+          body:           '{"ip":"bad"}'
+        )
+      end
+
       it 'uses a generic message when no status is provided' do
         err = described_class.new
         expect(err.message).to eq('Public IP lookup failed')

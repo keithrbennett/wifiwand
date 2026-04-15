@@ -170,17 +170,29 @@ module WifiWand
 
   # === EXTERNAL SERVICE ERRORS ===
   class PublicIPLookupError < Error
-    attr_reader :status_code, :status_message
+    attr_reader :status_code, :status_message, :url, :body
 
-    def initialize(status_code = nil, status_message = nil)
+    def initialize(status_code = nil, status_message = nil, message: nil, url: nil, body: nil)
       @status_code = status_code
       @status_message = status_message
-      message = if status_code
+      @url = url
+      @body = body
+      message ||= if status_code
         "HTTP error fetching public IP info: #{status_code} #{status_message}"
       else
         'Public IP lookup failed'
       end
       super(message)
+    end
+
+    def to_h
+      {
+        message:        message,
+        url:            url,
+        status_code:    status_code,
+        status_message: status_message,
+        body:           body,
+      }
     end
   end
 

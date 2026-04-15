@@ -1,57 +1,25 @@
-# `public_ip` Command Design
+# `public_ip` Command Architecture
 
 ## Purpose
 
-This document captures the agreed design for a new dedicated command that
-retrieves public IP information without overloading the existing `info`
-command.
+The `public_ip` command provides an explicit interface for retrieving public IP
+metadata without overloading `info`.
 
-The goal is to keep `info` focused on local and directly observable network
-state, while moving externally derived public-IP metadata into an explicit
-command that users invoke intentionally.
+This keeps `info` focused on local and directly observable network state while
+making external public-IP lookup an intentional command.
 
-## Background
+## Relationship To `info`
 
-The existing `info` command included public IP lookup logic. That created a
-few design problems:
+`info` no longer returns `public_ip`.
 
-- `info` mixed local network diagnostics with externally derived metadata
-- public IP lookup depended on a third-party service
-- the lookup could introduce avoidable latency into a common command
-- the public IP country was more valuable than the address itself, but both
-  still required an external lookup
+That separation is intentional:
 
-We considered several alternatives, including:
+- `info` reports local network diagnostics and state
+- `public_ip` reports externally derived metadata
+- `info` no longer incurs hidden latency from third-party lookups
+- the public IP feature is easier to test and document as a dedicated command
 
-- keeping public IP lookup in `info` behind a flag
-- caching previous public IP to country mappings
-- using lighter-weight IP-only lookups first and geo lookups second
-
-The chosen direction is simpler:
-
-- remove public IP information from `info`
-- add a dedicated command for public IP information
-- support retrieving address, country, or both
-- do not add caching yet
-
-## Scope
-
-This design covers:
-
-- command names
-- selector syntax
-- human-readable output
-- machine-readable output
-- default behavior
-- error handling expectations
-
-This design does not yet cover:
-
-- the exact provider implementation
-- caching or persistence
-- whether the provider returns country code only or extra metadata
-
-## Command Names
+## Command Names And Aliases
 
 Canonical command:
 
@@ -65,78 +33,45 @@ Short alias:
 pi
 ```
 
-Examples:
+The command accepts one optional selector argument. Users can mix the long and
+short command names with the long and short selectors. For example, all of the
+following are valid:
 
 ```bash
 wifi-wand public_ip
 wifi-wand public_ip address
-wifi-wand public_ip country
-wifi-wand public_ip both
-
+wifi-wand public_ip a
 wifi-wand pi
-wifi-wand pi a
+wifi-wand pi country
 wifi-wand pi c
-wifi-wand pi b
 ```
 
-## Selectors
-
-The command accepts one optional selector argument.
+## Selector Behavior
 
 Supported selectors:
 
-- `address`
-- `country`
-- `both`
-
-Supported abbreviated selectors:
-
-- `a` => `address`
-- `c` => `country`
-- `b` => `both`
+- `address` or `a`
+- `country` or `c`
+- `both` or `b`
 
 Default selector:
 
 - `both`
 
-Examples:
+Selector behavior maps directly to the current model API:
 
-```bash
-wifi-wand public_ip
-wifi-wand public_ip both
-wifi-wand public_ip address
-wifi-wand public_ip country
-wifi-wand pi a
-wifi-wand pi c
-wifi-wand pi b
-```
-
-## Country Representation
-
-Country should be represented using the ISO 3166-1 alpha-2 country code.
-
-Examples:
-
-- `US`
-- `TH`
-- `GB`
-
-Rationale:
-
-- short and script-friendly
-- stable and easy to compare
-- enough for the current use case
-
-The initial design does not require full country names such as `Thailand`.
+- `address` / `a` calls `public_ip_address`
+- `country` / `c` calls `public_ip_country`
+- `both` / `b` calls `public_ip_info`
 
 ## Human-Readable Output
 
-The human-readable strings should be:
+Human-readable output stays narrow and stable.
 
 For `address`:
 
 ```text
-Public IP Address: a.b.c.d
+Public IP Address: 203.0.113.5
 ```
 
 For `country`:
@@ -148,218 +83,139 @@ Public IP Country: TH
 For `both`:
 
 ```text
-Public IP Address: a.b.c.d  Country: TH
+Public IP Address: 203.0.113.5  Country: TH
 ```
 
-Notes:
-
-- `both` should be a single line in human-readable mode
-- the wording should stay exactly aligned with the selector names where
-  practical
+`both` is rendered as a single line. The labels are the same for IPv4 and IPv6.
 
 ## Machine-Readable Output
 
-Existing `-o` output formatting should continue to apply.
+The command uses the existing `-o` output pipeline.
 
-Recommended return values:
+Return shapes are intentionally small:
 
-For `address`:
+- `address` returns a string containing the public IP address
+- `country` returns a string containing the ISO alpha-2 country code
+- `both` returns a hash with `address` and `country`
 
-- return the address string
-
-For `country`:
-
-- return the country code string
-
-For `both`:
-
-- return a hash/object with:
+Example `both` shape:
 
 ```json
 {
-  "address": "a.b.c.d",
+  "address": "203.0.113.5",
   "country": "TH"
 }
 ```
 
-Rationale:
+The object key is `address`, not `ip`, so the machine-readable shape matches the
+CLI vocabulary.
 
-- the string forms are convenient for scripts
-- the object form is explicit and easy to serialize to JSON or YAML
-- `address` is preferred over `ip` in the object because it matches the
-  command vocabulary more clearly
+## IPv4 And IPv6 Support
 
-## Relationship To `info`
+The command accepts both IPv4 and IPv6 responses.
 
-`info` should no longer include public IP information.
+`BaseModel` validates public IP values with `IPAddr`, which avoids IPv4-only
+assumptions. Human-readable labels and machine-readable field names do not vary
+by address family.
 
-Rationale:
+Examples of valid addresses include:
 
-- public IP and country are externally derived, not purely local state
-- this avoids hidden latency in `info`
-- the command boundary becomes clearer
-- the feature becomes easier to test and document
+- `203.0.113.5`
+- `2001:db8::1`
 
-This means:
+## Provider Strategy
 
-- remove `public_ip` lookup from `wifi_info`
-- remove any `--public-ip` flag added for `info`
-- make `public_ip` the sole command for this feature
+The current provider strategy is selector-specific:
+
+- `address` / `a` uses `ipify`
+- `country` / `c` uses `country.is`
+- `both` / `b` uses `country.is`
+
+This keeps the address-only path lightweight while letting `country` and `both`
+reuse the single response from `country.is`, which already returns both the
+caller IP and country code.
+
+Relevant provider behavior:
+
+- `ipify` is used for IP-only lookups
+- `country.is` returns JSON with `ip` and `country`
+- `country.is` may rate limit and return `429`
 
 ## Internal Model API
 
-The CLI command should delegate to one model/service method that returns both
-address and country in a single call.
+The command currently uses these `BaseModel` methods:
 
-Proposed method name:
+- `public_ip_info`
+- `public_ip_address`
+- `public_ip_country`
 
-```ruby
-public_ip_info
-```
+Current behavior:
 
-Proposed return shape:
+- `public_ip_info` calls `country.is` and returns
+  `{ 'address' => ..., 'country' => ... }`
+- `public_ip_address` calls `ipify` and returns the address string
+- `public_ip_country` delegates to `public_ip_info` and returns the country code
 
-```ruby
-{ 'address' => 'a.b.c.d', 'country' => 'TH' }
-```
+This keeps the `address` path fast and avoids duplicate lookups for `country`
+and `both`.
 
-The command layer then selects:
+## Error Handling Model
 
-- `address`
-- `country`
-- or the full hash
+`public_ip` is explicitly dependent on external services, so failures are
+surfaced directly as `PublicIPLookupError`.
 
-This is preferred over separate address and country calls because it:
+Current behavior:
 
-- avoids multiple external lookups
-- keeps the CLI code simpler
-- preserves flexibility for provider changes later
+- lookups use a short timeout
+- foreground lookups do not retry
+- `429` is reported as rate limiting
+- malformed provider responses raise a malformed-response error
+- timeout-family failures raise a timeout error
+- transport failures are normalized to `Public IP lookup failed: network error`
+- non-success HTTP responses preserve the HTTP status in the message
 
-## Error Handling
-
-This command is explicit and externally dependent, so failures can be surfaced
-directly rather than hidden.
-
-Expected behavior:
-
-- use a short timeout
-- do not retry in the foreground path
-- raise a clear user-facing error when lookup fails
-
-Example error text:
+Examples of current user-facing messages include:
 
 ```text
 Public IP lookup failed: timeout
+Public IP lookup failed: rate limited
+Public IP lookup failed: malformed response
+Public IP lookup failed: network error
+Public IP lookup failed: HTTP 500 Internal Server Error
 ```
 
-or, if a more general message is preferred:
+Verbose mode preserves structured context on the exception object and prints it
+through the CLI verbose error path.
 
-```text
-Could not retrieve public IP information
-```
+## Breaking Change
 
-The final wording can be decided during implementation, but the command should
-fail clearly rather than silently inventing partial data.
+This feature includes an intentional breaking change:
 
-## No Caching For Initial Version
+- `info` no longer returns `public_ip`
+- callers that previously depended on `info["public_ip"]` must switch to the
+  `public_ip` or `pi` command
+- the new command returns a narrower data shape than the old unauthenticated
+  IPinfo response
 
-Caching is intentionally out of scope for the first implementation.
+That narrowing is intentional. The current feature only exposes the fields that
+wifi-wand uses today: public address and country code.
 
-Reasoning:
+## Non-Goals And Out Of Scope
 
-- it adds persistence and invalidation logic
-- it introduces privacy questions around retained public IP history
-- it is not necessary to validate the command design
+The current architecture intentionally does not include:
 
-If needed later, caching can be added behind the same command contract without
-changing the CLI interface.
+- caching
+- provider / ISP enrichment
 
-## Help Text Expectations
+Those remain out of scope because they add persistence, privacy, or latency
+concerns without improving the core command contract.
 
-Help output should document:
+## Help And Invalid Selectors
 
-- `public_ip` as the canonical command
-- `pi` as a short alias
-- selectors:
-  - `address (a)`
-  - `country (c)`
-  - `both (b)`
-- default selector:
-  - `both`
+Help text documents both command names and both selector forms.
 
-Example help text shape:
-
-```text
-public_ip [address|country|both]
-pi        [a|c|b]
-```
-
-## Invalid Selector Behavior
-
-Invalid selectors should produce a clear error message.
-
-Recommended message:
+Invalid selectors raise a clear configuration error:
 
 ```text
 Invalid selector 'x'. Use one of: address (a), country (c), both (b).
 ```
-
-## Examples
-
-Human-readable:
-
-```bash
-wifi-wand public_ip
-wifi-wand public_ip address
-wifi-wand public_ip country
-wifi-wand pi c
-```
-
-Machine-readable:
-
-```bash
-wifi-wand -o j public_ip
-wifi-wand -o p public_ip address
-wifi-wand -o y public_ip country
-```
-
-## Implementation Checklist
-
-Planned implementation steps:
-
-1. Remove public IP lookup from `wifi_info`.
-2. Remove any `--public-ip` option related to `info`.
-3. Add a model/service method for retrieving public IP info in one call.
-4. Add `cmd_public_ip(selector = 'both')`.
-5. Add command aliases:
-   - `public_ip`
-   - `pi`
-6. Add selector parsing for:
-   - `address` / `a`
-   - `country` / `c`
-   - `both` / `b`
-7. Add help text.
-8. Add specs for:
-   - default `both`
-   - `address`
-   - `country`
-   - abbreviated selectors
-   - invalid selector
-   - machine-readable output
-
-## Summary
-
-The chosen design is:
-
-- move public IP lookup out of `info`
-- add a dedicated `public_ip` command
-- add short alias `pi`
-- support selectors:
-  - `address` / `a`
-  - `country` / `c`
-  - `both` / `b`
-- default to `both`
-- use country codes such as `TH`
-- no caching in the first version
-
-This keeps the feature explicit, simple, and easy to refine later.

@@ -937,6 +937,28 @@ describe WifiWand::CommandLineInterface do
       expect(err_stream.string).to include('Type help for usage')
     end
 
+    it 'prints verbose error details as YAML when verbose mode is enabled' do
+      error = WifiWand::PublicIPLookupError.new(
+        message: 'Public IP lookup failed: malformed response',
+        url:     'https://api.country.is/',
+        body:    '{"ip":"bad"}'
+      )
+      err_stream = StringIO.new
+      opts = create_cli_options(verbose: true)
+      opts.err_stream = err_stream
+      cli = described_class.new(opts)
+      allow(cli).to receive_messages(
+        validate_command_line: described_class::SUCCESS_EXIT_CODE,
+        help_hint:             'Type help for usage'
+      )
+      allow(cli).to receive(:process_command_line).and_raise(error)
+
+      expect(cli.call).to eq(described_class::FAILURE_EXIT_CODE)
+      expect(err_stream.string).to include(":message: 'Public IP lookup failed: malformed response'")
+      expect(err_stream.string).to include(':url: https://api.country.is/')
+      expect(err_stream.string).to include(%q(:body: '{"ip":"bad"}'))
+    end
+
     it 'does not duplicate help hint when error message already contains it' do
       error_msg = 'Missing required argument. Type help for usage'
       error = WifiWand::ConfigurationError.new(error_msg)

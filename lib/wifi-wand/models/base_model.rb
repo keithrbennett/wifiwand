@@ -1,7 +1,9 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'ipaddr'
 require 'net/http'
+require 'openssl'
 require 'shellwords'
 require 'socket'
 require 'tempfile'
@@ -119,6 +121,8 @@ module WifiWand
       _ip_address
       _preferred_network_password
     ].freeze
+    PUBLIC_IP_TIMEOUT_IN_SECONDS = 2
+    COUNTRY_CODE_REGEX = /\A[A-Z]{2}\z/
 
     # Verify that a subclass implements all required underscore-prefixed methods
     def self.verify_underscore_methods_implemented(subclass)
@@ -280,7 +284,7 @@ module WifiWand
         captive_portal_state: portal_state
       )
 
-      info = {
+      {
         'wifi_on'                     => wifi_on?,
         'internet_tcp_connectivity'   => internet_tcp,
         'dns_working'                 => dns_working,
@@ -294,28 +298,6 @@ module WifiWand
         'nameservers'                 => nameservers,
         'timestamp'                   => Time.now,
       }
-
-      if connectivity_state == ConnectivityStates::INTERNET_REACHABLE
-        begin
-          info['public_ip'] = public_ip_address_info
-        rescue Errno::ETIMEDOUT, Errno::ECONNREFUSED, SocketError
-          # Network connectivity issues - retry with exponential backoff
-          begin
-            sleep(0.5)
-            info['public_ip'] = public_ip_address_info
-          rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error => retry_error
-            out_stream.puts "Warning: Could not obtain public IP info: #{retry_error.class}" if @verbose_mode
-            info['public_ip'] = nil
-          end
-        rescue JSON::ParserError
-          out_stream.puts 'Warning: Public IP service returned invalid data' if @verbose_mode
-          info['public_ip'] = nil
-        rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error => e
-          out_stream.puts "Warning: Public IP lookup failed: #{e.class}" if @verbose_mode
-          info['public_ip'] = nil
-        end
-      end
-      info
     end
 
     # Toggles WiFi on/off state twice; if on, turns off then on; else, turn on then off.
@@ -420,28 +402,48 @@ module WifiWand
       @command_executor.try_os_command_until(command, stop_condition, max_tries)
     end
 
-    # Reaches out to ipinfo.io to get public IP address information
-    # in the form of a hash.
-    # You may need to enclose this call in a begin/rescue.
-    def public_ip_address_info
-      uri = URI.parse('https://ipinfo.io/json')
+    def public_ip_info
+      uri = URI.parse('https://api.country.is/')
+      response = public_ip_http_get(uri)
+      parsed = JSON.parse(response.body)
 
-      http = Net::HTTP.new(uri.host, uri.port)
-      http.use_ssl = (uri.scheme == 'https')
-      # Explicit, conservative timeouts to avoid blocking
-      http.open_timeout = 3
-      http.read_timeout = 3
-      http.write_timeout = 3 if http.respond_to?(:write_timeout=)
+      address = parsed['ip'].to_s.strip
+      country = parsed['country'].to_s.strip.upcase
 
-      request = Net::HTTP::Get.new(uri.request_uri)
-      response = http.request(request)
-
-      unless response.is_a?(Net::HTTPSuccess)
-        raise WifiWand::PublicIPLookupError.new(response.code, response.message)
+      unless valid_public_ip_address?(address) && country.match?(COUNTRY_CODE_REGEX)
+        raise WifiWand::PublicIPLookupError.new(
+          message: 'Public IP lookup failed: malformed response',
+          url:     uri.to_s,
+          body:    response.body
+        )
       end
 
-      JSON.parse(response.body)
+      { 'address' => address, 'country' => country }
+    rescue JSON::ParserError
+      raise WifiWand::PublicIPLookupError.new(
+        message: 'Public IP lookup failed: malformed response',
+        url:     uri.to_s,
+        body:    response&.body
+      )
     end
+
+    def public_ip_address
+      uri = URI.parse('https://api.ipify.org')
+      response = public_ip_http_get(uri)
+      address = response.body.to_s.strip
+
+      if valid_public_ip_address?(address)
+        address
+      else
+        raise WifiWand::PublicIPLookupError.new(
+          message: 'Public IP lookup failed: malformed response',
+          url:     uri.to_s,
+          body:    response.body
+        )
+      end
+    end
+
+    def public_ip_country = public_ip_info.fetch('country')
 
     def random_mac_address
       bytes = Array.new(6) { rand(256) }
@@ -496,6 +498,46 @@ module WifiWand
     end
 
     private
+
+    def valid_public_ip_address?(address)
+      IPAddr.new(address)
+      true
+    rescue IPAddr::InvalidAddressError
+      false
+    end
+
+    def public_ip_http_get(uri)
+      http = Net::HTTP.new(uri.host, uri.port)
+      http.use_ssl = (uri.scheme == 'https')
+      http.open_timeout = PUBLIC_IP_TIMEOUT_IN_SECONDS
+      http.read_timeout = PUBLIC_IP_TIMEOUT_IN_SECONDS
+      http.write_timeout = PUBLIC_IP_TIMEOUT_IN_SECONDS if http.respond_to?(:write_timeout=)
+
+      response = http.request(Net::HTTP::Get.new(uri.request_uri))
+      return response if response.is_a?(Net::HTTPSuccess)
+
+      if response.code == '429'
+        raise WifiWand::PublicIPLookupError.new(
+          message: 'Public IP lookup failed: rate limited',
+          url:     uri.to_s
+        )
+      end
+
+      raise WifiWand::PublicIPLookupError.new(
+        message: "Public IP lookup failed: HTTP #{response.code} #{response.message}",
+        url:     uri.to_s
+      )
+    rescue Timeout::Error, Errno::ETIMEDOUT
+      raise WifiWand::PublicIPLookupError.new(
+        message: 'Public IP lookup failed: timeout',
+        url:     uri.to_s
+      )
+    rescue SocketError, IOError, SystemCallError, OpenSSL::SSL::SSLError
+      raise WifiWand::PublicIPLookupError.new(
+        message: 'Public IP lookup failed: network error',
+        url:     uri.to_s
+      )
+    end
 
     # Normalizes a raw security descriptor string from OS tools to
     # one of: "WPA3", "WPA2", "WPA", "WEP", or nil (unknown/open/enterprise).

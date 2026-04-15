@@ -62,6 +62,12 @@ describe WifiWand::CommandLineInterface::HelpSystem do
       expect(help).to include('status line (WiFi, Network, DNS, Internet')
     end
 
+    it 'documents mixed long and short selector forms for public_ip' do
+      expect(help).to include('pu[blic_ip] [address|country|both|a|c|b]')
+      expect(help).to include("e.g. 'public_ip a' or 'pi country'")
+      expect(help).to include('pi [address|country|both|a|c|b]')
+    end
+
     context 'when model is not available' do
       subject { test_class.new(nil) }
 

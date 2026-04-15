@@ -42,7 +42,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
         dns_working?:               true,
         captive_portal_state:       :free,
         fast_connectivity?:         true,
-        public_ip_address_info:     { 'ip' => '1.2.3.4' },
         run_os_command:             command_result(stdout: ''),
         till:                       nil
       )
@@ -93,6 +92,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(%i[free present indeterminate]).to include(result['captive_portal_state'])
       expect(%i[reachable unreachable indeterminate]).to include(result['internet_connectivity_state'])
       expect(result['timestamp']).to be_a(Time)
+    end
+
+    it 'does not include public IP data' do
+      result = subject.wifi_info
+      expect(result).not_to have_key('public_ip')
     end
   end
 
@@ -548,14 +552,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
-  describe '#public_ip_address_info error handling' do
+  describe '#public_ip_address error handling' do
     it 'raises PublicIPLookupError when response is not success' do
-      # Ensure we call the real implementation, not the suite-wide stub
-      allow(subject).to receive(:public_ip_address_info).and_call_original
+      allow(subject).to receive(:public_ip_address).and_call_original
 
-      # Minimal Net::HTTP stubs
       response = instance_double(Net::HTTPResponse, code: '500', message: 'Internal Server Error')
-      # Make the response not be a Net::HTTPSuccess for any class check
       allow(response).to receive(:is_a?).and_return(false)
 
       http = instance_double(Net::HTTP)
@@ -568,9 +569,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(Net::HTTP).to receive(:new).and_return(http)
 
       expect do
-        subject.public_ip_address_info
+        subject.public_ip_address
       end.to raise_error(WifiWand::PublicIPLookupError,
-        /HTTP error fetching public IP info: 500 Internal Server Error/)
+        'Public IP lookup failed: HTTP 500 Internal Server Error')
     end
   end
 
@@ -658,7 +659,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     it 'handles internet_tcp_connectivity exceptions' do
       allow(subject).to receive(:internet_tcp_connectivity?).and_raise(SocketError, 'Network error')
-      allow(subject).to receive_messages(dns_working?: true, public_ip_address_info: { 'ip' => '1.2.3.4' })
+      allow(subject).to receive_messages(dns_working?: true)
 
       result = subject.wifi_info
 
@@ -675,8 +676,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'handles dns_working exceptions' do
       allow(subject).to receive(:dns_working?).and_raise(SocketError, 'DNS error')
       allow(subject).to receive_messages(
-        internet_tcp_connectivity?: true,
-        public_ip_address_info:     { 'ip' => '1.2.3.4' }
+        internet_tcp_connectivity?: true
       )
 
       result = subject.wifi_info
@@ -687,8 +687,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'does not call captive_portal_state when TCP fails' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: false,
-        dns_working?:               true,
-        public_ip_address_info:     { 'ip' => '1.2.3.4' }
+        dns_working?:               true
       )
       expect(subject).not_to receive(:captive_portal_state)
 
@@ -699,8 +698,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'does not call captive_portal_state when DNS fails' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: true,
-        dns_working?:               false,
-        public_ip_address_info:     { 'ip' => '1.2.3.4' }
+        dns_working?:               false
       )
       expect(subject).not_to receive(:captive_portal_state)
 
@@ -711,8 +709,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'does not call captive_portal_state when both TCP and DNS fail' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: false,
-        dns_working?:               false,
-        public_ip_address_info:     { 'ip' => '1.2.3.4' }
+        dns_working?:               false
       )
       expect(subject).not_to receive(:captive_portal_state)
 
@@ -724,75 +721,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: true,
         dns_working?:               true,
-        captive_portal_state:       :free,
-        public_ip_address_info:     { 'ip' => '1.2.3.4' }
+        captive_portal_state:       :free
       )
       expect(subject).to receive(:captive_portal_state).and_return(:free)
 
       subject.wifi_info
-    end
-
-    context 'for public IP address handling' do
-      before do
-        allow(subject).to receive_messages(internet_tcp_connectivity?: true, dns_working?: true)
-      end
-
-      it 'retries on network timeout and succeeds' do
-        allow(subject).to receive(:public_ip_address_info)
-          .and_raise(Errno::ETIMEDOUT)
-          .once
-        allow(subject).to receive(:public_ip_address_info)
-          .and_return({ 'ip' => '1.2.3.4' })
-          .once
-        allow(subject).to receive(:sleep)
-
-        result = subject.wifi_info
-        expect(result['public_ip']).to eq({ 'ip' => '1.2.3.4' })
-      end
-
-      # These tests are complex because they test error handling paths within wifi_info
-      # that involve verbose logging. We simplify by testing the behavior more directly.
-
-      context 'with verbose logging enabled' do
-        include_context 'for verbose test model setup'
-
-        it 'handles retry failure with verbose logging' do
-          # Make public_ip_address_info fail twice (triggering retry path)
-          allow(test_model).to receive(:public_ip_address_info)
-            .and_raise(Errno::ETIMEDOUT)
-            .twice
-
-          result = test_model.wifi_info
-          expect(result['public_ip']).to be_nil
-          expect(captured_output.string).to match(/Warning: Could not obtain public IP info/)
-        end
-
-        it 'handles JSON parsing errors' do
-          # Make public_ip_address_info fail with JSON parse error
-          allow(test_model).to receive(:public_ip_address_info)
-            .and_raise(JSON::ParserError, 'Invalid JSON')
-
-          result = test_model.wifi_info
-          expect(result['public_ip']).to be_nil
-          expect(captured_output.string).to match(/Warning: Public IP service returned invalid data/)
-        end
-
-        it 'handles WifiWand errors' do
-          allow(test_model).to receive(:public_ip_address_info)
-            .and_raise(WifiWand::PublicIPLookupError.new)
-
-          result = test_model.wifi_info
-          expect(result['public_ip']).to be_nil
-          expect(captured_output.string).to match(/Warning: Public IP lookup failed: WifiWand::PublicIPLookupError/)
-        end
-
-        it 'propagates unexpected exceptions' do
-          allow(test_model).to receive(:public_ip_address_info)
-            .and_raise(RuntimeError, 'Unknown error')
-
-          expect { test_model.wifi_info }.to raise_error(RuntimeError, 'Unknown error')
-        end
-      end
     end
   end
 
