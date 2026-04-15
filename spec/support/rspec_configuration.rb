@@ -276,6 +276,9 @@ module RSpecConfiguration
     case option
     when 'none'
       config.filter_run_excluding real_env: true
+      # loopback_socket tests open a TCPServer on 127.0.0.1; skip them in
+      # sandboxed environments that forbid socket creation.
+      config.filter_run_excluding loopback_socket: true
     when 'read_only'
       config.filter_run_excluding real_env_read_write: true
     when 'all'

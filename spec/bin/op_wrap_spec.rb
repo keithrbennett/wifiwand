@@ -146,16 +146,11 @@ RSpec.describe 'bin/op-wrap' do
     end
 
     it 'prints an error message to stderr when op_bin is not found' do
-      captured = StringIO.new
-      $stderr = captured
-      begin
+      expect do
         check_op_available!('/nonexistent/op')
       rescue SystemExit
         # expected — we only care about the stderr content
-      ensure
-        $stderr = STDERR
-      end
-      expect(captured.string).to match(/not found in PATH/)
+      end.to output(/not found in PATH/).to_stderr
     end
   end
 
@@ -168,16 +163,11 @@ RSpec.describe 'bin/op-wrap' do
     end
 
     it 'prints usage information to stderr' do
-      captured = StringIO.new
-      $stderr = captured
-      begin
+      expect do
         show_usage_and_exit
       rescue SystemExit
         # expected
-      ensure
-        $stderr = STDERR
-      end
-      expect(captured.string).to match(/Usage:/)
+      end.to output(/Usage:/).to_stderr
     end
   end
 

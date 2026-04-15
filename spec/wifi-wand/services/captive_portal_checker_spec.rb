@@ -3,6 +3,7 @@
 require_relative '../../spec_helper'
 require 'json'
 require 'rbconfig'
+require 'socket'
 require 'stringio'
 require_relative '../../../lib/wifi-wand/services/captive_portal_checker'
 
@@ -169,6 +170,87 @@ describe WifiWand::CaptivePortalChecker do
       expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
         state: :indeterminate, error_class: 'Errno::ECONNREFUSED'
       )
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # read_probe_result — malformed / unexpected subprocess output regression
+  # ---------------------------------------------------------------------------
+  describe '#read_probe_result' do
+    let(:checker) { described_class.new(verbose: false) }
+
+    # Build a fake probe whose reader is a pipe pre-loaded with +text+.
+    def probe_with_output(text)
+      reader = StringIO.new(text)
+      { pid: nil, reader: reader, endpoint: { url: 'http://example.com', expected_code: 204 } }
+    end
+
+    it 'returns :indeterminate and records the error class for empty output' do
+      result = checker.send(:read_probe_result, probe_with_output(''))
+      expect(result[:state]).to eq(:indeterminate)
+      expect(result[:error_class]).to be_a(String)
+    end
+
+    it 'returns :indeterminate and records the error class for malformed JSON' do
+      result = checker.send(:read_probe_result, probe_with_output('not json {{{'))
+      expect(result[:state]).to eq(:indeterminate)
+      expect(result[:error_class]).to be_a(String)
+    end
+
+    it 'returns :indeterminate for a JSON object with an unrecognised state value' do
+      json = JSON.generate({ state: 'unexpected_value', actual_code: 200 })
+      result = checker.send(:read_probe_result, probe_with_output(json))
+      expect(result[:state]).to eq(:indeterminate)
+    end
+
+    it 'returns :indeterminate for a JSON array (wrong top-level type)' do
+      result = checker.send(:read_probe_result, probe_with_output('[]'))
+      expect(result[:state]).to eq(:indeterminate)
+    end
+
+    it 'returns :free for well-formed JSON with state "free"' do
+      json = JSON.generate({ state: 'free', actual_code: 204 })
+      result = checker.send(:read_probe_result, probe_with_output(json))
+      expect(result[:state]).to eq(:free)
+      expect(result[:actual_code]).to eq(204)
+    end
+
+    it 'returns :present for well-formed JSON with state "present"' do
+      json = JSON.generate({ state: 'present', actual_code: 302 })
+      result = checker.send(:read_probe_result, probe_with_output(json))
+      expect(result[:state]).to eq(:present)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Integration: real subprocess path (no spawn_probe stub)
+  # ---------------------------------------------------------------------------
+  describe '#captive_portal_state with real helper subprocess', :loopback_socket do
+    let(:checker) { described_class.new(verbose: false) }
+
+    it 'returns :free via the real helper executable when the endpoint is portal-free' do
+      with_local_http_server(response_code: 204) do |port|
+        endpoint = { url: "http://127.0.0.1:#{port}/check", expected_code: 204 }
+        allow(checker).to receive(:captive_portal_check_endpoints).and_return([endpoint])
+        expect(checker.captive_portal_state).to eq(:free)
+      end
+    end
+
+    it 'returns :present via the real helper executable when the portal intercepts' do
+      with_local_http_server(response_code: 302) do |port|
+        endpoint = { url: "http://127.0.0.1:#{port}/check", expected_code: 204 }
+        allow(checker).to receive(:captive_portal_check_endpoints).and_return([endpoint])
+        expect(checker.captive_portal_state).to eq(:present)
+      end
+    end
+
+    it 'returns :indeterminate via the real helper executable on a network error' do
+      closed_server = TCPServer.new('127.0.0.1', 0)
+      closed_port = closed_server.addr[1]
+      closed_server.close
+      endpoint = { url: "http://127.0.0.1:#{closed_port}/check", expected_code: 204 }
+      allow(checker).to receive(:captive_portal_check_endpoints).and_return([endpoint])
+      expect(checker.captive_portal_state).to eq(:indeterminate)
     end
   end
 

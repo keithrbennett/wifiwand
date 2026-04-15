@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'ostruct'
+require 'socket'
 require 'stringio'
 require_relative '../network_state_manager'
 require_relative '../../lib/wifi-wand/operating_systems'
@@ -183,5 +184,46 @@ module TestHelpers
   def mock_captive_portal_detected(code: '302', body: '')
     response = instance_double(Net::HTTPResponse, code: code, body: body)
     allow(Net::HTTP).to receive(:get_response).and_return(response)
+  end
+
+  # Starts a minimal one-shot HTTP server on an OS-assigned local port.
+  # Accepts a single connection, reads the HTTP request headers, and writes a
+  # response with the given status code and body before closing.  Yields the
+  # chosen port number so the caller can build a URL pointing at it.
+  # Network access stays fully within the loopback interface, so tests that use
+  # this helper remain hermetic.
+  def with_local_http_server(response_code:, response_body: '')
+    server_thread = nil
+    server = TCPServer.new('127.0.0.1', 0)
+    port   = server.addr[1]
+
+    server_thread = Thread.new do
+      client = server.accept
+      loop { break if client.gets.strip.empty? }
+      client.write(<<~HEADERS.gsub("\n", "\r\n") + response_body)
+        HTTP/1.1 #{response_code} OK
+        Content-Length: #{response_body.bytesize}
+        Connection: close
+
+      HEADERS
+      client.close
+    rescue
+      nil
+    ensure
+      begin
+        server.close
+      rescue
+        nil
+      end
+    end
+
+    yield port
+  ensure
+    begin
+      server.close
+    rescue
+      nil
+    end
+    server_thread&.join(2)
   end
 end

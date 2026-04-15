@@ -543,12 +543,14 @@ module WifiWand
         before do
           model.instance_variable_set(:@mac_helper_client, nil)
           allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_double)
-          allow(model).to receive(:wifi_on?).and_return(true)
-          allow(model).to receive(:wifi_interface).and_return('en0')
+          allow(model).to receive_messages(
+            wifi_on?:       true,
+            wifi_interface: 'en0',
+            airport_data:   airport_data_without_current_network
+          )
           # Helper returns real SSID; system_profiler has no current-network key
           helper_ssid_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: 'SonomaNet')
           allow(helper_double).to receive(:connected_network_name).and_return(helper_ssid_result)
-          allow(model).to receive(:airport_data).and_return(airport_data_without_current_network)
         end
 
         it 'connected? returns true' do
