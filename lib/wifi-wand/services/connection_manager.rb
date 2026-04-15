@@ -207,6 +207,8 @@ module WifiWand
     def wait_for_connection_activation(network_name)
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       begin
+        # Association is the first milestone: the radio joined the SSID, but the
+        # OS may still be promoting the connection profile to "active".
         model.till(:associated, timeout_in_secs: WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT)
       rescue WifiWand::WaitTimeoutError
         # Fall through to explicit active-connection polling so verification can
@@ -215,6 +217,9 @@ module WifiWand
 
       loop do
         begin
+          # Use the model's higher-level readiness check here rather than raw
+          # association state so callers only proceed once DNS/IP/profile state
+          # has settled enough for subsequent commands to be reliable.
           return if active_connection_matches?(network_name)
         rescue WifiWand::Error
           # NetworkManager can transiently report no active connection while

@@ -158,6 +158,8 @@ module WifiWand
         timeout = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
         break if timeout <= 0
 
+        # Queue#pop returns nil on timeout here, which means "no worker finished
+        # before the overall deadline" rather than "a worker reported nil".
         result = results.pop(timeout: timeout)
         break if result.nil?
 

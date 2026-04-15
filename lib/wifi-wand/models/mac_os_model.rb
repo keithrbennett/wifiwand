@@ -331,6 +331,9 @@ module WifiWand
           os_level_connect_using_swift(network_name, password)
           return
         rescue WifiWand::CommandExecutor::OsCommandError => e
+          # Only a small set of CoreWLAN errors are known to be recoverable via
+          # the `networksetup` fallback. Everything else should preserve the
+          # original failure.
           if swift_connect_should_fallback?(e.text)
             if verbose_mode
               out_stream.puts "Swift/CoreWLAN failed (#{e.text.strip}). " \
@@ -392,6 +395,8 @@ module WifiWand
       result = mac_helper_client.connected_network_name
       ssid = result.payload
       return ssid if ssid && !placeholder_network_name?(ssid)
+      # When Location Services blocks the helper, stop here instead of falling
+      # back to `system_profiler`, whose output may only expose placeholder data.
       return nil if result.location_services_blocked?
 
       data = airport_data
@@ -626,6 +631,8 @@ module WifiWand
     def find_wifi_interface_data(interfaces, iface) = interfaces.detect { |h| h['_name'] == iface }
 
     def network_list_key
+      # `system_profiler` shifts the current SSID between these keys depending on
+      # whether the interface is already associated.
       connected_network_name ?
         'spairport_airport_other_local_wireless_networks' :
         'spairport_airport_local_wireless_networks'
