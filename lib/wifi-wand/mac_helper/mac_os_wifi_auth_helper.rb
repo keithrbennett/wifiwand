@@ -228,6 +228,7 @@ module WifiWand
         @verbose_proc = verbose_proc
         @macos_version_proc = macos_version_proc
         @location_warning_emitted = false
+        @helper_install_verified = false
         @disabled = false
         @last_error_message = nil
       end
@@ -322,13 +323,27 @@ module WifiWand
       end
 
       def ensure_helper_installed
-        return if File.executable?(helper_executable_path)
         return if @disabled
+        return if @helper_install_verified
 
-        log_verbose('helper not installed; running installer')
+        helper_present = File.executable?(helper_executable_path)
+        helper_valid = WifiWand::MacOsWifiAuthHelper.helper_installed_and_valid?
+        if helper_valid
+          @helper_install_verified = true
+          return
+        end
+
+        if helper_present
+          log_verbose('existing helper install failed validation; attempting reinstall')
+        else
+          log_verbose('helper not installed; running installer')
+        end
+
         WifiWand::MacOsWifiAuthHelper.ensure_helper_installed(out_stream: verbose? ? out_stream : nil)
+        @helper_install_verified = true
       rescue => e
-        emit_install_failure(e.message)
+        @helper_install_verified = false
+        emit_install_failure(e.message, repair_required: helper_present)
         @disabled = true
       end
 
@@ -364,11 +379,16 @@ module WifiWand
         @location_warning_emitted = true
       end
 
-      def emit_install_failure(detail)
+      def emit_install_failure(detail, repair_required: false)
         stream = out_stream || $stdout
         if stream
+          repair_hint = if repair_required
+            ' Run `wifi-wand-macos-setup --repair` to reinstall it.'
+          else
+            ''
+          end
           stream.puts("wifiwand helper: failed to install helper (#{detail}). " \
-            'Helper disabled until the next run.')
+            "Helper disabled until the next run.#{repair_hint}")
         end
       end
 

@@ -800,7 +800,8 @@ module WifiWand
         end
 
         it 'returns nil when WiFi service not found' do
-          allow(model).to receive(:run_os_command).and_return(command_result(stdout: '{"SPNetworkDataType": []}'))
+          allow(model).to receive(:run_os_command)
+            .and_return(command_result(stdout: '{"SPNetworkDataType": []}'))
           expect(model.probe_wifi_interface).to be_nil
         end
 

@@ -249,29 +249,82 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
       allow(WifiWand::MacOsWifiAuthHelper).to receive(:installed_executable_path).and_return(helper_path)
     end
 
-    it 'returns immediately when the helper executable already exists' do
-      expect(File).to receive(:executable?).with(helper_path).and_return(true)
-      expect(WifiWand::MacOsWifiAuthHelper).not_to receive(:ensure_helper_installed)
-      client.send(:ensure_helper_installed)
+    context 'when the helper executable is present and valid' do
+      it 'returns immediately without reinstalling' do
+        expect(File).to receive(:executable?).with(helper_path).and_return(true)
+        expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true)
+        expect(WifiWand::MacOsWifiAuthHelper).not_to receive(:ensure_helper_installed)
+        client.send(:ensure_helper_installed)
+      end
+
+      it 'caches successful validation for subsequent calls' do
+        expect(File).to receive(:executable?).with(helper_path).and_return(true).once
+        expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true).once
+
+        2.times { client.send(:ensure_helper_installed) }
+      end
     end
 
-    it 'installs the helper when the executable is missing' do
-      expect(File).to receive(:executable?).with(helper_path).and_return(false)
-      expect(client).to receive(:log_verbose).with('helper not installed; running installer')
-      expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed).with(out_stream: nil)
-      client.send(:ensure_helper_installed)
+    context 'when the helper executable is missing' do
+      it 'installs the helper' do
+        expect(File).to receive(:executable?).with(helper_path).and_return(false)
+        expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(false)
+        expect(client).to receive(:log_verbose).with('helper not installed; running installer')
+        expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed).with(out_stream: nil)
+        client.send(:ensure_helper_installed)
+      end
     end
 
-    it 'disables the helper when installation raises an error' do
-      expect(File).to receive(:executable?).with(helper_path).and_return(false)
-      allow(client).to receive(:log_verbose)
-      expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed).and_raise(StandardError,
-        'boom')
+    context 'when the helper executable is present but invalid' do
+      it 'attempts reinstall through the module installer' do
+        expect(File).to receive(:executable?).with(helper_path).and_return(true)
+        expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(false)
+        expect(client).to receive(:log_verbose)
+          .with('existing helper install failed validation; attempting reinstall')
+        expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed).with(out_stream: nil)
+        client.send(:ensure_helper_installed)
+      end
 
-      client.send(:ensure_helper_installed)
+      it 'disables the helper and emits repair guidance when reinstall fails' do
+        expect(File).to receive(:executable?).with(helper_path).and_return(true)
+        expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(false)
+        allow(client).to receive(:log_verbose)
+        expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed)
+          .and_raise(StandardError, 'boom')
 
-      expect(out_stream.string).to include('failed to install helper (boom)')
-      expect(client.instance_variable_get(:@disabled)).to be(true)
+        client.send(:ensure_helper_installed)
+
+        expect(out_stream.string).to include('failed to install helper (boom)')
+        expect(out_stream.string).to include('wifi-wand-macos-setup --repair')
+        expect(client.instance_variable_get(:@disabled)).to be(true)
+      end
+    end
+
+    context 'when the helper is missing and installation raises an error' do
+      it 'disables the helper without a repair-specific warning' do
+        expect(File).to receive(:executable?).with(helper_path).and_return(false)
+        expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(false)
+        allow(client).to receive(:log_verbose)
+        expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed)
+          .and_raise(StandardError, 'boom')
+
+        client.send(:ensure_helper_installed)
+
+        expect(out_stream.string).to include('failed to install helper (boom)')
+        expect(out_stream.string).not_to include('wifi-wand-macos-setup --repair')
+        expect(client.instance_variable_get(:@disabled)).to be(true)
+      end
+    end
+
+    context 'when reinstall succeeds after validation failure' do
+      it 'marks the helper as verified for later calls' do
+        expect(File).to receive(:executable?).with(helper_path).and_return(true).once
+        expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(false).once
+        allow(client).to receive(:log_verbose)
+        expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed).with(out_stream: nil).once
+
+        2.times { client.send(:ensure_helper_installed) }
+      end
     end
   end
 
@@ -316,6 +369,11 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper::Client do
     it 'prints the failure message to the output stream' do
       client.send(:emit_install_failure, 'boom')
       expect(out_stream.string).to include('failed to install helper (boom)')
+    end
+
+    it 'includes repair guidance when an existing helper install is corrupt' do
+      client.send(:emit_install_failure, 'boom', repair_required: true)
+      expect(out_stream.string).to include('wifi-wand-macos-setup --repair')
     end
   end
 
