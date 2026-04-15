@@ -12,3 +12,10 @@ AllCops:
     - 'coverage/**/*'
     - 'bin/**/*'
     - 'node_modules/**/*'
+
+Naming/PredicatePrefix:
+  Enabled: true
+  AllowedMethods:
+    - is_a?
+    - has_preferred_network?
+    - is_wifi_interface?

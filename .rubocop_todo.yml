@@ -46,12 +46,6 @@ Lint/DuplicateBranch:
     - 'spec/wifi-wand/command_line_interface/output_formats_e2e_spec.rb'
     - 'spec/wifi-wand/command_line_interface/output_formats_integration_spec.rb'
 
-# Offense count: 1
-# Configuration parameters: AllowComments, AllowEmptyLambdas.
-Lint/EmptyBlock:
-  Exclude:
-    - 'spec/wifi-wand/os/base_os_spec.rb'
-
 # Offense count: 19
 Lint/IneffectiveAccessModifier:
   Exclude:
@@ -271,12 +265,6 @@ RSpec/SubjectStub:
 # FunctionalMethods: let, let!, subject, watch
 # AllowedMethods: lambda, proc, it
 
-
-# Offense count: 1
-# This cop supports unsafe autocorrection (--autocorrect-all).
-Style/CommentedKeyword:
-  Exclude:
-    - 'spec/wifi-wand/command_line_interface/command_registry_spec.rb'
 
 
 # Offense count: 2

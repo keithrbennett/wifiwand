@@ -26,8 +26,7 @@ module WifiWand
       end
 
       it 'raises MethodNotImplementedError for abstract methods' do
-        test_subclass = Class.new(BaseOs) do
-        end
+        test_subclass = Class.new(BaseOs)
 
         instance = test_subclass.new(:test_id, 'Test Display Name')
 

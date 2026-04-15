@@ -714,23 +714,27 @@ module WifiWand
         it 'constructs a correctly escaped removal command for various network names' do
           allow(model).to receive(:wifi_interface).and_return('en0')
 
-          # rubocop:disable Layout/HashAlignment
-          test_cases = {
-            'Simple' =>
-              'sudo networksetup -removepreferredwirelessnetwork en0 Simple',
-            'Network With Spaces' =>
-              'sudo networksetup -removepreferredwirelessnetwork en0 Network\\ With\\ Spaces',
-            'Network"WithQuotes' =>
-              'sudo networksetup -removepreferredwirelessnetwork en0 Network\"WithQuotes',
-            "Network'WithSingleQuotes" =>
-              "sudo networksetup -removepreferredwirelessnetwork en0 Network\\'WithSingleQuotes",
-          }
-          # rubocop:enable Layout/HashAlignment
+          test_cases = [
+            [
+              'Simple',
+              %w[sudo networksetup -removepreferredwirelessnetwork en0 Simple],
+            ],
+            [
+              'Network With Spaces',
+              ['sudo', 'networksetup', '-removepreferredwirelessnetwork', 'en0', 'Network With Spaces'],
+            ],
+            [
+              'Network"WithQuotes',
+              ['sudo', 'networksetup', '-removepreferredwirelessnetwork', 'en0', 'Network"WithQuotes'],
+            ],
+            [
+              "Network'WithSingleQuotes",
+              ['sudo', 'networksetup', '-removepreferredwirelessnetwork', 'en0', "Network'WithSingleQuotes"],
+            ],
+          ]
 
-          test_cases.each do |network_name, expected_command_str|
-            expected_command_array = Shellwords.split(expected_command_str)
+          test_cases.each do |network_name, expected_command_array|
             expect(model).to receive(:run_os_command).with(expected_command_array)
-
             expect(model.remove_preferred_network(network_name)).to eq([network_name])
           end
         end

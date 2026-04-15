@@ -49,7 +49,7 @@ module WifiWand
       nil
     end
 
-    def is_wifi_interface?(interface) # rubocop:disable Naming/PredicatePrefix
+    def is_wifi_interface?(interface)
       # Redirect stderr to /dev/null - requires shell
       output = run_os_command("iw dev #{Shellwords.shellescape(interface)} info 2>/dev/null", false).stdout
       !output.empty?
@@ -313,7 +313,7 @@ module WifiWand
       matching_profiles
     end
 
-    def has_preferred_network?(network_name) # rubocop:disable Naming/PredicatePrefix
+    def has_preferred_network?(network_name)
       preferred_networks_matching_ssid(network_name.to_s).any?
     end
 

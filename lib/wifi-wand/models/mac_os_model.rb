@@ -249,7 +249,7 @@ module WifiWand
     end
 
     # Returns whether or not the specified interface is a WiFi interface.
-    def is_wifi_interface?(interface) # rubocop:disable Naming/PredicatePrefix
+    def is_wifi_interface?(interface)
       run_os_command(['networksetup', '-listpreferredwirelessnetworks', interface])
       true  # If command succeeds, it's a WiFi interface
     rescue WifiWand::CommandExecutor::OsCommandError => e

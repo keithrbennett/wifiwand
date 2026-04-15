@@ -50,13 +50,12 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
     it 'creates commands with callable actions' do
       subject.commands.each do |cmd|
         expect(cmd.action).to respond_to(:call)
-        # Execute lambda to achieve coverage of Command.new lambda bodies
-        # The actual command functionality is tested in command_line_interface_spec.rb
+        # Execute lambda bodies for coverage; behavioral assertions live elsewhere.
         begin
           cmd.action.call
         rescue
           nil
-        end  # Ignore any errors, just need execution for coverage
+        end
       end
     end
 
