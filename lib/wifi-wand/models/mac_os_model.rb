@@ -591,15 +591,18 @@ module WifiWand
 
     # Helper methods for _preferred_network_password
     def detect_wifi_interface_from_profiler_networks(nets)
+      # Reuse the service name learned from the fast path when it is available.
       preferred_service_name = @wifi_service_name
       wifi = if preferred_service_name && !preferred_service_name.empty?
         nets.find { |net| net['_name'] == preferred_service_name }
       end
 
+      # Fall back to an already-known interface if initialization or earlier calls set it.
       wifi ||= if @wifi_interface && !@wifi_interface.empty?
         nets.find { |net| net['interface'] == @wifi_interface }
       end
 
+      # As a last profiler-only heuristic, match common Wi-Fi service names directly.
       wifi ||= nets.find do |net|
         name = net['_name'].to_s
         WIFI_PORT_PATTERNS.any? { |pattern| pattern.match?(name) }
