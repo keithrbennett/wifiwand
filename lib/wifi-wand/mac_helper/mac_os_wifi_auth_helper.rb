@@ -13,6 +13,8 @@ require 'fileutils'
 require 'json'
 require 'open3'
 require 'rubygems/version'
+require 'securerandom'
+require 'tmpdir'
 require_relative '../version'
 
 module WifiWand
@@ -89,42 +91,222 @@ module WifiWand
     # Verifies the helper installation is valid and not corrupted
     #
     # @return [Boolean] true if helper is properly installed and executable
-    def helper_installed_and_valid?
-      return false unless File.executable?(installed_executable_path)
-      return false unless File.exist?(File.join(installed_bundle_path, 'Contents', 'Info.plist'))
+    def helper_installed_and_valid? = helper_bundle_valid?(installed_bundle_path)
 
-      # Quick validation: try to execute with --help flag
-      stdout, _stderr, status = Open3.capture3(installed_executable_path, '--help')
-      status.success? && !stdout.strip.empty?
-    rescue Errno::ENOENT
-      false
-    end
-
-    # Copies the pre-signed helper bundle into ~/Library and immediately re-validates it.
-    # Concurrent installs may briefly leave the bundle incomplete, so we trust the follow-up
-    # validation (and let callers retry) instead of attempting multiple installs here.
     def ensure_helper_installed(out_stream: $stdout)
       return installed_bundle_path if helper_installed_and_valid?
 
-      out_stream&.puts 'Installing wifiwand macOS helper...'
       install_helper_bundle(out_stream: out_stream)
 
-      # Verify installation succeeded - if not, likely concurrent corruption
       unless helper_installed_and_valid?
-        raise 'Helper installation failed validation. If running multiple processes concurrently, try again.'
+        raise 'Helper installation failed validation after installation.'
       end
 
       installed_bundle_path
     end
 
     def install_helper_bundle(out_stream: $stdout)
-      FileUtils.mkdir_p(versioned_install_dir)
-      FileUtils.rm_rf(installed_bundle_path)
-      FileUtils.cp_r(source_bundle_path, installed_bundle_path)
-      FileUtils.chmod(0o755, installed_executable_path)
+      with_install_lock do
+        return installed_bundle_path if helper_installed_and_valid?
+
+        out_stream&.puts 'Installing wifiwand macOS helper...'
+
+        Dir.mktmpdir("#{BUNDLE_NAME}.tmp-", versioned_install_dir) do |temp_dir|
+          staged_bundle_path = File.join(temp_dir, BUNDLE_NAME)
+          stage_helper_bundle(staged_bundle_path)
+
+          unless helper_bundle_valid?(staged_bundle_path)
+            raise 'Staged helper installation failed validation.'
+          end
+
+          publish_staged_bundle(staged_bundle_path)
+          write_manifest
+        end
+      end
+
       out_stream&.puts 'Helper bundle installed from pre-signed binary.' if out_stream
-      write_manifest
+      installed_bundle_path
     end
+
+    def install_lock_path = File.join(versioned_install_dir, '.install.lock')
+
+    def helper_bundle_valid?(bundle_path)
+      executable_path = File.join(bundle_path, 'Contents', 'MacOS', EXECUTABLE_NAME)
+      return false unless File.executable?(executable_path)
+      return false unless File.exist?(File.join(bundle_path, 'Contents', 'Info.plist'))
+
+      stdout, _stderr, status = Open3.capture3(executable_path, '--help')
+      status.success? && !stdout.strip.empty?
+    rescue Errno::ENOENT
+      false
+    end
+
+    def with_install_lock
+      FileUtils.mkdir_p(versioned_install_dir)
+
+      File.open(install_lock_path, File::RDWR | File::CREAT, 0o644) do |lock_file|
+        lock_file.flock(File::LOCK_EX)
+        yield
+      ensure
+        lock_file.flock(File::LOCK_UN)
+      end
+    end
+
+    def stage_helper_bundle(staged_bundle_path)
+      FileUtils.cp_r(source_bundle_path, staged_bundle_path)
+      staged_executable_path = File.join(staged_bundle_path, 'Contents', 'MacOS', EXECUTABLE_NAME)
+      FileUtils.chmod(0o755, staged_executable_path)
+    end
+
+    def publish_staged_bundle(staged_bundle_path)
+      publish_token = unique_publish_token
+      release_bundle_path = bundle_release_path(publish_token)
+      File.rename(staged_bundle_path, release_bundle_path)
+
+      begin
+        publish_release_symlink(release_bundle_path, publish_token)
+      rescue
+        FileUtils.rm_rf(release_bundle_path)
+        raise
+      end
+    end
+
+    def publish_release_symlink(release_bundle_path, publish_token)
+      symlink_path = staged_bundle_symlink_path(publish_token)
+      File.symlink(File.basename(release_bundle_path), symlink_path)
+
+      if File.symlink?(installed_bundle_path)
+        previous_release_path = resolved_installed_bundle_target
+        File.rename(symlink_path, installed_bundle_path)
+        cleanup_previous_release(previous_release_path)
+        return
+      end
+
+      if File.exist?(installed_bundle_path)
+        FileUtils.rm_f(symlink_path) if File.symlink?(symlink_path)
+        migrate_legacy_bundle_to_release(release_bundle_path, publish_token)
+        return
+      end
+
+      File.rename(symlink_path, installed_bundle_path)
+    rescue
+      FileUtils.rm_f(symlink_path) if File.symlink?(symlink_path)
+      raise
+    end
+
+    def migrate_legacy_bundle_to_release(release_bundle_path, publish_token)
+      backup_paths = backup_legacy_bundle_metadata(publish_token)
+      sync_legacy_bundle_metadata(release_bundle_path, publish_token)
+      switch_legacy_bundle_executable(release_bundle_path, publish_token)
+    rescue
+      restore_legacy_bundle_metadata(backup_paths, publish_token)
+      raise
+    ensure
+      cleanup_legacy_bundle_metadata_backups(backup_paths) if defined?(backup_paths)
+    end
+
+    def bundle_release_path(publish_token) =
+      File.join(versioned_install_dir, ".#{BUNDLE_NAME}.release-#{publish_token}")
+
+    def staged_bundle_symlink_path(publish_token) = "#{installed_bundle_path}.link-#{publish_token}"
+
+    def legacy_executable_symlink_path(publish_token) = "#{installed_executable_path}.link-#{publish_token}"
+
+    def legacy_info_plist_path = File.join(installed_bundle_path, 'Contents', 'Info.plist')
+
+    def legacy_code_resources_path =
+      File.join(installed_bundle_path, 'Contents', '_CodeSignature', 'CodeResources')
+
+    def resolved_installed_bundle_target
+      return unless File.symlink?(installed_bundle_path)
+
+      File.expand_path(File.readlink(installed_bundle_path), versioned_install_dir)
+    end
+
+    def cleanup_previous_release(previous_release_path)
+      return unless previous_release_path
+      return unless previous_release_path.start_with?("#{versioned_install_dir}/.#{BUNDLE_NAME}.release-")
+      return if previous_release_path == resolved_installed_bundle_target
+
+      FileUtils.rm_rf(previous_release_path)
+    end
+
+    def sync_legacy_bundle_metadata(release_bundle_path, publish_token)
+      release_info_plist_path = File.join(release_bundle_path, 'Contents', 'Info.plist')
+      staged_info_plist_path = "#{legacy_info_plist_path}.tmp-#{publish_token}"
+      release_code_resources_path =
+        File.join(release_bundle_path, 'Contents', '_CodeSignature', 'CodeResources')
+      staged_code_resources_path = "#{legacy_code_resources_path}.tmp-#{publish_token}"
+
+      FileUtils.mkdir_p(File.dirname(legacy_info_plist_path))
+      FileUtils.cp(release_info_plist_path, staged_info_plist_path)
+      File.rename(staged_info_plist_path, legacy_info_plist_path)
+
+      FileUtils.mkdir_p(File.dirname(legacy_code_resources_path))
+      FileUtils.cp(release_code_resources_path, staged_code_resources_path)
+      File.rename(staged_code_resources_path, legacy_code_resources_path)
+    ensure
+      FileUtils.rm_f(staged_info_plist_path) if defined?(staged_info_plist_path)
+      FileUtils.rm_f(staged_code_resources_path) if defined?(staged_code_resources_path)
+    end
+
+    def backup_legacy_bundle_metadata(publish_token)
+      {
+        info_plist:     backup_legacy_metadata_file(legacy_info_plist_path, publish_token),
+        code_resources: backup_legacy_metadata_file(legacy_code_resources_path, publish_token),
+      }
+    end
+
+    def backup_legacy_metadata_file(path, publish_token)
+      return unless File.exist?(path)
+
+      backup_path = "#{path}.backup-#{publish_token}"
+      FileUtils.cp(path, backup_path)
+      backup_path
+    end
+
+    def restore_legacy_bundle_metadata(backup_paths, publish_token)
+      restore_legacy_metadata_file(backup_paths[:info_plist], legacy_info_plist_path, publish_token)
+      restore_legacy_metadata_file(backup_paths[:code_resources], legacy_code_resources_path, publish_token)
+    end
+
+    def restore_legacy_metadata_file(backup_path, target_path, publish_token)
+      return unless backup_path && File.exist?(backup_path)
+
+      staged_restore_path = "#{target_path}.restore-#{publish_token}"
+      FileUtils.cp(backup_path, staged_restore_path)
+      File.rename(staged_restore_path, target_path)
+    ensure
+      FileUtils.rm_f(staged_restore_path) if defined?(staged_restore_path)
+    end
+
+    def cleanup_legacy_bundle_metadata_backups(backup_paths)
+      FileUtils.rm_f(backup_paths.values.compact)
+    end
+
+    def switch_legacy_bundle_executable(release_bundle_path, publish_token)
+      previous_release_path = resolved_legacy_release_target
+      staged_executable_link_path = legacy_executable_symlink_path(publish_token)
+      release_executable_path = File.join(release_bundle_path, 'Contents', 'MacOS', EXECUTABLE_NAME)
+
+      File.symlink(release_executable_path, staged_executable_link_path)
+      File.rename(staged_executable_link_path, installed_executable_path)
+      cleanup_previous_release(previous_release_path)
+    rescue
+      staged_link_needs_cleanup =
+        defined?(staged_executable_link_path) && File.symlink?(staged_executable_link_path)
+      FileUtils.rm_f(staged_executable_link_path) if staged_link_needs_cleanup
+      raise
+    end
+
+    def resolved_legacy_release_target
+      return unless File.symlink?(installed_executable_path)
+
+      File.expand_path(File.readlink(installed_executable_path), versioned_install_dir)
+        .sub(%r{/Contents/MacOS/[^/]+\z}, '')
+    end
+
+    def unique_publish_token = "#{Process.pid}-#{Thread.current.object_id}-#{SecureRandom.hex(6)}"
 
     def compile_helper(source, destination, out_stream: $stdout)
       FileUtils.mkdir_p(File.dirname(destination))
