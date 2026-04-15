@@ -648,6 +648,8 @@ module WifiWand
     end
 
     def extract_signal_strength(network)
+      # 'spairport_signal_noise' is a slash-separated "signal/noise" string (e.g. "-65/-95").
+      # Take the first component as the signal strength in dBm; default to "0/0" if absent.
       network.fetch('spairport_signal_noise', '0/0').to_s.split('/').first.to_i
     end
 
@@ -672,7 +674,9 @@ module WifiWand
       return nil unless network_name
 
       data = airport_data
-      inner_key = 'spairport_airport_local_wireless_networks'
+      # system_profiler moves the current SSID to 'other_local_wireless_networks' when
+      # associated, so use network_list_key rather than hardcoding the 'local' key.
+      inner_key = network_list_key
 
       # Get the networks data from the airport information
       iface = wifi_interface

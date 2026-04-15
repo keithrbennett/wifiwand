@@ -1158,12 +1158,18 @@ module WifiWand
         let(:wifi_interface) { 'en0' }
 
         before do
+          # wifi_on? is called by connected_network_name, which is called by network_list_key.
+          # Stub it so the tests don't attempt a real OS command.
           allow(model).to receive_messages(
             _connected_network_name: network_name,
-            wifi_interface:          wifi_interface
+            wifi_interface:          wifi_interface,
+            wifi_on?:                true
           )
         end
 
+        # When connected, system_profiler moves the current SSID to
+        # 'spairport_airport_other_local_wireless_networks'. The tests below mirror
+        # that layout so they match what network_list_key selects at runtime.
         [
           ['WPA2', 'WPA2'],
           ['WPA3', 'WPA3'],
@@ -1176,8 +1182,8 @@ module WifiWand
             airport_data = {
               'SPAirPortDataType' => [{
                 'spairport_airport_interfaces' => [{
-                  '_name'                                     => wifi_interface,
-                  'spairport_airport_local_wireless_networks' => [{
+                  '_name'                                           => wifi_interface,
+                  'spairport_airport_other_local_wireless_networks' => [{
                     '_name'                   => network_name,
                     'spairport_security_mode' => security_mode,
                   }],
@@ -1189,6 +1195,29 @@ module WifiWand
 
             expect(model.connection_security_type).to eq(expected_result)
           end
+        end
+
+        # Regression: the original code hardcoded 'spairport_airport_local_wireless_networks',
+        # which is the wrong key when connected. system_profiler places the current SSID under
+        # 'spairport_airport_other_local_wireless_networks' once the interface is associated.
+        it 'finds the connected network under other_local_wireless_networks (not local)' do
+          airport_data = {
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                           => wifi_interface,
+                'spairport_airport_other_local_wireless_networks' => [{
+                  '_name'                   => network_name,
+                  'spairport_security_mode' => 'WPA2',
+                }],
+                # Connected network is NOT in the local list — only in other_local.
+                'spairport_airport_local_wireless_networks'       => [],
+              }],
+            }],
+          }
+
+          allow(model).to receive(:airport_data).and_return(airport_data)
+
+          expect(model.connection_security_type).to eq('WPA2')
         end
 
         it 'returns nil when not connected to any network' do
@@ -1207,8 +1236,8 @@ module WifiWand
           airport_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name'                                     => 'other_interface',
-                'spairport_airport_local_wireless_networks' => [],
+                '_name'                                           => 'other_interface',
+                'spairport_airport_other_local_wireless_networks' => [],
               }],
             }],
           }
@@ -1222,8 +1251,8 @@ module WifiWand
           airport_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name'                                     => wifi_interface,
-                'spairport_airport_local_wireless_networks' => [{
+                '_name'                                           => wifi_interface,
+                'spairport_airport_other_local_wireless_networks' => [{
                   '_name'                   => 'OtherNetwork',
                   'spairport_security_mode' => 'WPA2',
                 }],
@@ -1240,8 +1269,8 @@ module WifiWand
           airport_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
-                '_name'                                     => wifi_interface,
-                'spairport_airport_local_wireless_networks' => [{
+                '_name'                                           => wifi_interface,
+                'spairport_airport_other_local_wireless_networks' => [{
                   '_name' => network_name,
                   # No spairport_security_mode key
                 }],

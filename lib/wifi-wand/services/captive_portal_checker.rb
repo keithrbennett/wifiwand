@@ -63,6 +63,8 @@ module WifiWand
       state
     end
 
+    # Seconds given to a probe subprocess after SIGTERM before escalating to SIGKILL.
+    # Short enough to keep overall check latency low, long enough for a clean exit.
     HELPER_RESULT_GRACE = 0.5
 
     private
@@ -99,6 +101,8 @@ module WifiWand
         break if free_found
       end
 
+      # Probes still in-flight when we exited the loop (deadline hit or :free found early)
+      # never wrote a result. Count each as :indeterminate before terminating them.
       results.concat(Array.new(probes.length, ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE))
       terminate_probes(probes)
       probes = []
@@ -225,6 +229,7 @@ module WifiWand
         sleep(0.01)
       end
 
+      # Subprocess did not exit within the grace period after SIGTERM; force-kill it.
       Process.kill('KILL', pid)
       reap_probe(pid)
     rescue Errno::ESRCH, Errno::ECHILD

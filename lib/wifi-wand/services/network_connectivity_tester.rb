@@ -10,6 +10,10 @@ require_relative 'captive_portal_checker'
 
 module WifiWand
   class NetworkConnectivityTester
+    # Unique sentinel that is distinct from nil. internet_connectivity_state accepts
+    # pre-computed connectivity values as optional arguments; UNSET lets callers omit
+    # an argument entirely (triggering lazy evaluation) while still being able to pass
+    # nil explicitly to mean "not available".
     UNSET = Object.new.freeze
 
     attr_reader :captive_portal_checker
