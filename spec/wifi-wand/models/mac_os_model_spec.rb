@@ -793,27 +793,26 @@ module WifiWand
         end
 
         it 'detects WiFi interface from system_profiler' do
-          allow(model).to receive_messages(
-            detect_wifi_service_name: 'Wi-Fi',
-            run_os_command:           command_result(stdout: system_profiler_output)
-          )
+          allow(model).to receive(:run_os_command).and_return(command_result(stdout: system_profiler_output))
           expect(model.probe_wifi_interface).to eq('en0')
         end
 
         it 'returns nil when WiFi service not found' do
-          allow(model).to receive_messages(
-            detect_wifi_service_name: 'Wi-Fi',
-            run_os_command:           command_result(stdout: '{"SPNetworkDataType": []}')
-          )
+          allow(model).to receive(:run_os_command).and_return(command_result(stdout: '{"SPNetworkDataType": []}'))
           expect(model.probe_wifi_interface).to be_nil
         end
 
         it 'handles JSON parse errors gracefully' do
-          allow(model).to receive_messages(
-            detect_wifi_service_name: 'Wi-Fi',
-            run_os_command:           command_result(stdout: 'invalid json')
-          )
+          allow(model).to receive(:run_os_command).and_return(command_result(stdout: 'invalid json'))
           expect { model.probe_wifi_interface }.to raise_error(JSON::ParserError)
+        end
+
+        it 'uses system_profiler fallback without re-entering networksetup after failure' do
+          allow(model).to receive(:detect_wifi_interface_using_networksetup).and_raise(StandardError, 'boom')
+          allow(model).to receive(:detect_wifi_service_name).and_raise('should not be called')
+          allow(model).to receive(:run_os_command).and_return(command_result(stdout: system_profiler_output))
+
+          expect(model.probe_wifi_interface).to eq('en0')
         end
       end
 

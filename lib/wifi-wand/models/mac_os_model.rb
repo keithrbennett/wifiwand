@@ -181,11 +181,7 @@ module WifiWand
 
       return nil if nets.nil? || nets.empty?
 
-      # Use dynamic service name detection
-      service_name = detect_wifi_service_name
-      wifi = nets.detect { |net| net['_name'] == service_name }
-
-      wifi ? wifi['interface'] : nil
+      detect_wifi_interface_from_profiler_networks(nets)
     end
 
     # Returns the network names sorted in descending order of signal strength.
@@ -594,6 +590,24 @@ module WifiWand
     private
 
     # Helper methods for _preferred_network_password
+    def detect_wifi_interface_from_profiler_networks(nets)
+      preferred_service_name = @wifi_service_name
+      wifi = if preferred_service_name && !preferred_service_name.empty?
+        nets.find { |net| net['_name'] == preferred_service_name }
+      end
+
+      wifi ||= if @wifi_interface && !@wifi_interface.empty?
+        nets.find { |net| net['interface'] == @wifi_interface }
+      end
+
+      wifi ||= nets.find do |net|
+        name = net['_name'].to_s
+        WIFI_PORT_PATTERNS.any? { |pattern| pattern.match?(name) }
+      end
+
+      wifi ? wifi['interface'] : nil
+    end
+
     def handle_keychain_error(network_name, error)
       handler = KEYCHAIN_EXIT_CODE_HANDLERS[error.exitstatus]
 
