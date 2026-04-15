@@ -8,6 +8,7 @@
 .config
 .devcontainer/
 .idea/
+.kilo/
 .yardoc
 Gemfile.lock
 InstalledFiles
