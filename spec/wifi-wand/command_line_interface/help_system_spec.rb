@@ -21,7 +21,6 @@ describe WifiWand::CommandLineInterface::HelpSystem do
   let(:resource_manager) { double('ResourceManager') }
   let(:model) { double('Model', resource_manager: resource_manager) }
 
-
   before do
     open_resources = double('OpenResources', help_string: 'test resource help')
     allow(resource_manager).to receive(:open_resources).and_return(open_resources)
@@ -62,8 +61,9 @@ describe WifiWand::CommandLineInterface::HelpSystem do
       expect(help).to include('status line (WiFi, Network, DNS, Internet')
     end
 
-    it 'documents mixed long and short selector forms for public_ip' do
-      expect(help).to include('pu[blic_ip] [address|country|both|a|c|b]')
+    it 'documents exact short and long command forms for public_ip' do
+      expect(help).to include('Commands accept only the exact short or exact long form shown below.')
+      expect(help).to include('pu / public_ip [address|country|both|a|c|b]')
       expect(help).to include("e.g. 'public_ip a' or 'pi country'")
       expect(help).to include('pi [address|country|both|a|c|b]')
     end
@@ -83,9 +83,7 @@ describe WifiWand::CommandLineInterface::HelpSystem do
     end
 
     it 'uses $stdout explicitly when interactive_mode is true' do
-      # Subject does not define interactive_mode; define it here for this example
       subject.define_singleton_method(:interactive_mode) { true }
-      # Set an @out_stream to ensure it is not used when interactive
       out_io = StringIO.new
       subject.instance_variable_set(:@out_stream, out_io)
 

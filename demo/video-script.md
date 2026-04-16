@@ -41,15 +41,15 @@ Command Line Switches:                    [wifi-wand version 3.0.0-alpha.1]
 -v                        - verbose mode (prints OS commands and their outputs)
 
 Commands:
-a[vail_nets]              - array of names of the available networks
+a / avail_nets          - array of names of the available networks
 ci                        - connected to Internet (not just wifi on)?
-co[nnect] network-name    - turns wifi on, connects to network-name
-i[nfo]                    - a hash of wifi-related information
-w[ifi_on]                 - is the wifi on?
+co / connect network-name - turns wifi on, connects to network-name
+i / info                - a hash of wifi-related information
+w / wifi_on             - is the wifi on?
 ...
 ```
 
-**Narrator:** "Notice how commands can be abbreviated - 'i' for info, 'a' for available networks, and so on."
+**Narrator:** "Notice the explicit short forms: 'i' for info, 'a' for available networks, and so on."
 
 **[Type and execute]**
 ```bash
@@ -220,8 +220,7 @@ preferred = pref_nets
 => "I have 5 saved networks"
 ```
 
-**Narrator:** "Let's look up the password for our current network. Commands can be abbreviated - we can use
-'pa' for password and 'ne' for network_name."
+**Narrator:** "Let's look up the password for our current network. Commands have exact short forms too, so we can use 'pa' for password and 'ne' for network_name."
 
 **[Type in shell]**
 ```ruby
@@ -233,7 +232,7 @@ password(network_name)
 => "my_cafe_password_123"
 ```
 
-**Narrator:** "And here's the abbreviated version - much faster to type:"
+**Narrator:** "And here's the short-form version:"
 
 **[Type in shell]**
 ```ruby
@@ -266,7 +265,7 @@ nameservers
 ```
 
 **Narrator:** "We can modify nameservers too. Let's clear them first, then set custom ones using the
-abbreviated form."
+short form."
 
 **[Type in shell]**
 ```ruby

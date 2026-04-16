@@ -5,6 +5,26 @@ to version 2.x.
 
 ## Breaking Changes
 
+### CLI Command Matching
+
+#### Partial command abbreviations removed
+
+CLI commands no longer accept arbitrary intermediate-length abbreviations
+between the short form and long form.
+
+Only these forms are now valid:
+
+- the exact short form, such as `co`
+- the exact long form, such as `connect`
+
+Intermediate partial spellings such as `con`, `conn`, and `connec` are now
+treated as invalid commands and follow the normal invalid-command behavior.
+
+##### Migration
+
+- old: `wifi-wand conn MyNet`
+- new: `wifi-wand co MyNet` or `wifi-wand connect MyNet`
+
 ### Connectivity API
 
 #### `connected_to_internet?` replaced by `internet_connectivity_state`

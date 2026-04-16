@@ -236,36 +236,37 @@ shell                     - start interactive shell (interactive pry REPL sessio
 
 Commands
 --------
-a[vail_nets]              - array of names of the available networks
+Commands accept only the exact short or exact long form shown below.
+a / avail_nets          - array of names of the available networks
 ci                        - Internet connectivity state: reachable, unreachable, or indeterminate
-co[nnect] network-name    - connects to the specified network-name, turning WiFi on if necessary
-cy[cle]                   - toggles WiFi on/off state twice, regardless of starting state
-d[isconnect]              - disconnects from current network, does not turn off WiFi
-f[orget] name1 [..name_n] - removes network-name(s) from the preferred (saved) networks list
+co / connect network-name - connects to the specified network-name, turning WiFi on if necessary
+cy / cycle               - toggles WiFi on/off state twice, regardless of starting state
+d / disconnect          - disconnects from current network, does not turn off WiFi
+f / forget name1 [..name_n] - removes network-name(s) from the preferred (saved) networks list
                             in interactive mode, can be a single array of names, e.g. returned by `pref_nets`
-h[elp]                    - prints this help
-i[nfo]                    - a hash of detailed networking information
-lo[g]                     - start event logging (polls WiFi status, logs changes)
+h / help                - prints this help
+i / info                - a hash of detailed networking information
+lo / log                - start event logging (polls WiFi status, logs changes)
                             options: --interval N (default 5 seconds), --file [PATH] (default: wifiwand-events.log),
                                      --stdout (keep stdout when file destination is used)
                             Logs events: internet on/off (derived from explicit reachable/unreachable state)
                             Ctrl+C to stop (see docs/LOGGING.md for details)
-na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear,
+na / nameservers        - nameservers: 'show' or no arg to show, 'clear' to clear,
                             or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
                             on Ubuntu, this replaces the profile DNS state;
                             omitted IPv4/IPv6 families revert to DHCP/router-provided DNS
-ne[twork_name]            - name (SSID) of currently connected WiFi network
+ne / network_name       - name (SSID) of currently connected WiFi network
 on                        - turns WiFi on
-of[f]                     - turns WiFi off
-pa[ssword] network-name   - password for preferred network name
-pr[ef_nets]               - preferred (saved) networks
-q[uit]                    - exits this program (interactive shell mode only) (same as 'x')
+of / off                - turns WiFi off
+pa / password network-name - password for preferred network name
+pr / pref_nets          - preferred (saved) networks
+q / quit                - exits this program (interactive shell mode only) (same as 'x')
 qr [filespec|'-'] [password]
                          - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats; optional password avoids macOS auth prompt
-ro[pen]                   - open web resources: 'cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page)
-s[tatus]                  - status line (WiFi, WiFi Network, DNS, Internet; shows captive portal warning if login is required)
+ro / ropen              - open web resources: 'cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page)
+s / status              - status line (WiFi, WiFi Network, DNS, Internet; shows captive portal warning if login is required)
                             (see docs/STATUS_COMMAND.md for details on connectivity detection and machine-readable status fields)
-t[ill]                    - wait until state is reached:
+t / till                - wait until state is reached:
                             Usage: till <state> [timeout_secs] [interval_secs]
                             States:
                               wifi_on        – WiFi hardware powered on
@@ -276,8 +277,8 @@ t[ill]                    - wait until state is reached:
                               internet_off   – Internet connectivity state is unreachable
                             Defaults: timeout = wait indefinitely; interval = 0.5s
                             Examples: "till wifi_off 20"  "till internet_on 30 0.5"
-w[ifi_on]                 - is the WiFi on?
-x[it]                     - exits this program (interactive shell mode only) (same as 'q')
+w / wifi_on             - is the WiFi on?
+x / xit                 - exits this program (interactive shell mode only) (same as 'q')
 
 When in interactive shell mode:
   * remember to quote string literals.
@@ -343,7 +344,7 @@ the local variable will shadow (override) the method name. Therefore, local vari
 may override this app's commands.  For example:
 
 ```
-[1] pry(#<WifiWandView>)> x  # exit command, can be called as 'x', 'xi', or 'xit'
+[1] pry(#<WifiWandView>)> x  # exit command, available as 'x' or 'xit'
 $
 $ wifi-wand shell
 

@@ -129,29 +129,28 @@ describe WifiWand::CommandLineInterface do
         expect(commands).to be_an(Array)
 
         # Check some key commands exist
-        command_strings = commands.map(&:max_string)
+        command_strings = commands.map(&:long_string)
         expect(command_strings).to include('info', 'connect', 'disconnect', 'help', 'avail_nets')
       end
 
-      specify 'substrings of commands can be substituted for the full command name' do
-        # Partial string matching
-        actions = %w[conn connec connect].map { |s| subject.find_command_action(s) }
+      specify 'exact short and long command names are accepted' do
+        expect(subject.find_command_action('co')).to respond_to(:call)
+        expect(subject.find_command_action('connect')).to respond_to(:call)
+      end
 
-        all_actions_identical = (actions.uniq.size == 1)
-        expect(all_actions_identical).to be(true)
-
-        # must be callables (Proc, other object with 'call' method)
-        expect(all_actions_identical && actions.first.respond_to?(:call)).to be(true)
+      specify 'intermediate partial command names are rejected' do
+        expect(subject.find_command_action('con')).to be_nil
+        expect(subject.find_command_action('conn')).to be_nil
+        expect(subject.find_command_action('connec')).to be_nil
       end
 
       specify 'invalid command strings will return nil' do
         expect(subject.find_command_action('unknown_command')).to be_nil
       end
 
-      specify 'minimum command lengths may be required' do
-        # Minimum string length requirements
-        expect(subject.find_command_action('c')).to be_nil  # Too short
-        expect(subject.find_command_action('co')).not_to be_nil  # Minimum length
+      specify 'short names still work while invalid short partials do not' do
+        expect(subject.find_command_action('c')).to be_nil
+        expect(subject.find_command_action('co')).to respond_to(:call)
       end
     end
 
@@ -203,6 +202,16 @@ describe WifiWand::CommandLineInterface do
           expect(error.message).to include('invalid_command')
           expect(error.message).to include('arg1')
           expect(error.message).to include('arg2')
+        end
+      end
+
+      it 'raises BadCommandError for intermediate partial commands' do
+        cli = described_class.new(options, argv: %w[con TestNetwork])
+
+        expect { cli.process_command_line }.to raise_error(WifiWand::BadCommandError) do |error|
+          expect(error.message).to include('Unrecognized command')
+          expect(error.message).to include('con')
+          expect(error.message).to include('TestNetwork')
         end
       end
 

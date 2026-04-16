@@ -36,39 +36,40 @@ module WifiWand
 
           Commands
           --------
-          a[vail_nets]              - array of names of the available networks
+          Commands accept only the exact short or exact long form shown below.
+          a / avail_nets          - array of names of the available networks
           ci                        - Internet connectivity state: reachable, unreachable, or indeterminate
-          co[nnect] network-name    - connects to the specified network-name, turning WiFi on if necessary
-          cy[cle]                   - toggles WiFi on/off state twice, regardless of starting state
-          d[isconnect]              - disconnects from current network, does not turn off WiFi
-          f[orget] name1 [..name_n] - removes network-name(s) from the preferred (saved) networks list
+          co / connect network-name - connects to the specified network-name, turning WiFi on if necessary
+          cy / cycle               - toggles WiFi on/off state twice, regardless of starting state
+          d / disconnect          - disconnects from current network, does not turn off WiFi
+          f / forget name1 [..name_n] - removes network-name(s) from the preferred (saved) networks list
                                       in interactive mode, can be a single array of names, e.g. returned by `pref_nets`
-          h[elp]                    - prints this help
-          i[nfo]                    - a hash of detailed networking information
-          lo[g]                     - start event logging (monitors wifi on/off, connected/disconnected, internet on/off)
+          h / help                - prints this help
+          i / info                - a hash of detailed networking information
+          lo / log                - start event logging (monitors wifi on/off, connected/disconnected, internet on/off)
                                       options: --interval N (default 5 seconds), --file [PATH] (default: wifiwand-events.log),
                                                --stdout (keep stdout when file destination is used)
                                       Logs events: wifi on/off, connected/disconnected, internet on/off
                                       Internet events are derived from reachable/unreachable state; indeterminate is preserved as unknown
                                       Ctrl+C to stop
-          na[meservers]             - nameservers: 'show' or no arg to show, 'clear' to clear,
+          na / nameservers        - nameservers: 'show' or no arg to show, 'clear' to clear,
                                       or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
-          ne[twork_name]            - name (SSID) of currently connected WiFi network
+          ne / network_name       - name (SSID) of currently connected WiFi network
           on                        - turns WiFi on
-          of[f]                     - turns WiFi off
-          pa[ssword] network-name   - password for preferred network name
-          pu[blic_ip] [address|country|both|a|c|b]
+          of / off                - turns WiFi off
+          pa / password network-name - password for preferred network name
+          pu / public_ip [address|country|both|a|c|b]
                                     - public IP lookup; selectors may use long or short form,
                                       e.g. 'public_ip a' or 'pi country'; both (b) is the default
           pi [address|country|both|a|c|b]
                                     - short alias for public_ip with the same selector forms
-          pr[ef_nets]               - preferred (saved) networks
-          q[uit]                    - exits this program (interactive shell mode only) (same as 'x')
+          pr / pref_nets          - preferred (saved) networks
+          q / quit                - exits this program (interactive shell mode only) (same as 'x')
           qr [filespec|'-'] [password]
                                     - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats; optional password avoids macOS auth prompt
-          ro[pen]                   - open web resources: #{resource_help}
-          s[tatus]                  - status line (WiFi, Network, DNS, Internet; shows captive portal warning if login is required)
-          t[ill]                    - wait until state is reached:
+          ro / ropen              - open web resources: #{resource_help}
+          s / status              - status line (WiFi, Network, DNS, Internet; shows captive portal warning if login is required)
+          t / till                - wait until state is reached:
                                       Usage: till <state> [timeout_secs] [interval_secs]
                                       States:
                                         wifi_on        – WiFi hardware powered on
@@ -81,8 +82,8 @@ module WifiWand
                                       Examples: "till wifi_off 20"  "till internet_on 30 0.5"
                                       Migration: old 'conn'→'internet_on' or 'associated'; old 'disc'→'internet_off' or 'disassociated';
                                                  old 'on'→'wifi_on'; old 'off'→'wifi_off'
-          w[ifi_on]                 - is the WiFi on?
-          x[it]                     - exits this program (interactive shell mode only) (same as 'q')
+          w / wifi_on             - is the WiFi on?
+          x / xit                 - exits this program (interactive shell mode only) (same as 'q')
 
           When in interactive shell mode:
             * remember to quote string literals.

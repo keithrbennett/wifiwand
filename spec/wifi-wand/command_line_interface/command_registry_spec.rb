@@ -4,53 +4,45 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/command_line_interface/command_registry'
 
 describe WifiWand::CommandLineInterface::CommandRegistry::Command do
-  it 'has proper structure with min_string, max_string, and callable action' do
-    command = described_class.new('test', 'test_command', -> { 'test' })
+  it 'has proper structure with short_string, long_string, and callable action' do
+    command = described_class.new('t', 'test_command', -> { 'test' })
 
-    expect(command.min_string).to eq('test')
-    expect(command.max_string).to eq('test_command')
+    expect(command.short_string).to eq('t')
+    expect(command.long_string).to eq('test_command')
     expect(command.action).to respond_to(:call)
     expect(command.action.call).to eq('test')
   end
 end
 
 describe WifiWand::CommandLineInterface::CommandRegistry do
-  # Create a test class that includes the module
   subject { test_class.new }
 
   let(:test_class) do
     Class.new do
       include WifiWand::CommandLineInterface::CommandRegistry
 
-      # Handle cmd_* method calls made by lambda actions during coverage testing
       def method_missing(method_name, *args) = method_name.to_s.start_with?('cmd_') ? nil : super
     end
   end
 
+  describe '#commands' do
+    it 'memoizes the commands array' do
+      subject.instance_variable_set(:@commands, nil)
 
-  describe 'Command.new instantiation coverage' do
-    it 'forces creation of all Command objects to achieve line coverage' do
-      # Clear the memoized commands to force re-execution of Command.new lines
-      subject.instance_variable_set(:@commands_, nil)
+      first_result = subject.commands
+      second_result = subject.commands
 
-      # Call commands method multiple times to ensure all Command.new lines are executed
-      first_call = subject.commands
-      second_call = subject.commands
-
-      # Verify memoization works (same object returned)
-      expect(first_call).to equal(second_call)
-
-      # Verify all commands are Command objects (this exercises all Command.new calls)
-      expect(first_call).to all(be_a(WifiWand::CommandLineInterface::CommandRegistry::Command))
-      expect(first_call).not_to be_empty
+      expect(first_result).to equal(second_result)
     end
-  end
 
-  describe 'command behavioral validation' do
-    it 'creates commands with callable actions' do
+    it 'creates commands with callable actions and explicit aliases' do
       subject.commands.each do |cmd|
+        expect(cmd.short_string).to be_a(String)
+        expect(cmd.short_string).not_to be_empty
+        expect(cmd.long_string).to be_a(String)
+        expect(cmd.long_string).not_to be_empty
         expect(cmd.action).to respond_to(:call)
-        # Execute lambda bodies for coverage; behavioral assertions live elsewhere.
+
         begin
           cmd.action.call
         rescue
@@ -58,27 +50,25 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
         end
       end
     end
-
-    it 'creates commands with valid string identifiers' do
-      subject.commands.each do |cmd|
-        expect(cmd.min_string).to be_a(String)
-        expect(cmd.min_string).not_to be_empty
-        expect(cmd.max_string).to be_a(String)
-        expect(cmd.max_string).not_to be_empty
-      end
-    end
   end
 
-  describe 'memoization behavior' do
-    it 'memoizes commands array after first call' do
-      # Clear any existing memoization
-      subject.instance_variable_set(:@commands_, nil)
+  describe '#find_command_action' do
+    it 'matches the exact short command' do
+      expect(subject.find_command_action('co')).to respond_to(:call)
+    end
 
-      first_result = subject.commands
-      second_result = subject.commands
+    it 'matches the exact long command' do
+      expect(subject.find_command_action('connect')).to respond_to(:call)
+    end
 
-      # Should return the exact same object (memoized)
-      expect(first_result).to equal(second_result)
+    it 'does not match intermediate partial command names' do
+      expect(subject.find_command_action('con')).to be_nil
+      expect(subject.find_command_action('conn')).to be_nil
+      expect(subject.find_command_action('connec')).to be_nil
+    end
+
+    it 'returns nil for unrelated invalid commands' do
+      expect(subject.find_command_action('unknown_command')).to be_nil
     end
   end
 end
