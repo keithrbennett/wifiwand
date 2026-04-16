@@ -32,8 +32,8 @@ module WifiWand
       def setup_complete? = installed? && valid? && authorized?
 
       # True when the helper is on disk but failed structural validation
-      # (e.g. the bundle is corrupt or the executable does not respond to
-      # --help).  In this case reinstall is preferable to a first-time install.
+      # (e.g. the bundle is corrupt or the executable does not respond to the
+      # `help` command). In this case reinstall is preferable to a first-time install.
       def repair_recommended? = installed? && !valid?
 
       # Ordered list of symbolic steps still required.  Callers map these to

@@ -572,6 +572,38 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
     end
   end
 
+  describe '.helper_bundle_valid?' do
+    let(:temp_dir) { Dir.mktmpdir('wifiwand-helper-valid-spec') }
+    let(:bundle_path) { File.join(temp_dir, described_class::BUNDLE_NAME) }
+    let(:executable_path) do
+      File.join(bundle_path, 'Contents', 'MacOS', described_class::EXECUTABLE_NAME)
+    end
+    let(:info_plist_path) { File.join(bundle_path, 'Contents', 'Info.plist') }
+
+    after do
+      FileUtils.rm_rf(temp_dir)
+    end
+
+    it 'validates the helper with the help command expected by the shipped executable' do
+      FileUtils.mkdir_p(File.dirname(executable_path))
+      File.write(executable_path, <<~SH)
+        #!/bin/sh
+        if [ "$1" = "help" ]; then
+          echo "wifiwand helper usage"
+          exit 0
+        fi
+        echo "unknown command: $1" >&2
+        exit 64
+      SH
+      FileUtils.chmod(0o755, executable_path)
+
+      FileUtils.mkdir_p(File.dirname(info_plist_path))
+      File.write(info_plist_path, '<plist version="1.0">helper</plist>')
+
+      expect(described_class.helper_bundle_valid?(bundle_path)).to be(true)
+    end
+  end
+
   def create_helper_bundle(bundle_path, help_text:)
     executable_path = File.join(bundle_path, 'Contents', 'MacOS', described_class::EXECUTABLE_NAME)
     info_plist_path = File.join(bundle_path, 'Contents', 'Info.plist')

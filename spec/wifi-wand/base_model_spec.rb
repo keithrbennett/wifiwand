@@ -197,6 +197,20 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
+  describe '#associated?', :real_env_read_only do
+    it 'returns a boolean' do
+      expect([true, false]).to include(subject.associated?)
+    end
+
+    it 'is true when wifi is on and a non-empty network name is present, false otherwise' do
+      skip 'WiFi is currently off' unless subject.wifi_on?
+
+      # Mirror the real contract from BaseModel#associated?: !nil? && !empty?
+      name = subject.connected_network_name
+      expect(subject.associated?).to eq(!name.nil? && !name.empty?)
+    end
+  end
+
   describe '#wifi_on' do
     it 'does nothing when wifi is already on' do
       allow(subject).to receive(:wifi_on?).and_return(true)
@@ -332,9 +346,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
       before { subject.wifi_on }
 
       def require_reachable_internet!(model, description)
-        return if model.internet_connectivity_state == :reachable
+        state = model.internet_connectivity_state
+        return if state == :reachable
 
-        raise "Cannot run #{description} because Internet connectivity is not currently reachable."
+        skip "Skipping #{description}: Internet connectivity state is #{state.inspect}, not :reachable."
       end
 
       it 'returns nil immediately for :internet_on when Internet is reachable' do

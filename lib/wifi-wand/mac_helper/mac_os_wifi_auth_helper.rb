@@ -93,6 +93,9 @@ module WifiWand
     # @return [Boolean] true if helper is properly installed and executable
     def helper_installed_and_valid? = helper_bundle_valid?(installed_bundle_path)
 
+    # Copies the pre-signed helper bundle into ~/Library and immediately re-validates it.
+    # Concurrent installs may briefly leave the bundle incomplete, so we trust the follow-up
+    # validation (and let callers retry) instead of attempting multiple installs here.
     def ensure_helper_installed(out_stream: $stdout)
       return installed_bundle_path if helper_installed_and_valid?
 
@@ -135,7 +138,7 @@ module WifiWand
       return false unless File.executable?(executable_path)
       return false unless File.exist?(File.join(bundle_path, 'Contents', 'Info.plist'))
 
-      stdout, _stderr, status = Open3.capture3(executable_path, '--help')
+      stdout, _stderr, status = Open3.capture3(executable_path, 'help')
       status.success? && !stdout.strip.empty?
     rescue Errno::ENOENT
       false
