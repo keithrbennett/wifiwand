@@ -83,7 +83,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(result).to include(
         'wifi_on', 'internet_tcp_connectivity', 'dns_working', 'captive_portal_state',
         'internet_connectivity_state', 'interface', 'default_interface', 'network', 'ip_address',
-        'mac_address', 'nameservers', 'timestamp'
+        'mac_address', 'nameservers', 'preferred_networks', 'available_networks', 'timestamp'
       )
 
       expect([true, false]).to include(result['wifi_on'])
@@ -91,7 +91,19 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect([true, false]).to include(result['dns_working'])
       expect(%i[free present indeterminate]).to include(result['captive_portal_state'])
       expect(%i[reachable unreachable indeterminate]).to include(result['internet_connectivity_state'])
+      expect(result['preferred_networks']).to all(be_a(String))
+      expect(result['available_networks']).to all(be_a(String))
       expect(result['timestamp']).to be_a(Time)
+    end
+
+    it 'returns empty arrays for network lists when those lookups fail' do
+      allow(subject).to receive(:preferred_networks).and_raise(WifiWand::Error, 'saved networks unavailable')
+      allow(subject).to receive(:available_network_names).and_raise(WifiWand::Error, 'scan unavailable')
+
+      result = subject.wifi_info
+
+      expect(result['preferred_networks']).to eq([])
+      expect(result['available_networks']).to eq([])
     end
 
     it 'does not include public IP data' do

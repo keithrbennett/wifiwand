@@ -1618,7 +1618,6 @@ module WifiWand
 
           expect(subject.nameservers).to include(*valid_nameservers)
         end
-
       end
     end
 

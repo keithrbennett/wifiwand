@@ -107,7 +107,7 @@ module WifiWand
           # WiFi on/off restoration is handled by the global NetworkStateManager after hook.
           @original_nameservers = begin
             subject.nameservers_using_networksetup
-          rescue StandardError
+          rescue
             []
           end
         end
@@ -116,7 +116,7 @@ module WifiWand
           # Restore nameservers only — the global after(:each, :real_env_read_write) hook
           # handles reconnecting to the original network.
           subject.set_nameservers(@original_nameservers) if @original_nameservers&.any?
-        rescue StandardError => e
+        rescue => e
           warn "Warning: Failed to restore nameservers: #{e.message}"
         end
 

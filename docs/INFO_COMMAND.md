@@ -58,6 +58,7 @@ The `info` command returns a hash containing:
 ### Interface Information
 - **WiFi Interface**: Name of the WiFi interface (e.g., `en0` on macOS)
 - **Default Route Interface**: Which interface handles default traffic
+- **Timestamp**: Time when the info snapshot was collected
 
 ## Comparing with Status Command
 
@@ -70,6 +71,7 @@ The `info` command returns a hash containing:
 | MAC address | | ✓ |
 | Nameservers | | ✓ |
 | Preferred networks | | ✓ |
+| Timestamp | | ✓ |
 | Available networks | | ✓ |
 | Output format | Single line | Structured data |
 
