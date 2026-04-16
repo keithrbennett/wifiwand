@@ -42,8 +42,11 @@ module WifiWand
           co / connect network-name - connects to the specified network-name, turning WiFi on if necessary
           cy / cycle               - toggles WiFi on/off state twice, regardless of starting state
           d / disconnect          - disconnects from current network, does not turn off WiFi
+                                      macOS note: a preferred network may auto-reassociate immediately after disconnect;
+                                      if you need disconnect to stay effective, use `forget` on that network after joining it
           f / forget name1 [..name_n] - removes network-name(s) from the preferred (saved) networks list
                                       in interactive mode, can be a single array of names, e.g. returned by `pref_nets`
+                                      Example: `wifi-wand connect foo && wifi-wand forget foo` (no sleep normally needed)
           h / help                - prints this help
           i / info                - a hash of detailed networking information
           lo / log                - start event logging (monitors wifi on/off, connected/disconnected, internet on/off)
