@@ -185,8 +185,29 @@ module WifiWand
     end
 
     def disconnect
-      _disconnect if wifi_on?
+      return nil unless wifi_on?
+      return nil unless associated?
+
+      # Capture the SSID before asking the OS to disconnect so timeout handling
+      # can still report which network we expected to leave.
+      original_network_name = connected_network_name
+      _disconnect
+      # A disconnect only counts as success once the interface actually reports
+      # no active association, mirroring the postcondition checks used elsewhere.
+      till(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
       nil
+    rescue WifiWand::WaitTimeoutError
+      # Re-check the SSID after a timeout so callers get the best available
+      # diagnostic when the disconnect command ran but the radio stayed associated.
+      current_network_name = begin
+        connected_network_name
+      rescue WifiWand::Error
+        nil
+      end
+      lingering_network_name = current_network_name || original_network_name
+      reason = lingering_network_name ? "still associated with '#{lingering_network_name}'" :
+        'interface remained associated'
+      raise NetworkDisconnectionError.new(lingering_network_name, reason)
     end
 
     # Returns true when the model considers the requested network fully usable.

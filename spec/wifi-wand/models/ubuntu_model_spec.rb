@@ -1408,10 +1408,7 @@ module WifiWand
 
       describe '#disconnect' do
         it 'handles nmcli disconnect failures gracefully' do
-          allow(subject).to receive(:wifi_interface).and_return('wlan0')
-          allow(subject).to receive(:run_os_command)
-            .with(%w[nmcli radio wifi], false)
-            .and_return(command_result(stdout: 'enabled'))  # wifi_on? returns true
+          allow(subject).to receive_messages(wifi_on?: true, associated?: true, wifi_interface: 'wlan0')
           allow(subject).to receive(:run_os_command)
             .with(%w[nmcli dev disconnect wlan0])
             .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli dev disconnect wlan0',
@@ -1421,17 +1418,14 @@ module WifiWand
             .to raise_error(WifiWand::CommandExecutor::OsCommandError, /Device disconnect failed/)
         end
 
-        it 'handles exit status 6 as normal disconnect behavior' do
-          allow(subject).to receive(:wifi_interface).and_return('wlan0')
+        it 'is a no-op when already disconnected' do
+          allow(subject).to receive_messages(wifi_on?: true, associated?: false)
           allow(subject).to receive(:run_os_command)
-            .with(%w[nmcli radio wifi], false)
-            .and_return(command_result(stdout: 'enabled'))  # wifi_on? returns true
-          allow(subject).to receive(:run_os_command)
-            .with(%w[nmcli dev disconnect wlan0])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(6, 'nmcli dev disconnect wlan0',
-              'Device not connected'))
+          allow(subject).to receive(:till)
 
-          expect { subject.disconnect }.not_to raise_error
+          expect(subject.disconnect).to be_nil
+          expect(subject).not_to have_received(:run_os_command)
+          expect(subject).not_to have_received(:till)
         end
       end
 

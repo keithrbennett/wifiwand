@@ -195,16 +195,55 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
+  describe '#disconnect' do
+    subject(:model) { test_model_class.new }
+
+    let(:test_model_class) do
+      Class.new(WifiWand::BaseModel) do
+        def self.os_id = :mac
+        def _available_network_names = []
+        def _connected_network_name = nil
+        def _connect(_network_name, _password = nil) = nil
+        def _disconnect = nil
+        def _ip_address = nil
+        def _preferred_network_password(_network_name) = nil
+      end
+    end
+
+    it 'raises a dedicated error when the interface remains associated' do
+      allow(model).to receive_messages(
+        wifi_on?:               true,
+        associated?:            true,
+        connected_network_name: 'TestNet'
+      )
+      allow(model).to receive(:_disconnect)
+      allow(model).to receive(:till)
+        .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
+        .and_raise(WifiWand::WaitTimeoutError.new(:disassociated, 5))
+
+      expect { model.disconnect }
+        .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
+    end
+
+    it 'is a no-op when wifi is already disassociated' do
+      allow(model).to receive_messages(wifi_on?: true, associated?: false)
+      allow(model).to receive(:_disconnect)
+      allow(model).to receive(:till)
+
+      expect(model.disconnect).to be_nil
+      expect(model).not_to have_received(:_disconnect)
+      expect(model).not_to have_received(:till)
+    end
+  end
+
   describe '#disconnect', :real_env_read_write do
     it 'disconnects from network and handles subsequent calls gracefully',
       needs_sudo_access: (WifiWand::OperatingSystems.current_id == :mac) do
       subject.wifi_on
 
-      # Test disconnect works
       subject.disconnect
-      expect(subject.connected_network_name).to be_nil
+      expect(subject.associated?).to be(false)
 
-      # Test calling disconnect again doesn\'t raise error
       expect { subject.disconnect }.not_to raise_error
     end
   end

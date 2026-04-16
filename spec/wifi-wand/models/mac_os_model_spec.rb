@@ -72,6 +72,7 @@ module WifiWand
         describe '#disconnect' do
           it 'disconnects from current network', :needs_sudo_access do
             expect { subject.disconnect }.not_to raise_error
+            expect(subject.associated?).to be(false)
             expect { subject.disconnect }.not_to raise_error
           end
         end
@@ -946,15 +947,63 @@ module WifiWand
         end
       end
 
+      describe '#disconnect' do
+        it 'raises when the disconnect command succeeds but association remains' do
+          allow(model).to receive_messages(
+            wifi_on?:               true,
+            associated?:            true,
+            connected_network_name: 'TestNet'
+          )
+          allow(model).to receive(:_disconnect).and_return(nil)
+          allow(model).to receive(:till)
+            .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
+            .and_raise(WifiWand::WaitTimeoutError.new(:disassociated, 5))
+
+          expect { model.disconnect }
+            .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
+        end
+
+        it 'raises when swift fails, fallback runs, and the interface remains associated' do
+          allow(model).to receive_messages(
+            swift_and_corewlan_present?: true,
+            wifi_interface:              'en0',
+            wifi_on?:                    true,
+            associated?:                 true,
+            connected_network_name:      'TestNet'
+          )
+          allow(model).to receive(:run_swift_command).and_raise(StandardError.new('swift failed'))
+          expect(model).to receive(:run_os_command).with(%w[sudo ifconfig en0 disassociate], false)
+            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'ifconfig', ''))
+          expect(model).to receive(:run_os_command).with(%w[ifconfig en0 disassociate], false)
+            .and_return(command_result(stdout: ''))
+          allow(model).to receive(:till)
+            .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
+            .and_raise(WifiWand::WaitTimeoutError.new(:disassociated, 5))
+
+          expect { model.disconnect }
+            .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
+        end
+
+        it 'is a no-op when already disconnected' do
+          allow(model).to receive_messages(wifi_on?: true, associated?: false)
+          allow(model).to receive(:run_swift_command)
+          allow(model).to receive(:run_os_command)
+          allow(model).to receive(:till)
+
+          expect(model.disconnect).to be_nil
+          expect(model).not_to have_received(:run_swift_command)
+          expect(model).not_to have_received(:run_os_command)
+          expect(model).not_to have_received(:till)
+        end
+      end
+
       describe '#_disconnect' do
         it 'falls back to ifconfig after Swift failure and returns nil' do
           allow(model).to receive(:run_swift_command).and_raise(StandardError.new('swift failed'))
           allow(model).to receive_messages(swift_and_corewlan_present?: true, wifi_interface: 'en0')
 
-          # First attempt with sudo fails
           expect(model).to receive(:run_os_command).with(%w[sudo ifconfig en0 disassociate],
             false).and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'ifconfig', ''))
-          # Fallback without sudo succeeds
           expect(model).to receive(:run_os_command).with(%w[ifconfig en0 disassociate],
             false).and_return(command_result(stdout: ''))
 
