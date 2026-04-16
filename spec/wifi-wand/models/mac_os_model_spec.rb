@@ -1506,6 +1506,35 @@ module WifiWand
           expect(model.network_hidden?).to be true
         end
 
+        it 'returns false when connected visible network appears only in other_local_wireless_networks' do
+          airport_data = {
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                           => wifi_interface,
+                'spairport_current_network_information'           => {
+                  '_name' => network_name,
+                },
+                'spairport_airport_local_wireless_networks'       => [{
+                  '_name'                  => 'OtherNetwork',
+                  'spairport_signal_noise' => '40/10',
+                }],
+                'spairport_airport_other_local_wireless_networks' => [{
+                  '_name'                  => network_name,
+                  'spairport_signal_noise' => '50/10',
+                }],
+              }],
+            }],
+          }
+
+          allow(model).to receive_messages(
+            airport_data:           airport_data,
+            connected_network_name: network_name,
+            wifi_on?:               true
+          )
+
+          expect(model.network_hidden?).to be false
+        end
+
         it 'returns false when not connected to any network' do
           allow(model).to receive(:_connected_network_name).and_return(nil)
 

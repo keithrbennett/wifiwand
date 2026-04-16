@@ -762,13 +762,25 @@ module WifiWand
       current_network = wifi_interface_data['spairport_current_network_information']
       return false unless current_network
 
-      # On macOS, a network is hidden if it doesn't appear in the broadcast networks list
-      # but is still connected. We always check the complete list of visible networks.
-      broadcast_networks = wifi_interface_data['spairport_airport_local_wireless_networks'] || []
-      network_in_broadcast_list = broadcast_networks.any? { |net| net['_name'] == network_name }
+      # system_profiler does not keep visible SSIDs in one stable array. Once the interface
+      # is associated, the current SSID may be moved out of
+      # 'spairport_airport_local_wireless_networks' and into
+      # 'spairport_airport_other_local_wireless_networks'. If we only inspect the "local"
+      # list, a normal visible network can be misclassified as hidden after association.
+      #
+      # Reuse network_list_key for the primary lookup so this method follows the same
+      # associated-network selection rule as connection_security_type, then fall back to
+      # checking both lists before concluding that the connected SSID is hidden.
+      preferred_networks = wifi_interface_data[network_list_key] || []
+      fallback_networks = [
+        wifi_interface_data['spairport_airport_local_wireless_networks'],
+        wifi_interface_data['spairport_airport_other_local_wireless_networks'],
+      ].compact.flatten
+      visible_networks = (preferred_networks + fallback_networks).uniq
+      network_in_visible_lists = visible_networks.any? { |net| net['_name'] == network_name }
 
-      # If the network we're connected to is not in the broadcast list, it's hidden
-      !network_in_broadcast_list
+      # If the network we're connected to is not in any visible scan list, it's hidden.
+      !network_in_visible_lists
     end
 
     public :connection_security_type, :network_hidden?
