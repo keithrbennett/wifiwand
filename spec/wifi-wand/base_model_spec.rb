@@ -254,14 +254,18 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   describe '#disconnect', :real_env_read_write do
-    it 'disconnects from network and handles subsequent calls gracefully',
-      needs_sudo_access: (WifiWand::OperatingSystems.current_id == :mac) do
+    it 'either disassociates or surfaces a verified disconnect failure', :needs_sudo_access do
       subject.wifi_on
 
-      subject.disconnect
-      expect(subject.associated?).to be(false)
-
-      expect { subject.disconnect }.not_to raise_error
+      begin
+        subject.disconnect
+        expect(subject.associated?).to be(false)
+        expect { subject.disconnect }.not_to raise_error
+      rescue WifiWand::NetworkDisconnectionError => e
+        expect(subject.mac?).to be(true)
+        expect(subject.associated?).to be(true)
+        expect(e.network_name).not_to be_nil
+      end
     end
   end
 

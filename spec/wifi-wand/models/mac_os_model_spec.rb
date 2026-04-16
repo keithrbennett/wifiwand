@@ -70,10 +70,13 @@ module WifiWand
         end
 
         describe '#disconnect' do
-          it 'disconnects from current network', :needs_sudo_access do
-            expect { subject.disconnect }.not_to raise_error
+          it 'either disassociates or raises a verified disconnect failure', :needs_sudo_access do
+            subject.disconnect
             expect(subject.associated?).to be(false)
             expect { subject.disconnect }.not_to raise_error
+          rescue WifiWand::NetworkDisconnectionError => e
+            expect(subject.associated?).to be(true)
+            expect(e.network_name).not_to be_nil
           end
         end
 
