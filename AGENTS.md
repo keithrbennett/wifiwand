@@ -72,7 +72,14 @@ COVERAGE_BRANCH=true bundle exec rake test:safe    # enable branch coverage anal
 
 # Run a specific file directly
 bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb
+
+# Run a targeted real-env rake task
+bundle exec rake 'test:real[./spec/wifi-wand/models/mac_os_model_spec.rb]'
 ```
+
+When using bracketed Rake task arguments such as `test:real[spec/foo_spec.rb]`, make the shell rule explicit
+in documentation and examples: quotes are optional in `bash` but required in `zsh`. `zsh` treats unquoted
+brackets as glob syntax and fails before Rake runs. Quoting remains the portable default.
 
 ### Development Setup
 ```bash

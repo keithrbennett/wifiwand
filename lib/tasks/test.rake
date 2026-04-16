@@ -29,12 +29,14 @@ namespace :test do
     run_rspec({ 'WIFIWAND_REAL_ENV_TESTS' => 'all' })
   end
 
-  desc 'Run targeted read-only real-environment specs'
+  desc 'Run targeted read-only real-environment specs; quotes optional in bash, required in zsh: ' \
+    "bundle exec rake 'test:read_only_target[spec/foo_spec.rb]'"
   task :read_only_target, [:targets] do |_task, args|
     run_rspec({ 'WIFIWAND_REAL_ENV_TESTS' => 'read_only' }, *rspec_args_from(args[:targets]))
   end
 
-  desc 'Run targeted real-environment specs'
+  desc 'Run targeted real-environment specs; quotes optional in bash, required in zsh: ' \
+    "bundle exec rake 'test:real[spec/foo_spec.rb]'"
   task :real, [:targets] do |_task, args|
     run_rspec({ 'WIFIWAND_REAL_ENV_TESTS' => 'all' }, *rspec_args_from(args[:targets]))
   end

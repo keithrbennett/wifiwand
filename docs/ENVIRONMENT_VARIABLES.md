@@ -65,6 +65,19 @@ WIFIWAND_REAL_ENV_TESTS=read_only bundle exec rspec
 WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
 ```
 
+If you use the corresponding targeted Rake tasks, quote the full `task[arg]` expression for portability:
+
+```bash
+bundle exec rake 'test:read_only_target[./spec/wifi-wand/models/mac_os_model_spec.rb]'
+bundle exec rake 'test:real[./spec/wifi-wand/models/mac_os_model_spec.rb]'
+```
+
+Why this matters:
+
+- In `bash`, the quotes are optional.
+- In `zsh`, the quotes are required because brackets are treated as glob syntax.
+- Quoting is still the safer cross-shell habit.
+
 **⚠️ WARNING:** Never use `read_only` or `all` in CI environments. Real-environment tests depend on host
 hardware and machine state. `all` additionally runs host-mutating tests.
 

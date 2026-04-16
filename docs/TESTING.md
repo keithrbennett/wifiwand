@@ -28,6 +28,37 @@ WIFIWAND_REAL_ENV_TESTS=read_only bundle exec rspec
 WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
 ```
 
+## Targeted Rake Tasks
+
+Use the Rake tasks when you want the convenience of scope selection plus a specific spec file or files.
+
+Examples:
+
+```bash
+# Read-only real-host tests for one file
+bundle exec rake 'test:read_only_target[./spec/wifi-wand/models/mac_os_model_spec.rb]'
+
+# Full real-host tests for one file
+bundle exec rake 'test:real[./spec/wifi-wand/models/mac_os_model_spec.rb]'
+
+# Multiple targets are passed through to RSpec
+bundle exec rake 'test:real[./spec/a_spec.rb ./spec/b_spec.rb]'
+```
+
+Shell behavior matters here:
+
+- In `bash`, the quotes are optional.
+- In `zsh`, the quotes are required because `[` and `]` are treated as glob syntax.
+- Preferred cross-shell form: `bundle exec rake 'test:real[./spec/path_spec.rb]'`
+- `zsh` alternatives: escape the brackets or prefix with `noglob`
+
+Examples for `zsh`:
+
+```bash
+bundle exec rake test:real\[./spec/wifi-wand/models/mac_os_model_spec.rb\]
+noglob bundle exec rake test:real[./spec/wifi-wand/models/mac_os_model_spec.rb]
+```
+
 ## CI Guidance
 
 CI should run only the default suite.
