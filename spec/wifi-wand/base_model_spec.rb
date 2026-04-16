@@ -286,7 +286,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   describe '#available_network_names', :real_env_read_write do
     it 'can list available networks' do
       subject.wifi_on
-      expect(subject.available_network_names).to be_nil_or_an_array_of_strings
+      expect(subject.available_network_names).to be_an(Array).and all(be_a(String))
     end
   end
 

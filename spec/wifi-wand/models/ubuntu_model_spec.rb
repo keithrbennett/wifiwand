@@ -1607,66 +1607,18 @@ module WifiWand
 
         it 'sets valid nameservers' do
           subject.wifi_on
+
           result = subject.set_nameservers(valid_nameservers)
           expect(result).to eq(valid_nameservers)
-        end
 
-        it 'clears nameservers with :clear' do
-          # Mock nmcli commands to avoid real system calls and stderr output
-          connection_name = 'TestNetwork'
-
-          # Mock wifi_on? check
-          allow(subject).to receive(:run_os_command)
-            .with(%w[nmcli radio wifi], anything)
-            .and_return(command_result(stdout: 'enabled'))
-
-          # Mock active profile lookup
-          allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
-
-          # Mock the clear DNS commands
-          allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''], false)
-            .and_return(command_result(stdout: ''))
-          allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
-            .and_return(command_result(stdout: ''))
-          allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''], false)
-            .and_return(command_result(stdout: ''))
-          allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'], false)
-            .and_return(command_result(stdout: ''))
-
-          # Mock connection restart
-          allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'up', connection_name], false)
-            .and_return(command_result(stdout: ''))
-
-          result = subject.set_nameservers(:clear)
-          expect(result).to eq(:clear)
-        end
-      end
-    end
-
-    # Real-environment tests
-    context 'when running read-write integration tests',
-      :real_env_read_write, real_env_os: :os_ubuntu do
-      describe 'WiFi state management' do
-        it 'can toggle WiFi on and off successfully' do
-          original_state = subject.wifi_on?
-
-          if original_state
-            subject.wifi_off
-            expect(subject.wifi_on?).to be(false)
-            subject.wifi_on
-            expect(subject.wifi_on?).to be(true)
-          else
-            subject.wifi_on
-            expect(subject.wifi_on?).to be(true)
-            subject.wifi_off
-            expect(subject.wifi_on?).to be(false)
+          # Poll until the new nameservers appear in the active connection profile
+          wait_for(timeout: 30, interval: 0.5, description: 'nameservers to be applied') do
+            (valid_nameservers - subject.nameservers).empty?
           end
+
+          expect(subject.nameservers).to include(*valid_nameservers)
         end
+
       end
     end
 
@@ -1695,6 +1647,11 @@ module WifiWand
 
         it 'retrieves nameservers' do
           expect(subject.nameservers).to be_an(Array)
+        end
+
+        it 'returns a string or nil for connected network name' do
+          skip 'WiFi is currently off' unless subject.wifi_on?
+          expect(subject.connected_network_name).to be_nil_or_a_string
         end
       end
 

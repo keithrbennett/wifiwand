@@ -102,37 +102,22 @@ module WifiWand
         :real_env_read_write, real_env_os: :os_mac do
         subject { create_mac_os_test_model }
 
-        before(:all) do
-          @original_nameservers = nil
-          @original_wifi_state = nil
-        end
-
         before do
-          # Capture current state for restoration
-          @original_wifi_state = begin
-            subject.wifi_on?
-          rescue
-            true
-          end
-          # Capture DNS using networksetup to focus on Wi‑Fi service configuration
+          # Capture DNS state for per-test restoration.
+          # WiFi on/off restoration is handled by the global NetworkStateManager after hook.
           @original_nameservers = begin
             subject.nameservers_using_networksetup
-          rescue
+          rescue StandardError
             []
           end
         end
 
         after do
-          # Restore original state
-
-          if @original_wifi_state
-            subject.wifi_on
-          else
-            subject.wifi_off
-          end
-          subject.set_nameservers(@original_nameservers) if @original_nameservers.any?
-        rescue => e
-          puts "Warning: Failed to restore system state: #{e.message}"
+          # Restore nameservers only — the global after(:each, :real_env_read_write) hook
+          # handles reconnecting to the original network.
+          subject.set_nameservers(@original_nameservers) if @original_nameservers&.any?
+        rescue StandardError => e
+          warn "Warning: Failed to restore nameservers: #{e.message}"
         end
 
         describe '#wifi_on?' do
@@ -155,7 +140,7 @@ module WifiWand
           let(:test_nameservers) { ['8.8.8.8', '1.1.1.1'] }
           let(:alternate_nameservers) { ['9.9.9.9'] }
 
-          it 'successfully sets and retrieves nameservers' do
+          it 'successfully sets and retrieves nameservers', :needs_sudo_access do
             # Set test nameservers
             subject.set_nameservers(test_nameservers)
 
@@ -167,7 +152,7 @@ module WifiWand
             expect((test_nameservers - subject.nameservers_using_networksetup).empty?).to be(true)
           end
 
-          it 'handles nameserver clearing and restoration' do
+          it 'handles nameserver clearing and restoration', :needs_sudo_access do
             # Clear nameservers, then immediately set new ones
             subject.set_nameservers(:clear)
             subject.set_nameservers(alternate_nameservers)
