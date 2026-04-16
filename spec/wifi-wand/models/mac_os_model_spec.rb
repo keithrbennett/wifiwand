@@ -451,15 +451,20 @@ module WifiWand
           expect(model._connected_network_name).to be_nil
         end
 
-        it 'does not fall back to airport data when helper is blocked by Location Services' do
+        it 'falls back to airport data when helper is blocked by Location Services' do
           result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
             location_services_blocked: true,
             error_message:             'Location Services denied'
           )
           allow(helper_double).to receive(:connected_network_name).and_return(result)
+          allow(model).to receive_messages(airport_data: { 'SPAirPortDataType' => [{
+            'spairport_airport_interfaces' => [{
+              '_name'                                 => 'en0',
+              'spairport_current_network_information' => { '_name' => 'ProfilerNet' },
+            }],
+          }] }, wifi_interface: 'en0')
 
-          expect(model).not_to receive(:airport_data)
-          expect(model._connected_network_name).to be_nil
+          expect(model._connected_network_name).to eq('ProfilerNet')
         end
       end
 
@@ -509,12 +514,14 @@ module WifiWand
           result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(
-            airport_data:   { 'SPAirPortDataType' => [{
+            airport_data:      { 'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name' => 'en0',
               }],
             }] },
-            wifi_interface: 'en0'
+            wifi_interface:    'en0',
+            default_interface: nil,
+            _ip_address:       nil
           )
 
           expect(model.connected?).to be(false)
@@ -524,11 +531,54 @@ module WifiWand
           result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: '<redacted>')
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(
-            airport_data:   { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [] }] },
-            wifi_interface: 'en0'
+            airport_data:      { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [] }] },
+            wifi_interface:    'en0',
+            default_interface: nil,
+            _ip_address:       nil
           )
 
           expect(model.connected?).to be(false)
+        end
+
+        it 'returns true when association evidence exists but SSID is redacted' do
+          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
+            location_services_blocked: true,
+            error_message:             'Location Services denied'
+          )
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+          allow(model).to receive_messages(
+            airport_data:      { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [{
+              '_name' => 'en0',
+            }] }] },
+            wifi_interface:    'en0',
+            default_interface: 'en0'
+          )
+          allow(model).to receive(:_ip_address).and_return(nil)
+
+          expect(model.connected?).to be(true)
+        end
+
+        it 'returns true when the helper is disabled and the WiFi interface still has an IP address' do
+          model.instance_variable_set(:@mac_helper_client, nil)
+          allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_call_original
+          allow(model).to receive_messages(
+            airport_data:      { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [{
+              '_name' => 'en0',
+            }] }] },
+            wifi_interface:    'en0',
+            default_interface: nil,
+            _ip_address:       '192.168.1.44'
+          )
+
+          original_env = ENV['WIFIWAND_DISABLE_MAC_HELPER']
+          ENV['WIFIWAND_DISABLE_MAC_HELPER'] = '1'
+          begin
+            expect_any_instance_of(WifiWand::MacOsWifiAuthHelper::Client)
+              .not_to receive(:ensure_helper_installed)
+            expect(model.connected?).to be(true)
+          ensure
+            ENV['WIFIWAND_DISABLE_MAC_HELPER'] = original_env
+          end
         end
       end
 
@@ -1099,16 +1149,27 @@ module WifiWand
           expect(result).to eq(['VisibleNetwork'])
         end
 
-        it 'does not fall back to system_profiler when helper is blocked by Location Services' do
+        it 'falls back to system_profiler when helper is blocked by Location Services' do
           result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
             payload:                   [],
             location_services_blocked: true,
             error_message:             'Location Services denied'
           )
           allow(helper_double).to receive(:scan_networks).and_return(result)
+          allow(model).to receive_messages(
+            airport_data:           { 'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                     => 'en0',
+                'spairport_airport_local_wireless_networks' => [
+                  { '_name' => 'VisibleNetwork', 'spairport_signal_noise' => '75/10' },
+                ],
+              }],
+            }] },
+            wifi_interface:         'en0',
+            connected_network_name: nil
+          )
 
-          expect(model).not_to receive(:airport_data)
-          expect(model._available_network_names).to eq([])
+          expect(model._available_network_names).to eq(['VisibleNetwork'])
         end
       end
 

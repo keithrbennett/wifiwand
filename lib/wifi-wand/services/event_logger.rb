@@ -12,6 +12,8 @@ module WifiWand
   # richer status pipeline so long-running `log` sessions do not perform DNS
   # checks or captive-portal subprocess fan-out on every interval.
   class EventLogger
+    SSID_UNAVAILABLE_LABEL = '[SSID unavailable]'
+
     EVENT_TYPES = {
       wifi_on:      'WiFi ON',
       wifi_off:     'WiFi OFF',
@@ -81,7 +83,7 @@ module WifiWand
     def log_initial_state(state)
       timestamp = Time.now.utc.iso8601
       wifi = state[:wifi_on] ? 'on' : 'off'
-      network = state[:network_name] ? "connected to #{state[:network_name]}" : 'not connected'
+      network = network_state_label(state)
       internet = internet_state_label(state[:internet_state])
       log_message("[#{timestamp}] Current state: WiFi #{wifi}, #{network}, internet #{internet}")
     end
@@ -99,10 +101,12 @@ module WifiWand
 
     def fetch_current_state
       wifi_on = @model.wifi_on?
+      connected = wifi_on ? @model.connected? : false
 
       {
         wifi_on:        wifi_on,
-        network_name:   wifi_on ? @model.connected_network_name : nil,
+        connected:      connected,
+        network_name:   wifi_on ? current_network_name(connected) : nil,
         internet_state: wifi_on ? lightweight_internet_state : ConnectivityStates::INTERNET_UNREACHABLE,
       }
     rescue => e
@@ -126,13 +130,23 @@ module WifiWand
         emit_event(event_type, {}, @previous_state, current_state)
       end
 
-      if current_state[:network_name] != @previous_state[:network_name]
+      if connection_became_disconnected?(current_state)
         if @previous_state[:network_name]
           emit_event(:disconnected, { network_name: @previous_state[:network_name] },
             @previous_state, current_state)
         end
-
+      elsif connection_became_connected?(current_state)
         if current_state[:network_name]
+          emit_event(:connected, { network_name: current_state[:network_name] },
+            @previous_state, current_state)
+        end
+      elsif network_name_changed_while_connected?(current_state)
+        if named_network?(@previous_state[:network_name])
+          emit_event(:disconnected, { network_name: @previous_state[:network_name] },
+            @previous_state, current_state)
+        end
+
+        if named_network?(current_state[:network_name])
           emit_event(:connected, { network_name: current_state[:network_name] },
             @previous_state, current_state)
         end
@@ -154,6 +168,43 @@ module WifiWand
       when ConnectivityStates::INTERNET_UNREACHABLE then 'unavailable'
       else 'unknown'
       end
+    end
+
+    def current_network_name(connected)
+      network_name = @model.connected_network_name
+      network_name_available = !network_name.nil? && !network_name.to_s.empty?
+      if network_name_available
+        network_name
+      else
+        (connected ? SSID_UNAVAILABLE_LABEL : nil)
+      end
+    end
+
+    def network_state_label(state)
+      return 'not connected' unless state[:connected]
+      return "connected to #{state[:network_name]}" if state[:network_name]
+
+      'connected (SSID unavailable)'
+    end
+
+    def connection_became_connected?(current_state)
+      current_state[:connected] && !@previous_state[:connected]
+    end
+
+    def connection_became_disconnected?(current_state)
+      !current_state[:connected] && @previous_state[:connected]
+    end
+
+    def network_name_changed_while_connected?(current_state)
+      current_state[:connected] \
+        && @previous_state[:connected] \
+        && named_network?(@previous_state[:network_name]) \
+        && named_network?(current_state[:network_name]) \
+        && current_state[:network_name] != @previous_state[:network_name]
+    end
+
+    def named_network?(network_name)
+      !network_name.nil? && network_name != SSID_UNAVAILABLE_LABEL
     end
 
     def emit_internet_event?(current_value, previous_value)

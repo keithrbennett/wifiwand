@@ -5,6 +5,8 @@ require_relative '../connectivity_states'
 
 module WifiWand
   class StatusLineDataBuilder
+    SSID_UNAVAILABLE_LABEL = '[SSID unavailable]'
+
     attr_reader :model, :verbose_mode, :output, :expected_network_errors
 
     def initialize(model, verbose: false, output: $stdout, expected_network_errors: [])
@@ -26,10 +28,10 @@ module WifiWand
       end
 
       Async do |task|
-        ssid_task = task.async { network_name }
+        network_task = task.async { network_identity }
         connectivity_task = task.async { connectivity_data }
 
-        partial[:network_name] = ssid_task.wait
+        partial.merge!(network_task.wait)
         progress_callback&.call(partial.dup)
 
         partial.merge!(connectivity_task.wait)
@@ -52,6 +54,7 @@ module WifiWand
         dns_working:                   nil,
         internet_state:                ConnectivityStates::INTERNET_PENDING,
         internet_check_complete:       false,
+        connected:                     :pending,
         network_name:                  :pending,
         captive_portal_state:          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
         captive_portal_login_required: :unknown,
@@ -61,6 +64,7 @@ module WifiWand
     def data_when_wifi_off
       {
         dns_working:                   false,
+        connected:                     false,
         network_name:                  nil,
         internet_state:                ConnectivityStates::INTERNET_UNREACHABLE,
         internet_check_complete:       true,
@@ -69,11 +73,31 @@ module WifiWand
       }
     end
 
-    def network_name
-      model.connected_network_name
+    def network_identity
+      connected = connected?
+      network_name = connected ? network_name_for_connected_state : nil
+
+      {
+        connected:    connected,
+        network_name: network_name,
+      }
     rescue WifiWand::Error, *expected_network_errors => e
-      output.puts "Warning: SSID lookup failed: #{e.class}: #{e.message}" if verbose_mode
-      nil
+      output.puts "Warning: network status lookup failed: #{e.class}: #{e.message}" if verbose_mode
+      {
+        connected:    false,
+        network_name: nil,
+      }
+    end
+
+    def network_name_for_connected_state
+      network_name = model.connected_network_name
+      return network_name unless network_name.nil? || network_name.to_s.empty?
+
+      SSID_UNAVAILABLE_LABEL
+    end
+
+    def connected?
+      model.connected?
     end
 
     def connectivity_data

@@ -7,6 +7,7 @@ describe WifiWand::StatusLineDataBuilder do
   let(:model) do
     double('model',
       wifi_on?:                   true,
+      connected?:                 true,
       connected_network_name:     'HomeNetwork',
       internet_tcp_connectivity?: true,
       dns_working?:               true,
@@ -24,6 +25,7 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result).to eq(
         wifi_on:                       true,
         dns_working:                   true,
+        connected:                     true,
         internet_state:                :reachable,
         internet_check_complete:       true,
         network_name:                  'HomeNetwork',
@@ -32,19 +34,21 @@ describe WifiWand::StatusLineDataBuilder do
       )
       expect(progress_updates).to eq([
         { wifi_on: true, dns_working: nil, internet_state: :pending, internet_check_complete: false,
-          network_name: :pending, captive_portal_state: :indeterminate,
+          connected: :pending, network_name: :pending, captive_portal_state: :indeterminate,
           captive_portal_login_required: :unknown },
         { wifi_on: true, dns_working: nil, internet_state: :pending, internet_check_complete: false,
-          network_name: 'HomeNetwork', captive_portal_state: :indeterminate,
+          connected: true, network_name: 'HomeNetwork', captive_portal_state: :indeterminate,
           captive_portal_login_required: :unknown },
-        { wifi_on: true, dns_working: true, internet_state: :reachable, internet_check_complete: true,
-          network_name: 'HomeNetwork', captive_portal_state: :free, captive_portal_login_required: :no },
+        { wifi_on: true, dns_working: true, connected: true, internet_state: :reachable,
+          internet_check_complete: true, network_name: 'HomeNetwork', captive_portal_state: :free,
+          captive_portal_login_required: :no },
       ])
     end
 
     it 'returns the wifi-off status without running internet checks' do
       allow(model).to receive(:wifi_on?).and_return(false)
       expect(model).not_to receive(:connected_network_name)
+      expect(model).not_to receive(:connected?)
       expect(model).not_to receive(:internet_tcp_connectivity?)
 
       result = builder.call
@@ -52,6 +56,7 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result).to eq(
         wifi_on:                       false,
         dns_working:                   false,
+        connected:                     false,
         internet_state:                :unreachable,
         internet_check_complete:       true,
         network_name:                  nil,
@@ -125,6 +130,24 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result).to be_nil
       expect(progress_updates).to eq([nil])
       expect(output.string).to include('Warning: status_line_data failed: WifiWand::Error: boom')
+    end
+
+    it 'reports connected with SSID unavailable when connected? is true but the SSID is nil' do
+      allow(model).to receive_messages(connected?: true, connected_network_name: nil)
+
+      result = builder.call
+
+      expect(result[:connected]).to be(true)
+      expect(result[:network_name]).to eq('[SSID unavailable]')
+    end
+
+    it 'reports disconnected when connected? is false and the SSID is nil' do
+      allow(model).to receive_messages(connected?: false, connected_network_name: nil)
+
+      result = builder.call
+
+      expect(result[:connected]).to be(false)
+      expect(result[:network_name]).to be_nil
     end
   end
 end

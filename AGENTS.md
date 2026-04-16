@@ -36,6 +36,8 @@ instead of ad-hoc one-off commands when building, testing, or running the projec
 - Prefer `bundle exec` for project tools.
 - Prefer binstubs when present (e.g., `bin/rspec`, `bin/rubocop`).
 - Avoid early returns for simple Ruby branches when a direct conditional expression is clearer.
+- If two early-return orderings are equally complex, prefer an `if` statement
+  instead of structuring the branch around early returns.
 - Before editing, inspect:
   - `Gemfile`
   - `Gemfile.lock`

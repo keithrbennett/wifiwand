@@ -350,6 +350,15 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         expect(result).to match(YELLOW_TEXT_REGEX) # Yellow warning
       end
 
+      it 'shows SSID unavailable when connected is true and the SSID is nil' do
+        data = status_data.merge(connected: true, network_name: nil)
+
+        result = subject.status_line(data)
+
+        expect(result).to match(/WiFi Network.*SSID unavailable/)
+        expect(result).to match(YELLOW_TEXT_REGEX)
+      end
+
       context 'when captive portal is detected' do
         it 'does not show captive portal warning when captive_portal_login_required is false' do
           result = subject.status_line(status_data)

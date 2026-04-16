@@ -209,10 +209,9 @@ module WifiWand
     #
     # Returns:
     #   - Array<String> of unique SSID names when the helper returns usable data
-    #   - [] (empty array) when Location Services blocks the scan, preventing
-    #     fallback to system_profiler so redacted/hidden entries are not exposed
-    #   - nil when the helper is unavailable, returns no networks, or all SSIDs
-    #     are filtered placeholders (signals the caller to try fallback sources)
+    #   - nil when the helper is unavailable, Location Services blocks the
+    #     helper, returns no networks, or all SSIDs are filtered placeholders
+    #     (signals the caller to try fallback sources)
     #
     # Placeholder SSIDs such as "<hidden>" and "<redacted>" are excluded from
     # the result. All interpretation of the helper response uses the explicit
@@ -220,7 +219,7 @@ module WifiWand
     # consulted.
     def helper_available_network_names
       result = mac_helper_client.scan_networks
-      return [] if result.location_services_blocked?
+      return nil if result.location_services_blocked?
 
       networks = result.payload
       return nil unless networks&.any?
@@ -273,13 +272,10 @@ module WifiWand
       result = mac_helper_client.connected_network_name
       return true if result.payload && !placeholder_network_name?(result.payload)
 
-      data = airport_data
-      iface = wifi_interface
-      wifi_interface_data = data['SPAirPortDataType']
-        &.detect { |h| h.key?('spairport_airport_interfaces') }
-        &.dig('spairport_airport_interfaces')
-        &.detect { |h| h['_name'] == iface }
-      !!wifi_interface_data&.key?('spairport_current_network_information')
+      interface_data = wifi_interface_airport_data
+      return true if interface_associated_in_airport_data?(interface_data)
+
+      associated_without_ssid?(interface_data)
     end
 
     # Turns WiFi on.
@@ -398,18 +394,8 @@ module WifiWand
       result = mac_helper_client.connected_network_name
       ssid = result.payload
       return ssid if ssid && !placeholder_network_name?(ssid)
-      # When Location Services blocks the helper, stop here instead of falling
-      # back to `system_profiler`, whose output may only expose placeholder data.
-      return nil if result.location_services_blocked?
 
-      data = airport_data
-      airport_data = data.dig('SPAirPortDataType', 0, 'spairport_airport_interfaces')
-      return nil unless airport_data
-
-      iface = wifi_interface
-      wifi_interface_data = airport_data.find do |interface|
-        interface['_name'] == iface
-      end
+      wifi_interface_data = wifi_interface_airport_data
 
       # Handle interface not found
       return nil unless wifi_interface_data
@@ -653,6 +639,34 @@ module WifiWand
     end
 
     def find_wifi_interface_data(interfaces, iface) = interfaces.detect { |h| h['_name'] == iface }
+
+    def wifi_interface_airport_data
+      data = airport_data
+      airport_interfaces = data.dig('SPAirPortDataType', 0, 'spairport_airport_interfaces')
+      return nil unless airport_interfaces
+
+      iface = wifi_interface
+      airport_interfaces.find { |interface| interface['_name'] == iface }
+    end
+
+    def interface_associated_in_airport_data?(wifi_interface_data)
+      return false unless wifi_interface_data
+
+      current_network = wifi_interface_data['spairport_current_network_information']
+      return true if current_network.is_a?(Hash)
+      return true if current_network && !current_network.to_s.empty?
+
+      false
+    end
+
+    def associated_without_ssid?(_wifi_interface_data = nil)
+      iface = wifi_interface
+      return true if default_interface == iface
+
+      !_ip_address.nil?
+    rescue WifiWand::CommandExecutor::OsCommandError
+      false
+    end
 
     def network_list_key
       # `system_profiler` shifts the current SSID between these keys depending on

@@ -174,8 +174,9 @@ To remove wifi-wand's access to WiFi names:
 3. Find **wifiwand-helper** in the list
 4. Toggle the switch to off
 
-After revoking, wifi-wand will fall back to system commands and will typically show `<redacted>` for network
-names on macOS 14+.
+After revoking, wifi-wand falls back to system commands. On macOS 14+, SSID names may still be unavailable or
+appear as `<redacted>`, but wifi-wand should continue to report the interface as connected when lower-level
+association evidence is still present.
 
 ### Disable the Helper Entirely
 
@@ -409,8 +410,9 @@ If you prefer not to use the helper (accepting that WiFi names will be redacted)
 export WIFIWAND_DISABLE_MAC_HELPER=1
 ```
 
-wifi-wand will fall back to traditional methods and will typically show `<redacted>` for network names on
-macOS 14+ unless the invoking process already has Location Services approval.
+wifi-wand will fall back to traditional methods. On macOS 14+, SSID names may still be unavailable or appear
+as `<redacted>` unless the invoking process already has Location Services approval, but wifi-wand should still
+detect an active WiFi association when the interface remains connected.
 
 ---
 
