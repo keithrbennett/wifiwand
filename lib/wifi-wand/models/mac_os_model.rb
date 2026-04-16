@@ -262,6 +262,17 @@ module WifiWand
       output.chomp.match?(/\): On$/)
     end
 
+    def associated?
+      return false unless wifi_on?
+
+      result = mac_helper_client.connected_network_name
+      return true if result.payload && !placeholder_network_name?(result.payload)
+
+      interface_associated_in_airport_data?(wifi_interface_airport_data)
+    rescue WifiWand::Error
+      false
+    end
+
     def connected?
       return false unless wifi_on?
 

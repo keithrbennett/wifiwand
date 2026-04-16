@@ -195,6 +195,12 @@ module WifiWand
       # A disconnect only counts as success once the interface actually reports
       # no active association, mirroring the postcondition checks used elsewhere.
       till(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
+      # On some systems the SSID can disappear briefly during state churn before
+      # the radio re-associates. Require a short stable disassociation window so
+      # a transient nil SSID does not count as a successful disconnect.
+      raise WifiWand::WaitTimeoutError.new(:disassociated, disconnect_stability_window_in_secs) unless
+        disassociated_stable?
+
       nil
     rescue WifiWand::WaitTimeoutError
       # Re-check the SSID after a timeout so callers get the best available
@@ -212,6 +218,21 @@ module WifiWand
 
     # Returns true when the model considers the requested network fully usable.
     # Subclasses may override this to require stronger OS-specific readiness.
+    def disconnect_stability_window_in_secs
+      WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL * 2
+    end
+
+    def disassociated_stable?
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + disconnect_stability_window_in_secs
+
+      loop do
+        return false if associated?
+        return true if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+
+        sleep(WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL)
+      end
+    end
+
     def connection_ready?(network_name)
       connected? && connected_network_name == network_name
     rescue WifiWand::Error => e

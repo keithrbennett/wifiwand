@@ -225,6 +225,23 @@ describe 'Common WiFi Model Behavior (All OS)' do
         .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
     end
 
+    it 'raises when disassociation is not stable after the initial wait succeeds' do
+      allow(model).to receive_messages(
+        wifi_on?:                            true,
+        connected_network_name:              'TestNet',
+        disconnect_stability_window_in_secs: 0.1
+      )
+      allow(model).to receive(:associated?).and_return(true, false, true)
+      allow(model).to receive(:_disconnect)
+      allow(model).to receive(:till)
+        .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
+        .and_return(nil)
+      allow(model).to receive(:sleep)
+
+      expect { model.disconnect }
+        .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
+    end
+
     it 'is a no-op when wifi is already disassociated' do
       allow(model).to receive_messages(wifi_on?: true, associated?: false)
       allow(model).to receive(:_disconnect)

@@ -454,6 +454,53 @@ module WifiWand
         end
       end
 
+      describe '#associated?' do
+        let(:helper_double) do
+          instance_double(WifiWand::MacOsWifiAuthHelper::Client)
+        end
+
+        before do
+          model.instance_variable_set(:@mac_helper_client, nil)
+          allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_double)
+          allow(model).to receive_messages(wifi_on?: true, wifi_interface: 'en0')
+        end
+
+        it 'returns true when the helper provides a real SSID' do
+          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: 'MyNetwork')
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+
+          expect(model).not_to receive(:airport_data)
+          expect(model.associated?).to be(true)
+        end
+
+        it 'returns true when airport data shows current network information without an SSID name' do
+          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+          allow(model).to receive(:airport_data).and_return(
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                 => 'en0',
+                'spairport_current_network_information' => {},
+              }],
+            }]
+          )
+
+          expect(model.associated?).to be(true)
+        end
+
+        it 'returns false when the helper reports no SSID and airport data has no current network info' do
+          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+          allow(model).to receive(:airport_data).and_return(
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{ '_name' => 'en0' }],
+            }]
+          )
+
+          expect(model.associated?).to be(false)
+        end
+      end
+
       describe '#connected?' do
         let(:helper_double) do
           instance_double(WifiWand::MacOsWifiAuthHelper::Client)
@@ -958,6 +1005,23 @@ module WifiWand
           allow(model).to receive(:till)
             .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
             .and_raise(WifiWand::WaitTimeoutError.new(:disassociated, 5))
+
+          expect { model.disconnect }
+            .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
+        end
+
+        it 'raises when disassociation is only transient during verification' do
+          allow(model).to receive_messages(
+            wifi_on?:                            true,
+            connected_network_name:              'TestNet',
+            disconnect_stability_window_in_secs: 0.1
+          )
+          allow(model).to receive(:associated?).and_return(true, false, true)
+          allow(model).to receive(:_disconnect).and_return(nil)
+          allow(model).to receive(:till)
+            .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
+            .and_return(nil)
+          allow(model).to receive(:sleep)
 
           expect { model.disconnect }
             .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
