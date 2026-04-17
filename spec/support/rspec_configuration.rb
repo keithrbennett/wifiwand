@@ -190,7 +190,7 @@ module RSpecConfiguration
   # Configure network state management for real-environment tests
   def self.configure_network_state_management(config)
     config.before(:each, :needs_sudo_access) do
-      if running_on_mac_os?
+      if RSpecConfiguration.running_on_mac_os?
         RSpecConfiguration.refresh_sudo_ticket!(allow_prompt: true)
       end
     end

@@ -813,6 +813,43 @@ module WifiWand
         end
       end
 
+      describe '#connected?' do
+        it 'returns false immediately when wifi is off without querying active connections' do
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli radio wifi], false)
+            .and_return(command_result(stdout: 'disabled'))
+
+          expect(subject).not_to receive(:run_os_command)
+            .with(['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], false)
+
+          expect(subject.connected?).to be(false)
+        end
+
+        it 'returns false when wifi is on and the wifi interface is not in the active connection list' do
+          allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli radio wifi], false)
+            .and_return(command_result(stdout: 'enabled'))
+          allow(subject).to receive(:run_os_command)
+            .with(['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], false)
+            .and_return(command_result(stdout: 'lo'))
+
+          expect(subject.connected?).to be(false)
+        end
+
+        it 'returns true when wifi is on and the wifi interface has an active connection' do
+          allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli radio wifi], false)
+            .and_return(command_result(stdout: 'enabled'))
+          allow(subject).to receive(:run_os_command)
+            .with(['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], false)
+            .and_return(command_result(stdout: "wlp3s0\nlo"))
+
+          expect(subject.connected?).to be(true)
+        end
+      end
+
       describe '#available_network_names' do
         it 'returns sorted list of available networks by signal strength' do
           nmcli_output = "TestNet1:75\nStrongNet:90\nWeakNet:25\nTestNet2:80"
@@ -1139,19 +1176,20 @@ module WifiWand
 
       describe '#_connected_network_name' do
         it 'returns name of currently connected network' do
-          nmcli_output = "yes:MyHomeNetwork\nno:OtherNetwork"
+          iw_output = "Connected to aa:bb:cc:dd:ee:ff (on wlp3s0)\n\tSSID: MyHomeNetwork\n\tfreq: 2462 MHz"
+          allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
           allow(subject).to receive(:run_os_command)
-            .with(%w[nmcli -t -f active,ssid device wifi], false)
-            .and_return(command_result(stdout: nmcli_output))
+            .with(%w[iw dev wlp3s0 link], false)
+            .and_return(command_result(stdout: iw_output))
 
           expect(subject.send(:_connected_network_name)).to eq('MyHomeNetwork')
         end
 
         it 'returns nil when not connected to any network' do
-          nmcli_output = "no:Network1\nno:Network2"
+          allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
           allow(subject).to receive(:run_os_command)
-            .with(%w[nmcli -t -f active,ssid device wifi], false)
-            .and_return(command_result(stdout: nmcli_output))
+            .with(%w[iw dev wlp3s0 link], false)
+            .and_return(command_result(stdout: 'Not connected.'))
 
           expect(subject.send(:_connected_network_name)).to be_nil
         end
@@ -1325,10 +1363,11 @@ module WifiWand
 
         describe '#_connected_network_name with colon-containing SSID' do
           it 'returns the full SSID including its embedded colon' do
-            nmcli_output = "no:RegularNet\nyes:Corp\\:Wifi"
+            iw_output = "Connected to aa:bb:cc:dd:ee:ff (on wlp3s0)\n\tSSID: Corp:Wifi\n\tfreq: 5180 MHz"
+            allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
             allow(subject).to receive(:run_os_command)
-              .with(%w[nmcli -t -f active,ssid device wifi], false)
-              .and_return(command_result(stdout: nmcli_output))
+              .with(%w[iw dev wlp3s0 link], false)
+              .and_return(command_result(stdout: iw_output))
 
             expect(subject.send(:_connected_network_name)).to eq('Corp:Wifi')
           end

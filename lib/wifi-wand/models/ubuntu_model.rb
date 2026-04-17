@@ -63,9 +63,8 @@ module WifiWand
     def connected?
       return false unless wifi_on?
 
-      iface = wifi_interface
-      output = run_os_command(%w[nmcli -t -f DEVICE connection show --active], false).stdout
-      output.split("\n").any? { |line| line.strip == iface }
+      output = run_os_command(['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], false).stdout
+      output.split("\n").any? { |line| line.strip == wifi_interface }
     end
 
     def connection_ready?(network_name)
@@ -115,12 +114,17 @@ module WifiWand
     end
 
     def _connected_network_name
-      debug_method_entry(__method__)
-      output = run_os_command(['nmcli', '-t', '-f', 'active,ssid', 'device', 'wifi'], false).stdout
-      active_line = output.split("\n").find { |line| nmcli_split(line, 2).first == 'yes' }
-      return nil unless active_line
+      interface = wifi_interface
+      return nil unless interface
 
-      nmcli_split(active_line, 2).last&.strip
+      output = run_os_command(['iw', 'dev', interface, 'link'], false).stdout
+      return nil if output.strip.start_with?('Not connected')
+
+      ssid_line = output.split("\n").find { |line| line.strip.start_with?('SSID:') }
+      return nil unless ssid_line
+
+      ssid = ssid_line.strip.delete_prefix('SSID:').strip
+      ssid.empty? ? nil : ssid
     end
 
     def _connect(network_name, password = nil)

@@ -37,6 +37,32 @@ describe WifiWand::CommandExecutor do
           executor.run_os_command(['nonexistent_command_12345'])
         end.to raise_error(WifiWand::CommandNotFoundError, /nonexistent_command_12345/)
       end
+
+      it 'treats stream closure IOError as normal command shutdown' do
+        stream_class = Struct.new(:responses) do
+          def readpartial(_size)
+            response = responses.shift
+            raise response if response.is_a?(Exception)
+
+            response
+          end
+        end
+
+        stdin = instance_double(IO, close: nil)
+        stdout = stream_class.new(['partial output', IOError.new('stream closed in another thread')])
+        stderr = stream_class.new([EOFError.new])
+        wait_thr = instance_double(Thread)
+        status = instance_double(Process::Status, exitstatus: 0)
+
+        allow(wait_thr).to receive(:value).and_return(status)
+        allow(Open3).to receive(:popen3).and_yield(stdin, stdout, stderr, wait_thr)
+
+        result = executor.run_os_command(%w[echo test])
+
+        expect(result.stdout).to eq('partial output')
+        expect(result.stderr).to eq('')
+        expect(result.exitstatus).to eq(0)
+      end
     end
 
     context 'with verbose mode enabled' do

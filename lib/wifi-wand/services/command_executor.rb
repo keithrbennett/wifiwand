@@ -66,7 +66,7 @@ module WifiWand
               (type == :stdout ? stdout_chunks : stderr_chunks) << chunk
               combined_chunks << chunk
             end
-          rescue EOFError
+          rescue IOError
             break
           end
         end
