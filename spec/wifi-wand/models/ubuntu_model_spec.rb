@@ -911,14 +911,13 @@ module WifiWand
 
           # Mock the connection-based DNS commands
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', nameservers.join(' ')],
-              false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', nameservers.join(' ')])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'up', connection_name], false)
+            .with(['nmcli', 'connection', 'up', connection_name])
             .and_return(command_result(stdout: ''))
 
           result = subject.set_nameservers(nameservers)
@@ -932,19 +931,19 @@ module WifiWand
           allow(subject).to receive(:nameservers_from_connection).with(connection_name).and_return([])
           # Expect both IPv4 and IPv6 clear commands
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'up', connection_name], false)
+            .with(['nmcli', 'connection', 'up', connection_name])
             .and_return(command_result(stdout: ''))
 
           result = subject.set_nameservers(:clear)
@@ -963,13 +962,13 @@ module WifiWand
           allow(subject).to receive(:nameservers_from_connection).with(profile_name).and_return(nameservers)
 
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', profile_name, 'ipv4.dns', nameservers.join(' ')], false)
+            .with(['nmcli', 'connection', 'modify', profile_name, 'ipv4.dns', nameservers.join(' ')])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', profile_name, 'ipv4.ignore-auto-dns', 'yes'], false)
+            .with(['nmcli', 'connection', 'modify', profile_name, 'ipv4.ignore-auto-dns', 'yes'])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'up', profile_name], false)
+            .with(['nmcli', 'connection', 'up', profile_name])
             .and_return(command_result(stdout: ''))
 
           result = subject.set_nameservers(nameservers)
@@ -987,13 +986,13 @@ module WifiWand
           # Expect IPv6 DNS commands
           allow(subject).to receive(:run_os_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns',
-              ipv6_nameservers.join(' ')], false)
+              ipv6_nameservers.join(' ')])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'up', connection_name], false)
+            .with(['nmcli', 'connection', 'up', connection_name])
             .and_return(command_result(stdout: ''))
 
           result = subject.set_nameservers(ipv6_nameservers)
@@ -1010,20 +1009,20 @@ module WifiWand
 
           # Expect both IPv4 and IPv6 DNS commands
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8 1.1.1.1'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8 1.1.1.1'])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns',
-              '2606:4700:4700::1111'], false)
+              '2606:4700:4700::1111'])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'up', connection_name], false)
+            .with(['nmcli', 'connection', 'up', connection_name])
             .and_return(command_result(stdout: ''))
 
           result = subject.set_nameservers(mixed_nameservers)
@@ -1037,19 +1036,19 @@ module WifiWand
           allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
 
           expect(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8 1.1.1.1'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8 1.1.1.1'])
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''])
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'])
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'up', connection_name], false)
+            .with(['nmcli', 'connection', 'up', connection_name])
             .ordered.and_return(command_result(stdout: ''))
 
           result = subject.set_nameservers(nameservers)
@@ -1063,20 +1062,20 @@ module WifiWand
           allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
 
           expect(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''])
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'])
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns',
-              '2606:4700:4700::1111 2606:4700:4700::1001'], false)
+              '2606:4700:4700::1111 2606:4700:4700::1001'])
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'])
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'up', connection_name], false)
+            .with(['nmcli', 'connection', 'up', connection_name])
             .ordered.and_return(command_result(stdout: ''))
 
           result = subject.set_nameservers(nameservers)
@@ -1090,20 +1089,20 @@ module WifiWand
           allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
 
           expect(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''])
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'])
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns',
-              '2606:4700:4700::1111'], false)
+              '2606:4700:4700::1111'])
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'])
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'up', connection_name], false)
+            .with(['nmcli', 'connection', 'up', connection_name])
             .ordered.and_return(command_result(stdout: ''))
 
           result = subject.set_nameservers(nameservers)
@@ -1118,19 +1117,19 @@ module WifiWand
 
           # Expect both IPv4 and IPv6 clear commands
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'], false)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'])
             .and_return(command_result(stdout: ''))
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'up', connection_name], false)
+            .with(['nmcli', 'connection', 'up', connection_name])
             .and_return(command_result(stdout: ''))
 
           result = subject.set_nameservers(:clear)
@@ -1472,19 +1471,65 @@ module WifiWand
           end
         end
 
-        it 'handles nmcli connection modify failures' do
+        it 'raises a DNS configuration error when custom DNS modification fails' do
           connection_name = 'MyHomeNetwork'
 
           allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
-
-          # Mock nmcli connection modify to fail without calling real commands
           allow(subject).to receive(:run_os_command)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8'], false)
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli connection modify',
-              'Connection modify failed'))
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8'])
+            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(
+              1,
+              'nmcli connection modify',
+              'Connection modify failed'
+            ))
 
           expect { subject.set_nameservers(['8.8.8.8']) }
-            .to raise_error(WifiWand::CommandExecutor::OsCommandError, /Connection modify failed/)
+            .to raise_error(WifiWand::DnsConfigurationError, /modifying the connection profile/)
+        end
+
+        it 'raises a DNS configuration error when clearing DNS fails' do
+          connection_name = 'MyHomeNetwork'
+
+          allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+          allow(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''])
+            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(
+              1,
+              'nmcli connection modify',
+              'Permission denied'
+            ))
+
+          expect { subject.set_nameservers(:clear) }
+            .to raise_error(WifiWand::DnsConfigurationError, /Permission denied/)
+        end
+
+        it 'raises a DNS configuration error when connection activation fails after modification' do
+          connection_name = 'MyHomeNetwork'
+          nameservers = ['8.8.8.8']
+
+          allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8'])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'up', connection_name])
+            .ordered.and_raise(WifiWand::CommandExecutor::OsCommandError.new(
+              1,
+              'nmcli connection up',
+              'Activation failed'
+            ))
+
+          expect { subject.set_nameservers(nameservers) }
+            .to raise_error(WifiWand::DnsConfigurationError, /reactivating the connection/)
         end
 
         it 'handles cases when no active connection exists' do

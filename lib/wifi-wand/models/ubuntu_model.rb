@@ -431,12 +431,12 @@ module WifiWand
 
       if nameservers == :clear
         # Clear custom DNS and use DHCP/router-provided DNS (both IPv4 and IPv6)
-        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.dns', ''], false)
-        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns', 'no'],
-          false)
-        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv6.dns', ''], false)
-        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv6.ignore-auto-dns', 'no'],
-          false)
+        modify_commands = [
+          ['nmcli', 'connection', 'modify', current_connection, 'ipv4.dns', ''],
+          ['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns', 'no'],
+          ['nmcli', 'connection', 'modify', current_connection, 'ipv6.dns', ''],
+          ['nmcli', 'connection', 'modify', current_connection, 'ipv6.ignore-auto-dns', 'no'],
+        ]
       else
         # Validate IP addresses (accept both IPv4 and IPv6)
         bad_addresses = nameservers.reject do |ns|
@@ -456,23 +456,23 @@ module WifiWand
 
         # Apply DNS as an exact replacement for both families so omitted
         # address families are cleared and return to DHCP/router-provided DNS.
-        ipv4_dns_string = ipv4_servers.join(' ')
-        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.dns',
-          ipv4_dns_string], false)
-        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns',
-          ipv4_servers.any? ? 'yes' : 'no'], false)
-
-        ipv6_dns_string = ipv6_servers.join(' ')
-        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv6.dns',
-          ipv6_dns_string], false)
-        run_os_command(['nmcli', 'connection', 'modify', current_connection, 'ipv6.ignore-auto-dns',
-          ipv6_servers.any? ? 'yes' : 'no'], false)
+        modify_commands = [
+          ['nmcli', 'connection', 'modify', current_connection, 'ipv4.dns', ipv4_servers.join(' ')],
+          ['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns',
+            ipv4_servers.any? ? 'yes' : 'no'],
+          ['nmcli', 'connection', 'modify', current_connection, 'ipv6.dns', ipv6_servers.join(' ')],
+          ['nmcli', 'connection', 'modify', current_connection, 'ipv6.ignore-auto-dns',
+            ipv6_servers.any? ? 'yes' : 'no'],
+        ]
       end
 
-      # Restart the connection to apply DNS changes
-      run_os_command(['nmcli', 'connection', 'up', current_connection], false)
+      modify_commands.each { |command| run_os_command(command) }
+      run_os_command(['nmcli', 'connection', 'up', current_connection])
 
       nameservers
+    rescue WifiWand::CommandExecutor::OsCommandError => e
+      step = e.command.include?('connection up') ? :activate : :modify
+      raise DnsConfigurationError.new(current_connection, step, e)
     end
 
     def open_resource(resource_url)

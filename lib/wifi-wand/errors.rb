@@ -172,6 +172,39 @@ module WifiWand
   class ConfigurationError < Error
   end
 
+  class DnsConfigurationError < ConfigurationError
+    attr_reader :connection_name, :step, :cause_error
+
+    def initialize(connection_name, step, cause_error)
+      @connection_name = connection_name
+      @step = step
+      @cause_error = cause_error
+
+      super(
+        "Failed to update DNS for connection '#{connection_name}' while #{step_description}: #{error_detail}"
+      )
+    end
+
+    private
+
+    def step_description
+      case step
+      when :modify
+        'modifying the connection profile'
+      when :activate
+        'reactivating the connection'
+      else
+        'updating DNS settings'
+      end
+    end
+
+    def error_detail
+      return cause_error.text if cause_error.respond_to?(:text) && !cause_error.text.to_s.empty?
+
+      cause_error.message
+    end
+  end
+
   class LogFileError < Error
   end
 
