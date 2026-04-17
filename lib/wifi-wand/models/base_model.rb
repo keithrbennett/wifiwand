@@ -8,7 +8,6 @@ require 'shellwords'
 require 'socket'
 require 'tempfile'
 require 'uri'
-require 'async'
 require_relative 'helpers/command_output_formatter'
 require_relative 'helpers/resource_manager'
 require_relative 'helpers/qr_code_generator'
@@ -358,9 +357,9 @@ module WifiWand
 
     # Builds a hash for the status command, yielding partial results as soon as
     # they're known so callers can stream updates.
-    # Network name and internet checks run concurrently using fibers to shorten
-    # the perceived wait. Internet status uses the full connectivity path so
-    # captive portals are reported as unreachable.
+    # Network identity and internet checks run concurrently in native threads so
+    # blocking OS commands and socket work can overlap. Internet status uses the
+    # full connectivity path so captive portals are reported as unreachable.
     # The returned hash includes :internet_state and :captive_portal_state
     # plus the derived :captive_portal_login_required (:yes/:no/:unknown).
     def status_line_data(progress_callback: nil)

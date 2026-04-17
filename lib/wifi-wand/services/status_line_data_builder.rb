@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'async'
 require_relative '../connectivity_states'
 
 module WifiWand
@@ -27,26 +26,39 @@ module WifiWand
         return partial
       end
 
-      Async do |task|
-        network_task = task.async { network_identity }
-        connectivity_task = task.async { connectivity_data }
+      network_thread, connectivity_thread = build_status_threads
 
-        partial.merge!(network_task.wait)
-        progress_callback&.call(partial.dup)
+      partial.merge!(network_thread.value)
+      progress_callback&.call(partial.dup)
 
-        partial.merge!(connectivity_task.wait)
+      partial.merge!(connectivity_thread.value)
 
-        final_data = partial.dup
-        progress_callback&.call(final_data)
-        final_data
-      end.wait
+      final_data = partial.dup
+      progress_callback&.call(final_data)
+      final_data
     rescue *expected_network_errors, WifiWand::Error => e
       output.puts "Warning: status_line_data failed: #{e.class}: #{e.message}" if verbose_mode
       progress_callback&.call(nil)
       nil
+    ensure
+      cleanup_worker_threads(network_thread, connectivity_thread)
     end
 
     private
+
+    def build_status_threads
+      [
+        Thread.new { network_identity },
+        Thread.new { connectivity_data },
+      ]
+    end
+
+    def cleanup_worker_threads(*threads)
+      threads.compact.each do |thread|
+        thread.kill if thread.alive?
+        thread.join
+      end
+    end
 
     def initial_data
       {

@@ -16,6 +16,7 @@ describe WifiWand::StatusLineDataBuilder do
   end
 
   let(:progress_updates) { [] }
+  let(:serial_blocking_status_latency) { 0.4 }
   let(:builder) { described_class.new(model, verbose: false, output: StringIO.new) }
 
   describe '#call' do
@@ -148,6 +149,42 @@ describe WifiWand::StatusLineDataBuilder do
 
       expect(result[:connected]).to be(false)
       expect(result[:network_name]).to be_nil
+    end
+
+    it 'overlaps blocking network identity and connectivity checks with native threads' do
+      worker_threads = []
+
+      allow(Thread).to receive(:new).and_wrap_original do |original, *args, &block|
+        thread = original.call(*args, &block)
+        worker_threads << thread
+        thread
+      end
+
+      allow(model).to receive(:connected?) do
+        sleep(0.1)
+        true
+      end
+      allow(model).to receive(:connected_network_name) do
+        sleep(0.1)
+        'HomeNetwork'
+      end
+      allow(model).to receive(:internet_tcp_connectivity?) do
+        sleep(0.1)
+        true
+      end
+      allow(model).to receive(:dns_working?) do
+        sleep(0.1)
+        true
+      end
+
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      result = builder.call
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+      expect(result[:internet_state]).to eq(:reachable)
+      expect(elapsed).to be < serial_blocking_status_latency
+      expect(worker_threads.size).to eq(2)
+      expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
     end
   end
 end
