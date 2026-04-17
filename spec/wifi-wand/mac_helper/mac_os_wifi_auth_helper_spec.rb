@@ -389,7 +389,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
           client.send(:ensure_helper_installed)
         end
 
-        it 'disables the helper and emits repair guidance when reinstall fails' do
+        it 'emits repair guidance when reinstall fails but does not permanently disable' do
           expect(File).to receive(:executable?).with(helper_path).and_return(true)
           expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(false)
           allow(client).to receive(:log_verbose)
@@ -400,12 +400,12 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
 
           expect(out_stream.string).to include('failed to install helper (boom)')
           expect(out_stream.string).to include('wifi-wand-macos-setup --repair')
-          expect(client.instance_variable_get(:@disabled)).to be(true)
+          expect(client.instance_variable_get(:@disabled)).to be_falsey
         end
       end
 
       context 'when the helper is missing and installation raises an error' do
-        it 'disables the helper without a repair-specific warning' do
+        it 'emits a failure warning without repair hint and does not permanently disable' do
           expect(File).to receive(:executable?).with(helper_path).and_return(false)
           expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(false)
           allow(client).to receive(:log_verbose)
@@ -416,7 +416,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
 
           expect(out_stream.string).to include('failed to install helper (boom)')
           expect(out_stream.string).not_to include('wifi-wand-macos-setup --repair')
-          expect(client.instance_variable_get(:@disabled)).to be(true)
+          expect(client.instance_variable_get(:@disabled)).to be_falsey
         end
       end
 
@@ -430,6 +430,53 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
             .with(out_stream: nil).once
 
           2.times { client.send(:ensure_helper_installed) }
+        end
+      end
+
+      context 'when the first install attempt fails but a later attempt succeeds' do
+        it 'retries installation and marks the helper as verified on success' do
+          allow(File).to receive(:executable?).with(helper_path).and_return(false)
+          allow(client).to receive(:log_verbose)
+
+          # First call: helper not present and not valid, install raises
+          expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?)
+            .and_return(false).twice
+          expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed)
+            .with(out_stream: nil).ordered.and_raise(StandardError, 'transient failure')
+          expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed)
+            .with(out_stream: nil).ordered
+
+          client.send(:ensure_helper_installed)
+          expect(client.instance_variable_get(:@helper_install_verified)).to be_falsey
+
+          client.send(:ensure_helper_installed)
+          expect(client.instance_variable_get(:@helper_install_verified)).to be(true)
+        end
+
+        it 'emits the failure warning only once across multiple failed attempts' do
+          allow(File).to receive(:executable?).with(helper_path).and_return(false)
+          allow(client).to receive(:log_verbose)
+          allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(false)
+          allow(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed)
+            .and_raise(StandardError, 'transient failure')
+
+          3.times { client.send(:ensure_helper_installed) }
+
+          occurrences = out_stream.string.scan('failed to install helper').size
+          expect(occurrences).to eq(1)
+        end
+      end
+
+      context 'when WIFIWAND_DISABLE_MAC_HELPER is set' do
+        before { ENV['WIFIWAND_DISABLE_MAC_HELPER'] = '1' }
+
+        it 'makes available? return false regardless of install state' do
+          expect(client.available?).to be(false)
+        end
+
+        it 'prevents execute from calling ensure_helper_installed' do
+          expect(client).not_to receive(:ensure_helper_installed)
+          client.send(:execute, 'scan-networks')
         end
       end
     end

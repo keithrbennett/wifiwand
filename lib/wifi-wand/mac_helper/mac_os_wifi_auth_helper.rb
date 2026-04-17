@@ -564,6 +564,7 @@ module WifiWand
         helper_valid = WifiWand::MacOsWifiAuthHelper.helper_installed_and_valid?
         if helper_valid
           @helper_install_verified = true
+          @install_failure_warned = false
           return
         end
 
@@ -574,11 +575,14 @@ module WifiWand
         end
 
         WifiWand::MacOsWifiAuthHelper.ensure_helper_installed(out_stream: verbose? ? out_stream : nil)
+        @install_failure_warned = false
         @helper_install_verified = true
       rescue => e
         @helper_install_verified = false
-        emit_install_failure(e.message, repair_required: helper_present)
-        @disabled = true
+        unless @install_failure_warned
+          emit_install_failure(e.message, repair_required: helper_present)
+          @install_failure_warned = true
+        end
       end
 
       def helper_executable_path = WifiWand::MacOsWifiAuthHelper.installed_executable_path
@@ -622,7 +626,7 @@ module WifiWand
             ''
           end
           stream.puts("wifiwand helper: failed to install helper (#{detail}). " \
-            "Helper disabled until the next run.#{repair_hint}")
+            "Helper temporarily unavailable; will retry on next request.#{repair_hint}")
         end
       end
 
