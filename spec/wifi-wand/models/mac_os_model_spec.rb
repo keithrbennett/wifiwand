@@ -1188,6 +1188,40 @@ module WifiWand
           expect(result).to eq(['OtherNetwork'])
         end
 
+        it 'does not filter out the connected SSID when the macOS scan includes it' do
+          connected_data = JSON.parse(mock_airport_data.to_json)
+          interfaces = connected_data['SPAirPortDataType'][0]['spairport_airport_interfaces'][0]
+          interfaces['spairport_airport_other_local_wireless_networks'] = [
+            { '_name' => 'CurrentNetwork', 'spairport_signal_noise' => '92/10' },
+            { '_name' => 'OtherNetwork', 'spairport_signal_noise' => '75/10' },
+          ]
+
+          allow(model).to receive_messages(
+            airport_data:           connected_data,
+            wifi_interface:         'en0',
+            connected_network_name: 'CurrentNetwork'
+          )
+
+          expect(model._available_network_names).to eq(%w[CurrentNetwork OtherNetwork])
+        end
+
+        it 'does not inject the connected SSID when the macOS scan omits it' do
+          connected_data = JSON.parse(mock_airport_data.to_json)
+          interfaces = connected_data['SPAirPortDataType'][0]['spairport_airport_interfaces'][0]
+          interfaces['spairport_airport_other_local_wireless_networks'] = [
+            { '_name' => 'OtherNetwork', 'spairport_signal_noise' => '75/10' },
+            { '_name' => 'GuestNetwork', 'spairport_signal_noise' => '55/10' },
+          ]
+
+          allow(model).to receive_messages(
+            airport_data:           connected_data,
+            wifi_interface:         'en0',
+            connected_network_name: 'CurrentNetwork'
+          )
+
+          expect(model._available_network_names).to eq(%w[OtherNetwork GuestNetwork])
+        end
+
         it 'removes duplicate network names' do
           duplicate_data = {
             'SPAirPortDataType' => [{

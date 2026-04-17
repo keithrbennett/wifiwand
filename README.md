@@ -237,7 +237,7 @@ shell                     - start interactive shell (interactive pry REPL sessio
 Commands
 --------
 Commands accept only the exact short or exact long form shown below.
-a / avail_nets          - array of names of the available networks
+a / avail_nets          - array of names returned by the OS WiFi scan
 ci                        - Internet connectivity state: reachable, unreachable, or indeterminate
 co / connect network-name - connects to the specified network-name, turning WiFi on if necessary
 cy / cycle               - toggles WiFi on/off state twice, regardless of starting state
@@ -471,6 +471,10 @@ puts "Connected to: #{client.connected_network_name}"
 puts "\nAvailable Networks:"
 puts client.available_network_names.map { |n| "  - #{n}" }
 ```
+
+`available_network_names` reflects the SSIDs returned by the operating system scan, with wifi-wand's
+existing ordering and deduplication applied. The currently connected network may appear or may be absent,
+depending on what the OS scan reports.
 
 #### Passing Options
 

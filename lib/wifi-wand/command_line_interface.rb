@@ -91,7 +91,7 @@ module WifiWand
         else
           <<~MESSAGE
             Available networks, in descending signal strength order,
-            and not including any currently connected network, are:
+            as returned by the OS scan, are:
 
             #{format_object(info)}
           MESSAGE

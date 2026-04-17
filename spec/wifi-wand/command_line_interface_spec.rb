@@ -497,7 +497,7 @@ describe WifiWand::CommandLineInterface do
           non_interactive_tests: {
             'outputs formatted available networks message' => {
               model_return:    %w[TestNet1 TestNet2],
-              expected_output: /Available networks.*descending signal strength.*TestNet1.*TestNet2/m,
+              expected_output: /Available networks.*descending signal strength.*OS scan.*TestNet1.*TestNet2/m,
             },
           },
         }

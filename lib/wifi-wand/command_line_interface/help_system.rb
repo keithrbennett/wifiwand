@@ -37,7 +37,7 @@ module WifiWand
           Commands
           --------
           Commands accept only the exact short or exact long form shown below.
-          a / avail_nets          - array of names of the available networks
+          a / avail_nets          - array of names returned by the OS WiFi scan
           ci                        - Internet connectivity state: reachable, unreachable, or indeterminate
           co / connect network-name - connects to the specified network-name, turning WiFi on if necessary
           cy / cycle               - toggles WiFi on/off state twice, regardless of starting state

@@ -828,6 +828,32 @@ module WifiWand
           expect(result).to eq(%w[StrongNet TestNet2 TestNet1 WeakNet])
         end
 
+        it 'does not filter out the connected SSID when the Ubuntu scan includes it' do
+          nmcli_output = "CurrentNet:95\nOtherNet:80\nWeakNet:25"
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli radio wifi], false)
+            .and_return(command_result(stdout: 'enabled'))
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
+            .and_return(command_result(stdout: nmcli_output))
+          allow(subject).to receive(:_connected_network_name).and_return('CurrentNet')
+
+          expect(subject.available_network_names).to eq(%w[CurrentNet OtherNet WeakNet])
+        end
+
+        it 'does not inject the connected SSID when the Ubuntu scan omits it' do
+          nmcli_output = "OtherNet:90\nWeakNet:25"
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli radio wifi], false)
+            .and_return(command_result(stdout: 'enabled'))
+          allow(subject).to receive(:run_os_command)
+            .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
+            .and_return(command_result(stdout: nmcli_output))
+          allow(subject).to receive(:_connected_network_name).and_return('CurrentNet')
+
+          expect(subject.available_network_names).to eq(%w[OtherNet WeakNet])
+        end
+
         it 'removes duplicate network names' do
           nmcli_output = "TestNet:75\nTestNet:80\nOtherNet:90"
           allow(subject).to receive(:run_os_command)
