@@ -406,6 +406,9 @@ module WifiWand
     end
 
     class Client
+      HELPER_COMMAND_TIMEOUT_SECONDS = ENV['RSPEC_RUNNING'] ? 0.25 : 3.0
+      HELPER_TERMINATION_WAIT_SECONDS = ENV['RSPEC_RUNNING'] ? 0.05 : 0.25
+
       attr_reader :last_error_message
 
       def initialize(out_stream_proc:, verbose_proc:, macos_version_proc:)
@@ -480,7 +483,12 @@ module WifiWand
         ensure_helper_installed
         return HelperQueryResult.new if @disabled
 
-        stdout, stderr, status = Open3.capture3(helper_executable_path, command)
+        helper_result = execute_helper_command(command)
+        return HelperQueryResult.new unless helper_result
+
+        stdout = helper_result[:stdout]
+        stderr = helper_result[:stderr]
+        status = helper_result[:status]
         unless status.success?
           log_verbose("helper exited with status #{status.exitstatus}: #{stderr.strip}")
           return HelperQueryResult.new
@@ -505,6 +513,47 @@ module WifiWand
       rescue => e
         log_verbose("helper command '#{command}' failed: #{e.message}")
         HelperQueryResult.new
+      end
+
+      def execute_helper_command(command)
+        Open3.popen3(helper_executable_path, command) do |stdin, stdout, stderr, wait_thr|
+          stdin.close
+          stdout_reader = Thread.new { stdout.read }
+          stderr_reader = Thread.new { stderr.read }
+          wait_result = wait_thr.join(HELPER_COMMAND_TIMEOUT_SECONDS)
+          unless wait_result
+            log_verbose("helper command '#{command}' timed out after #{HELPER_COMMAND_TIMEOUT_SECONDS}s")
+            terminate_helper_process(wait_thr)
+            return nil
+          end
+
+          {
+            stdout: stdout_reader.value,
+            stderr: stderr_reader.value,
+            status: wait_thr.value,
+          }
+        ensure
+          stdout&.close unless stdout&.closed?
+          stderr&.close unless stderr&.closed?
+          stdout_reader&.join
+          stderr_reader&.join
+        end
+      end
+
+      def terminate_helper_process(wait_thr)
+        pid = wait_thr.pid
+        Process.kill('TERM', pid)
+        return if helper_exited_within_grace_period?(wait_thr)
+        return unless wait_thr.alive?
+
+        Process.kill('KILL', pid)
+        helper_exited_within_grace_period?(wait_thr)
+      rescue Errno::ESRCH, Errno::ECHILD
+        nil
+      end
+
+      def helper_exited_within_grace_period?(wait_thr)
+        !!wait_thr.join(HELPER_TERMINATION_WAIT_SECONDS)
       end
 
       def ensure_helper_installed

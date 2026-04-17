@@ -144,7 +144,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
         let(:helper_available) { false }
 
         it 'returns an empty result without invoking the executable' do
-          expect(Open3).not_to receive(:capture3)
+          expect(client).not_to receive(:execute_helper_command)
           result = execute_command
           expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
           expect(result.payload).to be_nil
@@ -156,9 +156,11 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
         let(:status) { instance_double(Process::Status, success?: true) }
 
         before do
-          allow(Open3).to receive(:capture3)
-            .with('/tmp/helper', command)
-            .and_return(['{"status":"ok","payload":1}', '', status])
+          allow(client).to receive(:execute_helper_command).with(command).and_return(
+            stdout: '{"status":"ok","payload":1}',
+            stderr: '',
+            status: status
+          )
         end
 
         it 'returns a result with the parsed payload' do
@@ -173,7 +175,11 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
         let(:status) { instance_double(Process::Status, success?: false, exitstatus: 64) }
 
         before do
-          allow(Open3).to receive(:capture3).and_return(['', 'boom', status])
+          allow(client).to receive(:execute_helper_command).and_return(
+            stdout: '',
+            stderr: 'boom',
+            status: status
+          )
         end
 
         it 'logs the failure and returns an empty result' do
@@ -188,8 +194,14 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
         let(:status) { instance_double(Process::Status, success?: true) }
 
         before do
-          allow(Open3).to receive(:capture3).and_return(['{}', '', status])
-          allow(client).to receive(:parse_json).and_return(nil)
+          allow(client).to receive_messages(
+            execute_helper_command: {
+              stdout: '{}',
+              stderr: '',
+              status: status,
+            },
+            parse_json:             nil
+          )
         end
 
         it 'returns an empty result' do
@@ -203,8 +215,11 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
         let(:status) { instance_double(Process::Status, success?: true) }
 
         before do
-          allow(Open3).to receive(:capture3)
-            .and_return(['{"status":"error","error":"Location Services denied"}', '', status])
+          allow(client).to receive(:execute_helper_command).and_return(
+            stdout: '{"status":"error","error":"Location Services denied"}',
+            stderr: '',
+            status: status
+          )
         end
 
         it 'delegates to handle_error and returns a result with location_services_blocked' do
@@ -216,9 +231,23 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
         end
       end
 
+      context 'when the helper times out' do
+        before do
+          allow(client).to receive(:execute_helper_command).with(command).and_return(nil)
+        end
+
+        it 'returns a safe empty result so callers can fall back' do
+          result = execute_command
+          expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+          expect(result.payload).to be_nil
+          expect(result).not_to be_location_services_blocked
+          expect(result.error_message).to be_nil
+        end
+      end
+
       context 'when the executable is missing' do
         before do
-          allow(Open3).to receive(:capture3).and_raise(Errno::ENOENT.new('wifiwand-helper'))
+          allow(client).to receive(:execute_helper_command).and_raise(Errno::ENOENT.new('wifiwand-helper'))
         end
 
         it 'logs the error and returns an empty result' do
@@ -231,7 +260,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
 
       context 'when an unexpected error occurs' do
         before do
-          allow(Open3).to receive(:capture3).and_raise(StandardError, 'boom')
+          allow(client).to receive(:execute_helper_command).and_raise(StandardError, 'boom')
         end
 
         it 'logs the failure and returns an empty result' do
@@ -240,6 +269,80 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
           expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
           expect(result.payload).to be_nil
         end
+      end
+    end
+
+    describe '#execute_helper_command' do
+      subject(:helper_command_result) { client.send(:execute_helper_command, command) }
+
+      let(:command) { 'scan-networks' }
+      let(:stdin) { instance_double(IO, close: nil) }
+      let(:stdout) { StringIO.new('{"status":"ok"}') }
+      let(:stderr) { StringIO.new('') }
+      let(:status) { instance_double(Process::Status, success?: true) }
+      let(:wait_join_result) { :finished }
+      let(:wait_thr) { double('wait thread', join: wait_join_result, value: status, pid: 4321) }
+
+      before do
+        allow(WifiWand::MacOsWifiAuthHelper).to receive(:installed_executable_path).and_return('/tmp/helper')
+        allow(Open3).to receive(:popen3).with('/tmp/helper', command)
+          .and_yield(stdin, stdout, stderr, wait_thr)
+      end
+
+      it 'returns stdout, stderr, and status for successful runs' do
+        result = helper_command_result
+        expect(result).to eq(stdout: '{"status":"ok"}', stderr: '', status: status)
+      end
+
+      context 'when the helper never exits before the deadline' do
+        let(:stdout) { instance_double(IO, read: '', close: nil, closed?: false) }
+        let(:stderr) { instance_double(IO, read: '', close: nil, closed?: false) }
+        let(:wait_join_result) { nil }
+
+        it 'logs the timeout and returns nil' do
+          timeout_seconds = described_class::HELPER_COMMAND_TIMEOUT_SECONDS
+          timeout_message =
+            "helper command 'scan-networks' timed out after #{timeout_seconds}s"
+
+          expect(client).to receive(:log_verbose).with(timeout_message)
+          expect(client).to receive(:terminate_helper_process).with(wait_thr)
+          expect(helper_command_result).to be_nil
+        end
+      end
+    end
+
+    describe '#terminate_helper_process' do
+      let(:wait_thr) { double('wait thread', pid: 4321, alive?: alive_after_term) }
+      let(:alive_after_term) { true }
+
+      it 'sends TERM, waits briefly, then escalates to KILL when the helper is still running' do
+        expect(Process).to receive(:kill).with('TERM', 4321).ordered
+        expect(client).to receive(:helper_exited_within_grace_period?)
+          .with(wait_thr).ordered.and_return(false)
+        expect(wait_thr).to receive(:alive?).ordered.and_return(true)
+        expect(Process).to receive(:kill).with('KILL', 4321).ordered
+        expect(client).to receive(:helper_exited_within_grace_period?).with(wait_thr).ordered
+
+        client.send(:terminate_helper_process, wait_thr)
+      end
+
+      it 'does not send KILL when the helper exits during the TERM grace period' do
+        expect(Process).to receive(:kill).with('TERM', 4321).ordered
+        expect(client).to receive(:helper_exited_within_grace_period?).with(wait_thr).ordered.and_return(true)
+        expect(wait_thr).not_to receive(:alive?)
+        expect(Process).not_to receive(:kill).with('KILL', 4321)
+
+        client.send(:terminate_helper_process, wait_thr)
+      end
+
+      it 'does not send KILL when the waiter shows the helper already exited after the grace period' do
+        expect(Process).to receive(:kill).with('TERM', 4321).ordered
+        expect(client).to receive(:helper_exited_within_grace_period?)
+          .with(wait_thr).ordered.and_return(false)
+        expect(wait_thr).to receive(:alive?).ordered.and_return(false)
+        expect(Process).not_to receive(:kill).with('KILL', 4321)
+
+        client.send(:terminate_helper_process, wait_thr)
       end
     end
 
