@@ -127,6 +127,10 @@ module WifiWand
         ready_probes = probes.select { |probe| ready_readers.include?(probe[:reader]) }
         ready_probes.each do |probe|
           result = read_probe_result(probe)
+          # The helper may have only written a partial JSON payload so far.
+          # Keep it alive until EOF so we don't treat an in-flight write as a failure.
+          next unless result
+
           log_probe_result(probe, result)
           finalize_probe(probe)
           probes.delete(probe)
@@ -151,7 +155,7 @@ module WifiWand
       reader, writer = IO.pipe
       pid = Process.spawn(*connectivity_probe_command(item, helper_mode), out: writer, err: File::NULL)
       writer.close
-      { pid: pid, reader: reader, item: item, helper_mode: helper_mode }
+      { pid: pid, reader: reader, item: item, helper_mode: helper_mode, buffer: +'', eof: false }
     rescue => e
       reader&.close unless reader&.closed?
       writer&.close unless writer&.closed?
@@ -180,10 +184,62 @@ module WifiWand
     end
 
     def read_probe_result(probe)
-      payload = JSON.parse(probe[:reader].read.to_s.strip, symbolize_names: true)
+      drain_probe_reader(probe)
+      payload_text = probe[:buffer].strip
+
+      # An EOF with no payload means the helper exited without reporting
+      # anything usable, so treat it as a failed probe rather than retrying.
+      return failure_probe_result(EOFError) if probe[:eof] && payload_text.empty?
+
+      payload = JSON.parse(payload_text, symbolize_names: true)
       { success: payload[:success] == true, error_class: payload[:error_class] }
+    rescue JSON::ParserError
+      # Partial JSON is expected while the child is still writing. Only convert
+      # parse errors into failures once the pipe has reached EOF and no more
+      # bytes can arrive to complete the payload.
+      return nil unless probe[:eof]
+
+      failure_probe_result(JSON::ParserError)
     rescue => e
-      { success: false, error_class: e.class.to_s }
+      failure_probe_result(e.class)
+    end
+
+    # Drains all bytes that are immediately available from a helper's stdout
+    # pipe into the probe buffer without blocking for more. In this context,
+    # "draining" means repeatedly consuming the currently readable pipe data
+    # until the kernel reports either "nothing else is ready yet" or EOF.
+    #
+    # We need this because IO.select only tells us the pipe became readable,
+    # not that the child finished writing a complete JSON payload. A blocking
+    # read here can still hang waiting for EOF, so we accumulate available
+    # chunks incrementally and let the caller decide whether to wait for more
+    # bytes or parse the completed payload.
+    def drain_probe_reader(probe)
+      loop do
+        # read_nonblock avoids hanging here after IO.select reports readability;
+        # a pipe can become readable before the child has closed stdout.
+        chunk = probe[:reader].read_nonblock(4096, exception: false)
+        case chunk
+        when :wait_readable
+          # We drained the bytes that were immediately available. Leave any
+          # partial payload in the per-probe buffer and wait for the next
+          # readiness notification or EOF.
+          return
+        when nil
+          # nil from read_nonblock means the writer side is closed. Mark EOF so
+          # the caller knows whether an incomplete JSON buffer is now final.
+          probe[:eof] = true
+          return
+        else
+          # Helpers emit tiny JSON payloads, but buffering incrementally keeps
+          # this safe if the OS splits the write across multiple pipe reads.
+          probe[:buffer] << chunk
+        end
+      end
+    end
+
+    def failure_probe_result(error_class)
+      { success: false, error_class: error_class.to_s }
     end
 
     def log_probe_result(probe, result)

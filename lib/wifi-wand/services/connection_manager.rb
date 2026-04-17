@@ -186,18 +186,22 @@ module WifiWand
     end
 
     def verify_connection(network_name, _password)
+      return if active_connection_matches?(network_name)
+
       actual_network_name = begin
         model.connected_network_name
       rescue WifiWand::Error
         nil
       end
 
-      unless active_connection_matches?(network_name)
-        error_detail = actual_network_name \
-          ? "connected to '#{actual_network_name}' instead" \
-          : 'unable to connect to any network'
-        raise NetworkConnectionError.new(network_name, error_detail)
-      end
+      # Some platforms can report the SSID before higher-level readiness checks
+      # settle. Treat an exact SSID match as a successful connection.
+      return if actual_network_name == network_name
+
+      error_detail = actual_network_name \
+        ? "connected to '#{actual_network_name}' instead" \
+        : 'unable to connect to any network'
+      raise NetworkConnectionError.new(network_name, error_detail)
     end
 
     def active_connection_matches?(network_name)

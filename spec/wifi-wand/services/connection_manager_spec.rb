@@ -258,6 +258,13 @@ describe WifiWand::ConnectionManager do
           expect(error.message).to include('unable to connect to any network')
         end
       end
+
+      it 'accepts the connection when the expected SSID is reported directly' do
+        allow(mock_model).to receive(:connection_ready?).and_return(false, false)
+        allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork', 'TestNetwork')
+
+        expect { subject.connect('TestNetwork') }.not_to raise_error
+      end
     end
   end
 
