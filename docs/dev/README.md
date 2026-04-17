@@ -23,6 +23,9 @@ research, and internal strategy.
 
 ## General Information
 
+- **[`connected?` vs `internet_connectivity_state`](CONNECTED_VS_INTERNET_CONNECTIVITY.md)** - Analysis of
+  the semantic split between WiFi connection state and host-level internet reachability, with API cleanup
+  suggestions.
 - End-user documentation should be prioritized by contributors in the **[Main Documentation
   Index](../README.md)**.
 - For internal testing strategies and CI details, refer to the **[Testing Guide](../TESTING.md)**.

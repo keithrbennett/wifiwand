@@ -92,6 +92,15 @@ method names and argument lists, so that they present a unified interface for us
   shell` to run in interactive mode)
 * other Ruby applications as a gem (library) (`require wifi-wand`)
 
+### ⚠️ Important API Semantics: `connected?` Means WiFi Connected
+
+In the Ruby API and interactive shell, `connected?` is WiFi-specific. It answers whether the WiFi interface
+is connected or otherwise considered usable by the current OS-specific WiFi model.
+
+It does not mean "this machine has network access by any route." If Ethernet is the only active uplink,
+`connected?` may still return `false`. Use `internet_connectivity_state` when you need host-level internet
+reachability instead of WiFi-interface state.
+
 ### ⚠️ Breaking Change: Interactive Shell
 
 The interactive shell is now a dedicated subcommand: run it with `wifi-wand shell`.

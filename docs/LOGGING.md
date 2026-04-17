@@ -231,7 +231,7 @@ cat debug.log
    started
 2. **Polling Loop**: At regular intervals (default 5 seconds), the following are queried:
    - `wifi_on?` - WiFi power state
-   - `connected?` - Whether the interface is associated
+   - `connected?` - Whether the WiFi interface is connected or otherwise considered usable by the WiFi model
    - `connected_network_name` - Currently connected network
    - `internet_connectivity_state` - Explicit internet state, checked on every poll
 3. **Change Detection**: Current state is compared to previous state
@@ -248,6 +248,8 @@ The logger monitors three aspects of WiFi state:
    - Derived directly from `internet_connectivity_state` on every poll
    - May still report reachable internet when WiFi is off or unassociated if another uplink, such as Ethernet,
      is active
+   - This differs from `connected?`, which is intentionally WiFi-specific and may be `false` when Ethernet is
+     providing the only active uplink
    - `:indeterminate` is preserved internally and reported as `internet unknown`
      in the initial-state line
    - Transition events are emitted only when both the previous and current
