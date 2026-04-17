@@ -213,10 +213,19 @@ RSpec.describe RSpecConfiguration do
       described_class.configure_network_state_management(hook_config)
     end
 
-    it 'refreshes sudo ticket before each sudo-tagged example' do
+    it 'refreshes sudo ticket before each sudo-tagged example on macOS' do
       before_each_hook = hook_config.before_hooks.find { |args, _block| args == %i[each needs_sudo_access] }
+      $compatible_os_tag = :os_mac
 
       expect(described_class).to receive(:refresh_sudo_ticket!).with(allow_prompt: true)
+      before_each_hook.last.call
+    end
+
+    it 'does not refresh sudo ticket before each sudo-tagged example on non-macOS hosts' do
+      before_each_hook = hook_config.before_hooks.find { |args, _block| args == %i[each needs_sudo_access] }
+      $compatible_os_tag = :os_ubuntu
+
+      expect(described_class).not_to receive(:refresh_sudo_ticket!)
       before_each_hook.last.call
     end
 
