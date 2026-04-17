@@ -1168,6 +1168,16 @@ module WifiWand
           expect(subject.active_connection_profile_name).to eq('Office Profile')
         end
 
+        it 'unescapes literal colons in the active profile name' do
+          allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
+          nmcli_output = "GENERAL.CONNECTION:Cafe\\:Guest\nGENERAL.DEVICE:wlp3s0"
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', 'wlp3s0'], false)
+            .and_return(command_result(stdout: nmcli_output))
+
+          expect(subject.active_connection_profile_name).to eq('Cafe:Guest')
+        end
+
         it 'returns nil when wifi interface cannot be determined' do
           allow(subject).to receive(:wifi_interface).and_return(nil)
           expect(subject.active_connection_profile_name).to be_nil
@@ -1299,7 +1309,7 @@ module WifiWand
       describe 'nmcli colon-safe parsing' do
         describe '#_available_network_names with colon-containing SSIDs' do
           it 'correctly parses an SSID that contains a literal colon' do
-            # nmcli escapes the colon in "Cafe:Guest" as "Cafe\:Guest"
+            # nmcli escapes the colon in "Cafe:Guest" as "Cafe\\:Guest"
             nmcli_output = "Cafe\\:Guest:75\nRegularNet:90"
             allow(subject).to receive(:run_os_command)
               .with(%w[nmcli radio wifi], false)
@@ -1373,6 +1383,45 @@ module WifiWand
 
             result = subject.send(:find_best_profile_for_ssid, 'Office')
             expect(result).to eq('Office 1')
+          end
+        end
+
+        describe '#nameservers with colon-containing active profile name' do
+          it 'uses the unescaped profile name for connection lookup' do
+            allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
+            expect(subject).to receive(:run_os_command)
+              .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', 'wlp3s0'], false)
+              .and_return(command_result(stdout: 'GENERAL.CONNECTION:Cafe\\:Guest'))
+            expect(subject).to receive(:nameservers_from_connection).with('Cafe:Guest')
+              .and_return(['1.1.1.1'])
+
+            expect(subject.nameservers).to eq(['1.1.1.1'])
+          end
+        end
+
+        describe '#set_nameservers with colon-containing active profile name' do
+          it 'passes the unescaped profile name back to nmcli' do
+            allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
+            expect(subject).to receive(:run_os_command)
+              .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', 'wlp3s0'], false)
+              .and_return(command_result(stdout: 'GENERAL.CONNECTION:Cafe\\:Guest'))
+            expect(subject).to receive(:run_os_command)
+              .with(['nmcli', 'connection', 'modify', 'Cafe:Guest', 'ipv4.dns', '1.1.1.1'])
+              .ordered.and_return(command_result(stdout: ''))
+            expect(subject).to receive(:run_os_command)
+              .with(['nmcli', 'connection', 'modify', 'Cafe:Guest', 'ipv4.ignore-auto-dns', 'yes'])
+              .ordered.and_return(command_result(stdout: ''))
+            expect(subject).to receive(:run_os_command)
+              .with(['nmcli', 'connection', 'modify', 'Cafe:Guest', 'ipv6.dns', ''])
+              .ordered.and_return(command_result(stdout: ''))
+            expect(subject).to receive(:run_os_command)
+              .with(['nmcli', 'connection', 'modify', 'Cafe:Guest', 'ipv6.ignore-auto-dns', 'no'])
+              .ordered.and_return(command_result(stdout: ''))
+            expect(subject).to receive(:run_os_command)
+              .with(['nmcli', 'connection', 'up', 'Cafe:Guest'])
+              .ordered.and_return(command_result(stdout: ''))
+
+            expect(subject.set_nameservers(['1.1.1.1'])).to eq(['1.1.1.1'])
           end
         end
 

@@ -494,10 +494,10 @@ module WifiWand
         return nil
       end
 
-      line = output.split("\n").find { |row| row.start_with?('GENERAL.CONNECTION:') }
+      line = output.split("\n").find { |row| nmcli_split(row, 2).first == 'GENERAL.CONNECTION' }
       return nil unless line
 
-      profile = line.split(':', 2).last&.strip
+      profile = nmcli_split(line, 2).last&.strip
       profile&.empty? ? nil : profile
     end
 
