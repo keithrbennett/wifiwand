@@ -18,7 +18,16 @@ describe WifiWand::StatusLineDataBuilder do
   end
 
   let(:progress_updates) { [] }
-  let(:builder) { described_class.new(model, verbose: false, output: StringIO.new) }
+  let(:builder) do
+    described_class.new(
+      model,
+      verbose:                             false,
+      output:                              StringIO.new,
+      worker_result_timeout_seconds:       0.05,
+      worker_result_poll_interval_seconds: 0.001,
+      worker_cleanup_timeout_seconds:      0.01
+    )
+  end
   let(:expected_initial_progress) do
     {
       wifi_on:                       true,
@@ -327,6 +336,60 @@ describe WifiWand::StatusLineDataBuilder do
         captive_portal_state:          :indeterminate,
         captive_portal_login_required: :no
       )
+    end
+
+    it 'returns partial connectivity data when the network worker never publishes a result' do
+      network_release = Queue.new
+
+      allow(model).to receive(:connected?) do
+        network_release.pop
+      end
+
+      result = builder.call(progress_callback: ->(data) { progress_updates << data })
+
+      expect(result).to eq(
+        wifi_on:                       true,
+        dns_working:                   true,
+        connected:                     nil,
+        internet_state:                :reachable,
+        internet_check_complete:       true,
+        network_name:                  nil,
+        captive_portal_state:          :free,
+        captive_portal_login_required: :no
+      )
+      expect(progress_updates).to eq([
+        expected_initial_progress,
+        expected_initial_progress.merge(connected: nil, network_name: nil),
+        result,
+      ])
+      expect(network_release.size).to eq(0)
+    end
+
+    it 'returns an indeterminate connectivity result when the connectivity worker never publishes a result' do
+      connectivity_release = Queue.new
+
+      allow(model).to receive(:internet_tcp_connectivity?) do
+        connectivity_release.pop
+      end
+
+      result = builder.call(progress_callback: ->(data) { progress_updates << data })
+
+      expect(result).to eq(
+        wifi_on:                       true,
+        dns_working:                   nil,
+        connected:                     true,
+        internet_state:                :indeterminate,
+        internet_check_complete:       true,
+        network_name:                  'HomeNetwork',
+        captive_portal_state:          :indeterminate,
+        captive_portal_login_required: :unknown
+      )
+      expect(progress_updates).to eq([
+        expected_initial_progress,
+        expected_network_partial_progress,
+        result,
+      ])
+      expect(connectivity_release.size).to eq(0)
     end
 
     it 'cleans up the sibling worker when one worker raises unexpectedly' do

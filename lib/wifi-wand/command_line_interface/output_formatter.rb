@@ -86,6 +86,8 @@ module WifiWand
         network_text, network_color =
           if network_name == :pending
             ['WAIT', :yellow]
+          elsif status_data.key?(:connected) && status_data[:connected].nil?
+            ['UNKNOWN', :yellow]
           elsif status_data[:connected] == true && (network_name.nil? || network_name.to_s.empty?)
             ['[SSID unavailable]', :yellow]
           elsif network_name.nil? || network_name.to_s.empty?

@@ -5,14 +5,28 @@ require_relative '../connectivity_states'
 module WifiWand
   class StatusLineDataBuilder
     SSID_UNAVAILABLE_LABEL = '[SSID unavailable]'
+    DEFAULT_WORKER_RESULT_TIMEOUT_SECONDS = 2
+    DEFAULT_WORKER_RESULT_POLL_INTERVAL_SECONDS = 0.01
+    DEFAULT_WORKER_CLEANUP_TIMEOUT_SECONDS = 0.05
 
     attr_reader :model, :verbose_mode, :output, :expected_network_errors
 
-    def initialize(model, verbose: false, output: $stdout, expected_network_errors: [])
+    def initialize(
+      model,
+      verbose: false,
+      output: $stdout,
+      expected_network_errors: [],
+      worker_result_timeout_seconds: DEFAULT_WORKER_RESULT_TIMEOUT_SECONDS,
+      worker_result_poll_interval_seconds: DEFAULT_WORKER_RESULT_POLL_INTERVAL_SECONDS,
+      worker_cleanup_timeout_seconds: DEFAULT_WORKER_CLEANUP_TIMEOUT_SECONDS
+    )
       @model = model
       @verbose_mode = verbose
       @output = output
       @expected_network_errors = expected_network_errors
+      @worker_result_timeout_seconds = worker_result_timeout_seconds
+      @worker_result_poll_interval_seconds = worker_result_poll_interval_seconds
+      @worker_cleanup_timeout_seconds = worker_cleanup_timeout_seconds
     end
 
     def call(progress_callback: nil)
@@ -71,8 +85,13 @@ module WifiWand
         return payload
       end
 
+      deadline = monotonic_now + @worker_result_timeout_seconds
+
       loop do
-        completed_worker, status, payload = result_queue.pop
+        queue_entry = pop_worker_result_before_deadline(result_queue, deadline)
+        return worker_timeout_result(worker_name) if queue_entry.nil?
+
+        completed_worker, status, payload = queue_entry
 
         if completed_worker == worker_name
           raise payload if status == :error
@@ -84,12 +103,47 @@ module WifiWand
       end
     end
 
+    def pop_worker_result_before_deadline(result_queue, deadline)
+      loop do
+        return result_queue.pop(true)
+      rescue ThreadError
+        remaining = deadline - monotonic_now
+        return nil if remaining <= 0
+
+        sleep([@worker_result_poll_interval_seconds, remaining].min)
+      end
+    end
+
     def cleanup_worker_threads(*threads)
       threads.compact.each do |thread|
         thread.kill if thread.alive?
-        thread.join
+        thread.join(@worker_cleanup_timeout_seconds)
       end
     end
+
+    def worker_timeout_result(worker_name)
+      output.puts "Warning: #{worker_name} status worker timed out" if verbose_mode
+
+      case worker_name
+      when :network
+        {
+          connected:    nil,
+          network_name: nil,
+        }
+      when :connectivity
+        {
+          dns_working:                   nil,
+          internet_state:                ConnectivityStates::INTERNET_INDETERMINATE,
+          internet_check_complete:       true,
+          captive_portal_state:          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
+          captive_portal_login_required: :unknown,
+        }
+      else
+        {}
+      end
+    end
+
+    def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
     def initial_data
       {

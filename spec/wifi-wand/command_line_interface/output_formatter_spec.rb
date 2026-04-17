@@ -359,6 +359,15 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         expect(result).to match(YELLOW_TEXT_REGEX)
       end
 
+      it 'shows UNKNOWN when network identity is indeterminate after completion' do
+        data = status_data.merge(connected: nil, network_name: nil)
+
+        result = subject.status_line(data)
+
+        expect(result).to match(/WiFi Network.*UNKNOWN/)
+        expect(result).to match(YELLOW_TEXT_REGEX)
+      end
+
       context 'when captive portal is detected' do
         it 'does not show captive portal warning when captive_portal_login_required is false' do
           result = subject.status_line(status_data)
