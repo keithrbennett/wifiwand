@@ -1,11 +1,64 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
+require 'rbconfig'
 require 'stringio'
 require_relative '../../../lib/wifi-wand/services/network_connectivity_tester'
 
 describe WifiWand::NetworkConnectivityTester do
   include TestHelpers
+
+  let(:ruby_bin) { RbConfig.ruby }
+
+  # These helpers build tiny child-process commands so the specs can exercise the
+  # subprocess orchestration path directly: one reports success, one reports
+  # failure, and one simulates a helper that never returns before the deadline.
+  def helper_command(body)
+    [ruby_bin, '-rjson', '-e', body]
+  end
+
+  def success_command
+    helper_command('STDOUT.write(JSON.generate(success: true))')
+  end
+
+  def failure_command
+    helper_command('STDOUT.write(JSON.generate(success: false, error_class: "RuntimeError"))')
+  end
+
+  def hanging_command
+    [ruby_bin, '-e', 'sleep 10']
+  end
+
+  shared_examples 'subprocess-based cancellation' do
+    |method_name:, items_method:, success_items:, failing_items:|
+    let(:tester) { described_class.new(verbose: false) }
+
+    it 'returns early when another helper succeeds before a hung helper finishes' do
+      allow(tester).to receive(items_method).and_return(success_items)
+      allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
+        item == success_items.last ? success_command : hanging_command
+      end
+
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      expect(tester.public_send(method_name)).to be true
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+      expect(elapsed).to be < 0.5
+    end
+
+    it 'returns false within the documented deadline when a helper never returns' do
+      allow(tester).to receive(items_method).and_return(failing_items)
+      allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
+        item == failing_items.last ? failure_command : hanging_command
+      end
+
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      expect(tester.public_send(method_name)).to be false
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+      expect(elapsed).to be < (WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT + 0.2)
+    end
+  end
 
   describe '#tcp_connectivity?' do
     context 'with verbose mode enabled' do
@@ -28,12 +81,18 @@ describe WifiWand::NetworkConnectivityTester do
       end
     end
 
-    context 'with mocked failures' do
+    context 'with helper-reported failures' do
       let(:tester) { described_class.new(verbose: false) }
+      let(:endpoints) do
+        [
+          { host: 'failed-a.test', port: 443 },
+          { host: 'failed-b.test', port: 443 },
+        ]
+      end
 
       before do
-        stub_short_connectivity_timeouts
-        mock_socket_connection_failure
+        allow(tester).to receive_messages(tcp_test_endpoints: endpoints,
+          connectivity_probe_command: failure_command)
       end
 
       it 'returns false when all endpoints fail' do
@@ -42,10 +101,21 @@ describe WifiWand::NetworkConnectivityTester do
       end
     end
 
-    context 'with mocked success' do
+    context 'with helper-reported success' do
       let(:tester) { described_class.new(verbose: false) }
+      let(:endpoints) do
+        [
+          { host: 'failed.test', port: 443 },
+          { host: 'success.test', port: 443 },
+        ]
+      end
 
-      before { mock_socket_connection_success }
+      before do
+        allow(tester).to receive(:tcp_test_endpoints).and_return(endpoints)
+        allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
+          item == endpoints.last ? success_command : failure_command
+        end
+      end
 
       it 'returns true when at least one endpoint succeeds' do
         expect(tester.tcp_connectivity?).to be true
@@ -54,19 +124,17 @@ describe WifiWand::NetworkConnectivityTester do
 
     context 'when some ports are blocked but others remain open' do
       let(:tester) { described_class.new(verbose: false) }
-
-      before do
-        allow(tester).to receive(:tcp_test_endpoints).and_return([
+      let(:endpoints) do
+        [
           { host: '1.1.1.1', port: 53 },
           { host: '1.1.1.1', port: 443 },
-        ])
+        ]
+      end
 
-        allow(Socket).to receive(:tcp) do |_host, port, connect_timeout:, &block|
-          if port == 53
-            raise Errno::ECONNREFUSED
-          else
-            block ? block.call : true
-          end
+      before do
+        allow(tester).to receive(:tcp_test_endpoints).and_return(endpoints)
+        allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
+          item[:port] == 443 ? success_command : failure_command
         end
       end
 
@@ -75,125 +143,17 @@ describe WifiWand::NetworkConnectivityTester do
       end
     end
 
-    context 'when one endpoint succeeds before another blocking endpoint times out' do
-      let(:tester) { described_class.new(verbose: false) }
-      let(:slow_endpoint_events) { Queue.new }
-      let(:slow_endpoint_blocker) { Queue.new }
-      let(:observed_worker_threads) { Queue.new }
-
-      before do
-        allow(tester).to receive(:tcp_test_endpoints).and_return([
-          { host: 'slow.test', port: 443 },
-          { host: 'fast.test', port: 443 },
-        ])
-
-        allow(Socket).to receive(:tcp) do |host, _port, connect_timeout:, &block|
-          observed_worker_threads << Thread.current
-
-          case host
-          when 'slow.test'
-            begin
-              slow_endpoint_events << :slow_started
-              slow_endpoint_blocker.pop
-              raise Errno::ETIMEDOUT
-            ensure
-              slow_endpoint_events << :slow_finished
-            end
-          when 'fast.test'
-            started_event = slow_endpoint_events.pop(timeout: 1)
-            raise 'Slow endpoint did not start' unless started_event == :slow_started
-
-            block ? block.call : true
-          else
-            raise "Unexpected host: #{host}"
-          end
-        end
-      end
-
-      it 'returns promptly and leaves no observed worker threads running after return' do
-        start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        expect(tester.tcp_connectivity?).to be true
-        elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-        observed_threads = [observed_worker_threads.pop(timeout: 1), observed_worker_threads.pop(timeout: 1)]
-
-        expect(elapsed).to be < (WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT / 2.0)
-        expect(slow_endpoint_events.pop(timeout: 1)).to eq(:slow_finished)
-        expect(observed_threads).to all(satisfy { |thread| !thread.alive? })
-        expect(observed_threads).to all(satisfy { |thread| thread.join(0) == thread })
-      end
-    end
-  end
-
-  describe '#run_parallel_checks?' do
-    let(:tester) { described_class.new(verbose: false) }
-    let(:worker_threads) { [] }
-    let(:joined_threads) { [] }
-
-    before do
-      allow(Thread).to receive(:new).and_wrap_original do |original, *args, &block|
-        thread = original.call(*args, &block)
-        allow(thread).to receive(:join).and_wrap_original do |join_original, *join_args|
-          joined_threads << thread
-          join_original.call(*join_args)
-        end
-        worker_threads << thread
-        thread
-      end
-    end
-
-    it 'joins all spawned workers before returning after an early success' do
-      slow_check_started = Queue.new
-      slow_check_blocker = Queue.new
-
-      result = tester.send(:run_parallel_checks?, %i[slow success], 1.0) do |item|
-        case item
-        when :slow
-          slow_check_started << :started
-          slow_check_blocker.pop
-          false
-        when :success
-          expect(slow_check_started.pop(timeout: 1)).to eq(:started)
-          true
-        end
-      end
-
-      expect(result).to be true
-      expect(worker_threads.size).to eq(2)
-      expect(joined_threads).to match_array(worker_threads)
-      expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
-    end
-
-    it 'joins all spawned workers before returning after the overall timeout expires' do
-      slow_checks_started = Queue.new
-      slow_check_blocker = Queue.new
-
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      result = tester.send(:run_parallel_checks?, %i[slow_a slow_b], 0.05) do |_item|
-        slow_checks_started << :started
-        slow_check_blocker.pop
-        false
-      end
-      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-
-      expect(slow_checks_started.pop(timeout: 1)).to eq(:started)
-      expect(slow_checks_started.pop(timeout: 1)).to eq(:started)
-      expect(result).to be false
-      expect(elapsed).to be < 0.5
-      expect(worker_threads.size).to eq(2)
-      expect(joined_threads).to match_array(worker_threads)
-      expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
-    end
-
-    it 'returns false when all checks fail' do
-      result = tester.send(:run_parallel_checks?, %i[fail_a fail_b], 1.0) do |_item|
-        false
-      end
-
-      expect(result).to be false
-      expect(worker_threads.size).to eq(2)
-      expect(joined_threads).to match_array(worker_threads)
-      expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
-    end
+    it_behaves_like 'subprocess-based cancellation',
+      method_name:   :tcp_connectivity?,
+      items_method:  :tcp_test_endpoints,
+      success_items: [
+        { host: 'hung.test', port: 443 },
+        { host: 'success.test', port: 443 },
+      ],
+      failing_items: [
+        { host: 'hung.test', port: 443 },
+        { host: 'failed.test', port: 443 },
+      ]
   end
 
   describe '#dns_working?' do
@@ -209,12 +169,13 @@ describe WifiWand::NetworkConnectivityTester do
       end
     end
 
-    context 'with mocked failures' do
+    context 'with helper-reported failures' do
       let(:tester) { described_class.new(verbose: false) }
+      let(:domains) { %w[failed-a.test failed-b.test] }
 
       before do
-        stub_short_connectivity_timeouts
-        mock_dns_resolution_failure
+        allow(tester).to receive_messages(dns_test_domains: domains,
+          connectivity_probe_command: failure_command)
       end
 
       it 'returns false when all domains fail to resolve' do
@@ -223,14 +184,75 @@ describe WifiWand::NetworkConnectivityTester do
       end
     end
 
-    context 'with mocked success' do
+    context 'with helper-reported success' do
       let(:tester) { described_class.new(verbose: false) }
+      let(:domains) { %w[failed.test success.test] }
 
-      before { mock_dns_resolution_success }
+      before do
+        allow(tester).to receive(:dns_test_domains).and_return(domains)
+        allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
+          item == domains.last ? success_command : failure_command
+        end
+      end
 
       it 'returns true when at least one domain resolves' do
         expect(tester.dns_working?).to be true
       end
+    end
+
+    it_behaves_like 'subprocess-based cancellation',
+      method_name:   :dns_working?,
+      items_method:  :dns_test_domains,
+      success_items: %w[hung.test success.test],
+      failing_items: %w[hung.test failed.test]
+  end
+
+  describe '#fast_connectivity?' do
+    let(:tester) { described_class.new(verbose: false) }
+
+    it 'returns early when another fast helper succeeds before a hung helper finishes' do
+      endpoints = [
+        { host: 'hung.test', port: 443 },
+        { host: 'success.test', port: 443 },
+      ]
+      allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
+        item == endpoints.last ? success_command : hanging_command
+      end
+      allow(tester).to receive(:run_parallel_checks?).and_wrap_original do |original,
+                                                                            _items,
+                                                                            timeout,
+                                                                            helper_mode:|
+        original.call(endpoints, timeout, helper_mode: helper_mode)
+      end
+
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      expect(tester.fast_connectivity?).to be true
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+      expect(elapsed).to be < 0.5
+    end
+
+    it 'returns false within the fast timeout when a helper never returns' do
+      endpoints = [
+        { host: 'hung.test', port: 443 },
+        { host: 'failed.test', port: 443 },
+      ]
+      allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
+        item == endpoints.last ? failure_command : hanging_command
+      end
+      allow(tester).to receive(:fast_connectivity?).and_call_original
+      allow(tester).to receive(:run_parallel_checks?).and_wrap_original do |original,
+                                                                            _items,
+                                                                            timeout,
+                                                                            helper_mode:|
+        original.call(endpoints, timeout, helper_mode: helper_mode)
+      end
+
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      expect(tester.fast_connectivity?).to be false
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+      expect(elapsed).to be < (WifiWand::TimingConstants::FAST_CONNECTIVITY_TIMEOUT + 0.2)
     end
   end
 

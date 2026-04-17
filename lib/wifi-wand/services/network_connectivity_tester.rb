@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'json'
+require 'rbconfig'
 require 'socket'
 require 'timeout'
 require 'yaml'
@@ -10,10 +12,6 @@ require_relative 'captive_portal_checker'
 
 module WifiWand
   class NetworkConnectivityTester
-    # Unique sentinel that is distinct from nil. internet_connectivity_state accepts
-    # pre-computed connectivity values as optional arguments; UNSET lets callers omit
-    # an argument entirely (triggering lazy evaluation) while still being able to pass
-    # nil explicitly to mean "not available".
     UNSET = Object.new.freeze
 
     attr_reader :captive_portal_checker
@@ -24,8 +22,6 @@ module WifiWand
       @captive_portal_checker = CaptivePortalChecker.new(verbose: verbose, output: output)
     end
 
-    # Tests TCP connectivity, DNS resolution, and captive-portal state and returns
-    # an explicit connectivity state symbol.
     def internet_connectivity_state(tcp_working = nil, dns_working = nil, captive_portal_state = UNSET)
       tcp = tcp_working.nil? ? tcp_connectivity? : tcp_working
       dns = dns_working.nil? ? dns_working? : dns_working
@@ -39,37 +35,42 @@ module WifiWand
       )
     end
 
-    # Delegates to CaptivePortalChecker#captive_portal_state.
     def captive_portal_state = @captive_portal_checker.captive_portal_state
 
-    # Fast connectivity check optimized for continuous monitoring (e.g., log command).
+    # Fast connectivity check optimized for continuous monitoring commands.
     #
-    # This method provides a quick internet connectivity test that:
-    # - Uses only 3 geographically diverse TCP endpoints
-    # - Has a short 1-second timeout per endpoint
-    # - Returns immediately when first endpoint responds (~50-200ms typically)
-    # - Works globally including China (uses Baidu endpoint)
-    # - Skips DNS testing (often cached, less useful for real-time monitoring)
+    # This is the cheap "are we probably online right now?" probe used in fast
+    # paths such as event logging, where keeping the command responsive matters
+    # more than building a full connectivity diagnosis. It intentionally skips DNS
+    # and captive-portal checks and instead races a small set of well-known TCP
+    # endpoints in parallel.
+    #
+    # The check preserves the same early-success behavior as the broader internet
+    # connectivity methods: it returns +true+ as soon as any endpoint reports a
+    # successful TCP connection. If no endpoint succeeds before the overall fast
+    # timeout expires, it returns +false+.
+    #
+    # Unlike the older thread-based implementation, each speculative TCP probe now
+    # runs in a short-lived helper subprocess. That gives the parent process a hard
+    # cancellation boundary when a resolver or socket syscall stops cooperating,
+    # so the public method stays within its documented timeout window even if an
+    # individual probe hangs.
     #
     # Endpoints tested:
-    # - 1.1.1.1:443 (Cloudflare) - Fast globally except China
-    # - 8.8.8.8:443 (Google) - Fast globally except China
-    # - 180.76.76.76:443 (Baidu) - Fast in China, accessible globally
+    # - 1.1.1.1:443 (Cloudflare)
+    # - 8.8.8.8:443 (Google)
+    # - 180.76.76.76:443 (Baidu)
     #
-    # @return [Boolean] true if any endpoint is reachable, false otherwise
+    # @return [Boolean] true when any fast TCP probe succeeds before the overall
+    #   timeout, false otherwise
     #
-    # Performance:
-    # - Best case: ~50-200ms (when any endpoint responds quickly)
-    # - Worst case: ~1 second (when all endpoints timeout)
-    #
-    # This is ideal for the log command where speed matters more than thoroughness.
-    # Use internet_connectivity_state for comprehensive checks in status/info commands.
-    #
+    # @see tcp_connectivity? for the broader TCP check used in status/info flows
+    # @see internet_connectivity_state for the full TCP + DNS + captive portal path
     def fast_connectivity?
       fast_endpoints = [
-        { host: '1.1.1.1', port: 443 },     # Cloudflare
-        { host: '8.8.8.8', port: 443 },     # Google
-        { host: '180.76.76.76', port: 443 }, # Baidu (China-friendly)
+        { host: '1.1.1.1', port: 443 },
+        { host: '8.8.8.8', port: 443 },
+        { host: '180.76.76.76', port: 443 },
       ]
 
       if @verbose
@@ -77,12 +78,13 @@ module WifiWand
         @output.puts "Fast connectivity check to: #{endpoints_list}"
       end
 
-      run_parallel_checks?(fast_endpoints, TimingConstants::FAST_CONNECTIVITY_TIMEOUT) do |endpoint|
-        attempt_fast_tcp_connection(endpoint)
-      end
+      run_parallel_checks?(
+        fast_endpoints,
+        TimingConstants::FAST_CONNECTIVITY_TIMEOUT,
+        helper_mode: :fast_tcp
+      )
     end
 
-    # Tests TCP connectivity to internet hosts (not localhost)
     def tcp_connectivity?
       test_endpoints = tcp_test_endpoints
 
@@ -91,123 +93,199 @@ module WifiWand
         @output.puts "Testing internet TCP connectivity to: #{endpoints_list}"
       end
 
-      run_parallel_checks?(test_endpoints, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do |endpoint|
-        attempt_tcp_connection(endpoint)
-      end
+      run_parallel_checks?(
+        test_endpoints,
+        TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT,
+        helper_mode: :tcp
+      )
     end
 
-    # Tests DNS resolution capability
     def dns_working?
       test_domains = dns_test_domains
 
-      if @verbose
-        @output.puts "Testing DNS resolution for domains: #{test_domains.join(', ')}"
-      end
+      @output.puts "Testing DNS resolution for domains: #{test_domains.join(', ')}" if @verbose
 
-      run_parallel_checks?(test_domains, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) do |domain|
-        attempt_dns_resolution(domain)
-      end
+      run_parallel_checks?(
+        test_domains,
+        TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT,
+        helper_mode: :dns
+      )
     end
 
     private
 
-    # Runs connectivity checks in parallel using native threads.
-    #
-    # Blocking stdlib socket and DNS calls do not cooperate with Async cancellation,
-    # so we use threads here to allow true overlap and prompt early return on success.
-    # This method has the following behavior:
-    # - Returns `true` as soon as ANY check succeeds (early exit optimization)
-    # - Returns `false` if ALL checks fail OR the overall timeout is reached
-    # - Each individual check runs with its own timeout (defined in the yielded block)
-    # - All checks run concurrently within the overall timeout window
-    # - Remaining worker threads are cancelled and joined before return
-    #
-    # @param items [Array] Collection of items to check (endpoints, domains, etc.)
-    # @param overall_timeout [Float] Maximum seconds to wait for any check to succeed
-    # @yield [item] Block that performs the actual connectivity test
-    # @yieldparam item The current item being tested
-    # @yieldreturn [Boolean] true if check succeeded, false otherwise
-    # @return [Boolean] true if any check succeeded within timeout, false otherwise
-    #
-    # @example Testing TCP connectivity to multiple endpoints
-    #   endpoints = [
-    #     { host: '1.1.1.1', port: 443 },
-    #     { host: '8.8.8.8', port: 443 }
-    #   ]
-    #
-    #   success = run_parallel_checks?(endpoints, 5.0) do |endpoint|
-    #     attempt_tcp_connection(endpoint)
-    #   end
-    #
-    def run_parallel_checks?(items, overall_timeout)
+    def run_parallel_checks?(items, overall_timeout, helper_mode:)
       return false if items.empty?
 
-      results = Queue.new
-      workers = items.map do |item|
-        Thread.new do
-          Thread.current.report_on_exception = false
-
-          result = yield(item)
-          results << result
-        rescue => e
-          log_unexpected_error(e)
-          results << false
-        end
-      end
-
+      probes = items.filter_map { |item| start_connectivity_probe(item, helper_mode) }
       deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + overall_timeout
-      remaining_results = items.length
 
-      while remaining_results.positive?
-        timeout = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
-        break if timeout <= 0
+      while probes.any?
+        ready_readers = ready_probe_readers(probes, deadline)
+        break if ready_readers.nil? || ready_readers.empty?
 
-        # Queue#pop returns nil on timeout here, which means "no worker finished
-        # before the overall deadline" rather than "a worker reported nil".
-        result = results.pop(timeout: timeout)
-        break if result.nil?
-
-        return true if result
-
-        remaining_results -= 1
+        ready_probes = probes.select { |probe| ready_readers.include?(probe[:reader]) }
+        ready_probes.each do |probe|
+          result = read_probe_result(probe)
+          log_probe_result(probe, result)
+          finalize_probe(probe)
+          probes.delete(probe)
+          return true if result[:success]
+        end
       end
 
       false
     ensure
-      cleanup_worker_threads(workers)
+      terminate_probes(probes || [])
     end
 
-    def cleanup_worker_threads(workers)
-      Array(workers).each do |worker|
-        worker.kill if worker&.alive?
-        worker&.join
+    def ready_probe_readers(probes, deadline)
+      timeout = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      return [] if timeout <= 0
+
+      ready_readers, = IO.select(probes.map { |probe| probe[:reader] }, nil, nil, timeout)
+      ready_readers
+    end
+
+    def start_connectivity_probe(item, helper_mode)
+      reader, writer = IO.pipe
+      pid = Process.spawn(*connectivity_probe_command(item, helper_mode), out: writer, err: File::NULL)
+      writer.close
+      { pid: pid, reader: reader, item: item, helper_mode: helper_mode }
+    rescue => e
+      reader&.close unless reader&.closed?
+      writer&.close unless writer&.closed?
+      log_helper_start_failure(item, helper_mode, e)
+      nil
+    end
+
+    def connectivity_probe_command(item, helper_mode)
+      [RbConfig.ruby, connectivity_probe_helper_path, helper_mode.to_s,
+        *probe_command_args(item, helper_mode)]
+    end
+
+    def connectivity_probe_helper_path
+      File.join(File.dirname(__FILE__), 'network_connectivity_probe_helper.rb')
+    end
+
+    def probe_command_args(item, helper_mode)
+      case helper_mode
+      when :tcp, :fast_tcp
+        [item[:host], item[:port].to_s]
+      when :dns
+        [item]
+      else
+        raise ArgumentError, "Unsupported helper mode: #{helper_mode}"
       end
     end
 
-    # Attempts to establish a TCP connection to a specific endpoint.
-    #
-    # This method tests basic TCP connectivity (Layer 4 in the OSI model) without
-    # requiring DNS resolution. It's useful for testing internet connectivity when
-    # DNS might be broken.
-    #
-    # @param endpoint [Hash] Endpoint configuration with :host and :port keys
-    # @option endpoint [String] :host IP address or hostname to connect to
-    # @option endpoint [Integer] :port TCP port number to connect to
-    # @return [Boolean] true if connection succeeded, false otherwise
-    #
-    # @example Testing connectivity to Cloudflare DNS
-    #   attempt_tcp_connection(host: '1.1.1.1', port: 443)
-    #
-    # Implementation Notes:
-    # - Uses Socket.tcp with connect_timeout for fast failure on unreachable hosts
-    # - Wrapped in Timeout.timeout as a safety net for the connection attempt
-    # - Connection is immediately closed after success (no data transfer)
-    # - All exceptions are caught and converted to false (not an error condition)
-    #
+    def read_probe_result(probe)
+      payload = JSON.parse(probe[:reader].read.to_s.strip, symbolize_names: true)
+      { success: payload[:success] == true, error_class: payload[:error_class] }
+    rescue => e
+      { success: false, error_class: e.class.to_s }
+    end
+
+    def log_probe_result(probe, result)
+      return unless @verbose
+
+      case probe[:helper_mode]
+      when :tcp
+        log_tcp_probe_result(probe[:item], result)
+      when :fast_tcp
+        log_fast_tcp_probe_result(probe[:item], result)
+      when :dns
+        log_dns_probe_result(probe[:item], result)
+      end
+    end
+
+    def log_tcp_probe_result(endpoint, result)
+      if result[:success]
+        @output.puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}"
+      else
+        @output.puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{result[:error_class]}"
+      end
+    end
+
+    def log_fast_tcp_probe_result(endpoint, result)
+      if result[:success]
+        @output.puts "Fast check: connected to #{endpoint[:host]}:#{endpoint[:port]}"
+      else
+        @output.puts "Fast check: failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: " \
+          "#{result[:error_class]}"
+      end
+    end
+
+    def log_dns_probe_result(domain, result)
+      if result[:success]
+        @output.puts "Successfully resolved #{domain}"
+      else
+        @output.puts "Failed to resolve #{domain}: #{result[:error_class]}"
+      end
+    end
+
+    def log_helper_start_failure(item, helper_mode, error)
+      return unless @verbose
+
+      target = case helper_mode
+               when :tcp, :fast_tcp then "#{item[:host]}:#{item[:port]}"
+               when :dns then item
+               else item.inspect
+      end
+      @output.puts "Failed to start #{helper_mode} helper for #{target}: #{error.class}"
+    end
+
+    def terminate_probes(probes)
+      probes.each { |probe| terminate_probe(probe) }
+    end
+
+    def terminate_probe(probe)
+      pid = probe[:pid]
+      return unless pid
+
+      Process.kill('TERM', pid)
+      Process.kill('KILL', pid)
+      wait_for_probe_exit(pid)
+    rescue Errno::ESRCH, Errno::ECHILD
+      nil
+    ensure
+      finalize_probe(probe)
+    end
+
+    def finalize_probe(probe)
+      probe[:reader]&.close unless probe[:reader]&.closed?
+      reap_probe(probe[:pid])
+      probe[:pid] = nil
+    end
+
+    def reap_probe(pid)
+      return unless pid
+
+      Process.wait(pid, Process::WNOHANG) || nil
+    rescue Errno::ECHILD
+      nil
+    end
+
+    def wait_for_probe_exit(pid)
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 0.05
+
+      loop do
+        return if reap_probe(pid)
+        return if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+
+        sleep(0.005)
+      end
+    rescue Errno::ESRCH, Errno::ECHILD
+      nil
+    end
+
     def attempt_tcp_connection(endpoint)
       Timeout.timeout(TimingConstants::TCP_CONNECTION_TIMEOUT) do
-        Socket.tcp(endpoint[:host], endpoint[:port],
-          connect_timeout: TimingConstants::TCP_CONNECTION_TIMEOUT) do
+        Socket.tcp(
+          endpoint[:host],
+          endpoint[:port],
+          connect_timeout: TimingConstants::TCP_CONNECTION_TIMEOUT
+        ) do
           @output.puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}" if @verbose
           true
         end
@@ -217,47 +295,24 @@ module WifiWand
       false
     end
 
-    # Fast TCP connection attempt optimized for continuous monitoring.
-    #
-    # Similar to attempt_tcp_connection but with shorter timeout for speed.
-    # Used by fast_connectivity? method for quick outage detection.
-    #
-    # @param endpoint [Hash] Endpoint configuration with :host and :port keys
-    # @return [Boolean] true if connection succeeded, false otherwise
-    #
     def attempt_fast_tcp_connection(endpoint)
       Timeout.timeout(TimingConstants::FAST_TCP_CONNECTION_TIMEOUT) do
-        Socket.tcp(endpoint[:host], endpoint[:port],
-          connect_timeout: TimingConstants::FAST_TCP_CONNECTION_TIMEOUT) do
+        Socket.tcp(
+          endpoint[:host],
+          endpoint[:port],
+          connect_timeout: TimingConstants::FAST_TCP_CONNECTION_TIMEOUT
+        ) do
           @output.puts "Fast check: connected to #{endpoint[:host]}:#{endpoint[:port]}" if @verbose
           true
         end
       end
     rescue => e
       if @verbose
-        @output.puts "Fast check: failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: " \
-          "#{e.class}"
+        @output.puts "Fast check: failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}"
       end
       false
     end
 
-    # Attempts to resolve a domain name to an IP address.
-    #
-    # This method tests DNS functionality by performing a forward lookup of a domain name.
-    # It only checks that DNS resolution works, not that the resolved IP is reachable.
-    #
-    # @param domain [String] Domain name to resolve (e.g., 'google.com')
-    # @return [Boolean] true if resolution succeeded, false otherwise
-    #
-    # @example Testing DNS resolution
-    #   attempt_dns_resolution('google.com')  # => true if DNS works
-    #
-    # Implementation Notes:
-    # - Uses IPSocket.getaddress which queries the system's DNS resolver
-    # - Returns true if ANY IP address is returned (IPv4 or IPv6)
-    # - Wrapped in timeout to prevent hanging on slow/broken DNS servers
-    # - All exceptions are caught and converted to false (not an error condition)
-    #
     def attempt_dns_resolution(domain)
       Timeout.timeout(TimingConstants::DNS_RESOLUTION_TIMEOUT) do
         IPSocket.getaddress(domain)
@@ -269,41 +324,12 @@ module WifiWand
       false
     end
 
-    # Logs unexpected errors that occur during connectivity testing.
-    #
-    # This method is called when an exception is raised during a connectivity check
-    # that isn't part of the normal failure path (e.g., programming errors, system issues).
-    #
-    # @param error [StandardError] The exception that was caught
-    # @return [void]
-    #
-    # @note Only outputs when verbose mode is enabled
-    #
     def log_unexpected_error(error)
       return unless @verbose
 
       @output.puts "Unexpected error during connectivity test: #{error.class} - #{error.message}"
     end
 
-    # Loads the list of TCP endpoints to test for internet connectivity.
-    #
-    # The endpoints are loaded from a YAML configuration file and cached for the lifetime
-    # of this object. The file contains well-known public services that should be reachable
-    # from any internet-connected machine (e.g., Cloudflare DNS, Google DNS).
-    #
-    # @return [Array<Hash>] Array of endpoint hashes with :host and :port keys
-    #
-    # @example Returned structure
-    #   [
-    #     { host: '1.1.1.1', port: 443 },
-    #     { host: '8.8.8.8', port: 443 }
-    #   ]
-    #
-    # Implementation Notes:
-    # - Results are memoized in @tcp_test_endpoints
-    # - YAML keys are converted to symbols for cleaner access
-    # - File path is relative to this source file location
-    #
     def tcp_test_endpoints
       @tcp_test_endpoints ||= begin
         yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'tcp_test_endpoints.yml')
@@ -312,22 +338,6 @@ module WifiWand
       end
     end
 
-    # Loads the list of domain names to test for DNS functionality.
-    #
-    # The domains are loaded from a YAML configuration file and cached for the lifetime
-    # of this object. The file contains well-known domains that should always be resolvable
-    # (e.g., google.com, cloudflare.com).
-    #
-    # @return [Array<String>] Array of domain names to test
-    #
-    # @example Returned structure
-    #   ['google.com', 'cloudflare.com', 'amazon.com']
-    #
-    # Implementation Notes:
-    # - Results are memoized in @dns_test_domains
-    # - Extracts 'domain' field from each YAML entry
-    # - File path is relative to this source file location
-    #
     def dns_test_domains
       @dns_test_domains ||= begin
         yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'dns_test_domains.yml')
