@@ -10,10 +10,10 @@ describe WifiWand::EventLogger do
 
   let(:mock_model) do
     double('Model',
-      fast_connectivity?:     true,
-      connected?:             true,
-      wifi_on?:               true,
-      connected_network_name: 'TestNetwork'
+      internet_connectivity_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE,
+      connected?:                  true,
+      wifi_on?:                    true,
+      connected_network_name:      'TestNetwork'
     )
   end
   let(:output) { StringIO.new }
@@ -74,7 +74,7 @@ describe WifiWand::EventLogger do
   end
 
   describe '#fetch_current_state' do
-    it 'builds state from the lightweight polling methods' do
+    it 'builds state from WiFi, association, SSID, and explicit internet state' do
       logger = described_class.new(mock_model, output: output)
       state = {
         wifi_on:        true,
@@ -86,28 +86,71 @@ describe WifiWand::EventLogger do
       expect(mock_model).to receive(:wifi_on?).and_return(true)
       expect(mock_model).to receive(:connected?).and_return(true)
       expect(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
-      expect(mock_model).to receive(:fast_connectivity?).and_return(true)
+      expect(mock_model).to receive(:internet_connectivity_state)
+        .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
+      expect(mock_model).not_to receive(:fast_connectivity?)
       expect(mock_model).not_to receive(:status_line_data)
 
       expect(logger.send(:fetch_current_state)).to eq(state)
     end
 
-    it 'skips SSID and connectivity checks when WiFi is off' do
+    [
+      'treats DNS failure with TCP still reachable as internet unavailable',
+      'treats captive portal sessions as internet unavailable',
+    ].each do |description|
+      it description do
+        logger = described_class.new(mock_model, output: output)
+
+        expect(mock_model).to receive(:wifi_on?).and_return(true)
+        expect(mock_model).to receive(:connected?).and_return(true)
+        expect(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+        expect(mock_model).to receive(:internet_connectivity_state)
+          .and_return(WifiWand::ConnectivityStates::INTERNET_UNREACHABLE)
+
+        expect(logger.send(:fetch_current_state)).to eq(
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'TestNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_UNREACHABLE
+        )
+      end
+    end
+
+    it 'still checks internet state when WiFi is off' do
       logger = described_class.new(mock_model, output: output)
       state = {
         wifi_on:        false,
         connected:      false,
         network_name:   nil,
-        internet_state: WifiWand::ConnectivityStates::INTERNET_UNREACHABLE,
+        internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE,
       }
 
       expect(mock_model).to receive(:wifi_on?).and_return(false)
       expect(mock_model).not_to receive(:connected_network_name)
       expect(mock_model).not_to receive(:connected?)
+      expect(mock_model).to receive(:internet_connectivity_state)
+        .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
       expect(mock_model).not_to receive(:fast_connectivity?)
       expect(mock_model).not_to receive(:status_line_data)
 
       expect(logger.send(:fetch_current_state)).to eq(state)
+    end
+
+    it 'still checks internet state when WiFi is on but not connected' do
+      logger = described_class.new(mock_model, output: output)
+
+      expect(mock_model).to receive(:wifi_on?).and_return(true)
+      expect(mock_model).to receive(:connected?).and_return(false)
+      expect(mock_model).to receive(:connected_network_name).and_return(nil)
+      expect(mock_model).to receive(:internet_connectivity_state)
+        .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
+
+      expect(logger.send(:fetch_current_state)).to eq(
+        wifi_on:        true,
+        connected:      false,
+        network_name:   nil,
+        internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE
+      )
     end
 
     it 'returns nil and logs message when model raises error in verbose mode' do
@@ -125,13 +168,31 @@ describe WifiWand::EventLogger do
       expect(mock_model).to receive(:wifi_on?).and_return(true)
       expect(mock_model).to receive(:connected?).and_return(true)
       expect(mock_model).to receive(:connected_network_name).and_return(nil)
-      expect(mock_model).to receive(:fast_connectivity?).and_return(true)
+      expect(mock_model).to receive(:internet_connectivity_state)
+        .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
 
       expect(logger.send(:fetch_current_state)).to eq(
         wifi_on:        true,
         connected:      true,
         network_name:   '[SSID unavailable]',
         internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE
+      )
+    end
+
+    it 'preserves an indeterminate startup internet state' do
+      logger = described_class.new(mock_model, output: output)
+
+      expect(mock_model).to receive(:wifi_on?).and_return(true)
+      expect(mock_model).to receive(:connected?).and_return(true)
+      expect(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      expect(mock_model).to receive(:internet_connectivity_state)
+        .and_return(WifiWand::ConnectivityStates::INTERNET_INDETERMINATE)
+
+      expect(logger.send(:fetch_current_state)).to eq(
+        wifi_on:        true,
+        connected:      true,
+        network_name:   'TestNetwork',
+        internet_state: WifiWand::ConnectivityStates::INTERNET_INDETERMINATE
       )
     end
   end
@@ -277,6 +338,30 @@ describe WifiWand::EventLogger do
       logger.send(:detect_and_emit_events, current_state)
     end
 
+    it 'emits internet_on event when internet becomes available while WiFi is off' do
+      logger.instance_variable_set(:@previous_state,
+        { wifi_on: false, connected: false, network_name: nil, internet_state: :unreachable })
+
+      current_state =
+        { wifi_on: false, connected: false, network_name: nil, internet_state: :reachable }
+
+      expect(logger).to receive(:emit_event).with(:internet_on, {}, kind_of(Hash), kind_of(Hash))
+
+      logger.send(:detect_and_emit_events, current_state)
+    end
+
+    it 'emits internet_off event when internet becomes unavailable while WiFi is off' do
+      logger.instance_variable_set(:@previous_state,
+        { wifi_on: false, connected: false, network_name: nil, internet_state: :reachable })
+
+      current_state =
+        { wifi_on: false, connected: false, network_name: nil, internet_state: :unreachable }
+
+      expect(logger).to receive(:emit_event).with(:internet_off, {}, kind_of(Hash), kind_of(Hash))
+
+      logger.send(:detect_and_emit_events, current_state)
+    end
+
     it 'does not emit internet_off when connectivity becomes indeterminate' do
       logger.instance_variable_set(:@previous_state,
         { wifi_on: true, connected: true, network_name: 'TestNetwork', internet_state: :reachable })
@@ -297,6 +382,18 @@ describe WifiWand::EventLogger do
         { wifi_on: true, connected: true, network_name: 'TestNetwork', internet_state: :reachable }
 
       expect(logger).not_to receive(:emit_event).with(:internet_on, anything, anything, anything)
+
+      logger.send(:detect_and_emit_events, current_state)
+    end
+
+    it 'does not emit internet_off when connectivity resolves from indeterminate to unreachable' do
+      logger.instance_variable_set(:@previous_state,
+        { wifi_on: true, connected: true, network_name: 'TestNetwork', internet_state: :indeterminate })
+
+      current_state =
+        { wifi_on: true, connected: true, network_name: 'TestNetwork', internet_state: :unreachable }
+
+      expect(logger).not_to receive(:emit_event).with(:internet_off, anything, anything, anything)
 
       logger.send(:detect_and_emit_events, current_state)
     end

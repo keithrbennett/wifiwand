@@ -231,8 +231,9 @@ cat debug.log
    started
 2. **Polling Loop**: At regular intervals (default 5 seconds), the following are queried:
    - `wifi_on?` - WiFi power state
+   - `connected?` - Whether the interface is associated
    - `connected_network_name` - Currently connected network
-   - `fast_connectivity?` - Internet connectivity status
+   - `internet_connectivity_state` - Explicit internet state, checked on every poll
 3. **Change Detection**: Current state is compared to previous state
 4. **Event Emission**: Only actual changes are logged, in the order: WiFi power → Network → Internet
 5. **Graceful Shutdown**: Pressing `Ctrl+C` cleanly closes the log file and exits
@@ -244,10 +245,13 @@ The logger monitors three aspects of WiFi state:
 1. **WiFi Power**: Whether WiFi is turned on or off
 2. **Network Connection**: The name of the connected WiFi network (SSID)
 3. **Internet Connectivity**: Whether internet access is available
-   - Derived from `status_line_data`, which uses the explicit `internet_state`
+   - Derived directly from `internet_connectivity_state` on every poll
+   - May still report reachable internet when WiFi is off or unassociated if another uplink, such as Ethernet,
+     is active
    - `:indeterminate` is preserved internally and reported as `internet unknown`
      in the initial-state line
-   - Transition events are emitted only for `:reachable` and `:unreachable`
+   - Transition events are emitted only when both the previous and current
+     states are explicit (`:reachable` or `:unreachable`)
 
 Unlike older boolean-style docs, connectivity is not always known with
 certainty. An indeterminate state means TCP and DNS succeeded but captive-portal
