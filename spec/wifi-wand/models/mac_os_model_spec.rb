@@ -76,7 +76,7 @@ module WifiWand
             expect { subject.disconnect }.not_to raise_error
           rescue WifiWand::NetworkDisconnectionError => e
             expect(subject.associated?).to be(true)
-            expect(e.network_name).not_to be_nil
+            expect(e.reason).to match(/still associated with|interface remained associated/)
           end
         end
 
@@ -1011,6 +1011,23 @@ module WifiWand
 
           expect { model.disconnect }
             .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
+        end
+
+        it 'preserves a useful reason when association remains but no SSID is available' do
+          allow(model).to receive_messages(
+            wifi_on?:               true,
+            associated?:            true,
+            connected_network_name: nil
+          )
+          allow(model).to receive(:_disconnect).and_return(nil)
+          allow(model).to receive(:till)
+            .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
+            .and_raise(WifiWand::WaitTimeoutError.new(:disassociated, 5))
+
+          expect { model.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) { |error|
+            expect(error.network_name).to be_nil
+            expect(error.reason).to eq('interface remained associated')
+          }
         end
 
         it 'raises when disassociation is only transient during verification' do

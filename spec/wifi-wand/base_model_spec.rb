@@ -264,7 +264,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       rescue WifiWand::NetworkDisconnectionError => e
         expect(subject.mac?).to be(true)
         expect(subject.associated?).to be(true)
-        expect(e.network_name).not_to be_nil
+        expect(e.reason).to match(/still associated with|interface remained associated/)
       end
     end
   end
@@ -277,9 +277,17 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'is true when wifi is on and a non-empty network name is present, false otherwise' do
       skip 'WiFi is currently off' unless subject.wifi_on?
 
-      # Mirror the real contract from BaseModel#associated?: !nil? && !empty?
       name = subject.connected_network_name
-      expect(subject.associated?).to eq(!name.nil? && !name.empty?)
+      expected_association_state = if subject.mac?
+        # macOS can report a live association even when the SSID is redacted or
+        # temporarily unavailable, so the platform override uses stronger signals
+        # than connected_network_name alone.
+        (!name.nil? && !name.empty?) || subject.connected?
+      else
+        !name.nil? && !name.empty?
+      end
+
+      expect(subject.associated?).to eq(expected_association_state)
     end
   end
 
@@ -365,7 +373,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
   describe '#till', :real_env_read_write do
     # These tests exercise the real OS predicates (wifi_on?, associated?,
     # internet_connectivity_state wired through StatusWaiter against live hardware,
-    # covering the six explicit wait states introduced in the till redesign.
+    # as smoke tests for host-integrated behavior. Polling/state-transition
+    # semantics are covered in deterministic mocked specs below.
 
     context 'when target is a wifi power state (:wifi_on / :wifi_off)' do
       it 'returns nil immediately when WiFi is already on' do
@@ -389,27 +398,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
         subject.wifi_on
         expect do
           subject.till(:wifi_off, timeout_in_secs: 1)
-        end.to raise_error(WifiWand::WaitTimeoutError)
-      end
-    end
-
-    context 'when target is an association state (:associated / :disassociated)' do
-      before { subject.wifi_on }
-
-      it 'returns nil immediately for :disassociated after disconnecting' do
-        subject.disconnect
-        expect(subject.till(:disassociated)).to be_nil
-      end
-
-      it 'returns nil immediately for :associated when connected to a network' do
-        skip 'Not currently associated with any network' unless subject.associated?
-        expect(subject.till(:associated)).to be_nil
-      end
-
-      it 'raises WaitTimeoutError for :associated when disconnected and timeout expires' do
-        subject.disconnect
-        expect do
-          subject.till(:associated, timeout_in_secs: 1)
         end.to raise_error(WifiWand::WaitTimeoutError)
       end
     end
@@ -458,6 +446,61 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       it 'raises ArgumentError with migration hint for :off' do
         expect { subject.till(:off) }.to raise_error(ArgumentError, /:off.*was removed/i)
+      end
+    end
+
+    context 'when target is an association state (:associated / :disassociated)' do
+      before do
+        allow(subject).to receive(:till).and_call_original
+        allow_any_instance_of(WifiWand::StatusWaiter).to receive(:sleep)
+      end
+
+      it 'returns nil immediately for :associated when already associated' do
+        allow(subject).to receive(:associated?).and_return(true)
+
+        expect(subject.till(:associated)).to be_nil
+      end
+
+      it 'returns nil immediately for :disassociated when already disassociated' do
+        allow(subject).to receive(:associated?).and_return(false)
+
+        expect(subject.till(:disassociated)).to be_nil
+      end
+
+      it 'waits for :associated until association is observed' do
+        allow(subject).to receive(:associated?).and_return(false, false, true)
+
+        expect(
+          subject.till(:associated, timeout_in_secs: 1, wait_interval_in_secs: 0)
+        ).to be_nil
+      end
+
+      it 'waits for :disassociated until association clears' do
+        allow(subject).to receive(:associated?).and_return(true, true, false)
+
+        expect(
+          subject.till(:disassociated, timeout_in_secs: 1, wait_interval_in_secs: 0)
+        ).to be_nil
+      end
+
+      it 'raises WaitTimeoutError for :associated when association never appears' do
+        allow(subject).to receive(:associated?).and_return(false)
+        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
+          .and_return(1000.0, 1000.0, 1001.1)
+
+        expect do
+          subject.till(:associated, timeout_in_secs: 1, wait_interval_in_secs: 0)
+        end.to raise_error(WifiWand::WaitTimeoutError)
+      end
+
+      it 'raises WaitTimeoutError for :disassociated when association never clears' do
+        allow(subject).to receive(:associated?).and_return(true)
+        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
+          .and_return(1000.0, 1000.0, 1001.1)
+
+        expect do
+          subject.till(:disassociated, timeout_in_secs: 1, wait_interval_in_secs: 0)
+        end.to raise_error(WifiWand::WaitTimeoutError)
       end
     end
   end
