@@ -26,12 +26,14 @@ module WifiWand
         return partial
       end
 
-      network_thread, connectivity_thread = build_status_threads
+      result_queue = Queue.new
+      network_thread, connectivity_thread = build_status_threads(result_queue)
+      cached_results = {}
 
-      partial.merge!(network_thread.value)
+      partial.merge!(await_worker_result(result_queue, :network, cached_results))
       progress_callback&.call(partial.dup)
 
-      partial.merge!(connectivity_thread.value)
+      partial.merge!(await_worker_result(result_queue, :connectivity, cached_results))
 
       final_data = partial.dup
       progress_callback&.call(final_data)
@@ -46,11 +48,40 @@ module WifiWand
 
     private
 
-    def build_status_threads
+    def build_status_threads(result_queue)
       [
-        Thread.new { network_identity },
-        Thread.new { connectivity_data },
+        spawn_worker { publish_worker_result(result_queue, :network) { network_identity } },
+        spawn_worker { publish_worker_result(result_queue, :connectivity) { connectivity_data } },
       ]
+    end
+
+    def spawn_worker(&) = Thread.new(&)
+
+    def publish_worker_result(result_queue, worker_name)
+      result_queue << [worker_name, :result, yield]
+    rescue => e
+      result_queue << [worker_name, :error, e]
+    end
+
+    def await_worker_result(result_queue, worker_name, cached_results)
+      if cached_results.key?(worker_name)
+        status, payload = cached_results.delete(worker_name)
+        raise payload if status == :error
+
+        return payload
+      end
+
+      loop do
+        completed_worker, status, payload = result_queue.pop
+
+        if completed_worker == worker_name
+          raise payload if status == :error
+
+          return payload
+        end
+
+        cached_results[completed_worker] = [status, payload]
+      end
     end
 
     def cleanup_worker_threads(*threads)

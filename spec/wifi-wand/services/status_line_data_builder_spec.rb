@@ -3,6 +3,8 @@
 require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/services/status_line_data_builder'
 
+class StatusLineDataBuilderSpecExpectedError < StandardError; end
+
 describe WifiWand::StatusLineDataBuilder do
   let(:model) do
     double('model',
@@ -16,33 +18,53 @@ describe WifiWand::StatusLineDataBuilder do
   end
 
   let(:progress_updates) { [] }
-  let(:serial_blocking_status_latency) { 0.4 }
   let(:builder) { described_class.new(model, verbose: false, output: StringIO.new) }
+  let(:expected_initial_progress) do
+    {
+      wifi_on:                       true,
+      dns_working:                   nil,
+      internet_state:                :pending,
+      internet_check_complete:       false,
+      connected:                     :pending,
+      network_name:                  :pending,
+      captive_portal_state:          :indeterminate,
+      captive_portal_login_required: :unknown,
+    }
+  end
+  let(:expected_network_partial_progress) do
+    {
+      wifi_on:                       true,
+      dns_working:                   nil,
+      internet_state:                :pending,
+      internet_check_complete:       false,
+      connected:                     true,
+      network_name:                  'HomeNetwork',
+      captive_portal_state:          :indeterminate,
+      captive_portal_login_required: :unknown,
+    }
+  end
+  let(:expected_reachable_result) do
+    {
+      wifi_on:                       true,
+      dns_working:                   true,
+      connected:                     true,
+      internet_state:                :reachable,
+      internet_check_complete:       true,
+      network_name:                  'HomeNetwork',
+      captive_portal_state:          :free,
+      captive_portal_login_required: :no,
+    }
+  end
 
   describe '#call' do
     it 'builds full status data and streams partial updates' do
       result = builder.call(progress_callback: ->(data) { progress_updates << data })
 
-      expect(result).to eq(
-        wifi_on:                       true,
-        dns_working:                   true,
-        connected:                     true,
-        internet_state:                :reachable,
-        internet_check_complete:       true,
-        network_name:                  'HomeNetwork',
-        captive_portal_state:          :free,
-        captive_portal_login_required: :no
-      )
+      expect(result).to eq(expected_reachable_result)
       expect(progress_updates).to eq([
-        { wifi_on: true, dns_working: nil, internet_state: :pending, internet_check_complete: false,
-          connected: :pending, network_name: :pending, captive_portal_state: :indeterminate,
-          captive_portal_login_required: :unknown },
-        { wifi_on: true, dns_working: nil, internet_state: :pending, internet_check_complete: false,
-          connected: true, network_name: 'HomeNetwork', captive_portal_state: :indeterminate,
-          captive_portal_login_required: :unknown },
-        { wifi_on: true, dns_working: true, connected: true, internet_state: :reachable,
-          internet_check_complete: true, network_name: 'HomeNetwork', captive_portal_state: :free,
-          captive_portal_login_required: :no },
+        expected_initial_progress,
+        expected_network_partial_progress,
+        expected_reachable_result,
       ])
     end
 
@@ -151,38 +173,198 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result[:network_name]).to be_nil
     end
 
-    it 'overlaps blocking network identity and connectivity checks with native threads' do
+    it 'starts both workers before either finishes' do
+      network_started = Queue.new
+      connectivity_started = Queue.new
+      network_release = Queue.new
+      connectivity_release = Queue.new
       worker_threads = []
 
-      allow(Thread).to receive(:new).and_wrap_original do |original, *args, &block|
-        thread = original.call(*args, &block)
+      allow(builder).to receive(:spawn_worker).and_wrap_original do |original, &block|
+        thread = original.call(&block)
+        thread.report_on_exception = false
         worker_threads << thread
         thread
       end
 
       allow(model).to receive(:connected?) do
-        sleep(0.1)
+        network_started << :started
+        network_release.pop
         true
       end
-      allow(model).to receive(:connected_network_name) do
-        sleep(0.1)
-        'HomeNetwork'
-      end
       allow(model).to receive(:internet_tcp_connectivity?) do
-        sleep(0.1)
+        connectivity_started << :started
+        connectivity_release.pop
+        true
+      end
+
+      caller_thread = Thread.new { builder.call }
+
+      expect(network_started.pop(timeout: 1)).to eq(:started)
+      expect(connectivity_started.pop(timeout: 1)).to eq(:started)
+
+      network_release << :continue
+      connectivity_release << :continue
+
+      result = caller_thread.value
+
+      expect(result).to eq(expected_reachable_result)
+      expect(worker_threads.size).to eq(2)
+      expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
+    end
+
+    it 'keeps the intermediate callback network-only when connectivity finishes first' do
+      network_release = Queue.new
+      connectivity_finished = Queue.new
+
+      allow(model).to receive(:connected?) do
+        network_release.pop
         true
       end
       allow(model).to receive(:dns_working?) do
-        sleep(0.1)
+        connectivity_finished << :done
         true
       end
 
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      result = builder.call
-      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+      caller_thread = Thread.new do
+        builder.call(progress_callback: ->(data) { progress_updates << data })
+      end
 
-      expect(result[:internet_state]).to eq(:reachable)
-      expect(elapsed).to be < serial_blocking_status_latency
+      expect(connectivity_finished.pop(timeout: 1)).to eq(:done)
+      expect(progress_updates).to eq([expected_initial_progress])
+
+      network_release << :continue
+
+      result = caller_thread.value
+
+      expect(result).to eq(expected_reachable_result)
+      expect(progress_updates).to eq([
+        expected_initial_progress,
+        expected_network_partial_progress,
+        expected_reachable_result,
+      ])
+    end
+
+    it 'emits the network partial before re-raising an earlier connectivity failure' do
+      network_release = Queue.new
+      connectivity_failed = Queue.new
+
+      allow(model).to receive(:connected?) do
+        network_release.pop
+        true
+      end
+      allow(model).to receive(:captive_portal_state) do
+        connectivity_failed << :failed
+        raise 'boom'
+      end
+
+      caller_thread = Thread.new do
+        builder.call(progress_callback: ->(data) { progress_updates << data })
+      end
+      caller_thread.report_on_exception = false
+
+      expect(connectivity_failed.pop(timeout: 1)).to eq(:failed)
+      expect(progress_updates).to eq([expected_initial_progress])
+
+      network_release << :continue
+
+      expect { caller_thread.value }.to raise_error(RuntimeError, 'boom')
+      expect(progress_updates).to eq([
+        expected_initial_progress,
+        expected_network_partial_progress,
+      ])
+    end
+
+    it 'falls back gracefully when network identity raises an expected error' do
+      output = StringIO.new
+      failing_builder = described_class.new(
+        model,
+        verbose:                 true,
+        output:                  output,
+        expected_network_errors: [StatusLineDataBuilderSpecExpectedError]
+      )
+      allow(model).to receive(:connected?).and_raise(StatusLineDataBuilderSpecExpectedError, 'network down')
+
+      result = failing_builder.call
+
+      expect(result).to eq(
+        wifi_on:                       true,
+        dns_working:                   true,
+        connected:                     false,
+        internet_state:                :reachable,
+        internet_check_complete:       true,
+        network_name:                  nil,
+        captive_portal_state:          :free,
+        captive_portal_login_required: :no
+      )
+      expect(output.string).to include(
+        'Warning: network status lookup failed: StatusLineDataBuilderSpecExpectedError: network down'
+      )
+    end
+
+    it 'falls back gracefully when connectivity checks raise expected errors' do
+      failing_builder = described_class.new(
+        model,
+        verbose:                 true,
+        output:                  StringIO.new,
+        expected_network_errors: [StatusLineDataBuilderSpecExpectedError]
+      )
+      allow(model).to receive(:internet_tcp_connectivity?).and_raise(
+        StatusLineDataBuilderSpecExpectedError,
+        'tcp down'
+      )
+      allow(model).to receive(:dns_working?).and_raise(StatusLineDataBuilderSpecExpectedError, 'dns down')
+
+      result = failing_builder.call
+
+      expect(result).to eq(
+        wifi_on:                       true,
+        dns_working:                   false,
+        connected:                     true,
+        internet_state:                :unreachable,
+        internet_check_complete:       true,
+        network_name:                  'HomeNetwork',
+        captive_portal_state:          :indeterminate,
+        captive_portal_login_required: :no
+      )
+    end
+
+    it 'cleans up the sibling worker when one worker raises unexpectedly' do
+      network_started = Queue.new
+      network_release = Queue.new
+      network_terminated = Queue.new
+      worker_threads = []
+
+      allow(builder).to receive(:spawn_worker).and_wrap_original do |original, &block|
+        thread = original.call(&block)
+        thread.report_on_exception = false
+        worker_threads << thread
+        thread
+      end
+
+      allow(model).to receive(:connected?) do
+        network_started << :started
+        network_release.pop
+        true
+      ensure
+        network_terminated << :terminated
+      end
+      allow(model).to receive(:internet_tcp_connectivity?) do
+        started = network_started.pop(timeout: 1)
+        raise 'network worker did not start' unless started == :started
+
+        true
+      end
+      allow(model).to receive(:captive_portal_state).and_raise(RuntimeError, 'boom')
+
+      caller_thread = Thread.new { builder.call }
+      caller_thread.report_on_exception = false
+
+      network_release << :continue
+
+      expect { caller_thread.value }.to raise_error(RuntimeError, 'boom')
+      expect(network_terminated.pop(timeout: 1)).to eq(:terminated)
+
       expect(worker_threads.size).to eq(2)
       expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
     end
