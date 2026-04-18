@@ -15,6 +15,7 @@ require 'open3'
 require 'rubygems/version'
 require 'securerandom'
 require 'tmpdir'
+require 'digest'
 require_relative '../version'
 
 module WifiWand
@@ -26,8 +27,10 @@ module WifiWand
     MINIMUM_HELPER_VERSION = Gem::Version.new('14.0')
     # Allows power users/CI to opt out of helper usage via environment flag
     DISABLE_ENV_KEY = 'WIFIWAND_DISABLE_MAC_HELPER'
-    HELPER_COMMAND_TIMEOUT_SECONDS = ENV['RSPEC_RUNNING'] ? 0.25 : 3.0
-    HELPER_TERMINATION_WAIT_SECONDS = ENV['RSPEC_RUNNING'] ? 0.05 : 0.25
+    HELPER_COMMAND_TIMEOUT_SECONDS =
+      (ENV['WIFIWAND_HELPER_TIMEOUT_SECONDS'] || (ENV['RSPEC_RUNNING'] ? 1.0 : 3.0)).to_f
+    HELPER_TERMINATION_WAIT_SECONDS = ENV['RSPEC_RUNNING'] ? 0.1 : 0.25
+    MANIFEST_FILENAME = 'INSTALL_MANIFEST.json'
 
     module_function
 
@@ -93,7 +96,9 @@ module WifiWand
     # Verifies the helper installation is valid and not corrupted
     #
     # @return [Boolean] true if helper is properly installed and executable
-    def helper_installed_and_valid? = helper_bundle_valid?(installed_bundle_path)
+    def helper_installed_and_valid?
+      helper_bundle_valid?(installed_bundle_path) && installed_bundle_current?
+    end
 
     # Copies the pre-signed helper bundle into ~/Library and immediately re-validates it.
     # Concurrent installs may briefly leave the bundle incomplete, so we trust the follow-up
@@ -135,6 +140,8 @@ module WifiWand
 
     def install_lock_path = File.join(versioned_install_dir, '.install.lock')
 
+    def install_manifest_path = File.join(versioned_install_dir, MANIFEST_FILENAME)
+
     def helper_bundle_valid?(bundle_path)
       executable_path = File.join(bundle_path, 'Contents', 'MacOS', EXECUTABLE_NAME)
       return false unless File.executable?(executable_path)
@@ -149,6 +156,15 @@ module WifiWand
 
       command_output = "#{helper_result[:stdout]}#{helper_result[:stderr]}".strip
       !command_output.empty?
+    end
+
+    def installed_bundle_current?
+      manifest = read_install_manifest
+      return false unless manifest
+
+      manifest['helper_version'] == helper_version &&
+        manifest['bundle_fingerprint'] == bundle_fingerprint(installed_bundle_path) &&
+        manifest['bundle_fingerprint'] == bundle_fingerprint(source_bundle_path)
     end
 
     def run_bounded_helper_command(executable_path, command, on_timeout: nil)
@@ -444,6 +460,41 @@ module WifiWand
     def write_manifest
       FileUtils.mkdir_p(versioned_install_dir)
       File.write(File.join(versioned_install_dir, 'VERSION'), helper_version)
+      File.write(install_manifest_path, JSON.pretty_generate(
+        {
+          'helper_version' => helper_version,
+          'bundle_fingerprint' => bundle_fingerprint(source_bundle_path),
+        }
+      ))
+    end
+
+    def read_install_manifest
+      return unless File.exist?(install_manifest_path)
+
+      JSON.parse(File.read(install_manifest_path))
+    rescue JSON::ParserError
+      nil
+    end
+
+    def bundle_fingerprint(bundle_path)
+      digest = Digest::SHA256.new
+
+      tracked_bundle_files(bundle_path).each do |path|
+        digest << File.basename(path)
+        digest << "\0"
+        digest << File.read(path)
+        digest << "\0"
+      end
+
+      digest.hexdigest
+    end
+
+    def tracked_bundle_files(bundle_path)
+      [
+        File.join(bundle_path, 'Contents', 'Info.plist'),
+        File.join(bundle_path, 'Contents', '_CodeSignature', 'CodeResources'),
+        File.join(bundle_path, 'Contents', 'MacOS', EXECUTABLE_NAME),
+      ]
     end
 
     HelperQueryResult = Struct.new(

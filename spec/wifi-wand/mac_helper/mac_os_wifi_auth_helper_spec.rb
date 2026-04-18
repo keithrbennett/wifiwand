@@ -577,6 +577,9 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       File.join(source_bundle_path, 'Contents', '_CodeSignature', 'CodeResources')
     end
     let(:manifest_path) { File.join(versioned_install_dir, 'VERSION') }
+    let(:install_manifest_path) do
+      File.join(versioned_install_dir, described_class::MANIFEST_FILENAME)
+    end
 
     before do
       allow(described_class).to receive_messages(
@@ -615,6 +618,10 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       expect(described_class.helper_installed_and_valid?).to be(true)
       expect(File.symlink?(installed_bundle_path)).to be(true)
       expect(File.read(manifest_path)).to eq('9.9.9')
+      expect(JSON.parse(File.read(install_manifest_path))).to include(
+        'helper_version' => '9.9.9',
+        'bundle_fingerprint' => described_class.bundle_fingerprint(source_bundle_path)
+      )
       expect(out_stream.string).to include('Installing wifiwand macOS helper...')
       expect(out_stream.string).to include('Helper bundle installed from pre-signed binary.')
     end
@@ -789,6 +796,56 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
         .and_return(nil)
 
       expect(described_class.helper_bundle_valid?(bundle_path)).to be(false)
+    end
+  end
+
+  describe '.helper_installed_and_valid?' do
+    let(:temp_dir) { Dir.mktmpdir('wifiwand-helper-current-spec') }
+    let(:versioned_install_dir) { File.join(temp_dir, 'installed') }
+    let(:installed_bundle_path) { File.join(versioned_install_dir, described_class::BUNDLE_NAME) }
+    let(:installed_executable_path) do
+      File.join(installed_bundle_path, 'Contents', 'MacOS', described_class::EXECUTABLE_NAME)
+    end
+    let(:source_bundle_path) { File.join(temp_dir, 'source', described_class::BUNDLE_NAME) }
+    let(:install_manifest_path) do
+      File.join(versioned_install_dir, described_class::MANIFEST_FILENAME)
+    end
+
+    before do
+      allow(described_class).to receive_messages(
+        versioned_install_dir:     versioned_install_dir,
+        installed_bundle_path:     installed_bundle_path,
+        installed_executable_path: installed_executable_path,
+        source_bundle_path:        source_bundle_path,
+        helper_version:            '9.9.9'
+      )
+      allow(described_class).to receive(:run_bounded_helper_command) do |executable_path, command|
+        script = File.read(executable_path)
+        success = command == 'help' && !script.include?("exit 1\n")
+        status = instance_double(Process::Status, success?: success, exitstatus: success ? 0 : 1)
+        {
+          stdout: success ? 'wifiwand helper usage' : '',
+          stderr: '',
+          status: status,
+        }
+      end
+    end
+
+    after do
+      FileUtils.rm_rf(temp_dir)
+    end
+
+    it 'returns false when a same-version installed helper differs from the shipped bundle' do
+      create_helper_bundle(source_bundle_path, help_text: 'new helper')
+      create_helper_bundle(installed_bundle_path, help_text: 'old helper')
+      FileUtils.mkdir_p(versioned_install_dir)
+      File.write(install_manifest_path, JSON.dump(
+        'helper_version' => '9.9.9',
+        'bundle_fingerprint' => described_class.bundle_fingerprint(installed_bundle_path)
+      ))
+
+      expect(described_class.helper_bundle_valid?(installed_bundle_path)).to be(true)
+      expect(described_class.helper_installed_and_valid?).to be(false)
     end
   end
 
