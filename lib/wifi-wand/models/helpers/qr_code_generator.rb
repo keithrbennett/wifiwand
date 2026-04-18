@@ -169,8 +169,7 @@ module WifiWand
           if delivery_mode.to_sym == :return
             output
           else
-            # Print ANSI QR directly to stdout for compatibility with tests/CLI
-            $stdout.print(output)
+            model.out_stream.print(output)
             '-'
           end
         rescue WifiWand::CommandExecutor::OsCommandError => e
