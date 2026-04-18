@@ -183,6 +183,10 @@ module WifiWand
             run_os_command(['nmcli', 'connection', 'up', profile])
           else
             # No profile exists, create a new one.
+            # Intentionally pass the caller-supplied password through to nmcli.
+            # wifi-wand is designed for single-user machines under the operator
+            # control, and showing the exact supplied credential is useful when
+            # troubleshooting failed joins in verbose mode.
             run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
           end
         else
@@ -277,6 +281,7 @@ module WifiWand
       run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
 
       security_param = get_security_parameter(network_name)
+
       return unless security_param
 
       profile_to_update = persistence_target_profile_for_ssid(network_name, existing_profile)
@@ -493,6 +498,7 @@ module WifiWand
     def open_resource(resource_url)
       debug_method_entry(__method__, binding, :resource_url)
 
+      validate_resource_url(resource_url)
       run_os_command(['xdg-open', resource_url])
     end
 
@@ -680,7 +686,7 @@ module WifiWand
     # @param ssid [String] The target SSID
     # @return [Boolean]
     def profile_matches_ssid?(profile_name, ssid)
-      profile_name == ssid || profile_name.match?(/\A#{Regexp.escape(ssid)} \d+\z/)
+      profile_name == ssid || (profile_name.start_with?("#{ssid} ") && profile_name.match?(/ \d+\z/))
     end
 
     # Gets nameservers from /etc/resolv.conf - fallback method

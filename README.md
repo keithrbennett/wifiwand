@@ -321,6 +321,17 @@ you can do so by specifying "-v" (for _verbose_) on the command line.
 To disable verbose mode, use `--no-verbose` or `--no-v`
 (Ruby's OptionParser does not support short-form negations like `-v-`).
 
+On Ubuntu, when you connect with an inline password, wifi-wand intentionally
+passes that password to `nmcli` as a command-line argument. This means the
+password can appear in verbose output and may be visible to local process
+inspection tools such as `ps` while the command is running.
+
+This behavior is intentional. wifi-wand is designed primarily for individual
+operators on machines they fully control, and showing the exact supplied
+password is useful when diagnosing failed joins, stale saved credentials, and
+quoting or escaping mistakes. Do not use inline passwords with wifi-wand on
+machines where other local users or local process inspection are not trusted.
+
 ### Interactive Shell Mode vs Command Line Mode
 
 **Command Line Mode** (default): Execute single commands and exit

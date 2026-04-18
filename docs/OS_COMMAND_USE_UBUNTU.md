@@ -85,7 +85,11 @@ stored DNS state, not a partial merge.
 - Dynamic Values: `network_name`, `password`
 - Base Model Method(s): `_connect`
 - CLI Command(s): `co`
-- Helpful Info: Serves as a fallback when no profile exists or its security type could not be resolved.
+- Helpful Info: Serves as a fallback when no profile exists or its security type could not be resolved. This
+  intentionally passes the supplied password through `argv`. On Ubuntu that means the password may appear in
+  verbose output and may be visible to local process inspection tools while `nmcli` is running. wifi-wand keeps
+  this behavior because the project is aimed at single-user machines under the operator's control, and seeing the
+  exact supplied credential is useful when troubleshooting failed joins.
 
 ### `nmcli connection up <profile>`
 - Description: Brings an existing connection profile online.

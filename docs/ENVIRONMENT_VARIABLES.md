@@ -8,6 +8,13 @@ This document lists all environment variables that affect wifi-wand behavior.
 
 Enable verbose output showing underlying OS commands and their output.
 
+On Ubuntu, `connect` commands that include an inline password intentionally
+show the exact password-bearing `nmcli` command. wifi-wand targets
+single-user machines under the operator's control, and preserving the exact
+credential is considered more useful for troubleshooting than hiding it.
+Avoid inline passwords on systems where local process inspection is not
+trusted.
+
 **Values:** Any non-empty value enables verbose mode (e.g., `true`, `1`, `yes`)
 
 **Usage:**
