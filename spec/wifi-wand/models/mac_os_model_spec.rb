@@ -751,13 +751,24 @@ module WifiWand
           ]
 
           test_cases.each do |error, expected|
+            fresh_model = create_mac_os_test_model
+
             if error
-              allow(model).to receive(:run_os_command).and_raise(error)
+              allow(fresh_model).to receive(:run_os_command).and_raise(error)
             else
-              allow(model).to receive(:run_os_command).and_return(command_result(stdout: ''))
+              allow(fresh_model).to receive(:run_os_command).and_return(command_result(stdout: ''))
             end
 
-            expect(model.swift_and_corewlan_present?).to eq(expected)
+            expect(fresh_model.swift_and_corewlan_present?).to eq(expected)
+          end
+        end
+
+        it 'memoizes the subprocess probe result across repeated calls' do
+          expect(model).to receive(:run_os_command).with(['swift', '-e', 'import CoreWLAN'], false)
+            .once.and_return(command_result(stdout: ''))
+
+          2.times do
+            expect(model.swift_and_corewlan_present?).to be(true)
           end
         end
       end

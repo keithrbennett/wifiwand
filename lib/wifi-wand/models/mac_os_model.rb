@@ -515,25 +515,29 @@ module WifiWand
     def nameservers = nameservers_using_scutil
 
     def swift_and_corewlan_present?
-      run_os_command(['swift', '-e', 'import CoreWLAN'], false)
-      true
-    rescue WifiWand::CommandExecutor::OsCommandError => e
-      # Log the specific error if in verbose mode
-      if verbose_mode
-        case e.exitstatus
-        when 127
-          out_stream.puts "Swift command not found (exit code #{e.exitstatus}). " \
-            'Install Xcode Command Line Tools.'
-        when 1
-          out_stream.puts "CoreWLAN framework not available (exit code #{e.exitstatus}). Install Xcode."
-        else
-          out_stream.puts "Swift/CoreWLAN check failed with exit code #{e.exitstatus}: #{e.text.strip}"
+      return @swift_and_corewlan_present if defined?(@swift_and_corewlan_present)
+
+      @swift_and_corewlan_present = begin
+        run_os_command(['swift', '-e', 'import CoreWLAN'], false)
+        true
+      rescue WifiWand::CommandExecutor::OsCommandError => e
+        # Log the specific error if in verbose mode
+        if verbose_mode
+          case e.exitstatus
+          when 127
+            out_stream.puts "Swift command not found (exit code #{e.exitstatus}). " \
+              'Install Xcode Command Line Tools.'
+          when 1
+            out_stream.puts "CoreWLAN framework not available (exit code #{e.exitstatus}). Install Xcode."
+          else
+            out_stream.puts "Swift/CoreWLAN check failed with exit code #{e.exitstatus}: #{e.text.strip}"
+          end
         end
+        false
+      rescue => e
+        out_stream.puts "Unexpected error checking Swift/CoreWLAN: #{e.message}" if verbose_mode
+        false
       end
-      false
-    rescue => e
-      out_stream.puts "Unexpected error checking Swift/CoreWLAN: #{e.message}" if verbose_mode
-      false
     end
 
     # Returns the network interface used for default internet route on macOS
