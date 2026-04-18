@@ -143,7 +143,12 @@ module WifiWand
       helper_result = run_bounded_helper_command(executable_path, 'help')
       return false unless helper_result
 
-      helper_result[:status].success? && !helper_result[:stdout].strip.empty?
+      # A successful help probe is the contract; different helper builds may write
+      # usage text to stdout or stderr, so treat either stream as acceptable output.
+      return false unless helper_result[:status].success?
+
+      command_output = "#{helper_result[:stdout]}#{helper_result[:stderr]}".strip
+      !command_output.empty?
     end
 
     def run_bounded_helper_command(executable_path, command, on_timeout: nil)

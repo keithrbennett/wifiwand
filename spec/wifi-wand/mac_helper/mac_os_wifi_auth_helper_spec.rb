@@ -586,6 +586,21 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
         source_bundle_path:        source_bundle_path,
         helper_version:            '9.9.9'
       )
+      allow(described_class).to receive(:run_bounded_helper_command) do |executable_path, command|
+        script = File.read(executable_path)
+        success = command == 'help' && !script.include?("exit 1\n")
+        instance_double(
+          Process::Status,
+          success?:   success,
+          exitstatus: success ? 0 : 1
+        ).then do |status|
+          {
+            stdout: success ? 'wifiwand helper usage' : '',
+            stderr: '',
+            status: status,
+          }
+        end
+      end
 
       create_helper_bundle(source_bundle_path, help_text: 'source helper')
     end
@@ -747,6 +762,21 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
         exit 64
       SH
       FileUtils.chmod(0o755, executable_path)
+      status = instance_double(Process::Status, success?: true, exitstatus: 0)
+      expect(described_class).to receive(:run_bounded_helper_command)
+        .with(executable_path, 'help')
+        .and_return(stdout: 'wifiwand helper usage', stderr: '', status: status)
+
+      expect(described_class.helper_bundle_valid?(bundle_path)).to be(true)
+    end
+
+    it 'accepts successful help output written to stderr' do
+      File.write(executable_path, "#!/bin/sh\nexit 0\n")
+      FileUtils.chmod(0o755, executable_path)
+      status = instance_double(Process::Status, success?: true, exitstatus: 0)
+      expect(described_class).to receive(:run_bounded_helper_command)
+        .with(executable_path, 'help')
+        .and_return(stdout: '', stderr: 'wifiwand helper usage', status: status)
 
       expect(described_class.helper_bundle_valid?(bundle_path)).to be(true)
     end
