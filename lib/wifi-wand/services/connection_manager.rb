@@ -22,6 +22,11 @@ module WifiWand
     # Turns WiFi on first, in case it was turned off.
     # Relies on model implementation of _connect().
     #
+    # IMPORTANT: This method returns once the SSID association is confirmed, NOT when
+    # DNS or Internet connectivity are available. The OS may still be negotiating an
+    # IP address or DNS at that point. To guarantee full connectivity after connecting,
+    # follow with: model.till(:internet_on) or CLI: till internet_on [timeout_secs]
+    #
     # Note: The @last_connection_used_saved_password flag is cleared at the start
     # of each connect attempt and only set to true if a saved password is successfully
     # used. If the connection fails, this flag may not accurately represent the

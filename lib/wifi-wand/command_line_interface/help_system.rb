@@ -40,6 +40,8 @@ module WifiWand
           a / avail_nets          - array of names returned by the OS WiFi scan
           ci                        - Internet connectivity state: reachable, unreachable, or indeterminate
           co / connect network-name - connects to the specified network-name, turning WiFi on if necessary
+                                      Note: returns once the SSID is associated, not when DNS/Internet are ready.
+                                      To guarantee full connectivity, follow with: till internet_on [timeout_secs]
           cy / cycle               - toggles WiFi on/off state twice, regardless of starting state
           d / disconnect          - disconnects from current network, does not turn off WiFi
                                       macOS note: a preferred network may auto-reassociate immediately after disconnect;
