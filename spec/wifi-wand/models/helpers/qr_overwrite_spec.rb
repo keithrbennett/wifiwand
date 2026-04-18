@@ -15,9 +15,11 @@ describe 'QR Code Overwrite Confirmation' do
   let(:ssid) { 'TestNetwork' }
   let(:password) { 'password123' }
   let(:security) { 'WPA2' }
+  let(:out_stream) { StringIO.new }
 
   before do
     # Stub environment and dependencies
+    model.instance_variable_set(:@original_out_stream, out_stream)
     allow(model).to receive(:command_available?).with('qrencode').and_return(true)
     allow(model).to receive_messages(
       connected_network_name:     ssid,
@@ -55,7 +57,7 @@ describe 'QR Code Overwrite Confirmation' do
     with_temp_file do |filename|
       File.write(filename, 'old')
 
-      allow($stdin).to receive_messages(tty?: true, gets: "y\n")
+      in_stream = instance_double(IO, tty?: true, gets: "y\n")
       expect(File).to receive(:rename).with(kind_of(String), filename).and_call_original
       expect(model).to receive(:run_os_command).with(qrencode_command_for(filename)) do |cmd|
         staged_filename = staged_output_for(cmd)
@@ -67,10 +69,11 @@ describe 'QR Code Overwrite Confirmation' do
         command_result(stdout: '')
       end
 
-      result = silence_output { model.generate_qr_code(filename) }
+      result = silence_output { model.generate_qr_code(filename, in_stream: in_stream) }
 
       expect(result).to eq(filename)
       expect(File.read(filename)).to eq('new')
+      expect(out_stream.string).to eq('Output file exists. Overwrite? [y/N]: ')
     end
   end
 
@@ -78,14 +81,15 @@ describe 'QR Code Overwrite Confirmation' do
     with_temp_file do |filename|
       File.write(filename, 'old')
 
-      allow($stdin).to receive_messages(tty?: true, gets: "n\n")
+      in_stream = instance_double(IO, tty?: true, gets: "n\n")
 
       expect(model).not_to receive(:run_os_command)
 
       expect do
-        silence_output { model.generate_qr_code(filename) }
+        silence_output { model.generate_qr_code(filename, in_stream: in_stream) }
       end.to raise_error(WifiWand::Error, /cancelled: file exists/i)
       expect(File.read(filename)).to eq('old')
+      expect(out_stream.string).to eq('Output file exists. Overwrite? [y/N]: ')
     end
   end
 
@@ -93,14 +97,15 @@ describe 'QR Code Overwrite Confirmation' do
     with_temp_file do |filename|
       File.write(filename, 'old')
 
-      allow($stdin).to receive(:tty?).and_return(false)
+      in_stream = instance_double(IO, tty?: false)
 
       expect(model).not_to receive(:run_os_command)
 
       expect do
-        silence_output { model.generate_qr_code(filename) }
+        silence_output { model.generate_qr_code(filename, in_stream: in_stream) }
       end.to raise_error(WifiWand::Error, /already exists.*Delete the file first/i)
       expect(File.read(filename)).to eq('old')
+      expect(out_stream.string).to eq('')
     end
   end
 
@@ -152,7 +157,7 @@ describe 'QR Code Overwrite Confirmation' do
     with_temp_file do |filename|
       File.write(filename, 'old')
 
-      allow($stdin).to receive_messages(tty?: true, gets: "y\n")
+      in_stream = instance_double(IO, tty?: true, gets: "y\n")
       expect(model).to receive(:run_os_command).with(qrencode_command_for(filename)) do |cmd|
         staged_filename = staged_output_for(cmd)
 
@@ -165,7 +170,7 @@ describe 'QR Code Overwrite Confirmation' do
       expect(File).not_to receive(:rename)
 
       expect do
-        silence_output { model.generate_qr_code(filename) }
+        silence_output { model.generate_qr_code(filename, in_stream: in_stream) }
       end.to raise_error(WifiWand::Error, /Failed to generate QR code/)
       expect(File.read(filename)).to eq('old')
     end

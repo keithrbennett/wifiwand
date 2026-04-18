@@ -29,7 +29,8 @@ require 'tempfile'
 module WifiWand
   module Helpers
     class QrCodeGenerator
-      def generate(model, filespec = nil, overwrite: false, delivery_mode: :print, password: nil)
+      def generate(model, filespec = nil, overwrite: false, delivery_mode: :print, password: nil,
+        in_stream: $stdin)
         ensure_qrencode_available(model)
 
         network_name = require_connected_network_name(model)
@@ -45,7 +46,8 @@ module WifiWand
         return run_qrencode_text(model, qr_string, delivery_mode: delivery_mode) if spec == '-'
 
         filename  = spec && !spec.empty? ? spec : build_filename(network_name)
-        confirm_overwrite(filename, overwrite: overwrite, output_stream: model.out_stream)
+        confirm_overwrite(filename, overwrite: overwrite, output_stream: model.out_stream,
+          input_stream: in_stream)
         run_qrencode_file(model, filename, qr_string)
         filename
       end
@@ -120,13 +122,13 @@ module WifiWand
         "#{safe}-qr-code.png"
       end
 
-      def confirm_overwrite(filename, overwrite: false, output_stream: $stdout)
+      def confirm_overwrite(filename, overwrite: false, output_stream: $stdout, input_stream: $stdin)
         return unless File.exist?(filename)
         return if overwrite
 
-        if $stdin.tty?
+        if input_stream.tty?
           output_stream.print 'Output file exists. Overwrite? [y/N]: '
-          answer = $stdin.gets&.strip&.downcase
+          answer = input_stream.gets&.strip&.downcase
           if %w[y yes].include?(answer)
             nil
           else
