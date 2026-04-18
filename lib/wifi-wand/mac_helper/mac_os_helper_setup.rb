@@ -16,7 +16,6 @@
 #   setup.open_location_settings
 
 require 'json'
-require 'open3'
 require_relative 'mac_os_wifi_auth_helper'
 
 module WifiWand
@@ -108,13 +107,14 @@ module WifiWand
     def check_authorization(helper_path, valid)
       return [false, 'Helper not installed or not valid'] unless valid
 
-      stdout, _stderr, status = Open3.capture3(helper_path, 'check-permission')
+      helper_result = MacOsWifiAuthHelper.run_bounded_helper_command(helper_path, 'check-permission')
+      return [false, 'Permission status unknown'] unless helper_result
 
-      unless status.success? && !stdout.strip.empty?
+      unless helper_result[:status].success? && !helper_result[:stdout].strip.empty?
         return [false, 'Could not check permission status']
       end
 
-      result = JSON.parse(stdout)
+      result = JSON.parse(helper_result[:stdout])
       [result['authorized'] == true, result['message'] || 'Unknown']
     rescue JSON::ParserError
       [false, 'Could not parse permission status response']

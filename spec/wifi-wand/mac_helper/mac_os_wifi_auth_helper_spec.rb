@@ -305,7 +305,6 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
             "helper command 'scan-networks' timed out after #{timeout_seconds}s"
 
           expect(client).to receive(:log_verbose).with(timeout_message)
-          expect(client).to receive(:terminate_helper_process).with(wait_thr)
           expect(helper_command_result).to be_nil
         end
       end
@@ -731,8 +730,13 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       FileUtils.rm_rf(temp_dir)
     end
 
-    it 'validates the helper with the help command expected by the shipped executable' do
+    before do
       FileUtils.mkdir_p(File.dirname(executable_path))
+      FileUtils.mkdir_p(File.dirname(info_plist_path))
+      File.write(info_plist_path, '<plist version="1.0">helper</plist>')
+    end
+
+    it 'validates the helper with the help command expected by the shipped executable' do
       File.write(executable_path, <<~SH)
         #!/bin/sh
         if [ "$1" = "help" ]; then
@@ -744,10 +748,17 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       SH
       FileUtils.chmod(0o755, executable_path)
 
-      FileUtils.mkdir_p(File.dirname(info_plist_path))
-      File.write(info_plist_path, '<plist version="1.0">helper</plist>')
-
       expect(described_class.helper_bundle_valid?(bundle_path)).to be(true)
+    end
+
+    it 'returns false when the helper validation probe times out' do
+      File.write(executable_path, "#!/bin/sh\nexit 0\n")
+      FileUtils.chmod(0o755, executable_path)
+      allow(described_class).to receive(:run_bounded_helper_command)
+        .with(executable_path, 'help')
+        .and_return(nil)
+
+      expect(described_class.helper_bundle_valid?(bundle_path)).to be(false)
     end
   end
 
@@ -760,7 +771,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
     File.write(executable_path, <<~SH)
       #!/bin/sh
       echo "#{help_text}"
-    SH
+      SH
     FileUtils.chmod(0o755, executable_path)
 
     FileUtils.mkdir_p(File.dirname(info_plist_path))

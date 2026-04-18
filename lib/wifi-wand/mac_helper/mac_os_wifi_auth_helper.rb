@@ -26,6 +26,8 @@ module WifiWand
     MINIMUM_HELPER_VERSION = Gem::Version.new('14.0')
     # Allows power users/CI to opt out of helper usage via environment flag
     DISABLE_ENV_KEY = 'WIFIWAND_DISABLE_MAC_HELPER'
+    HELPER_COMMAND_TIMEOUT_SECONDS = ENV['RSPEC_RUNNING'] ? 0.25 : 3.0
+    HELPER_TERMINATION_WAIT_SECONDS = ENV['RSPEC_RUNNING'] ? 0.05 : 0.25
 
     module_function
 
@@ -138,10 +140,53 @@ module WifiWand
       return false unless File.executable?(executable_path)
       return false unless File.exist?(File.join(bundle_path, 'Contents', 'Info.plist'))
 
-      stdout, _stderr, status = Open3.capture3(executable_path, 'help')
-      status.success? && !stdout.strip.empty?
+      helper_result = run_bounded_helper_command(executable_path, 'help')
+      return false unless helper_result
+
+      helper_result[:status].success? && !helper_result[:stdout].strip.empty?
+    end
+
+    def run_bounded_helper_command(executable_path, command, on_timeout: nil)
+      Open3.popen3(executable_path, command) do |stdin, stdout, stderr, wait_thr|
+        stdin.close
+        stdout_reader = Thread.new { stdout.read }
+        stderr_reader = Thread.new { stderr.read }
+        wait_result = wait_thr.join(HELPER_COMMAND_TIMEOUT_SECONDS)
+        unless wait_result
+          on_timeout&.call(command, HELPER_COMMAND_TIMEOUT_SECONDS)
+          terminate_helper_process(wait_thr)
+          return nil
+        end
+
+        {
+          stdout: stdout_reader.value,
+          stderr: stderr_reader.value,
+          status: wait_thr.value,
+        }
+      ensure
+        stdout&.close unless stdout&.closed?
+        stderr&.close unless stderr&.closed?
+        stdout_reader&.join
+        stderr_reader&.join
+      end
     rescue Errno::ENOENT
-      false
+      nil
+    end
+
+    def terminate_helper_process(wait_thr)
+      pid = wait_thr.pid
+      Process.kill('TERM', pid)
+      return if helper_exited_within_grace_period?(wait_thr)
+      return unless wait_thr.alive?
+
+      Process.kill('KILL', pid)
+      helper_exited_within_grace_period?(wait_thr)
+    rescue Errno::ESRCH, Errno::ECHILD
+      nil
+    end
+
+    def helper_exited_within_grace_period?(wait_thr)
+      !!wait_thr.join(HELPER_TERMINATION_WAIT_SECONDS)
     end
 
     def with_install_lock
@@ -406,9 +451,8 @@ module WifiWand
     end
 
     class Client
-      HELPER_COMMAND_TIMEOUT_SECONDS = ENV['RSPEC_RUNNING'] ? 0.25 : 3.0
-      HELPER_TERMINATION_WAIT_SECONDS = ENV['RSPEC_RUNNING'] ? 0.05 : 0.25
-
+      HELPER_COMMAND_TIMEOUT_SECONDS = MacOsWifiAuthHelper::HELPER_COMMAND_TIMEOUT_SECONDS
+      HELPER_TERMINATION_WAIT_SECONDS = MacOsWifiAuthHelper::HELPER_TERMINATION_WAIT_SECONDS
       attr_reader :last_error_message
 
       def initialize(out_stream_proc:, verbose_proc:, macos_version_proc:)
@@ -515,28 +559,13 @@ module WifiWand
       end
 
       def execute_helper_command(command)
-        Open3.popen3(helper_executable_path, command) do |stdin, stdout, stderr, wait_thr|
-          stdin.close
-          stdout_reader = Thread.new { stdout.read }
-          stderr_reader = Thread.new { stderr.read }
-          wait_result = wait_thr.join(HELPER_COMMAND_TIMEOUT_SECONDS)
-          unless wait_result
-            log_verbose("helper command '#{command}' timed out after #{HELPER_COMMAND_TIMEOUT_SECONDS}s")
-            terminate_helper_process(wait_thr)
-            return nil
+        WifiWand::MacOsWifiAuthHelper.run_bounded_helper_command(
+          helper_executable_path,
+          command,
+          on_timeout: ->(timed_out_command, timeout_seconds) do
+            log_verbose("helper command '#{timed_out_command}' timed out after #{timeout_seconds}s")
           end
-
-          {
-            stdout: stdout_reader.value,
-            stderr: stderr_reader.value,
-            status: wait_thr.value,
-          }
-        ensure
-          stdout&.close unless stdout&.closed?
-          stderr&.close unless stderr&.closed?
-          stdout_reader&.join
-          stderr_reader&.join
-        end
+        )
       end
 
       def terminate_helper_process(wait_thr)

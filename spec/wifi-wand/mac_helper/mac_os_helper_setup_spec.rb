@@ -133,7 +133,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
       end
 
       it 'does not attempt to invoke the helper executable' do
-        expect(Open3).not_to receive(:capture3)
+        expect(WifiWand::MacOsWifiAuthHelper).not_to receive(:run_bounded_helper_command)
         setup.check_status
       end
     end
@@ -153,7 +153,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
       end
 
       it 'does not invoke the broken executable to probe authorization' do
-        expect(Open3).not_to receive(:capture3)
+        expect(WifiWand::MacOsWifiAuthHelper).not_to receive(:run_bounded_helper_command)
         setup.check_status
       end
 
@@ -169,8 +169,9 @@ RSpec.describe WifiWand::MacOsHelperSetup do
       before do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
         allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true)
-        allow(Open3).to receive(:capture3).with(helper_path, 'check-permission')
-          .and_return([response, '', ok_status])
+        allow(WifiWand::MacOsWifiAuthHelper)
+          .to receive(:run_bounded_helper_command).with(helper_path, 'check-permission')
+          .and_return(stdout: response, stderr: '', status: ok_status)
       end
 
       it 'returns installed: true, valid: true, authorized: false' do
@@ -193,8 +194,9 @@ RSpec.describe WifiWand::MacOsHelperSetup do
       before do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
         allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true)
-        allow(Open3).to receive(:capture3).with(helper_path, 'check-permission')
-          .and_return([response, '', ok_status])
+        allow(WifiWand::MacOsWifiAuthHelper)
+          .to receive(:run_bounded_helper_command).with(helper_path, 'check-permission')
+          .and_return(stdout: response, stderr: '', status: ok_status)
       end
 
       it 'returns setup_complete? true' do
@@ -210,8 +212,9 @@ RSpec.describe WifiWand::MacOsHelperSetup do
       before do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
         allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true)
-        allow(Open3).to receive(:capture3).with(helper_path, 'check-permission')
-          .and_return(['{invalid', '', ok_status])
+        allow(WifiWand::MacOsWifiAuthHelper)
+          .to receive(:run_bounded_helper_command).with(helper_path, 'check-permission')
+          .and_return(stdout: '{invalid', stderr: '', status: ok_status)
       end
 
       it 'returns authorized: false with a descriptive message' do
@@ -221,18 +224,19 @@ RSpec.describe WifiWand::MacOsHelperSetup do
       end
     end
 
-    context 'when the helper executable is missing (ENOENT raised)' do
+    context 'when the helper authorization probe times out' do
       before do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
         allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true)
-        allow(Open3).to receive(:capture3).with(helper_path, 'check-permission')
-          .and_raise(Errno::ENOENT.new('helper'))
+        allow(WifiWand::MacOsWifiAuthHelper)
+          .to receive(:run_bounded_helper_command).with(helper_path, 'check-permission')
+          .and_return(nil)
       end
 
-      it 'returns authorized: false gracefully' do
+      it 'returns authorized: false with an unknown permission status message' do
         status = setup.check_status
         expect(status.authorized?).to be(false)
-        expect(status.permission_message).to match(/not found/)
+        expect(status.permission_message).to eq('Permission status unknown')
       end
     end
   end
