@@ -11,6 +11,12 @@ module WifiWand
       802-11-wireless-security.psk
       802-11-wireless-security.wep-key0
     ].freeze
+    DNS_CONNECTION_FIELDS = %w[
+      ipv4.dns
+      ipv4.ignore-auto-dns
+      ipv6.dns
+      ipv6.ignore-auto-dns
+    ].freeze
 
     def initialize(options = {}) = super
 
@@ -440,6 +446,8 @@ module WifiWand
       nameservers_using_resolv_conf || []
     end
 
+    # Applies DNS as an exact replacement and rolls the profile back to its
+    # original DNS state if any later modify or reactivation step fails.
     def set_nameservers(nameservers) # rubocop:disable Naming/AccessorMethodName
       # Use NetworkManager connection-based DNS configuration
       # This is the correct approach for Ubuntu - we modify the connection profile,
@@ -454,49 +462,31 @@ module WifiWand
         raise WifiInterfaceError, 'No active Wi-Fi connection to configure DNS for.'
       end
 
-      if nameservers == :clear
-        # Clear custom DNS and use DHCP/router-provided DNS (both IPv4 and IPv6)
-        modify_commands = [
-          ['nmcli', 'connection', 'modify', current_connection, 'ipv4.dns', ''],
-          ['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns', 'no'],
-          ['nmcli', 'connection', 'modify', current_connection, 'ipv6.dns', ''],
-          ['nmcli', 'connection', 'modify', current_connection, 'ipv6.ignore-auto-dns', 'no'],
-        ]
-      else
-        # Validate IP addresses (accept both IPv4 and IPv6)
-        bad_addresses = nameservers.reject do |ns|
-          require 'ipaddr'
-          IPAddr.new(ns)  # Valid if IPAddr can parse it (IPv4 or IPv6)
-          true
-        rescue
-          false
-        end
+      desired_dns_configuration = desired_dns_configuration(nameservers)
+      original_dns_configuration = dns_configuration_snapshot(current_connection)
+      configuration_changed = false
 
-        unless bad_addresses.empty?
-          raise InvalidIPAddressError, bad_addresses
-        end
-
-        # Separate IPv4 and IPv6 addresses
-        ipv4_servers, ipv6_servers = nameservers.partition { |ns| IPAddr.new(ns).ipv4? }
-
-        # Apply DNS as an exact replacement for both families so omitted
-        # address families are cleared and return to DHCP/router-provided DNS.
-        modify_commands = [
-          ['nmcli', 'connection', 'modify', current_connection, 'ipv4.dns', ipv4_servers.join(' ')],
-          ['nmcli', 'connection', 'modify', current_connection, 'ipv4.ignore-auto-dns',
-            ipv4_servers.any? ? 'yes' : 'no'],
-          ['nmcli', 'connection', 'modify', current_connection, 'ipv6.dns', ipv6_servers.join(' ')],
-          ['nmcli', 'connection', 'modify', current_connection, 'ipv6.ignore-auto-dns',
-            ipv6_servers.any? ? 'yes' : 'no'],
-        ]
+      dns_configuration_modify_commands(current_connection, desired_dns_configuration).each do |command|
+        run_os_command(command)
+        configuration_changed = true
       end
-
-      modify_commands.each { |command| run_os_command(command) }
       run_os_command(['nmcli', 'connection', 'up', current_connection])
 
       nameservers
     rescue WifiWand::CommandExecutor::OsCommandError => e
       step = e.command.include?('connection up') ? :activate : :modify
+      if configuration_changed
+        begin
+          restore_dns_configuration(current_connection, original_dns_configuration)
+        rescue WifiWand::CommandExecutor::OsCommandError => rollback_error
+          raise DnsConfigurationError.new(
+            current_connection,
+            step,
+            dns_transaction_failure(e, rollback_error)
+          )
+        end
+      end
+
       raise DnsConfigurationError.new(current_connection, step, e)
     end
 
@@ -574,6 +564,85 @@ module WifiWand
         # If we can't get connection info, return empty array
         []
       end
+    end
+
+    def desired_dns_configuration(nameservers)
+      if nameservers == :clear
+        return {
+          'ipv4.dns'             => '',
+          'ipv4.ignore-auto-dns' => 'no',
+          'ipv6.dns'             => '',
+          'ipv6.ignore-auto-dns' => 'no',
+        }
+      end
+
+      # Validate IP addresses (accept both IPv4 and IPv6)
+      bad_addresses = nameservers.reject do |ns|
+        require 'ipaddr'
+        IPAddr.new(ns) # Valid if IPAddr can parse it (IPv4 or IPv6)
+        true
+      rescue
+        false
+      end
+
+      unless bad_addresses.empty?
+        raise InvalidIPAddressError, bad_addresses
+      end
+
+      ipv4_servers, ipv6_servers = nameservers.partition { |ns| IPAddr.new(ns).ipv4? }
+
+      {
+        'ipv4.dns'             => ipv4_servers.join(' '),
+        'ipv4.ignore-auto-dns' => ipv4_servers.any? ? 'yes' : 'no',
+        'ipv6.dns'             => ipv6_servers.join(' '),
+        'ipv6.ignore-auto-dns' => ipv6_servers.any? ? 'yes' : 'no',
+      }
+    end
+
+    # Reads the current profile values up front so rollback can restore the
+    # exact pre-transaction state instead of inferring defaults.
+    def dns_configuration_snapshot(connection_name)
+      DNS_CONNECTION_FIELDS.each_with_object({}) do |field_name, dns_configuration|
+        dns_configuration[field_name] = connection_property_value(connection_name, field_name)
+      end
+    end
+
+    def dns_configuration_modify_commands(connection_name, dns_configuration)
+      DNS_CONNECTION_FIELDS.map do |field_name|
+        ['nmcli', 'connection', 'modify', connection_name, field_name,
+          dns_configuration.fetch(field_name)]
+      end
+    end
+
+    # Replays the captured DNS fields and reactivates the profile so callers
+    # are not left with a partially applied DNS configuration.
+    def restore_dns_configuration(connection_name, original_dns_configuration)
+      dns_configuration_modify_commands(connection_name, original_dns_configuration).each do |command|
+        run_os_command(command)
+      end
+      run_os_command(['nmcli', 'connection', 'up', connection_name])
+    end
+
+    def connection_property_value(connection_name, field_name)
+      run_os_command(['nmcli', '--get-values', field_name, 'connection', 'show',
+        connection_name]).stdout.strip
+    end
+
+    # Preserves the original failure while surfacing that rollback also failed,
+    # which means the connection profile may still need manual repair.
+    def dns_transaction_failure(original_error, rollback_error)
+      original_detail = if original_error.respond_to?(:text) && !original_error.text.to_s.empty?
+        original_error.text
+      else
+        original_error.message
+      end
+      rollback_detail = if rollback_error.respond_to?(:text) && !rollback_error.text.to_s.empty?
+        rollback_error.text
+      else
+        rollback_error.message
+      end
+
+      Error.new("#{original_detail}; rollback failed: #{rollback_detail}")
     end
 
     # Splits a line of nmcli terse (-t) output on unescaped field separators.

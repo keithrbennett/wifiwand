@@ -987,6 +987,19 @@ module WifiWand
       end
 
       describe '#set_nameservers' do
+        let(:original_dns_configuration) do
+          {
+            'ipv4.dns'             => '192.168.1.1 8.8.8.8',
+            'ipv4.ignore-auto-dns' => 'yes',
+            'ipv6.dns'             => '2606:4700:4700::1111',
+            'ipv6.ignore-auto-dns' => 'yes',
+          }
+        end
+
+        before do
+          allow(subject).to receive(:dns_configuration_snapshot).and_return(original_dns_configuration)
+        end
+
         it 'successfully sets custom nameservers' do
           nameservers = ['8.8.8.8', '1.1.1.1']
           connection_name = 'MyHomeNetwork'
@@ -1592,11 +1605,25 @@ module WifiWand
       end
 
       describe '#set_nameservers' do
-        it 'raises error for invalid IP addresses' do
+        let(:original_dns_configuration) do
+          {
+            'ipv4.dns'             => '192.168.1.1 8.8.8.8',
+            'ipv4.ignore-auto-dns' => 'yes',
+            'ipv6.dns'             => '2606:4700:4700::1111',
+            'ipv6.ignore-auto-dns' => 'yes',
+          }
+        end
+
+        before do
+          allow(subject).to receive(:dns_configuration_snapshot).and_return(original_dns_configuration)
+        end
+
+        it 'raises error for invalid IP addresses before reading connection state' do
           invalid_nameservers = ['invalid.ip', '256.256.256.256']
           connection_name = 'MyHomeNetwork'
 
           allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+          expect(subject).not_to receive(:dns_configuration_snapshot)
 
           # Capture stdout to suppress the "invalid address:" output from IP validation
           original_stdout = $stdout
@@ -1608,17 +1635,35 @@ module WifiWand
           end
         end
 
-        it 'raises a DNS configuration error when custom DNS modification fails' do
+        it 'rolls back prior DNS mutations when a later modify command fails' do
           connection_name = 'MyHomeNetwork'
 
           allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
-          allow(subject).to receive(:run_os_command)
+          expect(subject).to receive(:run_os_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8'])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
+            .ordered.and_raise(WifiWand::CommandExecutor::OsCommandError.new(
               1,
               'nmcli connection modify',
               'Connection modify failed'
             ))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '192.168.1.1 8.8.8.8'])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', '2606:4700:4700::1111'])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'up', connection_name])
+            .ordered.and_return(command_result(stdout: ''))
 
           expect { subject.set_nameservers(['8.8.8.8']) }
             .to raise_error(WifiWand::DnsConfigurationError, /modifying the connection profile/)
@@ -1640,7 +1685,23 @@ module WifiWand
             .to raise_error(WifiWand::DnsConfigurationError, /Permission denied/)
         end
 
-        it 'raises a DNS configuration error when connection activation fails after modification' do
+        it 'raises a DNS configuration error when reading the current DNS state fails' do
+          connection_name = 'MyHomeNetwork'
+
+          allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+          allow(subject).to receive(:dns_configuration_snapshot).and_raise(
+            WifiWand::CommandExecutor::OsCommandError.new(
+              1,
+              'nmcli --get-values ipv4.dns',
+              'Failed to read current DNS state'
+            )
+          )
+
+          expect { subject.set_nameservers(['8.8.8.8']) }
+            .to raise_error(WifiWand::DnsConfigurationError, /Failed to read current DNS state/)
+        end
+
+        it 'rolls back DNS settings when connection activation fails after modification' do
           connection_name = 'MyHomeNetwork'
           nameservers = ['8.8.8.8']
 
@@ -1664,13 +1725,62 @@ module WifiWand
               'nmcli connection up',
               'Activation failed'
             ))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '192.168.1.1 8.8.8.8'])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', '2606:4700:4700::1111'])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'up', connection_name])
+            .ordered.and_return(command_result(stdout: ''))
 
           expect { subject.set_nameservers(nameservers) }
             .to raise_error(WifiWand::DnsConfigurationError, /reactivating the connection/)
         end
 
+        it 'surfaces rollback failure when restoration does not complete' do
+          connection_name = 'MyHomeNetwork'
+
+          allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8'])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'])
+            .ordered.and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'up', connection_name])
+            .ordered.and_raise(WifiWand::CommandExecutor::OsCommandError.new(
+              1,
+              'nmcli connection up',
+              'Activation failed'
+            ))
+          expect(subject).to receive(:run_os_command)
+            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '192.168.1.1 8.8.8.8'])
+            .ordered.and_raise(WifiWand::CommandExecutor::OsCommandError.new(
+              1,
+              'nmcli connection modify',
+              'Rollback modify failed'
+            ))
+
+          expect { subject.set_nameservers(['8.8.8.8']) }
+            .to raise_error(WifiWand::DnsConfigurationError, /rollback failed: Rollback modify failed/)
+        end
+
         it 'handles cases when no active connection exists' do
-          # Mock no active connection
           allow(subject).to receive_messages(
             active_connection_profile_name: nil,
             _connected_network_name:        nil
