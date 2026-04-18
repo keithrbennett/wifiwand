@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 # QR Code Overwrite Confirmation (unit)
-# Exercises all overwrite branches without calling external tools:
-# - overwrite: true (success and deletion failure)
+# Exercises overwrite branches without calling external tools:
+# - overwrite: true preserves the existing file until replacement succeeds
 # - interactive TTY yes/no
 # - non-interactive error guidance
 
@@ -38,25 +38,39 @@ describe 'QR Code Overwrite Confirmation' do
     end
   end
 
-  it 'prompts and proceeds when user confirms overwrite' do
+  def qrencode_command_for(filename)
+    satisfy do |cmd|
+      cmd.is_a?(Array) &&
+        cmd.first == 'qrencode' &&
+        cmd.include?('-o') &&
+        cmd[cmd.index('-o') + 1] != filename
+    end
+  end
+
+  def staged_output_for(cmd)
+    cmd[cmd.index('-o') + 1]
+  end
+
+  it 'prompts and replaces the file after successful regeneration' do
     with_temp_file do |filename|
-      # Create an existing file to trigger overwrite flow
       File.write(filename, 'old')
 
-      # Simulate interactive TTY and user confirmation
       allow($stdin).to receive_messages(tty?: true, gets: "y\n")
+      expect(File).to receive(:rename).with(kind_of(String), filename).and_call_original
+      expect(model).to receive(:run_os_command).with(qrencode_command_for(filename)) do |cmd|
+        staged_filename = staged_output_for(cmd)
 
-      # Ensure we delete the file before invoking qrencode
-      expect(File).to receive(:delete).with(filename).ordered.and_call_original
-      # Ensure qrencode is invoked (but do not actually run it)
-      expect(model).to receive(:run_os_command) do |cmd|
-        expect(cmd).to be_an(Array)
-        expect(cmd[0..2]).to eq(['qrencode', '-o', filename])
+        expect(File.exist?(filename)).to be true
+        expect(File.read(filename)).to eq('old')
+
+        File.write(staged_filename, 'new')
         command_result(stdout: '')
       end
 
       result = silence_output { model.generate_qr_code(filename) }
+
       expect(result).to eq(filename)
+      expect(File.read(filename)).to eq('new')
     end
   end
 
@@ -71,6 +85,7 @@ describe 'QR Code Overwrite Confirmation' do
       expect do
         silence_output { model.generate_qr_code(filename) }
       end.to raise_error(WifiWand::Error, /cancelled: file exists/i)
+      expect(File.read(filename)).to eq('old')
     end
   end
 
@@ -85,56 +100,74 @@ describe 'QR Code Overwrite Confirmation' do
       expect do
         silence_output { model.generate_qr_code(filename) }
       end.to raise_error(WifiWand::Error, /already exists.*Delete the file first/i)
+      expect(File.read(filename)).to eq('old')
     end
   end
 
-  it 'deletes and proceeds when overwrite: true' do
+  it 'replaces the existing file after successful overwrite: true regeneration' do
     with_temp_file do |filename|
       File.write(filename, 'old')
 
-      expect(File).to receive(:delete).with(filename).ordered.and_call_original
-      expect(model).to receive(:run_os_command) do |cmd|
-        expect(cmd).to be_an(Array)
-        expect(cmd[0..2]).to eq(['qrencode', '-o', filename])
+      expect(File).to receive(:rename).with(kind_of(String), filename).and_call_original
+      expect(model).to receive(:run_os_command).with(qrencode_command_for(filename)) do |cmd|
+        staged_filename = staged_output_for(cmd)
+
+        expect(File.exist?(filename)).to be true
+        expect(File.read(filename)).to eq('old')
+
+        File.write(staged_filename, 'new')
         command_result(stdout: '')
       end
 
       result = silence_output { model.generate_qr_code(filename, overwrite: true) }
+
       expect(result).to eq(filename)
-      # We only assert command args and delete call in unit tests.
-      # File recreation is the responsibility of qrencode (covered in integration tests).
-      expect(File.exist?(filename)).to be false
+      expect(File.read(filename)).to eq('new')
     end
   end
 
-  it 'raises an error if deletion fails when overwrite: true' do
+  it 'preserves the existing file when qrencode fails during overwrite: true regeneration' do
     with_temp_file do |filename|
       File.write(filename, 'old')
 
-      allow(File).to receive(:exist?).with(filename).and_return(true)
-      allow(File).to receive(:delete).with(filename).and_raise(StandardError.new('cannot delete'))
+      expect(model).to receive(:run_os_command).with(qrencode_command_for(filename)) do |cmd|
+        staged_filename = staged_output_for(cmd)
 
-      expect(model).not_to receive(:run_os_command)
+        expect(File.exist?(filename)).to be true
+        expect(File.read(filename)).to eq('old')
+
+        File.write(staged_filename, 'partial')
+        raise WifiWand::CommandExecutor::OsCommandError.new(1, cmd.join(' '), 'boom')
+      end
+      expect(File).not_to receive(:rename)
 
       expect do
         silence_output { model.generate_qr_code(filename, overwrite: true) }
-      end.to raise_error(WifiWand::Error, /could not be overwritten/)
+      end.to raise_error(WifiWand::Error, /Failed to generate QR code/)
+      expect(File.read(filename)).to eq('old')
     end
   end
 
-  it 'raises an error if deletion fails after interactive confirmation' do
+  it 'preserves the existing file when qrencode fails after interactive confirmation' do
     with_temp_file do |filename|
       File.write(filename, 'old')
 
       allow($stdin).to receive_messages(tty?: true, gets: "y\n")
-      allow(File).to receive(:exist?).with(filename).and_return(true)
-      allow(File).to receive(:delete).with(filename).and_raise(StandardError.new('cannot delete'))
+      expect(model).to receive(:run_os_command).with(qrencode_command_for(filename)) do |cmd|
+        staged_filename = staged_output_for(cmd)
 
-      expect(model).not_to receive(:run_os_command)
+        expect(File.exist?(filename)).to be true
+        expect(File.read(filename)).to eq('old')
+
+        File.write(staged_filename, 'partial')
+        raise WifiWand::CommandExecutor::OsCommandError.new(1, cmd.join(' '), 'boom')
+      end
+      expect(File).not_to receive(:rename)
 
       expect do
         silence_output { model.generate_qr_code(filename) }
-      end.to raise_error(WifiWand::Error, /could not be overwritten/)
+      end.to raise_error(WifiWand::Error, /Failed to generate QR code/)
+      expect(File.read(filename)).to eq('old')
     end
   end
 end

@@ -1034,8 +1034,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
     let(:network_password) { 'test_password' }
     let(:security_type) { 'WPA2' }
     let(:expected_filename) { 'TestNetwork-qr-code.png' }
+    let(:delete_qr_code_files) { -> { FileUtils.rm_f(Dir.glob('*-qr-code.png')) } }
 
     before do
+      delete_qr_code_files.call
       allow(subject).to receive(:command_available?).with('qrencode').and_return(true)
 
       # Mock all methods that could make real system calls
@@ -1049,6 +1051,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
         preferred_network_password:  network_password,
         _preferred_network_password: network_password
       )
+    end
+
+    after do
+      delete_qr_code_files.call
     end
 
     context 'when checking dependencies' do
@@ -1102,7 +1108,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
           silence_output { subject.generate_qr_code }
 
           expect(subject).to have_received(:run_os_command)
-            .with(%w[qrencode -o TestNetwork-qr-code.png] + [expected_qr_string])
+            .with(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
         end
       end
 
@@ -1113,7 +1119,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         silence_output { subject.generate_qr_code }
 
         expect(subject).to have_received(:run_os_command)
-          .with(%w[qrencode -o TestNetwork-qr-code.png] + [expected_qr_string])
+          .with(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
       end
     end
 
@@ -1140,7 +1146,13 @@ describe 'Common WiFi Model Behavior (All OS)' do
           expected_filename = "#{safe_network_name}-qr-code.png"
 
           expect(subject).to have_received(:run_os_command)
-            .with(['qrencode', '-o', expected_filename, expected_qr_string])
+            .with(satisfy do |cmd|
+              staged_prefix = "./#{expected_filename.delete_suffix('.png')}-"
+              cmd.first(2) == %w[qrencode -o] &&
+                cmd[2].start_with?(staged_prefix) &&
+                cmd[2].end_with?('.png') &&
+                cmd.last == expected_qr_string
+            end)
         end
       end
     end
@@ -1170,7 +1182,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         result = silence_output { subject.generate_qr_code }
 
         expect(subject).to have_received(:run_os_command)
-          .with(%w[qrencode -o TestNetwork-qr-code.png] + [expected_qr_string])
+          .with(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
         expect(result).to eq('TestNetwork-qr-code.png')
       end
     end

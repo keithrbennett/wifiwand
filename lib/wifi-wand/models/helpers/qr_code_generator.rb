@@ -24,6 +24,8 @@
 #   as qrencode doesn’t emit PDF.
 # - In shell (REPL), when filespec is '-', this returns the ANSI QR string; call `puts` on it to render.
 
+require 'tempfile'
+
 module WifiWand
   module Helpers
     class QrCodeGenerator
@@ -120,27 +122,12 @@ module WifiWand
 
       def confirm_overwrite(filename, overwrite: false, output_stream: $stdout)
         return unless File.exist?(filename)
-
-        if overwrite
-          begin
-            File.delete(filename)
-          rescue
-            raise WifiWand::Error,
-              "QR code output file '#{filename}' already exists and could not be overwritten."
-          end
-          return
-        end
+        return if overwrite
 
         if $stdin.tty?
           output_stream.print 'Output file exists. Overwrite? [y/N]: '
           answer = $stdin.gets&.strip&.downcase
           if %w[y yes].include?(answer)
-            begin
-              File.delete(filename)
-            rescue
-              raise WifiWand::Error,
-                "QR code output file '#{filename}' already exists and could not be overwritten."
-            end
             nil
           else
             raise WifiWand::Error, 'Overwrite cancelled: file exists'
@@ -154,13 +141,23 @@ module WifiWand
       end
 
       def run_qrencode_file(model, filename, qr_string)
-        type_flags = qr_type_flag_for(filename)
-        cmd = ['qrencode'] + type_flags + ['-o', filename, qr_string]
-        begin
-          model.run_os_command(cmd)
-          model.out_stream.puts "QR code generated: #{filename}" if model.verbose_mode
-        rescue WifiWand::CommandExecutor::OsCommandError => e
-          raise WifiWand::Error, "Failed to generate QR code: #{e.message}"
+        Tempfile.create(tempfile_args_for(filename), tempfile_directory_for(filename)) do |tempfile|
+          staged_filename = tempfile.path
+          tempfile.close
+
+          type_flags = qr_type_flag_for(filename)
+          cmd = ['qrencode'] + type_flags + ['-o', staged_filename, qr_string]
+
+          begin
+            model.run_os_command(cmd)
+            File.rename(staged_filename, filename)
+            model.out_stream.puts "QR code generated: #{filename}" if model.verbose_mode
+          rescue WifiWand::CommandExecutor::OsCommandError => e
+            raise WifiWand::Error, "Failed to generate QR code: #{e.message}"
+          rescue SystemCallError => e
+            raise WifiWand::Error,
+              "Failed to replace QR code output file '#{filename}': #{e.message}"
+          end
         end
       end
 
@@ -187,6 +184,17 @@ module WifiWand
         when '.eps' then %w[-t EPS]
         else [] # default PNG (no type flag needed)
         end
+      end
+
+      def tempfile_args_for(filename)
+        basename = File.basename(filename, File.extname(filename))
+        extension = File.extname(filename)
+        ["#{basename}-", extension]
+      end
+
+      def tempfile_directory_for(filename)
+        directory = File.dirname(filename)
+        directory.empty? ? '.' : directory
       end
     end
   end

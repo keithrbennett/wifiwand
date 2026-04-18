@@ -3,6 +3,7 @@
 # QR Code Generator (unit)
 # Verifies command construction without invoking external tools:
 # - Stdout mode ('-') uses `-t ANSI` and returns '-'
+# - File mode stages output in a sibling temp file before rename
 # - Output format flags for .svg/.eps
 # Overwrite flows are covered separately in qr_overwrite_spec.rb
 
@@ -16,6 +17,9 @@ describe 'QR Code Generator (unit)' do
   let(:security) { 'WPA2' }
 
   before do
+    FileUtils.rm_f('TestNetwork-qr-code.png')
+    FileUtils.rm_f('out.svg')
+    FileUtils.rm_f('out.eps')
     model.verbose_mode = false
     allow(model).to receive(:command_available?).with('qrencode').and_return(true)
     allow(model).to receive_messages(
@@ -30,6 +34,10 @@ describe 'QR Code Generator (unit)' do
     FileUtils.rm_f('TestNetwork-qr-code.png')
     FileUtils.rm_f('out.svg')
     FileUtils.rm_f('out.eps')
+  end
+
+  def staged_output_for(cmd)
+    cmd[cmd.index('-o') + 1]
   end
 
   it "prints ANSI QR to stdout when filespec is '-' and returns '-'" do
@@ -68,14 +76,13 @@ describe 'QR Code Generator (unit)' do
   it 'uses provided password without querying system password' do
     provided_password = 'provided123'
 
-    # Ensure generator does not try to fetch stored password when one is given
     expect(model).not_to receive(:connected_network_password)
 
     expect(model).to receive(:run_os_command) do |cmd|
       expect(cmd).to be_an(Array)
       expect(cmd).to include('qrencode')
       expect(cmd).to include('-o')
-      expect(cmd).to include('TestNetwork-qr-code.png')
+      expect(staged_output_for(cmd)).to match(%r{\./TestNetwork-qr-code-.*\.png\z})
       expect(cmd.last).to include('P:provided123')
       command_result(stdout: '')
     end
@@ -94,7 +101,7 @@ describe 'QR Code Generator (unit)' do
         expect(cmd).to include('-t')
         expect(cmd).to include(tc[:type])
         expect(cmd).to include('-o')
-        expect(cmd).to include(tc[:filespec])
+        expect(staged_output_for(cmd)).to match(%r{\./out-.*#{Regexp.escape(File.extname(tc[:filespec]))}\z})
         command_result(stdout: '')
       end
 
