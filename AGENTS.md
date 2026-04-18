@@ -35,9 +35,17 @@ instead of ad-hoc one-off commands when building, testing, or running the projec
 - Use the project's Ruby version.
 - Prefer `bundle exec` for project tools.
 - Prefer binstubs when present (e.g., `bin/rspec`, `bin/rubocop`).
+- Choose the control-flow form that is clearest on first read.
+- For simple single-condition methods, especially readers, predicates, and manifest/file-loading methods, an
+  `if` block is often clearer than `return unless` / `return if`.
 - Avoid early returns for simple Ruby branches when a direct conditional expression is clearer.
 - If two early-return orderings are equally complex, prefer an `if` statement
   instead of structuring the branch around early returns.
+- Prefer early returns when they isolate exceptional cases, invalid input, or meaningfully simplify the main
+  path.
+- After editing Ruby, do a quick readability pass on any guard clauses you introduced and rewrite them if
+  another form is clearer.
+- If readability and RuboCop conflict, use the clearest lint-compliant form.
 - Before editing, inspect:
   - `Gemfile`
   - `Gemfile.lock`
