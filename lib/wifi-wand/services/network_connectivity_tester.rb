@@ -13,6 +13,7 @@ require_relative 'captive_portal_checker'
 module WifiWand
   class NetworkConnectivityTester
     UNSET = Object.new.freeze
+    HELPER_RESULT_GRACE = 0.05
 
     attr_reader :captive_portal_checker
 
@@ -300,7 +301,6 @@ module WifiWand
       return unless pid
 
       Process.kill('TERM', pid)
-      Process.kill('KILL', pid)
       wait_for_probe_exit(pid)
     rescue Errno::ESRCH, Errno::ECHILD
       nil
@@ -323,14 +323,17 @@ module WifiWand
     end
 
     def wait_for_probe_exit(pid)
-      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 0.05
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + HELPER_RESULT_GRACE
 
       loop do
         return if reap_probe(pid)
-        return if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+        break if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
 
         sleep(0.005)
       end
+
+      Process.kill('KILL', pid)
+      reap_probe(pid)
     rescue Errno::ESRCH, Errno::ECHILD
       nil
     end

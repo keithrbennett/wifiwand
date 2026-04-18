@@ -256,6 +256,67 @@ describe WifiWand::NetworkConnectivityTester do
     end
   end
 
+  describe 'probe termination' do
+    let(:tester) { described_class.new(verbose: false) }
+
+    describe '#terminate_probe' do
+      let(:reader) { instance_double(IO, closed?: false) }
+      let(:probe) { { pid: 1234, reader: reader } }
+
+      it 'sends TERM, waits for exit, and finalizes the probe' do
+        allow(Process).to receive(:kill)
+        allow(tester).to receive(:wait_for_probe_exit)
+        allow(tester).to receive(:reap_probe)
+        allow(reader).to receive(:close)
+
+        tester.send(:terminate_probe, probe)
+
+        expect(Process).to have_received(:kill).with('TERM', 1234).ordered
+        expect(tester).to have_received(:wait_for_probe_exit).with(1234).ordered
+        expect(reader).to have_received(:close)
+        expect(tester).to have_received(:reap_probe).with(1234)
+        expect(probe[:pid]).to be_nil
+      end
+
+      it 'swallows ESRCH races and still finalizes the probe' do
+        allow(Process).to receive(:kill).with('TERM', 1234).and_raise(Errno::ESRCH)
+        allow(tester).to receive(:reap_probe)
+        allow(reader).to receive(:close)
+
+        expect { tester.send(:terminate_probe, probe) }.not_to raise_error
+        expect(reader).to have_received(:close)
+        expect(tester).to have_received(:reap_probe).with(1234)
+        expect(probe[:pid]).to be_nil
+      end
+    end
+
+    describe '#wait_for_probe_exit' do
+      it 'returns after a prompt reap without escalating to KILL' do
+        allow(tester).to receive(:reap_probe).with(1234).and_return(1234)
+        allow(Process).to receive(:kill)
+
+        tester.send(:wait_for_probe_exit, 1234)
+
+        expect(Process).not_to have_received(:kill).with('KILL', 1234)
+      end
+
+      it 'escalates to KILL when the probe misses the grace window' do
+        monotonic_times = [0.0, 0.01, 0.02, 0.03, 0.04, 0.05]
+        allow(Process).to receive(:clock_gettime)
+          .with(Process::CLOCK_MONOTONIC)
+          .and_return(*monotonic_times)
+        allow(tester).to receive(:sleep)
+        allow(tester).to receive(:reap_probe).with(1234).and_return(nil, nil, nil, nil, nil, 1234)
+        allow(Process).to receive(:kill)
+
+        tester.send(:wait_for_probe_exit, 1234)
+
+        expect(Process).to have_received(:kill).with('KILL', 1234)
+        expect(tester).to have_received(:reap_probe).with(1234).exactly(6).times
+      end
+    end
+  end
+
   describe '#internet_connectivity_state' do
     let(:tester) { described_class.new(verbose: false) }
 
