@@ -4,7 +4,7 @@ require_relative '../errors'
 
 module WifiWand
   class ConnectionManager
-    MAX_NETWORK_NAME_LENGTH = 32
+    MAX_NETWORK_NAME_BYTES = 32
     MAX_PASSWORD_LENGTH = 64
     MAX_PASSPHRASE_LENGTH = 63
     RAW_PSK_PATTERN = /\A\h{64}\z/
@@ -57,7 +57,7 @@ module WifiWand
     # Normalizes and validates connection inputs.
     #
     # Accepted input types:
-    # - Network name: String or Symbol (required, max 32 printable characters)
+    # - Network name: String or Symbol (required, max 32 UTF-8 bytes)
     # - Password: String, Symbol, or nil (optional WPA/WPA2/3 pre-shared key:
     #   1-63 character passphrase, or exactly 64 hexadecimal characters)
     #
@@ -74,7 +74,6 @@ module WifiWand
       normalized_network_name = normalize_scalar_input(
         value:                network_name,
         allow_nil:            false,
-        max_length:           MAX_NETWORK_NAME_LENGTH,
         field_label:          'Network name',
         error_class:          InvalidNetworkNameError,
         blank_message:        'Network name cannot be empty',
@@ -100,6 +99,13 @@ module WifiWand
       if network_name.nil? || network_name.empty?
         raise InvalidNetworkNameError, network_name || ''
       end
+
+      return if network_name.bytesize <= MAX_NETWORK_NAME_BYTES
+
+      raise InvalidNetworkNameError.new(
+        network_name,
+        "Network name cannot exceed #{MAX_NETWORK_NAME_BYTES} bytes"
+      )
     end
 
     def validate_password(password)
@@ -237,8 +243,9 @@ module WifiWand
       end
     end
 
-    def normalize_scalar_input(value:, allow_nil:, max_length:, field_label:, error_class:, blank_message:,
-      control_char_message:)
+    def normalize_scalar_input(
+      value:, allow_nil:, field_label:, error_class:, blank_message:, control_char_message:, max_length: nil
+    )
       if value.nil?
         return nil if allow_nil
 
@@ -260,7 +267,7 @@ module WifiWand
         end
       end
 
-      if string_value.length > max_length
+      if max_length && string_value.length > max_length
         raise error_class.new(string_value, "#{field_label} cannot exceed #{max_length} characters")
       end
 

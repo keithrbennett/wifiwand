@@ -44,17 +44,18 @@ describe WifiWand::ConnectionManager do
       expect(password).to eq('secret_pass')
     end
 
-    it 'allows unusual unicode characters in the network name' do
-      unicode_name = 'ネットワーク✨' # final char is an emoji
+    it 'allows unusual unicode characters in the network name when they fit within 32 bytes' do
+      unicode_name = '무선네트워크' # 18 bytes in UTF-8 (Korean)
       network_name, password = subject.send(:normalize_inputs, unicode_name, nil)
       expect(network_name).to eq(unicode_name)
       expect(password).to be_nil
     end
 
-    it 'raises for network names longer than 32 characters' do
+    it 'normalizes ASCII network names longer than 32 characters before byte validation runs' do
       long_name = 'A' * 33
-      expect { subject.send(:normalize_inputs, long_name, nil) }
-        .to raise_error(WifiWand::InvalidNetworkNameError, /cannot exceed 32 characters/)
+      network_name, password = subject.send(:normalize_inputs, long_name, nil)
+      expect(network_name).to eq(long_name)
+      expect(password).to be_nil
     end
 
     it 'raises for network names containing control characters' do
@@ -118,6 +119,22 @@ describe WifiWand::ConnectionManager do
       network_name, password = subject.send(:normalize_inputs, 'ValidNetwork', nil)
       expect(network_name).to eq('ValidNetwork')
       expect(password).to be_nil
+    end
+  end
+
+  describe '#validate_network_name' do
+    it 'rejects multibyte names that exceed 32 bytes while remaining under 32 characters' do
+      long_name = '界' * 11 # 11 characters, 33 bytes in UTF-8
+
+      expect { subject.send(:validate_network_name, long_name) }
+        .to raise_error(WifiWand::InvalidNetworkNameError, /cannot exceed 32 bytes/)
+    end
+
+    it 'rejects ASCII names longer than 32 bytes' do
+      long_name = 'A' * 33
+
+      expect { subject.send(:validate_network_name, long_name) }
+        .to raise_error(WifiWand::InvalidNetworkNameError, /cannot exceed 32 bytes/)
     end
   end
 
