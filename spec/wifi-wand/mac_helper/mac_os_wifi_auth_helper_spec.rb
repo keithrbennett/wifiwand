@@ -377,6 +377,27 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
           expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed).with(out_stream: nil)
           client.send(:ensure_helper_installed)
         end
+
+        it 'warns but retries on a later call after an install failure' do
+          expect(File).to receive(:executable?).with(helper_path).and_return(false).twice
+          expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?)
+            .and_return(false).twice
+          allow(client).to receive(:log_verbose)
+          expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed)
+            .with(out_stream: nil).ordered.and_raise(StandardError, 'boom')
+          expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed)
+            .with(out_stream: nil).ordered
+
+          client.send(:ensure_helper_installed)
+
+          expect(out_stream.string).to include('failed to install helper (boom)')
+          expect(out_stream.string).not_to include('wifi-wand-macos-setup --repair')
+          expect(client.available?).to be(true)
+
+          client.send(:ensure_helper_installed)
+
+          expect(client.instance_variable_get(:@helper_install_verified)).to be(true)
+        end
       end
 
       context 'when the helper executable is present but invalid' do
@@ -389,34 +410,31 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
           client.send(:ensure_helper_installed)
         end
 
-        it 'disables the helper and emits repair guidance when reinstall fails' do
-          expect(File).to receive(:executable?).with(helper_path).and_return(true)
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(false)
+        it 'emits repair guidance when reinstall fails without permanently disabling retries' do
+          expect(File).to receive(:executable?).with(helper_path).and_return(true).twice
+          expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?)
+            .and_return(false).twice
           allow(client).to receive(:log_verbose)
           expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed)
-            .and_raise(StandardError, 'boom')
+            .with(out_stream: nil).twice.and_raise(StandardError, 'boom')
 
-          client.send(:ensure_helper_installed)
+          2.times { client.send(:ensure_helper_installed) }
 
           expect(out_stream.string).to include('failed to install helper (boom)')
           expect(out_stream.string).to include('wifi-wand-macos-setup --repair')
-          expect(client.instance_variable_get(:@disabled)).to be(true)
+          expect(client.available?).to be(true)
         end
       end
 
-      context 'when the helper is missing and installation raises an error' do
-        it 'disables the helper without a repair-specific warning' do
-          expect(File).to receive(:executable?).with(helper_path).and_return(false)
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(false)
-          allow(client).to receive(:log_verbose)
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed)
-            .and_raise(StandardError, 'boom')
+      context 'when the helper is explicitly disabled by env' do
+        before { ENV['WIFIWAND_DISABLE_MAC_HELPER'] = '1' }
 
-          client.send(:ensure_helper_installed)
+        it 'does not attempt validation or installation retries' do
+          expect(File).not_to receive(:executable?)
+          expect(WifiWand::MacOsWifiAuthHelper).not_to receive(:helper_installed_and_valid?)
+          expect(WifiWand::MacOsWifiAuthHelper).not_to receive(:ensure_helper_installed)
 
-          expect(out_stream.string).to include('failed to install helper (boom)')
-          expect(out_stream.string).not_to include('wifi-wand-macos-setup --repair')
-          expect(client.instance_variable_get(:@disabled)).to be(true)
+          2.times { client.send(:ensure_helper_installed) }
         end
       end
 

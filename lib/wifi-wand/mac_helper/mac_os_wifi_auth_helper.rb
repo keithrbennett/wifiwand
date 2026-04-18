@@ -442,8 +442,7 @@ module WifiWand
       end
 
       def available?
-        return false if @disabled
-        return false if ENV[DISABLE_ENV_KEY] == '1'
+        return false if helper_disabled?
 
         version = macos_version
         return false unless version
@@ -481,7 +480,7 @@ module WifiWand
         return HelperQueryResult.new unless available?
 
         ensure_helper_installed
-        return HelperQueryResult.new if @disabled
+        return HelperQueryResult.new if helper_disabled?
 
         helper_result = execute_helper_command(command)
         return HelperQueryResult.new unless helper_result
@@ -557,7 +556,7 @@ module WifiWand
       end
 
       def ensure_helper_installed
-        return if @disabled
+        return if helper_disabled?
         return if @helper_install_verified
 
         helper_present = File.executable?(helper_executable_path)
@@ -578,10 +577,13 @@ module WifiWand
       rescue => e
         @helper_install_verified = false
         emit_install_failure(e.message, repair_required: helper_present)
-        @disabled = true
       end
 
       def helper_executable_path = WifiWand::MacOsWifiAuthHelper.installed_executable_path
+
+      def helper_disabled?
+        @disabled || ENV[DISABLE_ENV_KEY] == '1'
+      end
 
       def parse_json(text)
         JSON.parse(text)
