@@ -495,10 +495,7 @@ module WifiWand
 
     def open_application(application_name) = run_os_command(['open', '-a', application_name])
 
-    def open_resource(resource_url)
-      validate_resource_url(resource_url)
-      run_os_command(['open', resource_url])
-    end
+    def open_resource(resource_url) = run_os_command(['open', resource_url])
 
     def nameservers_using_scutil
       output = run_os_command(%w[scutil --dns]).stdout

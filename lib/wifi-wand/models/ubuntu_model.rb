@@ -498,7 +498,6 @@ module WifiWand
     def open_resource(resource_url)
       debug_method_entry(__method__, binding, :resource_url)
 
-      validate_resource_url(resource_url)
       run_os_command(['xdg-open', resource_url])
     end
 

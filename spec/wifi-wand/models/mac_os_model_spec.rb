@@ -849,7 +849,8 @@ module WifiWand
         it 'constructs open commands properly' do
           test_cases = [
             'http://example.com',
-            'https://example.com/path',
+            'file:///path with spaces/file.txt',
+            '/Applications/Safari.app',
           ]
 
           test_cases.each do |resource|
