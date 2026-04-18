@@ -116,8 +116,14 @@ module WifiWand
 
     def cleanup_worker_threads(*threads)
       threads.compact.each do |thread|
-        thread.kill if thread.alive?
+        next unless thread.alive?
+
         thread.join(@worker_cleanup_timeout_seconds)
+        next unless thread.alive?
+
+        output.puts 'Warning: forcing worker thread termination after timeout' if verbose_mode
+        thread.kill
+        thread.join(0.01)
       end
     end
 
