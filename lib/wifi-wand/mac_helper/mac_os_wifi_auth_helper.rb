@@ -576,6 +576,7 @@ module WifiWand
         @helper_install_verified = true
       rescue => e
         @helper_install_verified = false
+        @disabled = true
         emit_install_failure(e.message, repair_required: helper_present)
       end
 
