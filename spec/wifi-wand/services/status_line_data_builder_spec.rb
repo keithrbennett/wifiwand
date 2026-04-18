@@ -128,7 +128,7 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result[:captive_portal_login_required]).to eq(:unknown)
     end
 
-    it 'marks captive portal login as not required when TCP or DNS fails' do
+    it 'marks captive portal login as unknown when TCP or DNS fails' do
       allow(model).to receive_messages(internet_tcp_connectivity?: false, dns_working?: false)
 
       result = builder.call
@@ -137,7 +137,7 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result[:internet_state]).to eq(:unreachable)
       expect(result[:internet_check_complete]).to be true
       expect(result[:captive_portal_state]).to eq(:indeterminate)
-      expect(result[:captive_portal_login_required]).to eq(:no)
+      expect(result[:captive_portal_login_required]).to eq(:unknown)
     end
 
     it 'preserves successful DNS status when TCP connectivity fails' do
@@ -149,7 +149,7 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result[:internet_state]).to eq(:unreachable)
       expect(result[:internet_check_complete]).to be true
       expect(result[:captive_portal_state]).to eq(:indeterminate)
-      expect(result[:captive_portal_login_required]).to eq(:no)
+      expect(result[:captive_portal_login_required]).to eq(:unknown)
     end
 
     it 'returns nil and emits a nil progress update when the initial wifi check fails' do
@@ -334,7 +334,7 @@ describe WifiWand::StatusLineDataBuilder do
         internet_check_complete:       true,
         network_name:                  'HomeNetwork',
         captive_portal_state:          :indeterminate,
-        captive_portal_login_required: :no
+        captive_portal_login_required: :unknown
       )
     end
 
@@ -430,6 +430,34 @@ describe WifiWand::StatusLineDataBuilder do
 
       expect(worker_threads.size).to eq(2)
       expect(worker_threads).to all(satisfy { |thread| !thread.alive? })
+    end
+  end
+
+  describe '#cleanup_worker_threads' do
+    it 'logs and forcefully terminates a worker that misses the cleanup timeout' do
+      output = StringIO.new
+      verbose_builder = described_class.new(
+        model,
+        verbose:                        true,
+        output:                         output,
+        worker_cleanup_timeout_seconds: 0.001
+      )
+      worker_release = Queue.new
+      worker_terminated = Queue.new
+
+      worker = Thread.new do
+        worker_release.pop
+      ensure
+        worker_terminated << :terminated
+      end
+      worker.report_on_exception = false
+
+      verbose_builder.send(:cleanup_worker_threads, worker)
+
+      expect(output.string).to include('Warning: forcing worker thread termination after timeout')
+      expect(worker_terminated.pop(timeout: 1)).to eq(:terminated)
+      expect(worker).not_to be_alive
+      expect(worker_release.size).to eq(0)
     end
   end
 end

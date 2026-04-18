@@ -8,6 +8,7 @@ module WifiWand
     DEFAULT_WORKER_RESULT_TIMEOUT_SECONDS = 2
     DEFAULT_WORKER_RESULT_POLL_INTERVAL_SECONDS = 0.01
     DEFAULT_WORKER_CLEANUP_TIMEOUT_SECONDS = 0.05
+    FINAL_WORKER_JOIN_AFTER_KILL_SECONDS = 0.01
 
     attr_reader :model, :verbose_mode, :output, :expected_network_errors
 
@@ -121,9 +122,14 @@ module WifiWand
         thread.join(@worker_cleanup_timeout_seconds)
         next unless thread.alive?
 
+        # These workers only do bounded status lookups. If one is still hung after the
+        # result timeout and cleanup grace period, the builder has already fallen back to
+        # partial data and must not leave the thread behind. We use Thread#kill here as a
+        # last-resort teardown and still wait briefly so the thread can unwind its ensure
+        # blocks before returning.
         output.puts 'Warning: forcing worker thread termination after timeout' if verbose_mode
         thread.kill
-        thread.join(0.01)
+        thread.join(FINAL_WORKER_JOIN_AFTER_KILL_SECONDS)
       end
     end
 
@@ -259,7 +265,7 @@ module WifiWand
         internet_state:                ConnectivityStates::INTERNET_UNREACHABLE,
         internet_check_complete:       true,
         captive_portal_state:          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
-        captive_portal_login_required: :no,
+        captive_portal_login_required: :unknown,
       }
     end
   end
