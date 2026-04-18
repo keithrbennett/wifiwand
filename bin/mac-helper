@@ -12,9 +12,14 @@
 
 require 'optparse'
 require 'pathname'
+require 'rbconfig'
+
+SCRIPT_PATH = File.realpath(__FILE__)
+SCRIPT_DIR = File.dirname(SCRIPT_PATH)
+REPO_ROOT = File.expand_path('..', SCRIPT_DIR)
 
 # Add lib to load path
-lib_path = Pathname.new(__FILE__).dirname.parent.join('lib')
+lib_path = Pathname.new(REPO_ROOT).join('lib')
 $LOAD_PATH.unshift(lib_path) unless $LOAD_PATH.include?(lib_path.to_s)
 
 require 'wifi-wand/mac_helper/mac_helper_release'
@@ -169,7 +174,7 @@ module MacHelperCLI
     end
 
     def exec_with_op_wrap(subcommand)
-      wrapper = ENV['WIFIWAND_OP_WRAP_BIN'] || File.expand_path('bin/op-wrap', Dir.pwd)
+      wrapper = ENV['WIFIWAND_OP_WRAP_BIN'] || File.expand_path('op-wrap', SCRIPT_DIR)
 
       unless File.exist?(wrapper)
         warn <<~ERROR
@@ -180,7 +185,7 @@ module MacHelperCLI
       end
 
       puts "Re-running #{subcommand} via #{File.basename(wrapper)}..."
-      exec('ruby', wrapper, $PROGRAM_NAME, subcommand, *@args)
+      exec(RbConfig.ruby, wrapper, $PROGRAM_NAME, subcommand, *@args)
     rescue SystemCallError => e
       warn "Error: unable to execute #{wrapper} for #{subcommand}: #{e.message}"
       exit 1
