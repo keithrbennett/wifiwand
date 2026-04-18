@@ -16,6 +16,7 @@ require 'rubygems/version'
 require 'securerandom'
 require 'tmpdir'
 require 'digest'
+require 'pathname'
 require_relative '../version'
 
 module WifiWand
@@ -31,6 +32,7 @@ module WifiWand
       (ENV['WIFIWAND_HELPER_TIMEOUT_SECONDS'] || (ENV['RSPEC_RUNNING'] ? 1.0 : 3.0)).to_f
     HELPER_TERMINATION_WAIT_SECONDS = ENV['RSPEC_RUNNING'] ? 0.1 : 0.25
     MANIFEST_FILENAME = 'INSTALL_MANIFEST.json'
+    SOURCE_MANIFEST_FILENAME = 'wifiwand-helper.source-manifest.json'
 
     module_function
 
@@ -53,6 +55,12 @@ module WifiWand
     # @return [String] absolute path to the bundle template directory
     #   Example: /path/to/gem/libexec/macos/wifiwand-helper.app
     def source_bundle_path = File.expand_path('../../../libexec/macos/wifiwand-helper.app', __dir__)
+
+    # Returns the path to the source attestation manifest committed with the helper bundle.
+    #
+    # @return [String] absolute path to the helper source manifest
+    def source_bundle_manifest_path =
+      File.expand_path("../../../libexec/macos/#{SOURCE_MANIFEST_FILENAME}", __dir__)
 
     # Returns the versioned installation directory in user's Library folder
     #
@@ -160,11 +168,30 @@ module WifiWand
 
     def installed_bundle_current?
       manifest = read_install_manifest
-      return false unless manifest
 
-      manifest['helper_version'] == helper_version &&
-        manifest['bundle_fingerprint'] == bundle_fingerprint(installed_bundle_path) &&
-        manifest['bundle_fingerprint'] == bundle_fingerprint(source_bundle_path)
+      if manifest
+        manifest['helper_version'] == helper_version &&
+          manifest['bundle_fingerprint'] == bundle_fingerprint(installed_bundle_path) &&
+          manifest['bundle_fingerprint'] == bundle_fingerprint(source_bundle_path)
+      else
+        false
+      end
+    end
+
+    def source_bundle_current?
+      manifest = read_source_bundle_manifest
+
+      if manifest
+        manifest['helper_version'] == helper_version &&
+          manifest['source_sha256'] == source_swift_fingerprint &&
+          manifest['bundle_fingerprint'] == bundle_fingerprint(source_bundle_path)
+      else
+        false
+      end
+    end
+
+    def verify_source_bundle_current!
+      source_bundle_current? || raise(source_bundle_mismatch_message)
     end
 
     def run_bounded_helper_command(executable_path, command, on_timeout: nil)
@@ -457,6 +484,28 @@ module WifiWand
       out_stream&.puts 'Helper bundle signed successfully.'
     end
 
+    def write_source_bundle_manifest
+      File.write(source_bundle_manifest_path, JSON.pretty_generate(source_bundle_manifest_payload))
+    end
+
+    def source_bundle_manifest_payload
+      {
+        'helper_version'     => helper_version,
+        'source_path'        => relative_helper_path(source_swift_path),
+        'source_sha256'      => source_swift_fingerprint,
+        'bundle_path'        => relative_helper_path(source_bundle_path),
+        'bundle_fingerprint' => bundle_fingerprint(source_bundle_path),
+      }
+    end
+
+    def read_source_bundle_manifest
+      if File.exist?(source_bundle_manifest_path)
+        JSON.parse(File.read(source_bundle_manifest_path))
+      end
+    rescue JSON::ParserError
+      nil
+    end
+
     def write_manifest
       FileUtils.mkdir_p(versioned_install_dir)
       File.write(File.join(versioned_install_dir, 'VERSION'), helper_version)
@@ -469,9 +518,9 @@ module WifiWand
     end
 
     def read_install_manifest
-      return unless File.exist?(install_manifest_path)
-
-      JSON.parse(File.read(install_manifest_path))
+      if File.exist?(install_manifest_path)
+        JSON.parse(File.read(install_manifest_path))
+      end
     rescue JSON::ParserError
       nil
     end
@@ -489,12 +538,25 @@ module WifiWand
       digest.hexdigest
     end
 
+    def source_swift_fingerprint = Digest::SHA256.file(source_swift_path).hexdigest
+
     def tracked_bundle_files(bundle_path)
       [
         File.join(bundle_path, 'Contents', 'Info.plist'),
         File.join(bundle_path, 'Contents', '_CodeSignature', 'CodeResources'),
         File.join(bundle_path, 'Contents', 'MacOS', EXECUTABLE_NAME),
       ]
+    end
+
+    def source_bundle_mismatch_message
+      "Shipped macOS helper bundle is out of sync with #{relative_helper_path(source_swift_path)}. " \
+        'Run `bundle exec rake swift:compile` or `bin/mac-helper build` to rebuild the signed bundle ' \
+        "and refresh #{relative_helper_path(source_bundle_manifest_path)}."
+    end
+
+    def relative_helper_path(path)
+      repo_root = File.expand_path('../../..', __dir__)
+      Pathname.new(path).relative_path_from(Pathname.new(repo_root)).to_s
     end
 
     HelperQueryResult = Struct.new(

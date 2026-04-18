@@ -27,6 +27,7 @@ require 'wifi-wand/mac_helper/mac_helper_release'
 module MacHelperCLI
   SUBCOMMANDS = {
     'build' => 'Build and sign helper with Developer ID (for gem distribution)',
+    'verify' => 'Verify the committed helper bundle matches the current Swift source',
     'test' => 'Test the signed helper binary',
     'notarize' => 'Notarize the helper for distribution (requires Apple ID credentials)',
     'release' => 'Complete release workflow: build, sign, test, notarize',
@@ -91,6 +92,9 @@ module MacHelperCLI
 
           Build & sign:
             bin/mac-helper build
+
+          Verify source attestation:
+            bin/mac-helper verify
 
           Test:
             bin/mac-helper test
@@ -195,6 +199,8 @@ module MacHelperCLI
       case subcommand
       when 'build'
         WifiWand::MacHelperRelease.build_signed_helper
+      when 'verify'
+        WifiWand::MacHelperRelease.verify_source_attestation!
       when 'test'
         WifiWand::MacHelperRelease.test_signed_helper
       when 'notarize'

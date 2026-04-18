@@ -67,6 +67,8 @@ module WifiWand
         MSG
       end
 
+      SOURCE_ATTESTATION_VALID = '✓ Source attestation matches committed Swift source and bundle'
+
       def self.notarizing_header(bundle_path:, apple_id:, team_id:)
         <<~MSG
           Notarizing helper for distribution...
@@ -171,6 +173,13 @@ module WifiWand
         <<~MSG
           ✗ Signature is invalid:
           #{stderr}
+        MSG
+      end
+
+      def self.source_attestation_invalid(error_message)
+        <<~MSG
+          ✗ Source attestation failed:
+          #{error_message}
         MSG
       end
     end
@@ -340,6 +349,13 @@ module WifiWand
     # Public API - main operations
     module_function
 
+    def verify_source_attestation!
+      WifiWand::MacOsWifiAuthHelper.verify_source_bundle_current!
+      puts Messages::SOURCE_ATTESTATION_VALID
+    rescue => e
+      abort Messages.source_attestation_invalid(e.message)
+    end
+
     def build_signed_helper
       Operations.require_macos!(__method__.to_s)
       identity = CODESIGN_IDENTITY
@@ -353,9 +369,11 @@ module WifiWand
 
       puts Messages.building_helper(source: source, destination: destination, identity: identity)
       helper.compile_helper(source, destination, out_stream: $stdout)
+      helper.write_source_bundle_manifest
 
       puts "\nVerifying binary architectures..."
       Operations.verify_universal_binary(destination)
+      verify_source_attestation!
 
       puts Messages::HELPER_BUILT_SUCCESS
     end
@@ -365,6 +383,8 @@ module WifiWand
       helper = WifiWand::MacOsWifiAuthHelper
       executable = Operations.helper_executable_path
       abort "Helper not found at #{executable}. Run: bin/mac-helper build" unless File.exist?(executable)
+
+      verify_source_attestation!
 
       puts Messages::TESTING_HEADER
       system('codesign', '-dvv', helper.source_bundle_path)
@@ -392,6 +412,8 @@ module WifiWand
       zip_path = "#{bundle_path}.zip"
       abort "Helper bundle not found at #{bundle_path}. Run: bin/mac-helper build" \
         unless File.exist?(bundle_path)
+
+      verify_source_attestation!
 
       stdout, _stderr, status = Open3.capture3('codesign', '-dv', bundle_path)
       if status.success? && stdout.include?('adhoc')
@@ -532,6 +554,8 @@ module WifiWand
         puts Messages.bundle_not_found(bundle_path)
         exit 1
       end
+
+      verify_source_attestation!
 
       puts Messages.codesign_status_header
       system('codesign', '-dvv', bundle_path)

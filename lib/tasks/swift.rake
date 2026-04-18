@@ -21,10 +21,17 @@ namespace :swift do
 
     puts "Compiling #{helper_source} -> #{helper_binary}"
     helper.compile_helper(helper_source, helper_binary, out_stream: $stdout)
+    helper.write_source_bundle_manifest
   end
 
   desc 'Compile the wifiwand macOS helper bundle executable (requires WIFIWAND_CODESIGN_IDENTITY)'
   task compile_helper: helper_binary
+
+  desc 'Verify the committed wifiwand macOS helper bundle matches the current Swift source'
+  task :verify_helper do
+    helper.verify_source_bundle_current!
+    puts 'Source attestation matches committed Swift source and bundle.'
+  end
 
   desc 'Compile all Swift targets that require compilation (requires WIFIWAND_CODESIGN_IDENTITY)'
   task compile: [:compile_helper]
