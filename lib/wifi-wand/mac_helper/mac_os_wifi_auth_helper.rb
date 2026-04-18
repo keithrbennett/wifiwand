@@ -29,8 +29,8 @@ module WifiWand
     # Allows power users/CI to opt out of helper usage via environment flag
     DISABLE_ENV_KEY = 'WIFIWAND_DISABLE_MAC_HELPER'
     HELPER_COMMAND_TIMEOUT_SECONDS =
-      (ENV['WIFIWAND_HELPER_TIMEOUT_SECONDS'] || (ENV['RSPEC_RUNNING'] ? 1.0 : 3.0)).to_f
-    HELPER_TERMINATION_WAIT_SECONDS = ENV['RSPEC_RUNNING'] ? 0.1 : 0.25
+      (ENV['WIFIWAND_HELPER_TIMEOUT_SECONDS'] || 3.0).to_f
+    HELPER_TERMINATION_WAIT_SECONDS = 0.25
     MANIFEST_FILENAME = 'INSTALL_MANIFEST.json'
     SOURCE_MANIFEST_FILENAME = 'wifiwand-helper.source-manifest.json'
 
