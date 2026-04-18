@@ -198,7 +198,7 @@ module WifiWand
       wifi_data = find_wifi_interface_data(interfaces, iface)
       return [] unless wifi_data
 
-      inner_key = network_list_key
+      inner_key = network_list_key(wifi_data)
       networks = wifi_data.fetch(inner_key, [])
       return [] unless networks
 
@@ -495,7 +495,10 @@ module WifiWand
 
     def open_application(application_name) = run_os_command(['open', '-a', application_name])
 
-    def open_resource(resource_url) = run_os_command(['open', resource_url])
+    def open_resource(resource_url)
+      validate_resource_url(resource_url)
+      run_os_command(['open', resource_url])
+    end
 
     def nameservers_using_scutil
       output = run_os_command(%w[scutil --dns]).stdout
@@ -679,10 +682,14 @@ module WifiWand
       false
     end
 
-    def network_list_key
-      # `system_profiler` shifts the current SSID between these keys depending on
-      # whether the interface is already associated.
-      connected_network_name ?
+    def network_list_key(wifi_interface_data = nil)
+      associated = if wifi_interface_data
+        interface_associated_in_airport_data?(wifi_interface_data)
+      else
+        connected_network_name
+      end
+
+      associated ?
         'spairport_airport_other_local_wireless_networks' :
         'spairport_airport_local_wireless_networks'
     end
@@ -712,7 +719,7 @@ module WifiWand
       begin
         JSON.parse(json_text)
       rescue JSON::ParserError => e
-        raise "Failed to parse system_profiler output: #{e.message}"
+        raise SystemProfilerError, "Failed to parse system_profiler output: #{e.message}"
       end
     end
 
@@ -723,17 +730,14 @@ module WifiWand
       return nil unless network_name
 
       data = airport_data
-      # system_profiler moves the current SSID to 'other_local_wireless_networks' when
-      # associated, so use network_list_key rather than hardcoding the 'local' key.
-      inner_key = network_list_key
-
-      # Get the networks data from the airport information
       iface = wifi_interface
-      networks = data['SPAirPortDataType']
+      wifi_interface_data = data['SPAirPortDataType']
         &.detect { |h| h.key?('spairport_airport_interfaces') }
         &.dig('spairport_airport_interfaces')
         &.detect { |h| h['_name'] == iface }
-        &.dig(inner_key)
+      inner_key = network_list_key(wifi_interface_data)
+
+      networks = wifi_interface_data&.dig(inner_key)
 
       return nil unless networks
 

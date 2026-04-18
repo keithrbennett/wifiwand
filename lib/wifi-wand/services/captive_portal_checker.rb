@@ -7,9 +7,12 @@ require 'timeout'
 require 'yaml'
 require_relative '../timing_constants'
 require_relative '../connectivity_states'
+require_relative 'process_probe_manager'
 
 module WifiWand
   class CaptivePortalChecker
+    include ProcessProbeManager
+
     def initialize(verbose: false, output: $stdout)
       @verbose = verbose
       @output = output
@@ -187,53 +190,6 @@ module WifiWand
       else
         @output.puts "Captive portal check network error for #{endpoint[:url]}: #{result[:error_class]}"
       end
-    end
-
-    def terminate_probes(probes)
-      probes.each { |probe| terminate_probe(probe) }
-    end
-
-    def terminate_probe(probe)
-      pid = probe[:pid]
-      return unless pid
-
-      Process.kill('TERM', pid)
-      wait_for_probe_exit(pid)
-    rescue Errno::ESRCH, Errno::ECHILD
-      nil
-    ensure
-      finalize_probe(probe)
-    end
-
-    def finalize_probe(probe)
-      probe[:reader]&.close unless probe[:reader]&.closed?
-      reap_probe(probe[:pid])
-      probe[:pid] = nil
-    end
-
-    def reap_probe(pid)
-      return unless pid
-
-      Process.wait(pid, Process::WNOHANG) || nil
-    rescue Errno::ECHILD
-      nil
-    end
-
-    def wait_for_probe_exit(pid)
-      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + HELPER_RESULT_GRACE
-
-      loop do
-        return if reap_probe(pid)
-        return if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
-
-        sleep(0.01)
-      end
-
-      # Subprocess did not exit within the grace period after SIGTERM; force-kill it.
-      Process.kill('KILL', pid)
-      reap_probe(pid)
-    rescue Errno::ESRCH, Errno::ECHILD
-      nil
     end
 
     # Attempts an HTTP GET to a captive portal check endpoint and compares the response code.

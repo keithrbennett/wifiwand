@@ -106,7 +106,7 @@ describe WifiWand::NetworkStateManager do
           'WiFi could not be enabled.*' \
           'You may need to manually reconnect to: TestNetwork'
         expect { state_manager.restore_network_state(valid_state, fail_silently: true) }
-          .to output(/#{target}/m).to_stderr
+          .to output(/#{target}/m).to_stdout
       end
 
       it 'swallows connection failures and logs to stderr' do
@@ -125,10 +125,10 @@ describe WifiWand::NetworkStateManager do
           'You may need to manually reconnect to: TestNetwork'
         expect do
           state_manager.restore_network_state(valid_state, fail_silently: true)
-        end.to output(/#{target_str}/m).to_stderr
+        end.to output(/#{target_str}/m).to_stdout
       end
 
-      it 'swallows expected network errors and logs to stderr' do
+      it 'swallows expected network errors and logs to configured output' do
         allow(mock_model).to receive_messages(
           connection_ready?:          false,
           wifi_on?:                   true,
@@ -141,7 +141,7 @@ describe WifiWand::NetworkStateManager do
           'You may need to manually reconnect to: TestNetwork'
         expect do
           state_manager.restore_network_state(valid_state, fail_silently: true)
-        end.to output(/#{target}/m).to_stderr
+        end.to output(/#{target}/m).to_stdout
       end
 
       it 'propagates unexpected exceptions even when fail_silently is true' do

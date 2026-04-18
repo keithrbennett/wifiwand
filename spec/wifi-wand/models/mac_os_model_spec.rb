@@ -849,8 +849,7 @@ module WifiWand
         it 'constructs open commands properly' do
           test_cases = [
             'http://example.com',
-            'file:///path with spaces/file.txt',
-            '/Applications/Safari.app',
+            'https://example.com/path',
           ]
 
           test_cases.each do |resource|
@@ -1194,6 +1193,7 @@ module WifiWand
           interfaces = connected_data['SPAirPortDataType'][0]['spairport_airport_interfaces'][0]
           interfaces['spairport_airport_other_local_wireless_networks'] =
             [{ '_name' => 'OtherNetwork', 'spairport_signal_noise' => '75/10' }]
+          interfaces['spairport_current_network_information'] = { '_name' => 'CurrentNetwork' }
 
           allow(model).to receive_messages(
             airport_data:           connected_data,
@@ -1212,6 +1212,7 @@ module WifiWand
             { '_name' => 'CurrentNetwork', 'spairport_signal_noise' => '92/10' },
             { '_name' => 'OtherNetwork', 'spairport_signal_noise' => '75/10' },
           ]
+          interfaces['spairport_current_network_information'] = { '_name' => 'CurrentNetwork' }
 
           allow(model).to receive_messages(
             airport_data:           connected_data,
@@ -1229,6 +1230,7 @@ module WifiWand
             { '_name' => 'OtherNetwork', 'spairport_signal_noise' => '75/10' },
             { '_name' => 'GuestNetwork', 'spairport_signal_noise' => '55/10' },
           ]
+          interfaces['spairport_current_network_information'] = { '_name' => 'CurrentNetwork' }
 
           allow(model).to receive_messages(
             airport_data:           connected_data,
@@ -1508,6 +1510,7 @@ module WifiWand
                     '_name'                   => network_name,
                     'spairport_security_mode' => security_mode,
                   }],
+                  'spairport_current_network_information'           => { '_name' => network_name },
                 }],
               }],
             }
@@ -1530,8 +1533,8 @@ module WifiWand
                   '_name'                   => network_name,
                   'spairport_security_mode' => 'WPA2',
                 }],
-                # Connected network is NOT in the local list — only in other_local.
                 'spairport_airport_local_wireless_networks'       => [],
+                'spairport_current_network_information'           => { '_name' => network_name },
               }],
             }],
           }

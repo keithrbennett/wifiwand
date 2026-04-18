@@ -9,9 +9,12 @@ require 'ipaddr'
 require_relative '../timing_constants'
 require_relative '../connectivity_states'
 require_relative 'captive_portal_checker'
+require_relative 'process_probe_manager'
 
 module WifiWand
   class NetworkConnectivityTester
+    include ProcessProbeManager
+
     UNSET = Object.new.freeze
     HELPER_RESULT_GRACE = 0.05
 
@@ -290,52 +293,6 @@ module WifiWand
                else item.inspect
       end
       @output.puts "Failed to start #{helper_mode} helper for #{target}: #{error.class}"
-    end
-
-    def terminate_probes(probes)
-      probes.each { |probe| terminate_probe(probe) }
-    end
-
-    def terminate_probe(probe)
-      pid = probe[:pid]
-      return unless pid
-
-      Process.kill('TERM', pid)
-      wait_for_probe_exit(pid)
-    rescue Errno::ESRCH, Errno::ECHILD
-      nil
-    ensure
-      finalize_probe(probe)
-    end
-
-    def finalize_probe(probe)
-      probe[:reader]&.close unless probe[:reader]&.closed?
-      reap_probe(probe[:pid])
-      probe[:pid] = nil
-    end
-
-    def reap_probe(pid)
-      return unless pid
-
-      Process.wait(pid, Process::WNOHANG) || nil
-    rescue Errno::ECHILD
-      nil
-    end
-
-    def wait_for_probe_exit(pid)
-      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + HELPER_RESULT_GRACE
-
-      loop do
-        return if reap_probe(pid)
-        break if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
-
-        sleep(0.005)
-      end
-
-      Process.kill('KILL', pid)
-      reap_probe(pid)
-    rescue Errno::ESRCH, Errno::ECHILD
-      nil
     end
 
     def attempt_tcp_connection(endpoint)

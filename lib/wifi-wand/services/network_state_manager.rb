@@ -118,8 +118,10 @@ module WifiWand
       rescue *EXPECTED_RESTORE_ERRORS => e
         raise unless fail_silently
 
-        warn "Warning: Could not restore network state (#{e.class}): #{e.message}"
-        warn "You may need to manually reconnect to: #{state[:network_name]}" if state[:network_name]
+        @output.puts "Warning: Could not restore network state (#{e.class}): #{e.message}" if @output
+        if state[:network_name] && @output
+          @output.puts "You may need to manually reconnect to: #{state[:network_name]}"
+        end
         nil
       end
     end

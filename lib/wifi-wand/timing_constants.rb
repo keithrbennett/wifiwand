@@ -23,12 +23,9 @@ module WifiWand
     # on slow or degraded networks. Increased from 2s to 5s after observing intermittent
     # internet on/off events during logging, which indicates connectivity checks were
     # timing out due to network latency rather than actual connectivity loss.
-    TCP_CONNECTION_TIMEOUT = ENV['RSPEC_RUNNING'] ? 0.25 : 5
-    # Same reasoning as above: short for mocked DNS, 5s for slow DNS servers or high latency.
-    DNS_RESOLUTION_TIMEOUT = ENV['RSPEC_RUNNING'] ? 0.25 : 5
-    # The overall window is wider to accommodate both TCP and DNS checks with retries.
-    # Tests finish quickly with 1s; production gets 6s to cover TCP + DNS + latency.
-    OVERALL_CONNECTIVITY_TIMEOUT = ENV['RSPEC_RUNNING'] ? 1.0 : 6
+    TCP_CONNECTION_TIMEOUT = 5
+    DNS_RESOLUTION_TIMEOUT = 5
+    OVERALL_CONNECTIVITY_TIMEOUT = 6
 
     # Spec helper interval for rapid polling in deterministic unit tests.
     FAST_TEST_INTERVAL = 0.1
@@ -45,6 +42,6 @@ module WifiWand
     # HTTP-level captive portal check timeout (in seconds)
     # Needs to be long enough for a full HTTP round-trip on slow networks.
     # Tests use a short value to keep specs fast.
-    HTTP_CONNECTIVITY_TIMEOUT = ENV['RSPEC_RUNNING'] ? 0.25 : 5
+    HTTP_CONNECTIVITY_TIMEOUT = 5
   end
 end

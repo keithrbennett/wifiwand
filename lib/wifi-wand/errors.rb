@@ -205,6 +205,8 @@ module WifiWand
     end
   end
 
+  class SystemProfilerError < Error; end
+
   class LogFileError < Error
   end
 
