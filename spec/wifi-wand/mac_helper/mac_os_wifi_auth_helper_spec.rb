@@ -619,7 +619,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       expect(File.symlink?(installed_bundle_path)).to be(true)
       expect(File.read(manifest_path)).to eq('9.9.9')
       expect(JSON.parse(File.read(install_manifest_path))).to include(
-        'helper_version' => '9.9.9',
+        'helper_version'     => '9.9.9',
         'bundle_fingerprint' => described_class.bundle_fingerprint(source_bundle_path)
       )
       expect(out_stream.string).to include('Installing wifiwand macOS helper...')
@@ -840,7 +840,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       create_helper_bundle(installed_bundle_path, help_text: 'old helper')
       FileUtils.mkdir_p(versioned_install_dir)
       File.write(install_manifest_path, JSON.dump(
-        'helper_version' => '9.9.9',
+        'helper_version'     => '9.9.9',
         'bundle_fingerprint' => described_class.bundle_fingerprint(installed_bundle_path)
       ))
 

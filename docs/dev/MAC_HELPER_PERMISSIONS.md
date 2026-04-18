@@ -54,6 +54,8 @@ Because of that, the correct statement is:
 - The design goal is permission continuity across gem versions.
 - If macOS prompts again after an upgrade, that would be an OS-level edge case, not the intended application
   model.
+- If helper bundle files change within the same gem version, wifi-wand now treats the installed helper as
+  stale and reinstalls it before use.
 
 ## Bottom Line
 

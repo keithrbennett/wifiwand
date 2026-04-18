@@ -141,6 +141,22 @@ The helper has **no access** to:
 
 wifi-wand ships a setup script for installing the helper and managing location permission.
 
+### Update the Helper
+
+If you want to force wifi-wand to replace the installed helper with the currently shipped one, run:
+
+```bash
+wifi-wand-macos-setup --repair
+```
+
+Use this after:
+- Upgrading wifi-wand when you want to refresh the helper immediately
+- Seeing helper crashes or startup failures
+- Seeing `<hidden>` or `<redacted>` unexpectedly after the helper previously worked
+
+If you have already installed a wifi-wand build that includes newer helper files, `--repair` is the fastest
+way to put that updated helper on disk right now.
+
 ### Check Status and Install
 
 ```bash
@@ -164,6 +180,9 @@ wifi-wand-macos-setup --repair
 
 Use this when the helper is already installed but wifi-wand still shows `<hidden>` or `<redacted>` for network
 names. It force-replaces the helper bundle and re-runs the authorization flow.
+
+This is also the correct command when you want to update the installed helper immediately without waiting for
+the next helper-backed wifi-wand command to notice that the bundle on disk is out of date.
 
 ### Revoke Location Permission
 
@@ -227,7 +246,7 @@ open "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationSe
 
 **Possible Causes:**
 1. Permission already granted or denied (check System Settings)
-2. Helper bundle is stale or macOS TCC has lost track of it
+2. Helper bundle is stale, outdated, or macOS TCC has lost track of it
 3. macOS cached the previous permission decision
 
 **Solution:**
@@ -324,8 +343,8 @@ You can:
 The helper is automatically installed when you first run a wifi-wand command on macOS 14+:
 
 1. wifi-wand detects macOS version ≥ 14.0
-2. Checks if helper exists at `~/Library/Application Support/WifiWand/{version}/`
-3. If not found, copies pre-signed helper from gem installation
+2. Checks whether the installed helper exists and matches the helper currently shipped with the gem
+3. If it is missing or out of date, copies the current pre-signed helper from the gem installation
 4. Helper is ready to use
 
 ### Helper Communication
@@ -385,6 +404,10 @@ Each wifi-wand version installs its helper to a versioned directory:
 Old versions are not automatically removed (in case you have multiple wifi-wand versions installed). You can
 safely delete old version directories.
 
+Within the same gem version, wifi-wand also tracks whether the installed helper bundle still matches the
+currently shipped helper files. If the helper bundle on disk is stale, wifi-wand reinstalls it automatically
+before using it. You can force that refresh yourself at any time with `wifi-wand-macos-setup --repair`.
+
 ### Permission Identity and Version Upgrades
 
 macOS identifies the helper by its **bundle identifier** (`com.wifiwand.helper`), not by its installed path.
@@ -436,6 +459,6 @@ documentation in the repository:
 
 ---
 
-**Last Updated:** 2026-03-30
+**Last Updated:** 2026-04-18
 **macOS Compatibility:** macOS 14.0 (Sonoma) and later
 **Helper Version:** Matches wifi-wand gem version

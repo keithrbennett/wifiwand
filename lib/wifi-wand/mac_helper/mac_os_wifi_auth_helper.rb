@@ -462,7 +462,7 @@ module WifiWand
       File.write(File.join(versioned_install_dir, 'VERSION'), helper_version)
       File.write(install_manifest_path, JSON.pretty_generate(
         {
-          'helper_version' => helper_version,
+          'helper_version'     => helper_version,
           'bundle_fingerprint' => bundle_fingerprint(source_bundle_path),
         }
       ))
