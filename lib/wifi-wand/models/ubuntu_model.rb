@@ -167,16 +167,11 @@ module WifiWand
           # Case 2: Password is provided.
           profile = find_best_profile_for_ssid(network_name)
           if profile
-            # Profile exists. Only modify it if the password has changed.
+            # Existing profiles are treated transactionally: prove the new credential first,
+            # then persist it to the saved profile after activation succeeds.
             if password != _preferred_network_password(profile)
-              security_param = get_security_parameter(network_name)
-              if security_param
-                run_os_command(['nmcli', 'connection', 'modify', profile, security_param, password])
-              else
-                # Fallback if security type can't be determined (e.g. out of range).
-                run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
-                return # The connect command already activates.
-              end
+              activate_and_persist_updated_password(network_name, password, profile)
+              return
             end
             # Always bring the connection up.
             run_os_command(['nmcli', 'connection', 'up', profile])
@@ -271,6 +266,32 @@ module WifiWand
 
     # Preferred, clearer name for security parameter query
     def security_parameter(ssid) = get_security_parameter(ssid)
+
+    def activate_and_persist_updated_password(network_name, password, existing_profile)
+      run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
+
+      security_param = get_security_parameter(network_name)
+      return unless security_param
+
+      profile_to_update = persistence_target_profile_for_ssid(network_name, existing_profile)
+      run_os_command(['nmcli', 'connection', 'modify', profile_to_update, security_param, password])
+    end
+
+    def persistence_target_profile_for_ssid(network_name, existing_profile)
+      active_profile = begin
+        active_connection_profile_name
+      rescue WifiWand::Error
+        nil
+      end
+
+      if active_profile && profile_matches_ssid?(active_profile, network_name)
+        return active_profile
+      end
+
+      return existing_profile if existing_profile && profile_matches_ssid?(existing_profile, network_name)
+
+      find_best_profile_for_ssid(network_name) || existing_profile
+    end
 
     # Finds the best connection profile for a given SSID.
     # "Best" is defined as the one with the most recent TIMESTAMP, which indicates
