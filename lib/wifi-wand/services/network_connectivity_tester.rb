@@ -295,6 +295,10 @@ module WifiWand
       @output.puts "Failed to start #{helper_mode} helper for #{target}: #{error.class}"
     end
 
+    def helper_exit_poll_interval
+      0.005
+    end
+
     def attempt_tcp_connection(endpoint)
       Timeout.timeout(TimingConstants::TCP_CONNECTION_TIMEOUT) do
         Socket.tcp(
