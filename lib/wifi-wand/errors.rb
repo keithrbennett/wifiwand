@@ -130,6 +130,16 @@ module WifiWand
     end
   end
 
+  class CommandTimeoutError < Error
+    attr_reader :command, :timeout_in_secs
+
+    def initialize(command, timeout_in_secs)
+      @command = command
+      @timeout_in_secs = timeout_in_secs
+      super("Command timed out after #{timeout_in_secs} seconds: #{command}")
+    end
+  end
+
   # === MACOS-SPECIFIC ERRORS ===
   class KeychainAccessDeniedError < Error
     def initialize(network_name)

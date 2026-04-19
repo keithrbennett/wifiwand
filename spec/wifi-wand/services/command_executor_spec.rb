@@ -1,9 +1,47 @@
 # frozen_string_literal: true
 
+require 'rbconfig'
+require 'tempfile'
 require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/services/command_executor'
 
 describe WifiWand::CommandExecutor do
+  def wait_for_file_contents(path, timeout: 2)
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
+
+    loop do
+      contents = File.read(path)
+      return contents unless contents.empty?
+
+      if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+        raise "Timeout waiting for contents in #{path}"
+      end
+
+      sleep 0.05
+    end
+  end
+
+  def process_alive?(pid)
+    Process.kill(0, pid)
+    true
+  rescue Errno::ESRCH
+    false
+  end
+
+  def wait_for_process_exit(pid, timeout: 2)
+    deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
+
+    loop do
+      return unless process_alive?(pid)
+
+      if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+        raise "Timeout waiting for process #{pid} to exit"
+      end
+
+      sleep 0.05
+    end
+  end
+
   describe '#run_os_command' do
     context 'with verbose mode disabled' do
       let(:executor) { described_class.new(verbose: false) }
@@ -14,9 +52,20 @@ describe WifiWand::CommandExecutor do
         expect(result.stdout.strip).to eq('test')
       end
 
+      it 'supports timeouts for array commands without changing successful behavior' do
+        result = executor.run_os_command(
+          [RbConfig.ruby, '-e', 'sleep 0.05; print "ok"'],
+          true,
+          timeout_in_secs: 1
+        )
+
+        expect(result.stdout).to eq('ok')
+        expect(result.exitstatus).to eq(0)
+      end
+
       it 'raises OsCommandError on command failure when raise_on_error is true' do
         expect do
-          executor.run_os_command('false')  # Command that always fails
+          executor.run_os_command('false')
         end.to raise_error(WifiWand::CommandExecutor::OsCommandError)
       end
 
@@ -27,9 +76,35 @@ describe WifiWand::CommandExecutor do
       end
 
       it 'captures both stdout and stderr' do
-        result = executor.run_os_command('bash -c \'echo "stdout"; echo "stderr" >&2\'', false)
+        result = executor.run_os_command("bash -c 'echo \"stdout\"; echo \"stderr\" >&2'", false)
         expect(result.stdout).to include('stdout')
         expect(result.stderr).to include('stderr')
+      end
+
+      it 'raises CommandTimeoutError for shell commands that exceed the timeout' do
+        expect do
+          executor.run_os_command("#{RbConfig.ruby} -e 'sleep 5'", true, timeout_in_secs: 0.2)
+        end.to raise_error(WifiWand::CommandTimeoutError, /sleep 5/)
+      end
+
+      it 'terminates timed out child processes without leaking them' do
+        Tempfile.create('wifiwand-command-timeout') do |pid_file|
+          pid_file.close
+          command = [
+            RbConfig.ruby,
+            '-e',
+            "File.write(ARGV[0], Process.pid.to_s); Signal.trap('TERM', 'IGNORE'); sleep 30",
+            pid_file.path,
+          ]
+
+          expect do
+            executor.run_os_command(command, true, timeout_in_secs: 0.2)
+          end.to raise_error(WifiWand::CommandTimeoutError)
+
+          pid = wait_for_file_contents(pid_file.path).to_i
+          wait_for_process_exit(pid)
+          expect(process_alive?(pid)).to be(false)
+        end
       end
 
       it 'raises CommandNotFoundError when an array command executable is missing' do
@@ -54,7 +129,7 @@ describe WifiWand::CommandExecutor do
         wait_thr = instance_double(Thread)
         status = instance_double(Process::Status, exitstatus: 0)
 
-        allow(wait_thr).to receive(:value).and_return(status)
+        allow(wait_thr).to receive_messages(join: wait_thr, value: status)
         allow(Open3).to receive(:popen3).and_yield(stdin, stdout, stderr, wait_thr)
 
         result = executor.run_os_command(%w[echo test])
@@ -87,7 +162,6 @@ describe WifiWand::CommandExecutor do
     it 'retries until condition is met' do
       call_count = 0
 
-      # Mock the run_os_command to include the iteration number in output
       allow(executor).to receive(:run_os_command) do |command|
         call_count += 1
         WifiWand::CommandExecutor::OsCommandResult.new(
@@ -100,25 +174,22 @@ describe WifiWand::CommandExecutor do
         )
       end
 
-      condition = ->(output) {
-        # Succeed on second try
-        output.include?('attempt 2')
-      }
+      condition = ->(output) { output.include?('attempt 2') }
 
       result = executor.try_os_command_until('echo "test"', condition, 5)
-      expect(result.strip).to eq('attempt 2')  # Should succeed on second try
-      expect(call_count).to eq(2)  # Should have been called exactly twice
+      expect(result.strip).to eq('attempt 2')
+      expect(call_count).to eq(2)
     end
 
     it 'returns nil when max_tries is reached without success' do
-      condition = ->(_output) { false }  # Never succeeds
+      condition = ->(_output) { false }
       expect(executor.try_os_command_until('echo "fail"', condition, 2)).to be_nil
     end
 
     it 'reports attempt count in verbose mode' do
       io = StringIO.new
       verbose_executor = described_class.new(verbose: true, output: io)
-      condition = ->(_output) { true }  # Succeeds on first try
+      condition = ->(_output) { true }
       verbose_executor.try_os_command_until('echo "test"', condition, 3)
       expect(io.string).to match(/Command was executed 1 time/)
     end
@@ -136,7 +207,6 @@ describe WifiWand::CommandExecutor do
     end
 
     it 'checks executable files in PATH directories' do
-      # Mock ENV['PATH'] to test the implementation
       allow(ENV).to receive(:[]).with('PATH').and_return('/usr/bin:/bin')
       allow(File).to receive_messages(executable?: false, directory?: false)
       allow(File).to receive(:executable?).with('/usr/bin/test_cmd').and_return(true)
@@ -182,12 +252,10 @@ describe WifiWand::CommandExecutor do
   end
 
   describe 'integration with BaseModel' do
-    # Test that the service integrates properly with BaseModel
     it 'is accessible through BaseModel' do
       require_relative '../../../lib/wifi-wand/models/base_model'
       require 'ostruct'
 
-      # This tests the integration without actually running OS-specific code
       expect do
         WifiWand::BaseModel.new(OpenStruct.new(verbose: false))
       end.not_to raise_error

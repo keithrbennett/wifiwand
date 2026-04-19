@@ -41,6 +41,11 @@ module WifiWand
       /couldn(?:\?\?\?|')t be completed.*tmpErr/i,
     ].freeze
 
+    SYSTEM_PROFILER_TIMEOUT_SECONDS = 15
+    KEYCHAIN_LOOKUP_TIMEOUT_SECONDS = 5
+    SUDO_IFCONFIG_TIMEOUT_SECONDS = 5
+    SUDO_NETWORKSETUP_TIMEOUT_SECONDS = 5
+
     # Keychain exit code handlers for password retrieval
     # Exit codes and their meanings:
     # 44  - Item not found in keychain
@@ -173,7 +178,11 @@ module WifiWand
         # Fall through to system_profiler fallback
       end
 
-      json_text = run_os_command(%w[system_profiler -json SPNetworkDataType]).stdout
+      json_text = run_os_command(
+        %w[system_profiler -json SPNetworkDataType],
+        true,
+        timeout_in_secs: SYSTEM_PROFILER_TIMEOUT_SECONDS
+      ).stdout
       return nil if json_text.nil? || json_text.strip.empty?
 
       net_data = JSON.parse(json_text)
@@ -375,13 +384,25 @@ module WifiWand
     #   else
     #     raise an error
     def _preferred_network_password(preferred_network_name)
-      run_os_command(['security', 'find-generic-password', '-D', 'AirPort network password', '-a',
-        preferred_network_name, '-w']).stdout.chomp
+      run_os_command(
+        [
+          'security',
+          'find-generic-password',
+          '-D',
+          'AirPort network password',
+          '-a',
+          preferred_network_name,
+          '-w',
+        ],
+        true,
+        timeout_in_secs: KEYCHAIN_LOOKUP_TIMEOUT_SECONDS
+      ).stdout.chomp
     rescue WifiWand::CommandExecutor::OsCommandError => e
       handle_keychain_error(preferred_network_name, e)
     end
 
     # Returns the IP address assigned to the WiFi interface, or nil if none.
+
     def _ip_address
       iface = wifi_interface
       run_os_command(['ipconfig', 'getifaddr', iface]).stdout.chomp
@@ -396,11 +417,16 @@ module WifiWand
     def remove_preferred_network(network_name)
       network_name = network_name.to_s
       iface = wifi_interface
-      run_os_command(['sudo', 'networksetup', '-removepreferredwirelessnetwork', iface, network_name])
+      run_os_command(
+        ['sudo', 'networksetup', '-removepreferredwirelessnetwork', iface, network_name],
+        true,
+        timeout_in_secs: SUDO_NETWORKSETUP_TIMEOUT_SECONDS
+      )
       [network_name]
     end
 
     # Returns the network currently connected to, or nil if none.
+
     def _connected_network_name
       result = mac_helper_client.connected_network_name
       ssid = result.payload
@@ -449,7 +475,11 @@ module WifiWand
       # Fallback to ifconfig (disassociate from current network)
       begin
         iface = wifi_interface
-        run_os_command(['sudo', 'ifconfig', iface, 'disassociate'], false)
+        run_os_command(
+          ['sudo', 'ifconfig', iface, 'disassociate'],
+          false,
+          timeout_in_secs: SUDO_IFCONFIG_TIMEOUT_SECONDS
+        )
       rescue WifiWand::CommandExecutor::OsCommandError
         # If sudo ifconfig fails, try without sudo (may work on some systems)
         run_os_command(['ifconfig', iface, 'disassociate'], false)
@@ -711,7 +741,11 @@ module WifiWand
     end
 
     private def airport_data
-      json_text = run_os_command(%w[system_profiler -json SPAirPortDataType]).stdout
+      json_text = run_os_command(
+        %w[system_profiler -json SPAirPortDataType],
+        true,
+        timeout_in_secs: SYSTEM_PROFILER_TIMEOUT_SECONDS
+      ).stdout
       begin
         JSON.parse(json_text)
       rescue JSON::ParserError => e

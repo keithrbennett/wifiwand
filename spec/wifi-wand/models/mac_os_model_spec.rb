@@ -858,7 +858,11 @@ module WifiWand
           ]
 
           test_cases.each do |network_name, expected_command_array|
-            expect(model).to receive(:run_os_command).with(expected_command_array)
+            expect(model).to receive(:run_os_command).with(
+              expected_command_array,
+              true,
+              timeout_in_secs: described_class::SUDO_NETWORKSETUP_TIMEOUT_SECONDS
+            )
             expect(model.remove_preferred_network(network_name)).to eq([network_name])
           end
         end
@@ -904,7 +908,12 @@ module WifiWand
         end
 
         it 'detects WiFi interface from system_profiler' do
-          allow(model).to receive(:run_os_command).and_return(command_result(stdout: system_profiler_output))
+          expect(model).to receive(:run_os_command).with(
+            %w[system_profiler -json SPNetworkDataType],
+            true,
+            timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
+          ).and_return(command_result(stdout: system_profiler_output))
+
           expect(model.probe_wifi_interface).to eq('en0')
         end
 
@@ -976,9 +985,11 @@ module WifiWand
             '-w']
           # Expect exact command, but avoid real execution by raising "not found" (exit 44)
           call_sequence = []
-          allow(model).to receive(:run_os_command) do |command|
-            call_sequence << command
+          allow(model).to receive(:run_os_command) do |command, *args, **kwargs|
+            call_sequence << [command, args, kwargs]
             if command == expected_cmd
+              expect(args).to eq([true])
+              expect(kwargs).to eq(timeout_in_secs: described_class::KEYCHAIN_LOOKUP_TIMEOUT_SECONDS)
               raise WifiWand::CommandExecutor::OsCommandError.new(44, 'security', '')
             else
               command_result(stdout: 'Wi-Fi Power (en0): On')
@@ -986,7 +997,7 @@ module WifiWand
           end
 
           expect(model.preferred_network_password(ssid)).to be_nil
-          expect(call_sequence).to include(expected_cmd)
+          expect(call_sequence.map(&:first)).to include(expected_cmd)
         end
       end
 
@@ -1075,7 +1086,11 @@ module WifiWand
             connected_network_name:      'TestNet'
           )
           allow(model).to receive(:run_swift_command).and_raise(StandardError.new('swift failed'))
-          expect(model).to receive(:run_os_command).with(%w[sudo ifconfig en0 disassociate], false)
+          expect(model).to receive(:run_os_command).with(
+            %w[sudo ifconfig en0 disassociate],
+            false,
+            timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
+          )
             .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'ifconfig', ''))
           expect(model).to receive(:run_os_command).with(%w[ifconfig en0 disassociate], false)
             .and_return(command_result(stdout: ''))
@@ -1105,8 +1120,11 @@ module WifiWand
           allow(model).to receive(:run_swift_command).and_raise(StandardError.new('swift failed'))
           allow(model).to receive_messages(swift_and_corewlan_present?: true, wifi_interface: 'en0')
 
-          expect(model).to receive(:run_os_command).with(%w[sudo ifconfig en0 disassociate],
-            false).and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'ifconfig', ''))
+          expect(model).to receive(:run_os_command).with(
+            %w[sudo ifconfig en0 disassociate],
+            false,
+            timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
+          ).and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'ifconfig', ''))
           expect(model).to receive(:run_os_command).with(%w[ifconfig en0 disassociate],
             false).and_return(command_result(stdout: ''))
 
@@ -1116,8 +1134,11 @@ module WifiWand
         it 'uses ifconfig path when Swift not available' do
           allow(model).to receive_messages(swift_and_corewlan_present?: false, wifi_interface: 'en0')
 
-          expect(model).to receive(:run_os_command).with(%w[sudo ifconfig en0 disassociate],
-            false).and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'ifconfig', ''))
+          expect(model).to receive(:run_os_command).with(
+            %w[sudo ifconfig en0 disassociate],
+            false,
+            timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
+          ).and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'ifconfig', ''))
           expect(model).to receive(:run_os_command).with(%w[ifconfig en0 disassociate],
             false).and_return(command_result(stdout: ''))
 
@@ -1350,8 +1371,11 @@ module WifiWand
       describe '#airport_data (private)' do
         it 'parses system_profiler JSON output' do
           json_output = '{"SPAirPortDataType": [{"test": "data"}]}'
-          allow(model).to receive(:run_os_command).with(%w[system_profiler -json SPAirPortDataType])
-            .and_return(command_result(stdout: json_output))
+          allow(model).to receive(:run_os_command).with(
+            %w[system_profiler -json SPAirPortDataType],
+            true,
+            timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
+          ).and_return(command_result(stdout: json_output))
 
           result = model.send(:airport_data)
           expect(result).to eq({ 'SPAirPortDataType' => [{ 'test' => 'data' }] })

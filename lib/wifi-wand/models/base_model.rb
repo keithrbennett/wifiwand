@@ -258,8 +258,8 @@ module WifiWand
       _ip_address
     end
 
-    def run_os_command(command, raise_on_error = true)
-      @command_executor.run_os_command(command, raise_on_error)
+    def run_os_command(command, raise_on_error = true, timeout_in_secs: nil)
+      @command_executor.run_os_command(command, raise_on_error, timeout_in_secs: timeout_in_secs)
     end
 
     # Returns an explicit internet connectivity state:

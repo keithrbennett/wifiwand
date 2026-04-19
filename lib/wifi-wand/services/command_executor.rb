@@ -6,6 +6,8 @@ require_relative '../errors'
 
 module WifiWand
   class CommandExecutor
+    COMMAND_KILL_WAIT_SECS = 1.0
+
     def initialize(verbose: false, output: $stdout)
       @verbose = verbose
       @output = output
@@ -14,8 +16,9 @@ module WifiWand
     # Executes an OS command using Open3 for security and better error handling.
     # @param command [String, Array] Command string or array of arguments
     # @param raise_on_error [Boolean] Whether to raise on non-zero exit
+    # @param timeout_in_secs [Numeric, nil] Optional command timeout in seconds
     # @return [OsCommandResult] Structured command result
-    def run_os_command(command, raise_on_error = true)
+    def run_os_command(command, raise_on_error = true, timeout_in_secs: nil)
       # Support both string commands (for backwards compatibility with shell features)
       # and array commands (for secure execution without shell interpretation)
       if command.is_a?(Array)
@@ -42,6 +45,8 @@ module WifiWand
       # Using the block form ensures all handles are closed automatically when
       # the block exits, even if an exception is raised.
       Open3.popen3(*command_array) do |stdin, stdout, stderr, wait_thr|
+        threads = []
+
         # We don't send any input to the process, so close stdin immediately.
         # Leaving it open can cause the child to block waiting for input.
         stdin.close
@@ -54,21 +59,25 @@ module WifiWand
         # read_stream drains one IO stream into the appropriate chunk arrays.
         # It uses readpartial rather than read_nonblock + IO.select because:
         #   - readpartial blocks until *some* data arrives, then returns whatever
-        #     is available (up to the requested size) — no busy-polling needed.
+        #     is available (up to the requested size) - no busy-polling needed.
         #   - read_nonblock in Ruby 4+ internally uses IO::Buffer, which emits
         #     an "experimental" warning we want to avoid.
         # readpartial raises EOFError when the stream closes (i.e., the child
         # process has finished writing), which is used as the loop-exit signal.
-        read_stream = ->(io, type) do
+        read_stream = ->(stream, type) do
           loop do
-            chunk = io.readpartial(4096)
+            chunk = stream.readpartial(4096)
             mutex.synchronize do
               (type == :stdout ? stdout_chunks : stderr_chunks) << chunk
               combined_chunks << chunk
             end
-          rescue IOError
-            break
           end
+        rescue EOFError
+          nil
+        rescue => e
+          raise unless e.is_a?(IOError)
+
+          nil
         end
 
         # Spawn one thread per stream so both are drained in parallel.
@@ -79,6 +88,18 @@ module WifiWand
           Thread.new { read_stream.call(stdout, :stdout) },
           Thread.new { read_stream.call(stderr, :stderr) },
         ]
+
+        wait_result = if timeout_in_secs
+          wait_thr.join(timeout_in_secs)
+        else
+          wait_thr.join
+        end
+
+        unless wait_result
+          terminate_process(wait_thr)
+          raise CommandTimeoutError.new(command_display, timeout_in_secs)
+        end
+
         # Wait for both threads to finish (i.e., both streams are fully read)
         # before asking for the exit status. This guarantees all output has been
         # collected before we return the result.
@@ -88,6 +109,10 @@ module WifiWand
         # Process::Status. Calling it after joining the reader threads means the
         # process should already be done by this point in most cases.
         status = wait_thr.value
+      ensure
+        stdout.close if stdout.respond_to?(:close) && (!stdout.respond_to?(:closed?) || !stdout.closed?)
+        stderr.close if stderr.respond_to?(:close) && (!stderr.respond_to?(:closed?) || !stderr.closed?)
+        threads&.each(&:join)
       end
     rescue Errno::ENOENT => e
       missing_command = missing_command_name(command, e)
@@ -161,6 +186,22 @@ module WifiWand
     private def missing_command_name(command, error)
       error_path_present = error.respond_to?(:path) && error.path && !error.path.empty?
       error_path_present ? error.path : Array(command).first.to_s
+    end
+
+    private def terminate_process(wait_thr)
+      pid = wait_thr.pid
+      Process.kill('TERM', pid)
+      return if process_exited_within_grace_period?(wait_thr)
+      return unless wait_thr.alive?
+
+      Process.kill('KILL', pid)
+      process_exited_within_grace_period?(wait_thr)
+    rescue Errno::ESRCH, Errno::ECHILD
+      nil
+    end
+
+    private def process_exited_within_grace_period?(wait_thr)
+      !!wait_thr.join(COMMAND_KILL_WAIT_SECS)
     end
 
     class OsCommandResult

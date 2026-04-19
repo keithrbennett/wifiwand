@@ -80,6 +80,8 @@ module WifiWand
           'Missing required system command(s): iw'],
         [CommandNotFoundError,          [%w[iw nmcli]],
           'Missing required system command(s): iw, nmcli'],
+        [CommandTimeoutError,           ['sudo ifconfig en0 disassociate', 5],
+          'Command timed out after 5 seconds: sudo ifconfig en0 disassociate'],
         [KeychainAccessDeniedError,     ['MyNet'],
           "Keychain access denied for network 'MyNet'. Please grant access when prompted"],
         [KeychainAccessCancelledError,  ['MyNet'],
@@ -272,7 +274,7 @@ module WifiWand
         keychain_error_test_cases.each do |test_case|
           it "raises #{test_case[:error]} for exit code #{test_case[:exit_code]}" do
             # This mock intercepts calls to `run_os_command` to simulate `security` command failures.
-            allow(mac_model).to receive(:run_os_command) do |*args|
+            allow(mac_model).to receive(:run_os_command) do |*args, **_kwargs|
               command = args.first
 
               # For any command other than `security`, return a default success-like string to prevent
