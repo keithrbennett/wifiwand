@@ -221,12 +221,20 @@ module WifiWand
         raise WifiWand::ConfigurationError,
           "Invalid timeout value '#{options[1]}'. Timeout must be a number. #{help_hint}"
       end
+      if timeout_in_secs && timeout_in_secs < 0
+        raise WifiWand::ConfigurationError,
+          "Invalid timeout value '#{options[1]}'. Timeout must be non-negative. #{help_hint}"
+      end
 
       begin
         interval_in_secs = (options[2] ? Float(options[2]) : nil)
       rescue ArgumentError, TypeError
         raise WifiWand::ConfigurationError,
           "Invalid interval value '#{options[2]}'. Interval must be a number. #{help_hint}"
+      end
+      if interval_in_secs && interval_in_secs < 0
+        raise WifiWand::ConfigurationError,
+          "Invalid interval value '#{options[2]}'. Interval must be non-negative. #{help_hint}"
       end
 
       # Pass CLI-friendly error formatting in non-interactive mode only.

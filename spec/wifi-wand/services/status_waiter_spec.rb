@@ -142,6 +142,18 @@ describe WifiWand::StatusWaiter do
         expect { waiter.wait_for(:wifi_on, timeout_in_secs: 0) }
           .to raise_error(WifiWand::WaitTimeoutError)
       end
+
+      it 'raises ArgumentError when timeout is negative' do
+        expect { waiter.wait_for(:wifi_on, timeout_in_secs: -1) }
+          .to raise_error(ArgumentError, /timeout_in_secs must be non-negative/)
+      end
+    end
+
+    context 'with wait interval' do
+      it 'raises ArgumentError when wait interval is negative' do
+        expect { waiter.wait_for(:wifi_on, wait_interval_in_secs: -0.1) }
+          .to raise_error(ArgumentError, /wait_interval_in_secs must be non-negative/)
+      end
     end
 
     it 'does not treat an indeterminate internet result as :internet_on' do

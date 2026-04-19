@@ -697,6 +697,24 @@ describe WifiWand::CommandLineInterface do
           end
         end
 
+        it 'raises ConfigurationError when timeout is negative' do
+          expect { subject.cmd_t('wifi_on', '-1') }
+            .to raise_error(WifiWand::ConfigurationError) do |error|
+            expect(error.message).to include('Invalid timeout value')
+            expect(error.message).to include('-1')
+            expect(error.message).to include('must be non-negative')
+          end
+        end
+
+        it 'raises ConfigurationError when interval is negative' do
+          expect { subject.cmd_t('wifi_on', '10', '-0.1') }
+            .to raise_error(WifiWand::ConfigurationError) do |error|
+            expect(error.message).to include('Invalid interval value')
+            expect(error.message).to include('-0.1')
+            expect(error.message).to include('must be non-negative')
+          end
+        end
+
         it 'accepts valid numeric timeout as string' do
           expect(mock_model).to receive(:till).with(
             :wifi_on,
