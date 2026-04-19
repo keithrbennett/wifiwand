@@ -66,6 +66,14 @@ module WifiWand
       state
     end
 
+    # Shared probe interface used by the helper subprocess wrapper.
+    #
+    # @param endpoint [Hash] captive-portal endpoint configuration
+    # @return [Hash] probe metadata including :state and either :actual_code or :error_class
+    def probe_endpoint(endpoint)
+      perform_captive_portal_check(endpoint)
+    end
+
     # Seconds given to a probe subprocess after SIGTERM before escalating to SIGKILL.
     # Short enough to keep overall check latency low, long enough for a clean exit.
     HELPER_RESULT_GRACE = 0.5

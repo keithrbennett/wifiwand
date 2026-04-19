@@ -10,12 +10,10 @@ require_relative '../../../lib/wifi-wand/services/captive_portal_probe_helper'
 describe WifiWand::CaptivePortalProbeHelper do
   include TestHelpers
 
-  # Build a plain double whose perform_captive_portal_check returns +result+.
-  # A plain double (not instance_double) is used because the method is private
-  # and we invoke it via +send+ inside CaptivePortalProbeHelper.run.
+  # Build a checker double using the helper's supported public probe interface.
   def stub_checker(result)
-    dbl = double('CaptivePortalChecker')
-    allow(dbl).to receive(:perform_captive_portal_check).and_return(result)
+    dbl = instance_double(WifiWand::CaptivePortalChecker)
+    allow(dbl).to receive(:probe_endpoint).and_return(result)
     dbl
   end
 
@@ -101,6 +99,16 @@ describe WifiWand::CaptivePortalProbeHelper do
       result = JSON.parse(output.string, symbolize_names: true)
       expect(result[:state]).to eq('indeterminate')
       expect(result[:error_class]).to be_a(String)
+    end
+
+    it 'calls the checker through the explicit public probe interface' do
+      checker = stub_checker({ state: :free, actual_code: 204 })
+
+      described_class.run(['http://example.com/check', '204'], output: output, checker: checker)
+
+      expect(checker).to have_received(:probe_endpoint).with(
+        url: 'http://example.com/check', expected_code: 204, expected_body: nil
+      )
     end
   end
 

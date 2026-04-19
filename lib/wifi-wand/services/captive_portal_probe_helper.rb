@@ -43,7 +43,7 @@ module WifiWand
     def self.run(argv, output: $stdout, checker: nil)
       endpoint = parse_argv(argv)
       checker ||= CaptivePortalChecker.new(verbose: false, output: $stderr)
-      result = checker.send(:perform_captive_portal_check, endpoint)
+      result = checker.probe_endpoint(endpoint)
       output.print(JSON.generate(result))
       output.flush
     rescue ArgumentError => e

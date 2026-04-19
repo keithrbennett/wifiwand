@@ -37,14 +37,7 @@ module WifiWand
     end
 
     def self.run_probe(tester, probe)
-      case probe[:mode]
-      when :tcp
-        tester.send(:attempt_tcp_connection, probe[:target])
-      when :fast_tcp
-        tester.send(:attempt_fast_tcp_connection, probe[:target])
-      when :dns
-        tester.send(:attempt_dns_resolution, probe[:target])
-      end
+      tester.run_probe(probe[:mode], probe[:target])
     end
   end
 end

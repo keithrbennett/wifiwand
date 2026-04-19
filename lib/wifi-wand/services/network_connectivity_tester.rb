@@ -116,6 +116,24 @@ module WifiWand
       )
     end
 
+    # Shared probe interface used by the helper subprocess wrapper.
+    #
+    # @param mode [Symbol] one of :tcp, :fast_tcp, or :dns
+    # @param target [Hash, String] endpoint hash for TCP modes or domain for DNS
+    # @return [Boolean] true when the probe succeeds, false otherwise
+    def run_probe(mode, target)
+      case mode
+      when :tcp
+        attempt_tcp_connection(target)
+      when :fast_tcp
+        attempt_fast_tcp_connection(target)
+      when :dns
+        attempt_dns_resolution(target)
+      else
+        raise ArgumentError, "Unsupported probe mode: #{mode}"
+      end
+    end
+
     private
 
     def run_parallel_checks?(items, overall_timeout, helper_mode:)
