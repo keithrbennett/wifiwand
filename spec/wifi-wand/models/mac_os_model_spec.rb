@@ -734,9 +734,12 @@ module WifiWand
 
         it 'validates IP addresses and raises error for invalid ones' do
           allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
-          invalid_nameservers = ['8.8.8.8', 'invalid.ip', '1.1.1.1']
+          invalid_nameservers = ['8.8.8.8', 'invalid.ip', '2001:db8:::1']
           silence_output do
-            expect { model.set_nameservers(invalid_nameservers) }.to raise_error(WifiWand::InvalidIPAddressError)
+            expect { model.set_nameservers(invalid_nameservers) }
+              .to raise_error(WifiWand::InvalidIPAddressError) do |error|
+                expect(error.invalid_addresses).to contain_exactly('invalid.ip', '2001:db8:::1')
+              end
           end
         end
       end
@@ -1755,15 +1758,18 @@ module WifiWand
           end
         end
 
-        it 'handles IP validation exceptions gracefully' do
+        it 'treats IPAddr invalid-address errors as invalid input' do
           allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
-          # Mock IPAddr to raise exception for specific input
-          allow(IPAddr).to receive(:new).with('problematic.ip').and_raise(StandardError.new('Parse error'))
+          allow(IPAddr).to receive(:new).with('problematic.ip')
+            .and_raise(IPAddr::InvalidAddressError, 'Parse error')
           allow(IPAddr).to receive(:new).with('8.8.8.8').and_call_original
 
           problematic_ips = ['8.8.8.8', 'problematic.ip']
           silence_output do
-            expect { model.set_nameservers(problematic_ips) }.to raise_error(WifiWand::InvalidIPAddressError)
+            expect { model.set_nameservers(problematic_ips) }
+              .to raise_error(WifiWand::InvalidIPAddressError) do |error|
+                expect(error.invalid_addresses).to eq(['problematic.ip'])
+              end
           end
         end
       end

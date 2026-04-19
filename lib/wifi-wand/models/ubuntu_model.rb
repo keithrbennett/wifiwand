@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'ipaddr'
 require 'ostruct'
 
 require_relative 'base_model'
@@ -583,10 +584,9 @@ module WifiWand
 
       # Validate IP addresses (accept both IPv4 and IPv6)
       bad_addresses = nameservers.reject do |ns|
-        require 'ipaddr'
         IPAddr.new(ns) # Valid if IPAddr can parse it (IPv4 or IPv6)
         true
-      rescue
+      rescue IPAddr::InvalidAddressError
         false
       end
 

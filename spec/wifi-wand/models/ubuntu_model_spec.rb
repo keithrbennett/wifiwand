@@ -1635,6 +1635,19 @@ module WifiWand
           end
         end
 
+        it 'raises error for invalid IPv6 addresses before reading connection state' do
+          invalid_nameservers = ['2606:4700:4700::1111', '2001:db8:::1']
+          connection_name = 'MyHomeNetwork'
+
+          allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+          expect(subject).not_to receive(:dns_configuration_snapshot)
+
+          expect { subject.set_nameservers(invalid_nameservers) }
+            .to raise_error(WifiWand::InvalidIPAddressError) do |error|
+              expect(error.invalid_addresses).to eq(['2001:db8:::1'])
+            end
+        end
+
         it 'rolls back prior DNS mutations when a later modify command fails' do
           connection_name = 'MyHomeNetwork'
 

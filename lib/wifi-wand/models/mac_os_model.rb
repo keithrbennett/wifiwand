@@ -479,7 +479,7 @@ module WifiWand
         bad_addresses = nameservers.reject do |ns|
           IPAddr.new(ns)  # Valid if IPAddr can parse it (IPv4 or IPv6)
           true
-        rescue
+        rescue IPAddr::InvalidAddressError
           false
         end
 
