@@ -586,7 +586,7 @@ module WifiWand
       bad_addresses = nameservers.reject do |ns|
         IPAddr.new(ns) # Valid if IPAddr can parse it (IPv4 or IPv6)
         true
-      rescue IPAddr::InvalidAddressError
+      rescue IPAddr::InvalidAddressError, IPAddr::AddressFamilyError
         false
       end
 

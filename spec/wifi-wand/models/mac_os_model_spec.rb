@@ -742,6 +742,30 @@ module WifiWand
               end
           end
         end
+
+        it 'treats nil nameserver input as invalid' do
+          allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
+          invalid_nameservers = ['8.8.8.8', nil]
+
+          silence_output do
+            expect { model.set_nameservers(invalid_nameservers) }
+              .to raise_error(WifiWand::InvalidIPAddressError) do |error|
+                expect(error.invalid_addresses).to eq([nil])
+              end
+          end
+        end
+
+        it 'treats non-string nameserver input as invalid' do
+          allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
+          invalid_nameservers = ['8.8.8.8', 123]
+
+          silence_output do
+            expect { model.set_nameservers(invalid_nameservers) }
+              .to raise_error(WifiWand::InvalidIPAddressError) do |error|
+                expect(error.invalid_addresses).to eq([123])
+              end
+          end
+        end
       end
 
       describe '#swift_and_corewlan_present?' do

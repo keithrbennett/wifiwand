@@ -1648,6 +1648,32 @@ module WifiWand
             end
         end
 
+        it 'raises error for nil nameserver input before reading connection state' do
+          invalid_nameservers = ['8.8.8.8', nil]
+          connection_name = 'MyHomeNetwork'
+
+          allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+          expect(subject).not_to receive(:dns_configuration_snapshot)
+
+          expect { subject.set_nameservers(invalid_nameservers) }
+            .to raise_error(WifiWand::InvalidIPAddressError) do |error|
+              expect(error.invalid_addresses).to eq([nil])
+            end
+        end
+
+        it 'raises error for non-string nameserver input before reading connection state' do
+          invalid_nameservers = ['8.8.8.8', 123]
+          connection_name = 'MyHomeNetwork'
+
+          allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
+          expect(subject).not_to receive(:dns_configuration_snapshot)
+
+          expect { subject.set_nameservers(invalid_nameservers) }
+            .to raise_error(WifiWand::InvalidIPAddressError) do |error|
+              expect(error.invalid_addresses).to eq([123])
+            end
+        end
+
         it 'rolls back prior DNS mutations when a later modify command fails' do
           connection_name = 'MyHomeNetwork'
 
