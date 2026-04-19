@@ -315,7 +315,7 @@ This copies hooks from the tracked `hooks/` directory to `.git/hooks/` and makes
 
 ## Code Conventions
 
-- Ruby 2.7+ required
+- Ruby 3.2+ required
 - Uses `awesome_print` for formatted output
 - Pry for interactive shell with `reline` for readline operations
 - OpenStruct for configuration objects
