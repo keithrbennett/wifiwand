@@ -106,6 +106,33 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(result['available_networks']).to eq([])
     end
 
+    it 'returns nil when default_interface lookup fails' do
+      allow(subject).to receive(:default_interface).and_raise(WifiWand::Error, 'default route unavailable')
+
+      result = subject.wifi_info
+
+      expect(result).to be_a(Hash)
+      expect(result['default_interface']).to be_nil
+    end
+
+    it 'returns nil when mac_address lookup fails' do
+      allow(subject).to receive(:mac_address).and_raise(WifiWand::Error, 'mac lookup unavailable')
+
+      result = subject.wifi_info
+
+      expect(result).to be_a(Hash)
+      expect(result['mac_address']).to be_nil
+    end
+
+    it 'returns empty array when nameservers lookup fails' do
+      allow(subject).to receive(:nameservers).and_raise(WifiWand::Error, 'dns config unavailable')
+
+      result = subject.wifi_info
+
+      expect(result).to be_a(Hash)
+      expect(result['nameservers']).to eq([])
+    end
+
     it 'does not include public IP data' do
       result = subject.wifi_info
       expect(result).not_to have_key('public_ip')
