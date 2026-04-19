@@ -5,7 +5,9 @@ require_relative '../errors'
 module WifiWand
   class ConnectionManager
     MAX_NETWORK_NAME_BYTES = 32
+    # Exactly 64 hexadecimal characters is treated as a raw PSK.
     MAX_PASSWORD_LENGTH = 64
+    # Non-raw passphrases must fit within 63 UTF-8 bytes.
     MAX_PASSPHRASE_LENGTH = 63
     RAW_PSK_PATTERN = /\A\h{64}\z/
     CONTROL_CHAR_PATTERN = /\p{Cntrl}/
@@ -63,8 +65,9 @@ module WifiWand
     #
     # Accepted input types:
     # - Network name: String or Symbol (required, max 32 UTF-8 bytes)
-    # - Password: String, Symbol, or nil (optional WPA/WPA2/3 pre-shared key:
-    #   1-63 character passphrase, or exactly 64 hexadecimal characters)
+    # - Password: String, Symbol, or nil (optional WiFi credential. wifi-wand
+    #   rejects malformed raw PSKs and overlong passphrases, but leaves
+    #   network-specific credential rules to the OS-specific connection layer.)
     #
     # Symbols are converted to Strings, nil passwords are preserved, and control characters
     # are rejected to avoid sending malformed connection inputs.
@@ -115,12 +118,13 @@ module WifiWand
 
     def validate_password(password)
       return if password.nil? || password.empty?
-      return if password.length <= MAX_PASSPHRASE_LENGTH || password.match?(RAW_PSK_PATTERN)
+      return if password.match?(RAW_PSK_PATTERN)
+      return if password.bytesize <= MAX_PASSPHRASE_LENGTH
 
       reason = if password.length == MAX_PASSWORD_LENGTH
-        'Password must be 1-63 characters, or exactly 64 hexadecimal characters'
+        'Password must be 1-63 bytes, or exactly 64 hexadecimal characters'
       else
-        'Password cannot exceed 64 characters'
+        'Password passphrases cannot exceed 63 bytes'
       end
 
       raise InvalidNetworkPasswordError.new(password, reason)

@@ -28,3 +28,18 @@ password-bearing output becomes a documented workflow, or if maintainers decide 
 interactive troubleshooting output and durable retained logs. Until then, do not raise this as a current
 action item merely because passwords may appear in verbose output.
 
+
+## WPA minimum-length validation should stay OS-driven
+
+1) Do not raise lack of SSID-specific WPA minimum-length validation as a current
+   code issue by default.
+
+wifi-wand should reject malformed raw PSKs and impossible byte lengths, but it
+should not duplicate OS-specific security-type inference just to enforce WPA's
+8-character minimum locally. That approach increases cross-platform complexity
+and has already shown regression risk around idempotent reconnects and macOS
+scan-list interpretation.
+
+Raise this again only if the project gains a stable, low-complexity,
+platform-agnostic source of target security type, or if maintainers explicitly
+want wifi-wand to become authoritative for per-protocol credential validation.

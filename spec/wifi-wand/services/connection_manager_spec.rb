@@ -93,6 +93,18 @@ describe WifiWand::ConnectionManager do
       expect(password).to eq(max_password)
     end
 
+    it 'rejects multibyte passphrases whose byte length exceeds 63 bytes' do
+      oversized_multibyte_password = [0x1F600].pack('U') * 16
+
+      expect(oversized_multibyte_password.length).to eq(16)
+      expect(oversized_multibyte_password.bytesize).to eq(64)
+
+      expect { subject.send(:normalize_inputs, 'ValidNetwork', oversized_multibyte_password) }
+        .to raise_error(
+          WifiWand::InvalidNetworkPasswordError, /1-63 bytes|63 bytes|64 hexadecimal characters/
+        )
+    end
+
     it 'raises for passwords longer than 64 characters' do
       long_password = 'p' * 65
       expect { subject.send(:normalize_inputs, 'ValidNetwork', long_password) }
