@@ -76,10 +76,7 @@ module TestHelpers
     example_real_env || group_real_env
   end
 
-  private
-
-  # Merges verbose setting from environment with test options
-  def merge_verbose_options(options = {})
+  private def merge_verbose_options(options = {})
     # Check for verbose mode from environment variable (as default)
     verbose = ENV['WIFIWAND_VERBOSE'] == 'true'
 
@@ -88,7 +85,7 @@ module TestHelpers
   end
 
   # Suppress stdout/stderr within the given block
-  def silence_output
+  private def silence_output
     original_stdout = $stdout
     original_stderr = $stderr
     $stdout = StringIO.new
@@ -107,7 +104,7 @@ module TestHelpers
   CYAN_TEXT_REGEX = /\e\[36m.*\e\[0m/
 
   # Factory method for creating standard CLI mock model with common methods
-  def create_standard_mock_model(overrides = {})
+  private def create_standard_mock_model(overrides = {})
     defaults = {
       verbose_mode:                         false,
       wifi_on?:                             true,
@@ -139,13 +136,13 @@ module TestHelpers
   end
 
   # Factory method for creating mock OS with a model
-  def create_mock_os_with_model(model = nil)
+  private def create_mock_os_with_model(model = nil)
     model ||= create_standard_mock_model
     double('os', create_model: model)
   end
 
   # Factory method for creating CLI options
-  def create_cli_options(overrides = {})
+  private def create_cli_options(overrides = {})
     defaults = {
       verbose:          false,
       wifi_interface:   nil,
@@ -156,21 +153,27 @@ module TestHelpers
   end
 
   # Helper for mocking Socket.tcp failures
-  def mock_socket_connection_failure = allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
+  private def mock_socket_connection_failure
+    allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
+  end
 
   # Helper for mocking Socket.tcp success
-  def mock_socket_connection_success = allow(Socket).to receive(:tcp).and_yield
+  private def mock_socket_connection_success
+    allow(Socket).to receive(:tcp).and_yield
+  end
 
   # Helper for mocking IPSocket.getaddress failures
-  def mock_dns_resolution_failure = allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
+  private def mock_dns_resolution_failure
+    allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
+  end
 
   # Helper for mocking IPSocket.getaddress success
-  def mock_dns_resolution_success(ip_address = '1.2.3.4')
+  private def mock_dns_resolution_success(ip_address = '1.2.3.4')
     allow(IPSocket).to receive(:getaddress).and_return(ip_address)
   end
 
   # Helper for stubbing short connectivity timeouts for fast tests
-  def stub_short_connectivity_timeouts
+  private def stub_short_connectivity_timeouts
     stub_const('WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT', 0.05)
     stub_const('WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT', 0.01)
     stub_const('WifiWand::TimingConstants::DNS_RESOLUTION_TIMEOUT', 0.01)
@@ -178,13 +181,13 @@ module TestHelpers
   end
 
   # Helper for mocking Net::HTTP to return a portal-free response (HTTP 204)
-  def mock_captive_portal_free_state(code: '204', body: '')
+  private def mock_captive_portal_free_state(code: '204', body: '')
     response = instance_double(Net::HTTPResponse, code: code, body: body)
     allow(Net::HTTP).to receive(:get_response).and_return(response)
   end
 
   # Helper for mocking Net::HTTP to simulate a captive portal (HTTP 302 redirect)
-  def mock_captive_portal_detected(code: '302', body: '')
+  private def mock_captive_portal_detected(code: '302', body: '')
     response = instance_double(Net::HTTPResponse, code: code, body: body)
     allow(Net::HTTP).to receive(:get_response).and_return(response)
   end
@@ -195,7 +198,7 @@ module TestHelpers
   # chosen port number so the caller can build a URL pointing at it.
   # Network access stays fully within the loopback interface, so tests that use
   # this helper remain hermetic.
-  def with_local_http_server(response_code:, response_body: '')
+  private def with_local_http_server(response_code:, response_body: '')
     server_thread = nil
     server = TCPServer.new('127.0.0.1', 0)
     port   = server.addr[1]

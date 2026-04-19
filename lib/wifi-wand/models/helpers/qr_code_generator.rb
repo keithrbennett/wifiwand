@@ -52,9 +52,7 @@ module WifiWand
         filename
       end
 
-      private
-
-      def ensure_qrencode_available(model)
+      private def ensure_qrencode_available(model)
         available = model.send(:command_available?, 'qrencode')
         return if available
 
@@ -71,7 +69,7 @@ module WifiWand
             "Use #{install_command} to install it."
       end
 
-      def require_connected_network_name(model)
+      private def require_connected_network_name(model)
         name = model.connected_network_name
         unless name
           raise WifiWand::Error, 'Not connected to any WiFi network. ' \
@@ -81,9 +79,9 @@ module WifiWand
         name
       end
 
-      def connected_password_for(model) = model.send(:connected_network_password)
+      private def connected_password_for(model) = model.send(:connected_network_password)
 
-      def build_wifi_qr_string(network_name, password, security_type, is_hidden = false)
+      private def build_wifi_qr_string(network_name, password, security_type, is_hidden = false)
         qr_password = password.to_s
         qr_security = map_security_for_qr(security_type, !qr_password.empty?)
 
@@ -94,7 +92,7 @@ module WifiWand
         "WIFI:T:#{qr_security};S:#{escaped_ssid};P:#{escaped_password};H:#{hidden_flag};;"
       end
 
-      def map_security_for_qr(security_type, password_present)
+      private def map_security_for_qr(security_type, password_present)
         case security_type
         when 'WPA', 'WPA2', 'WPA3'
           'WPA'
@@ -105,7 +103,7 @@ module WifiWand
         end
       end
 
-      def escape_field(value)
+      private def escape_field(value)
         # Prefix a single backslash before ; , : and double for backslash itself
         value.to_s.gsub(/[;,:\\]/) do |char|
           case char
@@ -117,12 +115,12 @@ module WifiWand
         end
       end
 
-      def build_filename(network_name)
+      private def build_filename(network_name)
         safe = network_name.gsub(/[^\w\-_]/, '_')
         "#{safe}-qr-code.png"
       end
 
-      def confirm_overwrite(filename, overwrite: false, output_stream: $stdout, input_stream: $stdin)
+      private def confirm_overwrite(filename, overwrite: false, output_stream: $stdout, input_stream: $stdin)
         return unless File.exist?(filename)
         return if overwrite
 
@@ -142,7 +140,7 @@ module WifiWand
         end
       end
 
-      def run_qrencode_file(model, filename, qr_string)
+      private def run_qrencode_file(model, filename, qr_string)
         Tempfile.create(tempfile_args_for(filename), tempfile_directory_for(filename)) do |tempfile|
           staged_filename = tempfile.path
           tempfile.close
@@ -163,7 +161,7 @@ module WifiWand
         end
       end
 
-      def run_qrencode_text(model, qr_string, delivery_mode: :print)
+      private def run_qrencode_text(model, qr_string, delivery_mode: :print)
         cmd = %w[qrencode -t ANSI] + [qr_string]
         begin
           result = model.run_os_command(cmd)
@@ -179,7 +177,7 @@ module WifiWand
         end
       end
 
-      def qr_type_flag_for(filename)
+      private def qr_type_flag_for(filename)
         case File.extname(filename).downcase
         when '.svg' then %w[-t SVG]
         when '.eps' then %w[-t EPS]
@@ -187,13 +185,13 @@ module WifiWand
         end
       end
 
-      def tempfile_args_for(filename)
+      private def tempfile_args_for(filename)
         basename = File.basename(filename, File.extname(filename))
         extension = File.extname(filename)
         ["#{basename}-", extension]
       end
 
-      def tempfile_directory_for(filename)
+      private def tempfile_directory_for(filename)
         directory = File.dirname(filename)
         directory.empty? ? '.' : directory
       end

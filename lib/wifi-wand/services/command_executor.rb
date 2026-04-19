@@ -158,9 +158,7 @@ module WifiWand
       end
     end
 
-    private
-
-    def missing_command_name(command, error)
+    private def missing_command_name(command, error)
       error_path_present = error.respond_to?(:path) && error.path && !error.path.empty?
       error_path_present ? error.path : Array(command).first.to_s
     end

@@ -347,16 +347,14 @@ module WifiWand
     end
 
     # Public API - main operations
-    module_function
-
-    def verify_source_attestation!
+    module_function def verify_source_attestation!
       WifiWand::MacOsWifiAuthHelper.verify_source_bundle_current!
       puts Messages::SOURCE_ATTESTATION_VALID
     rescue => e
       abort Messages.source_attestation_invalid(e.message)
     end
 
-    def build_signed_helper
+    module_function def build_signed_helper
       Operations.require_macos!(__method__.to_s)
       identity = CODESIGN_IDENTITY
       Operations.verify_identity_configured(identity)
@@ -378,7 +376,7 @@ module WifiWand
       puts Messages::HELPER_BUILT_SUCCESS
     end
 
-    def test_signed_helper
+    module_function def test_signed_helper
       Operations.require_macos!(__method__.to_s)
       helper = WifiWand::MacOsWifiAuthHelper
       executable = Operations.helper_executable_path
@@ -400,7 +398,7 @@ module WifiWand
       Operations.test_helper_execution(executable)
     end
 
-    def notarize_helper
+    module_function def notarize_helper
       Operations.require_macos!(__method__.to_s)
       creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper notarize')
       apple_id = creds[:apple_id]
@@ -436,7 +434,7 @@ module WifiWand
       puts Messages.helper_ready(bundle_path)
     end
 
-    def notarization_history
+    module_function def notarization_history
       creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper history')
       puts 'Recent notarization submissions:'
       Operations.run_notarytool(
@@ -446,7 +444,7 @@ module WifiWand
       )
     end
 
-    def notarization_status(submission_id)
+    module_function def notarization_status(submission_id)
       if submission_id.nil? || submission_id.empty?
         abort 'Error: Submission ID is required. Use --submission-id <uuid> ' \
           'or let the script auto-select.'
@@ -460,7 +458,7 @@ module WifiWand
       )
     end
 
-    def notarization_log(submission_id)
+    module_function def notarization_log(submission_id)
       if submission_id.nil? || submission_id.empty?
         abort 'Error: Submission ID is required. Use --submission-id <uuid> ' \
           'or let the script auto-select.'
@@ -474,7 +472,7 @@ module WifiWand
       )
     end
 
-    def cancel_notarization(submission_id)
+    module_function def cancel_notarization(submission_id)
       if submission_id.nil? || submission_id.empty?
         abort 'Error: Submission ID is required. Use --submission-id <uuid> ' \
           'or let the script auto-select.'
@@ -489,11 +487,11 @@ module WifiWand
       puts "✓ Submission #{submission_id} removed from notary queue."
     end
 
-    def latest_submission_id = select_submission_id(order: :desc)
+    module_function def latest_submission_id = select_submission_id(order: :desc)
 
-    def oldest_submission_id = select_submission_id(order: :asc)
+    module_function def oldest_submission_id = select_submission_id(order: :asc)
 
-    def select_submission_id(order:, pending_only: false)
+    module_function def select_submission_id(order:, pending_only: false)
       normalized_order = normalize_submission_order(order)
       creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper history')
       response = Operations.run_notarytool(
@@ -524,7 +522,7 @@ module WifiWand
       nil
     end
 
-    def normalize_submission_order(order = :desc)
+    module_function def normalize_submission_order(order = :desc)
       case order
       when :asc, :ascending
         :asc
@@ -535,7 +533,7 @@ module WifiWand
       end
     end
 
-    def release_helper
+    module_function def release_helper
       puts Messages.workflow_starting
       build_signed_helper
       puts Messages::WORKFLOW_SEPARATOR
@@ -545,7 +543,7 @@ module WifiWand
       puts Messages::WORKFLOW_SEPARATOR, Messages::WORKFLOW_COMPLETE
     end
 
-    def codesign_status
+    module_function def codesign_status
       Operations.require_macos!(__method__.to_s)
       helper = WifiWand::MacOsWifiAuthHelper
       bundle_path = helper.source_bundle_path
@@ -587,7 +585,7 @@ module WifiWand
       puts message
     end
 
-    def fetch_notary_credentials!(command_hint:)
+    module_function def fetch_notary_credentials!(command_hint:)
       apple_id = ENV['WIFIWAND_APPLE_DEV_ID']
       apple_password = ENV['WIFIWAND_APPLE_DEV_PASSWORD']
       team_id = APPLE_TEAM_ID

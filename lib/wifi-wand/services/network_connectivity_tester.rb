@@ -134,9 +134,7 @@ module WifiWand
       end
     end
 
-    private
-
-    def run_parallel_checks?(items, overall_timeout, helper_mode:)
+    private def run_parallel_checks?(items, overall_timeout, helper_mode:)
       return false if items.empty?
 
       probes = items.filter_map { |item| start_connectivity_probe(item, helper_mode) }
@@ -165,7 +163,7 @@ module WifiWand
       terminate_probes(probes || [])
     end
 
-    def ready_probe_readers(probes, deadline)
+    private def ready_probe_readers(probes, deadline)
       timeout = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
       return [] if timeout <= 0
 
@@ -173,7 +171,7 @@ module WifiWand
       ready_readers
     end
 
-    def start_connectivity_probe(item, helper_mode)
+    private def start_connectivity_probe(item, helper_mode)
       reader, writer = IO.pipe
       pid = Process.spawn(*connectivity_probe_command(item, helper_mode), out: writer, err: File::NULL)
       writer.close
@@ -185,16 +183,16 @@ module WifiWand
       nil
     end
 
-    def connectivity_probe_command(item, helper_mode)
+    private def connectivity_probe_command(item, helper_mode)
       [RbConfig.ruby, connectivity_probe_helper_path, helper_mode.to_s,
         *probe_command_args(item, helper_mode)]
     end
 
-    def connectivity_probe_helper_path
+    private def connectivity_probe_helper_path
       File.join(File.dirname(__FILE__), 'network_connectivity_probe_helper.rb')
     end
 
-    def probe_command_args(item, helper_mode)
+    private def probe_command_args(item, helper_mode)
       case helper_mode
       when :tcp, :fast_tcp
         [item[:host], item[:port].to_s]
@@ -205,7 +203,7 @@ module WifiWand
       end
     end
 
-    def read_probe_result(probe)
+    private def read_probe_result(probe)
       drain_probe_reader(probe)
       payload_text = probe[:buffer].strip
 
@@ -236,7 +234,7 @@ module WifiWand
     # read here can still hang waiting for EOF, so we accumulate available
     # chunks incrementally and let the caller decide whether to wait for more
     # bytes or parse the completed payload.
-    def drain_probe_reader(probe)
+    private def drain_probe_reader(probe)
       loop do
         # read_nonblock avoids hanging here after IO.select reports readability;
         # a pipe can become readable before the child has closed stdout.
@@ -260,11 +258,11 @@ module WifiWand
       end
     end
 
-    def failure_probe_result(error_class)
+    private def failure_probe_result(error_class)
       { success: false, error_class: error_class.to_s }
     end
 
-    def log_probe_result(probe, result)
+    private def log_probe_result(probe, result)
       return unless @verbose
 
       case probe[:helper_mode]
@@ -277,7 +275,7 @@ module WifiWand
       end
     end
 
-    def log_tcp_probe_result(endpoint, result)
+    private def log_tcp_probe_result(endpoint, result)
       if result[:success]
         @output.puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}"
       else
@@ -285,7 +283,7 @@ module WifiWand
       end
     end
 
-    def log_fast_tcp_probe_result(endpoint, result)
+    private def log_fast_tcp_probe_result(endpoint, result)
       if result[:success]
         @output.puts "Fast check: connected to #{endpoint[:host]}:#{endpoint[:port]}"
       else
@@ -294,7 +292,7 @@ module WifiWand
       end
     end
 
-    def log_dns_probe_result(domain, result)
+    private def log_dns_probe_result(domain, result)
       if result[:success]
         @output.puts "Successfully resolved #{domain}"
       else
@@ -302,7 +300,7 @@ module WifiWand
       end
     end
 
-    def log_helper_start_failure(item, helper_mode, error)
+    private def log_helper_start_failure(item, helper_mode, error)
       return unless @verbose
 
       target = case helper_mode
@@ -313,11 +311,11 @@ module WifiWand
       @output.puts "Failed to start #{helper_mode} helper for #{target}: #{error.class}"
     end
 
-    def helper_exit_poll_interval
+    private def helper_exit_poll_interval
       0.005
     end
 
-    def attempt_tcp_connection(endpoint)
+    private def attempt_tcp_connection(endpoint)
       Timeout.timeout(TimingConstants::TCP_CONNECTION_TIMEOUT) do
         Socket.tcp(
           endpoint[:host],
@@ -333,7 +331,7 @@ module WifiWand
       false
     end
 
-    def attempt_fast_tcp_connection(endpoint)
+    private def attempt_fast_tcp_connection(endpoint)
       Timeout.timeout(TimingConstants::FAST_TCP_CONNECTION_TIMEOUT) do
         Socket.tcp(
           endpoint[:host],
@@ -351,7 +349,7 @@ module WifiWand
       false
     end
 
-    def attempt_dns_resolution(domain)
+    private def attempt_dns_resolution(domain)
       Timeout.timeout(TimingConstants::DNS_RESOLUTION_TIMEOUT) do
         IPSocket.getaddress(domain)
         @output.puts "Successfully resolved #{domain}" if @verbose
@@ -362,13 +360,13 @@ module WifiWand
       false
     end
 
-    def log_unexpected_error(error)
+    private def log_unexpected_error(error)
       return unless @verbose
 
       @output.puts "Unexpected error during connectivity test: #{error.class} - #{error.message}"
     end
 
-    def tcp_test_endpoints
+    private def tcp_test_endpoints
       @tcp_test_endpoints ||= begin
         yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'tcp_test_endpoints.yml')
         data = YAML.safe_load_file(yaml_path)
@@ -376,7 +374,7 @@ module WifiWand
       end
     end
 
-    def dns_test_domains
+    private def dns_test_domains
       @dns_test_domains ||= begin
         yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'dns_test_domains.yml')
         data = YAML.safe_load_file(yaml_path)

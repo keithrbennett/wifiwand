@@ -78,13 +78,7 @@ module WifiWand
     # Short enough to keep overall check latency low, long enough for a clean exit.
     HELPER_RESULT_GRACE = 0.5
 
-    private
-
-    # We launch each speculative HTTP probe in its own Ruby subprocess because the
-    # underlying stdlib HTTP calls are blocking and do not support reliable
-    # cooperative cancellation in-process. A subprocess gives us a clearer and
-    # safer cancellation boundary than Thread.kill, plain Ruby threads, or Async.
-    def captive_portal_results(endpoints)
+    private def captive_portal_results(endpoints)
       probes = endpoints.filter_map { |endpoint| start_captive_portal_probe(endpoint) }
       results = []
       free_found = false
@@ -124,7 +118,7 @@ module WifiWand
       terminate_probes(probes || [])
     end
 
-    def ready_probe_readers(probes, deadline)
+    private def ready_probe_readers(probes, deadline)
       timeout = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
       return [] if timeout <= 0
 
@@ -137,7 +131,7 @@ module WifiWand
       ready_readers
     end
 
-    def start_captive_portal_probe(endpoint)
+    private def start_captive_portal_probe(endpoint)
       reader, writer = IO.pipe
       pid = Process.spawn(*captive_portal_probe_command(endpoint), out: writer, err: File::NULL)
       writer.close
@@ -149,7 +143,7 @@ module WifiWand
       nil
     end
 
-    def captive_portal_probe_command(endpoint)
+    private def captive_portal_probe_command(endpoint)
       [
         RbConfig.ruby,
         captive_portal_probe_helper_path,
@@ -159,11 +153,11 @@ module WifiWand
       ]
     end
 
-    def captive_portal_probe_helper_path
+    private def captive_portal_probe_helper_path
       File.join(File.dirname(__FILE__), 'captive_portal_probe_helper.rb')
     end
 
-    def read_probe_result(probe)
+    private def read_probe_result(probe)
       drain_probe_reader(probe)
       payload_text = probe[:buffer].strip
 
@@ -184,7 +178,7 @@ module WifiWand
       failure_probe_result(e.class)
     end
 
-    def drain_probe_reader(probe)
+    private def drain_probe_reader(probe)
       loop do
         chunk = probe[:reader].read_nonblock(4096, exception: false)
         case chunk
@@ -199,14 +193,14 @@ module WifiWand
       end
     end
 
-    def failure_probe_result(error_class)
+    private def failure_probe_result(error_class)
       {
         state:       ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
         error_class: error_class.to_s,
       }
     end
 
-    def normalize_probe_state(state)
+    private def normalize_probe_state(state)
       case state
       when ConnectivityStates::CAPTIVE_PORTAL_FREE.to_s
         ConnectivityStates::CAPTIVE_PORTAL_FREE
@@ -217,7 +211,7 @@ module WifiWand
       end
     end
 
-    def log_probe_result(endpoint, result)
+    private def log_probe_result(endpoint, result)
       return unless @verbose
 
       case result[:state]
@@ -237,7 +231,7 @@ module WifiWand
     # @return [Symbol] :present if the server returned a different status code
     # @return [Symbol] :indeterminate if a network error prevented any response
     #
-    def perform_captive_portal_check(endpoint)
+    private def perform_captive_portal_check(endpoint)
       uri = URI(endpoint[:url])
       expected_code = endpoint[:expected_code]
       expected_body = endpoint[:expected_body]
@@ -257,13 +251,13 @@ module WifiWand
       { state: ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE, error_class: e.class.to_s }
     end
 
-    def attempt_captive_portal_check(endpoint) = perform_captive_portal_check(endpoint)[:state]
+    private def attempt_captive_portal_check(endpoint) = perform_captive_portal_check(endpoint)[:state]
 
     # Loads captive portal check endpoint configuration from YAML.
     #
     # @return [Array<Hash>] Array of hashes with :url and :expected_code keys
     #
-    def captive_portal_check_endpoints
+    private def captive_portal_check_endpoints
       @captive_portal_check_endpoints ||= begin
         yaml_path = File.join(File.dirname(__FILE__), '..', 'data', 'captive_portal_check_endpoints.yml')
         data = YAML.safe_load_file(yaml_path)

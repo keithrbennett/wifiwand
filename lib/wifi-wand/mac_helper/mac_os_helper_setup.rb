@@ -95,16 +95,7 @@ module WifiWand
       system('open', 'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices')
     end
 
-    private
-
-    # Run the helper's check-permission command and parse the JSON result.
-    # Only called when the helper is structurally valid; probing a broken binary
-    # is not trustworthy and would produce misleading authorization state.
-    #
-    # @param helper_path [String]
-    # @param valid       [Boolean] skip the check when the helper is absent or invalid
-    # @return [Array(Boolean, String)] [authorized, message]
-    def check_authorization(helper_path, valid)
+    private def check_authorization(helper_path, valid)
       return [false, 'Helper not installed or not valid'] unless valid
 
       helper_result = MacOsWifiAuthHelper.run_bounded_helper_command(helper_path, 'check-permission')

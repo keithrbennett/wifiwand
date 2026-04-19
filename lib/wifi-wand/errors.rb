@@ -14,9 +14,7 @@ module WifiWand
       super(build_message)
     end
 
-    private
-
-    def build_message
+    private def build_message
       msg = "Network '#{network_name}' not found"
       msg += if available_networks.any?
         ". Available networks: #{available_networks.join(', ')}"
@@ -185,9 +183,7 @@ module WifiWand
       )
     end
 
-    private
-
-    def step_description
+    private def step_description
       case step
       when :modify
         'modifying the connection profile'
@@ -198,7 +194,7 @@ module WifiWand
       end
     end
 
-    def error_detail
+    private def error_detail
       return cause_error.text if cause_error.respond_to?(:text) && !cause_error.text.to_s.empty?
 
       cause_error.message

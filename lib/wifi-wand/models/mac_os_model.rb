@@ -586,10 +586,7 @@ module WifiWand
       :find_wifi_port,
       :helper_available_network_names
 
-    private
-
-    # Helper methods for _preferred_network_password
-    def detect_wifi_interface_from_profiler_networks(nets)
+    private def detect_wifi_interface_from_profiler_networks(nets)
       # Reuse the service name learned from the fast path when it is available.
       preferred_service_name = @wifi_service_name
       wifi = if preferred_service_name && !preferred_service_name.empty?
@@ -610,7 +607,7 @@ module WifiWand
       wifi ? wifi['interface'] : nil
     end
 
-    def handle_keychain_error(network_name, error)
+    private def handle_keychain_error(network_name, error)
       handler = KEYCHAIN_EXIT_CODE_HANDLERS[error.exitstatus]
 
       if handler
@@ -625,7 +622,7 @@ module WifiWand
     end
 
     # Helper methods for os_level_connect_using_networksetup
-    def check_connection_result(network_name, output_text)
+    private def check_connection_result(network_name, output_text)
       return unless connection_failed?(output_text)
 
       if authentication_failed?(output_text)
@@ -636,24 +633,24 @@ module WifiWand
       raise WifiWand::CommandExecutor::OsCommandError.new(1, 'networksetup', output_text.strip)
     end
 
-    def connection_failed?(output_text)
+    private def connection_failed?(output_text)
       CONNECTION_FAILURE_PATTERNS.any? { |pattern| output_text.match?(pattern) }
     end
 
-    def authentication_failed?(output_text)
+    private def authentication_failed?(output_text)
       AUTHENTICATION_FAILURE_PATTERNS.any? { |pattern| output_text.match?(pattern) }
     end
 
     # Helper methods for _available_network_names
-    def find_airport_interfaces(data)
+    private def find_airport_interfaces(data)
       data['SPAirPortDataType']
         &.detect { |h| h.key?('spairport_airport_interfaces') }
         &.fetch('spairport_airport_interfaces', [])
     end
 
-    def find_wifi_interface_data(interfaces, iface) = interfaces.detect { |h| h['_name'] == iface }
+    private def find_wifi_interface_data(interfaces, iface) = interfaces.detect { |h| h['_name'] == iface }
 
-    def wifi_interface_airport_data
+    private def wifi_interface_airport_data
       data = airport_data
       airport_interfaces = data.dig('SPAirPortDataType', 0, 'spairport_airport_interfaces')
       return nil unless airport_interfaces
@@ -662,7 +659,7 @@ module WifiWand
       airport_interfaces.find { |interface| interface['_name'] == iface }
     end
 
-    def interface_associated_in_airport_data?(wifi_interface_data)
+    private def interface_associated_in_airport_data?(wifi_interface_data)
       return false unless wifi_interface_data
 
       current_network = wifi_interface_data['spairport_current_network_information']
@@ -672,7 +669,7 @@ module WifiWand
       false
     end
 
-    def associated_without_ssid?(_wifi_interface_data = nil)
+    private def associated_without_ssid?(_wifi_interface_data = nil)
       iface = wifi_interface
       return true if default_interface == iface
 
@@ -681,7 +678,7 @@ module WifiWand
       false
     end
 
-    def network_list_key(wifi_interface_data = nil)
+    private def network_list_key(wifi_interface_data = nil)
       associated = if wifi_interface_data
         interface_associated_in_airport_data?(wifi_interface_data)
       else
@@ -693,7 +690,7 @@ module WifiWand
         'spairport_airport_local_wireless_networks'
     end
 
-    def sort_networks_by_signal_strength(networks)
+    private def sort_networks_by_signal_strength(networks)
       networks
         .sort_by { |net| -extract_signal_strength(net) }
         .map { |h| h['_name'] }
@@ -702,18 +699,18 @@ module WifiWand
         .uniq
     end
 
-    def extract_signal_strength(network)
+    private def extract_signal_strength(network)
       # 'spairport_signal_noise' is a slash-separated "signal/noise" string (e.g. "-65/-95").
       # Take the first component as the signal strength in dBm; default to "0/0" if absent.
       network.fetch('spairport_signal_noise', '0/0').to_s.split('/').first.to_i
     end
 
-    def placeholder_network_name?(name)
+    private def placeholder_network_name?(name)
       value = name.to_s.strip
       value.empty? || %w[<hidden> <redacted>].include?(value.downcase)
     end
 
-    def airport_data
+    private def airport_data
       json_text = run_os_command(%w[system_profiler -json SPAirPortDataType]).stdout
       begin
         JSON.parse(json_text)
@@ -724,7 +721,7 @@ module WifiWand
 
     # Gets the security type of the currently connected network.
     # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP", or nil if not connected/not found
-    def connection_security_type
+    private def connection_security_type
       network_name = _connected_network_name
       return nil unless network_name
 
@@ -754,7 +751,7 @@ module WifiWand
     # Checks if the currently connected network is a hidden network.
     # A hidden network does not broadcast its SSID.
     # @return [Boolean] true if connected to a hidden network, false otherwise
-    def network_hidden?
+    private def network_hidden?
       network_name = _connected_network_name
       return false unless network_name
 

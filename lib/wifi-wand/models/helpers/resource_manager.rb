@@ -57,9 +57,7 @@ module WifiWand
         "Invalid resource #{pluralized_codes}: #{codes_string}. Valid codes are:\n #{resource_list_str}"
       end
 
-      private
-
-      def load_resources
+      private def load_resources
         yaml_path = resource_file_path
 
         unless File.exist?(yaml_path)
@@ -86,7 +84,7 @@ module WifiWand
         OpenResources.new(resources)
       end
 
-      def resource_file_path = File.join(File.dirname(__FILE__), '..', '..', 'data',
+      private def resource_file_path = File.join(File.dirname(__FILE__), '..', '..', 'data',
         'open_resources.yml')
     end
   end

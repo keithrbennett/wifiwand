@@ -110,9 +110,7 @@ module WifiWand
       FAILURE_EXIT_CODE
     end
 
-    private
-
-    def prepend_env_options(args)
+    private def prepend_env_options(args)
       raw_options = @env['WIFIWAND_OPTS']
       return if raw_options.nil? || raw_options.strip.empty?
 
@@ -124,7 +122,7 @@ module WifiWand
       raise ConfigurationError, "Invalid WIFIWAND_OPTS value: #{e.message}"
     end
 
-    def handle_error(error, verbose_mode)
+    private def handle_error(error, verbose_mode)
       case error
       when OptionParser::InvalidOption
         # Clean error message for invalid command line options

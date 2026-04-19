@@ -11,9 +11,7 @@ module WifiWand
     INTERNET_INDETERMINATE = :indeterminate
     INTERNET_PENDING = :pending
 
-    module_function
-
-    def internet_state_from(tcp_working:, dns_working:, captive_portal_state:)
+    module_function def internet_state_from(tcp_working:, dns_working:, captive_portal_state:)
       return INTERNET_UNREACHABLE unless tcp_working && dns_working
 
       case captive_portal_state

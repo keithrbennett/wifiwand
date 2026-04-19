@@ -34,51 +34,46 @@ module WifiWand
     MANIFEST_FILENAME = 'INSTALL_MANIFEST.json'
     SOURCE_MANIFEST_FILENAME = 'wifiwand-helper.source-manifest.json'
 
-    module_function
-
-    # Path and Configuration Methods
-    # ==============================
-
-    # Returns the version string used for the helper installation
-    #
-    # @return [String] WifiWand gem version (e.g., "1.2.3")
-    def helper_version = WifiWand::VERSION
+    module_function def helper_version = WifiWand::VERSION
 
     # Returns the path to the Swift source file in the gem's libexec directory
     #
     # @return [String] absolute path to wifiwand-helper.swift source file
     #   Example: /path/to/gem/libexec/macos/src/wifiwand-helper.swift
-    def source_swift_path = File.expand_path('../../../libexec/macos/src/wifiwand-helper.swift', __dir__)
+    module_function def source_swift_path = File.expand_path(
+      '../../../libexec/macos/src/wifiwand-helper.swift', __dir__)
 
     # Returns the path to the app bundle template in the gem's libexec directory
     #
     # @return [String] absolute path to the bundle template directory
     #   Example: /path/to/gem/libexec/macos/wifiwand-helper.app
-    def source_bundle_path = File.expand_path('../../../libexec/macos/wifiwand-helper.app', __dir__)
+    module_function def source_bundle_path = File.expand_path('../../../libexec/macos/wifiwand-helper.app',
+      __dir__)
 
     # Returns the path to the source attestation manifest committed with the helper bundle.
     #
     # @return [String] absolute path to the helper source manifest
-    def source_bundle_manifest_path =
+    module_function def source_bundle_manifest_path =
       File.expand_path("../../../libexec/macos/#{SOURCE_MANIFEST_FILENAME}", __dir__)
 
     # Returns the versioned installation directory in user's Library folder
     #
     # @return [String] absolute path to version-specific installation directory
     #   Example: ~/Library/Application Support/WifiWand/1.2.3
-    def versioned_install_dir = File.join(INSTALL_PARENT, helper_version)
+    module_function def versioned_install_dir = File.join(INSTALL_PARENT, helper_version)
 
     # Returns the path to the installed app bundle in user's Library folder
     #
     # @return [String] absolute path to the installed .app bundle
     #   Example: ~/Library/Application Support/WifiWand/1.2.3/wifiwand-helper.app
-    def installed_bundle_path = File.join(versioned_install_dir, BUNDLE_NAME)
+    module_function def installed_bundle_path = File.join(versioned_install_dir, BUNDLE_NAME)
 
     # Returns the path to the compiled executable inside the installed bundle
     #
     # @return [String] absolute path to the executable binary
     #   Example: ~/Library/Application Support/WifiWand/1.2.3/wifiwand-helper.app/Contents/MacOS/wifiwand-helper
-    def installed_executable_path = File.join(installed_bundle_path, 'Contents', 'MacOS', EXECUTABLE_NAME)
+    module_function def installed_executable_path = File.join(installed_bundle_path, 'Contents', 'MacOS',
+      EXECUTABLE_NAME)
 
     # Returns a hash containing all helper paths and version information
     #
@@ -88,7 +83,7 @@ module WifiWand
     #   - :installed_executable - path to compiled executable
     #   - :source_bundle - path to bundle template in gem
     #   - :source_swift - path to Swift source in gem
-    def helper_info
+    module_function def helper_info
       {
         version:              helper_version,
         installed_bundle:     installed_bundle_path,
@@ -104,14 +99,14 @@ module WifiWand
     # Verifies the helper installation is valid and not corrupted
     #
     # @return [Boolean] true if helper is properly installed and executable
-    def helper_installed_and_valid?
+    module_function def helper_installed_and_valid?
       helper_bundle_valid?(installed_bundle_path) && installed_bundle_current?
     end
 
     # Copies the pre-signed helper bundle into ~/Library and immediately re-validates it.
     # Concurrent installs may briefly leave the bundle incomplete, so we trust the follow-up
     # validation (and let callers retry) instead of attempting multiple installs here.
-    def ensure_helper_installed(out_stream: $stdout)
+    module_function def ensure_helper_installed(out_stream: $stdout)
       return installed_bundle_path if helper_installed_and_valid?
 
       install_helper_bundle(out_stream: out_stream)
@@ -123,7 +118,7 @@ module WifiWand
       installed_bundle_path
     end
 
-    def install_helper_bundle(out_stream: $stdout)
+    module_function def install_helper_bundle(out_stream: $stdout)
       with_install_lock do
         return installed_bundle_path if helper_installed_and_valid?
 
@@ -146,11 +141,11 @@ module WifiWand
       installed_bundle_path
     end
 
-    def install_lock_path = File.join(versioned_install_dir, '.install.lock')
+    module_function def install_lock_path = File.join(versioned_install_dir, '.install.lock')
 
-    def install_manifest_path = File.join(versioned_install_dir, MANIFEST_FILENAME)
+    module_function def install_manifest_path = File.join(versioned_install_dir, MANIFEST_FILENAME)
 
-    def helper_bundle_valid?(bundle_path)
+    module_function def helper_bundle_valid?(bundle_path)
       executable_path = File.join(bundle_path, 'Contents', 'MacOS', EXECUTABLE_NAME)
       return false unless File.executable?(executable_path)
       return false unless File.exist?(File.join(bundle_path, 'Contents', 'Info.plist'))
@@ -166,7 +161,7 @@ module WifiWand
       !command_output.empty?
     end
 
-    def installed_bundle_current?
+    module_function def installed_bundle_current?
       manifest = read_install_manifest
 
       if manifest
@@ -178,7 +173,7 @@ module WifiWand
       end
     end
 
-    def source_bundle_current?
+    module_function def source_bundle_current?
       manifest = read_source_bundle_manifest
 
       if manifest
@@ -190,11 +185,11 @@ module WifiWand
       end
     end
 
-    def verify_source_bundle_current!
+    module_function def verify_source_bundle_current!
       source_bundle_current? || raise(source_bundle_mismatch_message)
     end
 
-    def run_bounded_helper_command(executable_path, command, on_timeout: nil)
+    module_function def run_bounded_helper_command(executable_path, command, on_timeout: nil)
       Open3.popen3(executable_path, command) do |stdin, stdout, stderr, wait_thr|
         stdin.close
         stdout_reader = Thread.new { stdout.read }
@@ -221,7 +216,7 @@ module WifiWand
       nil
     end
 
-    def terminate_helper_process(wait_thr)
+    module_function def terminate_helper_process(wait_thr)
       pid = wait_thr.pid
       Process.kill('TERM', pid)
       return if helper_exited_within_grace_period?(wait_thr)
@@ -233,11 +228,11 @@ module WifiWand
       nil
     end
 
-    def helper_exited_within_grace_period?(wait_thr)
+    module_function def helper_exited_within_grace_period?(wait_thr)
       !!wait_thr.join(HELPER_TERMINATION_WAIT_SECONDS)
     end
 
-    def with_install_lock
+    module_function def with_install_lock
       FileUtils.mkdir_p(versioned_install_dir)
 
       File.open(install_lock_path, File::RDWR | File::CREAT, 0o644) do |lock_file|
@@ -248,13 +243,13 @@ module WifiWand
       end
     end
 
-    def stage_helper_bundle(staged_bundle_path)
+    module_function def stage_helper_bundle(staged_bundle_path)
       FileUtils.cp_r(source_bundle_path, staged_bundle_path)
       staged_executable_path = File.join(staged_bundle_path, 'Contents', 'MacOS', EXECUTABLE_NAME)
       FileUtils.chmod(0o755, staged_executable_path)
     end
 
-    def publish_staged_bundle(staged_bundle_path)
+    module_function def publish_staged_bundle(staged_bundle_path)
       publish_token = unique_publish_token
       release_bundle_path = bundle_release_path(publish_token)
       File.rename(staged_bundle_path, release_bundle_path)
@@ -267,7 +262,7 @@ module WifiWand
       end
     end
 
-    def publish_release_symlink(release_bundle_path, publish_token)
+    module_function def publish_release_symlink(release_bundle_path, publish_token)
       symlink_path = staged_bundle_symlink_path(publish_token)
       File.symlink(File.basename(release_bundle_path), symlink_path)
 
@@ -290,7 +285,7 @@ module WifiWand
       raise
     end
 
-    def migrate_legacy_bundle_to_release(release_bundle_path, publish_token)
+    module_function def migrate_legacy_bundle_to_release(release_bundle_path, publish_token)
       backup_paths = backup_legacy_bundle_metadata(publish_token)
       sync_legacy_bundle_metadata(release_bundle_path, publish_token)
       switch_legacy_bundle_executable(release_bundle_path, publish_token)
@@ -301,25 +296,29 @@ module WifiWand
       cleanup_legacy_bundle_metadata_backups(backup_paths) if defined?(backup_paths)
     end
 
-    def bundle_release_path(publish_token) =
+    module_function def bundle_release_path(publish_token) =
       File.join(versioned_install_dir, ".#{BUNDLE_NAME}.release-#{publish_token}")
 
-    def staged_bundle_symlink_path(publish_token) = "#{installed_bundle_path}.link-#{publish_token}"
+    module_function def staged_bundle_symlink_path(publish_token)
+      "#{installed_bundle_path}.link-#{publish_token}"
+    end
 
-    def legacy_executable_symlink_path(publish_token) = "#{installed_executable_path}.link-#{publish_token}"
+    module_function def legacy_executable_symlink_path(publish_token)
+      "#{installed_executable_path}.link-#{publish_token}"
+    end
 
-    def legacy_info_plist_path = File.join(installed_bundle_path, 'Contents', 'Info.plist')
+    module_function def legacy_info_plist_path = File.join(installed_bundle_path, 'Contents', 'Info.plist')
 
-    def legacy_code_resources_path =
+    module_function def legacy_code_resources_path =
       File.join(installed_bundle_path, 'Contents', '_CodeSignature', 'CodeResources')
 
-    def resolved_installed_bundle_target
+    module_function def resolved_installed_bundle_target
       return unless File.symlink?(installed_bundle_path)
 
       File.expand_path(File.readlink(installed_bundle_path), versioned_install_dir)
     end
 
-    def cleanup_previous_release(previous_release_path)
+    module_function def cleanup_previous_release(previous_release_path)
       return unless previous_release_path
       return unless previous_release_path.start_with?("#{versioned_install_dir}/.#{BUNDLE_NAME}.release-")
       return if previous_release_path == resolved_installed_bundle_target
@@ -327,7 +326,7 @@ module WifiWand
       FileUtils.rm_rf(previous_release_path)
     end
 
-    def sync_legacy_bundle_metadata(release_bundle_path, publish_token)
+    module_function def sync_legacy_bundle_metadata(release_bundle_path, publish_token)
       release_info_plist_path = File.join(release_bundle_path, 'Contents', 'Info.plist')
       staged_info_plist_path = "#{legacy_info_plist_path}.tmp-#{publish_token}"
       release_code_resources_path =
@@ -346,14 +345,14 @@ module WifiWand
       FileUtils.rm_f(staged_code_resources_path) if defined?(staged_code_resources_path)
     end
 
-    def backup_legacy_bundle_metadata(publish_token)
+    module_function def backup_legacy_bundle_metadata(publish_token)
       {
         info_plist:     backup_legacy_metadata_file(legacy_info_plist_path, publish_token),
         code_resources: backup_legacy_metadata_file(legacy_code_resources_path, publish_token),
       }
     end
 
-    def backup_legacy_metadata_file(path, publish_token)
+    module_function def backup_legacy_metadata_file(path, publish_token)
       return unless File.exist?(path)
 
       backup_path = "#{path}.backup-#{publish_token}"
@@ -361,12 +360,12 @@ module WifiWand
       backup_path
     end
 
-    def restore_legacy_bundle_metadata(backup_paths, publish_token)
+    module_function def restore_legacy_bundle_metadata(backup_paths, publish_token)
       restore_legacy_metadata_file(backup_paths[:info_plist], legacy_info_plist_path, publish_token)
       restore_legacy_metadata_file(backup_paths[:code_resources], legacy_code_resources_path, publish_token)
     end
 
-    def restore_legacy_metadata_file(backup_path, target_path, publish_token)
+    module_function def restore_legacy_metadata_file(backup_path, target_path, publish_token)
       return unless backup_path && File.exist?(backup_path)
 
       staged_restore_path = "#{target_path}.restore-#{publish_token}"
@@ -376,11 +375,11 @@ module WifiWand
       FileUtils.rm_f(staged_restore_path) if defined?(staged_restore_path)
     end
 
-    def cleanup_legacy_bundle_metadata_backups(backup_paths)
+    module_function def cleanup_legacy_bundle_metadata_backups(backup_paths)
       FileUtils.rm_f(backup_paths.values.compact)
     end
 
-    def switch_legacy_bundle_executable(release_bundle_path, publish_token)
+    module_function def switch_legacy_bundle_executable(release_bundle_path, publish_token)
       previous_release_path = resolved_legacy_release_target
       staged_executable_link_path = legacy_executable_symlink_path(publish_token)
       release_executable_path = File.join(release_bundle_path, 'Contents', 'MacOS', EXECUTABLE_NAME)
@@ -395,16 +394,18 @@ module WifiWand
       raise
     end
 
-    def resolved_legacy_release_target
+    module_function def resolved_legacy_release_target
       return unless File.symlink?(installed_executable_path)
 
       File.expand_path(File.readlink(installed_executable_path), versioned_install_dir)
         .sub(%r{/Contents/MacOS/[^/]+\z}, '')
     end
 
-    def unique_publish_token = "#{Process.pid}-#{Thread.current.object_id}-#{SecureRandom.hex(6)}"
+    module_function def unique_publish_token
+      "#{Process.pid}-#{Thread.current.object_id}-#{SecureRandom.hex(6)}"
+    end
 
-    def compile_helper(source, destination, out_stream: $stdout)
+    module_function def compile_helper(source, destination, out_stream: $stdout)
       FileUtils.mkdir_p(File.dirname(destination))
 
       # Build universal binary (ARM64 + x86_64) for compatibility with all Macs
@@ -426,7 +427,7 @@ module WifiWand
       sign_helper_bundle(destination, out_stream: out_stream)
     end
 
-    def compile_architecture(source, output, target, arch_name)
+    module_function def compile_architecture(source, output, target, arch_name)
       command = [
         'swiftc', source,
         '-target', target,
@@ -442,7 +443,7 @@ module WifiWand
       raise "Failed to compile #{arch_name} binary (status=#{status.exitstatus}): #{error_output}"
     end
 
-    def create_universal_binary(destination, *architecture_binaries)
+    module_function def create_universal_binary(destination, *architecture_binaries)
       stdout, stderr, status = Open3.capture3('lipo', '-create', '-output', destination,
         *architecture_binaries)
       return if status.success?
@@ -451,7 +452,7 @@ module WifiWand
       raise "Failed to create universal binary (status=#{status.exitstatus}): #{error_output}"
     end
 
-    def sign_helper_bundle(executable_path, out_stream: $stdout)
+    module_function def sign_helper_bundle(executable_path, out_stream: $stdout)
       # Get the bundle path from the executable path
       bundle_path = executable_path.split('/Contents/MacOS/').first
 
@@ -484,11 +485,11 @@ module WifiWand
       out_stream&.puts 'Helper bundle signed successfully.'
     end
 
-    def write_source_bundle_manifest
+    module_function def write_source_bundle_manifest
       File.write(source_bundle_manifest_path, JSON.pretty_generate(source_bundle_manifest_payload))
     end
 
-    def source_bundle_manifest_payload
+    module_function def source_bundle_manifest_payload
       {
         'helper_version'     => helper_version,
         'source_path'        => relative_helper_path(source_swift_path),
@@ -498,7 +499,7 @@ module WifiWand
       }
     end
 
-    def read_source_bundle_manifest
+    module_function def read_source_bundle_manifest
       if File.exist?(source_bundle_manifest_path)
         JSON.parse(File.read(source_bundle_manifest_path))
       end
@@ -506,7 +507,7 @@ module WifiWand
       nil
     end
 
-    def write_manifest
+    module_function def write_manifest
       FileUtils.mkdir_p(versioned_install_dir)
       File.write(File.join(versioned_install_dir, 'VERSION'), helper_version)
       File.write(install_manifest_path, JSON.pretty_generate(
@@ -517,7 +518,7 @@ module WifiWand
       ))
     end
 
-    def read_install_manifest
+    module_function def read_install_manifest
       if File.exist?(install_manifest_path)
         JSON.parse(File.read(install_manifest_path))
       end
@@ -525,7 +526,7 @@ module WifiWand
       nil
     end
 
-    def bundle_fingerprint(bundle_path)
+    module_function def bundle_fingerprint(bundle_path)
       digest = Digest::SHA256.new
 
       tracked_bundle_files(bundle_path).each do |path|
@@ -538,9 +539,9 @@ module WifiWand
       digest.hexdigest
     end
 
-    def source_swift_fingerprint = Digest::SHA256.file(source_swift_path).hexdigest
+    module_function def source_swift_fingerprint = Digest::SHA256.file(source_swift_path).hexdigest
 
-    def tracked_bundle_files(bundle_path)
+    module_function def tracked_bundle_files(bundle_path)
       [
         File.join(bundle_path, 'Contents', 'Info.plist'),
         File.join(bundle_path, 'Contents', '_CodeSignature', 'CodeResources'),
@@ -548,13 +549,13 @@ module WifiWand
       ]
     end
 
-    def source_bundle_mismatch_message
+    module_function def source_bundle_mismatch_message
       "Shipped macOS helper bundle is out of sync with #{relative_helper_path(source_swift_path)}. " \
         'Run `bundle exec rake swift:compile` or `bin/mac-helper build` to rebuild the signed bundle ' \
         "and refresh #{relative_helper_path(source_bundle_manifest_path)}."
     end
 
-    def relative_helper_path(path)
+    module_function def relative_helper_path(path)
       repo_root = File.expand_path('../../..', __dir__)
       Pathname.new(path).relative_path_from(Pathname.new(repo_root)).to_s
     end
@@ -627,9 +628,7 @@ module WifiWand
         @last_error_message.downcase.include?('location services')
       end
 
-      private
-
-      def sanitize_version_string(version)
+      private def sanitize_version_string(version)
         return nil unless version
 
         version_string = version.to_s.strip
@@ -637,7 +636,7 @@ module WifiWand
         match&.[](0)
       end
 
-      def execute(command)
+      private def execute(command)
         @last_error_message = nil
         return HelperQueryResult.new unless available?
 
@@ -676,7 +675,7 @@ module WifiWand
         HelperQueryResult.new
       end
 
-      def execute_helper_command(command)
+      private def execute_helper_command(command)
         WifiWand::MacOsWifiAuthHelper.run_bounded_helper_command(
           helper_executable_path,
           command,
@@ -686,7 +685,7 @@ module WifiWand
         )
       end
 
-      def terminate_helper_process(wait_thr)
+      private def terminate_helper_process(wait_thr)
         pid = wait_thr.pid
         Process.kill('TERM', pid)
         return if helper_exited_within_grace_period?(wait_thr)
@@ -698,11 +697,11 @@ module WifiWand
         nil
       end
 
-      def helper_exited_within_grace_period?(wait_thr)
+      private def helper_exited_within_grace_period?(wait_thr)
         !!wait_thr.join(HELPER_TERMINATION_WAIT_SECONDS)
       end
 
-      def ensure_helper_installed
+      private def ensure_helper_installed
         return if helper_disabled?
         return if @helper_install_verified
 
@@ -727,20 +726,20 @@ module WifiWand
         emit_install_failure(e.message, repair_required: helper_present)
       end
 
-      def helper_executable_path = WifiWand::MacOsWifiAuthHelper.installed_executable_path
+      private def helper_executable_path = WifiWand::MacOsWifiAuthHelper.installed_executable_path
 
-      def helper_disabled?
+      private def helper_disabled?
         @disabled || ENV[DISABLE_ENV_KEY] == '1'
       end
 
-      def parse_json(text)
+      private def parse_json(text)
         JSON.parse(text)
       rescue JSON::ParserError => e
         log_verbose("failed to parse helper JSON: #{e.message}")
         nil
       end
 
-      def handle_error(message)
+      private def handle_error(message)
         return unless message
 
         @last_error_message = message
@@ -751,7 +750,7 @@ module WifiWand
         end
       end
 
-      def emit_location_warning
+      private def emit_location_warning
         return if @location_warning_emitted
 
         stream = out_stream || $stdout
@@ -763,7 +762,7 @@ module WifiWand
         @location_warning_emitted = true
       end
 
-      def emit_install_failure(detail, repair_required: false)
+      private def emit_install_failure(detail, repair_required: false)
         stream = out_stream || $stdout
         if stream
           repair_hint = if repair_required
@@ -776,18 +775,18 @@ module WifiWand
         end
       end
 
-      def log_verbose(message)
+      private def log_verbose(message)
         return unless verbose?
 
         stream = out_stream || $stdout
         stream.puts("wifiwand helper: #{message}") if stream
       end
 
-      def macos_version = @macos_version_proc&.call
+      private def macos_version = @macos_version_proc&.call
 
-      def out_stream = @out_stream_proc&.call
+      private def out_stream = @out_stream_proc&.call
 
-      def verbose? = !!(@verbose_proc && @verbose_proc.call)
+      private def verbose? = !!(@verbose_proc && @verbose_proc.call)
     end
   end
 end

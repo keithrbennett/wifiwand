@@ -61,24 +61,22 @@ module WifiWand
       cleanup_worker_threads(network_thread, connectivity_thread)
     end
 
-    private
-
-    def build_status_threads(result_queue)
+    private def build_status_threads(result_queue)
       [
         spawn_worker { publish_worker_result(result_queue, :network) { network_identity } },
         spawn_worker { publish_worker_result(result_queue, :connectivity) { connectivity_data } },
       ]
     end
 
-    def spawn_worker(&) = Thread.new(&)
+    private def spawn_worker(&) = Thread.new(&)
 
-    def publish_worker_result(result_queue, worker_name)
+    private def publish_worker_result(result_queue, worker_name)
       result_queue << [worker_name, :result, yield]
     rescue => e
       result_queue << [worker_name, :error, e]
     end
 
-    def await_worker_result(result_queue, worker_name, cached_results)
+    private def await_worker_result(result_queue, worker_name, cached_results)
       if cached_results.key?(worker_name)
         status, payload = cached_results.delete(worker_name)
         raise payload if status == :error
@@ -104,7 +102,7 @@ module WifiWand
       end
     end
 
-    def pop_worker_result_before_deadline(result_queue, deadline)
+    private def pop_worker_result_before_deadline(result_queue, deadline)
       loop do
         return result_queue.pop(true)
       rescue ThreadError
@@ -115,7 +113,7 @@ module WifiWand
       end
     end
 
-    def cleanup_worker_threads(*threads)
+    private def cleanup_worker_threads(*threads)
       threads.compact.each do |thread|
         next unless thread.alive?
 
@@ -133,7 +131,7 @@ module WifiWand
       end
     end
 
-    def worker_timeout_result(worker_name)
+    private def worker_timeout_result(worker_name)
       output.puts "Warning: #{worker_name} status worker timed out" if verbose_mode
 
       case worker_name
@@ -155,9 +153,9 @@ module WifiWand
       end
     end
 
-    def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
-    def initial_data
+    private def initial_data
       {
         wifi_on:                       model.wifi_on?,
         dns_working:                   nil,
@@ -170,7 +168,7 @@ module WifiWand
       }
     end
 
-    def data_when_wifi_off
+    private def data_when_wifi_off
       {
         dns_working:                   false,
         connected:                     false,
@@ -182,7 +180,7 @@ module WifiWand
       }
     end
 
-    def network_identity
+    private def network_identity
       connected = connected?
       network_name = connected ? network_name_for_connected_state : nil
 
@@ -198,18 +196,18 @@ module WifiWand
       }
     end
 
-    def network_name_for_connected_state
+    private def network_name_for_connected_state
       network_name = model.connected_network_name
       return network_name unless network_name.nil? || network_name.to_s.empty?
 
       SSID_UNAVAILABLE_LABEL
     end
 
-    def connected?
+    private def connected?
       model.connected?
     end
 
-    def connectivity_data
+    private def connectivity_data
       tcp_working = tcp_connectivity?
       dns_working = dns_working?
 
@@ -230,25 +228,25 @@ module WifiWand
       }
     end
 
-    def tcp_connectivity?
+    private def tcp_connectivity?
       model.internet_tcp_connectivity?
     rescue *expected_network_errors, WifiWand::Error
       false
     end
 
-    def dns_working?
+    private def dns_working?
       model.dns_working?
     rescue *expected_network_errors, WifiWand::Error
       false
     end
 
-    def captive_portal_state
+    private def captive_portal_state
       model.captive_portal_state
     rescue *expected_network_errors, WifiWand::Error
       ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
     end
 
-    def captive_portal_login_required(portal_state)
+    private def captive_portal_login_required(portal_state)
       case portal_state
       when ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
         :unknown
@@ -259,7 +257,7 @@ module WifiWand
       end
     end
 
-    def data_when_internet_unreachable(dns_working:)
+    private def data_when_internet_unreachable(dns_working:)
       {
         dns_working:                   dns_working,
         internet_state:                ConnectivityStates::INTERNET_UNREACHABLE,

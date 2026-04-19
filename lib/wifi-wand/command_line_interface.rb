@@ -401,14 +401,7 @@ module WifiWand
       end
     end
 
-    private
-
-    # Determines how the status command should present progress updates.
-    # - Returns :none when output is being post-processed or the stream is non-TTY
-    #   to preserve machine-readable output.
-    # - Returns :inline when printing directly to an interactive terminal so we
-    #   can reuse the same line with carriage returns.
-    def status_progress_mode
+    private def status_progress_mode
       return :none if options.post_processor
 
       return :none unless out_stream.respond_to?(:tty?) && out_stream.tty?
@@ -418,9 +411,9 @@ module WifiWand
 
     # Strips ANSI escape codes from a string so we can measure visible length
     # when padding inline terminal updates.
-    def strip_ansi(text) = text.to_s.gsub(/\e\[[\d;]*m/, '')
+    private def strip_ansi(text) = text.to_s.gsub(/\e\[[\d;]*m/, '')
 
-    def normalize_public_ip_selector(selector)
+    private def normalize_public_ip_selector(selector)
       normalized_selector = selector.to_s.strip.downcase
       normalized_selector = 'both' if normalized_selector.empty?
 
@@ -437,7 +430,7 @@ module WifiWand
       end
     end
 
-    def empty_available_networks_message
+    private def empty_available_networks_message
       if model.is_a?(WifiWand::MacOsModel)
         "No visible networks were found.\n" \
           'On macOS 14+, this can mean the helper could not get usable ' \
@@ -451,7 +444,7 @@ module WifiWand
       end
     end
 
-    def handle_output(data, human_readable_string_producer)
+    private def handle_output(data, human_readable_string_producer)
       if interactive_mode
         data
       else

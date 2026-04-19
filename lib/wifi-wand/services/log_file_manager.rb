@@ -46,10 +46,7 @@ module WifiWand
       @file_handle = nil
     end
 
-    private
-
-    # File setup is intentionally strict: callers decide whether failure should abort or fall back.
-    def setup_log_file
+    private def setup_log_file
       open_log_file
       log_message("Log file initialized at #{@log_file_path}") if @verbose
     rescue WifiWand::LogFileInitializationError
@@ -59,14 +56,14 @@ module WifiWand
         "Failed to initialize log file #{@log_file_path}: #{e.message}"
     end
 
-    def open_log_file
+    private def open_log_file
       @file_handle = File.open(@log_file_path, 'a')
     rescue => e
       raise WifiWand::LogFileInitializationError,
         "Cannot open log file #{@log_file_path}: #{e.message}"
     end
 
-    def log_message(message)
+    private def log_message(message)
       @output.puts(message) if @output
       @output.flush if @output&.respond_to?(:flush)
     end

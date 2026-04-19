@@ -554,16 +554,14 @@ module WifiWand
         password: password, in_stream: in_stream)
     end
 
-    private
-
-    def valid_public_ip_address?(address)
+    private def valid_public_ip_address?(address)
       IPAddr.new(address)
       true
     rescue IPAddr::InvalidAddressError
       false
     end
 
-    def public_ip_http_get(uri)
+    private def public_ip_http_get(uri)
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = (uri.scheme == 'https')
       http.open_timeout = PUBLIC_IP_TIMEOUT_IN_SECONDS
@@ -599,7 +597,7 @@ module WifiWand
     # Normalizes a raw security descriptor string from OS tools to
     # one of: "WPA3", "WPA2", "WPA", "WEP", or nil (unknown/open/enterprise).
     # This centralizes regex handling across OS implementations.
-    def canonical_security_type_from(security_text)
+    private def canonical_security_type_from(security_text)
       return nil if security_text.nil?
 
       text = security_text.to_s.strip
@@ -620,7 +618,7 @@ module WifiWand
       end
     end
 
-    def connected_network_password
+    private def connected_network_password
       debug_method_entry(__method__)
       network_name = connected_network_name
       return nil unless network_name
@@ -628,7 +626,7 @@ module WifiWand
       preferred_network_password(network_name)
     end
 
-    def command_available?(command) = @command_executor.command_available?(command)
+    private def command_available?(command) = @command_executor.command_available?(command)
 
     # Emits a verbose method-entry trace for debugging.
     #
@@ -642,7 +640,7 @@ module WifiWand
     # @param caller_binding [Binding, nil] caller binding used to resolve parameter values
     # @param param_names [Symbol, Array<Symbol>, nil] local variable names to include
     # @return [void]
-    def debug_method_entry(method_name, caller_binding = nil, param_names = nil)
+    private def debug_method_entry(method_name, caller_binding = nil, param_names = nil)
       return unless verbose_mode
 
       s = "Entered #{self.class.name.split('::').last}##{method_name}"

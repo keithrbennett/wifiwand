@@ -58,9 +58,7 @@ module WifiWand
       1
     end
 
-    private
-
-    def parse_options
+    private def parse_options
       OptionParser.new do |opts|
         opts.banner = 'Usage: wifi-wand-macos-setup [--repair]'
         opts.on('--repair', '--reinstall',
@@ -70,7 +68,7 @@ module WifiWand
       end.parse!(@argv)
     end
 
-    def perform_repair
+    private def perform_repair
       @out_stream.puts 'Reinstalling wifiwand-helper...'
       @setup.reinstall_helper
       @out_stream.puts "✓ Helper reinstalled at: #{MacOsWifiAuthHelper.installed_bundle_path}"
@@ -81,7 +79,7 @@ module WifiWand
     end
 
     # Print the "all done" message and return true so the caller can exit 0.
-    def already_complete(status)
+    private def already_complete(status)
       return false unless status.setup_complete?
 
       @out_stream.puts '✅ WifiWand macOS setup is complete! All requirements are satisfied.'
@@ -92,7 +90,7 @@ module WifiWand
       true
     end
 
-    def print_header
+    private def print_header
       @out_stream.puts <<~HEADER
         ╔══════════════════════════════════════════════════════════════════╗
         ║         WifiWand macOS Location Permission Setup                 ║
@@ -104,7 +102,7 @@ module WifiWand
       HEADER
     end
 
-    def print_status_table(status)
+    private def print_status_table(status)
       row = ->(str1 = '', str2 = '') { @out_stream.puts format('  %-40<str1>s %<str2>s', str1:, str2:) }
       separator_line = '=' * 70
 
@@ -126,19 +124,19 @@ module WifiWand
       row.(separator_line)
     end
 
-    def print_steps(steps)
+    private def print_steps(steps)
       @out_stream.puts
       @out_stream.puts 'Steps required:'
       steps.each_with_index { |step, i| @out_stream.puts "  #{i + 1}. #{STEP_LABELS[step]}" }
     end
 
-    def wait_for_enter
+    private def wait_for_enter
       @out_stream.puts
       @out_stream.puts 'Press ENTER to continue (or Ctrl-C to cancel)...'
       @in_stream.gets
     end
 
-    def execute_steps(steps)
+    private def execute_steps(steps)
       total_steps  = steps.length
       current_step = 0
 
@@ -186,7 +184,7 @@ module WifiWand
       print_permission_instructions
     end
 
-    def print_permission_instructions
+    private def print_permission_instructions
       @out_stream.puts <<~INSTRUCTIONS
 
         ╔══════════════════════════════════════════════════════════════════╗

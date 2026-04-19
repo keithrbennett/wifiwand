@@ -57,9 +57,7 @@ module WifiWand
     # successfully. Failed connections may leave this in an inconsistent state.
     def last_connection_used_saved_password? = !!@last_connection_used_saved_password
 
-    private
-
-    def reset_connection_state = @last_connection_used_saved_password = nil
+    private def reset_connection_state = @last_connection_used_saved_password = nil
 
     # Normalizes and validates connection inputs.
     #
@@ -78,7 +76,7 @@ module WifiWand
     # @raise [InvalidNetworkPasswordError] when the password is not a String/Symbol,
     #   contains control characters, or is neither a valid passphrase nor raw PSK.
     # @return [Array(String, String,nil)] normalized `[network_name, password]`.
-    def normalize_inputs(network_name, password)
+    private def normalize_inputs(network_name, password)
       normalized_network_name = normalize_scalar_input(
         value:                network_name,
         allow_nil:            false,
@@ -103,7 +101,7 @@ module WifiWand
       [normalized_network_name, normalized_password]
     end
 
-    def validate_network_name(network_name)
+    private def validate_network_name(network_name)
       if network_name.nil? || network_name.empty?
         raise InvalidNetworkNameError, network_name || ''
       end
@@ -116,7 +114,7 @@ module WifiWand
       )
     end
 
-    def validate_password(password)
+    private def validate_password(password)
       return if password.nil? || password.empty?
       return if password.match?(RAW_PSK_PATTERN)
       return if password.bytesize <= MAX_PASSPHRASE_LENGTH
@@ -130,7 +128,7 @@ module WifiWand
       raise InvalidNetworkPasswordError.new(password, reason)
     end
 
-    def already_connected?(network_name)
+    private def already_connected?(network_name)
       active_connection_matches?(network_name)
     rescue WifiWand::Error
       false
@@ -158,7 +156,7 @@ module WifiWand
     # @return [Array<(String,nil), Boolean>] A two-element array of
     #   `[resolved_password, used_saved_password]`, where `resolved_password` may be
     #   nil when no password could be determined.
-    def resolve_password(network_name, password, skip_saved_password_lookup = false)
+    private def resolve_password(network_name, password, skip_saved_password_lookup = false)
       return [password, false] if skip_saved_password_lookup
 
       if password == ''
@@ -190,17 +188,17 @@ module WifiWand
       [nil, false]
     end
 
-    def perform_connection(network_name, password)
+    private def perform_connection(network_name, password)
       model.wifi_on
       model._connect(network_name, password)
       wait_for_connection_activation(network_name)
     end
 
-    def store_saved_password_usage(used_saved_password)
+    private def store_saved_password_usage(used_saved_password)
       @last_connection_used_saved_password = used_saved_password
     end
 
-    def verify_connection(network_name, _password)
+    private def verify_connection(network_name, _password)
       return if active_connection_matches?(network_name)
 
       actual_network_name = begin
@@ -219,11 +217,11 @@ module WifiWand
       raise NetworkConnectionError.new(network_name, error_detail)
     end
 
-    def active_connection_matches?(network_name)
+    private def active_connection_matches?(network_name)
       model.connection_ready?(network_name)
     end
 
-    def wait_for_connection_activation(network_name)
+    private def wait_for_connection_activation(network_name)
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       begin
         # Association is the first milestone: the radio joined the SSID, but the
@@ -252,7 +250,7 @@ module WifiWand
       end
     end
 
-    def normalize_scalar_input(
+    private def normalize_scalar_input(
       value:, allow_nil:, field_label:, error_class:, blank_message:, control_char_message:, max_length: nil
     )
       if value.nil?

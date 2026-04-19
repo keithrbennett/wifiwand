@@ -95,9 +95,7 @@ module WifiWand
 
     def stop = @running = false
 
-    private
-
-    def fetch_current_state
+    private def fetch_current_state
       fetch_failures = []
       wifi_on = fetch_status_value(:wifi_on, @previous_state&.dig(:wifi_on), fetch_failures) do
         @model.wifi_on?
@@ -119,9 +117,9 @@ module WifiWand
       state
     end
 
-    def current_internet_state = @model.internet_connectivity_state
+    private def current_internet_state = @model.internet_connectivity_state
 
-    def detect_and_emit_events(current_state)
+    private def detect_and_emit_events(current_state)
       return if @previous_state.nil?
 
       if comparable_boolean_values?(current_state[:wifi_on], @previous_state[:wifi_on]) &&
@@ -162,7 +160,7 @@ module WifiWand
       end
     end
 
-    def internet_state_label(value)
+    private def internet_state_label(value)
       case value
       when ConnectivityStates::INTERNET_REACHABLE then 'available'
       when ConnectivityStates::INTERNET_UNREACHABLE then 'unavailable'
@@ -170,7 +168,7 @@ module WifiWand
       end
     end
 
-    def wifi_state_label(value)
+    private def wifi_state_label(value)
       case value
       when true then 'on'
       when false then 'off'
@@ -178,7 +176,7 @@ module WifiWand
       end
     end
 
-    def current_network_name(connected)
+    private def current_network_name(connected)
       network_name = @model.connected_network_name
       network_name_available = !network_name.nil? && !network_name.to_s.empty?
       if network_name_available
@@ -188,7 +186,7 @@ module WifiWand
       end
     end
 
-    def network_state_label(state)
+    private def network_state_label(state)
       return 'not connected' if state[:connected] == false
       return 'connection unknown' if state[:connected].nil?
       return "connected to #{state[:network_name]}" if state[:network_name]
@@ -196,17 +194,17 @@ module WifiWand
       'connected (SSID unavailable)'
     end
 
-    def connection_became_connected?(current_state)
+    private def connection_became_connected?(current_state)
       comparable_boolean_values?(current_state[:connected], @previous_state[:connected]) &&
         current_state[:connected] && !@previous_state[:connected]
     end
 
-    def connection_became_disconnected?(current_state)
+    private def connection_became_disconnected?(current_state)
       comparable_boolean_values?(current_state[:connected], @previous_state[:connected]) &&
         !current_state[:connected] && @previous_state[:connected]
     end
 
-    def network_name_changed_while_connected?(current_state)
+    private def network_name_changed_while_connected?(current_state)
       current_state[:connected] \
         && @previous_state[:connected] \
         && named_network?(@previous_state[:network_name]) \
@@ -214,11 +212,11 @@ module WifiWand
         && current_state[:network_name] != @previous_state[:network_name]
     end
 
-    def named_network?(network_name)
+    private def named_network?(network_name)
       !network_name.nil? && network_name != SSID_UNAVAILABLE_LABEL
     end
 
-    def current_connected_state(wifi_on, fetch_failures)
+    private def current_connected_state(wifi_on, fetch_failures)
       return false if wifi_on == false
       return @previous_state&.dig(:connected) if wifi_on.nil?
 
@@ -227,7 +225,7 @@ module WifiWand
       end
     end
 
-    def current_network_name_state(wifi_on, connected, fetch_failures)
+    private def current_network_name_state(wifi_on, connected, fetch_failures)
       return nil if wifi_on == false || connected == false
 
       fallback_name = connected ? @previous_state&.dig(:network_name) : nil
@@ -238,7 +236,7 @@ module WifiWand
       end
     end
 
-    def fetch_status_value(field_name, fallback_value, fetch_failures)
+    private def fetch_status_value(field_name, fallback_value, fetch_failures)
       yield
     rescue WifiWand::Error => e
       fetch_failures << { field: field_name, error: e }
@@ -246,11 +244,11 @@ module WifiWand
       fallback_value
     end
 
-    def fetch_failed?(fetch_failures, field_name)
+    private def fetch_failed?(fetch_failures, field_name)
       fetch_failures.any? { |failure| failure[:field] == field_name }
     end
 
-    def record_state_fetch_outcome(fetch_failures)
+    private def record_state_fetch_outcome(fetch_failures)
       if fetch_failures.empty?
         reset_state_fetch_failures
         return
@@ -260,19 +258,19 @@ module WifiWand
       emit_state_fetch_warning if should_emit_state_fetch_warning?
     end
 
-    def reset_state_fetch_failures
+    private def reset_state_fetch_failures
       @consecutive_state_fetch_failures = 0
       @state_fetch_warning_emitted = false
     end
 
-    def should_emit_state_fetch_warning?
+    private def should_emit_state_fetch_warning?
       !@verbose &&
         @output &&
         !@state_fetch_warning_emitted &&
         @consecutive_state_fetch_failures >= 2
     end
 
-    def emit_state_fetch_warning
+    private def emit_state_fetch_warning
       @state_fetch_warning_emitted = true
       warning = [
         'WARNING: Status polling is encountering repeated lookup failures.',
@@ -282,11 +280,11 @@ module WifiWand
       @output.flush if @output.respond_to?(:flush)
     end
 
-    def comparable_boolean_values?(current_value, previous_value)
+    private def comparable_boolean_values?(current_value, previous_value)
       [true, false].include?(current_value) && [true, false].include?(previous_value)
     end
 
-    def emit_internet_event?(current_value, previous_value)
+    private def emit_internet_event?(current_value, previous_value)
       [
         ConnectivityStates::INTERNET_REACHABLE,
         ConnectivityStates::INTERNET_UNREACHABLE,
@@ -298,7 +296,7 @@ module WifiWand
         current_value != previous_value
     end
 
-    def emit_event(event_type, details, previous_state, current_state)
+    private def emit_event(event_type, details, previous_state, current_state)
       event = {
         type:           event_type,
         timestamp:      Time.now,
@@ -310,12 +308,12 @@ module WifiWand
       log_event(event)
     end
 
-    def log_event(event)
+    private def log_event(event)
       formatted_message = format_event_message(event)
       log_message(formatted_message)
     end
 
-    def format_event_message(event)
+    private def format_event_message(event)
       timestamp = event[:timestamp].utc.iso8601
       event_type = event[:type]
       details = event[:details]
@@ -333,20 +331,20 @@ module WifiWand
     end
 
     # Preserve the current stdout-first behavior, then enforce file-sink health explicitly.
-    def log_message(message)
+    private def log_message(message)
       @output.puts(message) if @output
       @output.flush if @output&.respond_to?(:flush)
       write_to_log_file(message) if @log_file_manager
     end
 
-    def write_to_log_file(message)
+    private def write_to_log_file(message)
       @log_file_manager.write(message)
     rescue WifiWand::LogWriteError => e
       handle_log_file_failure(e)
     end
 
     # Once the file sink fails, detach it immediately. Continue only when stdout is still available.
-    def handle_log_file_failure(error)
+    private def handle_log_file_failure(error)
       close_error = detach_log_file_manager
 
       if @output
@@ -357,7 +355,7 @@ module WifiWand
       raise error
     end
 
-    def detach_log_file_manager
+    private def detach_log_file_manager
       manager = @log_file_manager
       @log_file_manager = nil
       return unless manager
@@ -368,14 +366,14 @@ module WifiWand
       e
     end
 
-    def compose_log_file_failure_message(error, close_error)
+    private def compose_log_file_failure_message(error, close_error)
       return error.message unless close_error
 
       "#{error.message}. Cleanup also failed: #{close_error.message}"
     end
 
     # Emit the fallback warning once so long-running sessions stay readable.
-    def emit_file_logging_warning(error_message)
+    private def emit_file_logging_warning(error_message)
       return if @file_logging_warning_emitted
 
       @file_logging_warning_emitted = true

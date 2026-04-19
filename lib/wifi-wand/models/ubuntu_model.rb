@@ -241,14 +241,7 @@ module WifiWand
       end
     end
 
-    private
-
-    # Determines the correct nmcli security parameter for a given network.
-    #
-    # @param ssid [String] The SSID of the network to check.
-    # @return [String, nil] The nmcli parameter string (e.g., "802-11-wireless-security.psk"),
-    #   or nil if the security type cannot be determined or is unsupported.
-    def get_security_parameter(ssid)
+    private def get_security_parameter(ssid)
       debug_method_entry(__method__, binding, :ssid)
 
       # Use the terse, machine-readable output to get the security protocol.
@@ -276,9 +269,9 @@ module WifiWand
     end
 
     # Preferred, clearer name for security parameter query
-    def security_parameter(ssid) = get_security_parameter(ssid)
+    private def security_parameter(ssid) = get_security_parameter(ssid)
 
-    def activate_and_persist_updated_password(network_name, password, existing_profile)
+    private def activate_and_persist_updated_password(network_name, password, existing_profile)
       run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
 
       security_param = get_security_parameter(network_name)
@@ -289,7 +282,7 @@ module WifiWand
       run_os_command(['nmcli', 'connection', 'modify', profile_to_update, security_param, password])
     end
 
-    def persistence_target_profile_for_ssid(network_name, existing_profile)
+    private def persistence_target_profile_for_ssid(network_name, existing_profile)
       active_profile = begin
         active_connection_profile_name
       rescue WifiWand::Error
@@ -312,7 +305,7 @@ module WifiWand
     #
     # @param ssid [String] The SSID to search for.
     # @return [String, nil] The name of the best profile, or nil if none are found.
-    def find_best_profile_for_ssid(ssid)
+    private def find_best_profile_for_ssid(ssid)
       # Get all profiles for the SSID, with their name and timestamp.
       # The output is a colon-separated string, e.g., "MySSID:1678886400"
       debug_method_entry(__method__, binding, :ssid)
@@ -336,9 +329,7 @@ module WifiWand
       profiles.max_by { |p| p[:timestamp] }&.dig(:name)
     end
 
-    public
-
-    def remove_preferred_network(network_name)
+    public def remove_preferred_network(network_name)
       debug_method_entry(__method__, binding, :network_name)
 
       matching_profiles = preferred_networks_matching_ssid(network_name)
@@ -350,11 +341,11 @@ module WifiWand
       matching_profiles
     end
 
-    def has_preferred_network?(network_name)
+    public def has_preferred_network?(network_name)
       preferred_networks_matching_ssid(network_name.to_s).any?
     end
 
-    def preferred_network_password(preferred_network_name)
+    public def preferred_network_password(preferred_network_name)
       debug_method_entry(__method__, binding, :preferred_network_name)
       preferred_network_name = preferred_network_name.to_s
       if has_preferred_network?(preferred_network_name)
@@ -365,7 +356,7 @@ module WifiWand
       end
     end
 
-    def preferred_networks
+    public def preferred_networks
       debug_method_entry(__method__)
 
       output = run_os_command(['nmcli', '-t', '-f', 'NAME,TYPE', 'connection', 'show']).stdout
@@ -377,7 +368,7 @@ module WifiWand
       connections.sort
     end
 
-    def _preferred_network_password(preferred_network_name)
+    public def _preferred_network_password(preferred_network_name)
       debug_method_entry(__method__, binding, :preferred_network_name)
 
       output = run_os_command(['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name],
@@ -385,7 +376,7 @@ module WifiWand
       extract_preferred_network_secret(output)
     end
 
-    def extract_preferred_network_secret(connection_output)
+    public def extract_preferred_network_secret(connection_output)
       secret_line = connection_output.split("\n").find do |line|
         PREFERRED_NETWORK_SECRET_FIELDS.any? { |field_name| line.include?("#{field_name}:") }
       end
@@ -395,7 +386,7 @@ module WifiWand
       secret.empty? ? nil : secret
     end
 
-    def _ip_address
+    public def _ip_address
       debug_method_entry(__method__)
 
       output = run_os_command(['ip', '-4', 'addr', 'show', wifi_interface], false).stdout
@@ -409,7 +400,7 @@ module WifiWand
       nil
     end
 
-    def mac_address
+    public def mac_address
       debug_method_entry(__method__)
 
       output = run_os_command(['ip', 'link', 'show', wifi_interface], false).stdout
@@ -422,7 +413,7 @@ module WifiWand
       ether_index ? tokens[ether_index + 1] : nil
     end
 
-    def _disconnect
+    public def _disconnect
       debug_method_entry(__method__)
 
       interface = wifi_interface
@@ -438,7 +429,7 @@ module WifiWand
       nil
     end
 
-    def nameservers
+    public def nameservers
       debug_method_entry(__method__)
 
       # Prefer the active NetworkManager profile when querying DNS
@@ -454,7 +445,7 @@ module WifiWand
 
     # Applies DNS as an exact replacement and rolls the profile back to its
     # original DNS state if any later modify or reactivation step fails.
-    def set_nameservers(nameservers) # rubocop:disable Naming/AccessorMethodName
+    public def set_nameservers(nameservers) # rubocop:disable Naming/AccessorMethodName
       # Use NetworkManager connection-based DNS configuration
       # This is the correct approach for Ubuntu - we modify the connection profile,
       # not the interface directly. Each Wi-Fi network has its own connection profile
@@ -496,13 +487,13 @@ module WifiWand
       raise DnsConfigurationError.new(current_connection, step, e)
     end
 
-    def open_resource(resource_url)
+    public def open_resource(resource_url)
       debug_method_entry(__method__, binding, :resource_url)
 
       run_os_command(['xdg-open', resource_url])
     end
 
-    def active_connection_profile_name
+    public def active_connection_profile_name
       debug_method_entry(__method__)
 
       interface = wifi_interface
@@ -523,7 +514,7 @@ module WifiWand
     end
 
     # Returns the network interface used for default internet route on Linux
-    def default_interface
+    public def default_interface
       debug_method_entry(__method__)
 
       begin
@@ -541,7 +532,7 @@ module WifiWand
 
     # Gets DNS nameservers configured for a specific connection profile
     # This is the NetworkManager connection-based approach for getting DNS
-    def nameservers_from_connection(connection_name)
+    public def nameservers_from_connection(connection_name)
       debug_method_entry(__method__, binding, :connection_name)
 
       begin
@@ -572,7 +563,7 @@ module WifiWand
       end
     end
 
-    def desired_dns_configuration(nameservers)
+    public def desired_dns_configuration(nameservers)
       if nameservers == :clear
         return {
           'ipv4.dns'             => '',
@@ -606,13 +597,13 @@ module WifiWand
 
     # Reads the current profile values up front so rollback can restore the
     # exact pre-transaction state instead of inferring defaults.
-    def dns_configuration_snapshot(connection_name)
+    public def dns_configuration_snapshot(connection_name)
       DNS_CONNECTION_FIELDS.each_with_object({}) do |field_name, dns_configuration|
         dns_configuration[field_name] = connection_property_value(connection_name, field_name)
       end
     end
 
-    def dns_configuration_modify_commands(connection_name, dns_configuration)
+    public def dns_configuration_modify_commands(connection_name, dns_configuration)
       DNS_CONNECTION_FIELDS.map do |field_name|
         ['nmcli', 'connection', 'modify', connection_name, field_name,
           dns_configuration.fetch(field_name)]
@@ -621,21 +612,21 @@ module WifiWand
 
     # Replays the captured DNS fields and reactivates the profile so callers
     # are not left with a partially applied DNS configuration.
-    def restore_dns_configuration(connection_name, original_dns_configuration)
+    public def restore_dns_configuration(connection_name, original_dns_configuration)
       dns_configuration_modify_commands(connection_name, original_dns_configuration).each do |command|
         run_os_command(command)
       end
       run_os_command(['nmcli', 'connection', 'up', connection_name])
     end
 
-    def connection_property_value(connection_name, field_name)
+    public def connection_property_value(connection_name, field_name)
       run_os_command(['nmcli', '--get-values', field_name, 'connection', 'show',
         connection_name]).stdout.strip
     end
 
     # Preserves the original failure while surfacing that rollback also failed,
     # which means the connection profile may still need manual repair.
-    def dns_transaction_failure(original_error, rollback_error)
+    public def dns_transaction_failure(original_error, rollback_error)
       original_detail = if original_error.respond_to?(:text) && !original_error.text.to_s.empty?
         original_error.text
       else
@@ -657,23 +648,23 @@ module WifiWand
     # @param line [String] A line of nmcli -t terse output
     # @param limit [Integer, nil] Maximum number of parts to produce
     # @return [Array<String>] Unescaped field values
-    def nmcli_split(line, limit = nil)
+    public def nmcli_split(line, limit = nil)
       parts = limit ? line.split(/(?<!\\):/, limit) : line.split(/(?<!\\):/)
       parts.map { |p| p.gsub('\\:', ':') }
     end
 
-    def preferred_networks_matching_ssid(ssid)
+    public def preferred_networks_matching_ssid(ssid)
       preferred_networks.select { |profile_name| profile_matches_ssid?(profile_name, ssid.to_s) }
     end
 
-    def resolve_saved_profile_name(network_name)
+    public def resolve_saved_profile_name(network_name)
       explicit_duplicate_profile =
         duplicate_profile_name?(network_name) && preferred_networks.include?(network_name)
 
       explicit_duplicate_profile ? network_name : find_best_profile_for_ssid(network_name) || network_name
     end
 
-    def duplicate_profile_name?(network_name)
+    public def duplicate_profile_name?(network_name)
       network_name.match?(/\A.+ \d+\z/)
     end
 
@@ -684,12 +675,12 @@ module WifiWand
     # @param profile_name [String] The connection profile name from nmcli
     # @param ssid [String] The target SSID
     # @return [Boolean]
-    def profile_matches_ssid?(profile_name, ssid)
+    public def profile_matches_ssid?(profile_name, ssid)
       profile_name == ssid || (profile_name.start_with?("#{ssid} ") && profile_name.match?(/ \d+\z/))
     end
 
     # Gets nameservers from /etc/resolv.conf - fallback method
-    def nameservers_using_resolv_conf
+    public def nameservers_using_resolv_conf
       File.readlines('/etc/resolv.conf').grep(/^nameserver /).map { |line| line.split.last }
     rescue Errno::ENOENT
       nil
@@ -697,7 +688,7 @@ module WifiWand
 
     # Gets the security type of the currently connected network.
     # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP", "None", or nil if not connected/not found
-    def connection_security_type
+    public def connection_security_type
       debug_method_entry(__method__)
 
       network_name = _connected_network_name
@@ -722,7 +713,7 @@ module WifiWand
     # Checks if the currently connected network is a hidden network.
     # A hidden network does not broadcast its SSID.
     # @return [Boolean] true if connected to a hidden network, false otherwise
-    def network_hidden?
+    public def network_hidden?
       debug_method_entry(__method__)
 
       network_name = _connected_network_name

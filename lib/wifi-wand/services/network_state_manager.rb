@@ -126,9 +126,7 @@ module WifiWand
       end
     end
 
-    private
-
-    def connected_network_password
+    private def connected_network_password
       network_name = begin
         @model.connected_network_name
       rescue WifiWand::Error
@@ -139,7 +137,7 @@ module WifiWand
       @model.preferred_network_password(network_name)
     end
 
-    def fallback_password_for(network_name)
+    private def fallback_password_for(network_name)
       return nil unless network_name
 
       @model.preferred_network_password(network_name)
@@ -151,7 +149,7 @@ module WifiWand
       nil
     end
 
-    def wait_for_connection_restoration(network_name)
+    private def wait_for_connection_restoration(network_name)
       deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) +
         TimingConstants::NETWORK_CONNECTION_WAIT
 

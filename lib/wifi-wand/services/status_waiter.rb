@@ -99,9 +99,7 @@ module WifiWand
       end
     end
 
-    private
-
-    def validate_timing_value!(value, name)
+    private def validate_timing_value!(value, name)
       return if value.nil? || value >= 0
 
       raise ArgumentError, "#{name} must be non-negative. Was: #{value.inspect}"
