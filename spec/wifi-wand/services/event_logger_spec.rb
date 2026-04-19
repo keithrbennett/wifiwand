@@ -141,7 +141,7 @@ describe WifiWand::EventLogger do
 
       expect(mock_model).to receive(:wifi_on?).and_return(true)
       expect(mock_model).to receive(:connected?).and_return(false)
-      expect(mock_model).to receive(:connected_network_name).and_return(nil)
+      expect(mock_model).not_to receive(:connected_network_name)
       expect(mock_model).to receive(:internet_connectivity_state)
         .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
 
@@ -153,13 +153,85 @@ describe WifiWand::EventLogger do
       )
     end
 
-    it 'returns nil and logs message when model raises error in verbose mode' do
-      allow(mock_model).to receive(:wifi_on?).and_raise(StandardError, 'Test error')
-      logger = described_class.new(mock_model, output: output, verbose: true)
+    it 'degrades to the previous internet state when that lookup fails' do
+      logger = described_class.new(mock_model, output: output)
+      logger.instance_variable_set(:@previous_state,
+        {
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'PreviousNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_UNREACHABLE,
+        })
 
-      expect(logger).to receive(:log_message).with(/Test error/)
-      state = logger.send(:fetch_current_state)
-      expect(state).to be_nil
+      expect(mock_model).to receive(:wifi_on?).and_return(true)
+      expect(mock_model).to receive(:connected?).and_return(true)
+      expect(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      expect(mock_model).to receive(:internet_connectivity_state)
+        .and_raise(WifiWand::Error, 'internet probe failed')
+
+      expect(logger.send(:fetch_current_state)).to eq(
+        wifi_on:        true,
+        connected:      true,
+        network_name:   'TestNetwork',
+        internet_state: WifiWand::ConnectivityStates::INTERNET_UNREACHABLE
+      )
+    end
+
+    it 'logs field-level failures in verbose mode while returning partial state' do
+      logger = described_class.new(mock_model, output: output, verbose: true)
+      logger.instance_variable_set(:@previous_state,
+        {
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'PreviousNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE,
+        })
+
+      expect(mock_model).to receive(:wifi_on?).and_return(true)
+      expect(mock_model).to receive(:connected?).and_raise(WifiWand::Error, 'Test error')
+      expect(mock_model).not_to receive(:connected_network_name)
+      expect(mock_model).to receive(:internet_connectivity_state)
+        .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
+      expect(logger).to receive(:log_message).with(/Error fetching connected: Test error/)
+
+      expect(logger.send(:fetch_current_state)).to eq(
+        wifi_on:        true,
+        connected:      true,
+        network_name:   'PreviousNetwork',
+        internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE
+      )
+    end
+
+    it 're-raises programmer bugs instead of degrading them' do
+      logger = described_class.new(mock_model, output: output)
+
+      expect(mock_model).to receive(:wifi_on?).and_raise(NoMethodError, 'undefined helper')
+
+      expect { logger.send(:fetch_current_state) }.to raise_error(NoMethodError, /undefined helper/)
+    end
+
+    it 'preserves the previous SSID when connected state falls back' do
+      logger = described_class.new(mock_model, output: output)
+      logger.instance_variable_set(:@previous_state,
+        {
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'PreviousNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE,
+        })
+
+      expect(mock_model).to receive(:wifi_on?).and_return(true)
+      expect(mock_model).to receive(:connected?).and_raise(WifiWand::Error, 'association probe failed')
+      expect(mock_model).not_to receive(:connected_network_name)
+      expect(mock_model).to receive(:internet_connectivity_state)
+        .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
+
+      expect(logger.send(:fetch_current_state)).to eq(
+        wifi_on:        true,
+        connected:      true,
+        network_name:   'PreviousNetwork',
+        internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE
+      )
     end
 
     it 'preserves connected state when SSID lookup returns nil' do
@@ -194,6 +266,41 @@ describe WifiWand::EventLogger do
         network_name:   'TestNetwork',
         internet_state: WifiWand::ConnectivityStates::INTERNET_INDETERMINATE
       )
+    end
+
+    it 'warns once after repeated failures in normal mode and resets after recovery' do
+      logger = described_class.new(mock_model, output: output)
+      logger.instance_variable_set(:@previous_state,
+        {
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'PreviousNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE,
+        })
+
+      allow(mock_model).to receive_messages(
+        wifi_on?:               true,
+        connected?:             true,
+        connected_network_name: 'TestNetwork'
+      )
+      allow(mock_model).to receive(:internet_connectivity_state)
+        .and_raise(WifiWand::Error, 'internet probe failed')
+
+      3.times { logger.send(:fetch_current_state) }
+      warning = [
+        'WARNING: Status polling is encountering repeated lookup failures.',
+        'Continuing with partial state until lookups recover.',
+      ].join(' ')
+      expect(output.string.scan(warning).length).to eq(1)
+
+      allow(mock_model).to receive(:internet_connectivity_state)
+        .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
+      logger.send(:fetch_current_state)
+      allow(mock_model).to receive(:internet_connectivity_state)
+        .and_raise(WifiWand::Error, 'internet probe failed')
+
+      2.times { logger.send(:fetch_current_state) }
+      expect(output.string.scan(warning).length).to eq(2)
     end
   end
 
@@ -242,6 +349,19 @@ describe WifiWand::EventLogger do
       current_state = { wifi_on: true, connected: false, network_name: nil, internet_state: :unreachable }
 
       expect(logger).to receive(:emit_event).with(:wifi_on, {}, kind_of(Hash), kind_of(Hash))
+
+      logger.send(:detect_and_emit_events, current_state)
+    end
+
+    it 'does not emit wifi events when the current WiFi state is unknown' do
+      logger.instance_variable_set(:@previous_state,
+        { wifi_on: true, connected: true, network_name: 'TestNetwork', internet_state: :reachable })
+
+      current_state =
+        { wifi_on: nil, connected: true, network_name: 'TestNetwork', internet_state: :reachable }
+
+      expect(logger).not_to receive(:emit_event).with(:wifi_on, anything, anything, anything)
+      expect(logger).not_to receive(:emit_event).with(:wifi_off, anything, anything, anything)
 
       logger.send(:detect_and_emit_events, current_state)
     end

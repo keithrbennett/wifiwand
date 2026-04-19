@@ -44,6 +44,8 @@ module WifiWand
       @previous_state = nil
       @running = false
       @file_logging_warning_emitted = false
+      @consecutive_state_fetch_failures = 0
+      @state_fetch_warning_emitted = false
     end
 
     # Start polling loop. This method blocks until stop is called or Ctrl+C is pressed.
@@ -56,16 +58,12 @@ module WifiWand
         while @running
           current_state = fetch_current_state
 
-          if current_state
-            if @previous_state
-              detect_and_emit_events(current_state)
-            else
-              log_initial_state(current_state)
-            end
-            @previous_state = current_state
-          elsif @verbose
-            log_message('Failed to fetch WiFi state')
+          if @previous_state
+            detect_and_emit_events(current_state)
+          else
+            log_initial_state(current_state)
           end
+          @previous_state = current_state
 
           break unless @running
 
@@ -82,7 +80,7 @@ module WifiWand
 
     def log_initial_state(state)
       timestamp = Time.now.utc.iso8601
-      wifi = state[:wifi_on] ? 'on' : 'off'
+      wifi = wifi_state_label(state[:wifi_on])
       network = network_state_label(state)
       internet = internet_state_label(state[:internet_state])
       log_message("[#{timestamp}] Current state: WiFi #{wifi}, #{network}, internet #{internet}")
@@ -100,18 +98,25 @@ module WifiWand
     private
 
     def fetch_current_state
-      wifi_on = @model.wifi_on?
-      connected = wifi_on ? @model.connected? : false
+      fetch_failures = []
+      wifi_on = fetch_status_value(:wifi_on, @previous_state&.dig(:wifi_on), fetch_failures) do
+        @model.wifi_on?
+      end
+      connected = current_connected_state(wifi_on, fetch_failures)
 
-      {
+      state = {
         wifi_on:        wifi_on,
         connected:      connected,
-        network_name:   wifi_on ? current_network_name(connected) : nil,
-        internet_state: current_internet_state,
+        network_name:   current_network_name_state(wifi_on, connected, fetch_failures),
+        internet_state: fetch_status_value(
+          :internet_state,
+          @previous_state&.dig(:internet_state),
+          fetch_failures
+        ) { current_internet_state },
       }
-    rescue => e
-      log_message("Error fetching status: #{e.message}") if @verbose
-      nil
+
+      record_state_fetch_outcome(fetch_failures)
+      state
     end
 
     def current_internet_state = @model.internet_connectivity_state
@@ -119,7 +124,8 @@ module WifiWand
     def detect_and_emit_events(current_state)
       return if @previous_state.nil?
 
-      if current_state[:wifi_on] != @previous_state[:wifi_on]
+      if comparable_boolean_values?(current_state[:wifi_on], @previous_state[:wifi_on]) &&
+          current_state[:wifi_on] != @previous_state[:wifi_on]
         event_type = current_state[:wifi_on] ? :wifi_on : :wifi_off
         emit_event(event_type, {}, @previous_state, current_state)
       end
@@ -164,6 +170,14 @@ module WifiWand
       end
     end
 
+    def wifi_state_label(value)
+      case value
+      when true then 'on'
+      when false then 'off'
+      else 'unknown'
+      end
+    end
+
     def current_network_name(connected)
       network_name = @model.connected_network_name
       network_name_available = !network_name.nil? && !network_name.to_s.empty?
@@ -175,18 +189,21 @@ module WifiWand
     end
 
     def network_state_label(state)
-      return 'not connected' unless state[:connected]
+      return 'not connected' if state[:connected] == false
+      return 'connection unknown' if state[:connected].nil?
       return "connected to #{state[:network_name]}" if state[:network_name]
 
       'connected (SSID unavailable)'
     end
 
     def connection_became_connected?(current_state)
-      current_state[:connected] && !@previous_state[:connected]
+      comparable_boolean_values?(current_state[:connected], @previous_state[:connected]) &&
+        current_state[:connected] && !@previous_state[:connected]
     end
 
     def connection_became_disconnected?(current_state)
-      !current_state[:connected] && @previous_state[:connected]
+      comparable_boolean_values?(current_state[:connected], @previous_state[:connected]) &&
+        !current_state[:connected] && @previous_state[:connected]
     end
 
     def network_name_changed_while_connected?(current_state)
@@ -199,6 +216,74 @@ module WifiWand
 
     def named_network?(network_name)
       !network_name.nil? && network_name != SSID_UNAVAILABLE_LABEL
+    end
+
+    def current_connected_state(wifi_on, fetch_failures)
+      return false if wifi_on == false
+      return @previous_state&.dig(:connected) if wifi_on.nil?
+
+      fetch_status_value(:connected, @previous_state&.dig(:connected), fetch_failures) do
+        @model.connected?
+      end
+    end
+
+    def current_network_name_state(wifi_on, connected, fetch_failures)
+      return nil if wifi_on == false || connected == false
+
+      fallback_name = connected ? @previous_state&.dig(:network_name) : nil
+      return fallback_name if fetch_failed?(fetch_failures, :connected)
+
+      fetch_status_value(:network_name, fallback_name, fetch_failures) do
+        current_network_name(connected)
+      end
+    end
+
+    def fetch_status_value(field_name, fallback_value, fetch_failures)
+      yield
+    rescue WifiWand::Error => e
+      fetch_failures << { field: field_name, error: e }
+      log_message("Error fetching #{field_name}: #{e.message}") if @verbose
+      fallback_value
+    end
+
+    def fetch_failed?(fetch_failures, field_name)
+      fetch_failures.any? { |failure| failure[:field] == field_name }
+    end
+
+    def record_state_fetch_outcome(fetch_failures)
+      if fetch_failures.empty?
+        reset_state_fetch_failures
+        return
+      end
+
+      @consecutive_state_fetch_failures += 1
+      emit_state_fetch_warning if should_emit_state_fetch_warning?
+    end
+
+    def reset_state_fetch_failures
+      @consecutive_state_fetch_failures = 0
+      @state_fetch_warning_emitted = false
+    end
+
+    def should_emit_state_fetch_warning?
+      !@verbose &&
+        @output &&
+        !@state_fetch_warning_emitted &&
+        @consecutive_state_fetch_failures >= 2
+    end
+
+    def emit_state_fetch_warning
+      @state_fetch_warning_emitted = true
+      warning = [
+        'WARNING: Status polling is encountering repeated lookup failures.',
+        'Continuing with partial state until lookups recover.',
+      ].join(' ')
+      @output.puts(warning)
+      @output.flush if @output.respond_to?(:flush)
+    end
+
+    def comparable_boolean_values?(current_value, previous_value)
+      [true, false].include?(current_value) && [true, false].include?(previous_value)
     end
 
     def emit_internet_event?(current_value, previous_value)
