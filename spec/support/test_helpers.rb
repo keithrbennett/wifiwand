@@ -3,7 +3,7 @@
 require 'ostruct'
 require 'socket'
 require 'stringio'
-require_relative '../network_state_manager'
+require_relative 'network_state_manager'
 require_relative '../../lib/wifi-wand/operating_systems'
 require_relative '../../lib/wifi-wand/models/ubuntu_model'
 require_relative '../../lib/wifi-wand/models/mac_os_model'

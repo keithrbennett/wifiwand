@@ -6,7 +6,7 @@ CoverageConfig.setup
 
 require 'rspec'
 require_relative '../lib/wifi-wand'
-require_relative 'network_state_manager'
+require_relative 'support/network_state_manager'
 require_relative 'support/rspec_configuration'
 require_relative 'support/matchers'
 require_relative 'support/command_result_helper'
