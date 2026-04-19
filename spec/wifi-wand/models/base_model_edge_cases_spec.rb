@@ -41,8 +41,8 @@ RSpec.describe WifiWand::BaseModel do
   end
 
   describe '.inherited' do
-    it 'verifies underscore-prefixed methods after subclass definition' do
-      allow(described_class).to receive(:verify_underscore_methods_implemented).and_call_original
+    it 'verifies required subclass methods after subclass definition' do
+      allow(described_class).to receive(:verify_required_methods_implemented).and_call_original
 
       klass_name = :TracePointSpecModel
       Object.send(:remove_const, klass_name) if Object.const_defined?(klass_name)
@@ -54,13 +54,15 @@ RSpec.describe WifiWand::BaseModel do
               :trace_test
             end
 
+            def connected? = false
             def validate_os_preconditions = nil
             def probe_wifi_interface = 'wlan0'
             def connection_security_type = nil
+            def default_interface = 'wlan0'
             def is_wifi_interface?(_iface) = true
             def mac_address = '00:00:00:00:00:00'
             def nameservers = []
-            def open_application(_app) = nil
+            def network_hidden? = false
             def open_resource(_resource) = nil
             def preferred_networks = []
             def remove_preferred_network(_name) = nil
@@ -79,7 +81,7 @@ RSpec.describe WifiWand::BaseModel do
         RUBY
 
         subclass = Object.const_get(klass_name)
-        expect(described_class).to have_received(:verify_underscore_methods_implemented).with(subclass)
+        expect(described_class).to have_received(:verify_required_methods_implemented).with(subclass)
       ensure
         Object.send(:remove_const, klass_name) if Object.const_defined?(klass_name)
       end

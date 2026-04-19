@@ -493,8 +493,6 @@ module WifiWand
       nameservers
     end
 
-    def open_application(application_name) = run_os_command(['open', '-a', application_name])
-
     def open_resource(resource_url) = run_os_command(['open', resource_url])
 
     def nameservers_using_scutil

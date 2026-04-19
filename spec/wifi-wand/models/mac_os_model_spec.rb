@@ -837,25 +837,6 @@ module WifiWand
         end
       end
 
-      describe '#open_application' do
-        it 'constructs open commands properly' do
-          test_cases = [
-            'Safari',
-            'Network Utility',
-            'App with spaces',
-          ]
-
-          test_cases.each do |app_name|
-            expect(model).to receive(:run_os_command) do |cmd_array|
-              expect(cmd_array[0]).to eq('open')
-              expect(cmd_array[1]).to eq('-a')
-              expect(cmd_array[2]).to eq(app_name)
-            end
-            model.open_application(app_name)
-          end
-        end
-      end
-
       describe '#open_resource' do
         it 'constructs open commands properly' do
           test_cases = [

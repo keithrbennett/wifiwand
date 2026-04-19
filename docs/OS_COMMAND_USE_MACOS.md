@@ -222,13 +222,6 @@ Swift helpers leverage the CoreWLAN framework for rich Wi-Fi control when the to
 
 The `open` utility launches macOS applications and resources via the default handler.
 
-### `open -a <application_name>`
-- Description: Launches a macOS application by name.
-- Dynamic Values: `application_name`
-- Base Model Method(s): `open_application`
-- CLI Command(s): Currently none (API surface for library consumers)
-- Helpful Info: Relies on macOS default application lookup; failures raise `OsCommandError` to callers.
-
 ### `open <resource_url>`
 - Description: Opens a URL or file using the default handler.
 - Dynamic Values: `resource_url`

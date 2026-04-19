@@ -120,29 +120,8 @@ module WifiWand
       _ip_address
       _preferred_network_password
     ].freeze
-    PUBLIC_IP_TIMEOUT_IN_SECONDS = 2
-    COUNTRY_CODE_REGEX = /\A[A-Z]{2}\z/
 
-    # Verify that a subclass implements all required underscore-prefixed methods
-    def self.verify_underscore_methods_implemented(subclass)
-      missing_methods = UNDERSCORE_PREFIXED_METHODS - subclass.public_instance_methods
-      unless missing_methods.empty?
-        raise NotImplementedError, "Subclass #{subclass.name} must implement #{missing_methods.inspect}"
-      end
-    end
-
-    # Automatically verify underscore methods when a subclass is inherited
-    def self.inherited(subclass)
-      trace = TracePoint.new(:end) do |tp|
-        if tp.self == subclass
-          verify_underscore_methods_implemented(subclass)
-          trace.disable
-        end
-      end
-      trace.enable
-    end
-
-    %i[
+    REQUIRED_OVERRIDE_METHODS = %i[
       connected?
       connection_security_type
       default_interface
@@ -150,7 +129,6 @@ module WifiWand
       mac_address
       nameservers
       network_hidden?
-      open_application
       open_resource
       probe_wifi_interface
       preferred_networks
@@ -160,7 +138,42 @@ module WifiWand
       wifi_off
       wifi_on
       wifi_on?
-    ].each { |method_name| define_subclass_required_method(method_name) }
+    ].freeze
+
+    REQUIRED_SUBCLASS_METHODS = (UNDERSCORE_PREFIXED_METHODS + REQUIRED_OVERRIDE_METHODS).freeze
+    PUBLIC_IP_TIMEOUT_IN_SECONDS = 2
+    COUNTRY_CODE_REGEX = /\A[A-Z]{2}\z/
+
+    def self.subclass_implements_method?(subclass, method_name)
+      subclass.instance_method(method_name).owner != BaseModel
+    rescue NameError
+      false
+    end
+
+    # Verify that a subclass implements all required methods and overrides
+    # BaseModel placeholders for public API methods.
+    def self.verify_required_methods_implemented(subclass)
+      missing_methods = REQUIRED_SUBCLASS_METHODS.reject do |method_name|
+        subclass_implements_method?(subclass, method_name)
+      end
+
+      unless missing_methods.empty?
+        raise NotImplementedError, "Subclass #{subclass.name} must implement #{missing_methods.inspect}"
+      end
+    end
+
+    # Automatically verify underscore methods when a subclass is inherited
+    def self.inherited(subclass)
+      trace = TracePoint.new(:end) do |tp|
+        if tp.self == subclass
+          verify_required_methods_implemented(subclass)
+          trace.disable
+        end
+      end
+      trace.enable
+    end
+
+    REQUIRED_OVERRIDE_METHODS.each { |method_name| define_subclass_required_method(method_name) }
 
     def available_network_names
       raise WifiOffError, 'WiFi is off, cannot scan for available networks.' unless wifi_on?

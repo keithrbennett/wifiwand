@@ -3,6 +3,11 @@
 This document summarizes the major changes introduced in version 3.0 compared
 to version 2.x.
 
+Version 3.0 also includes some intentional API and implementation cleanup.
+Part of the motivation for these changes was to trim accidental surface area,
+remove features that were not pulling their weight, and keep the codebase
+smaller and easier to reason about before broader release.
+
 ## Breaking Changes
 
 ### CLI Command Matching
@@ -189,6 +194,11 @@ the valid state names.
   Previously it unconditionally did off, then on.
 - Removed macOS Speedtest application launch support. The web site is still
   available via the `ro spe` command.
+- Removed the public `open_application` model API. This helper was a thin
+  wrapper around platform launch commands, was not part of the CLI contract,
+  and was not central to WiFi management. If similar behavior is needed again,
+  it can return as a private OS-specific helper instead of a required public
+  model method.
 - Removed `fancy_print`. Awesome Print is now a required gem, so there is no
   need for a separate fallback.
 - The `-s` / `--shell` command-line option has been replaced with a `shell`

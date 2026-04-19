@@ -13,7 +13,7 @@ class DocsInfoCommandSpecModel < WifiWand::BaseModel
   def is_wifi_interface?(_iface) = true
   def mac_address = 'aa:bb:cc:dd:ee:ff'
   def nameservers = ['8.8.8.8', '8.8.4.4']
-  def open_application(_app) = nil
+  def network_hidden? = false
   def open_resource(_resource) = nil
   def preferred_networks = %w[TestNetwork1 SavedNetwork1]
   def remove_preferred_network(_name) = nil

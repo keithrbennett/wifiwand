@@ -719,12 +719,31 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
 
       expect do
-        incomplete_class.verify_underscore_methods_implemented(incomplete_class)
+        incomplete_class.verify_required_methods_implemented(incomplete_class)
       end.to raise_error(NotImplementedError, /must implement.*_available_network_names/)
     end
 
+    it 'raises NotImplementedError when a subclass does not override required public methods' do
+      incomplete_class = Class.new(WifiWand::BaseModel) do
+        def self.os_id
+          :test
+        end
+
+        def _available_network_names = []
+        def _connected_network_name = nil
+        def _connect(_network_name, _password = nil) = nil
+        def _disconnect = nil
+        def _ip_address = nil
+        def _preferred_network_password(_network_name) = nil
+      end
+
+      expect do
+        incomplete_class.verify_required_methods_implemented(incomplete_class)
+      end.to raise_error(NotImplementedError, /must implement.*open_resource/)
+    end
+
     # NOTE: TracePoint callback testing is unreliable due to test mocking interference.
-    # Instead, we test verify_underscore_methods_implemented directly above.
+    # Instead, we test verify_required_methods_implemented directly above.
 
     it 'calls NotImplementedError for dynamically defined required methods' do
       # Test the NotImplementedError by calling the method directly on BaseModel
