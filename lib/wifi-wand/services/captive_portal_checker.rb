@@ -98,6 +98,8 @@ module WifiWand
         ready_probes = probes.select { |probe| ready_readers.include?(probe[:reader]) }
         ready_probes.each do |probe|
           result = read_probe_result(probe)
+          next if result.nil?
+
           results << result[:state]
           log_probe_result(probe[:endpoint], result)
           finalize_probe(probe)
@@ -139,7 +141,7 @@ module WifiWand
       reader, writer = IO.pipe
       pid = Process.spawn(*captive_portal_probe_command(endpoint), out: writer, err: File::NULL)
       writer.close
-      { pid: pid, reader: reader, endpoint: endpoint }
+      { pid: pid, reader: reader, endpoint: endpoint, buffer: +'', eof: false }
     rescue => e
       reader&.close unless reader&.closed?
       writer&.close unless writer&.closed?
@@ -162,17 +164,45 @@ module WifiWand
     end
 
     def read_probe_result(probe)
-      payload = JSON.parse(probe[:reader].read.to_s.strip, symbolize_names: true)
+      drain_probe_reader(probe)
+      payload_text = probe[:buffer].strip
+
+      return failure_probe_result(EOFError) if probe[:eof] && payload_text.empty?
+
+      payload = JSON.parse(payload_text, symbolize_names: true)
 
       {
         state:       normalize_probe_state(payload[:state]),
         actual_code: payload[:actual_code],
         error_class: payload[:error_class],
       }
+    rescue JSON::ParserError
+      return nil unless probe[:eof]
+
+      failure_probe_result(JSON::ParserError)
     rescue => e
+      failure_probe_result(e.class)
+    end
+
+    def drain_probe_reader(probe)
+      loop do
+        chunk = probe[:reader].read_nonblock(4096, exception: false)
+        case chunk
+        when :wait_readable
+          return
+        when nil
+          probe[:eof] = true
+          return
+        else
+          probe[:buffer] << chunk
+        end
+      end
+    end
+
+    def failure_probe_result(error_class)
       {
         state:       ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
-        error_class: e.class.to_s,
+        error_class: error_class.to_s,
       }
     end
 

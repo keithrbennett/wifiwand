@@ -70,6 +70,20 @@ describe WifiWand::CaptivePortalChecker do
       expect { Process.kill(0, spawned_pids.last) }.to raise_error(Errno::ESRCH)
     end
 
+    it 'returns promptly when a helper writes partial JSON and then stalls' do
+      stub_const('WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT', 0.1)
+      allow(checker).to receive(:start_captive_portal_probe).and_return(
+        spawn_probe(endpoint: endpoints.first, raw_output: '{"state":"free"', post_write_delay: 5)
+      )
+
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      expect(checker.captive_portal_state).to eq(:indeterminate)
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+      expect(elapsed).to be < 1
+      expect { Process.kill(0, spawned_pids.last) }.to raise_error(Errno::ESRCH)
+    end
+
     context 'with verbose mode' do
       let(:output) { StringIO.new }
       let(:checker) { described_class.new(verbose: true, output: output) }
@@ -179,10 +193,20 @@ describe WifiWand::CaptivePortalChecker do
   describe '#read_probe_result' do
     let(:checker) { described_class.new(verbose: false) }
 
-    # Build a fake probe whose reader is a pipe pre-loaded with +text+.
-    def probe_with_output(text)
-      reader = StringIO.new(text)
-      { pid: nil, reader: reader, endpoint: { url: 'http://example.com', expected_code: 204 } }
+    # Build a probe backed by a real pipe so read_nonblock behavior matches production.
+    def probe_with_output(text, close_writer: true)
+      reader, writer = IO.pipe
+      writer.write(text)
+      writer.flush
+      writer.close if close_writer
+      {
+        pid:      nil,
+        reader:   reader,
+        endpoint: { url: 'http://example.com', expected_code: 204 },
+        buffer:   +'',
+        eof:      false,
+        writer:   close_writer ? nil : writer,
+      }
     end
 
     it 'returns :indeterminate and records the error class for empty output' do
@@ -195,6 +219,20 @@ describe WifiWand::CaptivePortalChecker do
       result = checker.send(:read_probe_result, probe_with_output('not json {{{'))
       expect(result[:state]).to eq(:indeterminate)
       expect(result[:error_class]).to be_a(String)
+    end
+
+    it 'returns nil for partial JSON before EOF and fails only after EOF' do
+      probe = probe_with_output('{"state":"free"', close_writer: false)
+
+      expect(checker.send(:read_probe_result, probe)).to be_nil
+
+      probe[:writer].close
+      result = checker.send(:read_probe_result, probe)
+      expect(result[:state]).to eq(:indeterminate)
+      expect(result[:error_class]).to eq('JSON::ParserError')
+    ensure
+      probe[:writer]&.close unless probe[:writer]&.closed?
+      probe[:reader]&.close unless probe[:reader]&.closed?
     end
 
     it 'returns :indeterminate for a JSON object with an unrecognised state value' do
@@ -254,21 +292,35 @@ describe WifiWand::CaptivePortalChecker do
     end
   end
 
-  def spawn_probe(endpoint:, payload: nil, delay: 0)
+  def spawn_probe(endpoint:, payload: nil, raw_output: nil, delay: 0, post_write_delay: 0)
     reader, writer = IO.pipe
     child_code = <<~RUBY
       sleep(Float(ARGV[0]))
-      if ARGV[1] && !ARGV[1].empty?
-        print(ARGV[1])
+      payload = ARGV[1]
+      post_write_delay = Float(ARGV[2])
+
+      unless payload.empty?
+        print(payload)
         $stdout.flush
       end
+
+      sleep(post_write_delay) if post_write_delay.positive?
     RUBY
 
-    json_payload = payload ? JSON.generate(payload) : ''
-    pid = Process.spawn(RbConfig.ruby, '-e', child_code, delay.to_s, json_payload, out: writer, err: File::NULL)
+    output = raw_output || (payload ? JSON.generate(payload) : '')
+    pid = Process.spawn(
+      RbConfig.ruby,
+      '-e',
+      child_code,
+      delay.to_s,
+      output,
+      post_write_delay.to_s,
+      out: writer,
+      err: File::NULL
+    )
     writer.close
     spawned_pids << pid
-    { pid: pid, reader: reader, endpoint: endpoint }
+    { pid: pid, reader: reader, endpoint: endpoint, buffer: +'', eof: false }
   rescue
     reader&.close unless reader&.closed?
     writer&.close unless writer&.closed?
