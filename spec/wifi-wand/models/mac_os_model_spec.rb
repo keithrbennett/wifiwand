@@ -1090,8 +1090,8 @@ module WifiWand
             %w[sudo ifconfig en0 disassociate],
             false,
             timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
-          )
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'ifconfig', ''))
+          ).and_return(command_result(stderr: 'sudo failed', exitstatus: 1,
+            command: 'sudo ifconfig en0 disassociate'))
           expect(model).to receive(:run_os_command).with(%w[ifconfig en0 disassociate], false)
             .and_return(command_result(stdout: ''))
           allow(model).to receive(:till)
@@ -1116,7 +1116,20 @@ module WifiWand
       end
 
       describe '#_disconnect' do
-        it 'falls back to ifconfig after Swift failure and returns nil' do
+        it 'returns nil when the sudo ifconfig path succeeds' do
+          allow(model).to receive_messages(swift_and_corewlan_present?: false, wifi_interface: 'en0')
+
+          expect(model).to receive(:run_os_command).with(
+            %w[sudo ifconfig en0 disassociate],
+            false,
+            timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
+          ).and_return(command_result(stdout: '', command: 'sudo ifconfig en0 disassociate'))
+          expect(model).not_to receive(:run_os_command).with(%w[ifconfig en0 disassociate], false)
+
+          expect(model._disconnect).to be_nil
+        end
+
+        it 'falls back to plain ifconfig after sudo failure and returns nil' do
           allow(model).to receive(:run_swift_command).and_raise(StandardError.new('swift failed'))
           allow(model).to receive_messages(swift_and_corewlan_present?: true, wifi_interface: 'en0')
 
@@ -1124,25 +1137,38 @@ module WifiWand
             %w[sudo ifconfig en0 disassociate],
             false,
             timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
-          ).and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'ifconfig', ''))
-          expect(model).to receive(:run_os_command).with(%w[ifconfig en0 disassociate],
-            false).and_return(command_result(stdout: ''))
+          ).and_return(command_result(stderr: 'sudo failed', exitstatus: 1,
+            command: 'sudo ifconfig en0 disassociate'))
+          expect(model).to receive(:run_os_command).with(%w[ifconfig en0 disassociate], false)
+            .and_return(command_result(stdout: '', command: 'ifconfig en0 disassociate'))
 
           expect(model._disconnect).to be_nil
         end
 
-        it 'uses ifconfig path when Swift not available' do
+        it 'raises a disconnect error when both sudo and plain ifconfig fail' do
           allow(model).to receive_messages(swift_and_corewlan_present?: false, wifi_interface: 'en0')
 
           expect(model).to receive(:run_os_command).with(
             %w[sudo ifconfig en0 disassociate],
             false,
             timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
-          ).and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'ifconfig', ''))
-          expect(model).to receive(:run_os_command).with(%w[ifconfig en0 disassociate],
-            false).and_return(command_result(stdout: ''))
+          ).and_return(command_result(stderr: 'sudo authentication failed', exitstatus: 1,
+            command: 'sudo ifconfig en0 disassociate'))
+          expect(model).to receive(:run_os_command).with(%w[ifconfig en0 disassociate], false)
+            .and_return(command_result(stderr: 'permission denied', exitstatus: 1,
+              command: 'ifconfig en0 disassociate'))
 
-          expect(model._disconnect).to be_nil
+          expect { model._disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
+            expect(error.network_name).to be_nil
+            expect(error.reason).to include('sudo ifconfig en0 disassociate exited with status 1')
+            expect(error.reason).to include('sudo authentication failed')
+            expect(error.reason).to include('ifconfig en0 disassociate exited with status 1')
+            expect(error.reason).to include('permission denied')
+            expect(error.message).to include('sudo ifconfig en0 disassociate exited with status 1')
+            expect(error.message).to include('sudo authentication failed')
+            expect(error.message).to include('ifconfig en0 disassociate exited with status 1')
+            expect(error.message).to include('permission denied')
+          end
         end
       end
 

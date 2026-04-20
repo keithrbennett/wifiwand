@@ -473,18 +473,18 @@ module WifiWand
       end
 
       # Fallback to ifconfig (disassociate from current network)
-      begin
-        iface = wifi_interface
-        run_os_command(
-          ['sudo', 'ifconfig', iface, 'disassociate'],
-          false,
-          timeout_in_secs: SUDO_IFCONFIG_TIMEOUT_SECONDS
-        )
-      rescue WifiWand::CommandExecutor::OsCommandError
-        # If sudo ifconfig fails, try without sudo (may work on some systems)
-        run_os_command(['ifconfig', iface, 'disassociate'], false)
-      end
-      nil
+      iface = wifi_interface
+      sudo_result = run_os_command(
+        ['sudo', 'ifconfig', iface, 'disassociate'],
+        false,
+        timeout_in_secs: SUDO_IFCONFIG_TIMEOUT_SECONDS
+      )
+      return nil if sudo_result.success?
+
+      plain_result = run_os_command(['ifconfig', iface, 'disassociate'], false)
+      return nil if plain_result.success?
+
+      raise NetworkDisconnectionError.new(nil, disconnect_failure_reason(sudo_result, plain_result))
     end
 
     def mac_address
@@ -738,6 +738,15 @@ module WifiWand
     private def placeholder_network_name?(name)
       value = name.to_s.strip
       value.empty? || %w[<hidden> <redacted>].include?(value.downcase)
+    end
+
+    private def disconnect_failure_reason(*results)
+      messages = results.compact.reject(&:success?).map do |result|
+        message = "#{result.command} exited with status #{result.exitstatus}"
+        details = result.combined_output.to_s.strip
+        details.empty? ? message : "#{message}: #{details}"
+      end
+      messages.join('; ')
     end
 
     private def airport_data
