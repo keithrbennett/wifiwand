@@ -107,6 +107,31 @@ describe WifiWand::CommandExecutor do
         end
       end
 
+      it 'terminates descendant processes created by a timed out command' do
+        Tempfile.create('wifiwand-command-timeout-descendant') do |pid_file|
+          pid_file.close
+          command = [
+            RbConfig.ruby,
+            '-e',
+            <<~RUBY,
+              child_pid = Process.spawn(ARGV[1], '-e', 'Signal.trap("TERM", "IGNORE"); sleep 30')
+              File.write(ARGV[0], child_pid.to_s)
+              sleep 30
+            RUBY
+            pid_file.path,
+            RbConfig.ruby,
+          ]
+
+          expect do
+            executor.run_os_command(command, true, timeout_in_secs: 0.2)
+          end.to raise_error(WifiWand::CommandTimeoutError)
+
+          descendant_pid = wait_for_file_contents(pid_file.path).to_i
+          wait_for_process_exit(descendant_pid)
+          expect(process_alive?(descendant_pid)).to be(false)
+        end
+      end
+
       it 'raises CommandNotFoundError when an array command executable is missing' do
         expect do
           executor.run_os_command(['nonexistent_command_12345'])

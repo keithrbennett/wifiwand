@@ -44,7 +44,7 @@ module WifiWand
       # (stdin, stdout, stderr) plus a thread that will hold the exit status.
       # Using the block form ensures all handles are closed automatically when
       # the block exits, even if an exception is raised.
-      Open3.popen3(*command_array) do |stdin, stdout, stderr, wait_thr|
+      Open3.popen3(*command_array, **spawn_options(timeout_in_secs)) do |stdin, stdout, stderr, wait_thr|
         threads = []
 
         # We don't send any input to the process, so close stdin immediately.
@@ -188,16 +188,34 @@ module WifiWand
       error_path_present ? error.path : Array(command).first.to_s
     end
 
-    private def terminate_process(wait_thr)
-      pid = wait_thr.pid
-      Process.kill('TERM', pid)
-      return if process_exited_within_grace_period?(wait_thr)
-      return unless wait_thr.alive?
+    # Timed commands run in their own process group so timeout cleanup can
+    # terminate the full process tree rather than only the immediate child.
+    private def spawn_options(timeout_in_secs)
+      timeout_in_secs ? { pgroup: true } : {}
+    end
 
-      Process.kill('KILL', pid)
+    # Send signals to the timed command's process group. The direct child may
+    # exit before its descendants do, so we must check the group after TERM
+    # rather than treating child exit alone as complete cleanup.
+    private def terminate_process(wait_thr)
+      process_group_id = wait_thr.pid
+      Process.kill('TERM', -process_group_id)
+      process_exited_within_grace_period?(wait_thr)
+      return unless process_group_alive?(process_group_id)
+
+      Process.kill('KILL', -process_group_id)
       process_exited_within_grace_period?(wait_thr)
     rescue Errno::ESRCH, Errno::ECHILD
       nil
+    end
+
+    # Signal 0 probes whether any member of the process group still exists
+    # without sending a terminating signal.
+    private def process_group_alive?(process_group_id)
+      Process.kill(0, -process_group_id)
+      true
+    rescue Errno::ESRCH
+      false
     end
 
     private def process_exited_within_grace_period?(wait_thr)
