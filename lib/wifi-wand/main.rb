@@ -31,6 +31,7 @@ module WifiWand
     def parse_command_line(argv = @argv)
       args = Array(argv).dup
       options = OpenStruct.new
+      help_requested = false
       prepend_env_options(args)
 
       OptionParser.new do |parser|
@@ -70,9 +71,8 @@ module WifiWand
           options.wifi_interface = v
         end
 
-        parser.on('-h', '--help', 'Show help') do |_help_requested|
-          options.help_requested = true
-          args << 'h'
+        parser.on('-h', '--help', 'Show help') do
+          help_requested = true
         end
 
         parser.on('-V', '--version', 'Show version') do
@@ -83,7 +83,10 @@ module WifiWand
         # .parse! would fail on unrecognized options like --file and --stdout that belong to subcommands.
       end.order!(args)
 
-      if args.first == 'shell'
+      if help_requested || help_flag_present?(args)
+        options.help_requested = true
+        args = ['h']
+      elsif args.first == 'shell'
         options.interactive_mode = true
         args.shift
       end
@@ -120,6 +123,10 @@ module WifiWand
       args.unshift(*env_args)
     rescue ArgumentError => e
       raise ConfigurationError, "Invalid WIFIWAND_OPTS value: #{e.message}"
+    end
+
+    private def help_flag_present?(args)
+      args.any? { |arg| ['-h', '--help'].include?(arg) }
     end
 
     private def handle_error(error, verbose_mode)

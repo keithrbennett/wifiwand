@@ -72,11 +72,28 @@ describe WifiWand::Main do
       expect { subject.parse_command_line }.to raise_error(OptionParser::InvalidOption)
     end
 
-    it 'parses help flag and adds h to the returned argv' do
+    it 'parses help-only argv into the help command without mutating ARGV' do
       stub_const('ARGV', ['--help'])
       options = subject.parse_command_line
-      expect(options.argv).to include('h')
+      expect(options.help_requested).to be(true)
+      expect(options.argv).to eq(['h'])
       expect(ARGV).to eq(['--help'])
+    end
+
+    it 'normalizes leading help flags combined with a command into the help command' do
+      stub_const('ARGV', ['-h', 'info'])
+      options = subject.parse_command_line
+      expect(options.help_requested).to be(true)
+      expect(options.argv).to eq(['h'])
+      expect(ARGV).to eq(['-h', 'info'])
+    end
+
+    it 'normalizes trailing help flags combined with a command into the help command' do
+      stub_const('ARGV', ['info', '-h'])
+      options = subject.parse_command_line
+      expect(options.help_requested).to be(true)
+      expect(options.argv).to eq(['h'])
+      expect(ARGV).to eq(['info', '-h'])
     end
 
     it 'parses version flags' do
@@ -391,17 +408,23 @@ describe WifiWand::Main do
   end
 
   describe 'help flag behavior' do
-    it 'prints help without initializing the model and exits successfully' do
-      # Ensure create_model is not called when help is requested
-      expect(WifiWand).not_to receive(:create_model)
+    [
+      ['--help'],
+      ['-h'],
+      ['-h', 'info'],
+      ['info', '-h'],
+    ].each do |argv|
+      it "prints help for #{argv.join(' ')} without initializing the model" do
+        expect(WifiWand).not_to receive(:create_model)
 
-      stub_const('ARGV', ['--help'])
-      out_stream = StringIO.new
-      err_stream = StringIO.new
-      main = described_class.new(out_stream, err_stream)
+        out_stream = StringIO.new
+        err_stream = StringIO.new
+        main = described_class.new(out_stream, err_stream, argv: argv)
 
-      expect(main.call).to eq(0)
-      expect(out_stream.string).to include('Command Line Switches')
+        expect(main.call).to eq(0)
+        expect(out_stream.string).to include('Command Line Switches')
+        expect(err_stream.string).to eq('')
+      end
     end
   end
 end
