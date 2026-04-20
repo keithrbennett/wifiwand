@@ -107,6 +107,13 @@ The interactive shell is now a dedicated subcommand: run it with `wifi-wand shel
 The legacy `-s/--shell` option has been removed—update any scripts or aliases that
 still rely on the flag before upgrading.
 
+### ⚠️ Breaking Change: `Main#parse_command_line` Removed
+
+`WifiWand::Main#parse_command_line` is no longer part of the public API.
+If you were parsing CLI arguments programmatically, instantiate
+`WifiWand::CommandLineParser` and call `#parse` instead. Normal CLI usage
+through `WifiWand::Main#call` is unchanged.
+
 ### ⚠️ Breaking Change: Internet Connectivity API
 
 The old boolean-style `connected_to_internet?` API has been **removed** in this

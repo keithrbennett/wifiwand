@@ -1,13 +1,10 @@
 # frozen_string_literal: true
 
-require 'json'
 require 'optparse'
-require 'ostruct'
-require 'stringio'
 require 'yaml'
-require 'shellwords'
 
 require_relative 'command_line_interface'
+require_relative 'command_line_parser'
 require_relative 'operating_systems'
 require_relative 'errors'
 require_relative 'services/command_executor'
@@ -27,76 +24,8 @@ module WifiWand
       @env = env
     end
 
-    # Parses the command line with Ruby's internal 'optparse'.
-    def parse_command_line(argv = @argv)
-      args = Array(argv).dup
-      options = OpenStruct.new
-      help_requested = false
-      prepend_env_options(args)
-
-      OptionParser.new do |parser|
-        parser.on('-v', '--[no-]verbose', 'Run verbosely') do |v|
-          options.verbose = v
-        end
-
-        parser.on('-o', '--output_format FORMAT', 'Format output data') do |v|
-          formatters = {
-            'i' => ->(object) { object.inspect },
-            'j' => ->(object) { object.to_json },
-            'k' => ->(object) { JSON.pretty_generate(object) },
-            'p' => ->(object) do
-              sio = StringIO.new
-              sio.puts(object)
-              sio.string
-            end,
-            'y' => ->(object) { object.to_yaml },
-          }
-
-          choice = v[0].downcase
-
-          unless formatters.keys.include?(choice)
-            @err_stream.puts <<~MESSAGE
-
-              Output format "#{choice}" not in list of available formats (#{formatters.keys.join(', ')}).
-
-            MESSAGE
-            raise ConfigurationError,
-              "Invalid output format '#{choice}'. Available formats: #{formatters.keys.join(', ')}"
-          end
-
-          options.post_processor = formatters[choice]
-        end
-
-        parser.on('-p', '--wifi-interface interface', 'WiFi interface name') do |v|
-          options.wifi_interface = v
-        end
-
-        parser.on('-h', '--help', 'Show help') do
-          help_requested = true
-        end
-
-        parser.on('-V', '--version', 'Show version') do
-          options.version_requested = true
-        end
-        # Use order! instead of parse! to stop parsing at the first non-option argument (the command name).
-        # This allows subcommands (like 'log') to have their own options that aren't parsed by the main parser.
-        # .parse! would fail on unrecognized options like --file and --stdout that belong to subcommands.
-      end.order!(args)
-
-      if help_requested || help_flag_present?(args)
-        options.help_requested = true
-        args = ['h']
-      elsif args.first == 'shell'
-        options.interactive_mode = true
-        args.shift
-      end
-
-      options.argv = args
-      options
-    end
-
     def call(argv = @argv)
-      options = parse_command_line(argv)
+      options = CommandLineParser.new(argv, @env, @err_stream).parse
       if options.version_requested
         @out_stream.puts(WifiWand::VERSION)
         return SUCCESS_EXIT_CODE
@@ -111,22 +40,6 @@ module WifiWand
       verbose = !!options&.verbose
       handle_error(e, verbose)
       FAILURE_EXIT_CODE
-    end
-
-    private def prepend_env_options(args)
-      raw_options = @env['WIFIWAND_OPTS']
-      return if raw_options.nil? || raw_options.strip.empty?
-
-      env_args = Shellwords.shellsplit(raw_options)
-      return if env_args.empty?
-
-      args.unshift(*env_args)
-    rescue ArgumentError => e
-      raise ConfigurationError, "Invalid WIFIWAND_OPTS value: #{e.message}"
-    end
-
-    private def help_flag_present?(args)
-      args.any? { |arg| ['-h', '--help'].include?(arg) }
     end
 
     private def handle_error(error, verbose_mode)

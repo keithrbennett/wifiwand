@@ -57,9 +57,7 @@ describe 'Output Format End-to-End Tests' do
 
   # Helper method to parse command line arguments
   def parse_options(*args)
-    stub_const('ARGV', args.dup)
-    main = WifiWand::Main.new
-    main.send(:parse_command_line)
+    WifiWand::CommandLineParser.new(args, ENV, $stderr).parse
   end
 
   describe 'Command-line option parsing and output formatting' do

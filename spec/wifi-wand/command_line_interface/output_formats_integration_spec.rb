@@ -57,9 +57,7 @@ describe 'Output Format Integration Tests' do
 
   # Helper method to parse command line arguments and get the real application processor
   def parse_options(*args)
-    stub_const('ARGV', args.dup)
-    main = WifiWand::Main.new
-    main.send(:parse_command_line)
+    WifiWand::CommandLineParser.new(args, ENV, $stderr).parse
   end
 
   describe 'Output format validation' do

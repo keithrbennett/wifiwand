@@ -1,3 +1,10 @@
+## v3.0.0-alpha.1
+
+* Breaking change: `WifiWand::Main#parse_command_line` has been removed.
+* If you parsed arguments programmatically, use `WifiWand::CommandLineParser#parse` instead.
+* If you only need normal CLI execution, keep calling `WifiWand::Main#call`.
+
+
 ## v2.20.0
 
 * Change detect_wifi_interface and available_network_names to use system_profiler JSON output.

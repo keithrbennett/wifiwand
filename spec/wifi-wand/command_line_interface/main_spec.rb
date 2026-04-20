@@ -8,176 +8,20 @@ describe WifiWand::Main do
 
   let(:out_stream) { StringIO.new }
   let(:err_stream) { StringIO.new }
-
-
-  def parse_with_argv(*args)
-    stub_const('ARGV', args)
-    described_class.new(out_stream, err_stream, argv: ARGV).parse_command_line
-  end
-
-  describe '#parse_command_line' do
-    it 'parses verbose flags' do
-      options = parse_with_argv('--verbose', 'info')
-      expect(options.verbose).to be(true)
-
-      options = parse_with_argv('-v', 'info')
-      expect(options.verbose).to be(true)
-
-      options = parse_with_argv('--no-verbose', 'info')
-      expect(options.verbose).to be(false)
-    end
-
-    it 'defaults verbose to nil when not specified' do
-      options = parse_with_argv('info')
-      expect(options.verbose).to be_nil
-    end
-
-    %w[--no-v --no-verbose].each do |negation_flag|
-      it "handles verbose flag negation when -v is followed by #{negation_flag}" do
-        options = parse_with_argv('-v', negation_flag, 'info')
-        expect(options.verbose).to be(false)
-      end
-    end
-
-    it 'parses shell subcommand into explicit argv without mutating ARGV' do
-      options = parse_with_argv('shell')
-      expect(options.interactive_mode).to be(true)
-      expect(options.argv).to eq([])
-      expect(ARGV).to eq(['shell'])
-    end
-
-    it 'parses wifi interface options' do
-      options = parse_with_argv('--wifi-interface', 'wlan0', 'info')
-      expect(options.wifi_interface).to eq('wlan0')
-
-      options = parse_with_argv('-p', 'en0', 'info')
-      expect(options.wifi_interface).to eq('en0')
-    end
-
-    it 'parses output format options' do
-      options = parse_with_argv('--output_format', 'j', 'info')
-      expect(options.post_processor).to respond_to(:call)
-
-      options = parse_with_argv('-o', 'y', 'info')
-      expect(options.post_processor).to respond_to(:call)
-    end
-
-    it 'handles invalid output format' do
-      stub_const('ARGV', ['-o', 'z', 'info'])  # 'z' is not a valid format
-      expect { subject.parse_command_line }.to raise_error(WifiWand::ConfigurationError)
-    end
-
-    it 'handles unrecognized flags' do
-      stub_const('ARGV', ['--invalid-flag'])
-      expect { subject.parse_command_line }.to raise_error(OptionParser::InvalidOption)
-    end
-
-    it 'parses help-only argv into the help command without mutating ARGV' do
-      stub_const('ARGV', ['--help'])
-      options = subject.parse_command_line
-      expect(options.help_requested).to be(true)
-      expect(options.argv).to eq(['h'])
-      expect(ARGV).to eq(['--help'])
-    end
-
-    it 'normalizes leading help flags combined with a command into the help command' do
-      stub_const('ARGV', ['-h', 'info'])
-      options = subject.parse_command_line
-      expect(options.help_requested).to be(true)
-      expect(options.argv).to eq(['h'])
-      expect(ARGV).to eq(['-h', 'info'])
-    end
-
-    it 'normalizes trailing help flags combined with a command into the help command' do
-      stub_const('ARGV', ['info', '-h'])
-      options = subject.parse_command_line
-      expect(options.help_requested).to be(true)
-      expect(options.argv).to eq(['h'])
-      expect(ARGV).to eq(['info', '-h'])
-    end
-
-    it 'parses version flags' do
-      options = parse_with_argv('--version')
-      expect(options.version_requested).to be(true)
-
-      options = parse_with_argv('-V')
-      expect(options.version_requested).to be(true)
-    end
-
-    it 'returns command argv without mutating ARGV' do
-      stub_const('ARGV', ['-v', '-p', 'wlan0', 'connect', 'TestNetwork'])
-      options = subject.parse_command_line
-
-      expect(options.argv).to eq(%w[connect TestNetwork])
-      expect(ARGV).to eq(['-v', '-p', 'wlan0', 'connect', 'TestNetwork'])
-    end
-
-    it 'handles multiple flags together' do
-      stub_const('ARGV', ['-v', '-p', 'eth0', '--output_format', 'j', 'info'])
-      options = subject.parse_command_line
-
-      expect(options.verbose).to be(true)
-      expect(options.wifi_interface).to eq('eth0')
-      expect(options.post_processor).to respond_to(:call)
-    end
-
-    it 'handles shell subcommand alongside other flags' do
-      stub_const('ARGV', ['-v', '-p', 'eth0', 'shell'])
-      options = subject.parse_command_line
-
-      expect(options.verbose).to be(true)
-      expect(options.wifi_interface).to eq('eth0')
-      expect(options.interactive_mode).to be(true)
-      expect(options.argv).to eq([])
-      expect(ARGV).to eq(['-v', '-p', 'eth0', 'shell'])
-    end
-
-    it 'prepends options from WIFIWAND_OPTS before CLI arguments' do
-      allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--verbose')
-      stub_const('ARGV', ['info'])
-
-      options = subject.parse_command_line
-
-      expect(options.verbose).to be(true)
-      expect(options.argv).to eq(['info'])
-      expect(ARGV).to eq(['info'])
-    end
-
-    it 'allows explicit command-line flags to override WIFIWAND_OPTS defaults' do
-      allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--verbose --wifi-interface en0')
-      stub_const('ARGV', ['--no-verbose', '--wifi-interface', 'en1', 'info'])
-
-      options = subject.parse_command_line
-
-      expect(options.verbose).to be(false)
-      expect(options.wifi_interface).to eq('en1')
-    end
-
-    it 'raises a configuration error when WIFIWAND_OPTS cannot be parsed' do
-      allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--verbose "')
-      stub_const('ARGV', ['info'])
-
-      expect { subject.parse_command_line }.to raise_error(WifiWand::ConfigurationError, /WIFIWAND_OPTS/)
-    end
-  end
+  let(:default_options) { OpenStruct.new(verbose: false, interactive_mode: false, argv: ['info']) }
+  let(:mock_parser) { instance_double(WifiWand::CommandLineParser, parse: default_options) }
 
   describe '#call' do
     let(:mock_cli) { double('CommandLineInterface') }
 
     before do
-      # Mock the command line parsing to avoid complex setup
-      options = OpenStruct.new(verbose: false, interactive_mode: false, argv: ['info'])
-      allow(subject).to receive(:parse_command_line).and_return(options)
-      # Mock CLI creation to avoid OS detection
+      allow(WifiWand::CommandLineParser).to receive(:new).and_return(mock_parser)
       allow(WifiWand::CommandLineInterface).to receive(:new).and_return(mock_cli)
     end
 
     it 'creates CLI with parsed options and calls it' do
       options = OpenStruct.new(verbose: true, wifi_interface: 'wlan0', argv: ['info'])
-      allow(subject).to receive(:parse_command_line).and_return(options)
+      allow(mock_parser).to receive(:parse).and_return(options)
 
       expect(WifiWand::CommandLineInterface)
         .to receive(:new).with(options, argv: ['info']).and_return(mock_cli)
@@ -206,9 +50,8 @@ describe WifiWand::Main do
       allow(ex).to receive(:backtrace).and_return(%w[line1 line2 line3])
       allow(mock_cli).to receive(:call).and_raise(ex)
 
-      # Mock verbose mode
       options = OpenStruct.new(verbose: true, interactive_mode: false, argv: ['info'])
-      allow(subject).to receive(:parse_command_line).and_return(options)
+      allow(mock_parser).to receive(:parse).and_return(options)
 
       expect(subject.call).to eq(1)
       expect(err_stream.string).to match(/Error: Test error/)
@@ -218,7 +61,7 @@ describe WifiWand::Main do
     it 'returns code 1 for interactive-mode failures too' do
       ex = StandardError.new('Shell startup failed')
       options = OpenStruct.new(verbose: false, interactive_mode: true, argv: [])
-      allow(subject).to receive(:parse_command_line).and_return(options)
+      allow(mock_parser).to receive(:parse).and_return(options)
       allow(mock_cli).to receive(:call).and_raise(ex)
 
       expect(subject.call).to eq(1)
@@ -232,88 +75,21 @@ describe WifiWand::Main do
     end
 
     it 'prints version and skips CLI initialization when requested' do
-      stub_const('ARGV', ['-V'])
-      main = described_class.new(out_stream, err_stream, argv: ARGV)
+      allow(mock_parser).to receive(:parse).and_return(OpenStruct.new(version_requested: true))
 
       expect(WifiWand::CommandLineInterface).not_to receive(:new)
-
-      expect(main.call).to eq(0)
-
+      expect(subject.call).to eq(0)
       expect(out_stream.string).to eq("#{WifiWand::VERSION}\n")
     end
 
-    it 'returns immediately after printing version even when other arguments are present' do
-      stub_const('ARGV', ['--version', 'info'])
-      main = described_class.new(out_stream, err_stream, argv: ARGV)
+    it 'returns immediately after printing version even when other options are present' do
+      allow(mock_parser).to receive(:parse).and_return(
+        OpenStruct.new(version_requested: true, verbose: true)
+      )
 
       expect(WifiWand::CommandLineInterface).not_to receive(:new)
-
-      expect(main.call).to eq(0)
-
+      expect(subject.call).to eq(0)
       expect(out_stream.string).to eq("#{WifiWand::VERSION}\n")
-    end
-  end
-
-  describe 'output format processors' do
-    it 'creates JSON processor' do
-      stub_const('ARGV', ['-o', 'j', 'info'])  # 'j' for json
-      options = subject.parse_command_line
-
-      processor = options.post_processor
-      test_data = { 'test' => 'value' }
-      result = processor.call(test_data)
-
-      expect(result).to be_a(String)
-      expect(JSON.parse(result)).to eq(test_data)
-    end
-
-    it 'creates YAML processor' do
-      stub_const('ARGV', ['-o', 'y', 'info'])  # 'y' for yaml
-      options = subject.parse_command_line
-
-      processor = options.post_processor
-      test_data = { 'test' => 'value' }
-      result = processor.call(test_data)
-
-      expect(result).to be_a(String)
-      expect(YAML.load(result)).to eq(test_data)
-    end
-
-    it 'creates inspect processor' do
-      stub_const('ARGV', ['-o', 'i', 'info'])  # 'i' for inspect
-      options = subject.parse_command_line
-
-      processor = options.post_processor
-      test_data = { 'test' => 'value' }
-      result = processor.call(test_data)
-
-      expect(result).to eq(test_data.inspect)
-    end
-
-    it 'creates pretty JSON processor' do
-      stub_const('ARGV', ['-o', 'k', 'info'])  # 'k' for pretty JSON
-      options = subject.parse_command_line
-
-      processor = options.post_processor
-      test_data = { 'test' => 'value' }
-      result = processor.call(test_data)
-
-      expect(result).to be_a(String)
-      parsed_result = JSON.parse(result)
-      expect(parsed_result).to eq(test_data)
-      expect(result).to include("\n")  # Pretty formatting includes newlines
-    end
-
-    it 'creates StringIO processor' do
-      stub_const('ARGV', ['-o', 'p', 'info'])  # 'p' for puts via StringIO
-      options = subject.parse_command_line
-
-      processor = options.post_processor
-      test_data = { 'test' => 'value' }
-      result = processor.call(test_data)
-
-      expect(result).to be_a(String)
-      expect(result).to eq("#{test_data}\n")
     end
   end
 
@@ -357,8 +133,7 @@ describe WifiWand::Main do
     let(:mock_cli) { double('CommandLineInterface') }
 
     before do
-      options = OpenStruct.new(verbose: false, interactive_mode: false, argv: ['info'])
-      allow(subject).to receive(:parse_command_line).and_return(options)
+      allow(WifiWand::CommandLineParser).to receive(:new).and_return(mock_parser)
       allow(WifiWand::CommandLineInterface).to receive(:new).and_return(mock_cli)
     end
 
@@ -397,9 +172,9 @@ describe WifiWand::Main do
       ex = StandardError.new('a message')
       allow(ex).to receive(:backtrace).and_return(['line 1', 'line 2'])
       allow(mock_cli).to receive(:call).and_raise(ex)
-      # Mock verbose mode
+
       options = OpenStruct.new(verbose: true, interactive_mode: false, argv: ['info'])
-      allow(subject).to receive(:parse_command_line).and_return(options)
+      allow(mock_parser).to receive(:parse).and_return(options)
 
       expect(subject.call).to eq(1)
       expect(err_stream.string).to match(/Error: a message/)
