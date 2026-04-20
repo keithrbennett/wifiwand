@@ -168,13 +168,13 @@ module RSpecConfiguration
 
       allow_any_instance_of(WifiWand::CommandExecutor)
         .to receive(:run_os_command)
-        .and_wrap_original do |method, command, *args|
-          if command.to_s.match?(security_regex)
-            raise os_command_error(exitstatus: 44, command: 'security', text: '')
-          end
-
-          method.call(command, *args)
+        .and_wrap_original do |method, command, *args, **kwargs|
+        if command.to_s.match?(security_regex)
+          raise os_command_error(exitstatus: 44, command: 'security', text: '')
         end
+
+        method.call(command, *args, **kwargs)
+      end
     end
   end
 
