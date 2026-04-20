@@ -8,6 +8,8 @@ require_relative 'mac_os_wifi_auth_helper'
 
 module WifiWand
   module MacHelperRelease
+    PENDING_NOTARIZATION_STATUS = 'In Progress'
+
     # Public signing credentials (visible in all signed binaries - no need to hide)
     APPLE_TEAM_ID = ENV.fetch('WIFIWAND_APPLE_TEAM_ID', '97P9SZU9GG')
     CODESIGN_IDENTITY = ENV.fetch('WIFIWAND_CODESIGN_IDENTITY',
@@ -478,6 +480,7 @@ module WifiWand
           'or let the script auto-select.'
       end
       creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper cancel --submission-id <uuid>')
+      validate_pending_submission_for_cancel!(submission_id, creds: creds)
       puts "Canceling submission #{submission_id}..."
       Operations.run_notarytool(
         ['queue', 'remove', submission_id],
@@ -488,21 +491,12 @@ module WifiWand
     end
 
     module_function def latest_submission_id = select_submission_id(order: :desc)
-
     module_function def oldest_submission_id = select_submission_id(order: :asc)
 
     module_function def select_submission_id(order:, pending_only: false)
       normalized_order = normalize_submission_order(order)
-      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper history')
-      response = Operations.run_notarytool(
-        ['history', '--output-format', 'json'],
-        **creds,
-        failure_message: 'Unable to fetch notarization history.',
-        suppress_output: true
-      )
-      data = JSON.parse(response)
-      entries = data['history'] || []
-      return nil if entries.empty?
+      entries = notarization_history_entries(command_hint: 'bin/mac-helper history')
+      return nil if entries.nil? || entries.empty?
 
       ordered_entries = case normalized_order
                         when :asc
@@ -512,14 +506,53 @@ module WifiWand
       end
 
       if pending_only
-        ordered_entries = ordered_entries.select { |item| item['status'] == 'In Progress' }
+        ordered_entries = ordered_entries.select { |item| pending_submission?(item) }
       end
 
       entry = ordered_entries.first
       entry && entry['id']
+    end
+
+    module_function def notarization_history_entries(command_hint:)
+      creds = fetch_notary_credentials!(command_hint: command_hint)
+      notarization_history_entries_with_credentials(creds)
+    end
+
+    module_function def notarization_history_entries_with_credentials(creds)
+      response = Operations.run_notarytool(
+        ['history', '--output-format', 'json'],
+        **creds,
+        failure_message: 'Unable to fetch notarization history.',
+        suppress_output: true
+      )
+      data = JSON.parse(response)
+      data['history'] || []
     rescue JSON::ParserError => e
       warn "Warning: unable to parse notarytool history JSON (#{e.message})."
       nil
+    end
+
+    module_function def pending_submission?(entry)
+      entry && entry['status'] == PENDING_NOTARIZATION_STATUS
+    end
+
+    module_function def validate_pending_submission_for_cancel!(submission_id, creds:)
+      entries = notarization_history_entries_with_credentials(creds)
+      unless entries
+        abort 'Error: Unable to validate notarization status from history. Run: bin/mac-helper history'
+      end
+
+      entry = entries.find { |item| item['id'] == submission_id }
+      unless entry
+        abort "Error: Submission #{submission_id} was not found in notarization history. " \
+          'Run: bin/mac-helper history'
+      end
+
+      return if pending_submission?(entry)
+
+      status = entry['status'] || 'Unknown'
+      abort "Error: Submission #{submission_id} is #{status} and cannot be canceled. " \
+        'Only pending submissions can be canceled.'
     end
 
     module_function def normalize_submission_order(order = :desc)
