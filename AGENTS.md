@@ -100,6 +100,14 @@ bin/setup-hooks
 # Build gem locally
 gem build wifi-wand.gemspec
 
+# Before any gem release, inspect the built artifact's file list and confirm it still includes every
+# required runtime file, executable, helper asset, and user-facing document while excluding
+# maintainer-only tooling. Do not assume the gemspec allowlist is correct without verifying the built gem.
+# Prefer an explicit artifact check such as:
+#   gem contents wifi-wand-<version>.gem
+# or:
+#   tar -tf wifi-wand-<version>.gem
+
 # Test the gem without installing
 bundle exec exe/wifi-wand --help
 ```

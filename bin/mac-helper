@@ -5,7 +5,7 @@
 # Developer tool for building, signing, and notarizing the macOS helper.
 # Replaces rake dev:* tasks with a cleaner CLI interface.
 #
-# This script is NOT included in the distributed gem.
+# This script stays in the repository for maintainers and is excluded from the distributed gem.
 # It's run by the gem maintainer before releasing a new version.
 # End users receive the pre-signed, pre-notarized helper binary.
 #

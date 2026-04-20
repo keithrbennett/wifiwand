@@ -3,6 +3,25 @@
 require_relative 'lib/wifi-wand/version'
 
 Gem::Specification.new do |spec|
+  packaged_file_patterns = [
+    'LICENSE.txt',
+    'README.md',
+    'RELEASE_NOTES.md',
+    'docs/**/*.md',
+    'exe/*',
+    'lib/**/*.rb',
+    'lib/**/*.swift',
+    'lib/**/*.yml',
+    'libexec/**/*',
+  ].freeze
+  excluded_packaged_files = [
+    %r{\Adocs/(?:ai-reports|dev)/},
+    %r{\Alib/tasks/},
+    %r{\Alib/wifi-wand/mac_helper/mac_helper_release\.rb\z},
+    %r{\Alibexec/macos/(?:src/|wifiwand-helper\.entitlements\z|wifiwand-helper\.source-manifest\.json\z)},
+    %r{\Adocs/TESTING\.md\z},
+  ].freeze
+
   spec.name          = 'wifi-wand'
   spec.version       = WifiWand::VERSION
   spec.authors       = ['Keith Bennett']
@@ -20,9 +39,15 @@ Gem::Specification.new do |spec|
   }
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
-    `git ls-files -z`.split("\x0").reject do |f|
-      # Exclude developer-only files (code signing docs, release rake tasks)
-      f.match(%r{^(lib/tasks/dev|docs/dev)/})
+    tracked_files = `git ls-files -z`.split("\x0")
+    packaged_files = tracked_files.select do |file|
+      packaged_file_patterns.any? do |pattern|
+        File.fnmatch?(pattern, file, File::FNM_PATHNAME)
+      end
+    end
+
+    packaged_files.reject do |file|
+      excluded_packaged_files.any? { |pattern| pattern.match?(file) }
     end
   end
   spec.bindir        = 'exe'
@@ -40,7 +65,6 @@ Gem::Specification.new do |spec|
   # still on version 0, no need to exclude future versions, but need bug fix for pry not pry'ing
   # on last line of method:
   spec.add_dependency('pry', '~> 0.14', '>= 0.14.2')
-
 
   # Post-install message for macOS users about location permission setup
   spec.post_install_message = if RbConfig::CONFIG['host_os'] =~ /darwin/i
