@@ -210,7 +210,7 @@ module WifiWand
       # On some systems the SSID can disappear briefly during state churn before
       # the radio re-associates. Require a short stable disassociation window so
       # a transient nil SSID does not count as a successful disconnect.
-      raise WifiWand::WaitTimeoutError.new(:disassociated, disconnect_stability_window_in_secs) unless
+      raise WifiWand::WaitTimeoutError.new(action: :disassociated, timeout: disconnect_stability_window_in_secs) unless
         disassociated_stable?
 
       nil
@@ -225,7 +225,7 @@ module WifiWand
       lingering_network_name = current_network_name || original_network_name
       reason = lingering_network_name ? "still associated with '#{lingering_network_name}'" :
         'interface remained associated'
-      raise NetworkDisconnectionError.new(lingering_network_name, reason)
+      raise NetworkDisconnectionError.new(network_name: lingering_network_name, reason: reason)
     end
 
     # Returns true when the model considers the requested network fully usable.

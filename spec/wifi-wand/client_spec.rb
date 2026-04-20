@@ -90,7 +90,7 @@ RSpec.describe WifiWand::Client do
     end
 
     it 'propagates errors from the model' do
-      allow(mock_model).to receive(:connect).and_raise(WifiWand::NetworkConnectionError.new(network_name))
+      allow(mock_model).to receive(:connect).and_raise(WifiWand::NetworkConnectionError.new(network_name: network_name))
       expect { client.connect(network_name, password) }.to raise_error(WifiWand::NetworkConnectionError)
     end
   end

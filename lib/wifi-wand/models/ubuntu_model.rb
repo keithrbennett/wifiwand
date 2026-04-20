@@ -207,7 +207,7 @@ module WifiWand
 
         # Check for network not found errors
         if error_text.match?(/No network with SSID/i)
-          raise WifiWand::NetworkNotFoundError, network_name
+          raise WifiWand::NetworkNotFoundError.new(network_name: network_name)
         end
 
         # Check for authentication/password errors
@@ -218,7 +218,7 @@ module WifiWand
           /authentication.*failed/i,
           /Connection activation failed.*\(7\)/i,
         ].any? { |pattern| error_text.match?(pattern) }
-          raise WifiWand::NetworkAuthenticationError, network_name
+          raise WifiWand::NetworkAuthenticationError.new(network_name: network_name)
         end
 
         # Check for device-related errors
@@ -232,8 +232,8 @@ module WifiWand
         # Generic connection activation failed - could indicate network out of range
         # or temporarily unavailable (not the same as "not found")
         if error_text.match?(/Connection activation failed/i)
-          raise WifiWand::NetworkConnectionError.new(network_name,
-            'Network may be out of range or temporarily unavailable')
+          raise WifiWand::NetworkConnectionError.new(network_name: network_name,
+            reason: 'Network may be out of range or temporarily unavailable')
         end
 
         # Re-raise the original error if it doesn't match known patterns
@@ -477,14 +477,14 @@ module WifiWand
           restore_dns_configuration(current_connection, original_dns_configuration)
         rescue WifiWand::CommandExecutor::OsCommandError => rollback_error
           raise DnsConfigurationError.new(
-            current_connection,
-            step,
-            dns_transaction_failure(e, rollback_error)
+            connection_name: current_connection,
+            step:            step,
+            cause_error:     dns_transaction_failure(e, rollback_error)
           )
         end
       end
 
-      raise DnsConfigurationError.new(current_connection, step, e)
+      raise DnsConfigurationError.new(connection_name: current_connection, step: step, cause_error: e)
     end
 
     public def open_resource(resource_url)

@@ -8,7 +8,7 @@ module WifiWand
   class NetworkNotFoundError < Error
     attr_reader :network_name, :available_networks
 
-    def initialize(network_name, available_networks = [])
+    def initialize(network_name:, available_networks: [])
       @network_name = network_name
       @available_networks = available_networks
       super(build_message)
@@ -28,7 +28,7 @@ module WifiWand
   class NetworkConnectionError < Error
     attr_reader :network_name, :reason
 
-    def initialize(network_name, reason = nil)
+    def initialize(network_name:, reason: nil)
       @network_name = network_name
       @reason = reason
       msg = "Failed to connect to network '#{network_name}'"
@@ -40,7 +40,7 @@ module WifiWand
   class NetworkDisconnectionError < Error
     attr_reader :network_name, :reason
 
-    def initialize(network_name = nil, reason = nil)
+    def initialize(network_name: nil, reason: nil)
       @network_name = network_name
       @reason = reason
       msg = network_name ? "Failed to disconnect from network '#{network_name}'" :
@@ -53,7 +53,7 @@ module WifiWand
   class NetworkAuthenticationError < Error
     attr_reader :network_name, :reason
 
-    def initialize(network_name, reason = nil)
+    def initialize(network_name:, reason: nil)
       @network_name = network_name
       @reason = reason
       msg = "Authentication failed for network '#{network_name}'"
@@ -85,7 +85,7 @@ module WifiWand
   end
 
   class WaitTimeoutError < Error
-    def initialize(action, timeout) = super("Timed out after #{timeout} seconds waiting for #{action}")
+    def initialize(action:, timeout:) = super("Timed out after #{timeout} seconds waiting for #{action}")
   end
 
   # === CONFIGURATION ERRORS ===
@@ -101,7 +101,7 @@ module WifiWand
   class InvalidNetworkNameError < Error
     attr_reader :network_name, :reason
 
-    def initialize(network_name, reason = 'Network name cannot be empty')
+    def initialize(network_name:, reason: 'Network name cannot be empty')
       @network_name = network_name
       @reason = reason
       display_name = network_name.to_s
@@ -112,7 +112,7 @@ module WifiWand
   class InvalidNetworkPasswordError < Error
     attr_reader :reason
 
-    def initialize(_password = nil, reason = 'Password is invalid')
+    def initialize(reason: 'Password is invalid')
       @reason = reason
       super("Invalid network password: #{reason}")
     end
@@ -173,7 +173,7 @@ module WifiWand
   class DnsConfigurationError < ConfigurationError
     attr_reader :connection_name, :step, :cause_error
 
-    def initialize(connection_name, step, cause_error)
+    def initialize(connection_name:, step:, cause_error:)
       @connection_name = connection_name
       @step = step
       @cause_error = cause_error
@@ -216,7 +216,7 @@ module WifiWand
   class PublicIPLookupError < Error
     attr_reader :status_code, :status_message, :url, :body
 
-    def initialize(status_code = nil, status_message = nil, message: nil, url: nil, body: nil)
+    def initialize(status_code: nil, status_message: nil, message: nil, url: nil, body: nil)
       @status_code = status_code
       @status_message = status_message
       @url = url

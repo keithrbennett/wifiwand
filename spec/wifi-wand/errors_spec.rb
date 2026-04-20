@@ -48,13 +48,13 @@ module WifiWand
     # Unit tests for each error class to verify message formatting
     describe 'Unit tests for each error class' do
       error_test_cases = [
-        [NetworkNotFoundError,          ['MyNet'],
+        [NetworkNotFoundError,          { network_name: 'MyNet' },
           "Network 'MyNet' not found. No networks are currently available"],
-        [NetworkNotFoundError,          ['MyNet', %w[Net1 Net2]],
+        [NetworkNotFoundError,          { network_name: 'MyNet', available_networks: %w[Net1 Net2] },
           "Network 'MyNet' not found. Available networks: Net1, Net2"],
-        [NetworkConnectionError,        ['MyNet'],
+        [NetworkConnectionError,        { network_name: 'MyNet' },
           "Failed to connect to network 'MyNet'"],
-        [NetworkConnectionError,        ['MyNet', 'bad password'],
+        [NetworkConnectionError,        { network_name: 'MyNet', reason: 'bad password' },
           "Failed to connect to network 'MyNet': bad password"],
         [WifiInterfaceError,            ['en1'],
           "WiFi interface 'en1' not found. Ensure WiFi hardware is present and drivers are installed"],
@@ -64,15 +64,15 @@ module WifiWand
           'WiFi could not be enabled. Check hardware and permissions'],
         [WifiDisableError,              [],
           'WiFi could not be disabled. Check permissions'],
-        [WaitTimeoutError,              ['connecting', 10],
+        [WaitTimeoutError,              { action: 'connecting', timeout: 10 },
           'Timed out after 10 seconds waiting for connecting'],
         [InvalidIPAddressError,         ['999.999.999.999'],
           'Invalid IP address(es): 999.999.999.999'],
         [InvalidIPAddressError,         [['1.2.3.4.5', 'abc']],
           'Invalid IP address(es): 1.2.3.4.5, abc'],
-        [InvalidNetworkNameError,       ['MyNet'],
+        [InvalidNetworkNameError,       { network_name: 'MyNet' },
           "Invalid network name: 'MyNet'. Network name cannot be empty"],
-        [InvalidNetworkPasswordError,   ['secret', 'Password cannot exceed 63 characters'],
+        [InvalidNetworkPasswordError,   { reason: 'Password cannot exceed 63 characters' },
           'Invalid network password: Password cannot exceed 63 characters'],
         [InvalidInterfaceError,         ['eth0'],
           "'eth0' is not a valid WiFi interface"],
@@ -101,7 +101,9 @@ module WifiWand
       ].map { |klass, args, message| { klass:, args:, message: } }
       error_test_cases.each do |test_case|
         it "formats the message correctly for #{test_case[:klass]} with args #{test_case[:args]}" do
-          err = test_case[:klass].new(*test_case[:args])
+          err = test_case[:args].is_a?(Hash) \
+            ? test_case[:klass].new(**test_case[:args]) \
+            : test_case[:klass].new(*test_case[:args])
           expect(err.message).to eq(test_case[:message])
         end
       end
@@ -169,7 +171,7 @@ module WifiWand
             allow(model.connection_manager).to receive(:perform_connection)
             allow(model.connection_manager).to receive(:verify_connection)
               .and_raise(WifiWand::NetworkConnectionError.new(
-                'TestNetwork', "connected to 'DifferentNetwork' instead"))
+                network_name: 'TestNetwork', reason: "connected to 'DifferentNetwork' instead"))
           }
         },
         {
@@ -193,14 +195,14 @@ module WifiWand
           method: :wifi_on, args: [], error: WifiEnableError,
           before: -> {
             allow(model).to receive_messages(run_os_command: command_result(stdout: ''), wifi_on?: false)
-            allow(model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:wifi_on, 5))
+            allow(model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(action: :wifi_on, timeout: 5))
           }
         },
         {
           method: :wifi_off, args: [], error: WifiDisableError,
           before: -> {
             allow(model).to receive_messages(run_os_command: command_result(stdout: ''), wifi_on?: true)
-            allow(model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:wifi_off, 5))
+            allow(model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(action: :wifi_off, timeout: 5))
           }
         },
       ].flatten(1)

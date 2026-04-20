@@ -103,14 +103,14 @@ module WifiWand
 
     private def validate_network_name(network_name)
       if network_name.nil? || network_name.empty?
-        raise InvalidNetworkNameError, network_name || ''
+        raise InvalidNetworkNameError.new(network_name: network_name || '')
       end
 
       return if network_name.bytesize <= MAX_NETWORK_NAME_BYTES
 
       raise InvalidNetworkNameError.new(
-        network_name,
-        "Network name cannot exceed #{MAX_NETWORK_NAME_BYTES} bytes"
+        network_name: network_name,
+        reason:       "Network name cannot exceed #{MAX_NETWORK_NAME_BYTES} bytes"
       )
     end
 
@@ -125,7 +125,7 @@ module WifiWand
         'Password passphrases cannot exceed 63 bytes'
       end
 
-      raise InvalidNetworkPasswordError.new(password, reason)
+      raise InvalidNetworkPasswordError.new(reason: reason)
     end
 
     private def already_connected?(network_name)
@@ -214,7 +214,7 @@ module WifiWand
       error_detail = actual_network_name \
         ? "connected to '#{actual_network_name}' instead" \
         : 'unable to connect to any network'
-      raise NetworkConnectionError.new(network_name, error_detail)
+      raise NetworkConnectionError.new(network_name: network_name, reason: error_detail)
     end
 
     private def active_connection_matches?(network_name)

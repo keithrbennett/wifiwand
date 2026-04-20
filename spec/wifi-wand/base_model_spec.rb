@@ -246,7 +246,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(model).to receive(:_disconnect)
       allow(model).to receive(:till)
         .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
-        .and_raise(WifiWand::WaitTimeoutError.new(:disassociated, 5))
+        .and_raise(WifiWand::WaitTimeoutError.new(action: :disassociated, timeout: 5))
 
       expect { model.disconnect }
         .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)

@@ -1560,7 +1560,7 @@ module WifiWand
             .and_return(command_result(stdout: 'disabled'))
 
           # Mock the till method to immediately raise WaitTimeoutError (which wifi_on catches and converts to WifiEnableError)
-          allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:wifi_on, 5))
+          allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(action: :wifi_on, timeout: 5))
 
           expect { subject.wifi_on }.to raise_error(WifiWand::WifiEnableError)
         end
@@ -1575,7 +1575,7 @@ module WifiWand
             .and_return(command_result(stdout: 'enabled'))
 
           # Mock the till method to immediately raise WaitTimeoutError (which wifi_off catches and converts to WifiDisableError)
-          allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:wifi_off, 5))
+          allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(action: :wifi_off, timeout: 5))
 
           expect { subject.wifi_off }.to raise_error(WifiWand::WifiDisableError)
         end
