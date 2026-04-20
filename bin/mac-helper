@@ -45,7 +45,7 @@ module MacHelperCLI
       @options = {
         submission_id: nil,
         order: nil,
-        pending_only: false
+        pending_only: nil
       }
     end
 
@@ -233,7 +233,7 @@ module MacHelperCLI
 
       # Override order if specified in options
       order = @options[:order] if @options[:order]
-      pending_only = @options[:pending_only] if @options.key?(:pending_only)
+      pending_only = @options[:pending_only] unless @options[:pending_only].nil?
 
       # Auto-select from history
       normalized_order = WifiWand::MacHelperRelease.normalize_submission_order(order)
@@ -257,4 +257,4 @@ module MacHelperCLI
 end
 
 # Run the CLI
-MacHelperCLI::CLI.new(ARGV.dup).run
+MacHelperCLI::CLI.new(ARGV.dup).run if $PROGRAM_NAME == __FILE__

@@ -5,6 +5,7 @@ require 'fileutils'
 require 'open3'
 require 'rbconfig'
 require 'tmpdir'
+load File.expand_path('../../bin/mac-helper', __dir__)
 
 MAC_HELPER_PATH = File.expand_path('../../bin/mac-helper', __dir__)
 MAC_HELPER_DEFAULT_ENV_FILE = File.expand_path('../../.env.release', __dir__)
@@ -46,6 +47,83 @@ RSpec.describe 'bin/mac-helper' do
     expect(result[:stdout]).to include('--')
     expect(result[:stdout]).to include(command_path)
     expect(result[:stdout]).to include('notarize')
+  end
+
+
+  describe MacHelperCLI::CLI do
+    def build_cli(argv)
+      described_class.new(argv)
+    end
+
+    def stub_release_selection(cli)
+      allow(cli).to receive(:has_credentials?).and_return(true)
+      allow(WifiWand::MacHelperRelease).to receive(:normalize_submission_order) { |order| order }
+    end
+
+    it 'defaults cancel to the oldest pending submission' do
+      cli = build_cli(['cancel'])
+      stub_release_selection(cli)
+
+      expect(WifiWand::MacHelperRelease).to receive(:select_submission_id)
+        .with(order: :asc, pending_only: true)
+        .and_return('pending-001')
+      expect(WifiWand::MacHelperRelease).to receive(:cancel_notarization).with('pending-001')
+
+      expect { cli.run }
+        .to output(/using oldest pending notary submission pending-001/).to_stdout
+    end
+
+    it 'defaults info to the latest submission' do
+      cli = build_cli(['info'])
+      stub_release_selection(cli)
+
+      expect(WifiWand::MacHelperRelease).to receive(:select_submission_id)
+        .with(order: :desc, pending_only: false)
+        .and_return('latest-001')
+      expect(WifiWand::MacHelperRelease).to receive(:notarization_status).with('latest-001')
+
+      expect { cli.run }
+        .to output(/using latest notary submission latest-001/).to_stdout
+    end
+
+    it 'defaults log to the latest submission' do
+      cli = build_cli(['log'])
+      stub_release_selection(cli)
+
+      expect(WifiWand::MacHelperRelease).to receive(:select_submission_id)
+        .with(order: :desc, pending_only: false)
+        .and_return('latest-002')
+      expect(WifiWand::MacHelperRelease).to receive(:notarization_log).with('latest-002')
+
+      expect { cli.run }
+        .to output(/using latest notary submission latest-002/).to_stdout
+    end
+
+    it 'lets an explicit order flag override cancel ordering without clearing pending_only' do
+      cli = build_cli(['cancel', '--order', 'desc'])
+      stub_release_selection(cli)
+
+      expect(WifiWand::MacHelperRelease).to receive(:select_submission_id)
+        .with(order: :desc, pending_only: true)
+        .and_return('pending-override')
+      expect(WifiWand::MacHelperRelease).to receive(:cancel_notarization).with('pending-override')
+
+      expect { cli.run }
+        .to output(/using latest pending notary submission pending-override/).to_stdout
+    end
+
+    it 'lets an explicit pending-only flag override info selection' do
+      cli = build_cli(['info', '--pending-only'])
+      stub_release_selection(cli)
+
+      expect(WifiWand::MacHelperRelease).to receive(:select_submission_id)
+        .with(order: :desc, pending_only: true)
+        .and_return('latest-pending')
+      expect(WifiWand::MacHelperRelease).to receive(:notarization_status).with('latest-pending')
+
+      expect { cli.run }
+        .to output(/using latest pending notary submission latest-pending/).to_stdout
+    end
   end
 
   it 'finds op-wrap relative to the real script and re-execs with the current Ruby outside the repo root' do
