@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
     'docs/**/*.md',
     'exe/*',
     'lib/**/*.rb',
-    'lib/**/*.swift',
+    'lib/wifi-wand/mac_helper/swift/*.swift',
     'lib/**/*.yml',
     'libexec/**/*',
   ].freeze
