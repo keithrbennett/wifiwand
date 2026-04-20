@@ -125,7 +125,7 @@ module WifiWand
         'Password passphrases cannot exceed 63 bytes'
       end
 
-      raise InvalidNetworkPasswordError.new(password, reason)
+      raise InvalidNetworkPasswordError, reason
     end
 
     private def already_connected?(network_name)
@@ -257,11 +257,11 @@ module WifiWand
         return nil if allow_nil
 
         reason = blank_message || "#{field_label} is required"
-        raise error_class.new(nil, reason)
+        raise build_validation_error(error_class, nil, reason)
       end
 
       unless value.is_a?(String) || value.is_a?(Symbol)
-        raise error_class.new(value, "#{field_label} must be a String or Symbol")
+        raise build_validation_error(error_class, value, "#{field_label} must be a String or Symbol")
       end
 
       string_value = value.to_s
@@ -270,19 +270,29 @@ module WifiWand
         if allow_nil
           return string_value
         elsif blank_message
-          raise error_class.new(string_value, blank_message)
+          raise build_validation_error(error_class, string_value, blank_message)
         end
       end
 
       if max_length && string_value.length > max_length
-        raise error_class.new(string_value, "#{field_label} cannot exceed #{max_length} characters")
+        raise build_validation_error(
+          error_class, string_value, "#{field_label} cannot exceed #{max_length} characters"
+        )
       end
 
       if control_char_message && string_value.match?(CONTROL_CHAR_PATTERN)
-        raise error_class.new(string_value, control_char_message)
+        raise build_validation_error(error_class, string_value, control_char_message)
       end
 
       string_value
+    end
+
+    private def build_validation_error(error_class, value, reason)
+      if error_class == InvalidNetworkPasswordError
+        error_class.new(reason)
+      else
+        error_class.new(value, reason)
+      end
     end
   end
 end

@@ -112,7 +112,7 @@ module WifiWand
   class InvalidNetworkPasswordError < Error
     attr_reader :reason
 
-    def initialize(_password = nil, reason = 'Password is invalid')
+    def initialize(reason = 'Password is invalid')
       @reason = reason
       super("Invalid network password: #{reason}")
     end

@@ -72,7 +72,7 @@ module WifiWand
           'Invalid IP address(es): 1.2.3.4.5, abc'],
         [InvalidNetworkNameError,       ['MyNet'],
           "Invalid network name: 'MyNet'. Network name cannot be empty"],
-        [InvalidNetworkPasswordError,   ['secret', 'Password cannot exceed 63 characters'],
+        [InvalidNetworkPasswordError,   ['Password cannot exceed 63 characters'],
           'Invalid network password: Password cannot exceed 63 characters'],
         [InvalidInterfaceError,         ['eth0'],
           "'eth0' is not a valid WiFi interface"],
