@@ -350,6 +350,22 @@ This copies hooks from the tracked `hooks/` directory to `.git/hooks/` and makes
   validation).
 - Do not dump entire files; mention paths. Keep tone factual, note open questions, and highlight testing gaps.
 
+### Review Output Format
+
+When the user asks for a review, present the result in this exact order:
+
+- `Verdict: Pass | Fail | Needs changes`
+- `Blocking findings:` followed by a flat bullet list, or `None.`
+- `Non-blocking findings:` followed by a flat bullet list, or `None.`
+- `Residual risks:` followed by a flat bullet list, or `None.`
+
+Rules:
+- State the verdict explicitly; never imply it indirectly.
+- Separate blocking from non-blocking findings.
+- If there are no findings, say so explicitly.
+- Each finding must include severity, file path, and a one-sentence impact statement.
+- Keep summaries brief; findings come first.
+
 ## Rubocop Linting
 
 Rubocop is used to enforce consistent code styling and best programming practices.
