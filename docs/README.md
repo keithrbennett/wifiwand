@@ -37,10 +37,12 @@ administrators.
 
 ## Project History
 
+- **[Version 3 Breaking Changes](BREAKING_CHANGES_V3.md)** - Canonical upgrade and migration guide for
+  version 3 API, CLI, and behavior changes.
 - **[Current Release Notes](../RELEASE_NOTES.md)** - Historical release-by-release notes for older
   versions.
-- **[Version 3.0 Changes](CHANGELOG_V2_TO_V3.md)** - Consolidated summary of major improvements and
-  breaking changes in version 3.0.
+- **[Version 3.0 Changes](CHANGELOG_V2_TO_V3.md)** - Broader summary of major improvements and non-breaking
+  changes in version 3.0.
 
 ---
 

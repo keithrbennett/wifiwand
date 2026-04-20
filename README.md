@@ -101,88 +101,19 @@ It does not mean "this machine has network access by any route." If Ethernet is 
 `connected?` may still return `false`. Use `internet_connectivity_state` when you need host-level internet
 reachability instead of WiFi-interface state.
 
-### ⚠️ Breaking Change: Interactive Shell
+### ⚠️ Version 3 Breaking Changes
 
-The interactive shell is now a dedicated subcommand: run it with `wifi-wand shell`.
-The legacy `-s/--shell` option has been removed—update any scripts or aliases that
-still rely on the flag before upgrading.
+Version 3 includes API, CLI, and behavior changes that may require updates to
+scripts or calling code.
 
-### ⚠️ Breaking Change: `Main#parse_command_line` Removed
+See **[Version 3 Breaking Changes](docs/BREAKING_CHANGES_V3.md)** for the
+canonical migration guide. Highlights include:
 
-`WifiWand::Main#parse_command_line` is no longer part of the public API.
-If you were parsing CLI arguments programmatically, instantiate
-`WifiWand::CommandLineParser` and call `#parse` instead. Normal CLI usage
-through `WifiWand::Main#call` is unchanged.
-
-### ⚠️ Breaking Change: Internet Connectivity API
-
-The old boolean-style `connected_to_internet?` API has been **removed** in this
-major release. Use `internet_connectivity_state` instead.
-
-| Old result | New result | Meaning |
-|------------|------------|---------|
-| `true` | `:reachable` | Internet reachability confirmed |
-| `false` | `:unreachable` | Internet is known to be unavailable |
-| `nil` | `:indeterminate` | The result is unknown, not a confident "no" |
-
-`captive_portal_state` is now explicit too:
-
-| Method | Values |
-|--------|--------|
-| `captive_portal_state` | `:free`, `:present`, `:indeterminate` |
-
-Why this exists: sometimes TCP and DNS succeed, but captive-portal checks cannot
-determine whether the network is truly open Internet or an intercepted login
-network. A boolean API implied false certainty. The explicit-state API preserves
-that uncertainty.
-
-**Migration examples:**
-
-```ruby
-# Old
-client.connected_to_internet? == true
-
-# New
-client.internet_connectivity_state == :reachable
-```
-
-```bash
-# Old
-wifi-wand ci | grep -q true
-
-# New
-[ "$(wifi-wand -o p ci)" = "reachable" ]
-```
-
-### ⚠️ Breaking Change: `till` Wait-State Names
-
-The `till` command now uses an explicit, unambiguous vocabulary. The old names
-`conn`, `disc`, `on`, and `off` have been **removed**.
-
-| Old name  | Replace with              | Meaning                                        |
-|-----------|---------------------------|------------------------------------------------|
-| `on`      | `wifi_on`                 | WiFi hardware powered on                       |
-| `off`     | `wifi_off`                | WiFi hardware powered off                      |
-| `conn`    | `associated` or `internet_on` | WiFi associated with SSID *or* Internet up |
-| `disc`    | `disassociated` or `internet_off` | No SSID *or* Internet down             |
-
-**Why the change?** `conn` previously checked full Internet reachability (TCP + DNS),
-not WiFi association. This caused confusion when using `till conn` after a `connect`
-command—it was really asking "is the internet up?" rather than "did I join the
-network?". The new names make intent explicit:
-
-- `associated` / `disassociated` — WiFi layer: joined an SSID or not
-- `internet_on` / `internet_off` — Application layer: reachable/unreachable Internet state
-- `wifi_on` / `wifi_off` — Hardware: radio powered on or off
-
-**Migration examples:**
-```bash
-# Old → New
-wifi-wand t on         →  wifi-wand t wifi_on
-wifi-wand t off        →  wifi-wand t wifi_off
-wifi-wand t conn       →  wifi-wand t internet_on   # or: wifi-wand t associated
-wifi-wand t disc       →  wifi-wand t internet_off  # or: wifi-wand t disassociated
-```
+- `connected_to_internet?` replaced by `internet_connectivity_state`
+- `till` wait-state names changed (`on`/`off`/`conn`/`disc` removed)
+- `-s` / `--shell` replaced by the `shell` subcommand
+- partial CLI abbreviations removed; use exact short or long command names
+- `WifiWand::Main#parse_command_line` removed from the public API
 
 ### Quick Start
 

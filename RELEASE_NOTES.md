@@ -1,9 +1,11 @@
 ## v3.0.0-alpha.1
 
+For the canonical version 3 upgrade and migration guide, see
+[`docs/BREAKING_CHANGES_V3.md`](docs/BREAKING_CHANGES_V3.md).
+
 * Breaking change: `WifiWand::Main#parse_command_line` has been removed.
 * If you parsed arguments programmatically, use `WifiWand::CommandLineParser#parse` instead.
 * If you only need normal CLI execution, keep calling `WifiWand::Main#call`.
-
 
 ## v2.20.0
 
