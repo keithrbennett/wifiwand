@@ -47,6 +47,14 @@ module WifiWand
 
     # Unit tests for each error class to verify message formatting
     describe 'Unit tests for each error class' do
+      keyword_error_args = {
+        NetworkNotFoundError    => %i[network_name available_networks],
+        NetworkConnectionError  => %i[network_name reason],
+        WaitTimeoutError        => %i[action timeout],
+        InvalidNetworkNameError => %i[network_name reason],
+        CommandTimeoutError     => %i[command timeout_in_secs],
+      }.freeze
+
       error_test_cases = [
         [NetworkNotFoundError,          ['MyNet'],
           "Network 'MyNet' not found. No networks are currently available"],
@@ -103,7 +111,13 @@ module WifiWand
       ].map { |klass, args, message| { klass:, args:, message: } }
       error_test_cases.each do |test_case|
         it "formats the message correctly for #{test_case[:klass]} with args #{test_case[:args]}" do
-          err = test_case[:klass].new(*test_case[:args])
+          err = if keyword_error_args.key?(test_case[:klass])
+            kwargs = keyword_error_args.fetch(test_case[:klass]).zip(test_case[:args]).to_h.compact
+            test_case[:klass].new(**kwargs)
+          else
+            test_case[:klass].new(*test_case[:args])
+          end
+
           expect(err.message).to eq(test_case[:message])
         end
       end
@@ -120,7 +134,7 @@ module WifiWand
     # Additional unit tests for error classes with branching behavior
     describe PublicIPLookupError do
       it 'formats message when HTTP status is provided' do
-        err = described_class.new('503', 'Service Unavailable')
+        err = described_class.new(status_code: '503', status_message: 'Service Unavailable')
         expect(err.message).to include('HTTP error fetching public IP info: 503 Service Unavailable')
         expect(err.status_code).to eq('503')
         expect(err.status_message).to eq('Service Unavailable')
@@ -170,8 +184,12 @@ module WifiWand
               already_connected?: false, resolve_password: [nil, false])
             allow(model.connection_manager).to receive(:perform_connection)
             allow(model.connection_manager).to receive(:verify_connection)
-              .and_raise(WifiWand::NetworkConnectionError.new(
-                'TestNetwork', "connected to 'DifferentNetwork' instead"))
+              .and_raise(
+                network_connection_error(
+                  network_name: 'TestNetwork',
+                  reason:       "connected to 'DifferentNetwork' instead"
+                )
+              )
           }
         },
         {
@@ -195,14 +213,14 @@ module WifiWand
           method: :wifi_on, args: [], error: WifiEnableError,
           before: -> {
             allow(model).to receive_messages(run_os_command: command_result(stdout: ''), wifi_on?: false)
-            allow(model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:wifi_on, 5))
+            allow(model).to receive(:till).and_raise(wait_timeout_error(action: :wifi_on, timeout: 5))
           }
         },
         {
           method: :wifi_off, args: [], error: WifiDisableError,
           before: -> {
             allow(model).to receive_messages(run_os_command: command_result(stdout: ''), wifi_on?: true)
-            allow(model).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:wifi_off, 5))
+            allow(model).to receive(:till).and_raise(wait_timeout_error(action: :wifi_off, timeout: 5))
           }
         },
       ].flatten(1)
@@ -285,8 +303,11 @@ module WifiWand
 
               # When the `security` command is called, simulate its failure by raising an
               # OsCommandError with the specific exit code for the current test case.
-              raise WifiWand::CommandExecutor::OsCommandError.new(
-                test_case[:exit_code], 'security', test_case[:message])
+              raise os_command_error(
+                exitstatus: test_case[:exit_code],
+                command:    'security',
+                text:       test_case[:message]
+              )
             end
             expect { mac_model.send(:_preferred_network_password, 'TestNetwork') }
               .to raise_error(test_case[:error])

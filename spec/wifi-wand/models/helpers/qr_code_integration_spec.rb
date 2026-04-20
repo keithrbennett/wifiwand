@@ -236,7 +236,7 @@ describe 'QR Code Integration Tests' do
       # Mock qrencode to fail
       allow(test_model).to receive(:run_os_command) do |cmd|
         if cmd.is_a?(Array) && cmd[0] == 'qrencode'
-          raise WifiWand::CommandExecutor::OsCommandError.new(1, cmd.join(' '),
+          raise os_command_error(exitstatus: 1, command: cmd.join(' '), text:
             'Simulated qrencode failure')
         else
           command_result(stdout: '')

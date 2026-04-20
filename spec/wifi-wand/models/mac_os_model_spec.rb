@@ -336,7 +336,7 @@ module WifiWand
           test_cases.each do |interface, exit_status, expected|
             if exit_status
               # Mock command failure with specific exit code
-              error = WifiWand::CommandExecutor::OsCommandError.new(exit_status, 'networksetup', '')
+              error = os_command_error(exitstatus: exit_status, command: 'networksetup', text: '')
               allow(model).to receive(:run_os_command).and_raise(error)
             else
               # Mock command success
@@ -364,7 +364,9 @@ module WifiWand
           allow(model).to receive(:run_os_command).with(%w[networksetup -listallhardwareports])
             .and_return(command_result(stdout: output))
           allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
-          expect { model.detect_wifi_interface_using_networksetup }.to raise_error(WifiWand::WifiInterfaceError)
+          expect do
+            model.detect_wifi_interface_using_networksetup
+          end.to raise_error(WifiWand::WifiInterfaceError)
         end
       end
 
@@ -375,7 +377,7 @@ module WifiWand
           test_cases = [
             ["192.168.1.100\n", '192.168.1.100'],  # Valid IP
             ['10.0.0.5', '10.0.0.5'],              # No newline
-            [WifiWand::CommandExecutor::OsCommandError.new(1, 'ipconfig', ''), nil], # Interface down
+            [os_command_error(exitstatus: 1, command: 'ipconfig', text: ''), nil], # Interface down
           ]
 
           test_cases.each do |response, expected|
@@ -391,8 +393,9 @@ module WifiWand
 
         it 're-raises unexpected ipconfig errors' do
           allow(model).to receive(:wifi_interface).and_return('en0')
-          allow(model).to receive(:run_os_command).and_raise(WifiWand::CommandExecutor::OsCommandError.new(2,
-            'ipconfig', 'boom'))
+          allow(model).to receive(:run_os_command).and_raise(
+            os_command_error(exitstatus: 2, command: 'ipconfig', text: 'boom')
+          )
           expect { model._ip_address }.to raise_error(WifiWand::CommandExecutor::OsCommandError)
         end
       end
@@ -772,9 +775,9 @@ module WifiWand
         it 'detects Swift/CoreWLAN availability' do
           test_cases = [
             [nil, true],  # Command succeeds
-            [WifiWand::CommandExecutor::OsCommandError.new(127, 'swift', ''), false], # Swift not found
-            [WifiWand::CommandExecutor::OsCommandError.new(1, 'swift', ''), false],   # CoreWLAN not available
-            [WifiWand::CommandExecutor::OsCommandError.new(2, 'swift', ''), false],    # Other error
+            [os_command_error(exitstatus: 127, command: 'swift', text: ''), false], # Swift not found
+            [os_command_error(exitstatus: 1, command: 'swift', text: ''), false],   # CoreWLAN not available
+            [os_command_error(exitstatus: 2, command: 'swift', text: ''), false],    # Other error
           ]
 
           test_cases.each do |error, expected|
@@ -806,7 +809,7 @@ module WifiWand
             ["   interface: en0\n", 'en0'],
             ['   interface: wlan0', 'wlan0'],
             ['', nil],
-            [WifiWand::CommandExecutor::OsCommandError.new(1, 'route', ''), nil],
+            [os_command_error(exitstatus: 1, command: 'route', text: ''), nil],
           ]
 
           test_cases.each do |response, expected|
@@ -940,13 +943,25 @@ module WifiWand
       describe '#_preferred_network_password' do
         it 'handles different keychain scenarios' do
           test_cases = [
-            [WifiWand::CommandExecutor::OsCommandError.new(44, 'security', ''), nil], # Not found
-            [WifiWand::CommandExecutor::OsCommandError.new(45, 'security', ''), WifiWand::KeychainAccessDeniedError],
-            [WifiWand::CommandExecutor::OsCommandError.new(128, 'security', ''), WifiWand::KeychainAccessCancelledError],
-            [WifiWand::CommandExecutor::OsCommandError.new(51, 'security', ''), WifiWand::KeychainNonInteractiveError],
-            [WifiWand::CommandExecutor::OsCommandError.new(25, 'security', ''), WifiWand::KeychainError],
-            [WifiWand::CommandExecutor::OsCommandError.new(1, 'security', 'could not be found'), nil],
-            [WifiWand::CommandExecutor::OsCommandError.new(1, 'security', 'other error'), WifiWand::KeychainError],
+            [os_command_error(exitstatus: 44, command: 'security', text: ''), nil], # Not found
+            [
+              os_command_error(exitstatus: 45, command: 'security', text: ''),
+              WifiWand::KeychainAccessDeniedError,
+            ],
+            [
+              os_command_error(exitstatus: 128, command: 'security', text: ''),
+              WifiWand::KeychainAccessCancelledError,
+            ],
+            [
+              os_command_error(exitstatus: 51, command: 'security', text: ''),
+              WifiWand::KeychainNonInteractiveError,
+            ],
+            [os_command_error(exitstatus: 25, command: 'security', text: ''), WifiWand::KeychainError],
+            [os_command_error(exitstatus: 1, command: 'security', text: 'could not be found'), nil],
+            [
+              os_command_error(exitstatus: 1, command: 'security', text: 'other error'),
+              WifiWand::KeychainError,
+            ],
             %w[mypassword123 mypassword123],
           ]
 
@@ -966,7 +981,7 @@ module WifiWand
         end
 
         it 'raises detailed KeychainError for unknown exit codes' do
-          error = WifiWand::CommandExecutor::OsCommandError.new(99, 'security', 'strange failure')
+          error = os_command_error(exitstatus: 99, command: 'security', text: 'strange failure')
           allow(model).to receive(:run_os_command).and_raise(error)
           expect { model._preferred_network_password('TestNet') }.to raise_error(WifiWand::KeychainError)
         end
@@ -990,7 +1005,7 @@ module WifiWand
             if command == expected_cmd
               expect(args).to eq([true])
               expect(kwargs).to eq(timeout_in_secs: described_class::KEYCHAIN_LOOKUP_TIMEOUT_SECONDS)
-              raise WifiWand::CommandExecutor::OsCommandError.new(44, 'security', '')
+              raise os_command_error(exitstatus: 44, command: 'security', text: '')
             else
               command_result(stdout: 'Wi-Fi Power (en0): On')
             end
@@ -1037,7 +1052,7 @@ module WifiWand
           allow(model).to receive(:_disconnect).and_return(nil)
           allow(model).to receive(:till)
             .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
-            .and_raise(WifiWand::WaitTimeoutError.new(:disassociated, 5))
+            .and_raise(wait_timeout_error(action: :disassociated, timeout: 5))
 
           expect { model.disconnect }
             .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
@@ -1052,7 +1067,7 @@ module WifiWand
           allow(model).to receive(:_disconnect).and_return(nil)
           allow(model).to receive(:till)
             .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
-            .and_raise(WifiWand::WaitTimeoutError.new(:disassociated, 5))
+            .and_raise(wait_timeout_error(action: :disassociated, timeout: 5))
 
           expect { model.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) { |error|
             expect(error.network_name).to be_nil
@@ -1096,7 +1111,7 @@ module WifiWand
             .and_return(command_result(stdout: ''))
           allow(model).to receive(:till)
             .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
-            .and_raise(WifiWand::WaitTimeoutError.new(:disassociated, 5))
+            .and_raise(wait_timeout_error(action: :disassociated, timeout: 5))
 
           expect { model.disconnect }
             .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
@@ -1466,10 +1481,10 @@ module WifiWand
           allow(model).to receive(:os_level_connect_using_swift)
             .with('TestNetwork', 'password')
             .and_raise(
-              WifiWand::CommandExecutor::OsCommandError.new(
-                1,
-                'swift',
-                "Error connecting: The operation couldn't be completed. tmpErr (code: 82)"
+              os_command_error(
+                exitstatus: 1,
+                command:    'swift',
+                text:       "Error connecting: The operation couldn't be completed. tmpErr (code: 82)"
               )
             )
           expect(model).to receive(:os_level_connect_using_networksetup).with('TestNetwork', 'password')
@@ -1482,10 +1497,10 @@ module WifiWand
           allow(model).to receive(:os_level_connect_using_swift)
             .with('TestNetwork', 'password')
             .and_raise(
-              WifiWand::CommandExecutor::OsCommandError.new(
-                1,
-                'swift',
-                'Error connecting: permission denied'
+              os_command_error(
+                exitstatus: 1,
+                command:    'swift',
+                text:       'Error connecting: permission denied'
               )
             )
           expect(model).not_to receive(:os_level_connect_using_networksetup)

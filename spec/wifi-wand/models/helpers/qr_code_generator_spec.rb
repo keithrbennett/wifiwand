@@ -66,7 +66,7 @@ describe 'QR Code Generator (unit)' do
 
   it 'raises WifiWand::Error when ANSI generation command fails' do
     expect(model).to receive(:run_os_command)
-      .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'qrencode', 'boom'))
+      .and_raise(os_command_error(exitstatus: 1, command: 'qrencode', text: 'boom'))
 
     expect do
       silence_output { model.generate_qr_code('-', delivery_mode: :print) }

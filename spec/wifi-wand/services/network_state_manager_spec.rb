@@ -88,8 +88,12 @@ describe WifiWand::NetworkStateManager do
           connected_network_name:     'OtherNetwork',
           preferred_network_password: 'testpass'
         )
-        allow(mock_model).to receive(:connect).and_raise(WifiWand::NetworkConnectionError.new('TestNetwork',
-          'Network unavailable'))
+        allow(mock_model).to receive(:connect).and_raise(
+          network_connection_error(
+            network_name: 'TestNetwork',
+            reason:       'Network unavailable'
+          )
+        )
 
         expect do
           state_manager.restore_network_state(valid_state, fail_silently: false)
@@ -116,8 +120,12 @@ describe WifiWand::NetworkStateManager do
           connected_network_name:     'OtherNetwork',
           preferred_network_password: 'testpass'
         )
-        allow(mock_model).to receive(:connect).and_raise(WifiWand::NetworkConnectionError.new('TestNetwork',
-          'Network unavailable'))
+        allow(mock_model).to receive(:connect).and_raise(
+          network_connection_error(
+            network_name: 'TestNetwork',
+            reason:       'Network unavailable'
+          )
+        )
         allow(mock_model).to receive(:till)
 
         target_str = 'Warning: Could not restore network state ' \

@@ -484,7 +484,10 @@ module WifiWand
       plain_result = run_os_command(['ifconfig', iface, 'disassociate'], false)
       return nil if plain_result.success?
 
-      raise NetworkDisconnectionError.new(nil, disconnect_failure_reason(sudo_result, plain_result))
+      raise(NetworkDisconnectionError.new(
+        network_name: nil,
+        reason:       disconnect_failure_reason(sudo_result, plain_result)
+      ))
     end
 
     def mac_address
@@ -657,10 +660,14 @@ module WifiWand
 
       if authentication_failed?(output_text)
         reason = extract_auth_failure_reason(output_text)
-        raise NetworkAuthenticationError.new(network_name, reason)
+        raise(NetworkAuthenticationError.new(network_name: network_name, reason: reason))
       end
 
-      raise WifiWand::CommandExecutor::OsCommandError.new(1, 'networksetup', output_text.strip)
+      raise(WifiWand::CommandExecutor::OsCommandError.new(
+        exitstatus: 1,
+        command:    'networksetup',
+        text:       output_text.strip
+      ))
     end
 
     private def connection_failed?(output_text)

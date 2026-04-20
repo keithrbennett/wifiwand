@@ -210,8 +210,12 @@ module WifiWand
       # On some systems the SSID can disappear briefly during state churn before
       # the radio re-associates. Require a short stable disassociation window so
       # a transient nil SSID does not count as a successful disconnect.
-      raise WifiWand::WaitTimeoutError.new(:disassociated, disconnect_stability_window_in_secs) unless
-        disassociated_stable?
+      unless disassociated_stable?
+        raise(WifiWand::WaitTimeoutError.new(
+          action:  :disassociated,
+          timeout: disconnect_stability_window_in_secs
+        ))
+      end
 
       nil
     rescue WifiWand::WaitTimeoutError
@@ -225,7 +229,7 @@ module WifiWand
       lingering_network_name = current_network_name || original_network_name
       reason = lingering_network_name ? "still associated with '#{lingering_network_name}'" :
         'interface remained associated'
-      raise NetworkDisconnectionError.new(lingering_network_name, reason)
+      raise(NetworkDisconnectionError.new(network_name: lingering_network_name, reason: reason))
     end
 
     # Returns true when the model considers the requested network fully usable.
@@ -467,20 +471,24 @@ module WifiWand
       country = parsed['country'].to_s.strip.upcase
 
       unless valid_public_ip_address?(address) && country.match?(COUNTRY_CODE_REGEX)
-        raise WifiWand::PublicIPLookupError.new(
-          message: 'Public IP lookup failed: malformed response',
-          url:     uri.to_s,
-          body:    response.body
-        )
+        raise(WifiWand::PublicIPLookupError.new(
+          status_code:    nil,
+          status_message: nil,
+          message:        'Public IP lookup failed: malformed response',
+          url:            uri.to_s,
+          body:           response.body
+        ))
       end
 
       { 'address' => address, 'country' => country }
     rescue JSON::ParserError
-      raise WifiWand::PublicIPLookupError.new(
-        message: 'Public IP lookup failed: malformed response',
-        url:     uri.to_s,
-        body:    response&.body
-      )
+      raise(WifiWand::PublicIPLookupError.new(
+        status_code:    nil,
+        status_message: nil,
+        message:        'Public IP lookup failed: malformed response',
+        url:            uri.to_s,
+        body:           response&.body
+      ))
     end
 
     def public_ip_address
@@ -491,11 +499,13 @@ module WifiWand
       if valid_public_ip_address?(address)
         address
       else
-        raise WifiWand::PublicIPLookupError.new(
-          message: 'Public IP lookup failed: malformed response',
-          url:     uri.to_s,
-          body:    response.body
-        )
+        raise(WifiWand::PublicIPLookupError.new(
+          status_code:    nil,
+          status_message: nil,
+          message:        'Public IP lookup failed: malformed response',
+          url:            uri.to_s,
+          body:           response.body
+        ))
       end
     end
 
@@ -572,26 +582,34 @@ module WifiWand
       return response if response.is_a?(Net::HTTPSuccess)
 
       if response.code == '429'
-        raise WifiWand::PublicIPLookupError.new(
-          message: 'Public IP lookup failed: rate limited',
-          url:     uri.to_s
-        )
+        raise(WifiWand::PublicIPLookupError.new(
+          status_code:    nil,
+          status_message: nil,
+          message:        'Public IP lookup failed: rate limited',
+          url:            uri.to_s
+        ))
       end
 
-      raise WifiWand::PublicIPLookupError.new(
-        message: "Public IP lookup failed: HTTP #{response.code} #{response.message}",
-        url:     uri.to_s
-      )
+      raise(WifiWand::PublicIPLookupError.new(
+        status_code:    response.code,
+        status_message: response.message,
+        message:        "Public IP lookup failed: HTTP #{response.code} #{response.message}",
+        url:            uri.to_s
+      ))
     rescue Timeout::Error, Errno::ETIMEDOUT
-      raise WifiWand::PublicIPLookupError.new(
-        message: 'Public IP lookup failed: timeout',
-        url:     uri.to_s
-      )
+      raise(WifiWand::PublicIPLookupError.new(
+        status_code:    nil,
+        status_message: nil,
+        message:        'Public IP lookup failed: timeout',
+        url:            uri.to_s
+      ))
     rescue SocketError, IOError, SystemCallError, OpenSSL::SSL::SSLError
-      raise WifiWand::PublicIPLookupError.new(
-        message: 'Public IP lookup failed: network error',
-        url:     uri.to_s
-      )
+      raise(WifiWand::PublicIPLookupError.new(
+        status_code:    nil,
+        status_message: nil,
+        message:        'Public IP lookup failed: network error',
+        url:            uri.to_s
+      ))
     end
 
     # Normalizes a raw security descriptor string from OS tools to

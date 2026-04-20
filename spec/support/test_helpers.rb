@@ -13,6 +13,18 @@ module TestHelpers
 
   def network_state = NetworkStateManager.network_state
 
+  def os_command_error(exitstatus:, command:, text: nil)
+    WifiWand::CommandExecutor::OsCommandError.new(exitstatus: exitstatus, command: command, text: text)
+  end
+
+  def network_connection_error(network_name:, reason: nil)
+    WifiWand::NetworkConnectionError.new(network_name: network_name, reason: reason)
+  end
+
+  def wait_timeout_error(action:, timeout:)
+    WifiWand::WaitTimeoutError.new(action: action, timeout: timeout)
+  end
+
   # Helper method to create models with verbose configuration
   # Handles missing system commands gracefully for CI environments
   def create_test_model(options = {})

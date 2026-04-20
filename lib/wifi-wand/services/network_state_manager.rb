@@ -107,10 +107,8 @@ module WifiWand
               actual_network = nil
             end
 
-            error = WifiWand::NetworkConnectionError.new(
-              state[:network_name],
-              "timed out waiting for connection; currently connected to #{actual_network.inspect}"
-            )
+            reason = "timed out waiting for connection; currently connected to #{actual_network.inspect}"
+            error = WifiWand::NetworkConnectionError.new(network_name: state[:network_name], reason: reason)
             error.set_backtrace(e.backtrace)
             raise error
           end
@@ -155,8 +153,13 @@ module WifiWand
 
       loop do
         return if @model.connection_ready?(network_name)
-        raise WifiWand::WaitTimeoutError.new(:associated, TimingConstants::NETWORK_CONNECTION_WAIT) \
-          if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+
+        if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+          raise(WifiWand::WaitTimeoutError.new(
+            action:  :associated,
+            timeout: TimingConstants::NETWORK_CONNECTION_WAIT
+          ))
+        end
 
         sleep(TimingConstants::DEFAULT_WAIT_INTERVAL)
       end

@@ -97,7 +97,7 @@ module WifiWand
 
         unless wait_result
           terminate_process(wait_thr)
-          raise CommandTimeoutError.new(command_display, timeout_in_secs)
+          raise(CommandTimeoutError.new(command: command_display, timeout_in_secs: timeout_in_secs))
         end
 
         # Wait for both threads to finish (i.e., both streams are fully read)
@@ -145,7 +145,7 @@ module WifiWand
       end
 
       if !result.success? && raise_on_error
-        raise OsCommandError, result
+        raise(OsCommandError.new(result: result))
       end
 
       result
@@ -235,19 +235,15 @@ module WifiWand
     class OsCommandError < WifiWand::Error
       attr_reader :exitstatus, :command, :text, :result
 
-      def initialize(result_or_exitstatus, command = nil, text = nil)
-        @result = if result_or_exitstatus.is_a?(OsCommandResult)
-          result_or_exitstatus
-        else
-          OsCommandResult.new(
-            stdout:          text,
-            stderr:          '',
-            combined_output: text,
-            exitstatus:      result_or_exitstatus,
-            command:         command,
-            duration:        nil
-          )
-        end
+      def initialize(result: nil, exitstatus: nil, command: nil, text: nil)
+        @result = result || OsCommandResult.new(
+          stdout:          text,
+          stderr:          '',
+          combined_output: text,
+          exitstatus:      exitstatus,
+          command:         command,
+          duration:        nil
+        )
 
         @exitstatus = @result.exitstatus
         @command = @result.command

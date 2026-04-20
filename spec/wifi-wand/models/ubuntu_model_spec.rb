@@ -33,7 +33,8 @@ module WifiWand
           allow(subject).to receive(:wifi_on?).and_return(false, false)
           allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi on])
             .and_return(command_result(stdout: ''))
-          allow(subject).to receive(:till).with(:wifi_on, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT).and_return(nil)
+          timeout = WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT
+          allow(subject).to receive(:till).with(:wifi_on, timeout_in_secs: timeout).and_return(nil)
 
           expect { subject.wifi_on }.to raise_error(WifiWand::WifiEnableError)
         end
@@ -42,7 +43,8 @@ module WifiWand
           allow(subject).to receive(:wifi_on?).and_return(true, true)
           allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi off])
             .and_return(command_result(stdout: ''))
-          allow(subject).to receive(:till).with(:wifi_off, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT).and_return(nil)
+          timeout = WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT
+          allow(subject).to receive(:till).with(:wifi_off, timeout_in_secs: timeout).and_return(nil)
 
           expect { subject.wifi_off }.to raise_error(WifiWand::WifiDisableError)
         end
@@ -99,8 +101,13 @@ module WifiWand
 
           expect(subject).to receive(:run_os_command)
             .with(%w[nmcli dev wifi connect SSID1 password wrongpass])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect',
-              'Error: Connection activation failed: (53) authentication failed'))
+            .and_raise(
+              os_command_error(
+                exitstatus: 4,
+                command:    'nmcli dev wifi connect',
+                text:       'Error: Connection activation failed: (53) authentication failed'
+              )
+            )
           expect(subject).not_to receive(:run_os_command)
             .with(%w[nmcli connection modify SSID1 802-11-wireless-security.psk wrongpass])
           expect { subject._connect('SSID1', 'wrongpass') }
@@ -158,9 +165,15 @@ module WifiWand
         it 'raises NetworkNotFoundError when network not in range' do
           setup_connect_test
 
-          expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SSID4 password pw])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(10, 'nmcli dev wifi connect',
-              'Error: No network with SSID \'SSID4\' found'))
+          expect(subject).to receive(:run_os_command)
+            .with(%w[nmcli dev wifi connect SSID4 password pw])
+            .and_raise(
+              os_command_error(
+                exitstatus: 10,
+                command:    'nmcli dev wifi connect',
+                text:       "Error: No network with SSID 'SSID4' found"
+              )
+            )
 
           expect { subject._connect('SSID4', 'pw') }
             .to raise_error(WifiWand::NetworkNotFoundError, /SSID4/)
@@ -171,8 +184,13 @@ module WifiWand
 
           expect(subject).to receive(:run_os_command)
             .with(%w[nmcli dev wifi connect SecureNet password wrongpass])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect',
-              'Error: Connection activation failed: Secrets were required, but not provided'))
+            .and_raise(
+              os_command_error(
+                exitstatus: 4,
+                command:    'nmcli dev wifi connect',
+                text:       'Error: Connection activation failed: Secrets were required, but not provided'
+              )
+            )
 
           expect { subject._connect('SecureNet', 'wrongpass') }
             .to raise_error(WifiWand::NetworkAuthenticationError, /SecureNet/)
@@ -183,8 +201,13 @@ module WifiWand
 
           expect(subject).to receive(:run_os_command)
             .with(%w[nmcli dev wifi connect SecureNet password badpass])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect',
-              'Error: Connection activation failed: (53) authentication failed'))
+            .and_raise(
+              os_command_error(
+                exitstatus: 4,
+                command:    'nmcli dev wifi connect',
+                text:       'Error: Connection activation failed: (53) authentication failed'
+              )
+            )
 
           expect { subject._connect('SecureNet', 'badpass') }
             .to raise_error(WifiWand::NetworkAuthenticationError, /SecureNet/)
@@ -195,8 +218,13 @@ module WifiWand
 
           expect(subject).to receive(:run_os_command)
             .with(%w[nmcli dev wifi connect SecureNet password invalid])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(7, 'nmcli dev wifi connect',
-              'Error: Connection activation failed: (7) No secrets provided'))
+            .and_raise(
+              os_command_error(
+                exitstatus: 7,
+                command:    'nmcli dev wifi connect',
+                text:       'Error: Connection activation failed: (7) No secrets provided'
+              )
+            )
 
           expect { subject._connect('SecureNet', 'invalid') }
             .to raise_error(WifiWand::NetworkAuthenticationError, /SecureNet/)
@@ -208,8 +236,13 @@ module WifiWand
 
           expect(subject).to receive(:run_os_command)
             .with(%w[nmcli dev wifi connect SSID5])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(
-              5, 'nmcli dev wifi connect', 'Error: No suitable device found'))
+            .and_raise(
+              os_command_error(
+                exitstatus: 5,
+                command:    'nmcli dev wifi connect',
+                text:       'Error: No suitable device found'
+              )
+            )
 
           expect { subject._connect('SSID5') }.to raise_error(WifiWand::WifiInterfaceError)
         end
@@ -218,8 +251,13 @@ module WifiWand
           setup_connect_test
 
           expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect WeakSignal])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect',
-              'Error: Connection activation failed'))
+            .and_raise(
+              os_command_error(
+                exitstatus: 4,
+                command:    'nmcli dev wifi connect',
+                text:       'Error: Connection activation failed'
+              )
+            )
 
           expect { subject._connect('WeakSignal') }
             .to raise_error(WifiWand::NetworkConnectionError, /out of range/)
@@ -229,8 +267,13 @@ module WifiWand
           setup_connect_test
 
           expect(subject).to receive(:run_os_command).with(%w[nmcli dev wifi connect SSID6 password pw])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(2, 'nmcli dev wifi connect',
-              'Unknown system failure'))
+            .and_raise(
+              os_command_error(
+                exitstatus: 2,
+                command:    'nmcli dev wifi connect',
+                text:       'Unknown system failure'
+              )
+            )
 
           expect { subject._connect('SSID6', 'pw') }
             .to raise_error(WifiWand::CommandExecutor::OsCommandError, /Unknown system failure/)
@@ -240,7 +283,7 @@ module WifiWand
       describe '#get_security_parameter and #security_parameter' do
         it 'returns nil when nmcli scan fails' do
           expect(subject).to receive(:run_os_command).with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'scan failed'))
+            .and_raise(os_command_error(exitstatus: 1, command: 'nmcli', text: 'scan failed'))
           expect(subject.send(:get_security_parameter, 'Any')).to be_nil
         end
 
@@ -261,7 +304,7 @@ module WifiWand
         it 'returns nil when listing connections fails' do
           expect(subject).to receive(:run_os_command)
             .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], false)
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'Error'))
+            .and_raise(os_command_error(exitstatus: 1, command: 'nmcli', text: 'Error'))
           expect(subject.send(:find_best_profile_for_ssid, 'SSID')).to be_nil
         end
 
@@ -446,7 +489,7 @@ module WifiWand
       describe '#default_interface' do
         it 'returns nil when ip route command fails' do
           expect(subject).to receive(:run_os_command).with(%w[ip route show default], false)
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'ip route show default', 'failed'))
+            .and_raise(os_command_error(exitstatus: 1, command: 'ip route show default', text: 'failed'))
           expect(subject.default_interface).to be_nil
         end
       end
@@ -466,7 +509,7 @@ module WifiWand
 
         it 'returns empty array when nmcli connection show fails' do
           expect(subject).to receive(:run_os_command).with(%w[nmcli connection show ConnY], false)
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli connection show', 'failed'))
+            .and_raise(os_command_error(exitstatus: 1, command: 'nmcli connection show', text: 'failed'))
           expect(subject.send(:nameservers_from_connection, 'ConnY')).to eq([])
         end
 
@@ -578,7 +621,7 @@ module WifiWand
         it 'handles command failures gracefully' do
           allow(subject).to receive(:run_os_command)
             .with(%w[iw dev])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'iw dev', 'Command failed'))
+            .and_raise(os_command_error(exitstatus: 1, command: 'iw dev', text: 'Command failed'))
 
           expect { subject.probe_wifi_interface }
             .to raise_error(WifiWand::CommandExecutor::OsCommandError)
@@ -646,7 +689,7 @@ module WifiWand
       describe '#_ip_address' do
         it 'returns IP address from interface' do
           ip_output = <<~OUT.chomp
-            2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+            2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP>
             inet 192.168.1.100/24 brd 192.168.1.255 scope global dynamic noprefixroute wlp3s0
           OUT
           wifi_interface = 'wlp3s0'
@@ -686,7 +729,7 @@ module WifiWand
       describe '#mac_address' do
         it 'returns MAC address of wifi interface' do
           mac_output = <<~OUT.chomp
-            2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP mode DORMANT group default qlen 1000
+            2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP>
             link/ether aa:bb:cc:dd:ee:ff brd ff:ff:ff:ff:ff:ff
           OUT
           wifi_interface = 'wlp3s0'
@@ -755,7 +798,7 @@ module WifiWand
         it 'returns nil when nmcli command fails' do
           allow(subject).to receive(:run_os_command)
             .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'Command failed'))
+            .and_raise(os_command_error(exitstatus: 1, command: 'nmcli', text: 'Command failed'))
 
           expect(subject.connection_security_type).to be_nil
         end
@@ -808,7 +851,7 @@ module WifiWand
         it 'returns false when nmcli command fails' do
           allow(subject).to receive(:run_os_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name], false)
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'Command failed'))
+            .and_raise(os_command_error(exitstatus: 1, command: 'nmcli', text: 'Command failed'))
 
           expect(subject.network_hidden?).to be false
         end
@@ -1287,7 +1330,7 @@ module WifiWand
           allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
           expect(subject).to receive(:run_os_command)
             .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', 'wlp3s0'], false)
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(10, 'nmcli', 'failed'))
+            .and_raise(os_command_error(exitstatus: 10, command: 'nmcli', text: 'failed'))
 
           expect(subject.active_connection_profile_name).to be_nil
         end
@@ -1559,8 +1602,8 @@ module WifiWand
           allow(subject).to receive(:run_os_command).with(/nmcli radio wifi$/, anything)
             .and_return(command_result(stdout: 'disabled'))
 
-          # Mock the till method to immediately raise WaitTimeoutError (which wifi_on catches and converts to WifiEnableError)
-          allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:wifi_on, 5))
+          # Mock till to raise WaitTimeoutError; wifi_on converts it to WifiEnableError.
+          allow(subject).to receive(:till).and_raise(wait_timeout_error(action: :wifi_on, timeout: 5))
 
           expect { subject.wifi_on }.to raise_error(WifiWand::WifiEnableError)
         end
@@ -1574,8 +1617,8 @@ module WifiWand
           allow(subject).to receive(:run_os_command).with(%w[nmcli radio wifi], anything)
             .and_return(command_result(stdout: 'enabled'))
 
-          # Mock the till method to immediately raise WaitTimeoutError (which wifi_off catches and converts to WifiDisableError)
-          allow(subject).to receive(:till).and_raise(WifiWand::WaitTimeoutError.new(:wifi_off, 5))
+          # Mock till to raise WaitTimeoutError; wifi_off converts it to WifiDisableError.
+          allow(subject).to receive(:till).and_raise(wait_timeout_error(action: :wifi_off, timeout: 5))
 
           expect { subject.wifi_off }.to raise_error(WifiWand::WifiDisableError)
         end
@@ -1586,8 +1629,13 @@ module WifiWand
           allow(subject).to receive_messages(wifi_on?: true, associated?: true, wifi_interface: 'wlan0')
           allow(subject).to receive(:run_os_command)
             .with(%w[nmcli dev disconnect wlan0])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli dev disconnect wlan0',
-              'Device disconnect failed'))
+            .and_raise(
+              os_command_error(
+                exitstatus: 1,
+                command:    'nmcli dev disconnect wlan0',
+                text:       'Device disconnect failed'
+              )
+            )
 
           expect { subject.disconnect }
             .to raise_error(WifiWand::CommandExecutor::OsCommandError, /Device disconnect failed/)
@@ -1629,7 +1677,9 @@ module WifiWand
           original_stdout = $stdout
           $stdout = StringIO.new
           begin
-            expect { subject.set_nameservers(invalid_nameservers) }.to raise_error(WifiWand::InvalidIPAddressError)
+            expect do
+              subject.set_nameservers(invalid_nameservers)
+            end.to raise_error(WifiWand::InvalidIPAddressError)
           ensure
             $stdout = original_stdout
           end
@@ -1683,11 +1733,13 @@ module WifiWand
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
-            .ordered.and_raise(WifiWand::CommandExecutor::OsCommandError.new(
-              1,
-              'nmcli connection modify',
-              'Connection modify failed'
-            ))
+            .ordered.and_raise(
+              os_command_error(
+                exitstatus: 1,
+                command:    'nmcli connection modify',
+                text:       'Connection modify failed'
+              )
+            )
           expect(subject).to receive(:run_os_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '192.168.1.1 8.8.8.8'])
             .ordered.and_return(command_result(stdout: ''))
@@ -1714,11 +1766,13 @@ module WifiWand
           allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
           allow(subject).to receive(:run_os_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(
-              1,
-              'nmcli connection modify',
-              'Permission denied'
-            ))
+            .and_raise(
+              os_command_error(
+                exitstatus: 1,
+                command:    'nmcli connection modify',
+                text:       'Permission denied'
+              )
+            )
 
           expect { subject.set_nameservers(:clear) }
             .to raise_error(WifiWand::DnsConfigurationError, /Permission denied/)
@@ -1729,10 +1783,10 @@ module WifiWand
 
           allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
           allow(subject).to receive(:dns_configuration_snapshot).and_raise(
-            WifiWand::CommandExecutor::OsCommandError.new(
-              1,
-              'nmcli --get-values ipv4.dns',
-              'Failed to read current DNS state'
+            os_command_error(
+              exitstatus: 1,
+              command:    'nmcli --get-values ipv4.dns',
+              text:       'Failed to read current DNS state'
             )
           )
 
@@ -1759,11 +1813,13 @@ module WifiWand
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
             .with(['nmcli', 'connection', 'up', connection_name])
-            .ordered.and_raise(WifiWand::CommandExecutor::OsCommandError.new(
-              1,
-              'nmcli connection up',
-              'Activation failed'
-            ))
+            .ordered.and_raise(
+              os_command_error(
+                exitstatus: 1,
+                command:    'nmcli connection up',
+                text:       'Activation failed'
+              )
+            )
           expect(subject).to receive(:run_os_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '192.168.1.1 8.8.8.8'])
             .ordered.and_return(command_result(stdout: ''))
@@ -1802,18 +1858,22 @@ module WifiWand
             .ordered.and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_os_command)
             .with(['nmcli', 'connection', 'up', connection_name])
-            .ordered.and_raise(WifiWand::CommandExecutor::OsCommandError.new(
-              1,
-              'nmcli connection up',
-              'Activation failed'
-            ))
+            .ordered.and_raise(
+              os_command_error(
+                exitstatus: 1,
+                command:    'nmcli connection up',
+                text:       'Activation failed'
+              )
+            )
           expect(subject).to receive(:run_os_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '192.168.1.1 8.8.8.8'])
-            .ordered.and_raise(WifiWand::CommandExecutor::OsCommandError.new(
-              1,
-              'nmcli connection modify',
-              'Rollback modify failed'
-            ))
+            .ordered.and_raise(
+              os_command_error(
+                exitstatus: 1,
+                command:    'nmcli connection modify',
+                text:       'Rollback modify failed'
+              )
+            )
 
           expect { subject.set_nameservers(['8.8.8.8']) }
             .to raise_error(WifiWand::DnsConfigurationError, /rollback failed: Rollback modify failed/)
@@ -1837,8 +1897,11 @@ module WifiWand
           # Mock the specific command to fail
           allow(subject).to receive(:run_os_command)
             .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1,
-              'nmcli -t -f SSID,SIGNAL dev wifi list', 'Scan failed'))
+            .and_raise(os_command_error(
+              exitstatus: 1,
+              command:    'nmcli -t -f SSID,SIGNAL dev wifi list',
+              text:       'Scan failed'
+            ))
 
           expect { subject.available_network_names }
             .to raise_error(WifiWand::CommandExecutor::OsCommandError, /Scan failed/)
@@ -1863,10 +1926,17 @@ module WifiWand
           allow(subject).to receive_messages(_connected_network_name: nil, find_best_profile_for_ssid: nil)
           allow(subject).to receive(:run_os_command)
             .with(%w[nmcli dev wifi connect non_existent_network_123])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(10, 'nmcli dev wifi connect',
-              'No network with SSID "non_existent_network_123" found'))
+            .and_raise(
+              os_command_error(
+                exitstatus: 10,
+                command:    'nmcli dev wifi connect',
+                text:       'No network with SSID "non_existent_network_123" found'
+              )
+            )
 
-          expect { subject._connect('non_existent_network_123') }.to raise_error(WifiWand::NetworkNotFoundError)
+          expect do
+            subject._connect('non_existent_network_123')
+          end.to raise_error(WifiWand::NetworkNotFoundError)
         end
 
         it 'raises NetworkConnectionError for generic connection activation failures' do
@@ -1877,8 +1947,13 @@ module WifiWand
           # Mock the actual connection attempt that will be made
           allow(subject).to receive(:run_os_command)
             .with(%w[nmcli dev wifi connect TestNetwork password test_password])
-            .and_raise(WifiWand::CommandExecutor::OsCommandError.new(4, 'nmcli dev wifi connect',
-              'Connection activation failed'))
+            .and_raise(
+              os_command_error(
+                exitstatus: 4,
+                command:    'nmcli dev wifi connect',
+                text:       'Connection activation failed'
+              )
+            )
 
           # Generic activation failed should now raise NetworkConnectionError (out of range)
           expect { subject._connect('TestNetwork', 'test_password') }

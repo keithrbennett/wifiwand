@@ -142,7 +142,7 @@ describe 'QR Code Overwrite Confirmation' do
         expect(File.read(filename)).to eq('old')
 
         File.write(staged_filename, 'partial')
-        raise WifiWand::CommandExecutor::OsCommandError.new(1, cmd.join(' '), 'boom')
+        raise os_command_error(exitstatus: 1, command: cmd.join(' '), text: 'boom')
       end
       expect(File).not_to receive(:rename)
 
@@ -165,7 +165,7 @@ describe 'QR Code Overwrite Confirmation' do
         expect(File.read(filename)).to eq('old')
 
         File.write(staged_filename, 'partial')
-        raise WifiWand::CommandExecutor::OsCommandError.new(1, cmd.join(' '), 'boom')
+        raise os_command_error(exitstatus: 1, command: cmd.join(' '), text: 'boom')
       end
       expect(File).not_to receive(:rename)
 

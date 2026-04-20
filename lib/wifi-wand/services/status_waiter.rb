@@ -84,7 +84,7 @@ module WifiWand
       loop do
         elapsed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
         if timeout_in_secs && elapsed_time >= timeout_in_secs
-          raise WaitTimeoutError.new(target_status, timeout_in_secs)
+          raise(WaitTimeoutError.new(action: target_status, timeout: timeout_in_secs))
         end
 
         (@output || $stdout).puts "#{message_prefix} checking predicate..." if @verbose

@@ -346,7 +346,7 @@ describe WifiWand::Main do
     end
 
     it 'handles OsCommandError with specific error message and returns code 1' do
-      ex = WifiWand::CommandExecutor::OsCommandError.new(1, 'a command', 'a message')
+      ex = os_command_error(exitstatus: 1, command: 'a command', text: 'a message')
       allow(mock_cli).to receive(:call).and_raise(ex)
 
       expected_output = <<~MESSAGE

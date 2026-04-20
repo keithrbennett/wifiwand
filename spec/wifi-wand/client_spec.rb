@@ -67,7 +67,8 @@ RSpec.describe WifiWand::Client do
     end
 
     it 're-raises NoSupportedOSError if no OS is detected' do
-      allow(WifiWand::OperatingSystems).to receive(:create_model_for_current_os).and_raise(WifiWand::NoSupportedOSError)
+      allow(WifiWand::OperatingSystems).to receive(:create_model_for_current_os)
+        .and_raise(WifiWand::NoSupportedOSError)
       expect { described_class.new }.to raise_error(WifiWand::NoSupportedOSError)
     end
   end
@@ -90,7 +91,7 @@ RSpec.describe WifiWand::Client do
     end
 
     it 'propagates errors from the model' do
-      allow(mock_model).to receive(:connect).and_raise(WifiWand::NetworkConnectionError.new(network_name))
+      allow(mock_model).to receive(:connect).and_raise(network_connection_error(network_name: network_name))
       expect { client.connect(network_name, password) }.to raise_error(WifiWand::NetworkConnectionError)
     end
   end

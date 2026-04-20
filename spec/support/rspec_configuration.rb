@@ -170,7 +170,7 @@ module RSpecConfiguration
         .to receive(:run_os_command)
         .and_wrap_original do |method, command, *args|
           if command.to_s.match?(security_regex)
-            raise WifiWand::CommandExecutor::OsCommandError.new(44, 'security', '')
+            raise os_command_error(exitstatus: 44, command: 'security', text: '')
           end
 
           method.call(command, *args)

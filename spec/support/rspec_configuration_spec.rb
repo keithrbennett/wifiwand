@@ -316,7 +316,7 @@ RSpec.describe RSpecConfiguration do
     end
 
     it 'raises after printing a visible failure for expected restoration errors' do
-      error = WifiWand::NetworkConnectionError.new('MyNetwork', 'timed out')
+      error = network_connection_error(network_name: 'MyNetwork', reason: 'timed out')
       allow(NetworkStateManager).to receive(:restore_state).with(fail_silently: false).and_raise(error)
 
       expect do

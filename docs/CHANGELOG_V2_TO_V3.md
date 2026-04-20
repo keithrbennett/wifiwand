@@ -10,6 +10,28 @@ smaller and easier to reason about before broader release.
 
 ## Breaking Changes
 
+### Error constructor keywords
+
+Several `WifiWand::Error` subclasses that previously accepted multiple
+positional constructor arguments now require keyword arguments instead.
+
+This change makes the call sites self-describing and removes ambiguous
+argument ordering from the error API.
+
+#### Migration
+
+```ruby
+# Old
+raise WifiWand::NetworkConnectionError.new('MyNet', 'timed out')
+raise WifiWand::WaitTimeoutError.new(:associated, 5)
+raise WifiWand::CommandExecutor::OsCommandError.new(1, 'nmcli', 'boom')
+
+# New
+raise WifiWand::NetworkConnectionError.new(network_name: 'MyNet', reason: 'timed out')
+raise WifiWand::WaitTimeoutError.new(action: :associated, timeout: 5)
+raise WifiWand::CommandExecutor::OsCommandError.new(exitstatus: 1, command: 'nmcli', text: 'boom')
+```
+
 ### CLI Command Matching
 
 #### Partial command abbreviations removed

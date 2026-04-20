@@ -224,7 +224,7 @@ describe WifiWand::CommandExecutor do
   end
 
   describe WifiWand::CommandExecutor::OsCommandError do
-    let(:error) { described_class.new(1, 'false', 'command failed') }
+    let(:error) { described_class.new(exitstatus: 1, command: 'false', text: 'command failed') }
 
     it 'stores command execution details' do
       expect(error.exitstatus).to eq(1)

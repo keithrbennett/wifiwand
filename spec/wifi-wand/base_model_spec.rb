@@ -246,7 +246,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(model).to receive(:_disconnect)
       allow(model).to receive(:till)
         .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
-        .and_raise(WifiWand::WaitTimeoutError.new(:disassociated, 5))
+        .and_raise(wait_timeout_error(action: :disassociated, timeout: 5))
 
       expect { model.disconnect }
         .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
@@ -1236,7 +1236,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     context 'when handling errors' do
       it 'raises WifiWand::Error when qrencode command fails' do
         allow(subject).to receive(:run_os_command)
-          .and_raise(WifiWand::CommandExecutor::OsCommandError.new(1, 'qrencode', 'Command failed'))
+          .and_raise(os_command_error(exitstatus: 1, command: 'qrencode', text: 'Command failed'))
 
         expect { silence_output { subject.generate_qr_code } }
           .to raise_error(WifiWand::Error, /Failed to generate QR code/)
