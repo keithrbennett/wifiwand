@@ -771,6 +771,13 @@ describe WifiWand::CommandLineInterface do
         expect { subject.cmd_h('connect') }.to output(/Usage: wifi-wand connect/).to_stdout
       end
 
+      it 'prints command-specific help for forget' do
+        forget_command = WifiWand::ForgetCommand.new.bind(subject)
+        allow(subject).to receive(:find_bound_command).with('forget').and_return(forget_command)
+
+        expect { subject.cmd_h('forget') }.to output(/Usage: wifi-wand forget/).to_stdout
+      end
+
       it 'prints command-specific help for nameservers' do
         nameservers_command = WifiWand::NameserversCommand.new.bind(subject)
         allow(subject).to receive(:find_bound_command).with('nameservers').and_return(nameservers_command)

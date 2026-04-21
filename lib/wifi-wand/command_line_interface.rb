@@ -132,9 +132,8 @@ module WifiWand
       build_pref_nets_command.call
     end
 
-    def cmd_f(*options)
-      removed_networks = model.remove_preferred_networks(*options)
-      handle_output(removed_networks, -> { "Removed networks: #{removed_networks.inspect}" })
+    def cmd_f(*)
+      build_forget_command.call(*)
     end
 
     def cmd_t(*options)
@@ -353,6 +352,11 @@ module WifiWand
     private def build_pref_nets_command
       require_relative 'commands/pref_nets_command'
       WifiWand::PrefNetsCommand.new.bind(self)
+    end
+
+    private def build_forget_command
+      require_relative 'commands/forget_command'
+      WifiWand::ForgetCommand.new.bind(self)
     end
 
     private def build_till_command
