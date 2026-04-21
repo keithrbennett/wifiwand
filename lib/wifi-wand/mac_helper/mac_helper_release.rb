@@ -9,6 +9,7 @@ require_relative 'mac_os_wifi_auth_helper'
 module WifiWand
   module MacHelperRelease
     PENDING_NOTARIZATION_STATUS = 'In Progress'
+    SIGNING_INSTRUCTIONS_PATH = 'docs/dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md'
 
     # Public signing credentials (visible in all signed binaries - no need to hide)
     APPLE_TEAM_ID = ENV.fetch('WIFIWAND_APPLE_TEAM_ID', '97P9SZU9GG')
@@ -236,7 +237,7 @@ module WifiWand
           To find your Developer ID certificate:
             security find-identity -v -p codesigning
 
-          See docs/dev/MACOS_CODE_SIGNING.md for detailed instructions.
+          See #{SIGNING_INSTRUCTIONS_PATH} for detailed instructions.
         ERROR
       end
 
@@ -275,7 +276,7 @@ module WifiWand
           Please update the value in lib/wifi-wand/mac_helper/mac_helper_release.rb:
             APPLE_TEAM_ID = 'TEAM123'
 
-          See docs/dev/MACOS_CODE_SIGNING.md for detailed instructions.
+          See #{SIGNING_INSTRUCTIONS_PATH} for detailed instructions.
         ERROR
       end
 
@@ -307,7 +308,7 @@ module WifiWand
           Note: Team ID and codesign identity are hardcoded in lib/wifi-wand/mac_helper/mac_helper_release.rb
           (they're public values visible in signed binaries anyway).
 
-          See docs/dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md for detailed instructions.
+          See #{SIGNING_INSTRUCTIONS_PATH} for detailed instructions.
         ERROR
       end
 

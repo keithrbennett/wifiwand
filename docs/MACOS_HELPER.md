@@ -443,7 +443,7 @@ detect an active WiFi association when the interface remains connected.
 
 If you're interested in the code signing and notarization process used to build the helper, see the maintainer
 documentation in the repository:
-- [docs/dev/MACOS_CODE_SIGNING.md](dev/MACOS_CODE_SIGNING.md)
+- [docs/dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md](dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md)
   (not included in gem distribution)
 
 ---
