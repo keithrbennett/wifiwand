@@ -83,59 +83,41 @@ module WifiWand
     # ===== MODEL-RELATED COMMANDS =====
     # All commands that delegate to the model stay here
 
-    def cmd_a
-      build_avail_nets_command.call
-    end
+    def cmd_a = execute_command('avail_nets')
 
-    def cmd_ci = build_ci_command.call
+    def cmd_ci = execute_command('ci')
 
-    def cmd_co(network, password = nil)
-      build_connect_command.call(network, password)
-    end
+    def cmd_co(network, password = nil) = execute_command('connect', network, password)
 
-    def cmd_cy = build_cycle_command.call
+    def cmd_cy = execute_command('cycle')
 
-    def cmd_d = build_disconnect_command.call
+    def cmd_d = execute_command('disconnect')
 
-    def cmd_i = build_info_command.call
+    def cmd_i = execute_command('info')
 
-    def cmd_public_ip(selector = 'both')
-      build_public_ip_command.call(selector)
-    end
+    def cmd_public_ip(selector = 'both') = execute_command('public_ip', selector)
 
     # Performs nameserver functionality.
     # @param subcommand 'get' or no arg to get, 'clear' to clear, and an array of IP addresses to set
-    def cmd_na(*)
-      build_nameservers_command.call(*)
-    end
+    def cmd_na(*) = execute_command('nameservers', *)
 
-    def cmd_ne
-      build_network_name_command.call
-    end
+    def cmd_ne = execute_command('network_name')
 
-    def cmd_of = build_off_command.call
+    def cmd_of = execute_command('off')
 
-    def cmd_on = build_on_command.call
+    def cmd_on = execute_command('on')
 
-    def cmd_pa(network)
-      build_password_command.call(network)
-    end
+    def cmd_pa(network) = execute_command('password', network)
 
-    def cmd_pr
-      build_pref_nets_command.call
-    end
+    def cmd_pr = execute_command('pref_nets')
 
-    def cmd_f(*)
-      build_forget_command.call(*)
-    end
+    def cmd_f(*) = execute_command('forget', *)
 
-    def cmd_t(*options)
-      build_till_command.call(*options)
-    end
+    def cmd_t(*options) = execute_command('till', *options)
 
-    def cmd_w = build_wifi_on_command.call
+    def cmd_w = execute_command('wifi_on')
 
-    def cmd_qr(filespec = nil, password = nil) = build_qr_command.call(filespec, password)
+    def cmd_qr(filespec = nil, password = nil) = execute_command('qr', filespec, password)
 
     # ===== OTHER COMMANDS =====
     # Commands that don't directly delegate to the model
@@ -144,21 +126,19 @@ module WifiWand
       build_help_command.call(command_name)
     end
 
-    def cmd_q = build_quit_command.call
+    def cmd_q = execute_command('quit')
 
-    def cmd_u = build_url_command.call
+    def cmd_u = execute_command('url')
 
-    def cmd_s = build_status_command.call
+    def cmd_s = execute_command('status')
 
     def cmd_log(*options)
       build_log_command.call(*options)
     end
 
-    def cmd_x = build_quit_command.call
+    def cmd_x = execute_command('xit')
 
-    def cmd_ro(*resource_codes)
-      build_ropen_command.call(*resource_codes)
-    end
+    def cmd_ro(*resource_codes) = execute_command('ropen', *resource_codes)
 
     # ===== MAIN ENTRY POINT =====
 
@@ -192,49 +172,9 @@ module WifiWand
     # when padding inline terminal updates.
     private def strip_ansi(text) = text.to_s.gsub(/\e\[[\d;]*m/, '')
 
-    private def build_avail_nets_command
-      require_relative 'commands/avail_nets_command'
-      WifiWand::AvailNetsCommand.new.bind(self)
-    end
-
-    private def build_ci_command
-      require_relative 'commands/ci_command'
-      WifiWand::CiCommand.new.bind(self)
-    end
-
-    private def build_connect_command
-      require_relative 'commands/connect_command'
-      WifiWand::ConnectCommand.new.bind(self)
-    end
-
-    private def build_cycle_command
-      require_relative 'commands/cycle_command'
-      WifiWand::CycleCommand.new.bind(self)
-    end
-
-    private def build_disconnect_command
-      require_relative 'commands/disconnect_command'
-      WifiWand::DisconnectCommand.new.bind(self)
-    end
-
     private def build_help_command
       require_relative 'commands/help_command'
       WifiWand::HelpCommand.new.bind(self)
-    end
-
-    private def build_info_command
-      require_relative 'commands/info_command'
-      WifiWand::InfoCommand.new.bind(self)
-    end
-
-    private def build_nameservers_command
-      require_relative 'commands/nameservers_command'
-      WifiWand::NameserversCommand.new.bind(self)
-    end
-
-    private def build_network_name_command
-      require_relative 'commands/network_name_command'
-      WifiWand::NetworkNameCommand.new.bind(self)
     end
 
     private def build_log_command
@@ -242,69 +182,11 @@ module WifiWand
       WifiWand::LogCommand.new(model, output: out_stream, verbose: verbose_mode)
     end
 
-    private def build_status_command
-      require_relative 'commands/status_command'
-      WifiWand::StatusCommand.new.bind(self)
-    end
+    private def execute_command(command_string, *)
+      command = find_bound_command(command_string)
+      raise WifiWand::BadCommandError, "Unrecognized command: #{command_string.inspect}" unless command
 
-    private def build_url_command
-      require_relative 'commands/url_command'
-      WifiWand::UrlCommand.new.bind(self)
-    end
-
-    private def build_wifi_on_command
-      require_relative 'commands/wifi_on_command'
-      WifiWand::WifiOnCommand.new.bind(self)
-    end
-
-    private def build_qr_command
-      require_relative 'commands/qr_command'
-      WifiWand::QrCommand.new.bind(self)
-    end
-
-    private def build_quit_command
-      require_relative 'commands/quit_command'
-      WifiWand::QuitCommand.new.bind(self)
-    end
-
-    private def build_ropen_command
-      require_relative 'commands/ropen_command'
-      WifiWand::RopenCommand.new.bind(self)
-    end
-
-    private def build_public_ip_command
-      require_relative 'commands/public_ip_command'
-      WifiWand::PublicIpCommand.new.bind(self)
-    end
-
-    private def build_off_command
-      require_relative 'commands/off_command'
-      WifiWand::OffCommand.new.bind(self)
-    end
-
-    private def build_on_command
-      require_relative 'commands/on_command'
-      WifiWand::OnCommand.new.bind(self)
-    end
-
-    private def build_password_command
-      require_relative 'commands/password_command'
-      WifiWand::PasswordCommand.new.bind(self)
-    end
-
-    private def build_pref_nets_command
-      require_relative 'commands/pref_nets_command'
-      WifiWand::PrefNetsCommand.new.bind(self)
-    end
-
-    private def build_forget_command
-      require_relative 'commands/forget_command'
-      WifiWand::ForgetCommand.new.bind(self)
-    end
-
-    private def build_till_command
-      require_relative 'commands/till_command'
-      WifiWand::TillCommand.new.bind(self)
+      command.call(*)
     end
 
     private def empty_available_networks_message
