@@ -81,11 +81,6 @@ module WifiWand
           nil
         end
       end
-
-      private def method_command(short_string, long_string, handler_name)
-        metadata = WifiWand::CommandMetadata.new(short_string: short_string, long_string: long_string)
-        WifiWand::Command.new(metadata: metadata, handler_name: handler_name)
-      end
     end
   end
 end
