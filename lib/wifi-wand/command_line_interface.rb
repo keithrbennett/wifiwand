@@ -290,6 +290,8 @@ module WifiWand
 
     def cmd_q = quit
 
+    def cmd_u = PROJECT_URL
+
     def cmd_s
       progress_mode = status_progress_mode
       # Build initial snapshot with only the fields that will actually be populated
@@ -353,9 +355,7 @@ module WifiWand
     end
 
     def cmd_log(*options)
-      require_relative 'commands/log_command'
-      command = WifiWand::LogCommand.new(model, output: out_stream, verbose: verbose_mode)
-      command.execute(*options)
+      build_log_command.call(*options)
     end
 
     def cmd_x = quit
@@ -412,6 +412,11 @@ module WifiWand
     # Strips ANSI escape codes from a string so we can measure visible length
     # when padding inline terminal updates.
     private def strip_ansi(text) = text.to_s.gsub(/\e\[[\d;]*m/, '')
+
+    private def build_log_command
+      require_relative 'commands/log_command'
+      WifiWand::LogCommand.new(model, output: out_stream, verbose: verbose_mode)
+    end
 
     private def normalize_public_ip_selector(selector)
       normalized_selector = selector.to_s.strip.downcase

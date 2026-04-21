@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'optparse'
+require_relative 'command'
 require_relative '../services/event_logger'
 require_relative '../services/log_file_manager'
 require_relative '../errors'
@@ -27,19 +28,35 @@ module WifiWand
   # - --file --stdout: both file and stdout
   #
   # Example usage:
-  #   command = WifiWand::LogCommand.new(model)
-  #   command.execute('--interval', '2', '--file', '--stdout')
+  #   command = WifiWand::LogCommand.new
+  #   command.bind(cli).call('--interval', '2', '--file', '--stdout')
   class LogCommand
-    attr_reader :model, :output, :verbose
+    attr_reader :metadata, :model, :output, :verbose
 
-    def initialize(model, output: $stdout, verbose: false)
-      @model = model
+    def initialize(*args, metadata: nil, model: nil, output: $stdout, verbose: false)
+      resolved_model = args.empty? ? model : args.first
+
+      @metadata = metadata || CommandMetadata.new(short_string: 'lo', long_string: 'log')
+      @model = resolved_model
       @output = output
       @verbose = verbose
     end
 
+    def aliases
+      metadata.aliases
+    end
+
+    def bind(cli)
+      self.class.new(
+        metadata: metadata,
+        model:    cli.model,
+        output:   cli.send(:out_stream),
+        verbose:  cli.verbose_mode
+      )
+    end
+
     # Execute the log command with the provided options
-    def execute(*options)
+    def call(*options)
       interval, log_file_path, output_to_stdout, verbose_flag = parse_options(options)
       logger_output = output_to_stdout ? output : nil
 

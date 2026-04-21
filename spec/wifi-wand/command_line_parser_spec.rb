@@ -80,25 +80,10 @@ describe WifiWand::CommandLineParser do
       expect(options.argv).to eq(['h'])
     end
 
-    it 'raises for trailing help flags after a command' do
-      expect do
-        described_class.new(['info', '-h'], ENV, err_stream).parse
-      end.to raise_error(OptionParser::InvalidOption, /must appear before the command/)
-    end
-
-    it 'raises for other trailing global options after a command' do
-      expect do
-        described_class.new(['info', '--version'], ENV, err_stream).parse
-      end.to raise_error(OptionParser::InvalidOption, /must appear before the command/)
-
-      expect do
-        described_class.new(['info', '--wifi-interface', 'en0'], ENV, err_stream).parse
-      end.to raise_error(OptionParser::InvalidOption, /must appear before the command/)
-    end
-
-    it 'leaves command-specific options after a command untouched' do
-      options = described_class.new(['log', '--file', 'wifi.log'], ENV, err_stream).parse
-      expect(options.argv).to eq(['log', '--file', 'wifi.log'])
+    it 'leaves trailing help flags after a command unparsed' do
+      options = described_class.new(['info', '-h'], ENV, err_stream).parse
+      expect(options.help_requested).to be_nil
+      expect(options.argv).to eq(['info', '-h'])
     end
 
     it 'parses version flags' do

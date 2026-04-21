@@ -129,7 +129,7 @@ describe WifiWand::CommandLineInterface do
         expect(commands).to be_an(Array)
 
         # Check some key commands exist
-        command_strings = commands.map(&:long_string)
+        command_strings = commands.map { |command| command.metadata.long_string }
         expect(command_strings).to include('info', 'connect', 'disconnect', 'help', 'avail_nets')
       end
 
@@ -820,7 +820,7 @@ describe WifiWand::CommandLineInterface do
         mock_log_command = instance_double(WifiWand::LogCommand)
         expect(WifiWand::LogCommand).to receive(:new).with(mock_model, output: subject.send(:out_stream),
           verbose: false).and_return(mock_log_command)
-        expect(mock_log_command).to receive(:execute)
+        expect(mock_log_command).to receive(:call)
         subject.cmd_log
       end
 
@@ -828,7 +828,7 @@ describe WifiWand::CommandLineInterface do
         mock_log_command = instance_double(WifiWand::LogCommand)
         expect(WifiWand::LogCommand).to receive(:new).with(mock_model, output: subject.send(:out_stream),
           verbose: false).and_return(mock_log_command)
-        expect(mock_log_command).to receive(:execute).with('--interval', '2', '--file')
+        expect(mock_log_command).to receive(:call).with('--interval', '2', '--file')
         subject.cmd_log('--interval', '2', '--file')
       end
 
@@ -838,7 +838,7 @@ describe WifiWand::CommandLineInterface do
         mock_log_command = instance_double(WifiWand::LogCommand)
         expect(WifiWand::LogCommand).to receive(:new).with(verbose_cli.model,
           output: verbose_cli.send(:out_stream), verbose: true).and_return(mock_log_command)
-        expect(mock_log_command).to receive(:execute)
+        expect(mock_log_command).to receive(:call)
         verbose_cli.cmd_log
       end
 
@@ -849,18 +849,18 @@ describe WifiWand::CommandLineInterface do
           expect(output).to eq(subject.send(:out_stream))
           mock_log_command
         end
-        expect(mock_log_command).to receive(:execute)
+        expect(mock_log_command).to receive(:call)
         subject.cmd_log
       end
 
       it 'passes output stream to LogCommand (file-only logic handled in execute)' do
         # cmd_log always passes the output stream to LogCommand.
-        # LogCommand.execute then determines whether to use it based on --file/--stdout options.
-        # When --file is used without --stdout, LogCommand.execute passes nil to EventLogger.
+        # LogCommand.call then determines whether to use it based on --file/--stdout options.
+        # When --file is used without --stdout, LogCommand.call passes nil to EventLogger.
         mock_log_command = instance_double(WifiWand::LogCommand)
         expect(WifiWand::LogCommand).to receive(:new).with(mock_model, output: subject.send(:out_stream),
           verbose: false).and_return(mock_log_command)
-        expect(mock_log_command).to receive(:execute).with('--file')
+        expect(mock_log_command).to receive(:call).with('--file')
         subject.cmd_log('--file')
       end
     end

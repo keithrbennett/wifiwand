@@ -1,55 +1,65 @@
 # frozen_string_literal: true
 
+require_relative '../commands/command'
+require_relative '../commands/log_command'
+
 module WifiWand
   class CommandLineInterface
     module CommandRegistry
-      Command = Struct.new(:short_string, :long_string, :action)
-
       def commands
         @commands ||= [
-          Command.new('a',  'avail_nets',   ->(*_options) { cmd_a }),
-          Command.new('ci', 'ci',           ->(*_options) { cmd_ci }),
-          Command.new('co', 'connect',      ->(*options)  { cmd_co(*options) }),
-          Command.new('cy', 'cycle',        ->(*_options) { cmd_cy }),
-          Command.new('d',  'disconnect',   ->(*_options) { cmd_d }),
-          Command.new('f',  'forget',       ->(*options)  { cmd_f(*options) }),
-          Command.new('h',  'help',         ->(*_options) { cmd_h }),
-          Command.new('i',  'info',         ->(*_options) { cmd_i }),
-          Command.new('lo', 'log',          ->(*options)  { cmd_log(*options) }),
-          Command.new('na', 'nameservers',  ->(*options)  { cmd_na(*options) }),
-          Command.new('ne', 'network_name', ->(*_options) { cmd_ne }),
-          Command.new('of', 'off',          ->(*_options) { cmd_of }),
-          Command.new('on', 'on',           ->(*_options) { cmd_on }),
-          Command.new('ro', 'ropen',        ->(*options)  { cmd_ro(*options) }),
-          Command.new('pa', 'password',     ->(*options)  { cmd_pa(*options) }),
-          Command.new('pi', 'pi',           ->(*options)  { cmd_public_ip(*options) }),
-          Command.new('pr', 'pref_nets',    ->(*_options) { cmd_pr }),
-          Command.new('pu', 'public_ip',    ->(*options)  { cmd_public_ip(*options) }),
-          Command.new('q',  'quit',         ->(*_options) { cmd_q }),
-          Command.new('qr', 'qr',           ->(*options)  { cmd_qr(*options) }),
-          Command.new('s',  'status',       ->(*_options) { cmd_s }),
-          Command.new('t',  'till',         ->(*options)  { cmd_t(*options) }),
-          Command.new('u',  'url',          ->(*_options) { PROJECT_URL }),
-          Command.new('w',  'wifi_on',      ->(*_options) { cmd_w }),
-          Command.new('x',  'xit',          ->(*_options) { cmd_x }),
+          method_command('a',  'avail_nets',   :cmd_a),
+          method_command('ci', 'ci',           :cmd_ci),
+          method_command('co', 'connect',      :cmd_co),
+          method_command('cy', 'cycle',        :cmd_cy),
+          method_command('d',  'disconnect',   :cmd_d),
+          method_command('f',  'forget',       :cmd_f),
+          method_command('h',  'help',         :cmd_h),
+          method_command('i',  'info',         :cmd_i),
+          WifiWand::LogCommand.new,
+          method_command('na', 'nameservers',  :cmd_na),
+          method_command('ne', 'network_name', :cmd_ne),
+          method_command('of', 'off',          :cmd_of),
+          method_command('on', 'on',           :cmd_on),
+          method_command('ro', 'ropen',        :cmd_ro),
+          method_command('pa', 'password',     :cmd_pa),
+          method_command('pi', 'pi',           :cmd_public_ip),
+          method_command('pr', 'pref_nets',    :cmd_pr),
+          method_command('pu', 'public_ip',    :cmd_public_ip),
+          method_command('q',  'quit',         :cmd_q),
+          method_command('qr', 'qr',           :cmd_qr),
+          method_command('s',  'status',       :cmd_s),
+          method_command('t',  'till',         :cmd_t),
+          method_command('u',  'url',          :cmd_u),
+          method_command('w',  'wifi_on',      :cmd_w),
+          method_command('x',  'xit',          :cmd_x),
         ]
       end
 
+      def find_command(command_string)
+        commands.detect { |command| command.aliases.include?(command_string) }
+      end
+
       def find_command_action(command_string)
-        result = commands.detect { |cmd| [cmd.short_string, cmd.long_string].include?(command_string) }
-        result ? result.action : nil
+        command = find_command(command_string)
+        command&.bind(self)&.method(:call)
       end
 
       # Look up the command name and, if found, run it. If not, execute the passed block.
-      def attempt_command_action(command, *, &error_handler_block)
-        action = find_command_action(command)
+      def attempt_command_action(command_string, *, &error_handler_block)
+        action = find_command_action(command_string)
 
         if action
-          action.(*)
+          action.call(*)
         else
           error_handler_block.call
           nil
         end
+      end
+
+      private def method_command(short_string, long_string, handler_name)
+        metadata = WifiWand::CommandMetadata.new(short_string: short_string, long_string: long_string)
+        WifiWand::Command.new(metadata: metadata, handler_name: handler_name)
       end
     end
   end
