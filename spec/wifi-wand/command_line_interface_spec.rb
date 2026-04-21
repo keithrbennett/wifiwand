@@ -771,6 +771,13 @@ describe WifiWand::CommandLineInterface do
         expect { subject.cmd_h('connect') }.to output(/Usage: wifi-wand connect/).to_stdout
       end
 
+      it 'prints command-specific help for cycle' do
+        cycle_command = WifiWand::CycleCommand.new.bind(subject)
+        allow(subject).to receive(:find_bound_command).with('cycle').and_return(cycle_command)
+
+        expect { subject.cmd_h('cycle') }.to output(/Usage: wifi-wand cycle/).to_stdout
+      end
+
       it 'prints command-specific help for disconnect' do
         disconnect_command = WifiWand::DisconnectCommand.new.bind(subject)
         allow(subject).to receive(:find_bound_command).with('disconnect').and_return(disconnect_command)
