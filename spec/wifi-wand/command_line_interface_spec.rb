@@ -743,7 +743,10 @@ describe WifiWand::CommandLineInterface do
   describe 'utility commands' do
     describe '#cmd_h (help)' do
       it 'calls print_help method when no command is provided' do
+        help_command = WifiWand::HelpCommand.new.bind(subject)
+        allow(subject).to receive(:build_help_command).and_return(help_command)
         expect(subject).to receive(:print_help)
+
         subject.cmd_h
       end
 

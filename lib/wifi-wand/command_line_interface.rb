@@ -227,14 +227,7 @@ module WifiWand
     # Commands that don't directly delegate to the model
 
     def cmd_h(command_name = nil)
-      command = find_bound_command(command_name)
-      return print_help if command.nil?
-
-      if command.help_text
-        out_stream.puts(command.help_text)
-      else
-        print_help
-      end
+      build_help_command.call(command_name)
     end
 
     def cmd_q = quit
@@ -365,6 +358,11 @@ module WifiWand
     private def build_connect_command
       require_relative 'commands/connect_command'
       WifiWand::ConnectCommand.new.bind(self)
+    end
+
+    private def build_help_command
+      require_relative 'commands/help_command'
+      WifiWand::HelpCommand.new.bind(self)
     end
 
     private def build_log_command
