@@ -22,7 +22,7 @@ module WifiWand
     include CommandRegistry
     include ShellInterface
 
-    attr_reader :interactive_mode, :model, :options, :err_stream
+    attr_reader :interactive_mode, :model, :options, :err_stream, :in_stream
 
     PROJECT_URL = 'https://github.com/keithrbennett/wifiwand'
     SUCCESS_EXIT_CODE = 0
@@ -135,37 +135,7 @@ module WifiWand
 
     def cmd_w = build_wifi_on_command.call
 
-    def cmd_qr(filespec = nil, password = nil)
-      # Normalize destination and determine if stdout ('-') is requested
-      spec = filespec.nil? ? nil : filespec.to_s
-      to_stdout = (spec == '-')
-
-      if to_stdout
-        # Interactive shell returns the ANSI string (so users can `puts(qr :-)`),
-        # while non-interactive prints ANSI to stdout and returns nil for CLI UX.
-        # In shell, we return the string; non-interactive prints and returns nil
-        result = model.generate_qr_code('-', delivery_mode: (interactive_mode ? :return : :print),
-          password: password)
-        interactive_mode ? result : nil
-      else
-        result = model.generate_qr_code(filespec, password: password)
-        handle_output(result, -> { "QR code generated: #{result}" })
-      end
-    rescue WifiWand::Error => e
-      if e.message.include?('already exists') && @in_stream.tty?
-        out_stream.print 'Output file exists. Overwrite? [y/N]: '
-        answer = @in_stream.gets&.strip&.downcase
-        if %w[y yes].include?(answer)
-          result = model.generate_qr_code(filespec, overwrite: true, password: password)
-          handle_output(result, -> { "QR code generated: #{result}" })
-        else
-          # user declined overwrite; no output
-          nil
-        end
-      else
-        raise
-      end
-    end
+    def cmd_qr(filespec = nil, password = nil) = build_qr_command.call(filespec, password)
 
     # ===== OTHER COMMANDS =====
     # Commands that don't directly delegate to the model
@@ -340,6 +310,11 @@ module WifiWand
     private def build_wifi_on_command
       require_relative 'commands/wifi_on_command'
       WifiWand::WifiOnCommand.new.bind(self)
+    end
+
+    private def build_qr_command
+      require_relative 'commands/qr_command'
+      WifiWand::QrCommand.new.bind(self)
     end
 
     private def build_quit_command

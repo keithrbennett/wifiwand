@@ -874,6 +874,13 @@ describe WifiWand::CommandLineInterface do
         expect { subject.cmd_h('wifi_on') }.to output(/Usage: wifi-wand wifi_on/).to_stdout
       end
 
+      it 'prints command-specific help for qr' do
+        qr_command = WifiWand::QrCommand.new.bind(subject)
+        allow(subject).to receive(:find_bound_command).with('qr').and_return(qr_command)
+
+        expect { subject.cmd_h('qr') }.to output(/Usage: wifi-wand qr/).to_stdout
+      end
+
       it 'prints command-specific help for quit' do
         quit_command = WifiWand::QuitCommand.new.bind(subject)
         allow(subject).to receive(:find_bound_command).with('quit').and_return(quit_command)
