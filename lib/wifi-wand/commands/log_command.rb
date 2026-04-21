@@ -8,35 +8,21 @@ require_relative '../errors'
 require_relative '../timing_constants'
 
 module WifiWand
-  # LogCommand handles parsing and executing the 'log' subcommand.
-  #
-  # Responsibilities:
-  # - Parse command-line options using OptionParser
-  # - Validate option values (e.g., interval must be positive)
-  # - Create and configure EventLogger with parsed options
-  # - Handle output destination (stdout, file)
-  #
-  # Options:
-  # - --interval N: Poll interval in seconds (default: 5)
-  # - --file [PATH]: Enable file logging (default filename: wifiwand-events.log)
-  # - --stdout: Explicitly enable stdout (required when other destinations are used)
-  # - --verbose: Enable verbose logging
-  #
-  # Output behavior:
-  # - Default: stdout only (no file)
-  # - --file: file only (stdout disabled unless --stdout is also provided)
-  # - --file --stdout: both file and stdout
-  #
-  # Example usage:
-  #   command = WifiWand::LogCommand.new
-  #   command.bind(cli).call('--interval', '2', '--file', '--stdout')
   class LogCommand
+    DESCRIPTION = 'start event logging (monitors wifi on/off, connected/disconnected, internet on/off)'
+    USAGE = 'Usage: wifi-wand log [--interval N] [--file [PATH]] [--stdout] [--verbose]'
+
     attr_reader :metadata, :model, :output, :verbose
 
     def initialize(*args, metadata: nil, model: nil, output: $stdout, verbose: false)
       resolved_model = args.empty? ? model : args.first
 
-      @metadata = metadata || CommandMetadata.new(short_string: 'lo', long_string: 'log')
+      @metadata = metadata || CommandMetadata.new(
+        short_string: 'lo',
+        long_string:  'log',
+        description:  DESCRIPTION,
+        usage:        USAGE
+      )
       @model = resolved_model
       @output = output
       @verbose = verbose
@@ -55,9 +41,11 @@ module WifiWand
       )
     end
 
-    # Execute the log command with the provided options
     def call(*options)
-      interval, log_file_path, output_to_stdout, verbose_flag = parse_options(options)
+      parse_result = parse_options(options)
+      return if parse_result == :skip_execution
+
+      interval, log_file_path, output_to_stdout, verbose_flag = parse_result
       logger_output = output_to_stdout ? output : nil
 
       logger = build_logger(
@@ -77,31 +65,31 @@ module WifiWand
       verbose_flag = @verbose
       stdout_explicit = false
       file_destination_requested = false
+      help_requested = false
 
-      parser = OptionParser.new do |opts|
-        opts.on('--interval N', Float) do |v|
-          interval = validate_interval(v)
-        end
-
-        opts.on('--file [PATH]') do |v|
-          log_file_path = v || LogFileManager::DEFAULT_LOG_FILE
+      parser = build_parser(
+        interval_setter: ->(value) { interval = validate_interval(value) },
+        file_setter:     ->(value) do
+          log_file_path = value || LogFileManager::DEFAULT_LOG_FILE
           file_destination_requested = true
-        end
-
-        opts.on('--stdout') do
+        end,
+        stdout_setter:   -> do
           output_to_stdout = true
           stdout_explicit = true
-        end
-
-        opts.on('--verbose', '-v') do
-          verbose_flag = true
-        end
-      end
+        end,
+        verbose_setter:  -> { verbose_flag = true },
+        help_setter:     -> { help_requested = true }
+      )
 
       begin
         parser.parse!(options)
       rescue OptionParser::ParseError => e
         raise WifiWand::ConfigurationError, "#{e.message}. Use 'wifi-wand help' or 'wifi-wand -h' for help."
+      end
+
+      if help_requested
+        output.puts(parser.help)
+        return :skip_execution
       end
 
       if file_destination_requested && !stdout_explicit
@@ -111,7 +99,36 @@ module WifiWand
       [interval, log_file_path, output_to_stdout, verbose_flag]
     end
 
-    # --file becomes a required sink unless stdout is also available as an explicit fallback.
+    private def build_parser(interval_setter:, file_setter:, stdout_setter:, verbose_setter:, help_setter:)
+      OptionParser.new do |opts|
+        opts.banner = metadata.usage
+        opts.separator ''
+        opts.separator metadata.description
+        opts.separator ''
+        opts.separator 'Options:'
+
+        opts.on('--interval N', Float, 'Poll interval in seconds (default: 5)') do |v|
+          interval_setter.call(v)
+        end
+
+        opts.on('--file [PATH]', 'Enable file logging (default: wifiwand-events.log)') do |v|
+          file_setter.call(v)
+        end
+
+        opts.on('--stdout', 'Keep stdout when file destination is used') do
+          stdout_setter.call
+        end
+
+        opts.on('--verbose', '-v', 'Enable verbose logging') do
+          verbose_setter.call
+        end
+
+        opts.on('-h', '--help', 'Show help for the log command') do
+          help_setter.call
+        end
+      end
+    end
+
     private def build_logger(interval:, verbose_flag:, log_file_path:, logger_output:)
       WifiWand::EventLogger.new(
         model,
@@ -132,7 +149,6 @@ module WifiWand
       )
     end
 
-    # Surface the fallback immediately so the user does not assume the file sink is still active.
     private def warn_file_logging_fallback(error_message)
       warning =
         "WARNING: File logging is disabled. Stdout is the only remaining log destination. #{error_message}"

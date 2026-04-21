@@ -853,6 +853,14 @@ describe WifiWand::CommandLineInterface do
         subject.cmd_log
       end
 
+      it 'prints log command help without starting the logger' do
+        mock_log_command = instance_double(WifiWand::LogCommand)
+        expect(WifiWand::LogCommand).to receive(:new).with(mock_model, output: subject.send(:out_stream),
+          verbose: false).and_return(mock_log_command)
+        expect(mock_log_command).to receive(:call).with('--help')
+        subject.cmd_log('--help')
+      end
+
       it 'passes output stream to LogCommand (file-only logic handled in execute)' do
         # cmd_log always passes the output stream to LogCommand.
         # LogCommand.call then determines whether to use it based on --file/--stdout options.

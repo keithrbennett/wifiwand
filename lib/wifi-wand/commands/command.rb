@@ -2,11 +2,13 @@
 
 module WifiWand
   class CommandMetadata
-    attr_reader :short_string, :long_string
+    attr_reader :short_string, :long_string, :description, :usage
 
-    def initialize(short_string:, long_string:)
+    def initialize(short_string:, long_string:, description: nil, usage: nil)
       @short_string = short_string
       @long_string = long_string
+      @description = description
+      @usage = usage
     end
 
     def aliases

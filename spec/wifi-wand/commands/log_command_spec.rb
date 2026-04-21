@@ -84,6 +84,17 @@ describe WifiWand::LogCommand do
       expect(mock_logger).to have_received(:run)
     end
 
+    it 'prints help for the log command' do
+      command = described_class.new(mock_model, output: output)
+
+      command.call('--help')
+
+      expect(output.string).to include('Usage: wifi-wand log')
+      expect(output.string).to include('Options:')
+      expect(output.string).to include('--interval N')
+      expect(mock_logger).not_to have_received(:run)
+    end
+
     context 'with --interval option' do
       it 'passes custom interval to EventLogger' do
         command = described_class.new(mock_model, output: output)
