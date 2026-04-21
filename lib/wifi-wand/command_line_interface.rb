@@ -112,29 +112,8 @@ module WifiWand
 
     # Performs nameserver functionality.
     # @param subcommand 'get' or no arg to get, 'clear' to clear, and an array of IP addresses to set
-    def cmd_na(*args)
-      subcommand = if args.empty? || args.first.to_sym == :get
-        :get
-      elsif args.first.to_sym == :clear
-        :clear
-      else
-        :put
-      end
-
-      case subcommand
-      when :get
-        current_nameservers = model.nameservers
-        human_readable_string_producer = -> do
-          nameservers_list = current_nameservers.empty? ? '[None]' : current_nameservers.join(', ')
-          "Nameservers: #{nameservers_list}"
-        end
-        handle_output(current_nameservers, human_readable_string_producer)
-      when :clear
-        model.set_nameservers(:clear)
-      when :put
-        new_nameservers = args
-        model.set_nameservers(new_nameservers)
-      end
+    def cmd_na(*)
+      build_nameservers_command.call(*)
     end
 
     def cmd_ne
@@ -350,6 +329,11 @@ module WifiWand
     private def build_help_command
       require_relative 'commands/help_command'
       WifiWand::HelpCommand.new.bind(self)
+    end
+
+    private def build_nameservers_command
+      require_relative 'commands/nameservers_command'
+      WifiWand::NameserversCommand.new.bind(self)
     end
 
     private def build_network_name_command

@@ -771,6 +771,13 @@ describe WifiWand::CommandLineInterface do
         expect { subject.cmd_h('connect') }.to output(/Usage: wifi-wand connect/).to_stdout
       end
 
+      it 'prints command-specific help for nameservers' do
+        nameservers_command = WifiWand::NameserversCommand.new.bind(subject)
+        allow(subject).to receive(:find_bound_command).with('nameservers').and_return(nameservers_command)
+
+        expect { subject.cmd_h('nameservers') }.to output(/Usage: wifi-wand nameservers/).to_stdout
+      end
+
       it 'prints command-specific help for network_name' do
         network_name_command = WifiWand::NetworkNameCommand.new.bind(subject)
         allow(subject).to receive(:find_bound_command).with('network_name').and_return(network_name_command)
