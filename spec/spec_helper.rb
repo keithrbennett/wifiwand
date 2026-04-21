@@ -10,6 +10,7 @@ require_relative 'support/network_state_manager'
 require_relative 'support/rspec_configuration'
 require_relative 'support/matchers'
 require_relative 'support/command_result_helper'
+require_relative 'support/shared_command_examples'
 
 # Override timing constants for fast test execution.
 # Production code uses the real (longer) values; tests reassign them here

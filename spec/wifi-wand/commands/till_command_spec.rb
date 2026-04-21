@@ -14,17 +14,8 @@ describe WifiWand::TillCommand do
     )
   end
 
-  describe '#bind' do
-    it 'returns a bound command with context-derived execution properties' do
-      command = described_class.new
-      bound_command = command.bind(cli)
-
-      expect(bound_command).to be_a(described_class)
-      expect(bound_command.metadata).to eq(command.metadata)
-      expect(bound_command.model).to eq(mock_model)
-      expect(bound_command.interactive_mode).to be(false)
-    end
-  end
+  it_behaves_like 'binds command context',
+    bound_attributes: { model: :mock_model, interactive_mode: -> { cli.interactive_mode } }
 
   describe '#help_text' do
     it 'includes usage and states' do

@@ -9,26 +9,11 @@ describe WifiWand::AvailNetsCommand do
     double('cli', model: mock_model)
   end
 
-  describe '#bind' do
-    it 'returns a bound command with context-derived execution properties' do
-      command = described_class.new
-      bound_command = command.bind(cli)
+  it_behaves_like 'binds command context', bound_attributes: { model: :mock_model, cli: :cli }
 
-      expect(bound_command).to be_a(described_class)
-      expect(bound_command.metadata).to eq(command.metadata)
-      expect(bound_command.model).to eq(mock_model)
-      expect(bound_command.cli).to eq(cli)
-    end
-  end
-
-  describe '#help_text' do
-    it 'includes usage and description' do
-      help = described_class.new.help_text
-
-      expect(help).to include('Usage: wifi-wand avail_nets')
-      expect(help).to include('descending signal-strength order')
-    end
-  end
+  it_behaves_like 'has default command help text',
+    usage:       'Usage: wifi-wand avail_nets',
+    description: 'descending signal-strength order'
 
   describe '#call' do
     subject(:command) { described_class.new.bind(cli) }

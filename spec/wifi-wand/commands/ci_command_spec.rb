@@ -10,27 +10,12 @@ describe WifiWand::CiCommand do
   end
   let(:interactive_mode) { false }
 
-  describe '#bind' do
-    it 'returns a bound command with context-derived execution properties' do
-      command = described_class.new
-      bound_command = command.bind(cli)
+  it_behaves_like 'binds command context',
+    bound_attributes: { model: :mock_model, cli: :cli, interactive_mode: :interactive_mode }
 
-      expect(bound_command).to be_a(described_class)
-      expect(bound_command.metadata).to eq(command.metadata)
-      expect(bound_command.model).to eq(mock_model)
-      expect(bound_command.cli).to eq(cli)
-      expect(bound_command.interactive_mode).to be(false)
-    end
-  end
-
-  describe '#help_text' do
-    it 'includes usage and description' do
-      help = described_class.new.help_text
-
-      expect(help).to include('Usage: wifi-wand ci')
-      expect(help).to include('Internet connectivity state')
-    end
-  end
+  it_behaves_like 'has default command help text',
+    usage:       'Usage: wifi-wand ci',
+    description: 'Internet connectivity state'
 
   describe '#call' do
     subject(:command) { described_class.new.bind(cli) }
