@@ -148,67 +148,7 @@ module WifiWand
 
     def cmd_u = build_url_command.call
 
-    def cmd_s
-      progress_mode = status_progress_mode
-      # Build initial snapshot with only the fields that will actually be populated
-      # Start with required fields, network_name is added by first update if model includes it
-      current_snapshot = { wifi_on: nil, internet_state: ConnectivityStates::INTERNET_PENDING }
-      last_visible_length = 0
-      inline_progress_printed = false
-      saw_progress_error = false
-
-      progress_callback = if progress_mode == :inline
-        # Stream incremental updates so DNS/TCP results surface as soon as they complete.
-        ->(update) do
-          if update.nil?
-            saw_progress_error = true
-            next
-          end
-
-          current_snapshot.merge!(update)
-          rendered = status_line(current_snapshot)
-
-          visible_length = strip_ansi(rendered).length
-          padding = [last_visible_length - visible_length, 0].max
-          padded_render = padding.zero? ? rendered : "#{rendered}#{' ' * padding}"
-
-          out_stream.print("\r#{padded_render}")
-          out_stream.flush if out_stream.respond_to?(:flush)
-
-          last_visible_length = visible_length
-          inline_progress_printed = true
-        end
-      end
-
-      # Seed the display so users see the WAIT placeholders instantly.
-      progress_callback&.call(current_snapshot.dup)
-
-      status_data = model.status_line_data(progress_callback: progress_callback)
-
-      if progress_mode == :inline
-        if inline_progress_printed
-          if saw_progress_error && status_data.nil?
-            out_stream.print("\r")
-            out_stream.puts status_line(nil)
-          else
-            out_stream.puts
-          end
-        else
-          rendered = status_line(status_data)
-          out_stream.puts(rendered) unless rendered.to_s.empty?
-        end
-      end
-
-      if interactive_mode
-        out_stream.puts status_line(status_data) if progress_mode == :none
-        nil
-      else
-        return status_data unless progress_mode == :none
-
-        handle_output(status_data, -> { status_line(status_data) })
-        status_data
-      end
-    end
+    def cmd_s = build_status_command.call
 
     def cmd_log(*options)
       build_log_command.call(*options)
@@ -300,6 +240,11 @@ module WifiWand
     private def build_log_command
       require_relative 'commands/log_command'
       WifiWand::LogCommand.new(model, output: out_stream, verbose: verbose_mode)
+    end
+
+    private def build_status_command
+      require_relative 'commands/status_command'
+      WifiWand::StatusCommand.new.bind(self)
     end
 
     private def build_url_command

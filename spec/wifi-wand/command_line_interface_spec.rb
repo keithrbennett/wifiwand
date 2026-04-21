@@ -896,6 +896,13 @@ describe WifiWand::CommandLineInterface do
         expect { subject.cmd_h('ropen') }.to output(/Usage: wifi-wand ropen/).to_stdout
       end
 
+      it 'prints command-specific help for status' do
+        status_command = WifiWand::StatusCommand.new.bind(subject)
+        allow(subject).to receive(:find_bound_command).with('status').and_return(status_command)
+
+        expect { subject.cmd_h('status') }.to output(/Usage: wifi-wand status/).to_stdout
+      end
+
       it 'prints command-specific help for till' do
         till_command = WifiWand::TillCommand.new.bind(subject)
         allow(subject).to receive(:find_bound_command).with('till').and_return(till_command)
