@@ -14,17 +14,10 @@ require 'optparse'
 require 'pathname'
 require 'rbconfig'
 
-SCRIPT_PATH = File.realpath(__FILE__)
-SCRIPT_DIR = File.dirname(SCRIPT_PATH)
-REPO_ROOT = File.expand_path('..', SCRIPT_DIR)
-
-# Add lib to load path
-lib_path = Pathname.new(REPO_ROOT).join('lib')
-$LOAD_PATH.unshift(lib_path) unless $LOAD_PATH.include?(lib_path.to_s)
-
-require 'wifi-wand/mac_helper/mac_helper_release'
-
 module MacHelperCLI
+  SCRIPT_PATH = File.realpath(__FILE__)
+  SCRIPT_DIR = File.dirname(SCRIPT_PATH)
+  REPO_ROOT = File.expand_path('..', SCRIPT_DIR)
   SUBCOMMANDS = {
     'build' => 'Build and sign helper with Developer ID (for gem distribution)',
     'verify' => 'Verify the committed helper bundle matches the current Swift source',
@@ -255,6 +248,13 @@ module MacHelperCLI
     end
   end
 end
+
+# Add lib to load path using the script-specific namespace so repeated loads do
+# not leak shared constants into Object.
+lib_path = Pathname.new(MacHelperCLI::REPO_ROOT).join('lib')
+$LOAD_PATH.unshift(lib_path.to_s) unless $LOAD_PATH.include?(lib_path.to_s)
+
+require 'wifi-wand/mac_helper/mac_helper_release'
 
 # Run the CLI
 MacHelperCLI::CLI.new(ARGV.dup).run if $PROGRAM_NAME == __FILE__

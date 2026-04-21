@@ -51,14 +51,14 @@ RSpec.describe 'bin/op-wrap' do
       it 'returns true when an executable regular file named op is found in PATH' do
         with_fake_op_in_tmpdir do |dir, _|
           with_env('PATH' => dir) do
-            expect(op_executable?('op')).to be true
+            expect(OpWrapScript.op_executable?('op')).to be true
           end
         end
       end
 
       it 'returns false when the binary is not found in PATH' do
         with_env('PATH' => Dir.mktmpdir) do
-          expect(op_executable?('op')).to be false
+          expect(OpWrapScript.op_executable?('op')).to be false
         end
       end
 
@@ -68,7 +68,7 @@ RSpec.describe 'bin/op-wrap' do
         Dir.mkdir(subdir)
         File.chmod(0o755, subdir)
         with_env('PATH' => dir) do
-          expect(op_executable?('op')).to be false
+          expect(OpWrapScript.op_executable?('op')).to be false
         end
       ensure
         FileUtils.rm_rf(dir)
@@ -79,7 +79,7 @@ RSpec.describe 'bin/op-wrap' do
         FileUtils.rm_f(sentinel)
 
         with_env('PATH' => Dir.mktmpdir) do
-          result = op_executable?('op; touch /tmp/op_wrap_injection_test')
+          result = OpWrapScript.op_executable?('op; touch /tmp/op_wrap_injection_test')
           expect(result).to be false
         end
 
@@ -88,13 +88,13 @@ RSpec.describe 'bin/op-wrap' do
 
       it 'treats pipe metacharacters as a literal filename' do
         with_env('PATH' => Dir.mktmpdir) do
-          expect(op_executable?('op | cat')).to be false
+          expect(OpWrapScript.op_executable?('op | cat')).to be false
         end
       end
 
       it 'treats backtick metacharacters as a literal filename' do
         with_env('PATH' => Dir.mktmpdir) do
-          expect(op_executable?('`id`')).to be false
+          expect(OpWrapScript.op_executable?('`id`')).to be false
         end
       end
     end
@@ -103,30 +103,30 @@ RSpec.describe 'bin/op-wrap' do
       it 'returns true for an existing executable regular file' do
         Tempfile.create('op') do |f|
           File.chmod(0o755, f.path)
-          expect(op_executable?(f.path)).to be true
+          expect(OpWrapScript.op_executable?(f.path)).to be true
         end
       end
 
       it 'returns false for a non-existent path' do
-        expect(op_executable?('/nonexistent/path/op')).to be false
+        expect(OpWrapScript.op_executable?('/nonexistent/path/op')).to be false
       end
 
       it 'returns false for an existing but non-executable file' do
         Tempfile.create('op') do |f|
           File.chmod(0o644, f.path)
-          expect(op_executable?(f.path)).to be false
+          expect(OpWrapScript.op_executable?(f.path)).to be false
         end
       end
 
       it 'returns false for an executable directory (e.g. WIFIWAND_OP_BIN=/bin)' do
-        expect(op_executable?('/bin')).to be false
+        expect(OpWrapScript.op_executable?('/bin')).to be false
       end
 
       it 'treats a path with semicolon metacharacters as a literal path' do
         sentinel = '/tmp/op_wrap_path_injection_test'
         FileUtils.rm_f(sentinel)
 
-        result = op_executable?('/nonexistent/op; touch /tmp/op_wrap_path_injection_test')
+        result = OpWrapScript.op_executable?('/nonexistent/op; touch /tmp/op_wrap_path_injection_test')
         expect(result).to be false
         expect(File.exist?(sentinel)).to be false
       end
@@ -136,19 +136,19 @@ RSpec.describe 'bin/op-wrap' do
   describe '#check_op_available!' do
     it 'does not exit when op_bin resolves to an executable file' do
       with_fake_op_in_tmpdir do |_, path|
-        expect { check_op_available!(path) }.not_to raise_error
+        expect { OpWrapScript.check_op_available!(path) }.not_to raise_error
       end
     end
 
     it 'exits with code 1 when op_bin is not found' do
-      expect { check_op_available!('/nonexistent/op') }.to raise_error(SystemExit) do |e|
+      expect { OpWrapScript.check_op_available!('/nonexistent/op') }.to raise_error(SystemExit) do |e|
         expect(e.status).to eq(1)
       end
     end
 
     it 'prints an error message to stderr when op_bin is not found' do
       expect do
-        check_op_available!('/nonexistent/op')
+        OpWrapScript.check_op_available!('/nonexistent/op')
       rescue SystemExit
         # expected; we only care about the stderr content
       end.to output(/not found in PATH/).to_stderr
@@ -157,14 +157,14 @@ RSpec.describe 'bin/op-wrap' do
 
   describe '#show_usage_and_exit' do
     it 'exits with code 64' do
-      expect { show_usage_and_exit }.to raise_error(SystemExit) do |e|
+      expect { OpWrapScript.show_usage_and_exit }.to raise_error(SystemExit) do |e|
         expect(e.status).to eq(64)
       end
     end
 
     it 'prints usage information to stderr' do
       expect do
-        show_usage_and_exit
+        OpWrapScript.show_usage_and_exit
       rescue SystemExit
         # expected
       end.to output(/Usage:/).to_stderr
@@ -173,7 +173,7 @@ RSpec.describe 'bin/op-wrap' do
 
   describe '#default_env_file' do
     it 'resolves .env.release relative to the real script path' do
-      expect(default_env_file).to eq(OP_WRAP_DEFAULT_ENV_FILE)
+      expect(OpWrapScript.default_env_file).to eq(OP_WRAP_DEFAULT_ENV_FILE)
     end
   end
 

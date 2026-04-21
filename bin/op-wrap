@@ -10,51 +10,53 @@
 #   bin/op-wrap bin/mac-helper notarize
 #
 
-SCRIPT_PATH = File.realpath(__FILE__)
-SCRIPT_DIR = File.dirname(SCRIPT_PATH)
-REPO_ROOT = File.expand_path('..', SCRIPT_DIR)
+module OpWrapScript
+  SCRIPT_PATH = File.realpath(__FILE__)
+  SCRIPT_DIR = File.dirname(SCRIPT_PATH)
+  REPO_ROOT = File.expand_path('..', SCRIPT_DIR)
 
-def default_env_file
-  File.expand_path('.env.release', REPO_ROOT)
-end
+  def self.default_env_file
+    File.expand_path('.env.release', REPO_ROOT)
+  end
 
-def find_op_command
-  ENV.fetch('WIFIWAND_OP_BIN', 'op')
-end
+  def self.find_op_command
+    ENV.fetch('WIFIWAND_OP_BIN', 'op')
+  end
 
-def op_executable?(op_bin)
-  if op_bin.include?(File::SEPARATOR)
-    File.file?(op_bin) && File.executable?(op_bin)
-  else
-    ENV.fetch('PATH', '').split(File::PATH_SEPARATOR).any? do |dir|
-      path = File.join(dir, op_bin)
-      File.file?(path) && File.executable?(path)
+  def self.op_executable?(op_bin)
+    if op_bin.include?(File::SEPARATOR)
+      File.file?(op_bin) && File.executable?(op_bin)
+    else
+      ENV.fetch('PATH', '').split(File::PATH_SEPARATOR).any? do |dir|
+        path = File.join(dir, op_bin)
+        File.file?(path) && File.executable?(path)
+      end
     end
   end
-end
 
-def check_op_available!(op_bin)
-  return if op_executable?(op_bin)
+  def self.check_op_available!(op_bin)
+    return if op_executable?(op_bin)
 
-  warn "Error: 1Password CLI \"#{op_bin}\" not found in PATH."
-  warn "Install op (https://developer.1password.com/docs/cli/) or set WIFIWAND_OP_BIN to its path."
-  exit 1
-end
+    warn "Error: 1Password CLI \"#{op_bin}\" not found in PATH."
+    warn "Install op (https://developer.1password.com/docs/cli/) or set WIFIWAND_OP_BIN to its path."
+    exit 1
+  end
 
-def show_usage_and_exit
-  warn "Usage: #{$PROGRAM_NAME} <command> [args...]"
-  warn "Example: #{$PROGRAM_NAME} bundle exec rake dev:notarize_helper"
-  warn "Example: #{$PROGRAM_NAME} bin/mac-helper notarize"
-  exit 64
+  def self.show_usage_and_exit
+    warn "Usage: #{$PROGRAM_NAME} <command> [args...]"
+    warn "Example: #{$PROGRAM_NAME} bundle exec rake dev:notarize_helper"
+    warn "Example: #{$PROGRAM_NAME} bin/mac-helper notarize"
+    exit 64
+  end
 end
 
 if __FILE__ == $PROGRAM_NAME
   # Main execution
-  op_bin = find_op_command
-  env_file = ENV.fetch('WIFIWAND_OP_RUN_ENV', default_env_file)
+  op_bin = OpWrapScript.find_op_command
+  env_file = ENV.fetch('WIFIWAND_OP_RUN_ENV', OpWrapScript.default_env_file)
 
-  check_op_available!(op_bin)
-  show_usage_and_exit if ARGV.empty?
+  OpWrapScript.check_op_available!(op_bin)
+  OpWrapScript.show_usage_and_exit if ARGV.empty?
 
   # Execute the command with 1Password environment injection
   exec(op_bin, 'run', "--env-file=#{env_file}", '--', *ARGV)
