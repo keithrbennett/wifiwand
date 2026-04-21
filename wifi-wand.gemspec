@@ -59,6 +59,8 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency('awesome_print', '>= 1.9.2', '< 2')
 
+  spec.add_dependency 'dry-cli', '~> 1.3'
+
   # ostruct and reline will no longer be part of the default gems starting from Ruby 3.5.0.
   spec.add_dependency 'ostruct', '~> 0.6'
   spec.add_dependency 'reline', '~> 0.5'
