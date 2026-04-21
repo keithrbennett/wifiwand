@@ -122,7 +122,7 @@ module WifiWand
 
     def cmd_of = build_off_command.call
 
-    def cmd_on = model.wifi_on
+    def cmd_on = build_on_command.call
 
     def cmd_pa(network)
       build_password_command.call(network)
@@ -357,6 +357,11 @@ module WifiWand
     private def build_off_command
       require_relative 'commands/off_command'
       WifiWand::OffCommand.new.bind(self)
+    end
+
+    private def build_on_command
+      require_relative 'commands/on_command'
+      WifiWand::OnCommand.new.bind(self)
     end
 
     private def build_password_command
