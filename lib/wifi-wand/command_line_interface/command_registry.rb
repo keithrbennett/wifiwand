@@ -2,6 +2,7 @@
 
 require_relative '../commands/command'
 require_relative '../commands/avail_nets_command'
+require_relative '../commands/ci_command'
 require_relative '../commands/connect_command'
 require_relative '../commands/cycle_command'
 require_relative '../commands/disconnect_command'
@@ -24,7 +25,7 @@ module WifiWand
       def commands
         @commands ||= [
           WifiWand::AvailNetsCommand.new,
-          method_command('ci', 'ci',           :cmd_ci),
+          WifiWand::CiCommand.new,
           WifiWand::ConnectCommand.new,
           WifiWand::CycleCommand.new,
           WifiWand::DisconnectCommand.new,

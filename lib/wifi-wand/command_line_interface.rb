@@ -87,11 +87,7 @@ module WifiWand
       build_avail_nets_command.call
     end
 
-    def cmd_ci
-      state = model.internet_connectivity_state
-      output_value = interactive_mode ? state : state.to_s
-      handle_output(output_value, -> { "Internet connectivity: #{state}" })
-    end
+    def cmd_ci = build_ci_command.call
 
     def cmd_co(network, password = nil)
       build_connect_command.call(network, password)
@@ -309,6 +305,11 @@ module WifiWand
     private def build_avail_nets_command
       require_relative 'commands/avail_nets_command'
       WifiWand::AvailNetsCommand.new.bind(self)
+    end
+
+    private def build_ci_command
+      require_relative 'commands/ci_command'
+      WifiWand::CiCommand.new.bind(self)
     end
 
     private def build_connect_command
