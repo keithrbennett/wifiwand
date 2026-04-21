@@ -752,6 +752,14 @@ describe WifiWand::CommandLineInterface do
         expect { subject.cmd_h('log') }.to output(/Usage: wifi-wand log/).to_stdout
       end
 
+
+      it 'prints command-specific help for till' do
+        till_command = WifiWand::TillCommand.new.bind(subject)
+        allow(subject).to receive(:find_bound_command).with('till').and_return(till_command)
+
+        expect { subject.cmd_h('till') }.to output(/Usage: wifi-wand till/).to_stdout
+      end
+
       it 'falls back to global help for unknown commands' do
         allow(subject).to receive(:find_bound_command).with('unknown').and_return(nil)
         expect(subject).to receive(:print_help)

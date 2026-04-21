@@ -189,49 +189,7 @@ module WifiWand
     end
 
     def cmd_t(*options)
-      # Validate that target status argument was provided
-      if options.empty? || options[0].nil?
-        raise WifiWand::ConfigurationError, <<~MSG.chomp
-          Missing target status argument.
-          Usage: till <state> [timeout_secs] [interval_secs]
-          States: wifi_on, wifi_off, associated, disassociated, internet_on, internet_off
-          Examples: 'till wifi_off 20' or 'till internet_on 30 0.5'
-          #{help_hint}
-        MSG
-      end
-
-      target_status = options[0].to_sym
-
-      # Validate numeric arguments
-      begin
-        timeout_in_secs = (options[1] ? Float(options[1]) : nil)
-      rescue ArgumentError, TypeError
-        raise WifiWand::ConfigurationError,
-          "Invalid timeout value '#{options[1]}'. Timeout must be a number. #{help_hint}"
-      end
-      if timeout_in_secs && timeout_in_secs < 0
-        raise WifiWand::ConfigurationError,
-          "Invalid timeout value '#{options[1]}'. Timeout must be non-negative. #{help_hint}"
-      end
-
-      begin
-        interval_in_secs = (options[2] ? Float(options[2]) : nil)
-      rescue ArgumentError, TypeError
-        raise WifiWand::ConfigurationError,
-          "Invalid interval value '#{options[2]}'. Interval must be a number. #{help_hint}"
-      end
-      if interval_in_secs && interval_in_secs < 0
-        raise WifiWand::ConfigurationError,
-          "Invalid interval value '#{options[2]}'. Interval must be non-negative. #{help_hint}"
-      end
-
-      # Pass CLI-friendly error formatting in non-interactive mode only.
-      model.till(
-        target_status,
-        timeout_in_secs:                         timeout_in_secs,
-        wait_interval_in_secs:                   interval_in_secs,
-        stringify_permitted_values_in_error_msg: !interactive_mode
-      )
+      build_till_command.call(*options)
     end
 
     def cmd_w
@@ -418,6 +376,11 @@ module WifiWand
     private def build_public_ip_command
       require_relative 'commands/public_ip_command'
       WifiWand::PublicIpCommand.new.bind(self)
+    end
+
+    private def build_till_command
+      require_relative 'commands/till_command'
+      WifiWand::TillCommand.new.bind(self)
     end
 
     private def empty_available_networks_message

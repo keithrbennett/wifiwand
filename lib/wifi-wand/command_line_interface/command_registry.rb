@@ -3,6 +3,7 @@
 require_relative '../commands/command'
 require_relative '../commands/log_command'
 require_relative '../commands/public_ip_command'
+require_relative '../commands/till_command'
 
 module WifiWand
   class CommandLineInterface
@@ -29,7 +30,7 @@ module WifiWand
           method_command('q',  'quit',         :cmd_q),
           method_command('qr', 'qr',           :cmd_qr),
           method_command('s',  'status',       :cmd_s),
-          method_command('t',  'till',         :cmd_t),
+          WifiWand::TillCommand.new,
           method_command('u',  'url',          :cmd_u),
           method_command('w',  'wifi_on',      :cmd_w),
           method_command('x',  'xit',          :cmd_x),
