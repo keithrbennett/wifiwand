@@ -806,6 +806,13 @@ describe WifiWand::CommandLineInterface do
         expect { subject.cmd_h('network_name') }.to output(/Usage: wifi-wand network_name/).to_stdout
       end
 
+      it 'prints command-specific help for off' do
+        off_command = WifiWand::OffCommand.new.bind(subject)
+        allow(subject).to receive(:find_bound_command).with('off').and_return(off_command)
+
+        expect { subject.cmd_h('off') }.to output(/Usage: wifi-wand off/).to_stdout
+      end
+
       it 'prints command-specific help for password' do
         password_command = WifiWand::PasswordCommand.new.bind(subject)
         allow(subject).to receive(:find_bound_command).with('password').and_return(password_command)

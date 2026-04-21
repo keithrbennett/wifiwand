@@ -120,7 +120,7 @@ module WifiWand
       build_network_name_command.call
     end
 
-    def cmd_of = model.wifi_off
+    def cmd_of = build_off_command.call
 
     def cmd_on = model.wifi_on
 
@@ -352,6 +352,11 @@ module WifiWand
     private def build_public_ip_command
       require_relative 'commands/public_ip_command'
       WifiWand::PublicIpCommand.new.bind(self)
+    end
+
+    private def build_off_command
+      require_relative 'commands/off_command'
+      WifiWand::OffCommand.new.bind(self)
     end
 
     private def build_password_command

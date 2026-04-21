@@ -10,6 +10,7 @@ require_relative '../commands/help_command'
 require_relative '../commands/log_command'
 require_relative '../commands/nameservers_command'
 require_relative '../commands/network_name_command'
+require_relative '../commands/off_command'
 require_relative '../commands/password_command'
 require_relative '../commands/pref_nets_command'
 require_relative '../commands/public_ip_command'
@@ -31,7 +32,7 @@ module WifiWand
           WifiWand::LogCommand.new,
           WifiWand::NameserversCommand.new,
           WifiWand::NetworkNameCommand.new,
-          method_command('of', 'off',          :cmd_of),
+          WifiWand::OffCommand.new,
           method_command('on', 'on',           :cmd_on),
           method_command('ro', 'ropen',        :cmd_ro),
           WifiWand::PasswordCommand.new,
