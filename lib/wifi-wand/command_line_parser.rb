@@ -72,7 +72,7 @@ module WifiWand
         # .parse! would fail on unrecognized options like --file and --stdout that belong to subcommands.
       end.order!(args)
 
-      if help_requested || help_flag_present?(args)
+      if help_requested
         options.help_requested = true
         args = ['h']
       elsif args.first == 'shell'
@@ -94,10 +94,6 @@ module WifiWand
       args.unshift(*env_args)
     rescue ArgumentError => e
       raise ConfigurationError, "Invalid WIFIWAND_OPTS value: #{e.message}"
-    end
-
-    private def help_flag_present?(args)
-      args.any? { |arg| ['-h', '--help'].include?(arg) }
     end
   end
 end

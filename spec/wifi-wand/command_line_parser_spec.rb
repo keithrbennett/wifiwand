@@ -80,10 +80,10 @@ describe WifiWand::CommandLineParser do
       expect(options.argv).to eq(['h'])
     end
 
-    it 'normalizes trailing help flags combined with a command into the help command' do
+    it 'leaves trailing help flags after a command unparsed' do
       options = described_class.new(['info', '-h'], ENV, err_stream).parse
-      expect(options.help_requested).to be(true)
-      expect(options.argv).to eq(['h'])
+      expect(options.help_requested).to be_nil
+      expect(options.argv).to eq(['info', '-h'])
     end
 
     it 'parses version flags' do

@@ -187,7 +187,6 @@ describe WifiWand::Main do
       ['--help'],
       ['-h'],
       ['-h', 'info'],
-      ['info', '-h'],
     ].each do |argv|
       it "prints help for #{argv.join(' ')} without initializing the model" do
         expect(WifiWand).not_to receive(:create_model)
@@ -200,6 +199,26 @@ describe WifiWand::Main do
         expect(out_stream.string).to include('Command Line Switches')
         expect(err_stream.string).to eq('')
       end
+    end
+
+    it 'passes trailing -h through to the command instead of treating it as top-level help' do
+      mock_cli = double('CommandLineInterface')
+      allow(WifiWand::CommandLineInterface).to receive(:new).and_return(mock_cli)
+      expect(mock_cli).to receive(:call).and_return(0)
+
+      out_stream = StringIO.new
+      err_stream = StringIO.new
+      main = described_class.new(out_stream, err_stream, argv: ['info', '-h'])
+
+      expect(WifiWand::CommandLineInterface).to receive(:new) do |options, argv:|
+        expect(options.help_requested).to be_nil
+        expect(argv).to eq(['info', '-h'])
+        mock_cli
+      end
+
+      expect(main.call).to eq(0)
+      expect(out_stream.string).to eq('')
+      expect(err_stream.string).to eq('')
     end
   end
 end
