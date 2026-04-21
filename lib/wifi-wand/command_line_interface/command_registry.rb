@@ -19,6 +19,7 @@ require_relative '../commands/pref_nets_command'
 require_relative '../commands/public_ip_command'
 require_relative '../commands/ropen_command'
 require_relative '../commands/till_command'
+require_relative '../commands/url_command'
 require_relative '../commands/wifi_on_command'
 
 module WifiWand
@@ -47,7 +48,7 @@ module WifiWand
           method_command('qr', 'qr',           :cmd_qr),
           method_command('s',  'status',       :cmd_s),
           WifiWand::TillCommand.new,
-          method_command('u',  'url',          :cmd_u),
+          WifiWand::UrlCommand.new,
           WifiWand::WifiOnCommand.new,
           method_command('x',  'xit',          :cmd_x),
         ]

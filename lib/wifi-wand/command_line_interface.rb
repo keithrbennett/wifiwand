@@ -176,7 +176,7 @@ module WifiWand
 
     def cmd_q = quit
 
-    def cmd_u = PROJECT_URL
+    def cmd_u = build_url_command.call
 
     def cmd_s
       progress_mode = status_progress_mode
@@ -330,6 +330,11 @@ module WifiWand
     private def build_log_command
       require_relative 'commands/log_command'
       WifiWand::LogCommand.new(model, output: out_stream, verbose: verbose_mode)
+    end
+
+    private def build_url_command
+      require_relative 'commands/url_command'
+      WifiWand::UrlCommand.new.bind(self)
     end
 
     private def build_wifi_on_command
