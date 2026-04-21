@@ -133,10 +133,7 @@ module WifiWand
       build_till_command.call(*options)
     end
 
-    def cmd_w
-      on = model.wifi_on?
-      handle_output(on, -> { "Wifi on: #{on}" })
-    end
+    def cmd_w = build_wifi_on_command.call
 
     def cmd_qr(filespec = nil, password = nil)
       # Normalize destination and determine if stdout ('-') is requested
@@ -350,6 +347,11 @@ module WifiWand
     private def build_log_command
       require_relative 'commands/log_command'
       WifiWand::LogCommand.new(model, output: out_stream, verbose: verbose_mode)
+    end
+
+    private def build_wifi_on_command
+      require_relative 'commands/wifi_on_command'
+      WifiWand::WifiOnCommand.new.bind(self)
     end
 
     private def build_public_ip_command

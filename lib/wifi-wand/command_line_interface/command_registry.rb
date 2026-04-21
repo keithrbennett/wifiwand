@@ -18,6 +18,7 @@ require_relative '../commands/password_command'
 require_relative '../commands/pref_nets_command'
 require_relative '../commands/public_ip_command'
 require_relative '../commands/till_command'
+require_relative '../commands/wifi_on_command'
 
 module WifiWand
   class CommandLineInterface
@@ -46,7 +47,7 @@ module WifiWand
           method_command('s',  'status',       :cmd_s),
           WifiWand::TillCommand.new,
           method_command('u',  'url',          :cmd_u),
-          method_command('w',  'wifi_on',      :cmd_w),
+          WifiWand::WifiOnCommand.new,
           method_command('x',  'xit',          :cmd_x),
         ]
       end
