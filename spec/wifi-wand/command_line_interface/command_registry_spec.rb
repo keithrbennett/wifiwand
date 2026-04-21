@@ -43,6 +43,10 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
 
       def model = nil
 
+      def interactive_mode? = false
+
+      alias_method :interactive_mode, :interactive_mode?
+
       def verbose_mode? = false
 
       alias_method :verbose_mode, :verbose_mode?

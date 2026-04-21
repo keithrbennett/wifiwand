@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../commands/command'
+require_relative '../commands/connect_command'
 require_relative '../commands/log_command'
 require_relative '../commands/public_ip_command'
 require_relative '../commands/till_command'
@@ -12,7 +13,7 @@ module WifiWand
         @commands ||= [
           method_command('a',  'avail_nets',   :cmd_a),
           method_command('ci', 'ci',           :cmd_ci),
-          method_command('co', 'connect',      :cmd_co),
+          WifiWand::ConnectCommand.new,
           method_command('cy', 'cycle',        :cmd_cy),
           method_command('d',  'disconnect',   :cmd_d),
           method_command('f',  'forget',       :cmd_f),

@@ -109,13 +109,7 @@ module WifiWand
     end
 
     def cmd_co(network, password = nil)
-      model.connect(network, password)
-
-      # Show message if we used a saved password
-      if model.last_connection_used_saved_password? && !interactive_mode
-        out_stream.puts "Using saved password for '#{network}'. " \
-          "Use 'forget #{network}' if you need to use a different password."
-      end
+      build_connect_command.call(network, password)
     end
 
     def cmd_cy = model.cycle_network
@@ -367,6 +361,11 @@ module WifiWand
     # Strips ANSI escape codes from a string so we can measure visible length
     # when padding inline terminal updates.
     private def strip_ansi(text) = text.to_s.gsub(/\e\[[\d;]*m/, '')
+
+    private def build_connect_command
+      require_relative 'commands/connect_command'
+      WifiWand::ConnectCommand.new.bind(self)
+    end
 
     private def build_log_command
       require_relative 'commands/log_command'

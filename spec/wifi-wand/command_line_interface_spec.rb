@@ -171,11 +171,12 @@ describe WifiWand::CommandLineInterface do
         expect(error_handler_called).to be(true)
       end
 
-      it 'passes arguments to command methods' do
-        allow(subject).to receive(:cmd_co).with('network', 'password').and_return('connect_result')
+      it 'passes arguments to command objects' do
+        expect(mock_model).to receive(:connect).with('network', 'password')
+        allow(mock_model).to receive(:last_connection_used_saved_password?).and_return(false)
 
         result = subject.attempt_command_action('connect', 'network', 'password')
-        expect(result).to eq('connect_result')
+        expect(result).to be_nil
       end
     end
   end
@@ -217,10 +218,11 @@ describe WifiWand::CommandLineInterface do
 
       it 'passes command arguments correctly' do
         cli = described_class.new(options, argv: %w[connect TestNetwork password123])
-        allow(cli).to receive(:cmd_co).with('TestNetwork', 'password123').and_return('connected')
+        allow(cli.model).to receive(:connect).with('TestNetwork', 'password123')
+        allow(cli.model).to receive(:last_connection_used_saved_password?).and_return(false)
 
         result = cli.process_command_line
-        expect(result).to eq('connected')
+        expect(result).to be_nil
       end
 
       it 'handles commands with no arguments' do
@@ -750,6 +752,13 @@ describe WifiWand::CommandLineInterface do
         allow(subject).to receive(:find_bound_command).with('log').and_return(log_command)
 
         expect { subject.cmd_h('log') }.to output(/Usage: wifi-wand log/).to_stdout
+      end
+
+      it 'prints command-specific help for connect' do
+        connect_command = WifiWand::ConnectCommand.new.bind(subject)
+        allow(subject).to receive(:find_bound_command).with('connect').and_return(connect_command)
+
+        expect { subject.cmd_h('connect') }.to output(/Usage: wifi-wand connect/).to_stdout
       end
 
 
