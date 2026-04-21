@@ -84,22 +84,7 @@ module WifiWand
     # All commands that delegate to the model stay here
 
     def cmd_a
-      info = model.available_network_names
-      human_readable_string_producer = -> do
-        if info.respond_to?(:empty?) && info.empty?
-          empty_available_networks_message
-        else
-          <<~MESSAGE
-            Available networks, in descending signal strength order,
-            as returned by the OS scan, are:
-
-            #{format_object(info)}
-          MESSAGE
-        end
-      end
-      handle_output(info, human_readable_string_producer)
-    rescue WifiWand::Error => e
-      handle_output(nil, -> { e.message })
+      build_avail_nets_command.call
     end
 
     def cmd_ci
@@ -351,6 +336,11 @@ module WifiWand
     # Strips ANSI escape codes from a string so we can measure visible length
     # when padding inline terminal updates.
     private def strip_ansi(text) = text.to_s.gsub(/\e\[[\d;]*m/, '')
+
+    private def build_avail_nets_command
+      require_relative 'commands/avail_nets_command'
+      WifiWand::AvailNetsCommand.new.bind(self)
+    end
 
     private def build_connect_command
       require_relative 'commands/connect_command'
