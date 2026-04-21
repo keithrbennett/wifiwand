@@ -174,7 +174,7 @@ module WifiWand
       build_help_command.call(command_name)
     end
 
-    def cmd_q = quit
+    def cmd_q = build_quit_command.call
 
     def cmd_u = build_url_command.call
 
@@ -244,7 +244,7 @@ module WifiWand
       build_log_command.call(*options)
     end
 
-    def cmd_x = quit
+    def cmd_x = build_quit_command.call
 
     def cmd_ro(*resource_codes)
       build_ropen_command.call(*resource_codes)
@@ -340,6 +340,11 @@ module WifiWand
     private def build_wifi_on_command
       require_relative 'commands/wifi_on_command'
       WifiWand::WifiOnCommand.new.bind(self)
+    end
+
+    private def build_quit_command
+      require_relative 'commands/quit_command'
+      WifiWand::QuitCommand.new.bind(self)
     end
 
     private def build_ropen_command
