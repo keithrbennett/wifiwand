@@ -23,6 +23,21 @@ module WifiWand
       'y' => ->(object) { object.to_yaml },
     }.freeze
 
+    GLOBAL_OPTIONS = [
+      '-v',
+      '--verbose',
+      '--no-v',
+      '--no-verbose',
+      '-o',
+      '--output_format',
+      '-p',
+      '--wifi-interface',
+      '-h',
+      '--help',
+      '-V',
+      '--version',
+    ].freeze
+
     def initialize(argv, env, err_stream)
       @argv = argv
       @env = env
@@ -59,6 +74,8 @@ module WifiWand
           options.version_requested = true
         end
       end.order!(args)
+
+      reject_misplaced_global_option!(args)
 
       # Help and version are handled as dedicated top-level flags.
       if help_requested
@@ -100,6 +117,22 @@ module WifiWand
       args.unshift(*env_args)
     rescue ArgumentError => e
       raise ConfigurationError, "Invalid WIFIWAND_OPTS value: #{e.message}"
+    end
+
+    private def reject_misplaced_global_option!(args)
+      return if args.length < 2
+
+      misplaced_option = args.drop(1).find { |arg| global_option?(arg) }
+      return if misplaced_option.nil?
+
+      raise OptionParser::InvalidOption,
+        "global option '#{misplaced_option}' must appear before the command"
+    end
+
+    private def global_option?(arg)
+      GLOBAL_OPTIONS.include?(arg) ||
+        arg.start_with?('--output_format=') ||
+        arg.start_with?('--wifi-interface=')
     end
   end
 end

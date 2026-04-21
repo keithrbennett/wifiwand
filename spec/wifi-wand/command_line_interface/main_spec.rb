@@ -201,23 +201,16 @@ describe WifiWand::Main do
       end
     end
 
-    it 'passes trailing -h through to the command instead of treating it as top-level help' do
-      mock_cli = double('CommandLineInterface')
-      expect(mock_cli).to receive(:call).and_return(0)
+    it 'rejects trailing top-level help flags after a command' do
+      expect(WifiWand::CommandLineInterface).not_to receive(:new)
 
       out_stream = StringIO.new
       err_stream = StringIO.new
       main = described_class.new(out_stream, err_stream, argv: ['info', '-h'])
 
-      expect(WifiWand::CommandLineInterface).to receive(:new) do |options, argv:|
-        expect(options.help_requested).to be_nil
-        expect(argv).to eq(['info', '-h'])
-        mock_cli
-      end
-
-      expect(main.call).to eq(0)
+      expect(main.call).to eq(1)
       expect(out_stream.string).to eq('')
-      expect(err_stream.string).to eq('')
+      expect(err_stream.string).to include("global option '-h' must appear before the command")
     end
   end
 end
