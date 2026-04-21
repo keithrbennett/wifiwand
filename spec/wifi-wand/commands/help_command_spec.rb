@@ -29,17 +29,7 @@ describe WifiWand::HelpCommand do
     end.new
   end
 
-  describe '#bind' do
-    it 'returns a bound command with context-derived execution properties' do
-      command = described_class.new
-      bound_command = command.bind(cli)
-
-      expect(bound_command).to be_a(described_class)
-      expect(bound_command.metadata).to eq(command.metadata)
-      expect(bound_command.cli).to eq(cli)
-      expect(bound_command.output).to eq(cli.out_stream)
-    end
-  end
+  it_behaves_like 'binds command context', bound_attributes: { cli: :cli, output: -> { cli.out_stream } }
 
   describe '#help_text' do
     it 'returns global help text when bound' do

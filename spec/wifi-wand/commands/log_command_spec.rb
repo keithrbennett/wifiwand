@@ -19,22 +19,10 @@ describe WifiWand::LogCommand do
   let(:output) { StringIO.new }
 
   describe '#bind' do
-    let(:cli) { double('cli', model: mock_model, verbose_mode: true) }
+    let(:cli) { double('cli', model: mock_model, verbose_mode: true, out_stream: output) }
 
-    before do
-      allow(cli).to receive(:out_stream).and_return(output)
-    end
-
-    it 'returns a bound command with context-derived execution properties' do
-      command = described_class.new
-      bound_command = command.bind(cli)
-
-      expect(bound_command).to be_a(described_class)
-      expect(bound_command.metadata).to eq(command.metadata)
-      expect(bound_command.model).to eq(mock_model)
-      expect(bound_command.output).to eq(output)
-      expect(bound_command.verbose).to be(true)
-    end
+    it_behaves_like 'binds command context',
+      bound_attributes: { model: :mock_model, output: :output, verbose: -> { cli.verbose_mode } }
   end
 
   describe 'initialization' do

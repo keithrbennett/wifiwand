@@ -18,20 +18,14 @@ describe WifiWand::RopenCommand do
     allow(mock_model).to receive(:resource_manager).and_return(resource_manager)
   end
 
-  describe '#bind' do
-    it 'returns a bound command with context-derived execution properties' do
-      command = described_class.new
-      bound_command = command.bind(cli)
-
-      expect(bound_command).to be_a(described_class)
-      expect(bound_command.metadata).to eq(command.metadata)
-      expect(bound_command.model).to eq(mock_model)
-      expect(bound_command.cli).to eq(cli)
-      expect(bound_command.interactive_mode).to be(false)
-      expect(bound_command.out_stream).to eq(out_stream)
-      expect(bound_command.err_stream).to eq(err_stream)
-    end
-  end
+  it_behaves_like 'binds command context',
+    bound_attributes: {
+      model:            :mock_model,
+      cli:              :cli,
+      interactive_mode: :interactive_mode,
+      out_stream:       :out_stream,
+      err_stream:       :err_stream,
+    }
 
   describe '#help_text' do
     it 'includes usage and description without a bound model' do
