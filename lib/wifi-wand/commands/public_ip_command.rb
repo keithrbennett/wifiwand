@@ -4,7 +4,7 @@ require_relative 'command'
 require_relative '../errors'
 
 module WifiWand
-  class PublicIpCommand
+  class PublicIpCommand < Command
     SHORT_NAME = 'pi'
     LONG_NAME = 'public_ip'
     DESCRIPTION = 'public IP lookup; selectors may use long or short form; both (b) is the default'
@@ -19,21 +19,6 @@ module WifiWand
     }.freeze
 
     attr_reader :metadata, :cli, :model
-
-    def initialize(metadata: nil, cli: nil, model: nil)
-      @metadata = metadata || CommandMetadata.new(
-        short_string: SHORT_NAME,
-        long_string:  LONG_NAME,
-        description:  DESCRIPTION,
-        usage:        USAGE
-      )
-      @cli = cli
-      @model = model
-    end
-
-    def aliases
-      metadata.aliases
-    end
 
     def bind(cli)
       self.class.new(metadata: metadata, cli: cli, model: cli.model)

@@ -5,7 +5,7 @@ require_relative '../errors'
 require_relative '../timing_constants'
 
 module WifiWand
-  class TillCommand
+  class TillCommand < Command
     SHORT_NAME = 't'
     LONG_NAME = 'till'
     DESCRIPTION = 'wait until a target connectivity or WiFi state is reached'
@@ -13,22 +13,6 @@ module WifiWand
     STATES = %w[wifi_on wifi_off associated disassociated internet_on internet_off].freeze
 
     attr_reader :metadata, :cli, :model, :interactive_mode
-
-    def initialize(metadata: nil, cli: nil, model: nil, interactive_mode: false)
-      @metadata = metadata || CommandMetadata.new(
-        short_string: SHORT_NAME,
-        long_string:  LONG_NAME,
-        description:  DESCRIPTION,
-        usage:        USAGE
-      )
-      @cli = cli
-      @model = model
-      @interactive_mode = interactive_mode
-    end
-
-    def aliases
-      metadata.aliases
-    end
 
     def bind(cli)
       self.class.new(

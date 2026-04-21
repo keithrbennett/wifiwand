@@ -4,7 +4,7 @@ require_relative 'command'
 require_relative '../errors'
 
 module WifiWand
-  class AvailNetsCommand
+  class AvailNetsCommand < Command
     SHORT_NAME = 'a'
     LONG_NAME = 'avail_nets'
     DESCRIPTION = 'list visible WiFi networks in descending signal-strength order'
@@ -12,31 +12,8 @@ module WifiWand
 
     attr_reader :metadata, :cli, :model
 
-    def initialize(metadata: nil, cli: nil, model: nil)
-      @metadata = metadata || CommandMetadata.new(
-        short_string: SHORT_NAME,
-        long_string:  LONG_NAME,
-        description:  DESCRIPTION,
-        usage:        USAGE
-      )
-      @cli = cli
-      @model = model
-    end
-
-    def aliases
-      metadata.aliases
-    end
-
     def bind(cli)
       self.class.new(metadata: metadata, cli: cli, model: cli.model)
-    end
-
-    def help_text
-      <<~HELP
-        #{metadata.usage}
-
-        #{metadata.description}
-      HELP
     end
 
     def call
