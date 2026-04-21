@@ -22,7 +22,7 @@ module WifiWand
     include CommandRegistry
     include ShellInterface
 
-    attr_reader :interactive_mode, :model, :options
+    attr_reader :interactive_mode, :model, :options, :err_stream
 
     PROJECT_URL = 'https://github.com/keithrbennett/wifiwand'
     SUCCESS_EXIT_CODE = 0
@@ -246,25 +246,8 @@ module WifiWand
 
     def cmd_x = quit
 
-    # Use macOS 'open' command line utility
     def cmd_ro(*resource_codes)
-      if resource_codes.empty?
-        if interactive_mode
-          return model.available_resources_help
-        else
-          out_stream.puts model.available_resources_help
-        end
-
-        return
-      end
-
-      result = model.open_resources_by_codes(*resource_codes)
-
-      unless result[:invalid_codes].empty?
-        @err_stream.puts model.resource_manager.invalid_codes_error(result[:invalid_codes])
-      end
-
-      nil
+      build_ropen_command.call(*resource_codes)
     end
 
     # ===== MAIN ENTRY POINT =====
@@ -352,6 +335,11 @@ module WifiWand
     private def build_wifi_on_command
       require_relative 'commands/wifi_on_command'
       WifiWand::WifiOnCommand.new.bind(self)
+    end
+
+    private def build_ropen_command
+      require_relative 'commands/ropen_command'
+      WifiWand::RopenCommand.new.bind(self)
     end
 
     private def build_public_ip_command

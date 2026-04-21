@@ -17,6 +17,7 @@ require_relative '../commands/on_command'
 require_relative '../commands/password_command'
 require_relative '../commands/pref_nets_command'
 require_relative '../commands/public_ip_command'
+require_relative '../commands/ropen_command'
 require_relative '../commands/till_command'
 require_relative '../commands/wifi_on_command'
 
@@ -38,7 +39,7 @@ module WifiWand
           WifiWand::NetworkNameCommand.new,
           WifiWand::OffCommand.new,
           WifiWand::OnCommand.new,
-          method_command('ro', 'ropen',        :cmd_ro),
+          WifiWand::RopenCommand.new,
           WifiWand::PasswordCommand.new,
           WifiWand::PublicIpCommand.new,
           WifiWand::PrefNetsCommand.new,
