@@ -63,9 +63,8 @@ describe WifiWand::CommandLineInterface::HelpSystem do
 
     it 'documents exact short and long command forms for public_ip' do
       expect(help).to include('Commands accept only the exact short or exact long form shown below.')
-      expect(help).to include('pu / public_ip [address|country|both|a|c|b]')
+      expect(help).to include('pi / public_ip [address|country|both|a|c|b]')
       expect(help).to include("e.g. 'public_ip a' or 'pi country'")
-      expect(help).to include('pi [address|country|both|a|c|b]')
     end
 
     context 'when model is not available' do

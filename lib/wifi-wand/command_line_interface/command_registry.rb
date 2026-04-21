@@ -2,6 +2,7 @@
 
 require_relative '../commands/command'
 require_relative '../commands/log_command'
+require_relative '../commands/public_ip_command'
 
 module WifiWand
   class CommandLineInterface
@@ -23,9 +24,8 @@ module WifiWand
           method_command('on', 'on',           :cmd_on),
           method_command('ro', 'ropen',        :cmd_ro),
           method_command('pa', 'password',     :cmd_pa),
-          method_command('pi', 'pi',           :cmd_public_ip),
+          WifiWand::PublicIpCommand.new,
           method_command('pr', 'pref_nets',    :cmd_pr),
-          method_command('pu', 'public_ip',    :cmd_public_ip),
           method_command('q',  'quit',         :cmd_q),
           method_command('qr', 'qr',           :cmd_qr),
           method_command('s',  'status',       :cmd_s),

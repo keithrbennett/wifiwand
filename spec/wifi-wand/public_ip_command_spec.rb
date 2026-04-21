@@ -23,6 +23,7 @@ RSpec.describe 'public_ip command' do
   it 'routes public_ip and pi through the command registry' do
     expect(cli.find_command_action('public_ip')).not_to be_nil
     expect(cli.find_command_action('pi')).not_to be_nil
+    expect(cli.find_command_action('pu')).to be_nil
   end
 
   it 'uses both by default' do
@@ -80,7 +81,20 @@ RSpec.describe 'public_ip command' do
 
   it 'passes selector arguments through process_command_line for the pi alias' do
     alias_cli = WifiWand::CommandLineInterface.new(options, argv: %w[pi a])
-    expect(alias_cli).to receive(:cmd_public_ip).with('a')
-    alias_cli.process_command_line
+    expect(alias_cli.model).to receive(:public_ip_address).and_return('203.0.113.10')
+
+    expect { alias_cli.process_command_line }.to output("Public IP Address: 203.0.113.10\n").to_stdout
+  end
+
+  it 'prints command-specific help for public_ip' do
+    expect { cli.cmd_h('public_ip') }.to output(/Usage: wifi-wand public_ip/).to_stdout
+  end
+
+  it 'returns command help text for the public_ip alias' do
+    command = cli.find_bound_command('pi')
+
+    expect(command).to be_a(WifiWand::PublicIpCommand)
+    expect(command.help_text).to include('Usage: wifi-wand public_ip')
+    expect(command.help_text).to include('address (a)')
   end
 end

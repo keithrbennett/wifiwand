@@ -63,11 +63,9 @@ module WifiWand
           on                        - turns WiFi on
           of / off                - turns WiFi off
           pa / password network-name - password for preferred network name
-          pu / public_ip [address|country|both|a|c|b]
+          pi / public_ip [address|country|both|a|c|b]
                                     - public IP lookup; selectors may use long or short form,
                                       e.g. 'public_ip a' or 'pi country'; both (b) is the default
-          pi [address|country|both|a|c|b]
-                                    - short alias for public_ip with the same selector forms
           pr / pref_nets          - preferred (saved) networks
           q / quit                - exits this program (interactive shell mode only) (same as 'x')
           qr [filespec|'-'] [password]

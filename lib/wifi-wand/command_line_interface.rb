@@ -128,19 +128,7 @@ module WifiWand
     end
 
     def cmd_public_ip(selector = 'both')
-      normalized_selector = normalize_public_ip_selector(selector)
-
-      case normalized_selector
-      when 'address'
-        address = model.public_ip_address
-        handle_output(address, -> { "Public IP Address: #{address}" })
-      when 'country'
-        country = model.public_ip_country
-        handle_output(country, -> { "Public IP Country: #{country}" })
-      when 'both'
-        info = model.public_ip_info
-        handle_output(info, -> { "Public IP Address: #{info['address']}  Country: #{info['country']}" })
-      end
+      build_public_ip_command.call(selector)
     end
 
     # Performs nameserver functionality.
@@ -427,21 +415,9 @@ module WifiWand
       WifiWand::LogCommand.new(model, output: out_stream, verbose: verbose_mode)
     end
 
-    private def normalize_public_ip_selector(selector)
-      normalized_selector = selector.to_s.strip.downcase
-      normalized_selector = 'both' if normalized_selector.empty?
-
-      case normalized_selector
-      when 'address', 'a'
-        'address'
-      when 'country', 'c'
-        'country'
-      when 'both', 'b'
-        'both'
-      else
-        raise WifiWand::ConfigurationError,
-          "Invalid selector '#{selector}'. Use one of: address (a), country (c), both (b)."
-      end
+    private def build_public_ip_command
+      require_relative 'commands/public_ip_command'
+      WifiWand::PublicIpCommand.new.bind(self)
     end
 
     private def empty_available_networks_message
