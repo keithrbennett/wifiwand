@@ -326,25 +326,31 @@ module WifiWand
       end
 
       describe '#is_wifi_interface?' do
-        it 'correctly identifies WiFi interfaces' do
-          test_cases = [
-            ['en0', nil, true],   # WiFi interface (command succeeds)
-            ['en1', 10, false],   # Non-WiFi interface (exit code 10)
-            ['en2', 5, true],      # WiFi interface (other non-10 exit code)
-          ]
+        it 'returns true when networksetup confirms the interface is WiFi' do
+          allow(model).to receive(:run_os_command)
+            .with(%w[networksetup -listpreferredwirelessnetworks en0])
+            .and_return(command_result(stdout: ''))
 
-          test_cases.each do |interface, exit_status, expected|
-            if exit_status
-              # Mock command failure with specific exit code
-              error = os_command_error(exitstatus: exit_status, command: 'networksetup', text: '')
-              allow(model).to receive(:run_os_command).and_raise(error)
-            else
-              # Mock command success
-              allow(model).to receive(:run_os_command).and_return(command_result(stdout: ''))
-            end
+          expect(model.is_wifi_interface?('en0')).to be(true)
+        end
 
-            expect(model.is_wifi_interface?(interface)).to eq(expected)
-          end
+        it 'returns false when networksetup reports a non-WiFi interface' do
+          error = os_command_error(exitstatus: 10, command: 'networksetup', text: '')
+          allow(model).to receive(:run_os_command)
+            .with(%w[networksetup -listpreferredwirelessnetworks en1])
+            .and_raise(error)
+
+          expect(model.is_wifi_interface?('en1')).to be(false)
+        end
+
+        it 're-raises unexpected networksetup failures' do
+          error = os_command_error(exitstatus: 5, command: 'networksetup', text: 'unexpected failure')
+          allow(model).to receive(:run_os_command)
+            .with(%w[networksetup -listpreferredwirelessnetworks en2])
+            .and_raise(error)
+
+          expect { model.is_wifi_interface?('en2') }
+            .to raise_error(WifiWand::CommandExecutor::OsCommandError, /unexpected failure/)
         end
       end
 

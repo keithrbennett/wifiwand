@@ -262,7 +262,11 @@ module WifiWand
       true  # If command succeeds, it's a WiFi interface
     rescue WifiWand::CommandExecutor::OsCommandError => e
       # Exit code 10 means not a WiFi interface
-      e.exitstatus != 10
+      if e.exitstatus == 10
+        false
+      else
+        raise
+      end
     end
 
     def wifi_on?
