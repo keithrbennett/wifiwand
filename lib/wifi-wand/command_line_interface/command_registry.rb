@@ -4,6 +4,7 @@ require_relative '../commands/command'
 require_relative '../commands/connect_command'
 require_relative '../commands/help_command'
 require_relative '../commands/log_command'
+require_relative '../commands/network_name_command'
 require_relative '../commands/public_ip_command'
 require_relative '../commands/till_command'
 
@@ -22,7 +23,7 @@ module WifiWand
           method_command('i',  'info',         :cmd_i),
           WifiWand::LogCommand.new,
           method_command('na', 'nameservers',  :cmd_na),
-          method_command('ne', 'network_name', :cmd_ne),
+          WifiWand::NetworkNameCommand.new,
           method_command('of', 'off',          :cmd_of),
           method_command('on', 'on',           :cmd_on),
           method_command('ro', 'ropen',        :cmd_ro),

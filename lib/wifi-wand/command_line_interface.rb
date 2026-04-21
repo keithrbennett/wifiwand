@@ -153,10 +153,7 @@ module WifiWand
     end
 
     def cmd_ne
-      name = model.connected_network_name
-      handle_output(name, -> { %{Network (SSID) name: "#{name || '[none]'}"} })
-    rescue WifiWand::Error => e
-      handle_output(nil, -> { e.message })
+      build_network_name_command.call
     end
 
     def cmd_of = model.wifi_off
@@ -363,6 +360,11 @@ module WifiWand
     private def build_help_command
       require_relative 'commands/help_command'
       WifiWand::HelpCommand.new.bind(self)
+    end
+
+    private def build_network_name_command
+      require_relative 'commands/network_name_command'
+      WifiWand::NetworkNameCommand.new.bind(self)
     end
 
     private def build_log_command
