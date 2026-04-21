@@ -785,6 +785,13 @@ describe WifiWand::CommandLineInterface do
         expect { subject.cmd_h('network_name') }.to output(/Usage: wifi-wand network_name/).to_stdout
       end
 
+      it 'prints command-specific help for pref_nets' do
+        pref_nets_command = WifiWand::PrefNetsCommand.new.bind(subject)
+        allow(subject).to receive(:find_bound_command).with('pref_nets').and_return(pref_nets_command)
+
+        expect { subject.cmd_h('pref_nets') }.to output(/Usage: wifi-wand pref_nets/).to_stdout
+      end
+
       it 'prints command-specific help for till' do
         till_command = WifiWand::TillCommand.new.bind(subject)
         allow(subject).to receive(:find_bound_command).with('till').and_return(till_command)

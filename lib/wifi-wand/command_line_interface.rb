@@ -134,8 +134,7 @@ module WifiWand
     end
 
     def cmd_pr
-      networks = model.preferred_networks
-      handle_output(networks, -> { format_object(networks) })
+      build_pref_nets_command.call
     end
 
     def cmd_f(*options)
@@ -349,6 +348,11 @@ module WifiWand
     private def build_public_ip_command
       require_relative 'commands/public_ip_command'
       WifiWand::PublicIpCommand.new.bind(self)
+    end
+
+    private def build_pref_nets_command
+      require_relative 'commands/pref_nets_command'
+      WifiWand::PrefNetsCommand.new.bind(self)
     end
 
     private def build_till_command
