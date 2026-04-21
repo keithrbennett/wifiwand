@@ -41,6 +41,19 @@ module WifiWand
       )
     end
 
+    def help_text
+      # Reuse the command parser as the single source of truth for help text.
+      # These setters are intentionally inert because help generation should not
+      # mutate command state or trigger execution behavior.
+      build_parser(
+        interval_setter: ->(_value) {},
+        file_setter:     ->(_value) {},
+        stdout_setter:   -> {},
+        verbose_setter:  -> {},
+        help_setter:     -> {}
+      ).help
+    end
+
     def call(*options)
       parse_result = parse_options(options)
       return if parse_result == :skip_execution

@@ -74,6 +74,13 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
   end
 
   describe '#find_command_action' do
+    it 'returns a bound command object for a known command' do
+      command = subject.find_bound_command('log')
+
+      expect(command).to be_a(WifiWand::LogCommand)
+      expect(command.help_text).to include('Usage: wifi-wand log')
+    end
+
     it 'matches the exact short command' do
       expect(subject.find_command_action('co')).to respond_to(:call)
     end

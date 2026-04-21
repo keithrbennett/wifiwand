@@ -33,6 +33,8 @@ module WifiWand
       self.class.new(metadata: metadata, handler_name: handler_name, cli: cli)
     end
 
+    def help_text = nil
+
     def call(*)
       cli.public_send(handler_name, *)
     end

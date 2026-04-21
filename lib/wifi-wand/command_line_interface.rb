@@ -286,7 +286,16 @@ module WifiWand
     # ===== OTHER COMMANDS =====
     # Commands that don't directly delegate to the model
 
-    def cmd_h = print_help
+    def cmd_h(command_name = nil)
+      command = find_bound_command(command_name)
+      return print_help if command.nil?
+
+      if command.help_text
+        out_stream.puts(command.help_text)
+      else
+        print_help
+      end
+    end
 
     def cmd_q = quit
 

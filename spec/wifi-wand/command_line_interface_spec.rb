@@ -740,9 +740,23 @@ describe WifiWand::CommandLineInterface do
 
   describe 'utility commands' do
     describe '#cmd_h (help)' do
-      it 'calls print_help method' do
+      it 'calls print_help method when no command is provided' do
         expect(subject).to receive(:print_help)
         subject.cmd_h
+      end
+
+      it 'prints command-specific help when a known command is provided' do
+        log_command = WifiWand::LogCommand.new.bind(subject)
+        allow(subject).to receive(:find_bound_command).with('log').and_return(log_command)
+
+        expect { subject.cmd_h('log') }.to output(/Usage: wifi-wand log/).to_stdout
+      end
+
+      it 'falls back to global help for unknown commands' do
+        allow(subject).to receive(:find_bound_command).with('unknown').and_return(nil)
+        expect(subject).to receive(:print_help)
+
+        subject.cmd_h('unknown')
       end
     end
 

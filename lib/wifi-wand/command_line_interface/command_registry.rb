@@ -40,9 +40,14 @@ module WifiWand
         commands.detect { |command| command.aliases.include?(command_string) }
       end
 
-      def find_command_action(command_string)
+      def find_bound_command(command_string)
         command = find_command(command_string)
-        command&.bind(self)&.method(:call)
+        command&.bind(self)
+      end
+
+      def find_command_action(command_string)
+        command = find_bound_command(command_string)
+        command&.method(:call)
       end
 
       # Look up the command name and, if found, run it. If not, execute the passed block.
