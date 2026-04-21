@@ -26,6 +26,55 @@ describe WifiWand::Command do
     expect(bound_command.metadata).to eq(metadata)
     expect(bound_command.call('arg')).to eq('result')
   end
+
+  it 'binds declared same-name attributes from the cli' do
+    command_class = Class.new(described_class) do
+      binds :model, :interactive_mode
+    end
+
+    model = double('model')
+    command_metadata = WifiWand::CommandMetadata.new(short_string: 'sa', long_string: 'same_attrs')
+    allow(cli).to receive_messages(model: model, interactive_mode: true)
+
+    bound_command = command_class.new(metadata: command_metadata).bind(cli)
+
+    expect(bound_command.model).to eq(model)
+    expect(bound_command.interactive_mode).to be(true)
+  end
+
+  it 'binds mapped attributes from differently named cli readers' do
+    command_class = Class.new(described_class) do
+      binds output: :out_stream
+    end
+
+    output = StringIO.new
+    command_metadata = WifiWand::CommandMetadata.new(short_string: 'ma', long_string: 'mapped_attrs')
+    allow(cli).to receive(:out_stream).and_return(output)
+
+    bound_command = command_class.new(metadata: command_metadata).bind(cli)
+
+    expect(bound_command.output).to eq(output)
+  end
+
+  it 'inherits binding declarations in subclasses' do
+    parent_class = Class.new(described_class) do
+      binds :model
+    end
+
+    child_class = Class.new(parent_class) do
+      binds output: :out_stream
+    end
+
+    model = double('model')
+    output = StringIO.new
+    command_metadata = WifiWand::CommandMetadata.new(short_string: 'ca', long_string: 'child_attrs')
+    allow(cli).to receive_messages(model: model, out_stream: output)
+
+    bound_command = child_class.new(metadata: command_metadata).bind(cli)
+
+    expect(bound_command.model).to eq(model)
+    expect(bound_command.output).to eq(output)
+  end
 end
 
 describe WifiWand::CommandLineInterface::CommandRegistry do
