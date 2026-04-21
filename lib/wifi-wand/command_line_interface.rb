@@ -99,7 +99,7 @@ module WifiWand
 
     def cmd_cy = model.cycle_network
 
-    def cmd_d = model.disconnect
+    def cmd_d = build_disconnect_command.call
 
     def cmd_i
       info = model.wifi_info
@@ -317,6 +317,11 @@ module WifiWand
     private def build_connect_command
       require_relative 'commands/connect_command'
       WifiWand::ConnectCommand.new.bind(self)
+    end
+
+    private def build_disconnect_command
+      require_relative 'commands/disconnect_command'
+      WifiWand::DisconnectCommand.new.bind(self)
     end
 
     private def build_help_command

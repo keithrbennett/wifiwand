@@ -3,6 +3,7 @@
 require_relative '../commands/command'
 require_relative '../commands/avail_nets_command'
 require_relative '../commands/connect_command'
+require_relative '../commands/disconnect_command'
 require_relative '../commands/forget_command'
 require_relative '../commands/help_command'
 require_relative '../commands/log_command'
@@ -22,7 +23,7 @@ module WifiWand
           method_command('ci', 'ci',           :cmd_ci),
           WifiWand::ConnectCommand.new,
           method_command('cy', 'cycle',        :cmd_cy),
-          method_command('d',  'disconnect',   :cmd_d),
+          WifiWand::DisconnectCommand.new,
           WifiWand::ForgetCommand.new,
           WifiWand::HelpCommand.new,
           method_command('i',  'info',         :cmd_i),
