@@ -10,11 +10,7 @@ module WifiWand
     DESCRIPTION = 'show the SSID of the currently connected WiFi network'
     USAGE = 'Usage: wifi-wand network_name'
 
-    attr_reader :metadata, :cli, :model
-
-    def bind(cli)
-      self.class.new(metadata: metadata, cli: cli, model: cli.model)
-    end
+    binds :cli, :model
 
     def call
       name = model.connected_network_name

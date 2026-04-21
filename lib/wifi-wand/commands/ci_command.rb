@@ -9,16 +9,7 @@ module WifiWand
     DESCRIPTION = 'Internet connectivity state: reachable, unreachable, or indeterminate'
     USAGE = 'Usage: wifi-wand ci'
 
-    attr_reader :metadata, :cli, :model, :interactive_mode
-
-    def bind(cli)
-      self.class.new(
-        metadata:         metadata,
-        cli:              cli,
-        model:            cli.model,
-        interactive_mode: cli.interactive_mode
-      )
-    end
+    binds :cli, :model, :interactive_mode
 
     def call
       state = model.internet_connectivity_state

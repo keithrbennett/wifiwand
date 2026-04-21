@@ -9,11 +9,7 @@ module WifiWand
     DESCRIPTION = 'is the WiFi on?'
     USAGE = 'Usage: wifi-wand wifi_on'
 
-    attr_reader :metadata, :cli, :model
-
-    def bind(cli)
-      self.class.new(metadata: metadata, cli: cli, model: cli.model)
-    end
+    binds :cli, :model
 
     def call
       on = model.wifi_on?

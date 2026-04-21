@@ -9,11 +9,7 @@ module WifiWand
     DESCRIPTION = 'show, clear, or set DNS nameservers for the active WiFi connection'
     USAGE = 'Usage: wifi-wand nameservers [get|clear|IP ...]'
 
-    attr_reader :metadata, :cli, :model
-
-    def bind(cli)
-      self.class.new(metadata: metadata, cli: cli, model: cli.model)
-    end
+    binds :cli, :model
 
     def call(*args)
       subcommand = subcommand_for(args)

@@ -9,11 +9,7 @@ module WifiWand
     DESCRIPTION = 'disconnect from the current WiFi network without turning WiFi off'
     USAGE = 'Usage: wifi-wand disconnect'
 
-    attr_reader :metadata, :model
-
-    def bind(cli)
-      self.class.new(metadata: metadata, model: cli.model)
-    end
+    binds :model
 
     def call
       model.disconnect

@@ -9,11 +9,7 @@ module WifiWand
     DESCRIPTION = 'a hash of detailed networking information'
     USAGE = 'Usage: wifi-wand info'
 
-    attr_reader :metadata, :cli, :model
-
-    def bind(cli)
-      self.class.new(metadata: metadata, cli: cli, model: cli.model)
-    end
+    binds :cli, :model
 
     def call
       info = model.wifi_info

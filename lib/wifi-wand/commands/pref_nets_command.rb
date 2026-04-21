@@ -9,11 +9,7 @@ module WifiWand
     DESCRIPTION = 'show the preferred (saved) WiFi networks'
     USAGE = 'Usage: wifi-wand pref_nets'
 
-    attr_reader :metadata, :cli, :model
-
-    def bind(cli)
-      self.class.new(metadata: metadata, cli: cli, model: cli.model)
-    end
+    binds :cli, :model
 
     def call
       networks = model.preferred_networks

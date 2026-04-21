@@ -9,11 +9,7 @@ module WifiWand
     DESCRIPTION = 'show the stored password for a preferred WiFi network'
     USAGE = 'Usage: wifi-wand password <network-name>'
 
-    attr_reader :metadata, :cli, :model
-
-    def bind(cli)
-      self.class.new(metadata: metadata, cli: cli, model: cli.model)
-    end
+    binds :cli, :model
 
     def call(network)
       password = model.preferred_network_password(network)

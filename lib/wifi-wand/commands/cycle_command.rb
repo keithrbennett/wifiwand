@@ -9,11 +9,7 @@ module WifiWand
     DESCRIPTION = 'cycle WiFi off and back on'
     USAGE = 'Usage: wifi-wand cycle'
 
-    attr_reader :metadata, :model
-
-    def bind(cli)
-      self.class.new(metadata: metadata, model: cli.model)
-    end
+    binds :model
 
     def call
       model.cycle_network

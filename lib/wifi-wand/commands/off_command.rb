@@ -9,11 +9,7 @@ module WifiWand
     DESCRIPTION = 'turn WiFi off'
     USAGE = 'Usage: wifi-wand off'
 
-    attr_reader :metadata, :model
-
-    def bind(cli)
-      self.class.new(metadata: metadata, model: cli.model)
-    end
+    binds :model
 
     def call
       model.wifi_off

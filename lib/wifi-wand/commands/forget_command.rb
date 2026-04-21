@@ -9,11 +9,7 @@ module WifiWand
     DESCRIPTION = 'remove one or more preferred (saved) WiFi networks'
     USAGE = 'Usage: wifi-wand forget <name1> [name2 ...]'
 
-    attr_reader :metadata, :cli, :model
-
-    def bind(cli)
-      self.class.new(metadata: metadata, cli: cli, model: cli.model)
-    end
+    binds :cli, :model
 
     def call(*options)
       removed_networks = model.remove_preferred_networks(*options)

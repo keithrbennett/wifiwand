@@ -12,16 +12,7 @@ module WifiWand
     USAGE = 'Usage: wifi-wand till <state> [timeout_secs] [interval_secs]'
     STATES = %w[wifi_on wifi_off associated disassociated internet_on internet_off].freeze
 
-    attr_reader :metadata, :cli, :model, :interactive_mode
-
-    def bind(cli)
-      self.class.new(
-        metadata:         metadata,
-        cli:              cli,
-        model:            cli.model,
-        interactive_mode: cli.interactive_mode
-      )
-    end
+    binds :cli, :model, :interactive_mode
 
     def help_text
       <<~HELP

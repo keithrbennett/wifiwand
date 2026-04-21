@@ -18,11 +18,7 @@ module WifiWand
       'b'       => 'both',
     }.freeze
 
-    attr_reader :metadata, :cli, :model
-
-    def bind(cli)
-      self.class.new(metadata: metadata, cli: cli, model: cli.model)
-    end
+    binds :cli, :model
 
     def help_text
       <<~HELP

@@ -10,11 +10,7 @@ module WifiWand
     DESCRIPTION = 'list visible WiFi networks in descending signal-strength order'
     USAGE = 'Usage: wifi-wand avail_nets'
 
-    attr_reader :metadata, :cli, :model
-
-    def bind(cli)
-      self.class.new(metadata: metadata, cli: cli, model: cli.model)
-    end
+    binds :cli, :model
 
     def call
       info = model.available_network_names
