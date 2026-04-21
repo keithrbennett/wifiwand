@@ -157,7 +157,7 @@ describe WifiWand::CommandLineInterface do
     describe '#attempt_command_action' do
       it 'executes valid commands' do
         info_command = WifiWand::InfoCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('info').and_return(info_command)
+        allow(subject).to receive(:resolve_command).with('info').and_return(info_command)
         allow(mock_model).to receive(:wifi_info).and_return('info_result')
         allow(subject).to receive(:format_object).with('info_result').and_return('info_result')
         allow(subject).to receive(:handle_output).and_return('info_result')
@@ -194,7 +194,7 @@ describe WifiWand::CommandLineInterface do
       it 'processes valid commands' do
         cli = described_class.new(options, argv: ['info'])
         info_command = WifiWand::InfoCommand.new.bind(cli)
-        allow(cli).to receive(:find_bound_command).with('info').and_return(info_command)
+        allow(cli).to receive(:resolve_command).with('info').and_return(info_command)
         allow(cli.model).to receive(:wifi_info).and_return('info result')
         allow(cli).to receive(:format_object).with('info result').and_return('info result')
         allow(cli).to receive(:handle_output).and_return('info result')
@@ -236,7 +236,7 @@ describe WifiWand::CommandLineInterface do
       it 'handles commands with no arguments' do
         cli = described_class.new(options, argv: ['info'])
         info_command = WifiWand::InfoCommand.new.bind(cli)
-        allow(cli).to receive(:find_bound_command).with('info').and_return(info_command)
+        allow(cli).to receive(:resolve_command).with('info').and_return(info_command)
         allow(cli.model).to receive(:wifi_info).and_return('info_output')
         allow(cli).to receive(:format_object).with('info_output').and_return('info_output')
         allow(cli).to receive(:handle_output).and_return('info_output')
@@ -756,8 +756,8 @@ describe WifiWand::CommandLineInterface do
     describe '#cmd_h (help)' do
       it 'calls print_help method when no command is provided' do
         help_command = WifiWand::HelpCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('help').and_return(help_command)
-        allow(subject).to receive(:find_bound_command).with(nil).and_return(nil)
+        allow(subject).to receive(:resolve_command).with('help').and_return(help_command)
+        allow(subject).to receive(:resolve_command).with(nil).and_return(nil)
         expect(subject).to receive(:print_help)
 
         subject.cmd_h
@@ -765,133 +765,133 @@ describe WifiWand::CommandLineInterface do
 
       it 'prints command-specific help when a known command is provided' do
         log_command = WifiWand::LogCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('log').and_return(log_command)
+        allow(subject).to receive(:resolve_command).with('log').and_return(log_command)
 
         expect { subject.cmd_h('log') }.to output(/Usage: wifi-wand log/).to_stdout
       end
 
       it 'prints command-specific help for avail_nets' do
         avail_nets_command = WifiWand::AvailNetsCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('avail_nets').and_return(avail_nets_command)
+        allow(subject).to receive(:resolve_command).with('avail_nets').and_return(avail_nets_command)
 
         expect { subject.cmd_h('avail_nets') }.to output(/Usage: wifi-wand avail_nets/).to_stdout
       end
 
       it 'prints command-specific help for ci' do
         ci_command = WifiWand::CiCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('ci').and_return(ci_command)
+        allow(subject).to receive(:resolve_command).with('ci').and_return(ci_command)
 
         expect { subject.cmd_h('ci') }.to output(/Usage: wifi-wand ci/).to_stdout
       end
 
       it 'prints command-specific help for connect' do
         connect_command = WifiWand::ConnectCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('connect').and_return(connect_command)
+        allow(subject).to receive(:resolve_command).with('connect').and_return(connect_command)
 
         expect { subject.cmd_h('connect') }.to output(/Usage: wifi-wand connect/).to_stdout
       end
 
       it 'prints command-specific help for cycle' do
         cycle_command = WifiWand::CycleCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('cycle').and_return(cycle_command)
+        allow(subject).to receive(:resolve_command).with('cycle').and_return(cycle_command)
 
         expect { subject.cmd_h('cycle') }.to output(/Usage: wifi-wand cycle/).to_stdout
       end
 
       it 'prints command-specific help for disconnect' do
         disconnect_command = WifiWand::DisconnectCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('disconnect').and_return(disconnect_command)
+        allow(subject).to receive(:resolve_command).with('disconnect').and_return(disconnect_command)
 
         expect { subject.cmd_h('disconnect') }.to output(/Usage: wifi-wand disconnect/).to_stdout
       end
 
       it 'prints command-specific help for info' do
         info_command = WifiWand::InfoCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('info').and_return(info_command)
+        allow(subject).to receive(:resolve_command).with('info').and_return(info_command)
 
         expect { subject.cmd_h('info') }.to output(/Usage: wifi-wand info/).to_stdout
       end
 
       it 'prints command-specific help for forget' do
         forget_command = WifiWand::ForgetCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('forget').and_return(forget_command)
+        allow(subject).to receive(:resolve_command).with('forget').and_return(forget_command)
 
         expect { subject.cmd_h('forget') }.to output(/Usage: wifi-wand forget/).to_stdout
       end
 
       it 'prints command-specific help for nameservers' do
         nameservers_command = WifiWand::NameserversCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('nameservers').and_return(nameservers_command)
+        allow(subject).to receive(:resolve_command).with('nameservers').and_return(nameservers_command)
 
         expect { subject.cmd_h('nameservers') }.to output(/Usage: wifi-wand nameservers/).to_stdout
       end
 
       it 'prints command-specific help for network_name' do
         network_name_command = WifiWand::NetworkNameCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('network_name').and_return(network_name_command)
+        allow(subject).to receive(:resolve_command).with('network_name').and_return(network_name_command)
 
         expect { subject.cmd_h('network_name') }.to output(/Usage: wifi-wand network_name/).to_stdout
       end
 
       it 'prints command-specific help for off' do
         off_command = WifiWand::OffCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('off').and_return(off_command)
+        allow(subject).to receive(:resolve_command).with('off').and_return(off_command)
 
         expect { subject.cmd_h('off') }.to output(/Usage: wifi-wand off/).to_stdout
       end
 
       it 'prints command-specific help for on' do
         on_command = WifiWand::OnCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('on').and_return(on_command)
+        allow(subject).to receive(:resolve_command).with('on').and_return(on_command)
 
         expect { subject.cmd_h('on') }.to output(/Usage: wifi-wand on/).to_stdout
       end
 
       it 'prints command-specific help for password' do
         password_command = WifiWand::PasswordCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('password').and_return(password_command)
+        allow(subject).to receive(:resolve_command).with('password').and_return(password_command)
 
         expect { subject.cmd_h('password') }.to output(/Usage: wifi-wand password/).to_stdout
       end
 
       it 'prints command-specific help for pref_nets' do
         pref_nets_command = WifiWand::PrefNetsCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('pref_nets').and_return(pref_nets_command)
+        allow(subject).to receive(:resolve_command).with('pref_nets').and_return(pref_nets_command)
 
         expect { subject.cmd_h('pref_nets') }.to output(/Usage: wifi-wand pref_nets/).to_stdout
       end
 
       it 'prints command-specific help for url' do
         url_command = WifiWand::UrlCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('url').and_return(url_command)
+        allow(subject).to receive(:resolve_command).with('url').and_return(url_command)
 
         expect { subject.cmd_h('url') }.to output(/Usage: wifi-wand url/).to_stdout
       end
 
       it 'prints command-specific help for wifi_on' do
         wifi_on_command = WifiWand::WifiOnCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('wifi_on').and_return(wifi_on_command)
+        allow(subject).to receive(:resolve_command).with('wifi_on').and_return(wifi_on_command)
 
         expect { subject.cmd_h('wifi_on') }.to output(/Usage: wifi-wand wifi_on/).to_stdout
       end
 
       it 'prints command-specific help for qr' do
         qr_command = WifiWand::QrCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('qr').and_return(qr_command)
+        allow(subject).to receive(:resolve_command).with('qr').and_return(qr_command)
 
         expect { subject.cmd_h('qr') }.to output(/Usage: wifi-wand qr/).to_stdout
       end
 
       it 'prints command-specific help for quit' do
         quit_command = WifiWand::QuitCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('quit').and_return(quit_command)
+        allow(subject).to receive(:resolve_command).with('quit').and_return(quit_command)
 
         expect { subject.cmd_h('quit') }.to output(/Usage: wifi-wand quit/).to_stdout
       end
 
       it 'prints command-specific help for ropen' do
         ropen_command = WifiWand::RopenCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('ropen').and_return(ropen_command)
+        allow(subject).to receive(:resolve_command).with('ropen').and_return(ropen_command)
         allow(mock_model).to receive(:available_resources_help).and_return('Available resources help text')
 
         expect { subject.cmd_h('ropen') }.to output(/Usage: wifi-wand ropen/).to_stdout
@@ -899,20 +899,20 @@ describe WifiWand::CommandLineInterface do
 
       it 'prints command-specific help for status' do
         status_command = WifiWand::StatusCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('status').and_return(status_command)
+        allow(subject).to receive(:resolve_command).with('status').and_return(status_command)
 
         expect { subject.cmd_h('status') }.to output(/Usage: wifi-wand status/).to_stdout
       end
 
       it 'prints command-specific help for till' do
         till_command = WifiWand::TillCommand.new.bind(subject)
-        allow(subject).to receive(:find_bound_command).with('till').and_return(till_command)
+        allow(subject).to receive(:resolve_command).with('till').and_return(till_command)
 
         expect { subject.cmd_h('till') }.to output(/Usage: wifi-wand till/).to_stdout
       end
 
       it 'falls back to global help for unknown commands' do
-        allow(subject).to receive(:find_bound_command).with('unknown').and_return(nil)
+        allow(subject).to receive(:resolve_command).with('unknown').and_return(nil)
         expect(subject).to receive(:print_help)
 
         subject.cmd_h('unknown')

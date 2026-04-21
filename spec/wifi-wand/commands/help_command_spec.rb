@@ -22,7 +22,7 @@ describe WifiWand::HelpCommand do
         @printed_help = true
       end
 
-      def find_bound_command(command_name)
+      def resolve_command(command_name)
         @last_lookup = command_name
         nil
       end
@@ -60,7 +60,7 @@ describe WifiWand::HelpCommand do
 
     it 'prints command-specific help when available' do
       help_target = double('command', help_text: 'COMMAND HELP')
-      allow(cli).to receive(:find_bound_command).with('log').and_return(help_target)
+      allow(cli).to receive(:resolve_command).with('log').and_return(help_target)
 
       command.call('log')
 
@@ -69,7 +69,7 @@ describe WifiWand::HelpCommand do
     end
 
     it 'falls back to global help when no command is provided' do
-      allow(cli).to receive(:find_bound_command).with(nil).and_return(nil)
+      allow(cli).to receive(:resolve_command).with(nil).and_return(nil)
 
       command.call
 
@@ -78,7 +78,7 @@ describe WifiWand::HelpCommand do
 
     it 'falls back to global help when command-specific help is unavailable' do
       help_target = double('command', help_text: nil)
-      allow(cli).to receive(:find_bound_command).with('unknown').and_return(help_target)
+      allow(cli).to receive(:resolve_command).with('unknown').and_return(help_target)
 
       command.call('unknown')
 

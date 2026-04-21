@@ -91,7 +91,7 @@ RSpec.describe 'public_ip command' do
   end
 
   it 'returns command help text for the public_ip alias' do
-    command = cli.find_bound_command('pi')
+    command = cli.resolve_command('pi')
 
     expect(command).to be_a(WifiWand::PublicIpCommand)
     expect(command.help_text).to include('Usage: wifi-wand public_ip')

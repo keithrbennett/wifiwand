@@ -37,7 +37,7 @@ module WifiWand
     end
 
     def call(command_name = nil)
-      command = cli.find_bound_command(command_name)
+      command = cli.resolve_command(command_name)
 
       if command&.help_text
         output.puts(command.help_text)

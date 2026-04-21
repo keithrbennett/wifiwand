@@ -60,13 +60,13 @@ module WifiWand
         commands.detect { |command| command.aliases.include?(command_string) }
       end
 
-      def find_bound_command(command_string)
+      def resolve_command(command_string)
         command = find_command(command_string)
         command&.bind(self)
       end
 
       def find_command_action(command_string)
-        command = find_bound_command(command_string)
+        command = resolve_command(command_string)
         command&.method(:call)
       end
 

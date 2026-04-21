@@ -183,7 +183,7 @@ module WifiWand
     end
 
     private def execute_command(command_string, *)
-      command = find_bound_command(command_string)
+      command = resolve_command(command_string)
       raise WifiWand::BadCommandError, "Unrecognized command: #{command_string.inspect}" unless command
 
       command.call(*)
