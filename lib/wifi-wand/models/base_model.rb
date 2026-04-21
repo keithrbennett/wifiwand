@@ -354,8 +354,6 @@ module WifiWand
         'ip_address'                  => begin; ip_address; rescue WifiWand::Error; nil; end,
         'mac_address'                 => begin; mac_address; rescue WifiWand::Error; nil; end,
         'nameservers'                 => begin; nameservers; rescue WifiWand::Error; []; end,
-        'preferred_networks'          => begin; preferred_networks; rescue WifiWand::Error; []; end,
-        'available_networks'          => begin; available_network_names; rescue WifiWand::Error; []; end,
         'timestamp'                   => Time.now,
       }
     end

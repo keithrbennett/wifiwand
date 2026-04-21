@@ -46,8 +46,6 @@ RSpec.describe 'docs/INFO_COMMAND.md' do
       'Captive Portal State'        => 'captive_portal_state',
       'Internet Connectivity State' => 'internet_connectivity_state',
       'Nameservers'                 => 'nameservers',
-      'Preferred Networks'          => 'preferred_networks',
-      'Available Networks'          => 'available_networks',
       'WiFi Interface'              => 'interface',
       'Default Route Interface'     => 'default_interface',
       'Timestamp'                   => 'timestamp',

@@ -52,8 +52,6 @@ The `info` command returns a hash containing:
 
 ### Network Configuration
 - **Nameservers**: Currently configured DNS servers
-- **Preferred Networks**: Saved/remembered network SSIDs
-- **Available Networks**: Networks currently in range
 
 ### Interface Information
 - **WiFi Interface**: Name of the WiFi interface (e.g., `en0` on macOS)
@@ -70,9 +68,7 @@ The `info` command returns a hash containing:
 | IP address | | ✓ |
 | MAC address | | ✓ |
 | Nameservers | | ✓ |
-| Preferred networks | | ✓ |
 | Timestamp | | ✓ |
-| Available networks | | ✓ |
 | Output format | Single line | Structured data |
 
 **Use `status`** for: Quick connectivity checks, monitoring, automation
@@ -147,12 +143,6 @@ wifi-wand -o j info | jq -r '.ip_address'
 wifi-wand -o j info | jq '.nameservers'
 ```
 
-### List All Preferred Networks
-
-```bash
-wifi-wand -o j info | jq '.preferred_networks'
-```
-
 ### Troubleshoot Network Issues
 
 When having network problems, `info` gives you the complete picture:
@@ -195,10 +185,6 @@ wifi-wand -o j info | jq '.ip_address'
 
 echo "Nameservers:"
 wifi-wand -o j info | jq '.nameservers'
-
-echo "Preferred Networks:"
-wifi-wand -o j info | jq '.preferred_networks | length'
-echo "networks are saved"
 ```
 
 ## Interactive Shell Usage
@@ -212,13 +198,10 @@ In interactive shell mode (`wifi-wand shell`), you can use the full power of Rub
 [2] pry(#<WifiWand::CommandLineInterface>)> data['ip_address']
 # Get just the IP address
 
-[3] pry(#<WifiWand::CommandLineInterface>)> data['preferred_networks'].length
-# Count saved networks
-
-[4] pry(#<WifiWand::CommandLineInterface>)> data.keys
+[3] pry(#<WifiWand::CommandLineInterface>)> data.keys
 # See all available fields
 
-[5] pry(#<WifiWand::CommandLineInterface>)> data['internet_connectivity_state'] == :reachable
+[4] pry(#<WifiWand::CommandLineInterface>)> data['internet_connectivity_state'] == :reachable
 # Explicit reachability check
 ```
 
@@ -230,7 +213,6 @@ call requires querying:
 - Network connection information
 - Connectivity status (DNS/TCP checks)
 - Interface configuration
-- Available networks
 
 Don't use `info` in tight loops. If you're checking frequently, use `status` for quick checks and fall back to
 `info` only when you need the detailed data.
