@@ -101,10 +101,7 @@ module WifiWand
 
     def cmd_d = build_disconnect_command.call
 
-    def cmd_i
-      info = model.wifi_info
-      handle_output(info, -> { format_object(info) })
-    end
+    def cmd_i = build_info_command.call
 
     def cmd_public_ip(selector = 'both')
       build_public_ip_command.call(selector)
@@ -332,6 +329,11 @@ module WifiWand
     private def build_help_command
       require_relative 'commands/help_command'
       WifiWand::HelpCommand.new.bind(self)
+    end
+
+    private def build_info_command
+      require_relative 'commands/info_command'
+      WifiWand::InfoCommand.new.bind(self)
     end
 
     private def build_nameservers_command

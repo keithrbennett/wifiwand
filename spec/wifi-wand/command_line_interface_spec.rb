@@ -156,7 +156,11 @@ describe WifiWand::CommandLineInterface do
 
     describe '#attempt_command_action' do
       it 'executes valid commands' do
-        allow(subject).to receive(:cmd_i).and_return('info_result')
+        info_command = WifiWand::InfoCommand.new.bind(subject)
+        allow(subject).to receive(:find_bound_command).with('info').and_return(info_command)
+        allow(mock_model).to receive(:wifi_info).and_return('info_result')
+        allow(subject).to receive(:format_object).with('info_result').and_return('info_result')
+        allow(subject).to receive(:handle_output).and_return('info_result')
 
         result = subject.attempt_command_action('info')
         expect(result).to eq('info_result')
@@ -189,7 +193,11 @@ describe WifiWand::CommandLineInterface do
 
       it 'processes valid commands' do
         cli = described_class.new(options, argv: ['info'])
-        allow(cli).to receive(:cmd_i).and_return('info result')
+        info_command = WifiWand::InfoCommand.new.bind(cli)
+        allow(cli).to receive(:find_bound_command).with('info').and_return(info_command)
+        allow(cli.model).to receive(:wifi_info).and_return('info result')
+        allow(cli).to receive(:format_object).with('info result').and_return('info result')
+        allow(cli).to receive(:handle_output).and_return('info result')
 
         result = cli.process_command_line
         expect(result).to eq('info result')
@@ -227,7 +235,11 @@ describe WifiWand::CommandLineInterface do
 
       it 'handles commands with no arguments' do
         cli = described_class.new(options, argv: ['info'])
-        allow(cli).to receive(:cmd_i).and_return('info_output')
+        info_command = WifiWand::InfoCommand.new.bind(cli)
+        allow(cli).to receive(:find_bound_command).with('info').and_return(info_command)
+        allow(cli.model).to receive(:wifi_info).and_return('info_output')
+        allow(cli).to receive(:format_object).with('info_output').and_return('info_output')
+        allow(cli).to receive(:handle_output).and_return('info_output')
 
         result = cli.process_command_line
         expect(result).to eq('info_output')
@@ -783,6 +795,13 @@ describe WifiWand::CommandLineInterface do
         allow(subject).to receive(:find_bound_command).with('disconnect').and_return(disconnect_command)
 
         expect { subject.cmd_h('disconnect') }.to output(/Usage: wifi-wand disconnect/).to_stdout
+      end
+
+      it 'prints command-specific help for info' do
+        info_command = WifiWand::InfoCommand.new.bind(subject)
+        allow(subject).to receive(:find_bound_command).with('info').and_return(info_command)
+
+        expect { subject.cmd_h('info') }.to output(/Usage: wifi-wand info/).to_stdout
       end
 
       it 'prints command-specific help for forget' do
