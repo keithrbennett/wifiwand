@@ -203,7 +203,6 @@ describe WifiWand::Main do
 
     it 'passes trailing -h through to the command instead of treating it as top-level help' do
       mock_cli = double('CommandLineInterface')
-      allow(WifiWand::CommandLineInterface).to receive(:new).and_return(mock_cli)
       expect(mock_cli).to receive(:call).and_return(0)
 
       out_stream = StringIO.new
