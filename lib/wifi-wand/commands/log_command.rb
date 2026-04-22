@@ -8,37 +8,20 @@ require_relative '../errors'
 require_relative '../timing_constants'
 
 module WifiWand
-  class LogCommand
-    DESCRIPTION = 'start event logging (monitors wifi on/off, connected/disconnected, internet on/off)'
-    USAGE = 'Usage: wifi-wand log [--interval N] [--file [PATH]] [--stdout] [--verbose]'
+  class LogCommand < Command
+    command_metadata(
+      short_string: 'lo',
+      long_string:  'log',
+      description:  'start event logging (monitors wifi on/off, connected/disconnected, internet on/off)',
+      usage:        'Usage: wifi-wand log [--interval N] [--file [PATH]] [--stdout] [--verbose]'
+    )
 
-    attr_reader :metadata, :model, :output, :verbose
+    binds :model, output: :out_stream, verbose: :verbose_mode
 
-    def initialize(*args, metadata: nil, model: nil, output: $stdout, verbose: false)
-      resolved_model = args.empty? ? model : args.first
-
-      @metadata = metadata || CommandMetadata.new(
-        short_string: 'lo',
-        long_string:  'log',
-        description:  DESCRIPTION,
-        usage:        USAGE
-      )
-      @model = resolved_model
-      @output = output
-      @verbose = verbose
-    end
-
-    def aliases
-      metadata.aliases
-    end
-
-    def bind(cli)
-      self.class.new(
-        metadata: metadata,
-        model:    cli.model,
-        output:   cli.send(:out_stream),
-        verbose:  cli.verbose_mode
-      )
+    def initialize(*args, **attributes)
+      resolved_model = args.empty? ? attributes[:model] : args.first
+      defaults = { output: $stdout, verbose: false }
+      super(**defaults.merge(attributes).merge(model: resolved_model))
     end
 
     def help_text
@@ -75,7 +58,7 @@ module WifiWand
       interval = TimingConstants::EVENT_LOG_POLLING_INTERVAL
       log_file_path = nil
       output_to_stdout = true
-      verbose_flag = @verbose
+      verbose_flag = verbose
       stdout_explicit = false
       file_destination_requested = false
       help_requested = false

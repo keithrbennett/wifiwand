@@ -18,12 +18,11 @@ describe WifiWand::LogCommand do
 
   let(:output) { StringIO.new }
 
-  describe '#bind' do
-    let(:cli) { double('cli', model: mock_model, verbose_mode: true, out_stream: output) }
+  let(:cli) { double('cli', model: mock_model, verbose_mode: true, out_stream: output) }
 
-    it_behaves_like 'binds command context',
-      bound_attributes: { model: :mock_model, output: :output, verbose: -> { cli.verbose_mode } }
-  end
+  it_behaves_like 'binds command context',
+    bound_attributes: { model: :mock_model, output: :output, verbose: -> { cli.verbose_mode } }
+
 
   describe 'initialization' do
     it 'creates an instance with model and output' do
