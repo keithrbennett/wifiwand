@@ -60,6 +60,10 @@ describe 'Output Format End-to-End Tests' do
     WifiWand::CommandLineParser.new(args, ENV, $stderr).parse
   end
 
+  def invoke_command(cli, command_name, *args)
+    cli.resolve_command(command_name).call(*args)
+  end
+
   describe 'Command-line option parsing and output formatting' do
     let(:test_network_info) do
       {
@@ -91,7 +95,7 @@ describe 'Output Format End-to-End Tests' do
 
           # Execute command and capture output
           output = silence_output do |stdout, _stderr|
-            cli.cmd_i
+            invoke_command(cli, 'info')
             stdout.string.strip
           end
 
@@ -119,7 +123,7 @@ describe 'Output Format End-to-End Tests' do
           cli = WifiWand::CommandLineInterface.new(options)
 
           output = silence_output do |stdout, _stderr|
-            cli.cmd_ci
+            invoke_command(cli, 'ci')
             stdout.string.strip
           end
 
@@ -143,7 +147,7 @@ describe 'Output Format End-to-End Tests' do
           cli = WifiWand::CommandLineInterface.new(options)
 
           output = silence_output do |stdout, _stderr|
-            cli.cmd_pr
+            invoke_command(cli, 'pref_nets')
             stdout.string.strip
           end
 
@@ -171,7 +175,7 @@ describe 'Output Format End-to-End Tests' do
         cli = WifiWand::CommandLineInterface.new(options)
 
         output = silence_output do |stdout, _stderr|
-          cli.cmd_i
+          invoke_command(cli, 'info')
           stdout.string
         end
 
@@ -202,7 +206,7 @@ describe 'Output Format End-to-End Tests' do
         cli = WifiWand::CommandLineInterface.new(options)
 
         output = silence_output do |stdout, _stderr|
-          cli.cmd_s
+          invoke_command(cli, 'status')
           stdout.string.strip
         end
 
@@ -233,7 +237,7 @@ describe 'Output Format End-to-End Tests' do
         cli = WifiWand::CommandLineInterface.new(options)
 
         output = silence_output do |stdout, _stderr|
-          cli.cmd_i
+          invoke_command(cli, 'info')
           stdout.string.strip
         end
 
@@ -249,7 +253,7 @@ describe 'Output Format End-to-End Tests' do
         cli = WifiWand::CommandLineInterface.new(options)
 
         output = silence_output do |stdout, _stderr|
-          cli.cmd_i
+          invoke_command(cli, 'info')
           stdout.string.strip
         end
 
@@ -272,12 +276,12 @@ describe 'Output Format End-to-End Tests' do
         pretty_cli = WifiWand::CommandLineInterface.new(pretty_options)
 
         json_output = silence_output do |stdout, _stderr|
-          json_cli.cmd_i
+          invoke_command(json_cli, 'info')
           stdout.string
         end
 
         pretty_output = silence_output do |stdout, _stderr|
-          pretty_cli.cmd_i
+          invoke_command(pretty_cli, 'info')
           stdout.string
         end
 
@@ -302,7 +306,7 @@ describe 'Output Format End-to-End Tests' do
         cli = WifiWand::CommandLineInterface.new(options)
 
         output = silence_output do |stdout, _stderr|
-          cli.cmd_i
+          invoke_command(cli, 'info')
           stdout.string.strip
         end
 
@@ -322,7 +326,7 @@ describe 'Output Format End-to-End Tests' do
           cli = WifiWand::CommandLineInterface.new(options)
 
           output = silence_output do |stdout, _stderr|
-            cli.cmd_i
+            invoke_command(cli, 'info')
             stdout.string.strip
           end
 
@@ -350,13 +354,13 @@ describe 'Output Format End-to-End Tests' do
 
       # Execute first command
       output1 = silence_output do |stdout, _stderr|
-        cli.cmd_i
+        invoke_command(cli, 'info')
         stdout.string.strip
       end
 
       # Execute second command with same CLI instance
       output2 = silence_output do |stdout, _stderr|
-        cli.cmd_pr
+        invoke_command(cli, 'pref_nets')
         stdout.string.strip
       end
 
@@ -388,7 +392,7 @@ describe 'Output Format End-to-End Tests' do
       cli = WifiWand::CommandLineInterface.new(options)
 
       output = silence_output do |stdout, _stderr|
-        cli.cmd_i
+        invoke_command(cli, 'info')
         stdout.string.strip
       end
 
@@ -413,7 +417,7 @@ describe 'Output Format End-to-End Tests' do
         options = parse_options('-o', 'j', 'info')
         cli = WifiWand::CommandLineInterface.new(options)
         silence_output do |stdout, _stderr|
-          cli.cmd_i
+          invoke_command(cli, 'info')
           stdout.string.strip
         end
       end

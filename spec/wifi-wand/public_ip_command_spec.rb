@@ -14,6 +14,10 @@ RSpec.describe 'public_ip command' do
   let(:cli) { WifiWand::CommandLineInterface.new(options) }
   let(:interactive_cli) { WifiWand::CommandLineInterface.new(interactive_options) }
 
+  def invoke_command(command_line_interface, command_name, *args)
+    command_line_interface.resolve_command(command_name).call(*args)
+  end
+
   before do
     allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(mock_os)
     allow(cli).to receive(:run_shell)
@@ -28,7 +32,8 @@ RSpec.describe 'public_ip command' do
 
   it 'uses both by default' do
     expect(mock_model).to receive(:public_ip_info).and_return('address' => '203.0.113.10', 'country' => 'TH')
-    expect { cli.cmd_public_ip }.to output("Public IP Address: 203.0.113.10  Country: TH\n").to_stdout
+    expect { invoke_command(cli, 'public_ip') }
+      .to output("Public IP Address: 203.0.113.10  Country: TH\n").to_stdout
   end
 
   {
@@ -50,13 +55,13 @@ RSpec.describe 'public_ip command' do
     it "handles selector #{selector}" do
       return_value = interactive_value.is_a?(Hash) ? interactive_value : interactive_value.to_s
       allow(mock_model).to receive(method_name).and_return(return_value)
-      expect { cli.cmd_public_ip(selector) }.to output(output).to_stdout
+      expect { invoke_command(cli, 'public_ip', selector) }.to output(output).to_stdout
     end
 
     it "returns machine-readable data for selector #{selector} in interactive mode" do
       return_value = interactive_value.is_a?(Hash) ? interactive_value : interactive_value.to_s
       allow(interactive_cli.model).to receive(method_name).and_return(return_value)
-      expect(interactive_cli.cmd_public_ip(selector)).to eq(return_value)
+      expect(invoke_command(interactive_cli, 'public_ip', selector)).to eq(return_value)
     end
   end
 
@@ -67,13 +72,13 @@ RSpec.describe 'public_ip command' do
     allow(json_cli.model).to receive(:public_ip_info).and_return('address' => '203.0.113.10',
       'country' => 'TH')
 
-    expect { json_cli.cmd_public_ip('both') }
+    expect { invoke_command(json_cli, 'public_ip', 'both') }
       .to output(%({"address":"203.0.113.10","country":"TH"}
 )).to_stdout
   end
 
   it 'raises a clear error for invalid selectors' do
-    expect { cli.cmd_public_ip('x') }.to raise_error(
+    expect { invoke_command(cli, 'public_ip', 'x') }.to raise_error(
       WifiWand::ConfigurationError,
       "Invalid selector 'x'. Use one of: address (a), country (c), both (b)."
     )
@@ -87,7 +92,7 @@ RSpec.describe 'public_ip command' do
   end
 
   it 'prints command-specific help for public_ip' do
-    expect { cli.cmd_h('public_ip') }.to output(/Usage: wifi-wand public_ip/).to_stdout
+    expect { invoke_command(cli, 'help', 'public_ip') }.to output(/Usage: wifi-wand public_ip/).to_stdout
   end
 
   it 'returns command help text for the public_ip alias' do

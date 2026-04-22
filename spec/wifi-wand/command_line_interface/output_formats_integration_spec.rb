@@ -60,6 +60,10 @@ describe 'Output Format Integration Tests' do
     WifiWand::CommandLineParser.new(args, ENV, $stderr).parse
   end
 
+  def invoke_command(cli, command_name, *args)
+    cli.resolve_command(command_name).call(*args)
+  end
+
   describe 'Output format validation' do
     output_formats = {
       inspect:     {
@@ -92,7 +96,7 @@ describe 'Output Format Integration Tests' do
             allow(mock_model).to receive(:connected_network_name).and_return(test_data)
 
             output = silence_output do |stdout, _stderr|
-              subject.cmd_ne
+              invoke_command(subject, 'network_name')
               stdout.string.strip
             end
 
@@ -125,7 +129,7 @@ describe 'Output Format Integration Tests' do
             allow(mock_model).to receive(:wifi_on?).and_return(true)
 
             output = silence_output do |stdout, _stderr|
-              subject.cmd_w
+              invoke_command(subject, 'wifi_on')
               stdout.string.strip
             end
 
@@ -150,7 +154,7 @@ describe 'Output Format Integration Tests' do
             allow(mock_model).to receive(:wifi_on?).and_return(false)
 
             output = silence_output do |stdout, _stderr|
-              subject.cmd_w
+              invoke_command(subject, 'wifi_on')
               stdout.string.strip
             end
 
@@ -183,7 +187,7 @@ describe 'Output Format Integration Tests' do
             allow(mock_model).to receive(:preferred_networks).and_return(test_data)
 
             output = silence_output do |stdout, _stderr|
-              subject.cmd_pr
+              invoke_command(subject, 'pref_nets')
               stdout.string.strip
             end
 
@@ -218,7 +222,7 @@ describe 'Output Format Integration Tests' do
             allow(mock_model).to receive(:nameservers).and_return(test_data)
 
             output = silence_output do |stdout, _stderr|
-              subject.cmd_na
+              invoke_command(subject, 'nameservers')
               stdout.string.strip
             end
 
@@ -252,7 +256,7 @@ describe 'Output Format Integration Tests' do
             allow(mock_model).to receive(:wifi_info).and_return(test_data)
 
             output = silence_output do |stdout, _stderr|
-              subject.cmd_i
+              invoke_command(subject, 'info')
               stdout.string.strip
             end
 
@@ -303,7 +307,7 @@ describe 'Output Format Integration Tests' do
             allow(mock_model).to receive(:wifi_info).and_return(test_data)
 
             output = silence_output do |stdout, _stderr|
-              subject.cmd_i
+              invoke_command(subject, 'info')
               stdout.string.strip
             end
 
@@ -345,7 +349,7 @@ describe 'Output Format Integration Tests' do
             allow(mock_model).to receive(:connected_network_name).and_return(nil)
 
             output = silence_output do |stdout, _stderr|
-              subject.cmd_ne
+              invoke_command(subject, 'network_name')
               stdout.string.strip
             end
 
@@ -391,7 +395,7 @@ describe 'Output Format Integration Tests' do
         allow(cli.model).to receive(:wifi_info).and_return(test_data)
 
         outputs[format_name] = silence_output do |stdout, _stderr|
-          cli.cmd_i
+          invoke_command(cli, 'info')
           stdout.string
         end
       end
@@ -439,7 +443,7 @@ describe 'Output Format Integration Tests' do
         allow(cli.model).to receive(:wifi_info).and_return(complex_data)
 
         output = silence_output do |stdout, _stderr|
-          cli.cmd_i
+          invoke_command(cli, 'info')
           stdout.string.strip
         end
 
@@ -467,7 +471,7 @@ describe 'Output Format Integration Tests' do
       cli = WifiWand::CommandLineInterface.new(options)
       allow(cli.model).to receive(:wifi_info).and_return(test_data)
 
-      result = cli.cmd_i
+      result = invoke_command(cli, 'info')
 
       # In interactive mode, raw data is returned, not formatted
       expect(result).to eq(test_data)

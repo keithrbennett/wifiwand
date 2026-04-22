@@ -80,66 +80,6 @@ module WifiWand
       end
     end
 
-    # ===== MODEL-RELATED COMMANDS =====
-    # All commands that delegate to the model stay here
-
-    def cmd_a = execute_command('avail_nets')
-
-    def cmd_ci = execute_command('ci')
-
-    def cmd_co(network, password = nil) = execute_command('connect', network, password)
-
-    def cmd_cy = execute_command('cycle')
-
-    def cmd_d = execute_command('disconnect')
-
-    def cmd_i = execute_command('info')
-
-    def cmd_public_ip(selector = 'both') = execute_command('public_ip', selector)
-
-    # Performs nameserver functionality.
-    # @param subcommand 'get' or no arg to get, 'clear' to clear, and an array of IP addresses to set
-    def cmd_na(*) = execute_command('nameservers', *)
-
-    def cmd_ne = execute_command('network_name')
-
-    def cmd_of = execute_command('off')
-
-    def cmd_on = execute_command('on')
-
-    def cmd_pa(network) = execute_command('password', network)
-
-    def cmd_pr = execute_command('pref_nets')
-
-    def cmd_f(*) = execute_command('forget', *)
-
-    def cmd_t(*options) = execute_command('till', *options)
-
-    def cmd_w = execute_command('wifi_on')
-
-    def cmd_qr(filespec = nil, password = nil) = execute_command('qr', filespec, password)
-
-    # ===== OTHER COMMANDS =====
-    # Commands that don't directly delegate to the model
-
-    def cmd_h(command_name = nil)
-      build_help_command.call(command_name)
-    end
-
-    def cmd_q = execute_command('quit')
-
-    def cmd_u = execute_command('url')
-
-    def cmd_s = execute_command('status')
-
-    def cmd_log(*options)
-      build_log_command.call(*options)
-    end
-
-    def cmd_x = execute_command('xit')
-
-    def cmd_ro(*resource_codes) = execute_command('ropen', *resource_codes)
-
     # ===== MAIN ENTRY POINT =====
 
     def call
@@ -197,23 +137,6 @@ module WifiWand
         end
         out_stream.puts output unless output.to_s.empty?
       end
-    end
-
-    private def build_help_command
-      require_relative 'commands/help_command'
-      WifiWand::HelpCommand.new.bind(self)
-    end
-
-    private def build_log_command
-      require_relative 'commands/log_command'
-      WifiWand::LogCommand.new.bind(self)
-    end
-
-    private def execute_command(command_string, *)
-      command = resolve_command(command_string)
-      raise WifiWand::BadCommandError, "Unrecognized command: #{command_string.inspect}" unless command
-
-      command.call(*)
     end
   end
 end
