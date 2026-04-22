@@ -15,7 +15,7 @@ module WifiWand
 
     def call
       info = model.wifi_info
-      cli.send(:handle_output, info, -> { cli.send(:format_object, info) })
+      cli.handle_output(info, -> { cli.format_object(info) })
     end
   end
 end

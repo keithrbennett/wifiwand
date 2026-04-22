@@ -16,9 +16,9 @@ module WifiWand
 
     def call
       name = model.connected_network_name
-      cli.send(:handle_output, name, -> { %{Network (SSID) name: "#{name || '[none]'}"} })
+      cli.handle_output(name, -> { %{Network (SSID) name: "#{name || '[none]'}"} })
     rescue WifiWand::Error => e
-      cli.send(:handle_output, nil, -> { e.message })
+      cli.handle_output(nil, -> { e.message })
     end
   end
 end

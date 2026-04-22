@@ -16,21 +16,21 @@ module WifiWand
 
     def call
       info = model.available_network_names
-      cli.send(:handle_output, info, human_readable_string_producer(info))
+      cli.handle_output(info, human_readable_string_producer(info))
     rescue WifiWand::Error => e
-      cli.send(:handle_output, nil, -> { e.message })
+      cli.handle_output(nil, -> { e.message })
     end
 
     private def human_readable_string_producer(info)
       -> do
         if info.respond_to?(:empty?) && info.empty?
-          cli.send(:empty_available_networks_message)
+          cli.available_networks_empty_message
         else
           <<~MESSAGE
             Available networks, in descending signal strength order,
             as returned by the OS scan, are:
 
-            #{cli.send(:format_object, info)}
+            #{cli.format_object(info)}
           MESSAGE
         end
       end

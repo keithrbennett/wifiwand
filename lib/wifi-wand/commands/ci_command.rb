@@ -16,7 +16,7 @@ module WifiWand
     def call
       state = model.internet_connectivity_state
       output_value = interactive_mode ? state : state.to_s
-      cli.send(:handle_output, output_value, -> { "Internet connectivity: #{state}" })
+      cli.handle_output(output_value, -> { "Internet connectivity: #{state}" })
     end
   end
 end

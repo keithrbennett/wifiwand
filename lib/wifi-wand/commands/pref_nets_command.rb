@@ -15,7 +15,7 @@ module WifiWand
 
     def call
       networks = model.preferred_networks
-      cli.send(:handle_output, networks, -> { cli.send(:format_object, networks) })
+      cli.handle_output(networks, -> { cli.format_object(networks) })
     end
   end
 end

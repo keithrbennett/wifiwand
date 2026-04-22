@@ -42,13 +42,13 @@ module WifiWand
       case normalized_selector
       when 'address'
         address = model.public_ip_address
-        cli.send(:handle_output, address, -> { "Public IP Address: #{address}" })
+        cli.handle_output(address, -> { "Public IP Address: #{address}" })
       when 'country'
         country = model.public_ip_country
-        cli.send(:handle_output, country, -> { "Public IP Country: #{country}" })
+        cli.handle_output(country, -> { "Public IP Country: #{country}" })
       when 'both'
         info = model.public_ip_info
-        cli.send(:handle_output, info, -> {
+        cli.handle_output(info, -> {
           "Public IP Address: #{info['address']}  Country: #{info['country']}"
         })
       end

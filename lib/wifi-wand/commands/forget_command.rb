@@ -15,7 +15,7 @@ module WifiWand
 
     def call(*options)
       removed_networks = model.remove_preferred_networks(*options)
-      cli.send(:handle_output, removed_networks, -> { "Removed networks: #{removed_networks.inspect}" })
+      cli.handle_output(removed_networks, -> { "Removed networks: #{removed_networks.inspect}" })
     end
   end
 end

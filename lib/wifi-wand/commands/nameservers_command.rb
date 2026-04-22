@@ -19,7 +19,7 @@ module WifiWand
       case subcommand
       when :get
         current_nameservers = model.nameservers
-        cli.send(:handle_output, current_nameservers, human_readable_string_producer(current_nameservers))
+        cli.handle_output(current_nameservers, human_readable_string_producer(current_nameservers))
       when :clear
         model.set_nameservers(:clear)
       when :put

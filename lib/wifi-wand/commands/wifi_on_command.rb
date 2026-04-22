@@ -15,7 +15,7 @@ module WifiWand
 
     def call
       on = model.wifi_on?
-      cli.send(:handle_output, on, -> { "Wifi on: #{on}" })
+      cli.handle_output(on, -> { "Wifi on: #{on}" })
     end
   end
 end

@@ -37,7 +37,7 @@ module WifiWand
         interactive_mode ? result : nil
       else
         result = model.generate_qr_code(filespec, password: password)
-        cli.send(:handle_output, result, -> { "QR code generated: #{result}" })
+        cli.handle_output(result, -> { "QR code generated: #{result}" })
       end
     rescue WifiWand::Error => e
       if e.message.include?('already exists') && in_stream.tty?
@@ -45,7 +45,7 @@ module WifiWand
         answer = in_stream.gets&.strip&.downcase
         if %w[y yes].include?(answer)
           result = model.generate_qr_code(filespec, overwrite: true, password: password)
-          cli.send(:handle_output, result, -> { "QR code generated: #{result}" })
+          cli.handle_output(result, -> { "QR code generated: #{result}" })
         end
       else
         raise

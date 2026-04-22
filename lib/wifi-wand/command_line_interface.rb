@@ -160,7 +160,7 @@ module WifiWand
       end
     end
 
-    private def status_progress_mode
+    def status_progress_mode
       return :none if options.post_processor
 
       return :none unless out_stream.respond_to?(:tty?) && out_stream.tty?
@@ -168,9 +168,36 @@ module WifiWand
       :inline
     end
 
-    # Strips ANSI escape codes from a string so we can measure visible length
-    # when padding inline terminal updates.
-    private def strip_ansi(text) = text.to_s.gsub(/\e\[[\d;]*m/, '')
+    def strip_ansi(text) = text.to_s.gsub(/\e\[[\d;]*m/, '')
+
+    def available_networks_empty_message
+      if model.is_a?(WifiWand::MacOsModel)
+        <<~MESSAGE.chomp
+          No visible networks were found.
+          On macOS 14+, this can mean the helper could not get usable Location Services authorization for WiFi SSIDs.
+        MESSAGE
+      elsif model.is_a?(WifiWand::UbuntuModel)
+        <<~MESSAGE.chomp
+          No visible networks were found.
+          If you expect to see networks, try running `nmcli device wifi rescan` or check your hardware/drivers.
+        MESSAGE
+      else
+        'No visible networks were found.'
+      end
+    end
+
+    def handle_output(data, human_readable_string_producer)
+      if interactive_mode
+        data
+      else
+        output = if options.post_processor
+          options.post_processor.(data)
+        else
+          human_readable_string_producer.call
+        end
+        out_stream.puts output unless output.to_s.empty?
+      end
+    end
 
     private def build_help_command
       require_relative 'commands/help_command'
@@ -187,35 +214,6 @@ module WifiWand
       raise WifiWand::BadCommandError, "Unrecognized command: #{command_string.inspect}" unless command
 
       command.call(*)
-    end
-
-    private def empty_available_networks_message
-      if model.is_a?(WifiWand::MacOsModel)
-        <<~MESSAGE.chomp
-          No visible networks were found.
-          On macOS 14+, this can mean the helper could not get usable Location Services authorization for WiFi SSIDs.
-        MESSAGE
-      elsif model.is_a?(WifiWand::UbuntuModel)
-        <<~MESSAGE.chomp
-          No visible networks were found.
-          If you expect to see networks, try running `nmcli device wifi rescan` or check your hardware/drivers.
-        MESSAGE
-      else
-        'No visible networks were found.'
-      end
-    end
-
-    private def handle_output(data, human_readable_string_producer)
-      if interactive_mode
-        data
-      else
-        output = if options.post_processor
-          options.post_processor.(data)
-        else
-          human_readable_string_producer.call
-        end
-        out_stream.puts output unless output.to_s.empty?
-      end
     end
   end
 end

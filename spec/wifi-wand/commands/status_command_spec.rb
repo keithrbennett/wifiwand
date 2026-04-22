@@ -32,9 +32,9 @@ describe WifiWand::StatusCommand do
         @handled = [data, producer.call]
       end
 
-      private def status_progress_mode = @progress_mode
+      def status_progress_mode = @progress_mode
 
-      private def strip_ansi(text) = text.to_s
+      def strip_ansi(text) = text.to_s
     end
   end
   let(:cli) do

@@ -26,7 +26,7 @@ module WifiWand
           MESSAGE
         end
       end
-      cli.send(:handle_output, password, human_readable_string_producer)
+      cli.handle_output(password, human_readable_string_producer)
     end
   end
 end

@@ -18,7 +18,7 @@ module WifiWand
     binds :cli, :model, :interactive_mode, :out_stream
 
     def call
-      progress_mode = cli.send(:status_progress_mode)
+      progress_mode = cli.status_progress_mode
       current_snapshot = { wifi_on: nil, internet_state: ConnectivityStates::INTERNET_PENDING }
       last_visible_length = 0
       inline_progress_printed = false
@@ -34,7 +34,7 @@ module WifiWand
           current_snapshot.merge!(update)
           rendered = cli.status_line(current_snapshot)
 
-          visible_length = cli.send(:strip_ansi, rendered).length
+          visible_length = cli.strip_ansi(rendered).length
           padding = [last_visible_length - visible_length, 0].max
           padded_render = padding.zero? ? rendered : "#{rendered}#{' ' * padding}"
 
@@ -70,7 +70,7 @@ module WifiWand
       else
         return status_data unless progress_mode == :none
 
-        cli.send(:handle_output, status_data, -> { cli.status_line(status_data) })
+        cli.handle_output(status_data, -> { cli.status_line(status_data) })
         status_data
       end
     end

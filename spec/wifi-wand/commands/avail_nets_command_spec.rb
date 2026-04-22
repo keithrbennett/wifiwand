@@ -34,7 +34,7 @@ describe WifiWand::AvailNetsCommand do
 
     it 'uses the empty-available-networks message when the scan is empty' do
       allow(mock_model).to receive(:available_network_names).and_return([])
-      allow(cli).to receive(:empty_available_networks_message).and_return('No visible networks were found.')
+      allow(cli).to receive(:available_networks_empty_message).and_return('No visible networks were found.')
       expect(cli).to receive(:handle_output) do |info, producer|
         expect(info).to eq([])
         expect(producer.call).to eq('No visible networks were found.')
