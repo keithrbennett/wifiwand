@@ -11,11 +11,11 @@ module WifiWand
       usage:        'Usage: wifi-wand info'
     )
 
-    binds :cli, :model
+    binds :model, output_support: :output_support
 
     def call
       info = model.wifi_info
-      cli.handle_output(info, -> { cli.format_object(info) })
+      output_support.handle_output(info, -> { output_support.format_object(info) })
     end
   end
 end

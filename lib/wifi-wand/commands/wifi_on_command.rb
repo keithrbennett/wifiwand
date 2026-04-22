@@ -11,11 +11,11 @@ module WifiWand
       usage:        'Usage: wifi-wand wifi_on'
     )
 
-    binds :cli, :model
+    binds :model, output_support: :output_support
 
     def call
       on = model.wifi_on?
-      cli.handle_output(on, -> { "Wifi on: #{on}" })
+      output_support.handle_output(on, -> { "Wifi on: #{on}" })
     end
   end
 end

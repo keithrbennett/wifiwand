@@ -15,10 +15,10 @@ module WifiWand
       usage:        'Usage: wifi-wand status'
     )
 
-    binds :cli, :model, :interactive_mode, :out_stream
+    binds :model, :interactive_mode, :out_stream, output_support: :output_support
 
     def call
-      progress_mode = cli.status_progress_mode
+      progress_mode = output_support.status_progress_mode
       current_snapshot = { wifi_on: nil, internet_state: ConnectivityStates::INTERNET_PENDING }
       last_visible_length = 0
       inline_progress_printed = false
@@ -32,9 +32,9 @@ module WifiWand
           end
 
           current_snapshot.merge!(update)
-          rendered = cli.status_line(current_snapshot)
+          rendered = output_support.status_line(current_snapshot)
 
-          visible_length = cli.strip_ansi(rendered).length
+          visible_length = output_support.strip_ansi(rendered).length
           padding = [last_visible_length - visible_length, 0].max
           padded_render = padding.zero? ? rendered : "#{rendered}#{' ' * padding}"
 
@@ -54,23 +54,23 @@ module WifiWand
         if inline_progress_printed
           if saw_progress_error && status_data.nil?
             out_stream.print('\r')
-            out_stream.puts cli.status_line(nil)
+            out_stream.puts output_support.status_line(nil)
           else
             out_stream.puts
           end
         else
-          rendered = cli.status_line(status_data)
+          rendered = output_support.status_line(status_data)
           out_stream.puts(rendered) unless rendered.to_s.empty?
         end
       end
 
       if interactive_mode
-        out_stream.puts cli.status_line(status_data) if progress_mode == :none
+        out_stream.puts output_support.status_line(status_data) if progress_mode == :none
         nil
       else
         return status_data unless progress_mode == :none
 
-        cli.handle_output(status_data, -> { cli.status_line(status_data) })
+        output_support.handle_output(status_data, -> { output_support.status_line(status_data) })
         status_data
       end
     end

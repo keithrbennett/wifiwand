@@ -11,7 +11,7 @@ module WifiWand
       usage:        'Usage: wifi-wand password <network-name>'
     )
 
-    binds :cli, :model
+    binds :model, output_support: :output_support
 
     def call(network)
       password = model.preferred_network_password(network)
@@ -26,7 +26,7 @@ module WifiWand
           MESSAGE
         end
       end
-      cli.handle_output(password, human_readable_string_producer)
+      output_support.handle_output(password, human_readable_string_producer)
     end
   end
 end

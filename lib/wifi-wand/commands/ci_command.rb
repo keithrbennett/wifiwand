@@ -11,12 +11,12 @@ module WifiWand
       usage:        'Usage: wifi-wand ci'
     )
 
-    binds :cli, :model, :interactive_mode
+    binds :model, :interactive_mode, output_support: :output_support
 
     def call
       state = model.internet_connectivity_state
       output_value = interactive_mode ? state : state.to_s
-      cli.handle_output(output_value, -> { "Internet connectivity: #{state}" })
+      output_support.handle_output(output_value, -> { "Internet connectivity: #{state}" })
     end
   end
 end

@@ -12,25 +12,25 @@ module WifiWand
       usage:        'Usage: wifi-wand avail_nets'
     )
 
-    binds :cli, :model
+    binds :model, output_support: :output_support
 
     def call
       info = model.available_network_names
-      cli.handle_output(info, human_readable_string_producer(info))
+      output_support.handle_output(info, human_readable_string_producer(info))
     rescue WifiWand::Error => e
-      cli.handle_output(nil, -> { e.message })
+      output_support.handle_output(nil, -> { e.message })
     end
 
     private def human_readable_string_producer(info)
       -> do
         if info.respond_to?(:empty?) && info.empty?
-          cli.available_networks_empty_message
+          output_support.available_networks_empty_message
         else
           <<~MESSAGE
             Available networks, in descending signal strength order,
             as returned by the OS scan, are:
 
-            #{cli.format_object(info)}
+            #{output_support.format_object(info)}
           MESSAGE
         end
       end

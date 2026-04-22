@@ -12,13 +12,13 @@ module WifiWand
       usage:        'Usage: wifi-wand network_name'
     )
 
-    binds :cli, :model
+    binds :model, output_support: :output_support
 
     def call
       name = model.connected_network_name
-      cli.handle_output(name, -> { %{Network (SSID) name: "#{name || '[none]'}"} })
+      output_support.handle_output(name, -> { %{Network (SSID) name: "#{name || '[none]'}"} })
     rescue WifiWand::Error => e
-      cli.handle_output(nil, -> { e.message })
+      output_support.handle_output(nil, -> { e.message })
     end
   end
 end

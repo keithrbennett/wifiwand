@@ -7,21 +7,14 @@ describe WifiWand::StatusCommand do
   let(:mock_model) { double('Model') }
   let(:out_stream) { StringIO.new }
   let(:interactive_mode) { false }
-  let(:cli_class) do
+  let(:output_support_class) do
     Class.new do
-      attr_reader :model, :interactive_mode, :out_stream, :handled
+      attr_reader :handled
 
-      def initialize(model:, interactive_mode:, out_stream:, progress_mode:, rendered_status: 'rendered')
-        @model = model
-        @interactive_mode = interactive_mode
-        @out_stream = out_stream
+      def initialize(progress_mode:, rendered_status: 'rendered')
         @progress_mode = progress_mode
         @rendered_status = rendered_status
         @handled = nil
-      end
-
-      def status_line_data(progress_callback: nil)
-        model.status_line_data(progress_callback: progress_callback)
       end
 
       def status_line(data)
@@ -37,9 +30,12 @@ describe WifiWand::StatusCommand do
       def strip_ansi(text) = text.to_s
     end
   end
+  let(:output_support) do
+    output_support_class.new(progress_mode: progress_mode, rendered_status: rendered_status)
+  end
   let(:cli) do
-    cli_class.new(model: mock_model, interactive_mode: interactive_mode, out_stream: out_stream,
-      progress_mode: progress_mode, rendered_status: rendered_status)
+    double('cli', model: mock_model, interactive_mode: interactive_mode, out_stream: out_stream,
+      output_support: output_support)
   end
   let(:progress_mode) { :none }
   let(:rendered_status) { 'WiFi: ON | Network: "TestNet"' }
@@ -47,7 +43,7 @@ describe WifiWand::StatusCommand do
   it_behaves_like 'binds command context',
     bound_attributes: {
       model:            :mock_model,
-      cli:              :cli,
+      output_support:   :output_support,
       interactive_mode: :interactive_mode,
       out_stream:       :out_stream,
     }
@@ -69,7 +65,7 @@ describe WifiWand::StatusCommand do
       result = command.call
 
       expect(result).to eq(status_data)
-      expect(cli.handled).to eq([status_data, rendered_status])
+      expect(output_support.handled).to eq([status_data, rendered_status])
     end
 
     context 'when interactive and progress is disabled' do

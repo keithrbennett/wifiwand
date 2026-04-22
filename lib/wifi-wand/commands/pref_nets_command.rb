@@ -11,11 +11,11 @@ module WifiWand
       usage:        'Usage: wifi-wand pref_nets'
     )
 
-    binds :cli, :model
+    binds :model, output_support: :output_support
 
     def call
       networks = model.preferred_networks
-      cli.handle_output(networks, -> { cli.format_object(networks) })
+      output_support.handle_output(networks, -> { output_support.format_object(networks) })
     end
   end
 end

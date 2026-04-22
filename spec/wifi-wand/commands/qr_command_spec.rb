@@ -5,18 +5,19 @@ require_relative '../../../lib/wifi-wand/commands/qr_command'
 
 describe WifiWand::QrCommand do
   let(:mock_model) { double('Model') }
+  let(:output_support) { double('output_support') }
   let(:out_stream) { StringIO.new }
   let(:in_stream) { StringIO.new }
   let(:interactive_mode) { false }
   let(:cli) do
     double('cli', model: mock_model, interactive_mode: interactive_mode, out_stream: out_stream,
-      in_stream: in_stream)
+      in_stream: in_stream, output_support: output_support)
   end
 
   it_behaves_like 'binds command context',
     bound_attributes: {
       model:            :mock_model,
-      cli:              :cli,
+      output_support:   :output_support,
       interactive_mode: :interactive_mode,
       out_stream:       :out_stream,
       in_stream:        :in_stream,
@@ -38,7 +39,7 @@ describe WifiWand::QrCommand do
     it 'routes file output through handle_output' do
       allow(mock_model).to receive(:generate_qr_code).with('test.png', password: nil).and_return('test.png')
 
-      expect(cli).to receive(:handle_output) do |value, producer|
+      expect(output_support).to receive(:handle_output) do |value, producer|
         expect(value).to eq('test.png')
         expect(producer.call).to eq('QR code generated: test.png')
       end
@@ -78,7 +79,7 @@ describe WifiWand::QrCommand do
         allow(mock_model).to receive(:generate_qr_code)
           .with('test.png', overwrite: true, password: nil).and_return('test.png')
 
-        expect(cli).to receive(:handle_output)
+        expect(output_support).to receive(:handle_output)
         command.call('test.png')
         expect(out_stream.string).to include('Output file exists. Overwrite? [y/N]: ')
       end

@@ -5,11 +5,13 @@ require_relative '../../../lib/wifi-wand/commands/network_name_command'
 
 describe WifiWand::NetworkNameCommand do
   let(:mock_model) { double('Model') }
+  let(:output_support) { double('output_support') }
   let(:cli) do
-    double('cli', model: mock_model)
+    double('cli', model: mock_model, output_support: output_support)
   end
 
-  it_behaves_like 'binds command context', bound_attributes: { model: :mock_model, cli: :cli }
+  it_behaves_like 'binds command context',
+    bound_attributes: { model: :mock_model, output_support: :output_support }
 
   it_behaves_like 'has default command help text',
     usage:       'Usage: wifi-wand network_name',
@@ -20,7 +22,7 @@ describe WifiWand::NetworkNameCommand do
 
     it 'routes the current network name through handle_output' do
       allow(mock_model).to receive(:connected_network_name).and_return('MyNetwork')
-      expect(cli).to receive(:handle_output) do |name, producer|
+      expect(output_support).to receive(:handle_output) do |name, producer|
         expect(name).to eq('MyNetwork')
         expect(producer.call).to include('MyNetwork')
       end
@@ -30,7 +32,7 @@ describe WifiWand::NetworkNameCommand do
 
     it 'routes model errors through handle_output' do
       allow(mock_model).to receive(:connected_network_name).and_raise(WifiWand::Error.new('network error'))
-      expect(cli).to receive(:handle_output) do |name, producer|
+      expect(output_support).to receive(:handle_output) do |name, producer|
         expect(name).to be_nil
         expect(producer.call).to eq('network error')
       end

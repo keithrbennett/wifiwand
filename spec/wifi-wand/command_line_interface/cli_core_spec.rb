@@ -93,11 +93,13 @@ describe WifiWand::CommandLineInterface do
 
     describe '#attempt_command_action' do
       it 'executes valid commands' do
+        output_support = double('output_support')
+        allow(cli).to receive(:output_support).and_return(output_support)
         info_command = WifiWand::InfoCommand.new.bind(cli)
         allow(cli).to receive(:resolve_command).with('info').and_return(info_command)
         allow(mock_model).to receive(:wifi_info).and_return('info_result')
-        allow(cli).to receive(:format_object).with('info_result').and_return('info_result')
-        allow(cli).to receive(:handle_output).and_return('info_result')
+        allow(output_support).to receive(:format_object).with('info_result').and_return('info_result')
+        allow(output_support).to receive(:handle_output).and_return('info_result')
 
         result = cli.attempt_command_action('info')
         expect(result).to eq('info_result')
@@ -129,12 +131,14 @@ describe WifiWand::CommandLineInterface do
       end
 
       it 'processes valid commands' do
+        output_support = double('output_support')
         cli = described_class.new(options, argv: ['info'])
+        allow(cli).to receive(:output_support).and_return(output_support)
         info_command = WifiWand::InfoCommand.new.bind(cli)
         allow(cli).to receive(:resolve_command).with('info').and_return(info_command)
         allow(cli.model).to receive(:wifi_info).and_return('info result')
-        allow(cli).to receive(:format_object).with('info result').and_return('info result')
-        allow(cli).to receive(:handle_output).and_return('info result')
+        allow(output_support).to receive(:format_object).with('info result').and_return('info result')
+        allow(output_support).to receive(:handle_output).and_return('info result')
 
         result = cli.process_command_line
         expect(result).to eq('info result')
@@ -171,12 +175,14 @@ describe WifiWand::CommandLineInterface do
       end
 
       it 'handles commands with no arguments' do
+        output_support = double('output_support')
         cli = described_class.new(options, argv: ['info'])
+        allow(cli).to receive(:output_support).and_return(output_support)
         info_command = WifiWand::InfoCommand.new.bind(cli)
         allow(cli).to receive(:resolve_command).with('info').and_return(info_command)
         allow(cli.model).to receive(:wifi_info).and_return('info_output')
-        allow(cli).to receive(:format_object).with('info_output').and_return('info_output')
-        allow(cli).to receive(:handle_output).and_return('info_output')
+        allow(output_support).to receive(:format_object).with('info_output').and_return('info_output')
+        allow(output_support).to receive(:handle_output).and_return('info_output')
 
         result = cli.process_command_line
         expect(result).to eq('info_output')

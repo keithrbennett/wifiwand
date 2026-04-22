@@ -5,11 +5,13 @@ require_relative '../../../lib/wifi-wand/commands/avail_nets_command'
 
 describe WifiWand::AvailNetsCommand do
   let(:mock_model) { double('Model') }
+  let(:output_support) { double('output_support') }
   let(:cli) do
-    double('cli', model: mock_model)
+    double('cli', model: mock_model, output_support: output_support)
   end
 
-  it_behaves_like 'binds command context', bound_attributes: { model: :mock_model, cli: :cli }
+  it_behaves_like 'binds command context',
+    bound_attributes: { model: :mock_model, output_support: :output_support }
 
   it_behaves_like 'has default command help text',
     usage:       'Usage: wifi-wand avail_nets',
@@ -20,8 +22,10 @@ describe WifiWand::AvailNetsCommand do
 
     it 'routes available network output through handle_output' do
       allow(mock_model).to receive(:available_network_names).and_return(%w[TestNet1 TestNet2])
-      allow(cli).to receive(:format_object).with(%w[TestNet1 TestNet2]).and_return("TestNet1\nTestNet2")
-      expect(cli).to receive(:handle_output) do |info, producer|
+      allow(output_support).to receive(:format_object)
+        .with(%w[TestNet1 TestNet2])
+        .and_return("TestNet1\nTestNet2")
+      expect(output_support).to receive(:handle_output) do |info, producer|
         expect(info).to eq(%w[TestNet1 TestNet2])
         rendered = producer.call
         expect(rendered).to include('Available networks, in descending signal strength order')
@@ -34,8 +38,9 @@ describe WifiWand::AvailNetsCommand do
 
     it 'uses the empty-available-networks message when the scan is empty' do
       allow(mock_model).to receive(:available_network_names).and_return([])
-      allow(cli).to receive(:available_networks_empty_message).and_return('No visible networks were found.')
-      expect(cli).to receive(:handle_output) do |info, producer|
+      allow(output_support).to receive(:available_networks_empty_message)
+        .and_return('No visible networks were found.')
+      expect(output_support).to receive(:handle_output) do |info, producer|
         expect(info).to eq([])
         expect(producer.call).to eq('No visible networks were found.')
       end
@@ -46,7 +51,7 @@ describe WifiWand::AvailNetsCommand do
     it 'routes model errors through handle_output' do
       allow(mock_model).to receive(:available_network_names)
         .and_raise(WifiWand::Error.new('WiFi is off, cannot scan for available networks.'))
-      expect(cli).to receive(:handle_output) do |info, producer|
+      expect(output_support).to receive(:handle_output) do |info, producer|
         expect(info).to be_nil
         expect(producer.call).to eq('WiFi is off, cannot scan for available networks.')
       end

@@ -11,7 +11,7 @@ module WifiWand
       usage:        'Usage: wifi-wand nameservers [get|clear|IP ...]'
     )
 
-    binds :cli, :model
+    binds :model, output_support: :output_support
 
     def call(*args)
       subcommand = subcommand_for(args)
@@ -19,7 +19,7 @@ module WifiWand
       case subcommand
       when :get
         current_nameservers = model.nameservers
-        cli.handle_output(current_nameservers, human_readable_string_producer(current_nameservers))
+        output_support.handle_output(current_nameservers, human_readable_string_producer(current_nameservers))
       when :clear
         model.set_nameservers(:clear)
       when :put

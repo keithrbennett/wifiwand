@@ -6,46 +6,6 @@ require_relative '../../../lib/wifi-wand/command_line_interface'
 describe WifiWand::CommandLineInterface do
   include_context 'for command line interface tests'
 
-  describe 'output handling' do
-    describe '#handle_output' do
-      let(:test_data) { { key: 'value' } }
-      let(:human_readable_producer) { -> { 'Human readable output' } }
-      let(:processor) { ->(obj) { obj.to_s.upcase } }
-      let(:options_with_processor) { create_cli_options(post_processor: processor) }
-      let(:cli_with_processor) { described_class.new(options_with_processor) }
-
-      context 'when in interactive mode' do
-        it 'returns data directly without output' do
-          result = interactive_cli.send(:handle_output, test_data, human_readable_producer)
-          expect(result).to eq(test_data)
-        end
-      end
-
-      context 'when in non-interactive mode' do
-        context 'with post processor' do
-          it 'uses post processor and outputs result' do
-            output = nil
-            expect do
-              silence_output do |stdout, _stderr|
-                cli_with_processor.send(:handle_output, test_data, human_readable_producer)
-                output = stdout.string
-              end
-            end.not_to raise_error
-            expect(output).to eq(%({:KEY=>"VALUE"}\n)).or eq(%({KEY: "VALUE"}\n))
-          end
-        end
-
-        context 'without post processor' do
-          it 'uses human readable producer and outputs result' do
-            expect do
-              cli.send(:handle_output, test_data, human_readable_producer)
-            end.to output("Human readable output\n").to_stdout
-          end
-        end
-      end
-    end
-  end
-
   describe '#call (main entry point)' do
     before do
       allow(cli).to receive_messages(

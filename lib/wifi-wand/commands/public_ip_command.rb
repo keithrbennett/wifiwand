@@ -21,7 +21,7 @@ module WifiWand
       'b'       => 'both',
     }.freeze
 
-    binds :cli, :model
+    binds :model, output_support: :output_support
 
     def help_text
       <<~HELP
@@ -42,13 +42,13 @@ module WifiWand
       case normalized_selector
       when 'address'
         address = model.public_ip_address
-        cli.handle_output(address, -> { "Public IP Address: #{address}" })
+        output_support.handle_output(address, -> { "Public IP Address: #{address}" })
       when 'country'
         country = model.public_ip_country
-        cli.handle_output(country, -> { "Public IP Country: #{country}" })
+        output_support.handle_output(country, -> { "Public IP Country: #{country}" })
       when 'both'
         info = model.public_ip_info
-        cli.handle_output(info, -> {
+        output_support.handle_output(info, -> {
           "Public IP Address: #{info['address']}  Country: #{info['country']}"
         })
       end

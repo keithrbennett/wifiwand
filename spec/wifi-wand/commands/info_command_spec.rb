@@ -5,11 +5,13 @@ require_relative '../../../lib/wifi-wand/commands/info_command'
 
 describe WifiWand::InfoCommand do
   let(:mock_model) { double('Model') }
+  let(:output_support) { double('output_support') }
   let(:cli) do
-    double('cli', model: mock_model)
+    double('cli', model: mock_model, output_support: output_support)
   end
 
-  it_behaves_like 'binds command context', bound_attributes: { model: :mock_model, cli: :cli }
+  it_behaves_like 'binds command context',
+    bound_attributes: { model: :mock_model, output_support: :output_support }
 
   it_behaves_like 'has default command help text',
     usage:       'Usage: wifi-wand info',
@@ -21,9 +23,9 @@ describe WifiWand::InfoCommand do
     it 'routes wifi info through handle_output using the formatter path' do
       info = { 'status' => 'connected' }
       allow(mock_model).to receive(:wifi_info).and_return(info)
-      allow(cli).to receive(:format_object).with(info).and_return('formatted info')
+      allow(output_support).to receive(:format_object).with(info).and_return('formatted info')
 
-      expect(cli).to receive(:handle_output) do |value, producer|
+      expect(output_support).to receive(:handle_output) do |value, producer|
         expect(value).to eq(info)
         expect(producer.call).to eq('formatted info')
       end

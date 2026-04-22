@@ -14,6 +14,7 @@ require_relative 'connectivity_states'
 require_relative 'command_line_interface/help_system'
 require_relative 'command_line_interface/output_formatter'
 require_relative 'command_line_interface/command_registry'
+require_relative 'command_line_interface/command_output_support'
 require_relative 'command_line_interface/shell_interface'
 
 module WifiWand
@@ -56,6 +57,8 @@ module WifiWand
     # Dynamic output stream that respects current $stdout (for test silence_output compatibility)
     def out_stream = @original_out_stream || $stdout
 
+    def output_support = @output_support ||= CommandOutputSupport.new(self)
+
     # Asserts that a command has been passed on the command line.
     def validate_command_line(argv = @argv)
       if argv.empty?
@@ -97,45 +100,6 @@ module WifiWand
         @err_stream.puts(verbose_mode && e.respond_to?(:to_h) ? YAML.dump(e.to_h) : e.to_s)
         @err_stream.puts help_hint unless e.message.include?(help_hint)
         FAILURE_EXIT_CODE
-      end
-    end
-
-    def status_progress_mode
-      return :none if options.post_processor
-
-      return :none unless out_stream.respond_to?(:tty?) && out_stream.tty?
-
-      :inline
-    end
-
-    def strip_ansi(text) = text.to_s.gsub(/\e\[[\d;]*m/, '')
-
-    def available_networks_empty_message
-      if model.is_a?(WifiWand::MacOsModel)
-        <<~MESSAGE.chomp
-          No visible networks were found.
-          On macOS 14+, this can mean the helper could not get usable Location Services authorization for WiFi SSIDs.
-        MESSAGE
-      elsif model.is_a?(WifiWand::UbuntuModel)
-        <<~MESSAGE.chomp
-          No visible networks were found.
-          If you expect to see networks, try running `nmcli device wifi rescan` or check your hardware/drivers.
-        MESSAGE
-      else
-        'No visible networks were found.'
-      end
-    end
-
-    def handle_output(data, human_readable_string_producer)
-      if interactive_mode
-        data
-      else
-        output = if options.post_processor
-          options.post_processor.(data)
-        else
-          human_readable_string_producer.call
-        end
-        out_stream.puts output unless output.to_s.empty?
       end
     end
   end
