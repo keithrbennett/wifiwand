@@ -3,6 +3,8 @@
 This directory is for `wifi-wand` maintainers and developers. These documents contain deep technical details,
 research, and internal strategy.
 
+Use [../../docs/README.md](../../docs/README.md) for end-user and operator documentation.
+
 ## macOS Helper Development
 
 - **[macOS Helper Research](MAC_HELPER_RESEARCH.md)** - Original research into why and how the native macOS
@@ -18,16 +20,28 @@ research, and internal strategy.
 
 - **[Isolated AI Dev VM Setup](AI_VM_SETUP.md)** - Step-by-step guide for building an isolated VM-based
   development environment with Ansible, suitable for Linux now and Apple Silicon later.
-- **[Reviewed Agent Issues](REVIEWED_AGENT_ISSUES.md)** - Previously reviewed objections that agents/reviewers
-  should not re-raise without new evidence.
+- **[Testing Guide](TESTING.md)** - Test scopes, real-environment tags, coverage artifact handling, and CI
+  expectations.
 
 ## General Information
 
 - **[Command Architecture](COMMAND_ARCHITECTURE.md)** - Detailed explanation of the current command scheme,
   including command binding, registry dispatch, shell integration, and the `CommandOutputSupport` boundary.
+- **[`public_ip` Command Architecture](PUBLIC_IP_COMMAND_DESIGN.md)** - Design notes for the dedicated
+  external-IP command and its separation from `info`.
 - **[`connected?` vs `internet_connectivity_state`](CONNECTED_VS_INTERNET_CONNECTIVITY.md)** - Analysis of
   the semantic split between WiFi connection state and host-level internet reachability, with API cleanup
   suggestions.
-- End-user documentation should be prioritized by contributors in the **[Main Documentation
-  Index](../README.md)**.
-- For internal testing strategies and CI details, refer to the **[Testing Guide](../TESTING.md)**.
+
+## Internal Reports And Planning
+
+- **[AI Library Analysis: Claude](../reports/ai/ww-as-library-claude.md)** - One-off analysis of `wifi-wand`
+  as a Ruby library.
+- **[AI Library Analysis: Gemini](../reports/ai/ww-as-library-gemini.md)** - Alternate analysis of
+  `wifi-wand` as a Ruby library.
+- **[Naming Strategy Change Planning](wifiwand_naming_strategy-change-planning.md)** - Planning note for a
+  possible `wifiwand` naming cleanup.
+
+## Agent Prompts And Review Notes
+
+- **[Prompt Library](../prompts/)** - Reusable prompts and reviewer guidance for internal workflows.

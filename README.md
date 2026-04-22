@@ -156,10 +156,12 @@ For detailed information about specific features:
 - **[Info Command](docs/INFO_COMMAND.md)** - Get detailed network configuration and status information
 - **[Connectivity Checking (`ci` command)](docs/CONNECTIVITY_CHECKING.md)** - Check internet availability in
   scripts and automation
-- **[Testing Guide](docs/TESTING.md)** - Running tests, coverage reports, and test categories
 - **[DNS Configuration Guide](docs/DNS_Configuration_Guide.md)** - Managing nameservers and DNS settings
 - **[Environment Variables Reference](docs/ENVIRONMENT_VARIABLES.md)** - Configuration via environment
   variables (including the `WIFIWAND_OPTS` default-options helper)
+- **[Developer Testing Guide](dev/docs/TESTING.md)** - Running tests, coverage reports, and test categories
+- **[Developer Documentation Index](dev/docs/README.md)** - Maintainer architecture, release, and workflow
+  notes
 
 ### Usage
 

@@ -10,7 +10,7 @@ require_relative 'mac_os_wifi_auth_helper'
 module WifiWand
   module MacHelperRelease
     PENDING_NOTARIZATION_STATUS = 'In Progress'
-    SIGNING_INSTRUCTIONS_PATH = 'docs/dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md'
+    SIGNING_INSTRUCTIONS_PATH = 'dev/docs/MACOS_CODE_SIGNING_INSTRUCTIONS.md'
     DEFAULT_NOTARYTOOL_PROFILE = 'wifiwand-notarytool'
 
     # Public signing credentials (visible in all signed binaries - no need to hide)

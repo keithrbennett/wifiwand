@@ -1,7 +1,6 @@
 # wifi-wand Documentation Index
 
-Welcome to the `wifi-wand` documentation! This directory contains comprehensive guides for users and
-administrators.
+This directory contains end-user and operator documentation for `wifi-wand`.
 
 ## Getting Started
 
@@ -22,18 +21,13 @@ administrators.
 
 ## Technical Reference
 
-- **[macOS Command Usage](OS_COMMAND_USE_MACOS.md)** - Detailed list of the underlying macOS shell commands
-  used by `wifi-wand`.
-- **[Ubuntu Command Usage](OS_COMMAND_USE_UBUNTU.md)** - Detailed list of the underlying Ubuntu Linux shell
-  commands used by `wifi-wand`.
-- **[macOS Helper Application](MACOS_HELPER.md)** - Technical details about the native helper used on macOS
+- **[macOS Helper Application](MACOS_HELPER.md)** - End-user guidance for the native helper used on macOS
   14+.
 
 ## Advanced Usage & Troubleshooting
 
 - **[Environment Variables](ENVIRONMENT_VARIABLES.md)** - Configuring `wifi-wand` via the environment
   (including `WIFIWAND_OPTS`).
-- **[Testing Guide](TESTING.md)** - How to run the test suite and understand coverage reports.
 
 ## Project History
 
@@ -49,4 +43,4 @@ administrators.
 ### For Developers and Maintainers
 
 If you are contributing to `wifi-wand` or working on the native helper, please see the **[Developer
-Documentation Index](dev/README.md)**.
+Documentation Index](../dev/docs/README.md)**.

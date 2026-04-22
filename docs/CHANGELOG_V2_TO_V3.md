@@ -109,7 +109,7 @@ For upgrade-impacting API, CLI, and behavior changes, see
 - Expanded examples for both CLI and library usage.
 - Added contact information and updated the cross-platform project
   description.
-- Added `docs/TESTING.md`.
+- Added `dev/docs/TESTING.md`.
 - Added a comprehensive `docs/` directory with user and developer indexes.
 - Added a pre-commit hook that automatically runs safe tests before commits.
 - Added `bin/setup-hooks` for hook installation.

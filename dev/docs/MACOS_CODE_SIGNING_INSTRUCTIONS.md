@@ -155,9 +155,9 @@ The notarization commands now use only a keychain profile at runtime. Supported 
 ## Need More Detail?
 
 - Background, troubleshooting, and the rationale for each requirement:
-  `docs/dev/MACOS_CODE_SIGNING_CONTEXT.md`
+  `dev/docs/MACOS_CODE_SIGNING_CONTEXT.md`
 - Password reset and agreement-troubleshooting note:
-  `docs/dev/MACOS_NOTARYTOOL_PASSWORD_RESET.md`
+  `dev/docs/MACOS_NOTARYTOOL_PASSWORD_RESET.md`
 - Script implementation lives in `bin/mac-helper` (CLI) and `lib/wifi-wand/mac_helper/mac_helper_release.rb` (core
   logic).
 - Forget the commands? Run `bin/mac-helper help` for a quick reminder.

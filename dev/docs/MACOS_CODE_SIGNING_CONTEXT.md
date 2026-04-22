@@ -220,7 +220,7 @@ These values are public (visible in all signed binaries via `codesign -dv`), so 
 in 1Password. Update them whenever you switch to a different Developer ID certificate.
 
 For a compact inventory of all signing/notarization assets, where they live, and which ones are secret, see
-the **Signing Assets Summary** table in `docs/dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md`.
+the **Signing Assets Summary** table in `dev/docs/MACOS_CODE_SIGNING_INSTRUCTIONS.md`.
 
 ### Step 5: Create an App-Specific Password
 

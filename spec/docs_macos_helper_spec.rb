@@ -8,7 +8,7 @@ RSpec.describe 'docs/MACOS_HELPER.md' do
 
   it 'links maintainers to the current macOS code-signing instructions' do
     expect(helper_doc).to include(
-      '[docs/dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md](dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md)'
+      '[dev/docs/MACOS_CODE_SIGNING_INSTRUCTIONS.md](../dev/docs/MACOS_CODE_SIGNING_INSTRUCTIONS.md)'
     )
     expect(helper_doc).not_to include(removed_signing_doc)
   end
