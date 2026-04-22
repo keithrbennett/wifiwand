@@ -17,14 +17,14 @@ describe WifiWand::Command do
   let(:cli) { double('cli') }
   let(:metadata) { WifiWand::CommandMetadata.new(short_string: 't', long_string: 'test_command') }
 
-  it 'binds context and delegates calls through the bound command instance' do
-    command = described_class.new(metadata: metadata, handler_name: :cmd_test)
-    allow(cli).to receive(:cmd_test).with('arg').and_return('result')
+  it 'returns a fresh command instance when bound' do
+    command = described_class.new(metadata: metadata)
 
     bound_command = command.bind(cli)
 
     expect(bound_command.metadata).to eq(metadata)
-    expect(bound_command.call('arg')).to eq('result')
+    expect(bound_command).to be_a(described_class)
+    expect(bound_command).not_to equal(command)
   end
 
   it 'binds declared same-name attributes from the cli' do

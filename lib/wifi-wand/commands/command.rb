@@ -63,11 +63,10 @@ module WifiWand
       end
     end
 
-    attr_reader :metadata, :handler_name, :cli
+    attr_reader :metadata, :cli
 
-    def initialize(metadata: nil, handler_name: nil, cli: nil, **attributes)
+    def initialize(metadata: nil, cli: nil, **attributes)
       @metadata = metadata || default_metadata
-      @handler_name = handler_name
       @cli = cli
       assign_attributes(attributes)
     end
@@ -78,14 +77,7 @@ module WifiWand
 
     # Turn a registered command definition into the executable command object
     # for this CLI invocation by copying the declared bound attributes from `cli`.
-    # The base `Command` class keeps its older handler-based path for the generic
-    # registry spec and compatibility callers.
     def bind(cli)
-      if instance_of?(Command)
-        return self.class.new(metadata: metadata, handler_name: handler_name,
-          cli: cli)
-      end
-
       self.class.new(metadata: metadata, **bound_attributes_for(cli))
     end
 
@@ -97,10 +89,6 @@ module WifiWand
 
         #{metadata.description}
       HELP
-    end
-
-    def call(*)
-      cli.public_send(handler_name, *)
     end
 
     private def assign_attributes(attributes)
