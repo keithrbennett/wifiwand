@@ -1,62 +1,24 @@
 # frozen_string_literal: true
 
 require_relative '../spec_helper'
-require 'fileutils'
 require 'open3'
 require 'rbconfig'
-require 'tmpdir'
 load File.expand_path('../../bin/mac-helper', __dir__)
 
 MAC_HELPER_PATH = File.expand_path('../../bin/mac-helper', __dir__)
-MAC_HELPER_DEFAULT_ENV_FILE = File.expand_path('../../.env.release', __dir__)
 
 RSpec.describe 'bin/mac-helper' do
-  def make_fake_command(path, body)
-    File.write(path, body)
-    File.chmod(0o755, path)
-  end
-
   def run_mac_helper(argv:, chdir:, command_path: MAC_HELPER_PATH, env: {})
     stdout, stderr, status = Open3.capture3(env, RbConfig.ruby, command_path, *argv, chdir:)
     { stdout:, stderr:, exit_code: status.exitstatus }
   end
-
-  def find_executable(command)
-    ENV.fetch('PATH', '').split(File::PATH_SEPARATOR).each do |dir|
-      path = File.join(dir, command)
-      return path if File.file?(path) && File.executable?(path)
-    end
-
-    raise "Unable to find #{command} in PATH"
-  end
-
-  def with_fake_path_dir
-    Dir.mktmpdir do |tmpdir|
-      fake_path_dir = File.join(tmpdir, 'path-bin')
-      FileUtils.mkdir_p(fake_path_dir)
-      FileUtils.ln_s(find_executable('git'), File.join(fake_path_dir, 'git'))
-      yield tmpdir, fake_path_dir
-    end
-  end
-
-  def expect_op_wrap_exec(result, command_path:)
-    expect(result[:exit_code]).to eq(0)
-    expect(result[:stderr]).to eq('')
-    expect(result[:stdout]).to include('run')
-    expect(result[:stdout]).to include("--env-file=#{MAC_HELPER_DEFAULT_ENV_FILE}")
-    expect(result[:stdout]).to include('--')
-    expect(result[:stdout]).to include(command_path)
-    expect(result[:stdout]).to include('notarize')
-  end
-
 
   describe MacHelperCLI::CLI do
     def build_cli(argv)
       described_class.new(argv)
     end
 
-    def stub_release_selection(cli)
-      allow(cli).to receive(:has_credentials?).and_return(true)
+    def stub_release_selection(_cli)
       allow(WifiWand::MacHelperRelease).to receive(:normalize_submission_order) { |order| order }
     end
 
@@ -124,50 +86,115 @@ RSpec.describe 'bin/mac-helper' do
       expect { cli.run }
         .to output(/using latest pending notary submission latest-pending/).to_stdout
     end
-  end
 
-  it 'finds op-wrap relative to the real script and re-execs with the current Ruby outside the repo root' do
-    with_fake_path_dir do |tmpdir, fake_path_dir|
-      fake_op = File.join(tmpdir, 'fake-op')
-      make_fake_command(fake_op, <<~SH)
-        #!/bin/sh
-        printf '%s\n' "$@"
-      SH
+    it 'prints public signing info' do
+      cli = build_cli(['public-info'])
+      helper = WifiWand::MacOsWifiAuthHelper
+      helper_exec_path = File.join(helper.source_bundle_path, 'Contents', 'MacOS', helper::EXECUTABLE_NAME)
 
-      result = run_mac_helper(
-        env:   {
-          'PATH'            => fake_path_dir,
-          'WIFIWAND_OP_BIN' => fake_op,
-        },
-        argv:  ['notarize'],
-        chdir: tmpdir
-      )
+      allow(WifiWand::MacHelperRelease::Operations).to receive(:require_macos!)
+      allow(ENV).to receive(:fetch).and_call_original
+      allow(ENV).to receive(:fetch).with(
+        'WIFIWAND_NOTARYTOOL_PROFILE',
+        WifiWand::MacHelperRelease::DEFAULT_NOTARYTOOL_PROFILE
+      ).and_return('custom-profile')
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WIFIWAND_NOTARYTOOL_KEYCHAIN').and_return('/tmp/custom.keychain-db')
 
-      expect_op_wrap_exec(result, command_path: MAC_HELPER_PATH)
+      expect { cli.run }.to output(
+        a_string_including(
+          'Public macOS signing and notarization info:',
+          "Team ID: #{WifiWand::MacHelperRelease::APPLE_TEAM_ID}",
+          "Codesign identity: #{WifiWand::MacHelperRelease::CODESIGN_IDENTITY}",
+          'Notarytool profile: custom-profile',
+          'Keychain path: /tmp/custom.keychain-db',
+          "Helper bundle path: #{helper.source_bundle_path}",
+          "Helper executable path: #{helper_exec_path}"
+        )
+      ).to_stdout
+    end
+
+    it 'stores notarytool credentials using the configured Apple ID' do
+      cli = build_cli(['store-credentials'])
+
+      allow(WifiWand::MacHelperRelease::Operations).to receive(:require_macos!)
+      allow(ENV).to receive(:fetch).and_call_original
+      allow(ENV).to receive(:fetch).with(
+        'WIFIWAND_NOTARYTOOL_PROFILE',
+        WifiWand::MacHelperRelease::DEFAULT_NOTARYTOOL_PROFILE
+      ).and_return('custom-profile')
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WIFIWAND_APPLE_DEV_ID').and_return('dev@example.com')
+      allow(ENV).to receive(:[]).with('WIFIWAND_NOTARYTOOL_KEYCHAIN').and_return('/tmp/custom.keychain-db')
+      expect(cli).to receive(:system).with(
+        'xcrun',
+        'notarytool',
+        'store-credentials',
+        'custom-profile',
+        '--apple-id',
+        'dev@example.com',
+        '--team-id',
+        WifiWand::MacHelperRelease::APPLE_TEAM_ID,
+        '--keychain',
+        '/tmp/custom.keychain-db'
+      ).and_return(true)
+
+      expect { cli.run }.to output(
+        a_string_including(
+          'Storing notarytool credentials in the keychain...',
+          'Profile: custom-profile',
+          'Apple ID: dev@example.com',
+          "Team ID: #{WifiWand::MacHelperRelease::APPLE_TEAM_ID}",
+          'Keychain path: /tmp/custom.keychain-db',
+          'notarytool will prompt for the app-specific password.'
+        )
+      ).to_stdout
+    end
+
+    it 'prompts for the Apple ID when store-credentials is missing the environment variable' do
+      cli = build_cli(['store-credentials'])
+
+      allow(WifiWand::MacHelperRelease::Operations).to receive(:require_macos!)
+      allow(ENV).to receive(:fetch).and_call_original
+      allow(ENV).to receive(:fetch).with(
+        'WIFIWAND_NOTARYTOOL_PROFILE',
+        WifiWand::MacHelperRelease::DEFAULT_NOTARYTOOL_PROFILE
+      ).and_return('custom-profile')
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WIFIWAND_APPLE_DEV_ID').and_return(nil)
+      allow(ENV).to receive(:[]).with('WIFIWAND_NOTARYTOOL_KEYCHAIN').and_return('/tmp/custom.keychain-db')
+      allow($stdin).to receive(:gets).and_return("prompted@example.com\n")
+      expect(cli).to receive(:system).with(
+        'xcrun',
+        'notarytool',
+        'store-credentials',
+        'custom-profile',
+        '--apple-id',
+        'prompted@example.com',
+        '--team-id',
+        WifiWand::MacHelperRelease::APPLE_TEAM_ID,
+        '--keychain',
+        '/tmp/custom.keychain-db'
+      ).and_return(true)
+
+      expect { cli.run }.to output(
+        a_string_including(
+          'Apple ID email for notarytool: ',
+          'Apple ID: prompted@example.com'
+        )
+      ).to_stdout
     end
   end
 
-  it 'finds op-wrap relative to the real script when launched via symlink' do
-    with_fake_path_dir do |tmpdir, fake_path_dir|
-      fake_op = File.join(tmpdir, 'fake-op')
-      symlink_path = File.join(tmpdir, 'mac-helper')
-      FileUtils.ln_s(MAC_HELPER_PATH, symlink_path)
-      make_fake_command(fake_op, <<~SH)
-        #!/bin/sh
-        printf '%s\n' "$@"
-      SH
+  it 'documents the secure notarytool profile workflow in help output' do
+    result = run_mac_helper(argv: ['help'], chdir: Dir.pwd)
 
-      result = run_mac_helper(
-        command_path: symlink_path,
-        env:          {
-          'PATH'            => fake_path_dir,
-          'WIFIWAND_OP_BIN' => fake_op,
-        },
-        argv:         ['notarize'],
-        chdir:        tmpdir
-      )
-
-      expect_op_wrap_exec(result, command_path: symlink_path)
-    end
+    expect(result[:exit_code]).to eq(0)
+    expect(result[:stderr]).to eq('')
+    expect(result[:stdout]).to include('bin/mac-helper store-credentials')
+    expect(result[:stdout]).to include('WIFIWAND_NOTARYTOOL_PROFILE')
+    expect(result[:stdout]).to include('bin/mac-helper public-info')
+    expect(result[:stdout]).to include('bin/mac-helper store-credentials')
+    expect(result[:stdout]).not_to include('WIFIWAND_APPLE_DEV_PASSWORD')
   end
 end

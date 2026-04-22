@@ -12,7 +12,6 @@
 
 require 'optparse'
 require 'pathname'
-require 'rbconfig'
 
 module MacHelperCLI
   SCRIPT_PATH = File.realpath(__FILE__)
@@ -22,10 +21,12 @@ module MacHelperCLI
     'build' => 'Build and sign helper with Developer ID (for gem distribution)',
     'verify' => 'Verify the committed helper bundle matches the current Swift source',
     'test' => 'Test the signed helper binary',
-    'notarize' => 'Notarize the helper for distribution (requires Apple ID credentials)',
+    'public-info' => 'Print public macOS signing and notarization configuration',
+    'store-credentials' => 'Store notarytool credentials in the keychain',
+    'notarize' => 'Notarize the helper for distribution (requires a notarytool keychain profile)',
     'release' => 'Complete release workflow: build, sign, test, notarize',
     'status' => 'Show code signing status of helper',
-    'history' => 'Show recent notarization submissions (uses Apple ID credentials)',
+    'history' => 'Show recent notarization submissions (uses the configured notarytool profile)',
     'info' => 'Show notarization status for a submission (requires submission ID)',
     'log' => 'Show notarization log for a submission (requires submission ID)',
     'cancel' => 'Cancel a notarization submission (defaults to oldest queued submission)',
@@ -58,11 +59,6 @@ module MacHelperCLI
 
       parse_options(subcommand)
 
-      # Check if we need to auto-wrap with op for commands that need credentials
-      if needs_credentials?(subcommand) && !has_credentials?
-        exec_with_op_wrap(subcommand)
-      end
-
       execute_subcommand(subcommand)
     end
 
@@ -92,7 +88,13 @@ module MacHelperCLI
           Test:
             bin/mac-helper test
 
-          Notarize (auto-wraps with op if credentials not set):
+          Show public signing info:
+            bin/mac-helper public-info
+
+          One-time secure credential setup:
+            bin/mac-helper store-credentials
+
+          Notarize:
             bin/mac-helper notarize
 
           Full workflow:
@@ -113,8 +115,8 @@ module MacHelperCLI
           Cancel specific notarization:
             bin/mac-helper cancel --submission-id <uuid>
 
-        Note: Commands requiring Apple credentials will automatically use bin/op-wrap
-        if WIFIWAND_APPLE_DEV_ID and WIFIWAND_APPLE_DEV_PASSWORD are not set.
+        Note: Runtime notarization commands use a notarytool keychain profile.
+        This keeps the app-specific password out of process argv.
 
         Options:
           --submission-id ID        Submission ID for info/log/cancel commands
@@ -122,10 +124,10 @@ module MacHelperCLI
           --pending-only            Only select pending submissions for cancel command
           --help, -h                Show this help message
 
-        Environment Variables (set via bin/op-wrap or manually):
-          WIFIWAND_APPLE_DEV_ID            Apple ID email (required for notarization commands)
-          WIFIWAND_APPLE_DEV_PASSWORD      App-specific password from appleid.apple.com (required for notarization commands)
-          WIFIWAND_OP_WRAP_BIN             Path to op-wrap script (default: bin/op-wrap)
+        Environment Variables:
+          WIFIWAND_APPLE_DEV_ID           Apple ID email for store-credentials (optional prompt fallback)
+          WIFIWAND_NOTARYTOOL_PROFILE      notarytool keychain profile name (default: wifiwand-notarytool)
+          WIFIWAND_NOTARYTOOL_KEYCHAIN     custom keychain path for that profile (optional)
           WIFIWAND_CODESIGN_IDENTITY       Code signing identity (optional override)
 
         See docs/dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md for the checklist and
@@ -162,32 +164,6 @@ module MacHelperCLI
       exit 1
     end
 
-    def needs_credentials?(subcommand)
-      %w[notarize release history info log cancel].include?(subcommand)
-    end
-
-    def has_credentials?
-      ENV['WIFIWAND_APPLE_DEV_ID'] && ENV['WIFIWAND_APPLE_DEV_PASSWORD']
-    end
-
-    def exec_with_op_wrap(subcommand)
-      wrapper = ENV['WIFIWAND_OP_WRAP_BIN'] || File.expand_path('op-wrap', SCRIPT_DIR)
-
-      unless File.exist?(wrapper)
-        warn <<~ERROR
-          Error: Unable to locate op wrapper at #{wrapper}.
-          Ensure bin/op-wrap exists (or set WIFIWAND_OP_WRAP_BIN) and try again.
-        ERROR
-        exit 1
-      end
-
-      puts "Re-running #{subcommand} via #{File.basename(wrapper)}..."
-      exec(RbConfig.ruby, wrapper, $PROGRAM_NAME, subcommand, *@args)
-    rescue SystemCallError => e
-      warn "Error: unable to execute #{wrapper} for #{subcommand}: #{e.message}"
-      exit 1
-    end
-
     def execute_subcommand(subcommand)
       case subcommand
       when 'build'
@@ -196,6 +172,10 @@ module MacHelperCLI
         WifiWand::MacHelperRelease.verify_source_attestation!
       when 'test'
         WifiWand::MacHelperRelease.test_signed_helper
+      when 'public-info'
+        public_signing_info
+      when 'store-credentials'
+        store_notarytool_credentials
       when 'notarize'
         WifiWand::MacHelperRelease.notarize_helper
       when 'release'
@@ -245,6 +225,73 @@ module MacHelperCLI
       pending_msg = pending_only ? ' pending' : ''
       puts "Info: No submission ID provided; using #{adjective}#{pending_msg} notary submission #{auto_id}."
       auto_id
+    end
+
+    def public_signing_info
+      WifiWand::MacHelperRelease::Operations.require_macos!(__method__.to_s)
+
+      helper = WifiWand::MacOsWifiAuthHelper
+      profile_name = ENV.fetch(
+        'WIFIWAND_NOTARYTOOL_PROFILE',
+        WifiWand::MacHelperRelease::DEFAULT_NOTARYTOOL_PROFILE
+      )
+      keychain_path = ENV['WIFIWAND_NOTARYTOOL_KEYCHAIN']
+      helper_exec_path = File.join(helper.source_bundle_path, 'Contents', 'MacOS', helper::EXECUTABLE_NAME)
+
+      puts <<~INFO
+        Public macOS signing and notarization info:
+          Team ID: #{WifiWand::MacHelperRelease::APPLE_TEAM_ID}
+          Codesign identity: #{WifiWand::MacHelperRelease::CODESIGN_IDENTITY}
+          Notarytool profile: #{profile_name}
+          Keychain path: #{keychain_path || '(login keychain default)'}
+          Helper bundle path: #{helper.source_bundle_path}
+          Helper executable path: #{helper_exec_path}
+      INFO
+    end
+
+    def store_notarytool_credentials
+      WifiWand::MacHelperRelease::Operations.require_macos!(__method__.to_s)
+
+      apple_id = fetch_apple_dev_id
+      profile_name = ENV.fetch(
+        'WIFIWAND_NOTARYTOOL_PROFILE',
+        WifiWand::MacHelperRelease::DEFAULT_NOTARYTOOL_PROFILE
+      )
+      keychain_path = ENV['WIFIWAND_NOTARYTOOL_KEYCHAIN']
+
+      command = [
+        'xcrun',
+        'notarytool',
+        'store-credentials',
+        profile_name,
+        '--apple-id',
+        apple_id,
+        '--team-id',
+        WifiWand::MacHelperRelease::APPLE_TEAM_ID
+      ]
+      command += ['--keychain', keychain_path] if keychain_path && !keychain_path.empty?
+
+      puts 'Storing notarytool credentials in the keychain...'
+      puts "  Profile: #{profile_name}"
+      puts "  Apple ID: #{apple_id}"
+      puts "  Team ID: #{WifiWand::MacHelperRelease::APPLE_TEAM_ID}"
+      puts "  Keychain path: #{keychain_path || '(login keychain default)'}"
+      puts '  notarytool will prompt for the app-specific password.'
+
+      success = system(*command)
+      abort 'Failed to store notarytool credentials.' unless success
+    end
+
+    def fetch_apple_dev_id
+      apple_id = ENV['WIFIWAND_APPLE_DEV_ID']
+      return apple_id unless apple_id.nil? || apple_id.empty?
+
+      print 'Apple ID email for notarytool: '
+      entered = $stdin.gets
+      apple_id = entered&.strip
+      return apple_id unless apple_id.nil? || apple_id.empty?
+
+      abort 'Set WIFIWAND_APPLE_DEV_ID or enter your Apple ID email when prompted.'
     end
   end
 end
