@@ -84,8 +84,7 @@ describe WifiWand::RopenCommand do
 
         command.call('bad')
 
-        expect(err_stream.string).to eq("Invalid resource code: 'bad'
-")
+        expect(err_stream.string).to eq("Invalid resource code: 'bad'\n")
       end
     end
   end

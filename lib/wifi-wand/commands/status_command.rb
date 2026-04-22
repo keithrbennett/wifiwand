@@ -4,51 +4,18 @@ require_relative 'command'
 require_relative '../connectivity_states'
 
 module WifiWand
-  class StatusCommand
-    SHORT_NAME = 's'
-    LONG_NAME = 'status'
-    DESCRIPTION = [
-      'status line (WiFi, Network, DNS, Internet; shows captive portal warning if',
-      'login is required)',
-    ].join(' ')
-    USAGE = 'Usage: wifi-wand status'
+  class StatusCommand < Command
+    command_metadata(
+      short_string: 's',
+      long_string:  'status',
+      description:  [
+        'status line (WiFi, Network, DNS, Internet; shows captive portal warning if',
+        'login is required)',
+      ].join(' '),
+      usage:        'Usage: wifi-wand status'
+    )
 
-    attr_reader :metadata, :cli, :model, :interactive_mode, :out_stream
-
-    def initialize(metadata: nil, cli: nil, model: nil, interactive_mode: nil, out_stream: nil)
-      @metadata = metadata || CommandMetadata.new(
-        short_string: SHORT_NAME,
-        long_string:  LONG_NAME,
-        description:  DESCRIPTION,
-        usage:        USAGE
-      )
-      @cli = cli
-      @model = model
-      @interactive_mode = interactive_mode
-      @out_stream = out_stream
-    end
-
-    def aliases
-      metadata.aliases
-    end
-
-    def bind(cli)
-      self.class.new(
-        metadata:         metadata,
-        cli:              cli,
-        model:            cli.model,
-        interactive_mode: cli.interactive_mode,
-        out_stream:       cli.out_stream
-      )
-    end
-
-    def help_text
-      <<~HELP
-        #{metadata.usage}
-
-        #{metadata.description}
-      HELP
-    end
+    binds :cli, :model, :interactive_mode, :out_stream
 
     def call
       progress_mode = cli.send(:status_progress_mode)

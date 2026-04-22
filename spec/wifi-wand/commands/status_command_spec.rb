@@ -52,14 +52,9 @@ describe WifiWand::StatusCommand do
       out_stream:       :out_stream,
     }
 
-  describe '#help_text' do
-    it 'includes usage and description' do
-      help = described_class.new.help_text
-
-      expect(help).to include('Usage: wifi-wand status')
-      expect(help).to include('status line')
-    end
-  end
+  it_behaves_like 'has default command help text',
+    usage:       'Usage: wifi-wand status',
+    description: 'status line'
 
   describe '#call' do
     subject(:command) { described_class.new.bind(cli) }

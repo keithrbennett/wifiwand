@@ -3,50 +3,18 @@
 require_relative 'command'
 
 module WifiWand
-  class RopenCommand
-    SHORT_NAME = 'ro'
-    LONG_NAME = 'ropen'
-    DESCRIPTION = 'open web resources'
-    USAGE = 'Usage: wifi-wand ropen [resource_code ...]'
+  class RopenCommand < Command
+    command_metadata(
+      short_string: 'ro',
+      long_string:  'ropen',
+      description:  'open web resources',
+      usage:        'Usage: wifi-wand ropen [resource_code ...]'
+    )
 
-    attr_reader :metadata, :cli, :model, :interactive_mode, :out_stream, :err_stream
-
-    def initialize(metadata: nil, cli: nil, model: nil, interactive_mode: nil, out_stream: nil,
-      err_stream: nil)
-      @metadata = metadata || CommandMetadata.new(
-        short_string: SHORT_NAME,
-        long_string:  LONG_NAME,
-        description:  DESCRIPTION,
-        usage:        USAGE
-      )
-      @cli = cli
-      @model = model
-      @interactive_mode = interactive_mode
-      @out_stream = out_stream
-      @err_stream = err_stream
-    end
-
-    def aliases
-      metadata.aliases
-    end
-
-    def bind(cli)
-      self.class.new(
-        metadata:         metadata,
-        cli:              cli,
-        model:            cli.model,
-        interactive_mode: cli.interactive_mode,
-        out_stream:       cli.out_stream,
-        err_stream:       cli.err_stream
-      )
-    end
+    binds :cli, :model, :interactive_mode, :out_stream, :err_stream
 
     def help_text
-      base = <<~HELP
-        #{metadata.usage}
-
-        #{metadata.description}
-      HELP
+      base = super
 
       if model
         "#{base}
