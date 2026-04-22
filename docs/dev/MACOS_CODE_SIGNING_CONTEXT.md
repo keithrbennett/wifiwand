@@ -219,6 +219,9 @@ CODESIGN_IDENTITY = 'Developer ID Application: Your Name (TEAM123ABCD)'
 These values are public (visible in all signed binaries via `codesign -dv`), so they don't need to be hidden
 in 1Password. Update them whenever you switch to a different Developer ID certificate.
 
+For a compact inventory of all signing/notarization assets, where they live, and which ones are secret, see
+the **Signing Assets Summary** table in `docs/dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md`.
+
 ### Step 5: Create an App-Specific Password
 
 For notarization, you need an app-specific password:
