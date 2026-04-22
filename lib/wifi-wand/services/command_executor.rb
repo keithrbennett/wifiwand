@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'open3'
-require_relative '../models/helpers/command_output_formatter'
 require_relative '../errors'
 
 module WifiWand
@@ -30,7 +29,7 @@ module WifiWand
       end
 
       if @verbose
-        @output.puts CommandOutputFormatter.command_attempt_as_string(command_display)
+        @output.puts command_attempt_as_string(command_display)
       end
 
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -134,13 +133,13 @@ module WifiWand
       if @verbose
         @output.puts "#{status_string}, Duration: #{format('%.4f', duration)} seconds -- #{Time.now.iso8601}"
         unless result.stdout.empty?
-          @output.puts CommandOutputFormatter.command_result_as_string("STDOUT:\n#{result.stdout}")
+          @output.puts command_result_as_string("STDOUT:\n#{result.stdout}")
         end
         unless result.stderr.empty?
-          @output.puts CommandOutputFormatter.command_result_as_string("STDERR:\n#{result.stderr}")
+          @output.puts command_result_as_string("STDERR:\n#{result.stderr}")
         end
         if result.stdout.empty? && result.stderr.empty?
-          @output.puts CommandOutputFormatter.command_result_as_string('')
+          @output.puts command_result_as_string('')
         end
       end
 
@@ -187,6 +186,12 @@ module WifiWand
       error_path_present = error.respond_to?(:path) && error.path && !error.path.empty?
       error_path_present ? error.path : Array(command).first.to_s
     end
+
+    private def banner_line = @banner_line ||= '-' * 79
+
+    private def command_attempt_as_string(command) = "\n\n#{banner_line}\nCommand: #{command}\n"
+
+    private def command_result_as_string(output) = "#{output}#{banner_line}\n\n"
 
     # Timed commands run in their own process group so timeout cleanup can
     # terminate the full process tree rather than only the immediate child.
