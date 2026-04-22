@@ -141,10 +141,8 @@ As the gem maintainer, you perform signing and notarization **before releasing**
 # 1. Sign with your Developer ID (uses values from lib/wifi-wand/mac_helper/mac_helper_release.rb)
 bin/mac-helper build
 
-# 2. Notarize with Apple
-WIFIWAND_APPLE_DEV_ID="you@example.com" \
-WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
-  bin/op-wrap bin/mac-helper notarize
+# 2. Notarize with Apple (uses the stored keychain profile)
+bin/mac-helper notarize
 
 # 3. Commit the signed binary
 git add libexec/macos/wifiwand-helper.app
@@ -234,109 +232,43 @@ For notarization, you need an app-specific password:
 
 ---
 
-## Managing Credentials with 1Password CLI (Recommended)
+## Preferred Runtime Model: notarytool Keychain Profiles
 
-For better security and convenience, you can use [1Password CLI](https://developer.1password.com/docs/cli) to
-manage your signing credentials.
+The release flow no longer passes the app-specific password to `xcrun notarytool` on the command line.
+Instead, store the credential once in the macOS keychain and run all notarization commands with a profile
+name only.
 
 ### Benefits
 
-- **Security**: No plaintext credentials in shell history or environment
-- **Convenience**: One command instead of setting multiple environment variables
-- **Audit Trail**: 1Password logs all secret access
-- **Team Sharing**: Share credential references without exposing actual values
-- **No Git Exposure**: `.env.release` contains only references, safe to commit
+- **Password stays out of argv**: `ps` and command logging only see the profile name
+- **Apple-supported workflow**: `notarytool store-credentials` is the intended mechanism
+- **Repeatable runtime commands**: `bin/mac-helper` can use the same profile for submit, history, info, log,
+  and cancel
 
 ### Setup (One-time)
 
-#### 1. Install 1Password CLI
+#### 1. Store the credentials once
 
 ```bash
-# macOS (Homebrew)
-brew install --cask 1password-cli
-
-# Or download from https://1password.com/downloads/command-line/
+xcrun notarytool store-credentials wifiwand-notarytool --apple-id you@example.com --team-id 97P9SZU9GG
 ```
 
-#### 2. Sign in to 1Password
+`notarytool` prompts for the app-specific password interactively, so the secret never appears in argv.
+
+#### 2. Use the profile at runtime
 
 ```bash
-# Sign in (first time)
-op signin
-
-# Or if already configured
-eval $(op signin)
+bin/mac-helper notarize
+bin/mac-helper release
+bin/mac-helper history
 ```
 
-#### 3. Create a 1Password Item
-
-Create (or rename) a Secure Note in your vault. Keeping the item name lowercase with no spaces avoids escaping
-headaches later.
-
-1. Open 1Password.
-2. Choose **Secure Note** as the item type (or edit your existing note).
-3. Name it **`wifiwand-release`**.
-4. Add structured fields so the CLI can target them:
-   - **APPLE_DEV_ID** (type **Text**): `you@example.com`
-   - **APPLE_DEV_PASSWORD** (type **Password**): `xxxx-xxxx-xxxx-xxxx`
-5. Leave any additional narrative text or attachments (like `.p12` exports) in the same item as needed.
-6. Save to the vault you plan to reference (personal accounts usually default to **Personal**, shared accounts
-   often use **Private**).
-
-> **Note**: Team ID and codesign identity live directly in `lib/wifi-wand/mac_helper/mac_helper_release.rb`. They're
-> public values (visible in signed binaries), so you only need to copy them into 1Password if it helps
-> documentation or coordination.
-
-#### 4. Edit `.env.release`
-
-The repository now includes `.env.release` directly; treat it as the template plus configuration file. Open it
-and set the `op://` references to match your vault/item/field names. Example for a personal account:
+If you need a different name or keychain:
 
 ```bash
-# Private credentials only - Team ID and identity live in lib/wifi-wand/mac_helper/mac_helper_release.rb
-WIFIWAND_APPLE_DEV_ID=op://Personal/wifiwand-release/APPLE_DEV_ID
-WIFIWAND_APPLE_DEV_PASSWORD=op://Personal/wifiwand-release/APPLE_DEV_PASSWORD
+export WIFIWAND_NOTARYTOOL_PROFILE="another-profile"
+export WIFIWAND_NOTARYTOOL_KEYCHAIN="$HOME/Library/Keychains/custom.keychain-db"
 ```
-
-If your vault is named differently (e.g., `Private` or a team-specific vault), change the path accordingly.
-
-### Usage
-
-#### Using `op run` with 1Password CLI
-
-```bash
-# Sign only
-op run --env-file=.env.release -- bin/mac-helper build
-
-# Complete workflow (sign, test, notarize)
-bin/op-wrap bin/mac-helper release
-
-# Individual notarization
-bin/op-wrap bin/mac-helper notarize
-```
-
-#### How It Works
-
-1. **`op run`** reads `.env.release`
-2. Fetches actual values from your 1Password vault
-3. Sets environment variables with real values
-4. Runs the command (rake task)
-5. Command completes, variables disappear
-6. No secrets left in shell history or environment
-
-### Fallback to Direct Environment Variables
-
-If you don't use 1Password, you can still set environment variables directly:
-
-```bash
-# Private credentials only - Team ID and identity live in lib/wifi-wand/mac_helper/mac_helper_release.rb
-export WIFIWAND_APPLE_DEV_ID="you@example.com"
-export WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx"
-
-bin/op-wrap bin/mac-helper release
-```
-
-The rake tasks work identically with either approach.
 
 ---
 
@@ -344,22 +276,21 @@ The rake tasks work identically with either approach.
 
 ### Complete Release Workflow
 
-**Option 1: Using 1Password CLI (Recommended)**
+**Option 1: Using the stored keychain profile (Recommended)**
 
 ```bash
-# Complete workflow with 1Password
-bin/op-wrap bin/mac-helper release
+# Complete workflow with the stored notarytool profile
+bin/mac-helper release
 ```
 
-**Option 2: Using Environment Variables**
+**Option 2: Override the profile name or keychain**
 
 ```bash
-# Set private credentials (team ID and codesign identity are hardcoded in lib/wifi-wand/mac_helper/mac_helper_release.rb)
-export WIFIWAND_APPLE_DEV_ID="you@example.com"
-export WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx"
+export WIFIWAND_NOTARYTOOL_PROFILE="wifiwand-notarytool"
+export WIFIWAND_NOTARYTOOL_KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 
 # Run complete workflow
-bin/op-wrap bin/mac-helper release
+bin/mac-helper release
 ```
 
 **What this does:**
@@ -400,9 +331,7 @@ This verifies:
 #### Step 3: Notarize with Apple
 
 ```bash
-WIFIWAND_APPLE_DEV_ID="you@example.com" \
-WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
-  bin/op-wrap bin/mac-helper notarize
+bin/mac-helper notarize
 ```
 
 This:
@@ -493,18 +422,12 @@ bin/mac-helper test
 
 ---
 
-### Automatic 1Password wrapping
+### Runtime Profile Configuration
 
-The `bin/mac-helper` script automatically re-execs itself via `bin/op-wrap` when commands need Apple
-credentials but they're not already set. You can customize this behavior with:
+Runtime notarization now uses:
 
-- `WIFIWAND_OP_RUN_ENV` – override the `.env.release` path used by the wrapper
-- `WIFIWAND_OP_BIN` – override the `op` binary location/name invoked by the wrapper
-- `WIFIWAND_OP_WRAP_BIN` – point at a custom wrapper script (defaults to `bin/op-wrap`)
-
-The script automatically detects when credentials are missing and re-execs via `bin/op-wrap`. You can run the
-wrapper directly for ad-hoc commands whenever you want the same behavior (e.g., `bin/op-wrap bundle exec
-exe/wifi-wand shell`).
+- `WIFIWAND_NOTARYTOOL_PROFILE` (optional) - profile name, default `wifiwand-notarytool`
+- `WIFIWAND_NOTARYTOOL_KEYCHAIN` (optional) - custom keychain path
 
 ---
 
@@ -512,18 +435,13 @@ exe/wifi-wand shell`).
 
 **Purpose:** Submit helper to Apple for notarization
 
-**Environment Variables:**
-- `WIFIWAND_APPLE_DEV_ID` (required) - Your Apple ID email
-- `WIFIWAND_APPLE_DEV_PASSWORD` (required) - App-specific password
-
-**Note:** Team ID is hardcoded in `lib/wifi-wand/mac_helper/mac_helper_release.rb` (it's a public value visible in signed
-binaries).
+**Runtime Environment Variables:**
+- `WIFIWAND_NOTARYTOOL_PROFILE` (optional) - notarytool profile name
+- `WIFIWAND_NOTARYTOOL_KEYCHAIN` (optional) - custom keychain path
 
 **Example:**
 ```bash
-WIFIWAND_APPLE_DEV_ID="you@example.com" \
-WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
-  bin/op-wrap bin/mac-helper notarize
+bin/mac-helper notarize
 ```
 
 **Process:**
@@ -544,18 +462,13 @@ xcrun stapler staple libexec/macos/wifiwand-helper.app
 
 **Purpose:** Complete workflow (build, sign, test, notarize)
 
-**Environment Variables:**
-- `WIFIWAND_APPLE_DEV_ID` (required) - Your Apple ID email
-- `WIFIWAND_APPLE_DEV_PASSWORD` (required) - App-specific password
-
-**Note:** Team ID is hardcoded in `lib/wifi-wand/mac_helper/mac_helper_release.rb` (it's a public value visible in signed
-binaries).
+**Runtime Environment Variables:**
+- `WIFIWAND_NOTARYTOOL_PROFILE` (optional) - notarytool profile name
+- `WIFIWAND_NOTARYTOOL_KEYCHAIN` (optional) - custom keychain path
 
 **Example:**
 ```bash
-WIFIWAND_APPLE_DEV_ID="you@example.com" \
-WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \
-  bin/op-wrap bin/mac-helper release
+bin/mac-helper release
 ```
 
 **This is the recommended command for releases.**
@@ -586,13 +499,13 @@ bin/mac-helper status
 **Purpose:** Show the most recent notarization submissions tied to your Apple ID and team. Helpful when
 `dev:notarize_helper` appears to hang.
 
-**Environment Variables:**
-- `WIFIWAND_APPLE_DEV_ID` (required)
-- `WIFIWAND_APPLE_DEV_PASSWORD` (required)
+**Runtime Environment Variables:**
+- `WIFIWAND_NOTARYTOOL_PROFILE` (optional)
+- `WIFIWAND_NOTARYTOOL_KEYCHAIN` (optional)
 
 **Example:**
 ```bash
-bin/op-wrap bin/mac-helper history
+bin/mac-helper history
 ```
 
 **Output:** `xcrun notarytool history` table with submission IDs, dates, and states.
@@ -603,19 +516,18 @@ bin/op-wrap bin/mac-helper history
 
 **Purpose:** Show the current status for a submission (accepted, in progress, invalid, etc.).
 
-**Environment Variables:** Same as above. `WIFIWAND_SUBMISSION_ID=<uuid>` (or `ID`/`NOTARY_ID`)
-is optional. If omitted, the task automatically selects the newest submission from
-`notarytool history`, preferring one that is still `In Progress`.
+**Runtime Environment Variables:** Same as above. `WIFIWAND_SUBMISSION_ID=<uuid>` (or `ID`/`NOTARY_ID`) is
+optional. If omitted, the task automatically selects the newest submission from `notarytool history`,
+preferring one that is still `In Progress`.
 
 **Example:**
 ```bash
 # Auto-select most recent submission
-bin/op-wrap bin/mac-helper info
+bin/mac-helper info
 
 # Or specify an explicit ID
-op run --env-file=.env.release -- \
-  env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
-  bin/op-wrap bin/mac-helper info
+env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
+  bin/mac-helper info
 ```
 
 **Output:** The detailed `xcrun notarytool info` report for that submission.
@@ -632,12 +544,11 @@ back to the latest submission if omitted.
 **Example:**
 ```bash
 # Auto-select most recent submission
-bin/op-wrap bin/mac-helper log
+bin/mac-helper log
 
 # Or specify an explicit ID
-op run --env-file=.env.release -- \
-  env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
-  bin/op-wrap bin/mac-helper log
+env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
+  bin/mac-helper log
 ```
 
 **Output:** The JSON/diagnostic log Apple provides, streamed to stdout for easier debugging.
@@ -655,12 +566,11 @@ optional—omit it to let the task auto-select the oldest candidate.
 **Example:**
 ```bash
 # Cancel the oldest in-progress submission
-bin/op-wrap bin/mac-helper cancel
+bin/mac-helper cancel
 
 # Cancel a specific ID
-op run --env-file=.env.release -- \
-  env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
-  bin/op-wrap bin/mac-helper cancel
+env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
+  bin/mac-helper cancel
 ```
 
 **Output:** The underlying `xcrun notarytool queue remove` response plus a confirmation message when the
@@ -814,9 +724,9 @@ Always use your Developer ID certificate, even for development/testing, to ensur
 
 ### How do I rotate my app-specific password?
 
-1. Revoke old password at https://appleid.apple.com
-2. Generate new password
-3. Update your environment variables
+1. Revoke the old password at https://appleid.apple.com
+2. Generate a new password
+3. Re-run `xcrun notarytool store-credentials ...` for the profile you use
 4. Re-run notarization
 
 ### What if Apple rejects notarization?
@@ -825,9 +735,7 @@ Check the detailed logs:
 ```bash
 # Get submission ID from failed output
 xcrun notarytool log WIFIWAND_SUBMISSION_ID \
-  --apple-id you@example.com \
-  --team-id TEAM123 \
-  --password xxxx-xxxx-xxxx-xxxx
+  --keychain-profile wifiwand-notarytool
 ```
 
 Common issues:

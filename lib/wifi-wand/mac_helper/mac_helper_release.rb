@@ -4,12 +4,14 @@ require 'fileutils'
 require 'open3'
 require 'json'
 require 'rbconfig'
+require 'shellwords'
 require_relative 'mac_os_wifi_auth_helper'
 
 module WifiWand
   module MacHelperRelease
     PENDING_NOTARIZATION_STATUS = 'In Progress'
     SIGNING_INSTRUCTIONS_PATH = 'docs/dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md'
+    DEFAULT_NOTARYTOOL_PROFILE = 'wifiwand-notarytool'
 
     # Public signing credentials (visible in all signed binaries - no need to hide)
     APPLE_TEAM_ID = ENV.fetch('WIFIWAND_APPLE_TEAM_ID', '97P9SZU9GG')
@@ -72,12 +74,16 @@ module WifiWand
 
       SOURCE_ATTESTATION_VALID = '✓ Source attestation matches committed Swift source and bundle'
 
-      def self.notarizing_header(bundle_path:, apple_id:, team_id:)
+      def self.notarizing_header(bundle_path:, profile_name:, keychain_path:)
+        details = [
+          "  Bundle: #{bundle_path}",
+          "  Keychain Profile: #{profile_name}",
+        ]
+        details << "  Keychain: #{keychain_path}" if keychain_path && !keychain_path.empty?
+
         <<~MSG
           Notarizing helper for distribution...
-            Bundle: #{bundle_path}
-            Apple ID: #{apple_id}
-            Team ID: #{team_id}
+          #{details.join("\n")}
 
           Creating zip archive...
         MSG
@@ -283,33 +289,36 @@ module WifiWand
         ERROR
       end
 
-      def self.verify_credentials(apple_id, apple_password, command_hint: 'bin/mac-helper notarize')
-        return if apple_id && apple_password
+      def self.notarytool_store_credentials_command(profile_name, team_id:, apple_id: 'you@example.com')
+        escaped_profile = Shellwords.escape(profile_name)
+        escaped_apple_id = Shellwords.escape(apple_id)
+        escaped_team_id = Shellwords.escape(team_id)
 
-        missing = []
-        missing << 'WIFIWAND_APPLE_DEV_ID' unless apple_id
-        missing << 'WIFIWAND_APPLE_DEV_PASSWORD' unless apple_password
-        missing_list = missing.empty? ? 'required credentials' : missing.join(', ')
+        "xcrun notarytool store-credentials #{escaped_profile} " \
+          "--apple-id #{escaped_apple_id} --team-id #{escaped_team_id}"
+      end
+
+      def self.verify_credentials(profile_name, team_id, command_hint: 'bin/mac-helper notarize')
+        return if profile_name && !profile_name.empty?
 
         abort <<~ERROR
-          Error: Apple credentials not set (missing #{missing_list}).
+          Error: notarytool keychain profile is not configured.
 
-          Required environment variables:
-            WIFIWAND_APPLE_DEV_ID       - Your Apple ID email (e.g., you@example.com)
-            WIFIWAND_APPLE_DEV_PASSWORD - App-specific password from appleid.apple.com
+          Runtime notarization commands now require a notarytool keychain profile instead of
+          passing the app-specific password on the command line.
 
-          Usage (with environment variables):
-            WIFIWAND_APPLE_DEV_ID="you@example.com" \\
-            WIFIWAND_APPLE_DEV_PASSWORD="xxxx-xxxx-xxxx-xxxx" \\
-              #{command_hint}
+          Create the default profile once:
+            #{notarytool_store_credentials_command(DEFAULT_NOTARYTOOL_PROFILE, team_id: team_id)}
 
-          Usage (with 1Password CLI - recommended):
-            bin/op-wrap #{command_hint}
+          Then run:
+            #{command_hint}
 
-          The script will automatically use bin/op-wrap if credentials are not set.
+          Optional environment variables:
+            WIFIWAND_NOTARYTOOL_PROFILE  - Profile name to use at runtime
+            WIFIWAND_NOTARYTOOL_KEYCHAIN - Custom keychain path if not using the login keychain
 
-          Note: Team ID and codesign identity are hardcoded in lib/wifi-wand/mac_helper/mac_helper_release.rb
-          (they're public values visible in signed binaries anyway).
+          notarytool prompts for the app-specific password during store-credentials, which keeps it
+          out of process argv and shell history.
 
           See #{SIGNING_INSTRUCTIONS_PATH} for detailed instructions.
         ERROR
@@ -321,11 +330,11 @@ module WifiWand
         abort "Failed to create zip: #{stderr}" unless status.success?
       end
 
-      def self.submit_for_notarization(zip_path, apple_id, team_id, apple_password)
+      def self.submit_for_notarization(zip_path, profile_name, keychain_path, team_id)
         run_notarytool(
           ['submit', zip_path, '--wait'],
-          apple_id:        apple_id,
-          apple_password:  apple_password,
+          profile_name:    profile_name,
+          keychain_path:   keychain_path,
           team_id:         team_id,
           failure_message: 'Notarization failed. Check the output above for details.'
         )
@@ -337,17 +346,30 @@ module WifiWand
         puts message
       end
 
-      def self.run_notarytool(args, apple_id:, apple_password:, team_id:,
+      def self.run_notarytool(args, profile_name:, keychain_path:, team_id:,
         failure_message:, suppress_output: false)
-        command = %w[xcrun notarytool] + args + [
-          '--apple-id', apple_id,
-          '--team-id', team_id,
-          '--password', apple_password
-        ]
+        command = %w[xcrun notarytool] + args + ['--keychain-profile', profile_name]
+        command += ['--keychain', keychain_path] if keychain_path && !keychain_path.empty?
         stdout, stderr, status = Open3.capture3(*command)
         puts stdout unless stdout.empty? || suppress_output
         puts stderr unless stderr.empty? || suppress_output
-        abort(failure_message) unless status.success?
+        unless status.success?
+          if stderr.match?(/store-credentials|keychain profile|No Keychain password item/i)
+            setup_command = notarytool_store_credentials_command(profile_name, team_id: team_id)
+            abort <<~ERROR
+              #{failure_message}
+
+              notarytool could not load the keychain profile "#{profile_name}".
+
+              Create or refresh it with:
+                #{setup_command}
+
+              notarytool will prompt for the app-specific password instead of exposing it in argv.
+            ERROR
+          end
+
+          abort(failure_message)
+        end
         stdout
       end
     end
@@ -407,8 +429,8 @@ module WifiWand
     module_function def notarize_helper
       Operations.require_macos!(__method__.to_s)
       creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper notarize')
-      apple_id = creds[:apple_id]
-      apple_password = creds[:apple_password]
+      profile_name = creds[:profile_name]
+      keychain_path = creds[:keychain_path]
       team_id = creds[:team_id]
 
       helper = WifiWand::MacOsWifiAuthHelper
@@ -427,11 +449,15 @@ module WifiWand
         ERROR
       end
 
-      puts Messages.notarizing_header(bundle_path: bundle_path, apple_id: apple_id, team_id: team_id)
+      puts Messages.notarizing_header(
+        bundle_path:   bundle_path,
+        profile_name:  profile_name,
+        keychain_path: keychain_path
+      )
       Operations.create_zip(bundle_path, zip_path)
       puts Messages.zip_created(zip_path)
 
-      stdout = Operations.submit_for_notarization(zip_path, apple_id, team_id, apple_password)
+      stdout = Operations.submit_for_notarization(zip_path, profile_name, keychain_path, team_id)
       unless stdout.include?('status: Accepted')
         abort 'Notarization was rejected. Check the output above for details.'
       end
@@ -625,12 +651,12 @@ module WifiWand
     end
 
     module_function def fetch_notary_credentials!(command_hint:)
-      apple_id = ENV['WIFIWAND_APPLE_DEV_ID']
-      apple_password = ENV['WIFIWAND_APPLE_DEV_PASSWORD']
+      profile_name = ENV.fetch('WIFIWAND_NOTARYTOOL_PROFILE', DEFAULT_NOTARYTOOL_PROFILE).to_s.strip
+      keychain_path = ENV['WIFIWAND_NOTARYTOOL_KEYCHAIN']&.strip
       team_id = APPLE_TEAM_ID
       Operations.verify_team_id_configured(team_id)
-      Operations.verify_credentials(apple_id, apple_password, command_hint: command_hint)
-      { apple_id: apple_id, apple_password: apple_password, team_id: team_id }
+      Operations.verify_credentials(profile_name, team_id, command_hint: command_hint)
+      { profile_name: profile_name, keychain_path: keychain_path, team_id: team_id }
     end
   end
 end

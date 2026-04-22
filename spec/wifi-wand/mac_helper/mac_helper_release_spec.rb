@@ -6,9 +6,9 @@ require_relative '../../../lib/wifi-wand/mac_helper/mac_helper_release'
 RSpec.describe WifiWand::MacHelperRelease do
   let(:creds) do
     {
-      apple_id:       'dev@example.com',
-      apple_password: 'app-password',
-      team_id:        'TEAM123',
+      profile_name:  'wifiwand-notarytool',
+      keychain_path: nil,
+      team_id:       'TEAM123',
     }
   end
   let(:signing_instructions_path) { described_class::SIGNING_INSTRUCTIONS_PATH }
@@ -45,8 +45,49 @@ RSpec.describe WifiWand::MacHelperRelease do
       expect_system_exit_with_stderr(
         /See #{Regexp.escape(signing_instructions_path)} for detailed instructions\./
       ) do
-        described_class::Operations.verify_credentials(nil, nil, command_hint: 'bin/mac-helper notarize')
+        described_class::Operations.verify_credentials('', 'TEAM123', command_hint: 'bin/mac-helper notarize')
       end
+    end
+  end
+
+  describe '.fetch_notary_credentials!' do
+    around do |example|
+      original_profile = ENV['WIFIWAND_NOTARYTOOL_PROFILE']
+      original_keychain = ENV['WIFIWAND_NOTARYTOOL_KEYCHAIN']
+      ENV.delete('WIFIWAND_NOTARYTOOL_PROFILE')
+      ENV.delete('WIFIWAND_NOTARYTOOL_KEYCHAIN')
+      example.run
+    ensure
+      ENV['WIFIWAND_NOTARYTOOL_PROFILE'] = original_profile
+      ENV['WIFIWAND_NOTARYTOOL_KEYCHAIN'] = original_keychain
+    end
+
+    it 'defaults to the checked-in notarytool profile name' do
+      allow(described_class::Operations).to receive(:verify_team_id_configured)
+      allow(described_class::Operations).to receive(:verify_credentials)
+
+      expect(described_class.fetch_notary_credentials!(command_hint: 'bin/mac-helper notarize')).to eq(
+        profile_name:  described_class::DEFAULT_NOTARYTOOL_PROFILE,
+        keychain_path: nil,
+        team_id:       described_class::APPLE_TEAM_ID
+      )
+    end
+  end
+
+  describe '.run_notarytool' do
+    it 'uses the keychain profile and never appends a raw password argument' do
+      status = instance_double(Process::Status, success?: true)
+      expect(Open3).to receive(:capture3).with(
+        'xcrun', 'notarytool', 'history', '--keychain-profile', 'wifiwand-notarytool'
+      ).and_return(['', '', status])
+
+      described_class::Operations.run_notarytool(
+        ['history'],
+        profile_name:    'wifiwand-notarytool',
+        keychain_path:   nil,
+        team_id:         'TEAM123',
+        failure_message: 'Unable to fetch notarization history.'
+      )
     end
   end
 
