@@ -23,6 +23,8 @@ research, and internal strategy.
 
 ## General Information
 
+- **[Command Architecture](COMMAND_ARCHITECTURE.md)** - Detailed explanation of the current command scheme,
+  including command binding, registry dispatch, shell integration, and the `CommandOutputSupport` boundary.
 - **[`connected?` vs `internet_connectivity_state`](CONNECTED_VS_INTERNET_CONNECTIVITY.md)** - Analysis of
   the semantic split between WiFi connection state and host-level internet reachability, with API cleanup
   suggestions.
