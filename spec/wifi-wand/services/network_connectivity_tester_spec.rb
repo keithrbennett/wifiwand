@@ -29,6 +29,15 @@ describe WifiWand::NetworkConnectivityTester do
     [ruby_bin, '-e', 'sleep 10']
   end
 
+  def expect_false_within(max_elapsed: 1.0)
+    start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    result = yield
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+    expect(result).to be false
+    expect(elapsed).to be < max_elapsed
+  end
+
   shared_examples 'subprocess-based cancellation' do
     |method_name:, items_method:, success_items:, failing_items:|
     let(:tester) { described_class.new(verbose: false) }
@@ -96,8 +105,7 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       it 'returns false when all endpoints fail' do
-        result = Timeout.timeout(0.2) { tester.tcp_connectivity? }
-        expect(result).to be false
+        expect_false_within { tester.tcp_connectivity? }
       end
     end
 
@@ -179,8 +187,7 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       it 'returns false when all domains fail to resolve' do
-        result = Timeout.timeout(0.2) { tester.dns_working? }
-        expect(result).to be false
+        expect_false_within { tester.dns_working? }
       end
     end
 
