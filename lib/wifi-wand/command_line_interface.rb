@@ -6,6 +6,7 @@ require_relative 'operating_systems'
 require 'ostruct'
 require_relative 'errors'
 require_relative 'version'
+require_relative 'project_url'
 require_relative 'timing_constants'
 require_relative 'connectivity_states'
 
@@ -24,7 +25,6 @@ module WifiWand
 
     attr_reader :interactive_mode, :model, :options, :err_stream, :in_stream
 
-    PROJECT_URL = 'https://github.com/keithrbennett/wifiwand'
     SUCCESS_EXIT_CODE = 0
     FAILURE_EXIT_CODE = 1
 

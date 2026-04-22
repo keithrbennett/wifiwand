@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'command'
+require_relative '../project_url'
 
 module WifiWand
   class UrlCommand < Command
@@ -11,8 +12,6 @@ module WifiWand
       usage:        'Usage: wifi-wand url'
     )
 
-    PROJECT_URL = 'https://github.com/keithrbennett/wifiwand'
-
-    def call = PROJECT_URL
+    def call = WifiWand::PROJECT_URL
   end
 end
