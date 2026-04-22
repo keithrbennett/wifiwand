@@ -48,9 +48,11 @@ module WifiWand
 
       loop do
         return if reap_probe(pid)
-        break if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
 
-        sleep(helper_exit_poll_interval)
+        remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        break if remaining <= 0
+
+        sleep([helper_exit_poll_interval, remaining].min)
       end
 
       Process.kill('KILL', pid)
