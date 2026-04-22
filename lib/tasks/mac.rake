@@ -3,6 +3,7 @@
 require 'rbconfig'
 require 'open3'
 require_relative '../wifi-wand/mac_helper/mac_os_wifi_auth_helper'
+require_relative '../wifi-wand/mac_helper/mac_helper_release'
 
 def ensure_os_is_mac
   unless RbConfig::CONFIG['host_os'] =~ /darwin/i
@@ -11,6 +12,29 @@ def ensure_os_is_mac
 end
 
 namespace :mac do
+  desc 'Print public macOS signing and notarization configuration'
+  task :public_signing_info do
+    ensure_os_is_mac
+
+    helper = WifiWand::MacOsWifiAuthHelper
+    profile_name = ENV.fetch(
+      'WIFIWAND_NOTARYTOOL_PROFILE',
+      WifiWand::MacHelperRelease::DEFAULT_NOTARYTOOL_PROFILE
+    )
+    keychain_path = ENV['WIFIWAND_NOTARYTOOL_KEYCHAIN']
+    helper_exec_path = File.join(helper.source_bundle_path, 'Contents', 'MacOS', helper::EXECUTABLE_NAME)
+
+    puts <<~INFO
+      Public macOS signing and notarization info:
+        Team ID: #{WifiWand::MacHelperRelease::APPLE_TEAM_ID}
+        Codesign identity: #{WifiWand::MacHelperRelease::CODESIGN_IDENTITY}
+        Notarytool profile: #{profile_name}
+        Keychain path: #{keychain_path || '(login keychain default)'}
+        Helper bundle path: #{helper.source_bundle_path}
+        Helper executable path: #{helper_exec_path}
+    INFO
+  end
+
   desc 'Install development helper to user library (for testing)'
   task :install_dev_helper do
     ensure_os_is_mac
