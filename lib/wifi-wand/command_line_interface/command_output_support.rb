@@ -3,11 +3,16 @@
 module WifiWand
   class CommandLineInterface
     class CommandOutputSupport
+      include OutputFormatter
+
       attr_reader :cli
 
       def initialize(cli)
         @cli = cli
       end
+
+      def out_stream = cli.out_stream
+      def options    = cli.options
 
       def handle_output(data, human_readable_string_producer)
         if cli.interactive_mode
@@ -46,14 +51,6 @@ module WifiWand
         else
           'No visible networks were found.'
         end
-      end
-
-      def format_object(object)
-        cli.format_object(object)
-      end
-
-      def status_line(data)
-        cli.status_line(data)
       end
     end
   end

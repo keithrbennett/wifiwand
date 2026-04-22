@@ -88,7 +88,8 @@ describe WifiWand::CommandLineInterface do
         opts = options.dup
         opts.out_stream = out_stream
         cli = described_class.new(opts)
-        allow(cli).to receive(:status_line).with(status_data).and_return('WiFi: ON | Network: "TestNet"')
+        allow(cli.output_support).to receive(:status_line).with(status_data)
+          .and_return('WiFi: ON | Network: "TestNet"')
         invoke_command(cli, 'status')
         expect(out_stream.string).to eq("WiFi: ON | Network: \"TestNet\"\n")
       end
@@ -99,7 +100,7 @@ describe WifiWand::CommandLineInterface do
         opts = options.dup
         opts.out_stream = out_stream
         cli = described_class.new(opts)
-        allow(cli).to receive(:status_line).with(status_data).and_return('')
+        allow(cli.output_support).to receive(:status_line).with(status_data).and_return('')
         invoke_command(cli, 'status')
         expect(out_stream.string).to eq('')
       end

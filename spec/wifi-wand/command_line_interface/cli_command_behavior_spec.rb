@@ -213,7 +213,8 @@ describe WifiWand::CommandLineInterface do
         cli = described_class.new(interactive_opts)
 
         allow(cli.model).to receive(:status_line_data).and_return(status_data)
-        allow(cli).to receive(:status_line).with(status_data).and_return('WiFi: ON | Network: "TestNet"')
+        allow(cli.output_support).to receive(:status_line).with(status_data)
+          .and_return('WiFi: ON | Network: "TestNet"')
 
         result = invoke_command(cli, 'status')
         expect(result).to be_nil
