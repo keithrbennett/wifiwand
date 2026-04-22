@@ -15,13 +15,12 @@ describe WifiWand::RopenCommand do
   end
 
   before do
-    allow(mock_model).to receive(:resource_manager).and_return(resource_manager)
+    allow(WifiWand::Helpers::ResourceManager).to receive(:new).and_return(resource_manager)
   end
 
   it_behaves_like 'binds command context',
     bound_attributes: {
       model:            :mock_model,
-      cli:              :cli,
       interactive_mode: :interactive_mode,
       out_stream:       :out_stream,
       err_stream:       :err_stream,
@@ -29,6 +28,9 @@ describe WifiWand::RopenCommand do
 
   describe '#help_text' do
     it 'includes usage and description without a bound model' do
+      allow(resource_manager).to receive(:available_resources_help)
+        .and_return('Available resources help text')
+
       help = described_class.new.help_text
 
       expect(help).to include('Usage: wifi-wand ropen')
@@ -36,7 +38,8 @@ describe WifiWand::RopenCommand do
     end
 
     it 'includes available resource help when bound' do
-      allow(mock_model).to receive(:available_resources_help).and_return('Available resources help text')
+      allow(resource_manager).to receive(:available_resources_help)
+        .and_return('Available resources help text')
 
       help = described_class.new.bind(cli).help_text
 
@@ -49,7 +52,8 @@ describe WifiWand::RopenCommand do
 
     context 'with no resource codes' do
       before do
-        allow(mock_model).to receive(:available_resources_help).and_return('Available resources help text')
+        allow(resource_manager).to receive(:available_resources_help)
+          .and_return('Available resources help text')
       end
 
       it 'prints help in non-interactive mode' do
@@ -70,14 +74,14 @@ describe WifiWand::RopenCommand do
 
     context 'with resource codes' do
       it 'opens resources and returns nil' do
-        allow(mock_model).to receive(:open_resources_by_codes).with('ipw', 'spe')
+        allow(resource_manager).to receive(:open_resources_by_codes).with(mock_model, 'ipw', 'spe')
           .and_return({ opened_resources: [], invalid_codes: [] })
 
         expect(command.call('ipw', 'spe')).to be_nil
       end
 
       it 'prints invalid code errors to stderr' do
-        allow(mock_model).to receive(:open_resources_by_codes).with('bad')
+        allow(resource_manager).to receive(:open_resources_by_codes).with(mock_model, 'bad')
           .and_return({ opened_resources: [], invalid_codes: ['bad'] })
         allow(resource_manager).to receive(:invalid_codes_error).with(['bad'])
           .and_return("Invalid resource code: 'bad'")

@@ -2,6 +2,7 @@
 
 require_relative '../version'
 require_relative '../timing_constants'
+require_relative '../models/helpers/resource_manager'
 
 module WifiWand
   class CommandLineInterface
@@ -11,7 +12,7 @@ module WifiWand
 
       # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.
       def help_text
-        resource_help = model ? model.resource_manager.open_resources.help_string : '[resources unavailable]'
+        resource_help = resource_manager.open_resources.help_string
 
         <<~HELPTEXT
           #{HORIZONTAL_RULE}
@@ -69,7 +70,7 @@ module WifiWand
           pr / pref_nets          - preferred (saved) networks
           q / quit                - exits this program (interactive shell mode only) (same as 'x')
           qr [filespec|'-'] [password]
-                                    - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats; optional password avoids macOS auth prompt
+                                    - generate a Wi-Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats; optional password avoids macOS auth prompt
           ro / ropen              - open web resources: #{resource_help}
           s / status              - status line (WiFi, Network, DNS, Internet; shows captive portal warning if login is required)
           t / till                - wait until state is reached:
@@ -106,6 +107,10 @@ module WifiWand
       end
 
       def help_hint = "Use 'wifi-wand help' or 'wifi-wand -h' for help."
+
+      private def resource_manager
+        @resource_manager ||= WifiWand::Helpers::ResourceManager.new
+      end
     end
   end
 end

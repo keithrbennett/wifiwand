@@ -19,10 +19,11 @@ describe WifiWand::CommandLineInterface::HelpSystem do
   end
 
   let(:resource_manager) { double('ResourceManager') }
-  let(:model) { double('Model', resource_manager: resource_manager) }
+  let(:model) { double('Model') }
 
   before do
     open_resources = double('OpenResources', help_string: 'test resource help')
+    allow(WifiWand::Helpers::ResourceManager).to receive(:new).and_return(resource_manager)
     allow(resource_manager).to receive(:open_resources).and_return(open_resources)
   end
 
@@ -70,8 +71,8 @@ describe WifiWand::CommandLineInterface::HelpSystem do
     context 'when model is not available' do
       subject { test_class.new(nil) }
 
-      it 'shows resources as unavailable' do
-        expect(help).to include('[resources unavailable]')
+      it 'still includes the resource help string' do
+        expect(help).to include('test resource help')
       end
     end
   end

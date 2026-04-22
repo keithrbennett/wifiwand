@@ -284,21 +284,20 @@ describe WifiWand::CommandLineInterface do
     let(:mock_resource_manager) { double('resource_manager') }
 
     before do
-      allow(mock_model).to receive(:resource_manager).and_return(mock_resource_manager)
-      allow(mock_model).to receive(:open_resources_by_codes)
-      allow(mock_model).to receive(:available_resources_help)
+      allow(WifiWand::Helpers::ResourceManager).to receive(:new).and_return(mock_resource_manager)
     end
 
     describe 'cmd_ro (open resources)' do
       it 'displays help when no resource codes provided' do
-        allow(mock_model).to receive(:available_resources_help).and_return('Available resources help text')
+        allow(mock_resource_manager).to receive(:available_resources_help)
+          .and_return('Available resources help text')
 
         expect { subject.cmd_ro }.to output("Available resources help text\n").to_stdout
       end
 
       it 'returns help text directly in interactive mode with no arguments' do
         help_text = 'Available resources help text'
-        allow(interactive_cli.model).to receive(:available_resources_help).and_return(help_text)
+        allow(mock_resource_manager).to receive(:available_resources_help).and_return(help_text)
 
         result = interactive_cli.cmd_ro
         expect(result).to eq(help_text)
@@ -310,16 +309,16 @@ describe WifiWand::CommandLineInterface do
           double('resource', code: 'spe', description: 'Speed Test'),
         ]
 
-        allow(mock_model).to receive(:open_resources_by_codes)
-          .with('ipw', 'spe')
+        allow(mock_resource_manager).to receive(:open_resources_by_codes)
+          .with(mock_model, 'ipw', 'spe')
           .and_return({ opened_resources: opened_resources, invalid_codes: [] })
 
         expect { subject.cmd_ro('ipw', 'spe') }.not_to output.to_stdout
       end
 
       it 'displays error message for invalid resource codes' do
-        allow(mock_model).to receive(:open_resources_by_codes)
-          .with('invalid1', 'invalid2')
+        allow(mock_resource_manager).to receive(:open_resources_by_codes)
+          .with(mock_model, 'invalid1', 'invalid2')
           .and_return({ opened_resources: [], invalid_codes: %w[invalid1 invalid2] })
 
         allow(mock_resource_manager).to receive(:invalid_codes_error)
@@ -335,8 +334,8 @@ describe WifiWand::CommandLineInterface do
       it 'handles mixed valid and invalid codes' do
         opened_resources = [double('resource', code: 'ipw', description: 'What is My IP')]
 
-        allow(mock_model).to receive(:open_resources_by_codes)
-          .with('ipw', 'invalid')
+        allow(mock_resource_manager).to receive(:open_resources_by_codes)
+          .with(mock_model, 'ipw', 'invalid')
           .and_return({ opened_resources: opened_resources, invalid_codes: ['invalid'] })
 
         allow(mock_resource_manager).to receive(:invalid_codes_error)
@@ -890,9 +889,13 @@ describe WifiWand::CommandLineInterface do
       end
 
       it 'prints command-specific help for ropen' do
+        resource_manager = double(
+          'resource_manager',
+          available_resources_help: 'Available resources help text'
+        )
+        allow(WifiWand::Helpers::ResourceManager).to receive(:new).and_return(resource_manager)
         ropen_command = WifiWand::RopenCommand.new.bind(subject)
         allow(subject).to receive(:resolve_command).with('ropen').and_return(ropen_command)
-        allow(mock_model).to receive(:available_resources_help).and_return('Available resources help text')
 
         expect { subject.cmd_h('ropen') }.to output(/Usage: wifi-wand ropen/).to_stdout
       end
