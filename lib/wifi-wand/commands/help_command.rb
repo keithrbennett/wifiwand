@@ -3,32 +3,15 @@
 require_relative 'command'
 
 module WifiWand
-  class HelpCommand
-    SHORT_NAME = 'h'
-    LONG_NAME = 'help'
-    DESCRIPTION = 'print global help or command-specific help'
-    USAGE = 'Usage: wifi-wand help [command]'
+  class HelpCommand < Command
+    command_metadata(
+      short_string: 'h',
+      long_string:  'help',
+      description:  'print global help or command-specific help',
+      usage:        'Usage: wifi-wand help [command]'
+    )
 
-    attr_reader :metadata, :cli, :output
-
-    def initialize(metadata: nil, cli: nil, output: $stdout)
-      @metadata = metadata || CommandMetadata.new(
-        short_string: SHORT_NAME,
-        long_string:  LONG_NAME,
-        description:  DESCRIPTION,
-        usage:        USAGE
-      )
-      @cli = cli
-      @output = output
-    end
-
-    def aliases
-      metadata.aliases
-    end
-
-    def bind(cli)
-      self.class.new(metadata: metadata, cli: cli, output: cli.send(:out_stream))
-    end
+    binds :cli, output: :out_stream
 
     def help_text
       return metadata.usage unless cli

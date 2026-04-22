@@ -45,7 +45,11 @@ describe WifiWand::HelpCommand do
 
   describe '#call' do
     subject(:command) do
-      described_class.new(metadata: described_class.new.metadata, cli: cli, output: output)
+      described_class.new(
+        metadata: described_class.new.metadata,
+        cli:      cli,
+        output:   output
+      )
     end
 
     it 'prints command-specific help when available' do
