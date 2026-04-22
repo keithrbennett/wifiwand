@@ -25,20 +25,22 @@ describe WifiWand::LogCommand do
 
 
   describe 'initialization' do
-    it 'creates an instance with model and output' do
-      command = described_class.new(mock_model, output: output)
+    it 'creates a bound instance with model and output' do
+      command = described_class.new.bind(cli)
       expect(command.model).to eq(mock_model)
       expect(command.output).to eq(output)
     end
 
-    it 'defaults verbose to false' do
-      command = described_class.new(mock_model)
-      expect(command.verbose).to be false
+    it 'binds verbose from the cli' do
+      command = described_class.new.bind(cli)
+      expect(command.verbose).to be true
     end
 
-    it 'accepts verbose flag' do
-      command = described_class.new(mock_model, verbose: true)
-      expect(command.verbose).to be true
+    it 'still allows direct keyword construction when needed' do
+      command = described_class.new(model: mock_model, output: output, verbose: false)
+      expect(command.model).to eq(mock_model)
+      expect(command.output).to eq(output)
+      expect(command.verbose).to be false
     end
   end
 
@@ -50,7 +52,7 @@ describe WifiWand::LogCommand do
     end
 
     it 'creates EventLogger with default options (stdout only)' do
-      command = described_class.new(mock_model, output: output)
+      command = described_class.new(model: mock_model, output: output, verbose: false)
       command.call
 
       expect(WifiWand::EventLogger).to have_received(:new).with(
@@ -65,14 +67,14 @@ describe WifiWand::LogCommand do
     end
 
     it 'runs the logger' do
-      command = described_class.new(mock_model, output: output)
+      command = described_class.new(model: mock_model, output: output, verbose: false)
       command.call
 
       expect(mock_logger).to have_received(:run)
     end
 
     it 'prints help for the log command' do
-      command = described_class.new(mock_model, output: output)
+      command = described_class.new(model: mock_model, output: output, verbose: false)
 
       command.call('--help')
 
@@ -84,7 +86,7 @@ describe WifiWand::LogCommand do
 
     context 'with --interval option' do
       it 'passes custom interval to EventLogger' do
-        command = described_class.new(mock_model, output: output)
+        command = described_class.new(model: mock_model, output: output, verbose: false)
         command.call('--interval', '10')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
@@ -94,7 +96,7 @@ describe WifiWand::LogCommand do
       end
 
       it 'converts interval to float' do
-        command = described_class.new(mock_model, output: output)
+        command = described_class.new(model: mock_model, output: output, verbose: false)
         command.call('--interval', '2.5')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
@@ -104,21 +106,21 @@ describe WifiWand::LogCommand do
       end
 
       it 'raises error for invalid interval value' do
-        command = described_class.new(mock_model, output: output)
+        command = described_class.new(model: mock_model, output: output, verbose: false)
         expect do
           command.call('--interval', 'invalid')
         end.to raise_error(WifiWand::ConfigurationError)
       end
 
       it 'raises error for zero interval' do
-        command = described_class.new(mock_model, output: output)
+        command = described_class.new(model: mock_model, output: output, verbose: false)
         expect do
           command.call('--interval', '0')
         end.to raise_error(WifiWand::ConfigurationError, /Interval must be greater than 0/)
       end
 
       it 'raises error for negative interval' do
-        command = described_class.new(mock_model, output: output)
+        command = described_class.new(model: mock_model, output: output, verbose: false)
         expect do
           command.call('--interval', '-5')
         end.to raise_error(WifiWand::ConfigurationError, /Interval must be greater than 0/)
@@ -127,7 +129,7 @@ describe WifiWand::LogCommand do
 
     context 'with --file option' do
       it 'passes custom log file path and disables stdout' do
-        command = described_class.new(mock_model, output: output)
+        command = described_class.new(model: mock_model, output: output, verbose: false)
         command.call('--file', '/tmp/custom.log')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
@@ -137,7 +139,7 @@ describe WifiWand::LogCommand do
       end
 
       it 'uses default log file name when --file has no argument' do
-        command = described_class.new(mock_model, output: output)
+        command = described_class.new(model: mock_model, output: output, verbose: false)
         command.call('--file')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
@@ -150,7 +152,7 @@ describe WifiWand::LogCommand do
       end
 
       it 'fails fast when the requested log file cannot be opened and stdout is disabled' do
-        command = described_class.new(mock_model, output: output)
+        command = described_class.new(model: mock_model, output: output, verbose: false)
         allow(WifiWand::EventLogger).to receive(:new)
           .and_raise(
             WifiWand::LogFileInitializationError,
@@ -165,7 +167,7 @@ describe WifiWand::LogCommand do
 
     context 'with --stdout option' do
       it 'enables stdout output (default behavior)' do
-        command = described_class.new(mock_model, output: output)
+        command = described_class.new(model: mock_model, output: output, verbose: false)
         command.call('--stdout')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
@@ -175,7 +177,7 @@ describe WifiWand::LogCommand do
       end
 
       it 'keeps stdout when explicitly combined with --file' do
-        command = described_class.new(mock_model, output: output)
+        command = described_class.new(model: mock_model, output: output, verbose: false)
         command.call('--file', '/tmp/test.log', '--stdout')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
@@ -188,7 +190,7 @@ describe WifiWand::LogCommand do
       end
 
       it 'falls back to stdout with a warning when file setup fails' do
-        command = described_class.new(mock_model, output: output)
+        command = described_class.new(model: mock_model, output: output, verbose: false)
         allow(WifiWand::EventLogger).to receive(:new)
           .with(mock_model, hash_including(log_file_path: '/missing/events.log', output: output))
           .and_raise(WifiWand::LogFileInitializationError,
@@ -213,7 +215,7 @@ describe WifiWand::LogCommand do
 
     context 'with --verbose option' do
       it 'passes true to EventLogger when --verbose is specified' do
-        command = described_class.new(mock_model, verbose: false, output: output)
+        command = described_class.new(model: mock_model, verbose: false, output: output)
         command.call('--verbose')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
@@ -223,7 +225,7 @@ describe WifiWand::LogCommand do
       end
 
       it 'passes true to EventLogger when -v is specified' do
-        command = described_class.new(mock_model, verbose: false, output: output)
+        command = described_class.new(model: mock_model, verbose: false, output: output)
         command.call('-v')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
@@ -235,7 +237,7 @@ describe WifiWand::LogCommand do
 
     context 'with multiple options' do
       it 'combines --interval and --file correctly (file only)' do
-        command = described_class.new(mock_model, verbose: true, output: output)
+        command = described_class.new(model: mock_model, verbose: true, output: output)
         command.call('--interval', '3', '--file', '/tmp/test.log')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
@@ -250,7 +252,7 @@ describe WifiWand::LogCommand do
       end
 
       it 'combines --interval, --file, and --stdout correctly' do
-        command = described_class.new(mock_model, verbose: true, output: output)
+        command = described_class.new(model: mock_model, verbose: true, output: output)
         command.call('--interval', '3', '--file', '/tmp/test.log', '--stdout')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
@@ -266,7 +268,7 @@ describe WifiWand::LogCommand do
     end
 
     it 'raises error for unknown option' do
-      command = described_class.new(mock_model, output: output)
+      command = described_class.new(model: mock_model, output: output, verbose: false)
       expect do
         command.call('--unknown')
       end.to raise_error(WifiWand::ConfigurationError, /invalid option/)

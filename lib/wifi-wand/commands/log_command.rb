@@ -18,12 +18,6 @@ module WifiWand
 
     binds :model, output: :out_stream, verbose: :verbose_mode
 
-    def initialize(*args, **attributes)
-      resolved_model = args.empty? ? attributes[:model] : args.first
-      defaults = { output: $stdout, verbose: false }
-      super(**defaults.merge(attributes).merge(model: resolved_model))
-    end
-
     def help_text
       # Reuse the command parser as the single source of truth for help text.
       # These setters are intentionally inert because help generation should not

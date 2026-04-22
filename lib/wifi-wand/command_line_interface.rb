@@ -206,7 +206,7 @@ module WifiWand
 
     private def build_log_command
       require_relative 'commands/log_command'
-      WifiWand::LogCommand.new(model, output: out_stream, verbose: verbose_mode)
+      WifiWand::LogCommand.new.bind(self)
     end
 
     private def execute_command(command_string, *)
