@@ -28,6 +28,46 @@ WIFIWAND_REAL_ENV_TESTS=read_only bundle exec rspec
 WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
 ```
 
+## Fail-Fast And Verbose Debugging
+
+When debugging real-environment failures, it is often best to stop on the first failure and print the
+underlying OS commands.
+
+Use fail-fast directly with RSpec:
+
+```bash
+# Stop on the first failure in the full real-host suite
+WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec --fail-fast
+
+# Equivalent explicit one-failure form
+WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec --fail-fast=1
+```
+
+If you prefer the Rake wrappers, pass fail-fast through `RSPEC_OPTS`:
+
+```bash
+RSPEC_OPTS="--fail-fast" bundle exec rake test:all
+```
+
+To print the underlying OS commands while the suite runs:
+
+```bash
+WIFIWAND_REAL_ENV_TESTS=all WIFIWAND_VERBOSE=true bundle exec rspec --fail-fast
+```
+
+Or with the Rake wrapper:
+
+```bash
+WIFIWAND_VERBOSE=true RSPEC_OPTS="--fail-fast" bundle exec rake test:all
+```
+
+For narrower debugging, combine these with a single spec file:
+
+```bash
+WIFIWAND_REAL_ENV_TESTS=all WIFIWAND_VERBOSE=true bundle exec rspec \
+  spec/wifi-wand/models/mac_os_model_spec.rb --fail-fast
+```
+
 ## Targeted Rake Tasks
 
 Use the Rake tasks when you want the convenience of scope selection plus a specific spec file or files.
