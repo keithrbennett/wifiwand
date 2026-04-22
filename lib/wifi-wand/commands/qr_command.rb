@@ -4,43 +4,15 @@ require_relative 'command'
 require_relative '../errors'
 
 module WifiWand
-  class QrCommand
-    SHORT_NAME = 'qr'
-    LONG_NAME = 'qr'
-    DESCRIPTION = 'generate a Wi-Fi QR code'
-    USAGE = "Usage: wifi-wand qr [filespec|'-'] [password]"
+  class QrCommand < Command
+    command_metadata(
+      short_string: 'qr',
+      long_string:  'qr',
+      description:  'generate a Wi-Fi QR code',
+      usage:        "Usage: wifi-wand qr [filespec|'-'] [password]"
+    )
 
-    attr_reader :metadata, :cli, :model, :interactive_mode, :out_stream, :in_stream
-
-    def initialize(metadata: nil, cli: nil, model: nil, interactive_mode: nil, out_stream: nil,
-      in_stream: nil)
-      @metadata = metadata || CommandMetadata.new(
-        short_string: SHORT_NAME,
-        long_string:  LONG_NAME,
-        description:  DESCRIPTION,
-        usage:        USAGE
-      )
-      @cli = cli
-      @model = model
-      @interactive_mode = interactive_mode
-      @out_stream = out_stream
-      @in_stream = in_stream
-    end
-
-    def aliases
-      metadata.aliases
-    end
-
-    def bind(cli)
-      self.class.new(
-        metadata:         metadata,
-        cli:              cli,
-        model:            cli.model,
-        interactive_mode: cli.interactive_mode,
-        out_stream:       cli.out_stream,
-        in_stream:        cli.in_stream
-      )
-    end
+    binds :cli, :model, :interactive_mode, :out_stream, :in_stream
 
     def help_text
       <<~HELP
