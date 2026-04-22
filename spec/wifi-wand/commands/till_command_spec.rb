@@ -15,7 +15,7 @@ describe WifiWand::TillCommand do
   end
 
   it_behaves_like 'binds command context',
-    bound_attributes: { model: :mock_model, interactive_mode: -> { cli.interactive_mode } }
+    bound_attributes: { model: :mock_model, interactive_mode: -> { cli.interactive_mode }, cli: :cli }
 
   describe '#help_text' do
     it 'includes usage and states' do
