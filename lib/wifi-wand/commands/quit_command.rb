@@ -3,31 +3,20 @@
 require_relative 'command'
 
 module WifiWand
-  class QuitCommand
-    SHORT_NAME = 'q'
-    LONG_NAME = 'quit'
-    DESCRIPTION = 'exit this program in interactive shell mode'
-    USAGE = 'Usage: wifi-wand quit'
+  class QuitCommand < Command
+    command_metadata(
+      short_string: 'q',
+      long_string:  'quit',
+      description:  'exit this program in interactive shell mode',
+      usage:        'Usage: wifi-wand quit'
+    )
+
     EXTRA_ALIASES = %w[x xit].freeze
 
-    attr_reader :metadata, :cli
-
-    def initialize(metadata: nil, cli: nil)
-      @metadata = metadata || CommandMetadata.new(
-        short_string: SHORT_NAME,
-        long_string:  LONG_NAME,
-        description:  DESCRIPTION,
-        usage:        USAGE
-      )
-      @cli = cli
-    end
+    binds :cli
 
     def aliases
-      metadata.aliases + EXTRA_ALIASES
-    end
-
-    def bind(cli)
-      self.class.new(metadata: metadata, cli: cli)
+      super + EXTRA_ALIASES
     end
 
     def help_text

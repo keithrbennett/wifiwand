@@ -4,22 +4,13 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/commands/url_command'
 
 describe WifiWand::UrlCommand do
-  describe '#bind' do
-    it 'returns the same command instance' do
-      command = described_class.new
+  let(:cli) { double('cli') }
 
-      expect(command.bind(double('cli'))).to equal(command)
-    end
-  end
+  it_behaves_like 'binds command context', bound_attributes: {}
 
-  describe '#help_text' do
-    it 'includes usage and description' do
-      help = described_class.new.help_text
-
-      expect(help).to include('Usage: wifi-wand url')
-      expect(help).to include('project repository URL')
-    end
-  end
+  it_behaves_like 'has default command help text',
+    usage:       'Usage: wifi-wand url',
+    description: 'project repository URL'
 
   describe '#call' do
     it 'returns the project URL' do
