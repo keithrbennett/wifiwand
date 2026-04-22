@@ -5,10 +5,12 @@ require_relative '../errors'
 
 module WifiWand
   class AvailNetsCommand < Command
-    SHORT_NAME = 'a'
-    LONG_NAME = 'avail_nets'
-    DESCRIPTION = 'list visible WiFi networks in descending signal-strength order'
-    USAGE = 'Usage: wifi-wand avail_nets'
+    command_metadata(
+      short_string: 'a',
+      long_string:  'avail_nets',
+      description:  'list visible WiFi networks in descending signal-strength order',
+      usage:        'Usage: wifi-wand avail_nets'
+    )
 
     binds :cli, :model
 

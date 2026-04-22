@@ -4,10 +4,12 @@ require_relative 'command'
 
 module WifiWand
   class ForgetCommand < Command
-    SHORT_NAME = 'f'
-    LONG_NAME = 'forget'
-    DESCRIPTION = 'remove one or more preferred (saved) WiFi networks'
-    USAGE = 'Usage: wifi-wand forget <name1> [name2 ...]'
+    command_metadata(
+      short_string: 'f',
+      long_string:  'forget',
+      description:  'remove one or more preferred (saved) WiFi networks',
+      usage:        'Usage: wifi-wand forget <name1> [name2 ...]'
+    )
 
     binds :cli, :model
 

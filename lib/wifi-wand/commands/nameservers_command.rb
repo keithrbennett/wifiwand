@@ -4,10 +4,12 @@ require_relative 'command'
 
 module WifiWand
   class NameserversCommand < Command
-    SHORT_NAME = 'na'
-    LONG_NAME = 'nameservers'
-    DESCRIPTION = 'show, clear, or set DNS nameservers for the active WiFi connection'
-    USAGE = 'Usage: wifi-wand nameservers [get|clear|IP ...]'
+    command_metadata(
+      short_string: 'na',
+      long_string:  'nameservers',
+      description:  'show, clear, or set DNS nameservers for the active WiFi connection',
+      usage:        'Usage: wifi-wand nameservers [get|clear|IP ...]'
+    )
 
     binds :cli, :model
 

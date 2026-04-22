@@ -4,10 +4,12 @@ require_relative 'command'
 
 module WifiWand
   class CycleCommand < Command
-    SHORT_NAME = 'cy'
-    LONG_NAME = 'cycle'
-    DESCRIPTION = 'cycle WiFi off and back on'
-    USAGE = 'Usage: wifi-wand cycle'
+    command_metadata(
+      short_string: 'cy',
+      long_string:  'cycle',
+      description:  'cycle WiFi off and back on',
+      usage:        'Usage: wifi-wand cycle'
+    )
 
     binds :model
 

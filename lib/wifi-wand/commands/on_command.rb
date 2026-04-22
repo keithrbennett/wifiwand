@@ -4,10 +4,12 @@ require_relative 'command'
 
 module WifiWand
   class OnCommand < Command
-    SHORT_NAME = 'on'
-    LONG_NAME = 'on'
-    DESCRIPTION = 'turn WiFi on'
-    USAGE = 'Usage: wifi-wand on'
+    command_metadata(
+      short_string: 'on',
+      long_string:  'on',
+      description:  'turn WiFi on',
+      usage:        'Usage: wifi-wand on'
+    )
 
     binds :model
 

@@ -4,10 +4,12 @@ require_relative 'command'
 
 module WifiWand
   class InfoCommand < Command
-    SHORT_NAME = 'i'
-    LONG_NAME = 'info'
-    DESCRIPTION = 'a hash of detailed networking information'
-    USAGE = 'Usage: wifi-wand info'
+    command_metadata(
+      short_string: 'i',
+      long_string:  'info',
+      description:  'a hash of detailed networking information',
+      usage:        'Usage: wifi-wand info'
+    )
 
     binds :cli, :model
 

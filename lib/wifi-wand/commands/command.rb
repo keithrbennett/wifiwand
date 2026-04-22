@@ -18,6 +18,26 @@ module WifiWand
 
   class Command
     class << self
+      # Standard command classes can declare their names and help text once here
+      # instead of repeating the same metadata object construction in `initialize`.
+      def command_metadata(short_string:, long_string:, description: nil, usage: nil)
+        @declared_metadata = CommandMetadata.new(
+          short_string: short_string,
+          long_string:  long_string,
+          description:  description,
+          usage:        usage
+        )
+      end
+
+      # Command subclasses look here first for their metadata declaration; the
+      # constant-based fallback stays in place so older or specialized commands
+      # can keep working until they are migrated.
+      def declared_metadata
+        return @declared_metadata if instance_variable_defined?(:@declared_metadata)
+
+        superclass.respond_to?(:declared_metadata) ? superclass.declared_metadata : nil
+      end
+
       # Declare which values a bound command instance should pull from the CLI.
       # `binds :model` copies `cli.model`, while `binds output: :out_stream` maps
       # a command attribute name to a different CLI reader.
@@ -90,6 +110,12 @@ module WifiWand
     end
 
     private def default_metadata
+      self.class.declared_metadata || metadata_from_constants
+    end
+
+    private def metadata_from_constants
+      # Keep supporting the older constant-based declaration style so command
+      # classes can move over incrementally.
       CommandMetadata.new(
         short_string: self.class::SHORT_NAME,
         long_string:  self.class::LONG_NAME,

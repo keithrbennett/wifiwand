@@ -4,10 +4,12 @@ require_relative 'command'
 
 module WifiWand
   class CiCommand < Command
-    SHORT_NAME = 'ci'
-    LONG_NAME = 'ci'
-    DESCRIPTION = 'Internet connectivity state: reachable, unreachable, or indeterminate'
-    USAGE = 'Usage: wifi-wand ci'
+    command_metadata(
+      short_string: 'ci',
+      long_string:  'ci',
+      description:  'Internet connectivity state: reachable, unreachable, or indeterminate',
+      usage:        'Usage: wifi-wand ci'
+    )
 
     binds :cli, :model, :interactive_mode
 

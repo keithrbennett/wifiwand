@@ -5,10 +5,13 @@ require_relative '../errors'
 
 module WifiWand
   class PublicIpCommand < Command
-    SHORT_NAME = 'pi'
-    LONG_NAME = 'public_ip'
-    DESCRIPTION = 'public IP lookup; selectors may use long or short form; both (b) is the default'
-    USAGE = 'Usage: wifi-wand public_ip [address|country|both|a|c|b]'
+    command_metadata(
+      short_string: 'pi',
+      long_string:  'public_ip',
+      description:  'public IP lookup; selectors may use long or short form; both (b) is the default',
+      usage:        'Usage: wifi-wand public_ip [address|country|both|a|c|b]'
+    )
+
     VALID_SELECTORS = {
       'address' => 'address',
       'a'       => 'address',

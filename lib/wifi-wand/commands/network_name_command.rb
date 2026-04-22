@@ -5,10 +5,12 @@ require_relative '../errors'
 
 module WifiWand
   class NetworkNameCommand < Command
-    SHORT_NAME = 'ne'
-    LONG_NAME = 'network_name'
-    DESCRIPTION = 'show the SSID of the currently connected WiFi network'
-    USAGE = 'Usage: wifi-wand network_name'
+    command_metadata(
+      short_string: 'ne',
+      long_string:  'network_name',
+      description:  'show the SSID of the currently connected WiFi network',
+      usage:        'Usage: wifi-wand network_name'
+    )
 
     binds :cli, :model
 

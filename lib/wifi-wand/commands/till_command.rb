@@ -6,10 +6,13 @@ require_relative '../timing_constants'
 
 module WifiWand
   class TillCommand < Command
-    SHORT_NAME = 't'
-    LONG_NAME = 'till'
-    DESCRIPTION = 'wait until a target connectivity or WiFi state is reached'
-    USAGE = 'Usage: wifi-wand till <state> [timeout_secs] [interval_secs]'
+    command_metadata(
+      short_string: 't',
+      long_string:  'till',
+      description:  'wait until a target connectivity or WiFi state is reached',
+      usage:        'Usage: wifi-wand till <state> [timeout_secs] [interval_secs]'
+    )
+
     STATES = %w[wifi_on wifi_off associated disassociated internet_on internet_off].freeze
 
     binds :cli, :model, :interactive_mode

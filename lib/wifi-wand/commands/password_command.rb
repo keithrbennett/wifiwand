@@ -4,10 +4,12 @@ require_relative 'command'
 
 module WifiWand
   class PasswordCommand < Command
-    SHORT_NAME = 'pa'
-    LONG_NAME = 'password'
-    DESCRIPTION = 'show the stored password for a preferred WiFi network'
-    USAGE = 'Usage: wifi-wand password <network-name>'
+    command_metadata(
+      short_string: 'pa',
+      long_string:  'password',
+      description:  'show the stored password for a preferred WiFi network',
+      usage:        'Usage: wifi-wand password <network-name>'
+    )
 
     binds :cli, :model
 
