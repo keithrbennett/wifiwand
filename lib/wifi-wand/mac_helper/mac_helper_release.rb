@@ -245,8 +245,11 @@ module WifiWand
         stdout, _stderr, status = Open3.capture3('security', 'find-identity', '-v', '-p', 'codesigning')
         return if status.success? && stdout.include?(identity)
 
-        abort "Error: Could not find code signing identity '#{identity}'\n\n" \
-          'Run: security find-identity -v -p codesigning'
+        abort <<~ERROR.chomp
+          Error: Could not find code signing identity '#{identity}'
+
+          Run: security find-identity -v -p codesigning
+        ERROR
       end
 
       def self.verify_signature(bundle_path)
@@ -418,8 +421,10 @@ module WifiWand
 
       stdout, _stderr, status = Open3.capture3('codesign', '-dv', bundle_path)
       if status.success? && stdout.include?('adhoc')
-        abort "Error: Helper is ad-hoc signed. Must be signed with Developer ID.\n" \
-          'Run: bin/mac-helper build'
+        abort <<~ERROR.chomp
+          Error: Helper is ad-hoc signed. Must be signed with Developer ID.
+          Run: bin/mac-helper build
+        ERROR
       end
 
       puts Messages.notarizing_header(bundle_path: bundle_path, apple_id: apple_id, team_id: team_id)

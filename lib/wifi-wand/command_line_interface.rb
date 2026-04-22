@@ -191,13 +191,15 @@ module WifiWand
 
     private def empty_available_networks_message
       if model.is_a?(WifiWand::MacOsModel)
-        "No visible networks were found.\n" \
-          'On macOS 14+, this can mean the helper could not get usable ' \
-          'Location Services authorization for WiFi SSIDs.'
+        <<~MESSAGE.chomp
+          No visible networks were found.
+          On macOS 14+, this can mean the helper could not get usable Location Services authorization for WiFi SSIDs.
+        MESSAGE
       elsif model.is_a?(WifiWand::UbuntuModel)
-        "No visible networks were found.\n" \
-          'If you expect to see networks, try running `nmcli device wifi rescan` ' \
-          'or check your hardware/drivers.'
+        <<~MESSAGE.chomp
+          No visible networks were found.
+          If you expect to see networks, try running `nmcli device wifi rescan` or check your hardware/drivers.
+        MESSAGE
       else
         'No visible networks were found.'
       end

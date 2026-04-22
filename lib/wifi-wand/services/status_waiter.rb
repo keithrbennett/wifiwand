@@ -45,8 +45,9 @@ module WifiWand
 
       if @verbose
         timeout_display = timeout_in_secs ? "#{timeout_in_secs}s" : 'never'
-        (@output || $stdout).puts "#{message_prefix} starting, timeout: #{timeout_display}, " \
-          "interval: #{wait_interval_in_secs}s"
+        (@output || $stdout).puts <<~MESSAGE.chomp
+          #{message_prefix} starting, timeout: #{timeout_display}, interval: #{wait_interval_in_secs}s
+        MESSAGE
       end
 
       finished_predicates = {
@@ -64,7 +65,10 @@ module WifiWand
         allowed = PERMITTED_STATES.join(', ')
         legacy_hint = LEGACY_STATE_HINTS[target_status]
         if legacy_hint
-          raise ArgumentError, "#{legacy_hint}\nValid states: #{allowed}"
+          raise ArgumentError, <<~MESSAGE.chomp
+            #{legacy_hint}
+            Valid states: #{allowed}
+          MESSAGE
         elsif stringify_permitted_values_in_error_msg
           raise ArgumentError, "Option must be one of [#{allowed}]. Was: #{target_status}"
         else
