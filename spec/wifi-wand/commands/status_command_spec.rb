@@ -85,10 +85,11 @@ describe WifiWand::StatusCommand do
     context 'when inline progress is enabled' do
       let(:progress_mode) { :inline }
 
-      it 'streams updates and returns structured data' do
+      it 'streams in-place updates and returns structured data' do
         result = command.call
 
         expect(result).to eq(status_data)
+        expect(out_stream.string).to include("\r#{rendered_status}")
         expect(out_stream.string).to end_with($INPUT_RECORD_SEPARATOR)
       end
     end

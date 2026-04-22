@@ -38,8 +38,7 @@ module WifiWand
           padding = [last_visible_length - visible_length, 0].max
           padded_render = padding.zero? ? rendered : "#{rendered}#{' ' * padding}"
 
-          out_stream.print("
-#{padded_render}")
+          out_stream.print("\r#{padded_render}")
           out_stream.flush if out_stream.respond_to?(:flush)
 
           last_visible_length = visible_length
