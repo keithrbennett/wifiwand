@@ -258,6 +258,8 @@ xcrun notarytool store-credentials wifiwand-notarytool --apple-id you@example.co
 #### 2. Use the profile at runtime
 
 ```bash
+bin/mac-helper public-info
+bin/mac-helper store-credentials
 bin/mac-helper notarize
 bin/mac-helper release
 bin/mac-helper history

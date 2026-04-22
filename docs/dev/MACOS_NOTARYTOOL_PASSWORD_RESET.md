@@ -35,6 +35,7 @@ Apple will not show this password again later.
 Preferred path:
 
 ```bash
+bin/mac-helper public-info
 bin/mac-helper store-credentials
 ```
 
@@ -87,7 +88,8 @@ or waiting for acceptance.
 3. If applicable, check App Store Connect as well for account agreements that need an Account Holder or
    Admin to accept them
 4. Confirm the Apple Developer Program membership is still active
-5. After the agreement issue is resolved, rerun:
+5. Wait a few minutes for Apple's account state to propagate
+6. After the agreement issue is resolved, rerun:
 
 ```bash
 bin/mac-helper store-credentials

@@ -41,11 +41,20 @@ step (or deeper troubleshooting), jump to `MACOS_CODE_SIGNING_CONTEXT.md`.
    - Label it “wifi-wand notarization” (or similar) and copy the `xxxx-xxxx-xxxx-xxxx` password.
 
 4. **Store a secure `notarytool` profile in your keychain**
-   - Run the one-time setup command:
+   - Inspect the public signing configuration if needed:
+     ```bash
+     bin/mac-helper public-info
+     ```
+   - Store credentials with the maintainer CLI:
+     ```bash
+     bin/mac-helper store-credentials
+     ```
+   - Or run the equivalent raw command:
      ```bash
      xcrun notarytool store-credentials wifiwand-notarytool --apple-id you@example.com --team-id 97P9SZU9GG
      ```
-   - `notarytool` will prompt for the app-specific password instead of taking it on the command line.
+   - `bin/mac-helper store-credentials` prompts for the Apple ID if needed, and `notarytool` prompts for the
+     app-specific password instead of taking it on the command line.
    - If you use a non-default keychain, unlock it first and set `WIFIWAND_NOTARYTOOL_KEYCHAIN` when running
      `bin/mac-helper`.
    - If you want to use a different profile name, set `WIFIWAND_NOTARYTOOL_PROFILE`.
@@ -115,6 +124,8 @@ Follow the same sequence each time you change the helper or cut a gem release.
    - Cancel a stuck submission with `bin/mac-helper cancel` (only pending `In Progress`
      submissions can be removed; pass `--submission-id <uuid>` to target a specific one, or use `--order asc
      --pending-only` to cancel oldest pending)
+   - If Apple reports a missing or expired agreement, accept it in the Apple Developer account, then wait a
+     few minutes and retry `bin/mac-helper store-credentials`
    - If the submission was rejected, rebuild the helper (`bin/mac-helper build`) before re-running the release
      flow.
 
