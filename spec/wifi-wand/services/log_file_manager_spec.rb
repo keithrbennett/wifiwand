@@ -6,6 +6,8 @@ require 'fileutils'
 require 'tempfile'
 
 describe WifiWand::LogFileManager do
+  include TestHelpers
+
   let(:temp_dir) { Dir.mktmpdir }
   let(:log_file_path) { File.join(temp_dir, 'test.log') }
   let(:output) { StringIO.new }
@@ -46,9 +48,11 @@ describe WifiWand::LogFileManager do
     end
 
     it 'accepts verbose flag' do
-      manager = described_class.new(log_file_path: log_file_path, verbose: true)
-      expect(manager.verbose).to be true
-      manager.close
+      silence_output do
+        manager = described_class.new(log_file_path: log_file_path, verbose: true)
+        expect(manager.verbose).to be true
+        manager.close
+      end
     end
 
     it 'accepts output stream' do

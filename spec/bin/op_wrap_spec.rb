@@ -16,6 +16,8 @@ OP_WRAP_PATH = File.expand_path('../../bin/op-wrap', __dir__)
 OP_WRAP_DEFAULT_ENV_FILE = File.expand_path('../../.env.release', __dir__)
 
 RSpec.describe 'bin/op-wrap' do
+  include TestHelpers
+
   def with_env(overrides)
     saved = overrides.keys.to_h { |k| [k, ENV[k]] }
     overrides.each { |k, v| ENV[k] = v }
@@ -141,8 +143,10 @@ RSpec.describe 'bin/op-wrap' do
     end
 
     it 'exits with code 1 when op_bin is not found' do
-      expect { OpWrapScript.check_op_available!('/nonexistent/op') }.to raise_error(SystemExit) do |e|
-        expect(e.status).to eq(1)
+      silence_output do
+        expect { OpWrapScript.check_op_available!('/nonexistent/op') }.to raise_error(SystemExit) do |e|
+          expect(e.status).to eq(1)
+        end
       end
     end
 
@@ -157,8 +161,10 @@ RSpec.describe 'bin/op-wrap' do
 
   describe '#show_usage_and_exit' do
     it 'exits with code 64' do
-      expect { OpWrapScript.show_usage_and_exit }.to raise_error(SystemExit) do |e|
-        expect(e.status).to eq(64)
+      silence_output do
+        expect { OpWrapScript.show_usage_and_exit }.to raise_error(SystemExit) do |e|
+          expect(e.status).to eq(64)
+        end
       end
     end
 

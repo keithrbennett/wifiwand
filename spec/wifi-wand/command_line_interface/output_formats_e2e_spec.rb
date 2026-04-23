@@ -222,9 +222,11 @@ describe 'Output Format End-to-End Tests' do
 
     context 'with invalid format option' do
       it 'raises configuration error' do
-        expect do
-          parse_options('-o', 'z', 'info')
-        end.to raise_error(WifiWand::ConfigurationError, /Invalid output format/)
+        silence_output do
+          expect do
+            parse_options('-o', 'z', 'info')
+          end.to raise_error(WifiWand::ConfigurationError, /Invalid output format/)
+        end
       end
     end
 
