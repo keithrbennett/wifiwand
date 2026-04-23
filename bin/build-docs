@@ -1,0 +1,13 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+venv_mkdocs = File.join('.docs-venv', 'bin', 'mkdocs')
+mkdocs_path = File.exist?(venv_mkdocs) ? venv_mkdocs : 'mkdocs'
+
+unless system('bash', '-lc', "command -v #{mkdocs_path} >/dev/null 2>&1")
+  warn "Error: mkdocs not found. Run 'source bin/set-up-python-for-doc-server' or " \
+       "'bundle exec rake docs:setup' first."
+  exit 1
+end
+
+exec(mkdocs_path, 'build', '--strict', '--config-file', File.expand_path('../mkdocs.yml', __dir__))

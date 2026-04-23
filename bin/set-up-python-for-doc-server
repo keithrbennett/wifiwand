@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -euo pipefail
+
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+  echo "Error: This script must be sourced, not executed directly." >&2
+  echo "Usage: source bin/set-up-python-for-doc-server" >&2
+  echo "   or: . bin/set-up-python-for-doc-server" >&2
+  exit 1
+fi
+
+python3 -m venv .docs-venv
+source .docs-venv/bin/activate
+pip install -q -r requirements.txt
+
+echo "Documentation environment ready."
+echo "Activate later with: source .docs-venv/bin/activate"
