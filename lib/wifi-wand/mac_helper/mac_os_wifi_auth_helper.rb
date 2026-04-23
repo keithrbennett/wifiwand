@@ -158,7 +158,13 @@ module WifiWand
       return false unless helper_result[:status].success?
 
       command_output = "#{helper_result[:stdout]}#{helper_result[:stderr]}".strip
-      !command_output.empty?
+      helper_help_output?(command_output)
+    end
+
+    module_function def helper_help_output?(command_output)
+      return false if command_output.empty?
+
+      command_output.match?(/wifiwand helper|usage:/i)
     end
 
     module_function def installed_bundle_current?
@@ -245,8 +251,6 @@ module WifiWand
 
     module_function def stage_helper_bundle(staged_bundle_path)
       FileUtils.cp_r(source_bundle_path, staged_bundle_path)
-      staged_executable_path = File.join(staged_bundle_path, 'Contents', 'MacOS', EXECUTABLE_NAME)
-      FileUtils.chmod(0o755, staged_executable_path)
     end
 
     module_function def publish_staged_bundle(staged_bundle_path)

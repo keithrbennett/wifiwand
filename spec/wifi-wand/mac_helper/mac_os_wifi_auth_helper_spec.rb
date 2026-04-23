@@ -788,6 +788,17 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       expect(described_class.helper_bundle_valid?(bundle_path)).to be(true)
     end
 
+    it 'rejects successful probes that only emit incidental stderr noise' do
+      File.write(executable_path, "#!/bin/sh\nexit 0\n")
+      FileUtils.chmod(0o755, executable_path)
+      status = instance_double(Process::Status, success?: true, exitstatus: 0)
+      expect(described_class).to receive(:run_bounded_helper_command)
+        .with(executable_path, 'help')
+        .and_return(stdout: '', stderr: 'stream closed in another thread', status: status)
+
+      expect(described_class.helper_bundle_valid?(bundle_path)).to be(false)
+    end
+
     it 'returns false when the helper validation probe times out' do
       File.write(executable_path, "#!/bin/sh\nexit 0\n")
       FileUtils.chmod(0o755, executable_path)
