@@ -103,6 +103,7 @@ describe WifiWand::NetworkStateManager do
             reason:       'Network unavailable'
           )
         )
+        allow(state_manager).to receive(:settle_for_restore?).and_return(false)
 
         expect do
           state_manager.restore_network_state(valid_state, fail_silently: false)
@@ -122,7 +123,9 @@ describe WifiWand::NetworkStateManager do
           .to output(/#{target}/m).to_stdout
       end
 
-      it 'swallows connection failures and logs to stderr' do
+      it 'swallows connection failures and logs to configured output' do
+        output = StringIO.new
+        manager = described_class.new(mock_model, verbose: false, output: output)
         allow(mock_model).to receive_messages(
           connection_ready?:          false,
           wifi_on?:                   true,
@@ -136,16 +139,19 @@ describe WifiWand::NetworkStateManager do
           )
         )
         allow(mock_model).to receive(:till)
+        allow(manager).to receive(:settle_for_restore?).and_return(false)
 
-        target_str = 'Warning: Could not restore network state ' \
-          '\(WifiWand::NetworkConnectionError\): Failed to connect.*' \
-          'You may need to manually reconnect to: TestNetwork'
-        expect do
-          state_manager.restore_network_state(valid_state, fail_silently: true)
-        end.to output(/#{target_str}/m).to_stdout
+        manager.restore_network_state(valid_state, fail_silently: true)
+
+        expect(output.string).to match(
+          /Warning: Could not restore network state \(WifiWand::NetworkConnectionError\): Failed to connect/m
+        )
+        expect(output.string).to match(/You may need to manually reconnect to: TestNetwork/)
       end
 
       it 'swallows expected network errors and logs to configured output' do
+        output = StringIO.new
+        manager = described_class.new(mock_model, verbose: false, output: output)
         allow(mock_model).to receive_messages(
           connection_ready?:          false,
           wifi_on?:                   true,
@@ -153,12 +159,14 @@ describe WifiWand::NetworkStateManager do
           preferred_network_password: 'testpass'
         )
         allow(mock_model).to receive(:connect).and_raise(SocketError, 'lookup failed')
+        allow(manager).to receive(:settle_for_restore?).and_return(false)
 
-        target = 'Warning: Could not restore network state \(SocketError\): lookup failed.*' \
-          'You may need to manually reconnect to: TestNetwork'
-        expect do
-          state_manager.restore_network_state(valid_state, fail_silently: true)
-        end.to output(/#{target}/m).to_stdout
+        manager.restore_network_state(valid_state, fail_silently: true)
+
+        expect(output.string).to match(
+          /Warning: Could not restore network state \(SocketError\): lookup failed/
+        )
+        expect(output.string).to match(/You may need to manually reconnect to: TestNetwork/)
       end
 
       it 'propagates unexpected exceptions even when fail_silently is true' do
@@ -169,6 +177,7 @@ describe WifiWand::NetworkStateManager do
           preferred_network_password: 'testpass'
         )
         allow(mock_model).to receive(:connect).and_raise(NoMethodError, 'unexpected bug')
+        allow(state_manager).to receive(:settle_for_restore?).and_return(false)
 
         expect do
           state_manager.restore_network_state(valid_state, fail_silently: true)
@@ -195,6 +204,7 @@ describe WifiWand::NetworkStateManager do
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
       allow(state_manager).to receive(:sleep)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
 
       expect(mock_model).to receive(:connect).with('TestNetwork', 'testpass')
 
@@ -215,6 +225,7 @@ describe WifiWand::NetworkStateManager do
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
       allow(state_manager).to receive(:sleep)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
       connect_attempts = 0
       allow(mock_model).to receive(:connect).with('TestNetwork', 'testpass') do
         connect_attempts += 1
@@ -242,6 +253,7 @@ describe WifiWand::NetworkStateManager do
       )
       allow(mock_model).to receive(:connect).with('TestNetwork', 'testpass')
         .and_raise(permanent_error)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
 
       expect do
         state_manager.restore_network_state(valid_state)
@@ -258,6 +270,7 @@ describe WifiWand::NetworkStateManager do
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
       allow(state_manager).to receive(:sleep)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
 
       expect(mock_model).to receive(:wifi_on)
       expect(mock_model).to receive(:till)
@@ -286,6 +299,7 @@ describe WifiWand::NetworkStateManager do
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
       allow(state_manager).to receive(:sleep)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
       allow(mock_model).to receive(:preferred_network_password).with('TestNetwork')
         .and_return('fallback_pass')
 
@@ -327,8 +341,9 @@ describe WifiWand::NetworkStateManager do
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false)
       allow(mock_model).to receive(:connect)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
-        .and_return(0.0, 0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
+        .and_return(0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
 
       expect do
         state_manager.restore_network_state(valid_state)
@@ -347,8 +362,9 @@ describe WifiWand::NetworkStateManager do
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false)
       allow(mock_model).to receive(:connect)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
-        .and_return(0.0, 0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
+        .and_return(0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
 
       expect do
         state_manager.restore_network_state(valid_state)
@@ -366,8 +382,9 @@ describe WifiWand::NetworkStateManager do
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false)
       allow(mock_model).to receive(:connect)
+      allow(verbose_manager).to receive(:settle_for_restore?).and_return(false)
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
-        .and_return(0.0, 0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
+        .and_return(0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
 
       expect do
         verbose_manager.restore_network_state(valid_state)
@@ -389,8 +406,9 @@ describe WifiWand::NetworkStateManager do
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false)
       allow(mock_model).to receive(:connect)
+      allow(verbose_manager).to receive(:settle_for_restore?).and_return(false)
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
-        .and_return(0.0, 0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
+        .and_return(0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
 
       expect do
         verbose_manager.restore_network_state(valid_state)

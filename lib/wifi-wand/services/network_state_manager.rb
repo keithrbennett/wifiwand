@@ -4,7 +4,10 @@ require_relative '../timing_constants'
 
 module WifiWand
   class NetworkStateManager
-    RESTORE_CONNECT_RETRY_WAIT_SECONDS = 2.0
+    RESTORE_CONNECT_RETRY_WAIT_SECONDS = 5.0
+    RESTORE_CONNECT_MAX_ATTEMPTS = 5
+    RESTORE_CONNECT_SETTLE_SECONDS = 20.0
+    RESTORE_CONNECT_SETTLE_POLL_SECONDS = 2.0
     RESTORE_CONNECT_RETRY_PATTERNS = [
       /Error:\s*-3900/i,
       /tmpErr/i,
@@ -163,15 +166,19 @@ module WifiWand
     end
 
     private def connect_for_restore(network_name, password)
-      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) +
-        TimingConstants::NETWORK_CONNECTION_WAIT
+      # After a forced disconnect, macOS's networking stack needs time to settle and
+      # will often re-associate with a preferred network on its own. Polling here
+      # first avoids competing with the OS reconnect mechanism, which causes -3900
+      # tmpErr errors when explicit connection requests race with internal macOS state.
+      return if settle_for_restore?
+
       attempts = 0
 
       begin
         attempts += 1
         @model.connect(network_name, password)
       rescue WifiWand::CommandExecutor::OsCommandError => e
-        raise unless retry_restore_connect?(e, deadline)
+        raise unless retry_restore_connect?(e, attempts)
 
         if @verbose
           @output.puts "Warning: Restore connection attempt #{attempts} failed with a transient " \
@@ -183,12 +190,37 @@ module WifiWand
       end
     end
 
-    private def retry_restore_connect?(error, deadline)
+    # Polls for macOS to auto-reconnect before resorting to an explicit connect
+    # call. Returns true if the network became associated during the settle window
+    # (caller should skip the explicit connect), false otherwise.
+    #
+    # Uses associated? rather than connection_ready? because after a programmatic
+    # CoreWLAN disconnect, macOS triggers an internal auto-reconnect. During this
+    # reconnect the Swift helper may return a placeholder SSID ('<hidden>'),
+    # causing connection_ready? to return false even when the interface is
+    # already associated. associated? falls back to airport data, which reports
+    # association regardless of SSID visibility.
+    private def settle_for_restore?
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + RESTORE_CONNECT_SETTLE_SECONDS
+      loop do
+        begin
+          return true if @model.associated?
+        rescue
+          nil
+        end
+        break if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+
+        sleep(RESTORE_CONNECT_SETTLE_POLL_SECONDS)
+      end
+      false
+    end
+
+    private def retry_restore_connect?(error, attempts)
       return false unless @model.respond_to?(:mac?) && @model.mac?
       return false unless error.command.to_s == 'networksetup'
       return false unless RESTORE_CONNECT_RETRY_PATTERNS.any? { |pattern| pattern.match?(error.text.to_s) }
 
-      Process.clock_gettime(Process::CLOCK_MONOTONIC) < deadline
+      attempts < RESTORE_CONNECT_MAX_ATTEMPTS
     end
 
     private def wait_for_connection_restoration(network_name)
