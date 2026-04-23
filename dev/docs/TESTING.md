@@ -167,6 +167,27 @@ Behavior:
 On macOS, examples tagged `:needs_sudo_access` refresh the sudo ticket immediately before the example instead
 of using a background keepalive thread.
 
+### Recommended Real-Host Coverage
+
+When validating `:real_env_read_write` behavior locally, test both of these network types when possible:
+
+- an open network that does not require a password
+- a password-protected network that requires stored or interactive credentials
+
+Both cases matter. Open networks exercise disconnect/reconnect behavior without keychain-backed password
+lookup, while password-protected networks exercise saved-password capture, restore-time reconnects, and
+macOS authentication/keychain edge cases. A change that passes on one type can still fail on the other.
+
+If macOS redacts the current SSID during preflight and the suite aborts because it cannot capture a
+restorable network name, provide the restore target explicitly:
+
+```bash
+WIFIWAND_RESTORE_NETWORK_NAME="Your SSID" WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
+```
+
+Use this only when you are certain of the currently connected network name. The override is intended for
+real-host debugging on macOS systems that expose the current network as `<redacted>`.
+
 ## Coverage Artifacts
 
 Two resultset filenames are used depending on whether the run touches the real host:
