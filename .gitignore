@@ -7,8 +7,11 @@
 .codex/
 .config
 .devcontainer/
+.docs-venv/
 .idea/
 .kilo/
+.venv/
+.venv-*/
 .yardoc
 Gemfile.lock
 InstalledFiles
@@ -20,6 +23,7 @@ mac-wifi-error-stack-trace.txt
 pkg
 rdoc
 rspec-errors.txt
+site/
 spec/reports
 test/tmp
 test/version_tmp
