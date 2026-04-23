@@ -186,6 +186,13 @@ module WifiWand
         end
 
         sleep(RESTORE_CONNECT_RETRY_WAIT_SECONDS)
+        # macOS may have auto-reconnected during the sleep; if so, skip
+        # the next networksetup call to avoid another -3900 collision.
+        begin
+          return if @model.associated?
+        rescue
+          nil
+        end
         retry
       end
     end

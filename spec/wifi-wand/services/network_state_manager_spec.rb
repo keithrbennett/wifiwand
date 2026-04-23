@@ -224,6 +224,7 @@ describe WifiWand::NetworkStateManager do
         connected_network_name: 'OtherNetwork'
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
+      allow(mock_model).to receive(:associated?).and_return(false)
       allow(state_manager).to receive(:sleep)
       allow(state_manager).to receive(:settle_for_restore?).and_return(false)
       connect_attempts = 0
