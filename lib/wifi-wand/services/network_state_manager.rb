@@ -4,6 +4,13 @@ require_relative '../timing_constants'
 
 module WifiWand
   class NetworkStateManager
+    RESTORE_CONNECT_RETRY_WAIT_SECONDS = 2.0
+    RESTORE_CONNECT_RETRY_PATTERNS = [
+      /Error:\s*-3900/i,
+      /tmpErr/i,
+      /couldn(?:\?\?\?|')t be completed/i,
+    ].freeze
+
     EXPECTED_RESTORE_ERRORS = [
       WifiWand::Error,
       IOError,
@@ -90,7 +97,7 @@ module WifiWand
           password_to_use ||= fallback_password_for(state[:network_name])
 
           begin
-            @model.connect(state[:network_name], password_to_use)
+            connect_for_restore(state[:network_name], password_to_use)
             wait_for_connection_restoration(state[:network_name])
           rescue WifiWand::WaitTimeoutError => e
             begin
@@ -131,8 +138,16 @@ module WifiWand
         nil
       end
       return nil unless network_name
+      return nil unless connected_network_requires_password?
 
       @model.preferred_network_password(network_name, timeout_in_secs: nil)
+    end
+
+    private def connected_network_requires_password?
+      security_type = @model.connection_security_type
+      %w[WPA WPA2 WPA3 WEP].include?(security_type)
+    rescue WifiWand::Error
+      true
     end
 
     private def fallback_password_for(network_name)
@@ -145,6 +160,35 @@ module WifiWand
           "#{e.message}"
       end
       nil
+    end
+
+    private def connect_for_restore(network_name, password)
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) +
+        TimingConstants::NETWORK_CONNECTION_WAIT
+      attempts = 0
+
+      begin
+        attempts += 1
+        @model.connect(network_name, password)
+      rescue WifiWand::CommandExecutor::OsCommandError => e
+        raise unless retry_restore_connect?(e, deadline)
+
+        if @verbose
+          @output.puts "Warning: Restore connection attempt #{attempts} failed with a transient " \
+            "networksetup error; retrying after #{RESTORE_CONNECT_RETRY_WAIT_SECONDS} seconds"
+        end
+
+        sleep(RESTORE_CONNECT_RETRY_WAIT_SECONDS)
+        retry
+      end
+    end
+
+    private def retry_restore_connect?(error, deadline)
+      return false unless @model.respond_to?(:mac?) && @model.mac?
+      return false unless error.command.to_s == 'networksetup'
+      return false unless RESTORE_CONNECT_RETRY_PATTERNS.any? { |pattern| pattern.match?(error.text.to_s) }
+
+      Process.clock_gettime(Process::CLOCK_MONOTONIC) < deadline
     end
 
     private def wait_for_connection_restoration(network_name)

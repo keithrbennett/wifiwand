@@ -8,7 +8,9 @@ describe WifiWand::NetworkStateManager do
     double('Model',
       connected?:                 true,
       connection_ready?:          true,
+      connection_security_type:   'WPA2',
       wifi_on?:                   true,
+      mac?:                       false,
       connected_network_name:     'TestNetwork',
       wifi_interface:             'wlan0',
       preferred_network_password: 'testpass',
@@ -199,6 +201,55 @@ describe WifiWand::NetworkStateManager do
       state_manager.restore_network_state(valid_state)
     end
 
+    it 'retries transient macOS networksetup restore failures' do
+      transient_error = os_command_error(
+        exitstatus: 1,
+        command:    'networksetup',
+        text:       "Failed to join network TestNetwork.\n" \
+          "Error: -3900 The operation couldn't be completed. tmpErr"
+      )
+      allow(mock_model).to receive_messages(
+        mac?:                   true,
+        wifi_on?:               true,
+        connected_network_name: 'OtherNetwork'
+      )
+      allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
+      allow(state_manager).to receive(:sleep)
+      connect_attempts = 0
+      allow(mock_model).to receive(:connect).with('TestNetwork', 'testpass') do
+        connect_attempts += 1
+        raise transient_error if connect_attempts == 1
+      end
+
+      state_manager.restore_network_state(valid_state)
+
+      expect(mock_model).to have_received(:connect).twice
+      expect(state_manager).to have_received(:sleep)
+        .with(described_class::RESTORE_CONNECT_RETRY_WAIT_SECONDS)
+    end
+
+    it 'does not retry non-transient restore command failures' do
+      permanent_error = os_command_error(
+        exitstatus: 1,
+        command:    'networksetup',
+        text:       'Failed to join network TestNetwork. invalid parameter'
+      )
+      allow(mock_model).to receive_messages(
+        mac?:                   true,
+        connection_ready?:      false,
+        wifi_on?:               true,
+        connected_network_name: 'OtherNetwork'
+      )
+      allow(mock_model).to receive(:connect).with('TestNetwork', 'testpass')
+        .and_raise(permanent_error)
+
+      expect do
+        state_manager.restore_network_state(valid_state)
+      end.to raise_error(WifiWand::CommandExecutor::OsCommandError, /invalid parameter/)
+
+      expect(mock_model).to have_received(:connect).once
+    end
+
     it 'turns on WiFi when currently off but should be on' do
       wifi_off_state = valid_state.merge(wifi_enabled: true)
       allow(mock_model).to receive_messages(
@@ -277,7 +328,7 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:connection_ready?).and_return(false, false)
       allow(mock_model).to receive(:connect)
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
-        .and_return(0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
+        .and_return(0.0, 0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
 
       expect do
         state_manager.restore_network_state(valid_state)
@@ -297,7 +348,7 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:connection_ready?).and_return(false, false)
       allow(mock_model).to receive(:connect)
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
-        .and_return(0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
+        .and_return(0.0, 0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
 
       expect do
         state_manager.restore_network_state(valid_state)
@@ -316,7 +367,7 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:connection_ready?).and_return(false, false)
       allow(mock_model).to receive(:connect)
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
-        .and_return(0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
+        .and_return(0.0, 0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
 
       expect do
         verbose_manager.restore_network_state(valid_state)
@@ -339,7 +390,7 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive(:connection_ready?).and_return(false, false)
       allow(mock_model).to receive(:connect)
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
-        .and_return(0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
+        .and_return(0.0, 0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
 
       expect do
         verbose_manager.restore_network_state(valid_state)
@@ -402,7 +453,8 @@ describe WifiWand::NetworkStateManager do
 
     it 'connected_network_password returns password when network is connected' do
       manager = described_class.new(mock_model)
-      allow(mock_model).to receive(:connected_network_name).and_return('CurrentNetwork')
+      allow(mock_model).to receive_messages(connected_network_name: 'CurrentNetwork',
+        connection_security_type: 'WPA2')
       allow(mock_model).to receive(:preferred_network_password).with('CurrentNetwork', timeout_in_secs: nil)
         .and_return('current_password')
       expect(manager.send(:connected_network_password)).to eq('current_password')
@@ -411,6 +463,16 @@ describe WifiWand::NetworkStateManager do
     it 'connected_network_password returns nil when not connected' do
       manager = described_class.new(mock_model)
       allow(mock_model).to receive(:connected_network_name).and_return(nil)
+      expect(manager.send(:connected_network_password)).to be_nil
+    end
+
+    it 'connected_network_password skips lookup for open or unknown security' do
+      manager = described_class.new(mock_model)
+      allow(mock_model).to receive_messages(connected_network_name: 'CurrentNetwork',
+        connection_security_type: nil)
+
+      expect(mock_model).not_to receive(:preferred_network_password)
+
       expect(manager.send(:connected_network_password)).to be_nil
     end
   end
