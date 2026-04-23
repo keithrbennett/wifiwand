@@ -275,21 +275,18 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
-  describe '#disconnect', :real_env_read_write do
-    it 'either disassociates or surfaces a verified disconnect failure', :needs_sudo_access do
-      subject.wifi_on
-
-      begin
-        subject.disconnect
-        expect(subject.associated?).to be(false)
-        expect { subject.disconnect }.not_to raise_error
-      rescue WifiWand::NetworkDisconnectionError => e
-        expect(subject.mac?).to be(true)
-        expect(subject.associated?).to be(true)
-        expect(e.reason).to match(/still associated with|interface remained associated/)
-      end
-    end
-  end
+  # No real-environment test for #disconnect.
+  #
+  # macOS's airportd daemon reconnects to preferred networks within
+  # milliseconds of a CoreWLAN programmatic disassociation, making a
+  # stable post-disconnect state impossible to observe. Every attempt
+  # landed in the NetworkDisconnectionError branch; the clean-disconnect
+  # path was never reachable. No public API suppresses airportd's
+  # reconnect behavior without side effects (e.g. removing from preferred
+  # networks causes reconnection to a different preferred network).
+  #
+  # The disconnect logic is fully covered by the mocked unit tests above.
+  # See dev/docs/TESTING.md for the full investigation and decision record.
 
   describe '#associated?', :real_env_read_only do
     it 'returns a boolean' do

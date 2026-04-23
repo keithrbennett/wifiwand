@@ -263,6 +263,52 @@ Guidelines:
 - Use `:real_env_read_write` only for the small set of tests that truly need mutation.
 - Add `real_env_os:` when a real-host test only makes sense on one OS.
 
+## Why `#disconnect` Has No Real-Environment Test
+
+`BaseModel#disconnect` is fully covered by mocked unit tests that exercise every
+code path: the `till(:disassociated)` timeout, the `disassociated_stable?` window,
+and the `NetworkDisconnectionError` construction.
+
+A real-environment test was written and investigated but ultimately removed for the
+following reason.
+
+### What we tried
+
+A real-env read-write test called `'either disassociates or surfaces a verified
+disconnect failure'` called `subject.disconnect` and accepted two outcomes:
+
+1. Disconnect succeeded → assert `associated?` is `false`.
+2. `NetworkDisconnectionError` raised → assert `associated?` is still `true` and
+   the error reason matched the expected pattern.
+
+### Why it cannot work reliably on macOS
+
+macOS's `airportd` daemon monitors preferred-network associations and starts an
+auto-reconnect cycle within milliseconds of any programmatic disassociation
+(including a CoreWLAN `disassociate()` call). This means:
+
+- The test always lands in the `NetworkDisconnectionError` branch — `airportd`
+  reconnects faster than our stability check can confirm disassociation.
+- The test never exercises the "clean disconnect succeeded" branch.
+- The restore phase after the test fights the same reconnect cycle, causing
+  spurious `-3900 tmpErr` errors from `networksetup`.
+
+### Alternatives considered
+
+| Approach | Problem |
+|---|---|
+| Remove network from preferred list before disconnecting | macOS reconnects to another preferred network instead |
+| Turn WiFi off | Tests a different operation (`wifi_off`), not `disconnect` |
+| Private `airportd` API to suppress reconnect | Not accessible without private frameworks |
+| Increase stability window / retry count | Only delays the inevitable; macOS always wins the race |
+
+### Conclusion
+
+Programmatic disassociation on macOS is inherently non-deterministic in the
+presence of preferred networks. The disconnect logic is correct and well-covered
+by mocked tests. Adding a real-environment test would only test macOS's
+auto-reconnect behavior, not our code.
+
 ## Related Files
 
 - [spec/spec_helper.rb](../spec/spec_helper.rb)
