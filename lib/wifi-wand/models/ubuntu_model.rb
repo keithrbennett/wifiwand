@@ -347,7 +347,7 @@ module WifiWand
       preferred_networks_matching_ssid(network_name.to_s).any?
     end
 
-    public def preferred_network_password(preferred_network_name)
+    public def preferred_network_password(preferred_network_name, timeout_in_secs: :default)
       debug_method_entry(__method__, binding, :preferred_network_name)
       preferred_network_name = preferred_network_name.to_s
       if has_preferred_network?(preferred_network_name)

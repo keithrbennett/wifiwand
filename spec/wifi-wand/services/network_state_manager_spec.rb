@@ -23,6 +23,10 @@ describe WifiWand::NetworkStateManager do
 
   describe '#capture_network_state' do
     it 'captures current network state' do
+      expect(mock_model).to receive(:preferred_network_password)
+        .with('TestNetwork', timeout_in_secs: nil)
+        .and_return('testpass')
+
       expect(state_manager.capture_network_state).to include(
         wifi_enabled:     true,
         network_name:     'TestNetwork',
@@ -40,9 +44,11 @@ describe WifiWand::NetworkStateManager do
 
     it 'handles password retrieval failure' do
       allow(mock_model).to receive_messages(
-        connected_network_name:     'TestNetwork',
-        preferred_network_password: nil
+        connected_network_name: 'TestNetwork'
       )
+      allow(mock_model).to receive(:preferred_network_password)
+        .with('TestNetwork', timeout_in_secs: nil)
+        .and_return(nil)
       state = state_manager.capture_network_state
       expect(state[:network_name]).to eq('TestNetwork')
       expect(state[:network_password]).to be_nil
@@ -53,6 +59,7 @@ describe WifiWand::NetworkStateManager do
       verbose_manager = described_class.new(mock_model, verbose: true, output: output)
       allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
       allow(mock_model).to receive(:preferred_network_password)
+        .with('TestNetwork', timeout_in_secs: nil)
         .and_raise(WifiWand::KeychainError.new('Keychain error'))
 
       state = verbose_manager.capture_network_state
@@ -396,7 +403,7 @@ describe WifiWand::NetworkStateManager do
     it 'connected_network_password returns password when network is connected' do
       manager = described_class.new(mock_model)
       allow(mock_model).to receive(:connected_network_name).and_return('CurrentNetwork')
-      allow(mock_model).to receive(:preferred_network_password).with('CurrentNetwork')
+      allow(mock_model).to receive(:preferred_network_password).with('CurrentNetwork', timeout_in_secs: nil)
         .and_return('current_password')
       expect(manager.send(:connected_network_password)).to eq('current_password')
     end

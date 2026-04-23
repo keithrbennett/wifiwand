@@ -1020,6 +1020,27 @@ module WifiWand
           expect(model.preferred_network_password(ssid)).to be_nil
           expect(call_sequence.map(&:first)).to include(expected_cmd)
         end
+
+        it 'allows callers to disable the keychain lookup timeout explicitly' do
+          model = create_mac_os_test_model
+          ssid = 'TestNet'
+
+          allow(model).to receive(:preferred_networks).and_return([ssid])
+
+          expected_cmd = ['security', 'find-generic-password', '-D', 'AirPort network password', '-a', ssid,
+            '-w']
+          allow(model).to receive(:run_os_command) do |command, *args, **kwargs|
+            if command == expected_cmd
+              expect(args).to eq([true])
+              expect(kwargs).to eq(timeout_in_secs: nil)
+              raise os_command_error(exitstatus: 44, command: 'security', text: '')
+            else
+              command_result(stdout: 'Wi-Fi Power (en0): On')
+            end
+          end
+
+          expect(model.preferred_network_password(ssid, timeout_in_secs: nil)).to be_nil
+        end
       end
 
       describe '#macos_version' do

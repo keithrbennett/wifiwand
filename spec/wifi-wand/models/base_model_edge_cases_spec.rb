@@ -186,6 +186,15 @@ RSpec.describe WifiWand::BaseModel do
       expect(model.preferred_network_password('CafeNet')).to eq('secret')
     end
 
+    it 'forwards an explicit timeout override to the subclass implementation' do
+      allow(model).to receive(:preferred_networks).and_return(['CafeNet'])
+      expect(model).to receive(:_preferred_network_password)
+        .with('CafeNet', timeout_in_secs: nil)
+        .and_return('secret')
+
+      expect(model.preferred_network_password('CafeNet', timeout_in_secs: nil)).to eq('secret')
+    end
+
     it 'raises when network is missing' do
       allow(model).to receive(:preferred_networks).and_return([])
 

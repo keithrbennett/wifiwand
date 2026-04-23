@@ -387,7 +387,7 @@ module WifiWand
     #     If not, return nil
     #   else
     #     raise an error
-    def _preferred_network_password(preferred_network_name)
+    def _preferred_network_password(preferred_network_name, timeout_in_secs: KEYCHAIN_LOOKUP_TIMEOUT_SECONDS)
       run_os_command(
         [
           'security',
@@ -399,7 +399,7 @@ module WifiWand
           '-w',
         ],
         true,
-        timeout_in_secs: KEYCHAIN_LOOKUP_TIMEOUT_SECONDS
+        timeout_in_secs: timeout_in_secs
       ).stdout.chomp
     rescue WifiWand::CommandExecutor::OsCommandError => e
       handle_keychain_error(preferred_network_name, e)

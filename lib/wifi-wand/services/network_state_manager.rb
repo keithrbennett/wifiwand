@@ -132,7 +132,7 @@ module WifiWand
       end
       return nil unless network_name
 
-      @model.preferred_network_password(network_name)
+      @model.preferred_network_password(network_name, timeout_in_secs: nil)
     end
 
     private def fallback_password_for(network_name)

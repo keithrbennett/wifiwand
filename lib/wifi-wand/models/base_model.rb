@@ -414,11 +414,15 @@ module WifiWand
         .uniq
     end
 
-    def preferred_network_password(preferred_network_name)
+    def preferred_network_password(preferred_network_name, timeout_in_secs: :default)
       debug_method_entry(__method__, binding, :preferred_network_name)
       preferred_network_name = preferred_network_name.to_s
       if has_preferred_network?(preferred_network_name)
-        _preferred_network_password(preferred_network_name)
+        if timeout_in_secs == :default
+          _preferred_network_password(preferred_network_name)
+        else
+          _preferred_network_password(preferred_network_name, timeout_in_secs: timeout_in_secs)
+        end
       else
         raise PreferredNetworkNotFoundError, preferred_network_name
       end
