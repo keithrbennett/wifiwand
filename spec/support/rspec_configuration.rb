@@ -136,14 +136,14 @@ module RSpecConfiguration
 
     network_state = NetworkStateManager.network_state
 
-    puts "\nCaptured network state for restoration: #{network_state[:network_name]}"
+    warn "\nCaptured network state for restoration: #{network_state[:network_name]}"
     if network_state[:network_password]
-      puts 'Captured saved network password for restoration.'
+      warn 'Captured saved network password for restoration.'
     else
-      puts 'Warning: No network password was captured during preflight. ' \
+      warn 'Warning: No network password was captured during preflight. ' \
         'Restore may trigger additional macOS authentication prompts or fail to reconnect.'
     end
-    puts
+    warn ''
   end
 
   def self.ensure_network_state_capture!

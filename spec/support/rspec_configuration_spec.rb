@@ -166,7 +166,7 @@ RSpec.describe RSpecConfiguration do
       })
 
       expect { described_class.handle_network_state_capture(true) }
-        .to output(/Captured saved network password for restoration\./).to_stdout
+        .to output(/Captured saved network password for restoration\./).to_stderr
     end
 
     it 'warns when connected state is captured without a password' do
@@ -178,7 +178,7 @@ RSpec.describe RSpecConfiguration do
       })
 
       expect { described_class.handle_network_state_capture(true) }
-        .to output(/Warning: No network password was captured during preflight\./).to_stdout
+        .to output(/Warning: No network password was captured during preflight\./).to_stderr
     end
   end
 
