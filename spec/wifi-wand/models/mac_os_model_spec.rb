@@ -49,36 +49,17 @@ module WifiWand
         :real_env_read_write, real_env_os: :os_mac do
         subject { create_mac_os_test_model }
 
-        describe '#wifi_on' do
-          it 'turns wifi on when it is off' do
-            subject.wifi_off
-            expect(subject.wifi_on?).to be(false)
-
-            subject.wifi_on
-            expect(subject.wifi_on?).to be(true)
-          end
-        end
-
-        describe '#wifi_off' do
-          it 'turns wifi off when it is on' do
-            subject.wifi_on
-            expect(subject.wifi_on?).to be(true)
-
-            subject.wifi_off
-            expect(subject.wifi_on?).to be(false)
-          end
-        end
-
-        describe '#disconnect' do
-          it 'either disassociates or raises a verified disconnect failure', :needs_sudo_access do
-            subject.disconnect
-            expect(subject.associated?).to be(false)
-            expect { subject.disconnect }.not_to raise_error
-          rescue WifiWand::NetworkDisconnectionError => e
-            expect(subject.associated?).to be(true)
-            expect(e.reason).to match(/still associated with|interface remained associated/)
-          end
-        end
+        # No real-environment tests for #wifi_on, #wifi_off, or #disconnect on macOS.
+        #
+        # On macOS, airportd starts an auto-reconnect cycle within milliseconds of any
+        # programmatic disassociation or WiFi toggle. The suite's global restore hook then
+        # races airportd to reconnect explicitly, producing -3900 / tmpErr from networksetup
+        # every time. There is no public API to suppress airportd's reconnect behavior.
+        #
+        # This constraint is macOS-specific. Other platforms may not have the same issue.
+        #
+        # All three methods are fully covered by mocked unit tests.
+        # See dev/docs/TESTING.md for the full investigation and decision record.
 
         describe '#remove_preferred_network' do
           it 'handles removal of non-existent network', :needs_sudo_access do
@@ -124,21 +105,11 @@ module WifiWand
           warn "Warning: Failed to restore nameservers: #{e.message}"
         end
 
-        describe '#wifi_on?' do
-          it 'accurately reports WiFi status after state changes' do
-            test_scenarios = [
-              [:wifi_on, true],
-              [:wifi_off, false],
-              [:wifi_on, true],
-            ]
-
-            test_scenarios.each do |method, expected_state|
-              subject.public_send(method)
-              expect(subject.wifi_on?).to eq(expected_state),
-                "WiFi should be #{expected_state ? 'on' : 'off'} after #{method}"
-            end
-          end
-        end
+        # No real-environment test for #wifi_on? state-change accuracy or for
+        # 'WiFi state consistency' or 'error resilience' multi-toggle scenarios.
+        # On macOS, each toggles WiFi off, triggering the same airportd reconnect
+        # race described above. This constraint is macOS-specific. Mocked tests
+        # cover these paths.
 
         describe '#set_nameservers' do
           let(:test_nameservers) { ['8.8.8.8', '1.1.1.1'] }
@@ -166,39 +137,6 @@ module WifiWand
               subject.nameservers_using_networksetup.include?(alternate_nameservers.first)
             end
             expect(subject.nameservers_using_networksetup).to include(alternate_nameservers.first)
-          end
-        end
-
-        describe 'WiFi state consistency' do
-          it 'maintains consistent state across multiple operations' do
-            operations = [
-              -> { subject.wifi_off },
-              -> { expect(subject.wifi_on?).to be(false) },
-              -> { subject.wifi_on },
-              -> { expect(subject.wifi_on?).to be(true) },
-              -> { subject.disconnect },
-              -> { expect(subject.wifi_on?).to be(true) }, # Should still be on after disconnect
-            ]
-
-            operations.each_with_index do |operation, index|
-              expect { operation.call }.not_to raise_error,
-                "Operation #{index + 1} should succeed"
-            end
-          end
-        end
-
-        describe 'error resilience' do
-          it 'handles temporary network unavailability gracefully' do
-            # Turn WiFi off temporarily
-            subject.wifi_off
-
-            # These should not crash even with WiFi off
-            expect { subject._ip_address }.not_to raise_error
-            expect { subject._connected_network_name }.not_to raise_error
-            expect { subject.default_interface }.not_to raise_error
-
-            # Restore WiFi
-            subject.wifi_on
           end
         end
       end

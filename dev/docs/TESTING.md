@@ -263,51 +263,61 @@ Guidelines:
 - Use `:real_env_read_write` only for the small set of tests that truly need mutation.
 - Add `real_env_os:` when a real-host test only makes sense on one OS.
 
-## Why `#disconnect` Has No Real-Environment Test
+## Why macOS WiFi-Toggling Operations Have No Real-Environment Tests
 
-`BaseModel#disconnect` is fully covered by mocked unit tests that exercise every
-code path: the `till(:disassociated)` timeout, the `disassociated_stable?` window,
-and the `NetworkDisconnectionError` construction.
+> **macOS only.** This limitation is specific to macOS. The same operations
+> may be testable under real-environment conditions on other platforms.
 
-A real-environment test was written and investigated but ultimately removed for the
-following reason.
+The following methods have no real-environment tests on macOS:
 
-### What we tried
+- `#disconnect` (`BaseModel`)
+- `#wifi_on` / `#wifi_off` (`MacOsModel`)
 
-A real-env read-write test called `'either disassociates or surfaces a verified
-disconnect failure'` called `subject.disconnect` and accepted two outcomes:
+All are fully covered by mocked unit tests that exercise every code path.
+Real-environment tests were written and investigated but ultimately removed.
 
-1. Disconnect succeeded → assert `associated?` is `false`.
-2. `NetworkDisconnectionError` raised → assert `associated?` is still `true` and
-   the error reason matched the expected pattern.
+### Root cause: macOS airportd auto-reconnect
 
-### Why it cannot work reliably on macOS
+On macOS, the `airportd` daemon monitors preferred-network associations and
+starts an auto-reconnect cycle within milliseconds of any programmatic
+disassociation or WiFi toggle. This creates two problems:
 
-macOS's `airportd` daemon monitors preferred-network associations and starts an
-auto-reconnect cycle within milliseconds of any programmatic disassociation
-(including a CoreWLAN `disassociate()` call). This means:
+**Problem 1 — the test itself becomes unreliable.**
+For `#disconnect`, the test always lands in the error branch because `airportd`
+reconnects faster than our stability check can confirm disassociation. The
+clean-disconnect path is never reachable.
 
-- The test always lands in the `NetworkDisconnectionError` branch — `airportd`
-  reconnects faster than our stability check can confirm disassociation.
-- The test never exercises the "clean disconnect succeeded" branch.
-- The restore phase after the test fights the same reconnect cycle, causing
-  spurious `-3900 tmpErr` errors from `networksetup`.
+**Problem 2 — the restore phase fails.**
+After any test that toggles WiFi off or calls disconnect, the suite's global
+restore hook tries to reconnect explicitly via `networksetup`. This call races
+with `airportd`'s own reconnect and produces `-3900 tmpErr` errors every time.
+The restore was failing for `#wifi_on`, `#wifi_off`, and `#disconnect` tests
+for this reason.
 
 ### Alternatives considered
 
 | Approach | Problem |
 |---|---|
 | Remove network from preferred list before disconnecting | macOS reconnects to another preferred network instead |
-| Turn WiFi off | Tests a different operation (`wifi_off`), not `disconnect` |
+| Turn WiFi off to prevent reconnect | Tests a different operation; same restore problem reappears |
 | Private `airportd` API to suppress reconnect | Not accessible without private frameworks |
-| Increase stability window / retry count | Only delays the inevitable; macOS always wins the race |
+| Increase restore settle window (e.g. 60 s) | Only delays the inevitable; macOS always wins the race |
+| Retry loop in restore | Retries still race with airportd; each attempt can -3900 |
 
 ### Conclusion
 
-Programmatic disassociation on macOS is inherently non-deterministic in the
-presence of preferred networks. The disconnect logic is correct and well-covered
-by mocked tests. Adding a real-environment test would only test macOS's
-auto-reconnect behavior, not our code.
+On macOS, any real-environment test that leaves WiFi toggled off or the
+interface disassociated will trigger `airportd`'s reconnect before our restore
+hook can act, causing non-deterministic `-3900 tmpErr` failures in the restore
+phase. There is no public API to suppress this behavior.
+
+The policy for macOS is: **remove real-environment tests for any operation
+whose post-test state triggers airportd competition**. Mocked tests cover the
+logic fully. Real-environment tests for these operations on macOS would only
+test macOS's auto-reconnect behavior, not our code.
+
+The same reasoning applies to any future macOS test that toggles WiFi state or
+calls `disconnect` — mocked coverage is sufficient.
 
 ## Related Files
 
