@@ -20,5 +20,7 @@
     <string>wifiwand-helper</string>
     <key>NSLocationWhenInUseUsageDescription</key>
     <string>wifiwand needs location access while you use it to retrieve Wi-Fi network information.</string>
+    <key>LSUIElement</key>
+    <true/>
 </dict>
 </plist>

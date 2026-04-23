@@ -52,12 +52,6 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Handle help command immediately
-        if command == .help {
-            printUsage()
-            exit(0)
-        }
-
         // For check-permission command, create location manager to get accurate status
         // but exit quickly via timeout instead of waiting for callbacks
         if command == .checkPermission {
@@ -404,6 +398,13 @@ guard let command = HelperCommand(rawValue: commandValue) else {
     fputs("Error: Unknown command '\(commandValue)'\n\n", stderr)
     printUsage()
     exit(1)
+}
+
+// Handle help before starting the NSApplication run loop so it works
+// correctly when invoked as a subprocess (e.g. for install validation).
+if command == .help {
+    printUsage()
+    exit(0)
 }
 
 let app = NSApplication.shared

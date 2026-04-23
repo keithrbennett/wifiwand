@@ -1,7 +1,7 @@
 {
   "helper_version": "3.0.0-alpha.1",
   "source_path": "libexec/macos/src/wifiwand-helper.swift",
-  "source_sha256": "fb30a0fcf6cff39bd985a463235e62403e32d73a72d370ef743efec285cd9cd9",
+  "source_sha256": "2017e1a3cf466dc9a739cb43906a4bc83be9848322daf1211969b26884b2354c",
   "bundle_path": "libexec/macos/wifiwand-helper.app",
-  "bundle_fingerprint": "c89ef12f86e7bae9f8385ffaad2923ce438502a528b0acd5014694a44a4a2e7a"
+  "bundle_fingerprint": "9451dfde00f014549e831fb017029aea29e7ea148776553b9826cc7c5226c20d"
 }
