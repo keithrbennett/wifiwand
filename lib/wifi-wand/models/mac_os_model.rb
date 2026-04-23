@@ -36,6 +36,8 @@ module WifiWand
     SWIFT_CONNECT_FALLBACK_PATTERNS = [
       /code:\s*-3900/i,
       /code:\s*-3905/i,
+      /corewlan generic error/i,
+      /possible keychain access or authentication issue/i,
       /network not found/i,
       /tmpErr\s*\(code:\s*82\)/i,
       /couldn(?:\?\?\?|')t be completed.*tmpErr/i,
@@ -704,8 +706,8 @@ module WifiWand
       return false unless wifi_interface_data
 
       current_network = wifi_interface_data['spairport_current_network_information']
-      return true if current_network.is_a?(Hash)
-      return true if current_network && !current_network.to_s.empty?
+      return true if current_network.is_a?(Hash) && !current_network.empty?
+      return true if !current_network.is_a?(Hash) && current_network && !current_network.to_s.empty?
 
       false
     end

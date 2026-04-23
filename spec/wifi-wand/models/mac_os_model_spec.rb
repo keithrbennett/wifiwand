@@ -485,7 +485,23 @@ module WifiWand
           expect(model.associated?).to be(true)
         end
 
-        it 'returns true when airport data shows current network information without an SSID name' do
+        it 'returns true when airport data shows non-empty current network information ' \
+          'without an SSID name' do
+          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+          allow(model).to receive(:airport_data).and_return(
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                 => 'en0',
+                'spairport_current_network_information' => { 'spairport_network_channel' => '6' },
+              }],
+            }]
+          )
+
+          expect(model.associated?).to be(true)
+        end
+
+        it 'returns false when airport data only has an empty current-network hash' do
           result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive(:airport_data).and_return(
@@ -497,7 +513,7 @@ module WifiWand
             }]
           )
 
-          expect(model.associated?).to be(true)
+          expect(model.associated?).to be(false)
         end
 
         it 'returns false when the helper reports no SSID and airport data has no current network info' do
@@ -1512,6 +1528,22 @@ module WifiWand
                 exitstatus: 1,
                 command:    'swift',
                 text:       "Error connecting: The operation couldn't be completed. tmpErr (code: 82)"
+              )
+            )
+          expect(model).to receive(:os_level_connect_using_networksetup).with('TestNetwork', 'password')
+
+          model._connect('TestNetwork', 'password')
+        end
+
+        it 'falls back to networksetup for CoreWLAN generic Swift failures' do
+          allow(model).to receive(:swift_and_corewlan_present?).and_return(true)
+          allow(model).to receive(:os_level_connect_using_swift)
+            .with('TestNetwork', 'password')
+            .and_raise(
+              os_command_error(
+                exitstatus: 1,
+                command:    'swift',
+                text:       'Error: CoreWLAN generic error - possible keychain access or authentication issue'
               )
             )
           expect(model).to receive(:os_level_connect_using_networksetup).with('TestNetwork', 'password')
