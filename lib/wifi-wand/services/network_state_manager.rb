@@ -148,7 +148,12 @@ module WifiWand
 
     private def connected_network_requires_password?
       security_type = @model.connection_security_type
-      %w[WPA WPA2 WPA3 WEP].include?(security_type)
+      # 'NONE' means the network is confirmed open (no PSK). Any other value,
+      # including nil (security type could not be determined), is treated as
+      # "may require a password" so we attempt the lookup rather than skip it.
+      # This handles the case where macOS moves the connected network out of the
+      # expected airport_data array, causing connection_security_type to return nil.
+      security_type != 'NONE'
     rescue WifiWand::Error
       true
     end

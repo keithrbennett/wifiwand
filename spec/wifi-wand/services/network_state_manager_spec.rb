@@ -485,10 +485,24 @@ describe WifiWand::NetworkStateManager do
       expect(manager.send(:connected_network_password)).to be_nil
     end
 
-    it 'connected_network_password skips lookup for open or unknown security' do
+    it 'connected_network_password attempts lookup when security type is nil (unknown)' do
       manager = described_class.new(mock_model)
       allow(mock_model).to receive_messages(connected_network_name: 'CurrentNetwork',
         connection_security_type: nil)
+      allow(mock_model).to receive(:preferred_network_password).with('CurrentNetwork', timeout_in_secs: nil)
+        .and_return(nil)
+
+      # nil means macOS could not report the security type; attempt lookup rather
+      # than silently skipping it, in case the network is password-protected.
+      expect(mock_model).to receive(:preferred_network_password)
+
+      manager.send(:connected_network_password)
+    end
+
+    it 'connected_network_password skips lookup for open networks (NONE)' do
+      manager = described_class.new(mock_model)
+      allow(mock_model).to receive_messages(connected_network_name: 'OpenNetwork',
+        connection_security_type: 'NONE')
 
       expect(mock_model).not_to receive(:preferred_network_password)
 

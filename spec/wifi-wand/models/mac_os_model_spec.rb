@@ -1581,6 +1581,9 @@ module WifiWand
           ['WPA', 'WPA'],
           ['WPA1', 'WPA'],
           ['WEP', 'WEP'],
+          ['spairport_security_mode_none', 'NONE'],
+          ['None', 'NONE'],
+          ['OWE', 'NONE'],
           ['Unknown Security', nil],
         ].each do |security_mode, expected_result|
           it "returns #{expected_result || 'nil'} for #{security_mode}" do

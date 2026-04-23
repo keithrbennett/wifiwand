@@ -634,6 +634,8 @@ module WifiWand
         'WPA'
       when /WEP/i
         'WEP'
+      when /\bnone\b|spairport_security_mode_none/i, /\bowe\b/i
+        'NONE'
       end
     end
 
