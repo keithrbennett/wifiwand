@@ -7,6 +7,7 @@ require_relative 'os_filtering'
 module RSpecConfiguration
   VALID_REAL_ENV_TEST_OPTIONS = %w[none read_only all].freeze
   @sudo_tests_will_run = false
+  @restore_failed = false
 
   def self.configure(config)
     configure_basic_settings(config)
@@ -133,7 +134,16 @@ module RSpecConfiguration
         'Connected state was detected but network name could not be determined.'
     end
 
-    puts "\nCaptured network state for restoration: #{NetworkStateManager.network_state[:network_name]}\n"
+    network_state = NetworkStateManager.network_state
+
+    puts "\nCaptured network state for restoration: #{network_state[:network_name]}"
+    if network_state[:network_password]
+      puts 'Captured saved network password for restoration.'
+    else
+      puts 'Warning: No network password was captured during preflight. ' \
+        'Restore may trigger additional macOS authentication prompts or fail to reconnect.'
+    end
+    puts
   end
 
   def self.ensure_network_state_capture!
@@ -202,6 +212,10 @@ module RSpecConfiguration
 
     config.after(:each, :real_env_read_write) do |_example|
       NetworkStateManager.restore_state(fail_silently: false)
+      RSpecConfiguration.clear_restore_failure!
+    rescue WifiWand::Error
+      RSpecConfiguration.mark_restore_failure!
+      raise
     end
 
     # Attempt final restoration and cleanup at end of test suite
@@ -219,19 +233,40 @@ module RSpecConfiguration
   def self.attempt_final_network_restoration
     network_state = NetworkStateManager.network_state
     return unless network_state && network_state[:network_name]
+    return if previous_restore_failed?
 
     puts "\n#{'=' * 60}"
     begin
       NetworkStateManager.restore_state(fail_silently: false)
       puts "✅ Successfully restored network connection: #{network_state[:network_name]}"
     rescue WifiWand::Error => e
+      safe_message = safe_utf8(e.message)
+      safe_network_name = safe_utf8(network_state[:network_name])
       puts <<~ERROR_MESSAGE
-        ⚠️  Could not restore network connection: #{e.message}
-        You may need to manually reconnect to: #{network_state[:network_name]}
+        ⚠️  Could not restore network connection: #{safe_message}
+        You may need to manually reconnect to: #{safe_network_name}
       ERROR_MESSAGE
       raise
     end
     puts "#{'=' * 60}\n\n"
+  end
+
+  def self.mark_restore_failure!
+    @restore_failed = true
+  end
+
+  def self.clear_restore_failure!
+    @restore_failed = false
+  end
+
+  def self.previous_restore_failed?
+    !!@restore_failed
+  end
+
+  def self.safe_utf8(text)
+    text.to_s.encode('UTF-8', 'binary', invalid: :replace, undef: :replace, replace: '?')
+  rescue Encoding::UndefinedConversionError, Encoding::InvalidByteSequenceError
+    text.to_s.force_encoding('UTF-8').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
   end
 
   def self.show_test_usage_information

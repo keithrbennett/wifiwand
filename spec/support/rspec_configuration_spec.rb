@@ -160,9 +160,25 @@ RSpec.describe RSpecConfiguration do
     it 'succeeds when connected and network name is captured' do
       allow(mock_model).to receive(:connected?).and_return(true)
       allow(NetworkStateManager).to receive(:capture_state)
-      allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: 'MyNetwork' })
+      allow(NetworkStateManager).to receive(:network_state).and_return({
+        network_name:     'MyNetwork',
+        network_password: 'secret',
+      })
 
-      expect { described_class.handle_network_state_capture(true) }.not_to raise_error
+      expect { described_class.handle_network_state_capture(true) }
+        .to output(/Captured saved network password for restoration\./).to_stdout
+    end
+
+    it 'warns when connected state is captured without a password' do
+      allow(mock_model).to receive(:connected?).and_return(true)
+      allow(NetworkStateManager).to receive(:capture_state)
+      allow(NetworkStateManager).to receive(:network_state).and_return({
+        network_name:     'MyNetwork',
+        network_password: nil,
+      })
+
+      expect { described_class.handle_network_state_capture(true) }
+        .to output(/Warning: No network password was captured during preflight\./).to_stdout
     end
   end
 
@@ -210,6 +226,7 @@ RSpec.describe RSpecConfiguration do
 
   describe '.configure_network_state_management' do
     before do
+      described_class.clear_restore_failure!
       described_class.configure_network_state_management(hook_config)
     end
 
@@ -234,6 +251,25 @@ RSpec.describe RSpecConfiguration do
 
       expect(NetworkStateManager).to receive(:restore_state).with(fail_silently: false)
       after_each_hook.last.call
+    end
+
+    it 'records a failed per-example restore' do
+      after_each_hook = hook_config.after_hooks.find { |args, _block| args == %i[each real_env_read_write] }
+      error = network_connection_error(network_name: 'MyNetwork', reason: 'timed out')
+      allow(NetworkStateManager).to receive(:restore_state).with(fail_silently: false).and_raise(error)
+
+      expect { after_each_hook.last.call }.to raise_error(WifiWand::NetworkConnectionError)
+      expect(described_class.previous_restore_failed?).to be(true)
+    end
+
+    it 'clears the restore-failed flag after a successful per-example restore' do
+      after_each_hook = hook_config.after_hooks.find { |args, _block| args == %i[each real_env_read_write] }
+      described_class.mark_restore_failure!
+      allow(NetworkStateManager).to receive(:restore_state).with(fail_silently: false)
+
+      after_each_hook.last.call
+
+      expect(described_class.previous_restore_failed?).to be(false)
     end
 
     it 'ensures capture before each real_env_read_write example' do
@@ -312,7 +348,16 @@ RSpec.describe RSpecConfiguration do
 
   describe '.attempt_final_network_restoration' do
     before do
+      described_class.clear_restore_failure!
       allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: 'MyNetwork' })
+    end
+
+    it 'skips final restoration after a prior restore failure' do
+      described_class.mark_restore_failure!
+
+      expect(NetworkStateManager).not_to receive(:restore_state)
+
+      described_class.attempt_final_network_restoration
     end
 
     it 'raises after printing a visible failure for expected restoration errors' do
