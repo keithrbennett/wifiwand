@@ -42,18 +42,18 @@ describe WifiWand::CommandExecutor do
     end
   end
 
-  describe '#run_os_command' do
+  describe '#run_command_using_args' do
     context 'with verbose mode disabled' do
       let(:executor) { described_class.new(verbose: false) }
 
       it 'executes commands successfully' do
-        result = executor.run_os_command(%w[echo test])
+        result = executor.run_command_using_args(%w[echo test])
         expect(result).to be_a(WifiWand::CommandExecutor::OsCommandResult)
         expect(result.stdout.strip).to eq('test')
       end
 
       it 'supports timeouts for array commands without changing successful behavior' do
-        result = executor.run_os_command(
+        result = executor.run_command_using_args(
           [RbConfig.ruby, '-e', 'sleep 0.05; print "ok"'],
           true,
           timeout_in_secs: 1
@@ -65,26 +65,26 @@ describe WifiWand::CommandExecutor do
 
       it 'raises OsCommandError on command failure when raise_on_error is true' do
         expect do
-          executor.run_os_command(['false'])
+          executor.run_command_using_args(['false'])
         end.to raise_error(WifiWand::CommandExecutor::OsCommandError)
       end
 
       it 'returns result without raising on command failure when raise_on_error is false' do
-        result = executor.run_os_command(['false'], false)
+        result = executor.run_command_using_args(['false'], false)
         expect(result).to be_a(WifiWand::CommandExecutor::OsCommandResult)
         expect(result.exitstatus).not_to eq(0)
       end
 
-      it 'raises ArgumentError when run_os_command receives a String' do
+      it 'raises ArgumentError when run_command_using_args receives a String' do
         expect do
-          executor.run_os_command('echo "test"')
-        end.to raise_error(ArgumentError, /run_os_command requires an Array/)
+          executor.run_command_using_args('echo "test"')
+        end.to raise_error(ArgumentError, /run_command_using_args requires an Array/)
       end
 
-      it 'raises ArgumentError when run_repl_command receives a non-String' do
+      it 'raises ArgumentError when run_command_using_shell receives a non-String' do
         expect do
-          executor.run_repl_command(%w[echo test])
-        end.to raise_error(ArgumentError, /run_repl_command requires a String/)
+          executor.run_command_using_shell(%w[echo test])
+        end.to raise_error(ArgumentError, /run_command_using_shell requires a String/)
       end
 
       it 'terminates timed out child processes without leaking them' do
@@ -98,7 +98,7 @@ describe WifiWand::CommandExecutor do
           ]
 
           expect do
-            executor.run_os_command(command, true, timeout_in_secs: 0.2)
+            executor.run_command_using_args(command, true, timeout_in_secs: 0.2)
           end.to raise_error(WifiWand::CommandTimeoutError)
 
           pid = wait_for_file_contents(pid_file.path).to_i
@@ -123,7 +123,7 @@ describe WifiWand::CommandExecutor do
           ]
 
           expect do
-            executor.run_os_command(command, true, timeout_in_secs: 0.2)
+            executor.run_command_using_args(command, true, timeout_in_secs: 0.2)
           end.to raise_error(WifiWand::CommandTimeoutError)
 
           descendant_pid = wait_for_file_contents(pid_file.path).to_i
@@ -134,7 +134,7 @@ describe WifiWand::CommandExecutor do
 
       it 'raises CommandNotFoundError when an array command executable is missing' do
         expect do
-          executor.run_os_command(['nonexistent_command_12345'])
+          executor.run_command_using_args(['nonexistent_command_12345'])
         end.to raise_error(WifiWand::CommandNotFoundError, /nonexistent_command_12345/)
       end
 
@@ -157,7 +157,7 @@ describe WifiWand::CommandExecutor do
         allow(wait_thr).to receive_messages(join: wait_thr, value: status)
         allow(Open3).to receive(:popen3).and_yield(stdin, stdout, stderr, wait_thr)
 
-        result = executor.run_os_command(%w[echo test])
+        result = executor.run_command_using_args(%w[echo test])
 
         expect(result.stdout).to eq('partial output')
         expect(result.stderr).to eq('')
@@ -165,18 +165,18 @@ describe WifiWand::CommandExecutor do
       end
     end
 
-    context 'with REPL string commands' do
+    context 'with shell string commands' do
       let(:executor) { described_class.new(verbose: false) }
 
       it 'captures both stdout and stderr' do
-        result = executor.run_repl_command("bash -c 'echo \"stdout\"; echo \"stderr\" >&2'", false)
+        result = executor.run_command_using_shell("bash -c 'echo \"stdout\"; echo \"stderr\" >&2'", false)
         expect(result.stdout).to include('stdout')
         expect(result.stderr).to include('stderr')
       end
 
       it 'raises CommandTimeoutError for shell commands that exceed the timeout' do
         expect do
-          executor.run_repl_command("#{RbConfig.ruby} -e 'sleep 5'", true, timeout_in_secs: 0.2)
+          executor.run_command_using_shell("#{RbConfig.ruby} -e 'sleep 5'", true, timeout_in_secs: 0.2)
         end.to raise_error(WifiWand::CommandTimeoutError, /sleep 5/)
       end
     end
@@ -186,7 +186,7 @@ describe WifiWand::CommandExecutor do
 
       it 'outputs command attempt and duration info' do
         expect do
-          executor.run_repl_command('echo "test"')
+          executor.run_command_using_shell('echo "test"')
         end.to output(/Command:.*echo "test".*Duration:.*seconds/m).to_stdout
       end
     end
@@ -203,7 +203,7 @@ describe WifiWand::CommandExecutor do
     it 'retries until condition is met' do
       call_count = 0
 
-      allow(executor).to receive(:run_os_command) do |command|
+      allow(executor).to receive(:run_command_using_args) do |command|
         call_count += 1
         WifiWand::CommandExecutor::OsCommandResult.new(
           stdout:          "attempt #{call_count}",

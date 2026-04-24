@@ -41,7 +41,7 @@ describe 'QR Code Generator (unit)' do
   end
 
   it "prints ANSI QR to stdout when filespec is '-' and returns '-'" do
-    expect(model).to receive(:run_os_command) do |cmd|
+    expect(model).to receive(:run_command_using_args) do |cmd|
       expect(cmd).to be_an(Array)
       expect(cmd[0..2]).to eq(%w[qrencode -t ANSI])
       command_result(stdout: "[QR-ANSI]\n")
@@ -53,7 +53,7 @@ describe 'QR Code Generator (unit)' do
   end
 
   it 'returns ANSI QR string without printing when delivery_mode is :return' do
-    expect(model).to receive(:run_os_command) do |cmd|
+    expect(model).to receive(:run_command_using_args) do |cmd|
       expect(cmd).to be_an(Array)
       expect(cmd[0..2]).to eq(%w[qrencode -t ANSI])
       command_result(stdout: "[QR-ANSI]\n")
@@ -65,7 +65,7 @@ describe 'QR Code Generator (unit)' do
   end
 
   it 'raises WifiWand::Error when ANSI generation command fails' do
-    expect(model).to receive(:run_os_command)
+    expect(model).to receive(:run_command_using_args)
       .and_raise(os_command_error(exitstatus: 1, command: 'qrencode', text: 'boom'))
 
     expect do
@@ -78,7 +78,7 @@ describe 'QR Code Generator (unit)' do
 
     expect(model).not_to receive(:connected_network_password)
 
-    expect(model).to receive(:run_os_command) do |cmd|
+    expect(model).to receive(:run_command_using_args) do |cmd|
       expect(cmd).to be_an(Array)
       expect(cmd).to include('qrencode')
       expect(cmd).to include('-o')
@@ -95,7 +95,7 @@ describe 'QR Code Generator (unit)' do
     { filespec: 'out.eps', type: 'EPS' },
   ].each do |tc|
     it "uses -t #{tc[:type]} flag when filespec ends with #{File.extname(tc[:filespec])}" do
-      expect(model).to receive(:run_os_command) do |cmd|
+      expect(model).to receive(:run_command_using_args) do |cmd|
         expect(cmd).to be_an(Array)
         expect(cmd).to include('qrencode')
         expect(cmd).to include('-t')
@@ -113,7 +113,7 @@ describe 'QR Code Generator (unit)' do
   it 'generates QR code with H:false for visible (broadcast) networks' do
     allow(model).to receive(:network_hidden?).and_return(false)
 
-    expect(model).to receive(:run_os_command) do |cmd|
+    expect(model).to receive(:run_command_using_args) do |cmd|
       expect(cmd).to be_an(Array)
       expect(cmd).to include('qrencode')
       expect(cmd.last).to include('H:false')
@@ -126,7 +126,7 @@ describe 'QR Code Generator (unit)' do
   it 'generates QR code with H:true for hidden networks' do
     allow(model).to receive(:network_hidden?).and_return(true)
 
-    expect(model).to receive(:run_os_command) do |cmd|
+    expect(model).to receive(:run_command_using_args) do |cmd|
       expect(cmd).to be_an(Array)
       expect(cmd).to include('qrencode')
       expect(cmd.last).to include('H:true')
@@ -139,7 +139,7 @@ describe 'QR Code Generator (unit)' do
   it 'generates ANSI QR with H:true for hidden networks' do
     allow(model).to receive(:network_hidden?).and_return(true)
 
-    expect(model).to receive(:run_os_command) do |cmd|
+    expect(model).to receive(:run_command_using_args) do |cmd|
       expect(cmd).to be_an(Array)
       expect(cmd[0..2]).to eq(%w[qrencode -t ANSI])
       expect(cmd.last).to include('H:true')

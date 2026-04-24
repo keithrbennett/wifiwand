@@ -30,14 +30,14 @@ module WifiWand
       describe '#detect_macos_version' do
         it 'detects macOS version when command succeeds' do
           model = create_mac_os_test_model
-          allow(model).to receive(:run_os_command).with(%w[sw_vers -productVersion])
+          allow(model).to receive(:run_command_using_args).with(%w[sw_vers -productVersion])
             .and_return(command_result(stdout: "15.6\n"))
           expect(model.send(:detect_macos_version)).to eq('15.6')
         end
 
         it 'returns nil when command fails' do
           model = create_mac_os_test_model
-          allow(model).to receive(:run_os_command).with(%w[sw_vers -productVersion])
+          allow(model).to receive(:run_command_using_args).with(%w[sw_vers -productVersion])
             .and_raise(StandardError.new('Command failed'))
           expect { model.send(:detect_macos_version) }.not_to raise_error
           expect(model.send(:detect_macos_version)).to be_nil
@@ -237,7 +237,7 @@ module WifiWand
           test_cases.each do |output, expected|
             # Clear any cached value and mock the command
             model.instance_variable_set(:@detect_wifi_service_name, nil)
-            allow(model).to receive(:run_os_command).with(%w[networksetup -listallhardwareports])
+            allow(model).to receive(:run_command_using_args).with(%w[networksetup -listallhardwareports])
               .and_return(command_result(stdout: output))
             expect(model.detect_wifi_service_name).to eq(expected)
           end
@@ -245,7 +245,7 @@ module WifiWand
 
         it 'falls back to Wi-Fi when no pattern matches' do
           no_wifi_output = "Hardware Port: Ethernet\nDevice: en1"
-          allow(model).to receive(:run_os_command).with(%w[networksetup -listallhardwareports])
+          allow(model).to receive(:run_command_using_args).with(%w[networksetup -listallhardwareports])
             .and_return(command_result(stdout: no_wifi_output))
           allow(model).to receive(:wifi_interface).and_return('en0')
           expect(model.detect_wifi_service_name).to eq('Wi-Fi')
@@ -256,7 +256,7 @@ module WifiWand
           model.instance_variable_set(:@detect_wifi_service_name, nil)
           output = "Hardware Port: SpecialWifi\nDevice: en0\nEthernet Address: aa:bb:cc:dd:ee:ff\n\n" \
             "Hardware Port: Ethernet\nDevice: en1\n"
-          allow(model).to receive(:run_os_command).with(%w[networksetup -listallhardwareports])
+          allow(model).to receive(:run_command_using_args).with(%w[networksetup -listallhardwareports])
             .and_return(command_result(stdout: output))
           allow(model).to receive(:wifi_interface).and_return('en0')
           expect(model.detect_wifi_service_name).to eq('SpecialWifi')
@@ -265,7 +265,7 @@ module WifiWand
 
       describe '#is_wifi_interface?' do
         it 'returns true when networksetup confirms the interface is WiFi' do
-          allow(model).to receive(:run_os_command)
+          allow(model).to receive(:run_command_using_args)
             .with(%w[networksetup -listpreferredwirelessnetworks en0])
             .and_return(command_result(stdout: ''))
 
@@ -274,7 +274,7 @@ module WifiWand
 
         it 'returns false when networksetup reports a non-WiFi interface' do
           error = os_command_error(exitstatus: 10, command: 'networksetup', text: '')
-          allow(model).to receive(:run_os_command)
+          allow(model).to receive(:run_command_using_args)
             .with(%w[networksetup -listpreferredwirelessnetworks en1])
             .and_raise(error)
 
@@ -283,7 +283,7 @@ module WifiWand
 
         it 're-raises unexpected networksetup failures' do
           error = os_command_error(exitstatus: 5, command: 'networksetup', text: 'unexpected failure')
-          allow(model).to receive(:run_os_command)
+          allow(model).to receive(:run_command_using_args)
             .with(%w[networksetup -listpreferredwirelessnetworks en2])
             .and_raise(error)
 
@@ -296,7 +296,7 @@ module WifiWand
         it 'extracts WiFi interface from networksetup output' do
           output = "Hardware Port: Wi-Fi\nDevice: en0\nEthernet Address: aa:bb:cc\n\n" \
             "Hardware Port: Ethernet\nDevice: en1\n"
-          allow(model).to receive(:run_os_command).with(%w[networksetup -listallhardwareports])
+          allow(model).to receive(:run_command_using_args).with(%w[networksetup -listallhardwareports])
             .and_return(command_result(stdout: output))
           # Also exercise dynamic service name path
           allow(model).to receive(:detect_wifi_service_name).and_call_original
@@ -305,7 +305,7 @@ module WifiWand
 
         it 'raises WifiInterfaceError when WiFi service not found' do
           output = "Hardware Port: Ethernet\nDevice: en1\n"
-          allow(model).to receive(:run_os_command).with(%w[networksetup -listallhardwareports])
+          allow(model).to receive(:run_command_using_args).with(%w[networksetup -listallhardwareports])
             .and_return(command_result(stdout: output))
           allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
           expect do
@@ -326,9 +326,9 @@ module WifiWand
 
           test_cases.each do |response, expected|
             if response.is_a?(Exception)
-              allow(model).to receive(:run_os_command).and_raise(response)
+              allow(model).to receive(:run_command_using_args).and_raise(response)
             else
-              allow(model).to receive(:run_os_command).and_return(command_result(stdout: response))
+              allow(model).to receive(:run_command_using_args).and_return(command_result(stdout: response))
             end
 
             expect(model._ip_address).to eq(expected)
@@ -337,7 +337,7 @@ module WifiWand
 
         it 're-raises unexpected ipconfig errors' do
           allow(model).to receive(:wifi_interface).and_return('en0')
-          allow(model).to receive(:run_os_command).and_raise(
+          allow(model).to receive(:run_command_using_args).and_raise(
             os_command_error(exitstatus: 2, command: 'ipconfig', text: 'boom')
           )
           expect { model._ip_address }.to raise_error(WifiWand::CommandExecutor::OsCommandError)
@@ -627,7 +627,7 @@ module WifiWand
           test_cases.each do |output, expected|
             allow(model).to receive_messages(
               detect_wifi_service_name: 'Wi-Fi',
-              run_os_command:           command_result(stdout: output)
+              run_command_using_args:           command_result(stdout: output)
             )
             expect(model.nameservers_using_networksetup).to eq(expected)
           end
@@ -649,7 +649,7 @@ module WifiWand
               nameserver[1] : 9.9.9.9
           OUTPUT
 
-          allow(model).to receive(:run_os_command).with(%w[scutil --dns])
+          allow(model).to receive(:run_command_using_args).with(%w[scutil --dns])
             .and_return(command_result(stdout: scutil_output))
           result = model.nameservers_using_scutil
           expect(result).to contain_exactly('8.8.8.8', '1.1.1.1', '9.9.9.9')
@@ -667,10 +667,10 @@ module WifiWand
           test_cases.each do |tc|
             allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
             if tc[:input] == :clear
-              expect(model).to receive(:run_os_command).with(['networksetup', '-setdnsservers', 'Wi-Fi',
+              expect(model).to receive(:run_command_using_args).with(['networksetup', '-setdnsservers', 'Wi-Fi',
                 'empty'])
             else
-              expect(model).to receive(:run_os_command).with(['networksetup', '-setdnsservers',
+              expect(model).to receive(:run_command_using_args).with(['networksetup', '-setdnsservers',
                 'Wi-Fi'] + tc[:input])
             end
             expect(model.set_nameservers(tc[:input])).to eq(tc[:input])
@@ -689,7 +689,7 @@ module WifiWand
 
           ipv6_test_cases.each do |tc|
             allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
-            expect(model).to receive(:run_os_command).with(['networksetup', '-setdnsservers',
+            expect(model).to receive(:run_command_using_args).with(['networksetup', '-setdnsservers',
               'Wi-Fi'] + tc[:input])
             expect(model.set_nameservers(tc[:input])).to eq(tc[:input])
           end
@@ -744,9 +744,9 @@ module WifiWand
             fresh_model = create_mac_os_test_model
 
             if error
-              allow(fresh_model).to receive(:run_os_command).and_raise(error)
+              allow(fresh_model).to receive(:run_command_using_args).and_raise(error)
             else
-              allow(fresh_model).to receive(:run_os_command).and_return(command_result(stdout: ''))
+              allow(fresh_model).to receive(:run_command_using_args).and_return(command_result(stdout: ''))
             end
 
             expect(fresh_model.swift_and_corewlan_present?).to eq(expected)
@@ -754,7 +754,7 @@ module WifiWand
         end
 
         it 'memoizes the subprocess probe result across repeated calls' do
-          expect(model).to receive(:run_os_command).with(['swift', '-e', 'import CoreWLAN'], false)
+          expect(model).to receive(:run_command_using_args).with(['swift', '-e', 'import CoreWLAN'], false)
             .once.and_return(command_result(stdout: ''))
 
           2.times do
@@ -774,10 +774,10 @@ module WifiWand
 
           test_cases.each do |response, expected|
             if response.is_a?(Exception)
-              allow(model).to receive(:run_os_command).with(%w[route -n get default],
+              allow(model).to receive(:run_command_using_args).with(%w[route -n get default],
                 false).and_raise(response)
             else
-              allow(model).to receive(:run_os_command).with(%w[route -n get default],
+              allow(model).to receive(:run_command_using_args).with(%w[route -n get default],
                 false).and_return(command_result(stdout: response))
             end
 
@@ -791,7 +791,7 @@ module WifiWand
           ifconfig_output = "en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n" \
             "\tether ac:bc:32:b9:a9:9d\n"
           allow(model).to receive(:wifi_interface).and_return('en0')
-          allow(model).to receive(:run_os_command).with(%w[ifconfig en0])
+          allow(model).to receive(:run_command_using_args).with(%w[ifconfig en0])
             .and_return(command_result(stdout: ifconfig_output))
           expect(model.mac_address).to eq('ac:bc:32:b9:a9:9d')
         end
@@ -821,7 +821,7 @@ module WifiWand
           ]
 
           test_cases.each do |network_name, expected_command_array|
-            expect(model).to receive(:run_os_command).with(
+            expect(model).to receive(:run_command_using_args).with(
               expected_command_array,
               true,
               timeout_in_secs: described_class::SUDO_NETWORKSETUP_TIMEOUT_SECONDS
@@ -840,7 +840,7 @@ module WifiWand
           ]
 
           test_cases.each do |resource|
-            expect(model).to receive(:run_os_command) do |cmd_array|
+            expect(model).to receive(:run_command_using_args) do |cmd_array|
               expect(cmd_array[0]).to eq('open')
               expect(cmd_array[1]).to eq(resource)
             end
@@ -871,7 +871,7 @@ module WifiWand
         end
 
         it 'detects WiFi interface from system_profiler' do
-          expect(model).to receive(:run_os_command).with(
+          expect(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPNetworkDataType],
             true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
@@ -881,20 +881,20 @@ module WifiWand
         end
 
         it 'returns nil when WiFi service not found' do
-          allow(model).to receive(:run_os_command)
+          allow(model).to receive(:run_command_using_args)
             .and_return(command_result(stdout: '{"SPNetworkDataType": []}'))
           expect(model.probe_wifi_interface).to be_nil
         end
 
         it 'handles JSON parse errors gracefully' do
-          allow(model).to receive(:run_os_command).and_return(command_result(stdout: 'invalid json'))
+          allow(model).to receive(:run_command_using_args).and_return(command_result(stdout: 'invalid json'))
           expect { model.probe_wifi_interface }.to raise_error(JSON::ParserError)
         end
 
         it 'uses system_profiler fallback without re-entering networksetup after failure' do
           allow(model).to receive(:detect_wifi_interface_using_networksetup).and_raise(StandardError, 'boom')
           allow(model).to receive(:detect_wifi_service_name).and_raise('should not be called')
-          allow(model).to receive(:run_os_command).and_return(command_result(stdout: system_profiler_output))
+          allow(model).to receive(:run_command_using_args).and_return(command_result(stdout: system_profiler_output))
 
           expect(model.probe_wifi_interface).to eq('en0')
         end
@@ -927,9 +927,9 @@ module WifiWand
 
           test_cases.each do |response, expected|
             if response.is_a?(Exception)
-              allow(model).to receive(:run_os_command).and_raise(response)
+              allow(model).to receive(:run_command_using_args).and_raise(response)
             else
-              allow(model).to receive(:run_os_command).and_return(command_result(stdout: response))
+              allow(model).to receive(:run_command_using_args).and_return(command_result(stdout: response))
             end
 
             if expected.is_a?(Class) && expected < Exception
@@ -942,7 +942,7 @@ module WifiWand
 
         it 'raises detailed KeychainError for unknown exit codes' do
           error = os_command_error(exitstatus: 99, command: 'security', text: 'strange failure')
-          allow(model).to receive(:run_os_command).and_raise(error)
+          allow(model).to receive(:run_command_using_args).and_raise(error)
           expect { model._preferred_network_password('TestNet') }.to raise_error(WifiWand::KeychainError)
         end
       end
@@ -960,7 +960,7 @@ module WifiWand
             '-w']
           # Expect exact command, but avoid real execution by raising "not found" (exit 44)
           call_sequence = []
-          allow(model).to receive(:run_os_command) do |command, *args, **kwargs|
+          allow(model).to receive(:run_command_using_args) do |command, *args, **kwargs|
             call_sequence << [command, args, kwargs]
             if command == expected_cmd
               expect(args).to eq([true])
@@ -983,7 +983,7 @@ module WifiWand
 
           expected_cmd = ['security', 'find-generic-password', '-D', 'AirPort network password', '-a', ssid,
             '-w']
-          allow(model).to receive(:run_os_command) do |command, *args, **kwargs|
+          allow(model).to receive(:run_command_using_args) do |command, *args, **kwargs|
             if command == expected_cmd
               expect(args).to eq([true])
               expect(kwargs).to eq(timeout_in_secs: nil)
@@ -1000,10 +1000,10 @@ module WifiWand
       describe '#macos_version' do
         it 'handles version detection failure gracefully' do
           # Allow all other commands to execute normally
-          allow_any_instance_of(described_class).to receive(:run_os_command).and_call_original
+          allow_any_instance_of(described_class).to receive(:run_command_using_args).and_call_original
           # Cause only the sw_vers call to fail; detection should rescue and set nil
           allow_any_instance_of(described_class)
-            .to receive(:run_os_command).with(%w[sw_vers -productVersion])
+            .to receive(:run_command_using_args).with(%w[sw_vers -productVersion])
             .and_raise(StandardError.new('Command failed'))
           failing_model = create_mac_os_test_model
           silence_output { expect(failing_model.macos_version).to be_nil }
@@ -1013,7 +1013,7 @@ module WifiWand
       describe '#macos_version (real system)', :real_env_read_only, real_env_os: :os_mac do
         # For these real-system checks, allow actual OS command execution
         before do
-          allow_any_instance_of(described_class).to receive(:run_os_command).and_call_original
+          allow_any_instance_of(described_class).to receive(:run_command_using_args).and_call_original
         end
 
         it 'returns a non-empty semantic version on macOS' do
@@ -1082,13 +1082,13 @@ module WifiWand
             connected_network_name:      'TestNet'
           )
           allow(model).to receive(:run_swift_command).and_raise(StandardError.new('swift failed'))
-          expect(model).to receive(:run_os_command).with(
+          expect(model).to receive(:run_command_using_args).with(
             %w[sudo ifconfig en0 disassociate],
             false,
             timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
           ).and_return(command_result(stderr: 'sudo failed', exitstatus: 1,
             command: 'sudo ifconfig en0 disassociate'))
-          expect(model).to receive(:run_os_command).with(%w[ifconfig en0 disassociate], false)
+          expect(model).to receive(:run_command_using_args).with(%w[ifconfig en0 disassociate], false)
             .and_return(command_result(stdout: ''))
           allow(model).to receive(:till)
             .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
@@ -1101,12 +1101,12 @@ module WifiWand
         it 'is a no-op when already disconnected' do
           allow(model).to receive_messages(wifi_on?: true, associated?: false)
           allow(model).to receive(:run_swift_command)
-          allow(model).to receive(:run_os_command)
+          allow(model).to receive(:run_command_using_args)
           allow(model).to receive(:till)
 
           expect(model.disconnect).to be_nil
           expect(model).not_to have_received(:run_swift_command)
-          expect(model).not_to have_received(:run_os_command)
+          expect(model).not_to have_received(:run_command_using_args)
           expect(model).not_to have_received(:till)
         end
       end
@@ -1115,12 +1115,12 @@ module WifiWand
         it 'returns nil when the sudo ifconfig path succeeds' do
           allow(model).to receive_messages(swift_and_corewlan_present?: false, wifi_interface: 'en0')
 
-          expect(model).to receive(:run_os_command).with(
+          expect(model).to receive(:run_command_using_args).with(
             %w[sudo ifconfig en0 disassociate],
             false,
             timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
           ).and_return(command_result(stdout: '', command: 'sudo ifconfig en0 disassociate'))
-          expect(model).not_to receive(:run_os_command).with(%w[ifconfig en0 disassociate], false)
+          expect(model).not_to receive(:run_command_using_args).with(%w[ifconfig en0 disassociate], false)
 
           expect(model._disconnect).to be_nil
         end
@@ -1129,13 +1129,13 @@ module WifiWand
           allow(model).to receive(:run_swift_command).and_raise(StandardError.new('swift failed'))
           allow(model).to receive_messages(swift_and_corewlan_present?: true, wifi_interface: 'en0')
 
-          expect(model).to receive(:run_os_command).with(
+          expect(model).to receive(:run_command_using_args).with(
             %w[sudo ifconfig en0 disassociate],
             false,
             timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
           ).and_return(command_result(stderr: 'sudo failed', exitstatus: 1,
             command: 'sudo ifconfig en0 disassociate'))
-          expect(model).to receive(:run_os_command).with(%w[ifconfig en0 disassociate], false)
+          expect(model).to receive(:run_command_using_args).with(%w[ifconfig en0 disassociate], false)
             .and_return(command_result(stdout: '', command: 'ifconfig en0 disassociate'))
 
           expect(model._disconnect).to be_nil
@@ -1144,13 +1144,13 @@ module WifiWand
         it 'raises a disconnect error when both sudo and plain ifconfig fail' do
           allow(model).to receive_messages(swift_and_corewlan_present?: false, wifi_interface: 'en0')
 
-          expect(model).to receive(:run_os_command).with(
+          expect(model).to receive(:run_command_using_args).with(
             %w[sudo ifconfig en0 disassociate],
             false,
             timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
           ).and_return(command_result(stderr: 'sudo authentication failed', exitstatus: 1,
             command: 'sudo ifconfig en0 disassociate'))
-          expect(model).to receive(:run_os_command).with(%w[ifconfig en0 disassociate], false)
+          expect(model).to receive(:run_command_using_args).with(%w[ifconfig en0 disassociate], false)
             .and_return(command_result(stderr: 'permission denied', exitstatus: 1,
               command: 'ifconfig en0 disassociate'))
 
@@ -1170,7 +1170,7 @@ module WifiWand
 
       describe '#swift_and_corewlan_present?' do
         it 'handles unexpected errors gracefully and returns false' do
-          allow(model).to receive(:run_os_command).and_raise(StandardError.new('unexpected'))
+          allow(model).to receive(:run_command_using_args).and_raise(StandardError.new('unexpected'))
           expect(model.swift_and_corewlan_present?).to be(false)
         end
       end
@@ -1187,7 +1187,7 @@ module WifiWand
           networksetup_output = "Preferred networks on en0:\n\tLibraryWiFi\n\t@thePAD/Magma\n\tHomeNetwork\n"
           allow(model).to receive_messages(
             wifi_interface: 'en0',
-            run_os_command: command_result(stdout: networksetup_output)
+            run_command_using_args: command_result(stdout: networksetup_output)
           )
 
           result = model.preferred_networks
@@ -1198,7 +1198,7 @@ module WifiWand
         it 'handles empty preferred networks list' do
           allow(model).to receive_messages(
             wifi_interface: 'en0',
-            run_os_command: command_result(stdout: "Preferred networks on en0:\n")
+            run_command_using_args: command_result(stdout: "Preferred networks on en0:\n")
           )
 
           expect(model.preferred_networks).to eq([])
@@ -1393,7 +1393,7 @@ module WifiWand
       describe '#airport_data (private)' do
         it 'parses system_profiler JSON output' do
           json_output = '{"SPAirPortDataType": [{"test": "data"}]}'
-          allow(model).to receive(:run_os_command).with(
+          allow(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPAirPortDataType],
             true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
@@ -1404,7 +1404,7 @@ module WifiWand
         end
 
         it 'raises error for invalid JSON' do
-          allow(model).to receive(:run_os_command).and_return(command_result(stdout: 'invalid json'))
+          allow(model).to receive(:run_command_using_args).and_return(command_result(stdout: 'invalid json'))
 
           expect { model.send(:airport_data) }.to raise_error(/Failed to parse system_profiler output/)
         end
@@ -1412,7 +1412,7 @@ module WifiWand
         it 'memoizes parsed system_profiler data across repeated reads' do
           json_output = '{"SPAirPortDataType": [{"test": "data"}]}'
 
-          expect(model).to receive(:run_os_command).with(
+          expect(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPAirPortDataType],
             true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
@@ -1426,7 +1426,7 @@ module WifiWand
 
       describe '#run_swift_command' do
         it 'constructs and executes swift command with arguments' do
-          expect(model).to receive(:run_os_command) do |cmd|
+          expect(model).to receive(:run_command_using_args) do |cmd|
             expect(cmd[0]).to eq('swift')
             expect(cmd[1]).to end_with('WifiNetworkConnector.swift')
             expect(cmd[2]).to eq('TestNetwork')
@@ -1437,7 +1437,7 @@ module WifiWand
         end
 
         it 'handles commands with no arguments' do
-          expect(model).to receive(:run_os_command) do |cmd|
+          expect(model).to receive(:run_command_using_args) do |cmd|
             expect(cmd[0]).to eq('swift')
             expect(cmd[1]).to end_with('WifiNetworkDisconnector.swift')
             expect(cmd.length).to eq(2)
@@ -1525,7 +1525,7 @@ module WifiWand
       describe '#os_level_connect_using_networksetup' do
         it 'constructs networksetup command with password' do
           allow(model).to receive(:wifi_interface).and_return('en0')
-          expect(model).to receive(:run_os_command)
+          expect(model).to receive(:run_command_using_args)
             .with(['networksetup', '-setairportnetwork', 'en0', 'TestNetwork', 'password123'])
             .and_return(success_result)
 
@@ -1534,7 +1534,7 @@ module WifiWand
 
         it 'constructs networksetup command without password' do
           allow(model).to receive(:wifi_interface).and_return('en0')
-          expect(model).to receive(:run_os_command)
+          expect(model).to receive(:run_command_using_args)
             .with(['networksetup', '-setairportnetwork', 'en0', 'TestNetwork'])
             .and_return(success_result)
 
@@ -1544,7 +1544,7 @@ module WifiWand
         it 'raises NetworkAuthenticationError with reason when password is invalid' do
           allow(model).to receive(:wifi_interface).and_return('en0')
           failure_output = "Failed to join network TestNetwork.\nReason: Invalid password."
-          allow(model).to receive(:run_os_command)
+          allow(model).to receive(:run_command_using_args)
             .with(['networksetup', '-setairportnetwork', 'en0', 'TestNetwork', 'badpass'])
             .and_return(command_result(stdout: failure_output))
 
@@ -1660,7 +1660,7 @@ module WifiWand
         it 'reuses cached airport data across consecutive security lookups' do
           json_output = JSON.generate(connected_airport_data)
 
-          expect(model).to receive(:run_os_command).with(
+          expect(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPAirPortDataType],
             true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
@@ -1674,13 +1674,13 @@ module WifiWand
         it 'clears cached airport data before a state-changing operation' do
           json_output = JSON.generate(connected_airport_data)
 
-          expect(model).to receive(:run_os_command).with(
+          expect(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPAirPortDataType],
             true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
           ).twice.and_return(command_result(stdout: json_output))
           allow(model).to receive(:wifi_interface).and_return(wifi_interface)
-          allow(model).to receive(:run_os_command).with(
+          allow(model).to receive(:run_command_using_args).with(
             ['networksetup', '-setairportpower', wifi_interface, 'on']
           ).and_return(command_result(stdout: ''))
 
@@ -1884,7 +1884,7 @@ module WifiWand
       describe '#detect_wifi_service_name edge cases' do
         it 'returns Wi-Fi as final fallback when all detection fails' do
           no_wifi_output = "Hardware Port: Ethernet\nDevice: en1"
-          allow(model).to receive(:run_os_command).with(%w[networksetup -listallhardwareports])
+          allow(model).to receive(:run_command_using_args).with(%w[networksetup -listallhardwareports])
             .and_return(command_result(stdout: no_wifi_output))
           allow(model).to receive(:wifi_interface).and_return('en0')
 

@@ -261,12 +261,12 @@ module WifiWand
       _ip_address
     end
 
-    def run_os_command(command, raise_on_error = true, timeout_in_secs: nil)
-      @command_executor.run_os_command(command, raise_on_error, timeout_in_secs: timeout_in_secs)
+    def run_command_using_args(command, raise_on_error = true, timeout_in_secs: nil)
+      @command_executor.run_command_using_args(command, raise_on_error, timeout_in_secs: timeout_in_secs)
     end
 
-    def run_repl_command(command, raise_on_error = true, timeout_in_secs: nil)
-      @command_executor.run_repl_command(command, raise_on_error, timeout_in_secs: timeout_in_secs)
+    def run_command_using_shell(command, raise_on_error = true, timeout_in_secs: nil)
+      @command_executor.run_command_using_shell(command, raise_on_error, timeout_in_secs: timeout_in_secs)
     end
 
     # Returns an explicit internet connectivity state:

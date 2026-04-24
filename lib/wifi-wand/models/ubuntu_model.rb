@@ -44,7 +44,7 @@ module WifiWand
 
     def probe_wifi_interface
       debug_method_entry(__method__)
-      lines = run_os_command(%w[iw dev]).stdout.lines.map(&:strip)
+      lines = run_command_using_args(%w[iw dev]).stdout.lines.map(&:strip)
       current_interface = nil
       lines.each do |line|
         if line.start_with?('Interface ')
@@ -57,19 +57,19 @@ module WifiWand
     end
 
     def is_wifi_interface?(interface)
-      result = run_os_command(['iw', 'dev', interface, 'info'], false)
+      result = run_command_using_args(['iw', 'dev', interface, 'info'], false)
       result.success?
     end
 
     def wifi_on?
-      output = run_os_command(%w[nmcli radio wifi], false).stdout
+      output = run_command_using_args(%w[nmcli radio wifi], false).stdout
       output.match?(/enabled/)
     end
 
     def connected?
       return false unless wifi_on?
 
-      output = run_os_command(['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], false).stdout
+      output = run_command_using_args(['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], false).stdout
       output.split("\n").any? { |line| line.strip == wifi_interface }
     end
 
@@ -87,7 +87,7 @@ module WifiWand
     def wifi_on
       return if wifi_on?
 
-      run_os_command(%w[nmcli radio wifi on])
+      run_command_using_args(%w[nmcli radio wifi on])
       till(:wifi_on, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
       wifi_on? ? nil : raise(WifiEnableError)
     rescue WifiWand::WaitTimeoutError
@@ -97,7 +97,7 @@ module WifiWand
     def wifi_off
       return unless wifi_on?
 
-      run_os_command(%w[nmcli radio wifi off])
+      run_command_using_args(%w[nmcli radio wifi off])
       till(:wifi_off, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
       wifi_on? ? raise(WifiDisableError) : nil
     rescue WifiWand::WaitTimeoutError
@@ -107,7 +107,7 @@ module WifiWand
     def _available_network_names
       debug_method_entry(__method__)
 
-      output = run_os_command(['nmcli', '-t', '-f', 'SSID,SIGNAL', 'dev', 'wifi', 'list']).stdout
+      output = run_command_using_args(['nmcli', '-t', '-f', 'SSID,SIGNAL', 'dev', 'wifi', 'list']).stdout
       networks_with_signal = output.split("\n").map(&:strip).reject(&:empty?)
 
       # Parse SSID and signal strength, then sort by signal (descending)
@@ -123,7 +123,7 @@ module WifiWand
       interface = wifi_interface
       return nil unless interface
 
-      output = run_os_command(['iw', 'dev', interface, 'link'], false).stdout
+      output = run_command_using_args(['iw', 'dev', interface, 'link'], false).stdout
       return nil if output.strip.start_with?('Not connected')
 
       ssid_line = output.split("\n").find { |line| line.strip.start_with?('SSID:') }
@@ -180,24 +180,24 @@ module WifiWand
               return
             end
             # Always bring the connection up.
-            run_os_command(['nmcli', 'connection', 'up', profile])
+            run_command_using_args(['nmcli', 'connection', 'up', profile])
           else
             # No profile exists, create a new one.
             # Intentionally pass the caller-supplied password through to nmcli.
             # wifi-wand is designed for single-user machines under the operator
             # control, and showing the exact supplied credential is useful when
             # troubleshooting failed joins in verbose mode.
-            run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
+            run_command_using_args(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
           end
         else
           # Case 3: No password provided.
           profile = find_best_profile_for_ssid(network_name)
           if profile
             # Profile exists, try to bring it up with stored settings.
-            run_os_command(['nmcli', 'connection', 'up', profile])
+            run_command_using_args(['nmcli', 'connection', 'up', profile])
           else
             # No profile exists, try to connect to it as an open network.
-            run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name])
+            run_command_using_args(['nmcli', 'dev', 'wifi', 'connect', network_name])
           end
         end
       rescue WifiWand::CommandExecutor::OsCommandError => e
@@ -247,7 +247,7 @@ module WifiWand
 
       # Use the terse, machine-readable output to get the security protocol.
       begin
-        output = run_os_command(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false).stdout
+        output = run_command_using_args(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false).stdout
       rescue WifiWand::CommandExecutor::OsCommandError
         return nil # Can't scan, so can't determine the type.
       end
@@ -273,14 +273,14 @@ module WifiWand
     private def security_parameter(ssid) = get_security_parameter(ssid)
 
     private def activate_and_persist_updated_password(network_name, password, existing_profile)
-      run_os_command(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
+      run_command_using_args(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
 
       security_param = get_security_parameter(network_name)
 
       return unless security_param
 
       profile_to_update = persistence_target_profile_for_ssid(network_name, existing_profile)
-      run_os_command(['nmcli', 'connection', 'modify', profile_to_update, security_param, password])
+      run_command_using_args(['nmcli', 'connection', 'modify', profile_to_update, security_param, password])
     end
 
     private def persistence_target_profile_for_ssid(network_name, existing_profile)
@@ -312,7 +312,7 @@ module WifiWand
       debug_method_entry(__method__, binding, :ssid)
 
       begin
-        output = run_os_command(['nmcli', '-t', '-f', 'NAME,TIMESTAMP', 'connection', 'show'], false).stdout
+        output = run_command_using_args(['nmcli', '-t', '-f', 'NAME,TIMESTAMP', 'connection', 'show'], false).stdout
       rescue WifiWand::CommandExecutor::OsCommandError
         # If the command fails for any reason, we can't find profiles.
         return nil
@@ -337,7 +337,7 @@ module WifiWand
       return [] if matching_profiles.empty?
 
       matching_profiles.each do |profile_name|
-        run_os_command(['nmcli', 'connection', 'delete', profile_name])
+        run_command_using_args(['nmcli', 'connection', 'delete', profile_name])
       end
       matching_profiles
     end
@@ -360,7 +360,7 @@ module WifiWand
     public def preferred_networks
       debug_method_entry(__method__)
 
-      output = run_os_command(['nmcli', '-t', '-f', 'NAME,TYPE', 'connection', 'show']).stdout
+      output = run_command_using_args(['nmcli', '-t', '-f', 'NAME,TYPE', 'connection', 'show']).stdout
       connections = output.split("\n")
         .map { |line| nmcli_split(line, 2) }
         .select { |_, type| type == '802-11-wireless' }
@@ -372,7 +372,7 @@ module WifiWand
     public def _preferred_network_password(preferred_network_name)
       debug_method_entry(__method__, binding, :preferred_network_name)
 
-      output = run_os_command(['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name],
+      output = run_command_using_args(['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name],
         false).stdout
       extract_preferred_network_secret(output)
     end
@@ -390,7 +390,7 @@ module WifiWand
     public def _ip_address
       debug_method_entry(__method__)
 
-      output = run_os_command(['ip', '-4', 'addr', 'show', wifi_interface], false).stdout
+      output = run_command_using_args(['ip', '-4', 'addr', 'show', wifi_interface], false).stdout
       inet_line = output.split("\n").find { |line| line.include?('inet ') }
       return nil unless inet_line
 
@@ -404,7 +404,7 @@ module WifiWand
     public def mac_address
       debug_method_entry(__method__)
 
-      output = run_os_command(['ip', 'link', 'show', wifi_interface], false).stdout
+      output = run_command_using_args(['ip', 'link', 'show', wifi_interface], false).stdout
       ether_line = output.split("\n").find { |line| line.include?('ether') }
       return nil unless ether_line
 
@@ -419,7 +419,7 @@ module WifiWand
 
       interface = wifi_interface
       begin
-        run_os_command(['nmcli', 'dev', 'disconnect', interface])
+        run_command_using_args(['nmcli', 'dev', 'disconnect', interface])
       rescue WifiWand::CommandExecutor::OsCommandError => e
         # It's normal for disconnect to fail if there's no active connection
         # Common scenarios: device not active, not connected to any network
@@ -465,10 +465,10 @@ module WifiWand
       configuration_changed = false
 
       dns_configuration_modify_commands(current_connection, desired_dns_configuration).each do |command|
-        run_os_command(command)
+        run_command_using_args(command)
         configuration_changed = true
       end
-      run_os_command(['nmcli', 'connection', 'up', current_connection])
+      run_command_using_args(['nmcli', 'connection', 'up', current_connection])
 
       nameservers
     rescue WifiWand::CommandExecutor::OsCommandError => e
@@ -491,7 +491,7 @@ module WifiWand
     public def open_resource(resource_url)
       debug_method_entry(__method__, binding, :resource_url)
 
-      run_os_command(['xdg-open', resource_url])
+      run_command_using_args(['xdg-open', resource_url])
     end
 
     public def active_connection_profile_name
@@ -501,7 +501,7 @@ module WifiWand
       return nil unless interface
 
       begin
-        output = run_os_command(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', interface],
+        output = run_command_using_args(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', interface],
           false).stdout
       rescue WifiWand::CommandExecutor::OsCommandError
         return nil
@@ -519,7 +519,7 @@ module WifiWand
       debug_method_entry(__method__)
 
       begin
-        output = run_os_command(%w[ip route show default], false).stdout
+        output = run_command_using_args(%w[ip route show default], false).stdout
         return nil if output.empty?
 
         # Extract interface name (5th field in: "default via 192.168.1.1 dev wlp0s20f3 ...")
@@ -537,7 +537,7 @@ module WifiWand
       debug_method_entry(__method__, binding, :connection_name)
 
       begin
-        output = run_os_command(['nmcli', 'connection', 'show', connection_name], false).stdout
+        output = run_command_using_args(['nmcli', 'connection', 'show', connection_name], false).stdout
 
         # Extract DNS servers from connection configuration
         # Look for both configured DNS (ipv4.dns[1]:) and runtime DNS (IP4.DNS[1]:)
@@ -615,13 +615,13 @@ module WifiWand
     # are not left with a partially applied DNS configuration.
     public def restore_dns_configuration(connection_name, original_dns_configuration)
       dns_configuration_modify_commands(connection_name, original_dns_configuration).each do |command|
-        run_os_command(command)
+        run_command_using_args(command)
       end
-      run_os_command(['nmcli', 'connection', 'up', connection_name])
+      run_command_using_args(['nmcli', 'connection', 'up', connection_name])
     end
 
     public def connection_property_value(connection_name, field_name)
-      run_os_command(['nmcli', '--get-values', field_name, 'connection', 'show',
+      run_command_using_args(['nmcli', '--get-values', field_name, 'connection', 'show',
         connection_name]).stdout.strip
     end
 
@@ -697,7 +697,7 @@ module WifiWand
       return nil unless network_name
 
       begin
-        output = run_os_command(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false).stdout
+        output = run_command_using_args(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false).stdout
       rescue WifiWand::CommandExecutor::OsCommandError
         return nil # Can't scan, return nil
       end
@@ -726,7 +726,7 @@ module WifiWand
 
       begin
         # Query the connection profile to check if it's marked as hidden
-        output = run_os_command(
+        output = run_command_using_args(
           ['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name], false).stdout
 
         # The output will be like "802-11-wireless.hidden:yes" or "802-11-wireless.hidden:no"

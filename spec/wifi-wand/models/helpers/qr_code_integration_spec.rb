@@ -179,8 +179,8 @@ describe 'QR Code Integration Tests' do
           _preferred_network_password: test_case[:password]
         )
 
-        # Don't mock run_os_command - let it create real QR code files
-        allow(test_model).to receive(:run_os_command) do |cmd|
+        # Don't mock run_command_using_args - let it create real QR code files
+        allow(test_model).to receive(:run_command_using_args) do |cmd|
           system(*cmd) if cmd.is_a?(Array) && cmd[0] == 'qrencode'
           command_result(stdout: '')
         end
@@ -234,7 +234,7 @@ describe 'QR Code Integration Tests' do
       )
 
       # Mock qrencode to fail
-      allow(test_model).to receive(:run_os_command) do |cmd|
+      allow(test_model).to receive(:run_command_using_args) do |cmd|
         if cmd.is_a?(Array) && cmd[0] == 'qrencode'
           raise os_command_error(exitstatus: 1, command: cmd.join(' '), text:
             'Simulated qrencode failure')
@@ -262,13 +262,9 @@ describe 'QR Code Integration Tests' do
         _preferred_network_password: 'password123'
       )
 
-      allow(test_model).to receive(:run_os_command) do |cmd|
-        if cmd.is_a?(Array) && cmd[0] == 'qrencode'
-          system(*cmd)
-          command_result(stdout: '')
-        else
-          command_result(stdout: '')
-        end
+      allow(test_model).to receive(:run_command_using_args) do |cmd|
+        system(*cmd) if cmd.is_a?(Array) && cmd[0] == 'qrencode'
+        command_result(stdout: '')
       end
 
       filename = silence_output { test_model.generate_qr_code }
@@ -305,7 +301,7 @@ describe 'QR Code Integration Tests' do
           _preferred_network_password: config[:password]
         )
 
-        allow(test_model).to receive(:run_os_command) do |cmd|
+        allow(test_model).to receive(:run_command_using_args) do |cmd|
           system(*cmd) if cmd.is_a?(Array) && cmd[0] == 'qrencode'
           command_result(stdout: '')
         end

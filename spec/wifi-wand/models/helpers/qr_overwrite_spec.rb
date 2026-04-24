@@ -59,7 +59,7 @@ describe 'QR Code Overwrite Confirmation' do
 
       in_stream = instance_double(IO, tty?: true, gets: "y\n")
       expect(File).to receive(:rename).with(kind_of(String), filename).and_call_original
-      expect(model).to receive(:run_os_command).with(qrencode_command_for(filename)) do |cmd|
+      expect(model).to receive(:run_command_using_args).with(qrencode_command_for(filename)) do |cmd|
         staged_filename = staged_output_for(cmd)
 
         expect(File.exist?(filename)).to be true
@@ -83,7 +83,7 @@ describe 'QR Code Overwrite Confirmation' do
 
       in_stream = instance_double(IO, tty?: true, gets: "n\n")
 
-      expect(model).not_to receive(:run_os_command)
+      expect(model).not_to receive(:run_command_using_args)
 
       expect do
         silence_output { model.generate_qr_code(filename, in_stream: in_stream) }
@@ -99,7 +99,7 @@ describe 'QR Code Overwrite Confirmation' do
 
       in_stream = instance_double(IO, tty?: false)
 
-      expect(model).not_to receive(:run_os_command)
+      expect(model).not_to receive(:run_command_using_args)
 
       expect do
         silence_output { model.generate_qr_code(filename, in_stream: in_stream) }
@@ -114,7 +114,7 @@ describe 'QR Code Overwrite Confirmation' do
       File.write(filename, 'old')
 
       expect(File).to receive(:rename).with(kind_of(String), filename).and_call_original
-      expect(model).to receive(:run_os_command).with(qrencode_command_for(filename)) do |cmd|
+      expect(model).to receive(:run_command_using_args).with(qrencode_command_for(filename)) do |cmd|
         staged_filename = staged_output_for(cmd)
 
         expect(File.exist?(filename)).to be true
@@ -135,7 +135,7 @@ describe 'QR Code Overwrite Confirmation' do
     with_temp_file do |filename|
       File.write(filename, 'old')
 
-      expect(model).to receive(:run_os_command).with(qrencode_command_for(filename)) do |cmd|
+      expect(model).to receive(:run_command_using_args).with(qrencode_command_for(filename)) do |cmd|
         staged_filename = staged_output_for(cmd)
 
         expect(File.exist?(filename)).to be true
@@ -158,7 +158,7 @@ describe 'QR Code Overwrite Confirmation' do
       File.write(filename, 'old')
 
       in_stream = instance_double(IO, tty?: true, gets: "y\n")
-      expect(model).to receive(:run_os_command).with(qrencode_command_for(filename)) do |cmd|
+      expect(model).to receive(:run_command_using_args).with(qrencode_command_for(filename)) do |cmd|
         staged_filename = staged_output_for(cmd)
 
         expect(File.exist?(filename)).to be true

@@ -12,15 +12,15 @@ module WifiWand
       @output = output
     end
 
-    # Executes an OS command using Open3 for security and better error handling.
+    # Executes a command using an argument array with no shell parsing.
     # @param command [Array] Command array of arguments
     # @param raise_on_error [Boolean] Whether to raise on non-zero exit
     # @param timeout_in_secs [Numeric, nil] Optional command timeout in seconds
     # @return [OsCommandResult] Structured command result
-    def run_os_command(command, raise_on_error = true, timeout_in_secs: nil)
+    def run_command_using_args(command, raise_on_error = true, timeout_in_secs: nil)
       unless command.is_a?(Array)
         raise ArgumentError,
-          "run_os_command requires an Array; got #{command.class}"
+          "run_command_using_args requires an Array; got #{command.class}"
       end
 
       command_array = command.map { |arg| arg.nil? ? '' : arg.to_s }
@@ -29,10 +29,11 @@ module WifiWand
         timeout_in_secs: timeout_in_secs)
     end
 
-    def run_repl_command(command, raise_on_error = true, timeout_in_secs: nil)
+    # Executes a command string through the shell when shell semantics are intended.
+    def run_command_using_shell(command, raise_on_error = true, timeout_in_secs: nil)
       unless command.is_a?(String)
         raise ArgumentError,
-          "run_repl_command requires a String; got #{command.class}"
+          "run_command_using_shell requires a String; got #{command.class}"
       end
 
       execute_command(['sh', '-c', command], command, raise_on_error: raise_on_error,
@@ -49,7 +50,7 @@ module WifiWand
       end
 
       max_tries.times do |n|
-        result = run_os_command(command)
+        result = run_command_using_args(command)
         stdout_text = result.stdout
         if stop_condition.(stdout_text)
           report_attempt_count.(n + 1)

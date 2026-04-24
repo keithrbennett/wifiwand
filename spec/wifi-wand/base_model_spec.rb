@@ -42,7 +42,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         dns_working?:               true,
         captive_portal_state:       :free,
         fast_connectivity?:         true,
-        run_os_command:             command_result(stdout: ''),
+        run_command_using_args:             command_result(stdout: ''),
         till:                       nil
       )
     end
@@ -306,11 +306,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
   describe '#wifi_on' do
     it 'does nothing when wifi is already on' do
       allow(subject).to receive(:wifi_on?).and_return(true)
-      allow(subject).to receive(:run_os_command)
+      allow(subject).to receive(:run_command_using_args)
       allow(subject).to receive(:till) # Mock the status waiter
 
       subject.wifi_on
-      expect(subject).not_to have_received(:run_os_command)
+      expect(subject).not_to have_received(:run_command_using_args)
     end
 
     # No real-environment test for #wifi_on on macOS.
@@ -323,11 +323,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
   describe '#wifi_off' do
     it 'does nothing when wifi is already off' do
       allow(subject).to receive(:wifi_on?).and_return(false)
-      allow(subject).to receive(:run_os_command)
+      allow(subject).to receive(:run_command_using_args)
       allow(subject).to receive(:till) # Mock the status waiter
 
       subject.wifi_off
-      expect(subject).not_to have_received(:run_os_command)
+      expect(subject).not_to have_received(:run_command_using_args)
     end
 
     # No real-environment test for #wifi_off on macOS.
@@ -1065,7 +1065,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         connected_network_password:  network_password,
         connection_security_type:    security_type,
         network_hidden?:             false,
-        run_os_command:              command_result(stdout: ''),
+        run_command_using_args:              command_result(stdout: ''),
         preferred_networks:          [network_name],
         preferred_network_password:  network_password,
         _preferred_network_password: network_password
@@ -1126,7 +1126,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
           silence_output { subject.generate_qr_code }
 
-          expect(subject).to have_received(:run_os_command)
+          expect(subject).to have_received(:run_command_using_args)
             .with(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
         end
       end
@@ -1137,7 +1137,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
         silence_output { subject.generate_qr_code }
 
-        expect(subject).to have_received(:run_os_command)
+        expect(subject).to have_received(:run_command_using_args)
           .with(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
       end
     end
@@ -1164,7 +1164,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
           safe_network_name = test_network.gsub(/[^\w\-_]/, '_')
           expected_filename = "#{safe_network_name}-qr-code.png"
 
-          expect(subject).to have_received(:run_os_command)
+          expect(subject).to have_received(:run_command_using_args)
             .with(satisfy do |cmd|
               staged_prefix = "./#{expected_filename.delete_suffix('.png')}-"
               cmd.first(2) == %w[qrencode -o] &&
@@ -1200,7 +1200,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
         result = silence_output { subject.generate_qr_code }
 
-        expect(subject).to have_received(:run_os_command)
+        expect(subject).to have_received(:run_command_using_args)
           .with(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
         expect(result).to eq('TestNetwork-qr-code.png')
       end
@@ -1208,7 +1208,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     context 'when handling errors' do
       it 'raises WifiWand::Error when qrencode command fails' do
-        allow(subject).to receive(:run_os_command)
+        allow(subject).to receive(:run_command_using_args)
           .and_raise(os_command_error(exitstatus: 1, command: 'qrencode', text: 'Command failed'))
 
         expect { silence_output { subject.generate_qr_code } }

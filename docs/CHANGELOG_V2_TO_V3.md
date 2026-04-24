@@ -61,6 +61,9 @@ For upgrade-impacting API, CLI, and behavior changes, see
 - Added `WifiWand::Client` as a cleaner programmatic API for library use.
 - All OS commands are now executed using `Open3` with argument arrays,
   eliminating shell interpolation and command injection vulnerabilities.
+- Renamed the direct command execution APIs to `run_command_using_args` and
+  `run_command_using_shell` so structured execution and shell execution are
+  distinguished explicitly for library consumers.
 - Switched from threads to the `async` gem for concurrent network detection.
 - Extracted captive-portal detection into `CaptivePortalChecker`.
 - Improved separation between OS detection, model creation, and command

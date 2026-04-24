@@ -149,7 +149,7 @@ module WifiWand
           cmd = ['qrencode'] + type_flags + ['-o', staged_filename, qr_string]
 
           begin
-            model.run_os_command(cmd)
+            model.run_command_using_args(cmd)
             File.rename(staged_filename, filename)
             model.out_stream.puts "QR code generated: #{filename}" if model.verbose_mode
           rescue WifiWand::CommandExecutor::OsCommandError => e
@@ -164,7 +164,7 @@ module WifiWand
       private def run_qrencode_text(model, qr_string, delivery_mode: :print)
         cmd = %w[qrencode -t ANSI] + [qr_string]
         begin
-          result = model.run_os_command(cmd)
+          result = model.run_command_using_args(cmd)
           output = result.stdout
           if delivery_mode.to_sym == :return
             output

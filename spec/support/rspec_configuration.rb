@@ -177,7 +177,7 @@ module RSpecConfiguration
       security_regex = /\bsecurity\s+find-generic-password\b/
 
       allow_any_instance_of(WifiWand::CommandExecutor)
-        .to receive(:run_os_command)
+        .to receive(:run_command_using_args)
         .and_wrap_original do |method, command, *args, **kwargs|
         if command.to_s.match?(security_regex)
           raise os_command_error(exitstatus: 44, command: 'security', text: '')

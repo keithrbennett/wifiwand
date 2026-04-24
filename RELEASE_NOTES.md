@@ -1,3 +1,12 @@
+## Unreleased
+
+* Rename the structured command API from `run_os_command` to `run_command_using_args`.
+* `run_command_using_args` is the default library API and accepts only argument arrays, enforcing
+  structured non-shell command execution in library code.
+* Rename the explicit shell command API from `run_repl_command` to `run_command_using_shell`.
+* `run_command_using_shell` accepts only shell command strings for cases that intentionally require shell
+  semantics.
+
 ## v3.0.0-alpha.1
 
 For the canonical version 3 upgrade and migration guide, see
@@ -185,7 +194,7 @@ For the canonical version 3 upgrade and migration guide, see
 * Replace 'public-ip-show' with 'ropen', and provide additional targets ipchicken.com,
  speedtest.net, and the Github page for this project
 * Speed up retrieval of network name
-* Remove BaseModel#run_os_command private restriction.
+* Remove BaseModel command runner private restriction.
 
 
 ## v2.2.0
