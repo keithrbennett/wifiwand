@@ -1679,13 +1679,13 @@ module WifiWand
             true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
           ).twice.and_return(command_result(stdout: json_output))
-          allow(model).to receive(:wifi_on?).and_return(false, true)
           allow(model).to receive(:wifi_interface).and_return(wifi_interface)
           allow(model).to receive(:run_os_command).with(
             ['networksetup', '-setairportpower', wifi_interface, 'on']
           ).and_return(command_result(stdout: ''))
 
           expect(model.connection_security_type).to eq('WPA2')
+          allow(model).to receive(:wifi_on?).and_return(false, true)
           expect(model.wifi_on).to be_nil
           expect(model.connection_security_type).to eq('WPA2')
         end

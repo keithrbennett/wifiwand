@@ -306,8 +306,9 @@ module WifiWand
 
     # Turns WiFi on.
     def wifi_on
-      invalidate_airport_data_cache
       return if wifi_on?
+
+      invalidate_airport_data_cache
 
       iface = wifi_interface
       run_os_command(['networksetup', '-setairportpower', iface, 'on'])
@@ -316,8 +317,9 @@ module WifiWand
 
     # Turns WiFi off.
     def wifi_off
-      invalidate_airport_data_cache
       return unless wifi_on?
+
+      invalidate_airport_data_cache
 
       iface = wifi_interface
       run_os_command(['networksetup', '-setairportpower', iface, 'off'])
