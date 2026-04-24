@@ -306,6 +306,7 @@ module WifiWand
 
     # Turns WiFi on.
     def wifi_on
+      invalidate_airport_data_cache
       return if wifi_on?
 
       iface = wifi_interface
@@ -315,6 +316,7 @@ module WifiWand
 
     # Turns WiFi off.
     def wifi_off
+      invalidate_airport_data_cache
       return unless wifi_on?
 
       iface = wifi_interface
@@ -351,6 +353,8 @@ module WifiWand
     end
 
     def _connect(network_name, password = nil)
+      invalidate_airport_data_cache
+
       if swift_and_corewlan_present?
         begin
           os_level_connect_using_swift(network_name, password)
@@ -462,6 +466,8 @@ module WifiWand
 
     # Disconnects from the currently connected network. Does not turn off WiFi.
     def _disconnect
+      invalidate_airport_data_cache
+
       # Try Swift/CoreWLAN first (preferred method)
       if swift_and_corewlan_present?
         begin
@@ -763,16 +769,22 @@ module WifiWand
     end
 
     private def airport_data
+      return @airport_data_cache if @airport_data_cache
+
       json_text = run_os_command(
         %w[system_profiler -json SPAirPortDataType],
         true,
         timeout_in_secs: SYSTEM_PROFILER_TIMEOUT_SECONDS
       ).stdout
       begin
-        JSON.parse(json_text)
+        @airport_data_cache = JSON.parse(json_text)
       rescue JSON::ParserError => e
         raise SystemProfilerError, "Failed to parse system_profiler output: #{e.message}"
       end
+    end
+
+    private def invalidate_airport_data_cache
+      @airport_data_cache = nil
     end
 
     # Gets the security type of the currently connected network.

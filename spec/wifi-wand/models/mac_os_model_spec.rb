@@ -1408,6 +1408,20 @@ module WifiWand
 
           expect { model.send(:airport_data) }.to raise_error(/Failed to parse system_profiler output/)
         end
+
+        it 'memoizes parsed system_profiler data across repeated reads' do
+          json_output = '{"SPAirPortDataType": [{"test": "data"}]}'
+
+          expect(model).to receive(:run_os_command).with(
+            %w[system_profiler -json SPAirPortDataType],
+            true,
+            timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
+          ).once.and_return(command_result(stdout: json_output))
+
+          2.times do
+            expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'data' }] })
+          end
+        end
       end
 
       describe '#run_swift_command' do
@@ -1561,6 +1575,20 @@ module WifiWand
       describe '#connection_security_type' do
         let(:network_name) { 'TestNetwork' }
         let(:wifi_interface) { 'en0' }
+        let(:connected_airport_data) do
+          {
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                           => wifi_interface,
+                'spairport_airport_other_local_wireless_networks' => [{
+                  '_name'                   => network_name,
+                  'spairport_security_mode' => 'WPA2',
+                }],
+                'spairport_current_network_information'           => { '_name' => network_name },
+              }],
+            }],
+          }
+        end
 
         before do
           # wifi_on? is called by connected_network_name, which is called by network_list_key.
@@ -1626,6 +1654,39 @@ module WifiWand
 
           allow(model).to receive(:airport_data).and_return(airport_data)
 
+          expect(model.connection_security_type).to eq('WPA2')
+        end
+
+        it 'reuses cached airport data across consecutive security lookups' do
+          json_output = JSON.generate(connected_airport_data)
+
+          expect(model).to receive(:run_os_command).with(
+            %w[system_profiler -json SPAirPortDataType],
+            true,
+            timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
+          ).once.and_return(command_result(stdout: json_output))
+
+          2.times do
+            expect(model.connection_security_type).to eq('WPA2')
+          end
+        end
+
+        it 'clears cached airport data before a state-changing operation' do
+          json_output = JSON.generate(connected_airport_data)
+
+          expect(model).to receive(:run_os_command).with(
+            %w[system_profiler -json SPAirPortDataType],
+            true,
+            timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
+          ).twice.and_return(command_result(stdout: json_output))
+          allow(model).to receive(:wifi_on?).and_return(false, true)
+          allow(model).to receive(:wifi_interface).and_return(wifi_interface)
+          allow(model).to receive(:run_os_command).with(
+            ['networksetup', '-setairportpower', wifi_interface, 'on']
+          ).and_return(command_result(stdout: ''))
+
+          expect(model.connection_security_type).to eq('WPA2')
+          expect(model.wifi_on).to be_nil
           expect(model.connection_security_type).to eq('WPA2')
         end
 
