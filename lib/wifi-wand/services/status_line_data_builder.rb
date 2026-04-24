@@ -8,7 +8,9 @@ module WifiWand
     DEFAULT_WORKER_RESULT_TIMEOUT_SECONDS = 2
     DEFAULT_WORKER_RESULT_POLL_INTERVAL_SECONDS = 0.01
     DEFAULT_WORKER_CLEANUP_TIMEOUT_SECONDS = 0.05
-    FINAL_WORKER_JOIN_AFTER_KILL_SECONDS = 0.01
+    # A killed worker still needs a short window to run Ruby-level ensure blocks
+    # that close pipes, sockets, and subprocess handles before this method returns.
+    FINAL_WORKER_JOIN_AFTER_KILL_SECONDS = 0.25
 
     attr_reader :model, :verbose_mode, :output, :expected_network_errors
 
@@ -28,6 +30,7 @@ module WifiWand
       @worker_result_timeout_seconds = worker_result_timeout_seconds
       @worker_result_poll_interval_seconds = worker_result_poll_interval_seconds
       @worker_cleanup_timeout_seconds = worker_cleanup_timeout_seconds
+      @cancelled = false
     end
 
     def call(progress_callback: nil)
@@ -62,6 +65,13 @@ module WifiWand
     end
 
     private def build_status_threads(result_queue)
+      # Audit note for cleanup risk:
+      # - network_identity may block inside model.connected? or model.connected_network_name.
+      #   On macOS that can reach helper subprocess I/O and system_profiler reads; on Ubuntu it
+      #   can wait on external commands such as iw.
+      # - connectivity_data may block inside model.internet_tcp_connectivity?,
+      #   model.dns_working?, or model.captive_portal_state. Those probes already run in helper
+      #   subprocesses, so this worker mostly waits on bounded pipe reads and helper deadlines.
       [
         spawn_worker { publish_worker_result(result_queue, :network) { network_identity } },
         spawn_worker { publish_worker_result(result_queue, :connectivity) { connectivity_data } },
@@ -114,6 +124,8 @@ module WifiWand
     end
 
     private def cleanup_worker_threads(*threads)
+      cancel_workers!
+
       threads.compact.each do |thread|
         next unless thread.alive?
 
@@ -133,7 +145,10 @@ module WifiWand
 
     private def worker_timeout_result(worker_name)
       output.puts "Warning: #{worker_name} status worker timed out" if verbose_mode
+      fallback_worker_result(worker_name)
+    end
 
+    private def fallback_worker_result(worker_name)
       case worker_name
       when :network
         {
@@ -154,6 +169,12 @@ module WifiWand
     end
 
     private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+    private def cancel_workers!
+      @cancelled = true
+    end
+
+    private def cancelled? = @cancelled
 
     private def initial_data
       {
@@ -181,7 +202,11 @@ module WifiWand
     end
 
     private def network_identity
+      return cancelled_worker_result(:network) if cancelled?
+
       connected = connected?
+      return cancelled_worker_result(:network) if cancelled?
+
       network_name = connected ? network_name_for_connected_state : nil
 
       {
@@ -208,8 +233,13 @@ module WifiWand
     end
 
     private def connectivity_data
+      return cancelled_worker_result(:connectivity) if cancelled?
+
       tcp_working = tcp_connectivity?
+      return cancelled_worker_result(:connectivity) if cancelled?
+
       dns_working = dns_working?
+      return cancelled_worker_result(:connectivity) if cancelled?
 
       return data_when_internet_unreachable(dns_working: dns_working) unless tcp_working && dns_working
 
@@ -226,6 +256,10 @@ module WifiWand
         captive_portal_state:          portal_state,
         captive_portal_login_required: captive_portal_login_required(portal_state),
       }
+    end
+
+    private def cancelled_worker_result(worker_name)
+      fallback_worker_result(worker_name)
     end
 
     private def tcp_connectivity?

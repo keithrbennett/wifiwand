@@ -434,6 +434,35 @@ describe WifiWand::StatusLineDataBuilder do
   end
 
   describe '#cleanup_worker_threads' do
+    it 'cancels follow-up work so cleanup stays bounded when a worker is merely slow' do
+      slow_builder = described_class.new(
+        model,
+        output:                              StringIO.new,
+        worker_result_timeout_seconds:       0.005,
+        worker_result_poll_interval_seconds: 0.001,
+        worker_cleanup_timeout_seconds:      0.05
+      )
+
+      allow(model).to receive(:connected?) do
+        sleep(0.02)
+        true
+      end
+      expect(model).not_to receive(:connected_network_name)
+
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      result = slow_builder.call
+      duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+      expect(result).to include(
+        wifi_on:        true,
+        connected:      nil,
+        network_name:   nil,
+        dns_working:    true,
+        internet_state: :reachable
+      )
+      expect(duration).to be < 0.08
+    end
+
     it 'logs and forcefully terminates a worker that misses the cleanup timeout' do
       output = StringIO.new
       verbose_builder = described_class.new(
