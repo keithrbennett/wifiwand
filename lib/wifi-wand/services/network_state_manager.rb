@@ -227,12 +227,26 @@ module WifiWand
       false
     end
 
+    # Retries only the known transient macOS restore failures from networksetup.
+    # OsCommandError stores the rendered command, so compare on the executable
+    # name instead of the full command string.
     private def retry_restore_connect?(error, attempts)
       return false unless @model.respond_to?(:mac?) && @model.mac?
-      return false unless error.command.to_s == 'networksetup'
+      return false unless command_executable(error.command) == 'networksetup'
       return false unless RESTORE_CONNECT_RETRY_PATTERNS.any? { |pattern| pattern.match?(error.text.to_s) }
 
       attempts < RESTORE_CONNECT_MAX_ATTEMPTS
+    end
+
+    private def command_executable(command)
+      token = case command
+              when Array
+                command.first.to_s
+              else
+                command.to_s.strip.split(/\s+/, 2).first.to_s
+      end
+
+      File.basename(token)
     end
 
     private def wait_for_connection_restoration(network_name)

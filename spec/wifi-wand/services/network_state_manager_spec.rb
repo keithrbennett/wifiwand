@@ -214,7 +214,7 @@ describe WifiWand::NetworkStateManager do
     it 'retries transient macOS networksetup restore failures' do
       transient_error = os_command_error(
         exitstatus: 1,
-        command:    'networksetup',
+        command:    'networksetup -setairportnetwork en0 TestNetwork testpass',
         text:       "Failed to join network TestNetwork.\n" \
           "Error: -3900 The operation couldn't be completed. tmpErr"
       )
@@ -243,7 +243,7 @@ describe WifiWand::NetworkStateManager do
     it 'does not retry non-transient restore command failures' do
       permanent_error = os_command_error(
         exitstatus: 1,
-        command:    'networksetup',
+        command:    'networksetup -setairportnetwork en0 TestNetwork testpass',
         text:       'Failed to join network TestNetwork. invalid parameter'
       )
       allow(mock_model).to receive_messages(
@@ -259,6 +259,29 @@ describe WifiWand::NetworkStateManager do
       expect do
         state_manager.restore_network_state(valid_state)
       end.to raise_error(WifiWand::CommandExecutor::OsCommandError, /invalid parameter/)
+
+      expect(mock_model).to have_received(:connect).once
+    end
+
+    it 'does not retry transient failures from non-networksetup commands' do
+      transient_non_networksetup_error = os_command_error(
+        exitstatus: 1,
+        command:    'security find-generic-password -D AirPort network password -a TestNetwork -w',
+        text:       "Error: -3900 The operation couldn't be completed. tmpErr"
+      )
+      allow(mock_model).to receive_messages(
+        mac?:                   true,
+        connection_ready?:      false,
+        wifi_on?:               true,
+        connected_network_name: 'OtherNetwork'
+      )
+      allow(mock_model).to receive(:connect).with('TestNetwork', 'testpass')
+        .and_raise(transient_non_networksetup_error)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
+
+      expect do
+        state_manager.restore_network_state(valid_state)
+      end.to raise_error(WifiWand::CommandExecutor::OsCommandError, /tmpErr/)
 
       expect(mock_model).to have_received(:connect).once
     end
