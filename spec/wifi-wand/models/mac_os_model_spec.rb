@@ -627,7 +627,7 @@ module WifiWand
           test_cases.each do |output, expected|
             allow(model).to receive_messages(
               detect_wifi_service_name: 'Wi-Fi',
-              run_command_using_args:           command_result(stdout: output)
+              run_command_using_args:   command_result(stdout: output)
             )
             expect(model.nameservers_using_networksetup).to eq(expected)
           end
@@ -667,8 +667,8 @@ module WifiWand
           test_cases.each do |tc|
             allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
             if tc[:input] == :clear
-              expect(model).to receive(:run_command_using_args).with(['networksetup', '-setdnsservers', 'Wi-Fi',
-                'empty'])
+              expect(model).to receive(:run_command_using_args)
+                .with(['networksetup', '-setdnsservers', 'Wi-Fi', 'empty'])
             else
               expect(model).to receive(:run_command_using_args).with(['networksetup', '-setdnsservers',
                 'Wi-Fi'] + tc[:input])
@@ -894,7 +894,8 @@ module WifiWand
         it 'uses system_profiler fallback without re-entering networksetup after failure' do
           allow(model).to receive(:detect_wifi_interface_using_networksetup).and_raise(StandardError, 'boom')
           allow(model).to receive(:detect_wifi_service_name).and_raise('should not be called')
-          allow(model).to receive(:run_command_using_args).and_return(command_result(stdout: system_profiler_output))
+          allow(model).to receive(:run_command_using_args)
+            .and_return(command_result(stdout: system_profiler_output))
 
           expect(model.probe_wifi_interface).to eq('en0')
         end
@@ -1186,7 +1187,7 @@ module WifiWand
         it 'parses and sorts preferred networks correctly' do
           networksetup_output = "Preferred networks on en0:\n\tLibraryWiFi\n\t@thePAD/Magma\n\tHomeNetwork\n"
           allow(model).to receive_messages(
-            wifi_interface: 'en0',
+            wifi_interface:         'en0',
             run_command_using_args: command_result(stdout: networksetup_output)
           )
 
@@ -1197,7 +1198,7 @@ module WifiWand
 
         it 'handles empty preferred networks list' do
           allow(model).to receive_messages(
-            wifi_interface: 'en0',
+            wifi_interface:         'en0',
             run_command_using_args: command_result(stdout: "Preferred networks on en0:\n")
           )
 

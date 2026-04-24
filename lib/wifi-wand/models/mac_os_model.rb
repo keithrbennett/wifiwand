@@ -246,7 +246,9 @@ module WifiWand
     # Returns data pertaining to "preferred" networks, many/most of which will probably not be available.
     def preferred_networks
       iface = wifi_interface
-      lines = run_command_using_args(['networksetup', '-listpreferredwirelessnetworks', iface]).stdout.split("\n")
+      lines = run_command_using_args(
+        ['networksetup', '-listpreferredwirelessnetworks', iface]
+      ).stdout.split("\n")
       # Produces something like this, unsorted, and with leading tabs:
       # Preferred networks on en0:
       #         LibraryWiFi

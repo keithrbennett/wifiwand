@@ -42,7 +42,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         dns_working?:               true,
         captive_portal_state:       :free,
         fast_connectivity?:         true,
-        run_command_using_args:             command_result(stdout: ''),
+        run_command_using_args:     command_result(stdout: ''),
         till:                       nil
       )
     end
@@ -1065,7 +1065,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         connected_network_password:  network_password,
         connection_security_type:    security_type,
         network_hidden?:             false,
-        run_command_using_args:              command_result(stdout: ''),
+        run_command_using_args:      command_result(stdout: ''),
         preferred_networks:          [network_name],
         preferred_network_password:  network_password,
         _preferred_network_password: network_password

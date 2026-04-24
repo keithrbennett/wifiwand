@@ -149,7 +149,8 @@ module WifiWand
         it 'falls back to direct connect when security cannot be determined' do
           setup_connect_test(profile_name: 'SSID2', old_password: 'oldpass', security_param: nil)
 
-          expect(subject).to receive(:run_command_using_args).with(%w[nmcli dev wifi connect SSID2 password newpass])
+          expect(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli dev wifi connect SSID2 password newpass])
             .and_return(command_result(stdout: ''))
           expect { subject._connect('SSID2', 'newpass') }.not_to raise_error
         end
@@ -266,7 +267,8 @@ module WifiWand
         it 're-raises unknown errors from nmcli' do
           setup_connect_test
 
-          expect(subject).to receive(:run_command_using_args).with(%w[nmcli dev wifi connect SSID6 password pw])
+          expect(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli dev wifi connect SSID6 password pw])
             .and_raise(
               os_command_error(
                 exitstatus: 2,
@@ -282,19 +284,22 @@ module WifiWand
 
       describe '#get_security_parameter and #security_parameter' do
         it 'returns nil when nmcli scan fails' do
-          expect(subject).to receive(:run_command_using_args).with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
+          expect(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
             .and_raise(os_command_error(exitstatus: 1, command: 'nmcli', text: 'scan failed'))
           expect(subject.send(:get_security_parameter, 'Any')).to be_nil
         end
 
         it 'returns nil for unsupported/enterprise/open security types' do
-          expect(subject).to receive(:run_command_using_args).with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
+          expect(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
             .and_return(command_result(stdout: 'CorpNet:802.1X'))
           expect(subject.send(:get_security_parameter, 'CorpNet')).to be_nil
         end
 
         it 'delegates via #security_parameter and returns PSK param for WPA2' do
-          expect(subject).to receive(:run_command_using_args).with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
+          expect(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], false)
             .and_return(command_result(stdout: 'HomeNet:WPA2'))
           expect(subject.send(:security_parameter, 'HomeNet')).to eq('802-11-wireless-security.psk')
         end

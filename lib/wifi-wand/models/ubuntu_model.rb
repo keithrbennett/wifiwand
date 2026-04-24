@@ -69,7 +69,9 @@ module WifiWand
     def connected?
       return false unless wifi_on?
 
-      output = run_command_using_args(['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], false).stdout
+      output = run_command_using_args(
+        ['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], false
+      ).stdout
       output.split("\n").any? { |line| line.strip == wifi_interface }
     end
 
@@ -247,7 +249,9 @@ module WifiWand
 
       # Use the terse, machine-readable output to get the security protocol.
       begin
-        output = run_command_using_args(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false).stdout
+        output = run_command_using_args(
+          ['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false
+        ).stdout
       rescue WifiWand::CommandExecutor::OsCommandError
         return nil # Can't scan, so can't determine the type.
       end
@@ -312,7 +316,9 @@ module WifiWand
       debug_method_entry(__method__, binding, :ssid)
 
       begin
-        output = run_command_using_args(['nmcli', '-t', '-f', 'NAME,TIMESTAMP', 'connection', 'show'], false).stdout
+        output = run_command_using_args(
+          ['nmcli', '-t', '-f', 'NAME,TIMESTAMP', 'connection', 'show'], false
+        ).stdout
       rescue WifiWand::CommandExecutor::OsCommandError
         # If the command fails for any reason, we can't find profiles.
         return nil
@@ -372,8 +378,9 @@ module WifiWand
     public def _preferred_network_password(preferred_network_name)
       debug_method_entry(__method__, binding, :preferred_network_name)
 
-      output = run_command_using_args(['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name],
-        false).stdout
+      output = run_command_using_args(
+        ['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name], false
+      ).stdout
       extract_preferred_network_secret(output)
     end
 
@@ -697,7 +704,9 @@ module WifiWand
       return nil unless network_name
 
       begin
-        output = run_command_using_args(['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false).stdout
+        output = run_command_using_args(
+          ['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false
+        ).stdout
       rescue WifiWand::CommandExecutor::OsCommandError
         return nil # Can't scan, return nil
       end
