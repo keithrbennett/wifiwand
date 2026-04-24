@@ -34,6 +34,7 @@ module WifiWand
     end
 
     def call(progress_callback: nil)
+      @cancelled = false
       partial = initial_data
 
       progress_callback&.call(partial.dup)
@@ -244,6 +245,7 @@ module WifiWand
       return data_when_internet_unreachable(dns_working: dns_working) unless tcp_working && dns_working
 
       portal_state = captive_portal_state
+      return cancelled_worker_result(:connectivity) if cancelled?
 
       {
         dns_working:                   dns_working,
@@ -258,6 +260,9 @@ module WifiWand
       }
     end
 
+    # Cancellation is an internal cleanup path after the caller has already
+    # committed to partial data, so we reuse the fallback payload silently
+    # instead of emitting an extra timeout warning.
     private def cancelled_worker_result(worker_name)
       fallback_worker_result(worker_name)
     end

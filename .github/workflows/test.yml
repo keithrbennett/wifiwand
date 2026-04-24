@@ -36,10 +36,9 @@ jobs:
         bundler-cache: true
 
     - name: Run tests
+      # The default CI environment already runs only safe tests unless
+      # WIFIWAND_REAL_ENV_TESTS is set explicitly.
       run: bundle exec rspec
-      env:
-        # Only run safe tests in CI (no network modifications)
-        RSPEC_DISRUPTIVE_TESTS: exclude
 
     - name: Upload coverage reports
       uses: codecov/codecov-action@v3

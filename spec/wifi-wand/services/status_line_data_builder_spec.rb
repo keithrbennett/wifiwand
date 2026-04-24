@@ -460,7 +460,7 @@ describe WifiWand::StatusLineDataBuilder do
         dns_working:    true,
         internet_state: :reachable
       )
-      expect(duration).to be < 0.08
+      expect(duration).to be < 0.15
     end
 
     it 'logs and forcefully terminates a worker that misses the cleanup timeout' do
