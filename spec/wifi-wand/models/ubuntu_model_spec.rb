@@ -1014,16 +1014,16 @@ module WifiWand
       describe '#is_wifi_interface?' do
         it 'returns true for valid wifi interface' do
           allow(subject).to receive(:run_os_command)
-            .with(/iw dev wlp3s0 info 2>\/dev\/null/, false)
-            .and_return(command_result(stdout: 'Interface wlp3s0\n\ttype managed'))
+            .with(%w[iw dev wlp3s0 info], false)
+            .and_return(command_result(stdout: 'Interface wlp3s0\n\ttype managed', exitstatus: 0))
 
           expect(subject.is_wifi_interface?('wlp3s0')).to be(true)
         end
 
         it 'returns false for non-wifi interface' do
           allow(subject).to receive(:run_os_command)
-            .with(/iw dev eth0 info 2>\/dev\/null/, false)
-            .and_return(command_result(stdout: ''))
+            .with(%w[iw dev eth0 info], false)
+            .and_return(command_result(stdout: '', exitstatus: 1))
 
           expect(subject.is_wifi_interface?('eth0')).to be(false)
         end
@@ -1910,11 +1910,9 @@ module WifiWand
 
       describe '#is_wifi_interface?' do
         it 'handles iw dev info command failures' do
-          # Mock iw dev info to fail without real commands
           allow(subject).to receive(:run_os_command)
-            .with(/iw dev .* info 2>\/dev\/null/, false)
-            # When command fails with raise_on_error=false, it returns empty string
-            .and_return(command_result(stdout: ''))
+            .with(%w[iw dev wlan0 info], false)
+            .and_return(command_result(stdout: '', stderr: 'No such device', exitstatus: 1))
 
           expect(subject.is_wifi_interface?('wlan0')).to be(false)
         end

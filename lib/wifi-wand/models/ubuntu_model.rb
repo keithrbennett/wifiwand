@@ -57,9 +57,8 @@ module WifiWand
     end
 
     def is_wifi_interface?(interface)
-      # Redirect stderr to /dev/null - requires shell
-      output = run_os_command("iw dev #{Shellwords.shellescape(interface)} info 2>/dev/null", false).stdout
-      !output.empty?
+      result = run_os_command(['iw', 'dev', interface, 'info'], false)
+      result.success?
     end
 
     def wifi_on?
