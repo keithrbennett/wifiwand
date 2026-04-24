@@ -18,7 +18,7 @@
 #   model.generate_qr_code('-')           # prints ANSI QR to stdout
 #
 # Notes
-# - Requires the 'Add command_line_interface_spec.rb test coverage.qrencode' tool to be installed and available on PATH.
+# - Requires the `qrencode` tool to be installed and available on PATH.
 # - For PDF output, generate SVG first and convert with a separate tool
 #   (e.g., rsvg-convert/inkscape, or ImageMagick’s `magick`),
 #   as qrencode doesn’t emit PDF.
