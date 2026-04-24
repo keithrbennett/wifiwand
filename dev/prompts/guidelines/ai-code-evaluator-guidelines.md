@@ -1,47 +1,45 @@
-# Reviewed Agent Issues
+# AI Code Evaluator Guidelines
 
-This document records issues that automated reviewers or coding agents may raise, but that maintainers have
-already reviewed and dismissed, accepted as a tradeoff, or classified as workflow concerns rather than code
-defects.
+Use this document for reviewer behavior and decision rules.
 
-Agents should read this before reporting architectural or process-oriented objections. Do not re-raise items
-from this file unless there is new evidence, changed project requirements, or an actual defect not covered by
-the rationale below.
+Use [issues-reviewed-and-dismissed.md](./issues-reviewed-and-dismissed.md) as the canonical registry of
+specific concerns that maintainers have already reviewed and dismissed, accepted as tradeoffs, or classified
+as workflow expectations rather than code defects.
 
-## Coverage Artifacts Require a Fresh Full Run
+## Purpose
 
-### Status
-Reviewed and dismissed as a code defect. This is a workflow expectation for developers, not a bug in the
-repository.
+Automated reviewers should prioritize actionable defects, regressions, correctness risks, and missing tests.
+Do not spend review budget re-raising already-settled objections unless there is a concrete reason to do so.
 
-### What an Agent Might Report
+## Before Reporting an Issue
 
-- Coverage resultsets can be partial or stale.
-- A coverage tool may omit files that were not loaded in the last run.
-- Multiple resultset files can make whole-codebase analysis ambiguous.
+1. Check whether the concern is already covered in
+   [issues-reviewed-and-dismissed.md](./issues-reviewed-and-dismissed.md).
+2. If it is covered there, do not report it again unless the current change introduces new evidence, changes
+   the underlying assumptions, or creates a distinct defect not addressed by the documented rationale.
+3. If it is not covered there, evaluate it on its actual user or maintainer impact instead of reporting
+   speculative architectural preferences.
 
-### Maintainer Position
+## What To Prioritize
 
-This repository intentionally keeps separate coverage resultsets for different test scopes:
+- Behavior changes that can break real usage
+- Incorrect results, hidden failure modes, or unsafe recovery behavior
+- Regressions in cross-platform support
+- Missing or weak tests for changed behavior
+- Documentation or prompts that materially misstate how the project works
 
-- `coverage/.resultset.json` for ordinary mocked/hermetic runs
-- `coverage/.resultset.<os>.json` for real-environment runs
+## What To Avoid
 
-Developers are expected to understand that:
+- Re-reporting dismissed concerns without new evidence
+- Treating workflow expectations as code defects
+- Escalating theoretical concerns that have no production caller, no user impact, or no changed requirement
+- Preferring abstract design purity over the repository's documented tradeoffs
 
-- a coverage file is authoritative only for the exact run that generated it
-- targeted or filtered runs produce targeted or filtered coverage
-- whole-codebase coverage analysis requires a fresh unfiltered run first
+## When To Re-Raise a Previously Dismissed Topic
 
-In other words, if someone wants trustworthy whole-codebase coverage data, they must deliberately generate it.
-That requirement is considered a normal developer responsibility, not an application defect.
+Re-raise a previously dismissed topic only when at least one of these is true:
 
-### When It May Be Raised Again
-
-Re-raise this topic only if at least one of these becomes true:
-
-- the docs stop explaining the expectation clearly
-- tooling or prompts claim a coverage file is whole-codebase authoritative when it is not
-- CI or automation begins depending on stale or partial coverage as if it were complete
-- maintainers decide they want stronger automated guarantees such as tracked-file baselines or dedicated
-  full-suite artifacts
+- The current change invalidates the documented rationale
+- Project requirements or supported workflows have changed
+- Documentation, prompts, or tooling now make a misleading claim
+- A theoretical concern has become an actual defect, regression, or operational risk

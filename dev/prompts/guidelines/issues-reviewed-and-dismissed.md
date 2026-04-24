@@ -29,6 +29,20 @@ interactive troubleshooting output and durable retained logs. Until then, do not
 action item merely because passwords may appear in verbose output.
 
 
+## `try_os_command_until` has no sleep between retries
+
+1) Do not report the absence of a sleep between retries in `try_os_command_until` as a
+   performance or resource-abuse issue.
+
+WiFi management commands (`nmcli`, `networksetup`, `iw`, etc.) are I/O-bound and typically take
+50–300 ms each, so the loop is already naturally throttled to at most 5–20 iterations per second
+by command execution time alone. A nominal sleep (e.g. 0.01 s) would add negligible benefit.
+There are also no current production callers in the codebase, so the concern is theoretical.
+
+Raise this again only if a production caller is added that passes a trivially fast command
+(e.g. `echo`) and the `max_tries` default is not adjusted appropriately for that use case.
+
+
 ## WPA minimum-length validation should stay OS-driven
 
 1) Do not raise lack of SSID-specific WPA minimum-length validation as a current
