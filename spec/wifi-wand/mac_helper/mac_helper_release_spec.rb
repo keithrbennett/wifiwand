@@ -174,4 +174,63 @@ RSpec.describe WifiWand::MacHelperRelease do
       end
     end
   end
+
+  describe '.notarize_helper' do
+    let(:bundle_path) { '/tmp/wifiwand-helper.app' }
+    let(:zip_path) { "#{bundle_path}.zip" }
+    let(:codesign_status) { instance_double(Process::Status, success?: true) }
+    let(:developer_id_signature) do
+      <<~OUTPUT
+        Executable=#{bundle_path}/Contents/MacOS/wifiwand-helper
+        Authority=Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)
+      OUTPUT
+    end
+
+    before do
+      allow(described_class::Operations).to receive(:require_macos!)
+      allow(described_class).to receive(:fetch_notary_credentials!).and_return(creds)
+      allow(described_class).to receive(:verify_source_attestation!)
+      allow(WifiWand::MacOsWifiAuthHelper).to receive(:source_bundle_path).and_return(bundle_path)
+      allow(File).to receive(:exist?).with(bundle_path).and_return(true)
+    end
+
+    it 'aborts before notarization work when codesign reports an ad-hoc signature on stderr' do
+      allow(Open3).to receive(:capture3).with('codesign', '-dv', bundle_path).and_return(
+        ['', "Executable=#{bundle_path}/Contents/MacOS/wifiwand-helper\nSignature=adhoc\n", codesign_status]
+      )
+      allow(described_class::Operations).to receive(:create_zip)
+      allow(described_class::Operations).to receive(:submit_for_notarization)
+
+      expect_system_exit_with_stderr(
+        %r{
+          Helper\ is\ ad-hoc\ signed.*
+          Rebuild\ it\ with\ your\ configured\ Developer\ ID\ identity:.*
+          Run:\ bin/mac-helper\ build
+        }mx
+      ) do
+        described_class.notarize_helper
+      end
+
+      expect(described_class::Operations).not_to have_received(:create_zip)
+      expect(described_class::Operations).not_to have_received(:submit_for_notarization)
+    end
+
+    it 'continues into notarization when codesign reports a Developer ID signature' do
+      allow(Open3).to receive(:capture3).with('codesign', '-dv', bundle_path).and_return(
+        ['', developer_id_signature, codesign_status]
+      )
+      allow(described_class::Operations).to receive(:create_zip).with(bundle_path, zip_path)
+      allow(described_class::Operations).to receive(:submit_for_notarization).with(
+        zip_path,
+        creds[:profile_name],
+        creds[:keychain_path],
+        creds[:team_id]
+      ).and_return("id: 123\nstatus: Accepted\n")
+      allow(described_class::Operations).to receive(:staple_ticket).with(bundle_path)
+      allow(FileUtils).to receive(:rm_f).with(zip_path)
+
+      expect { described_class.notarize_helper }
+        .to output(/Notarizing helper for distribution.*Notarization successful!/m).to_stdout
+    end
+  end
 end

@@ -441,10 +441,12 @@ module WifiWand
 
       verify_source_attestation!
 
-      stdout, _stderr, status = Open3.capture3('codesign', '-dv', bundle_path)
-      if status.success? && stdout.include?('adhoc')
+      stdout, stderr, status = Open3.capture3('codesign', '-dv', bundle_path)
+      codesign_output = [stdout, stderr].join("\n")
+      if status.success? && codesign_output.match?(/\badhoc\b/i)
         abort <<~ERROR.chomp
           Error: Helper is ad-hoc signed. Must be signed with Developer ID.
+          Rebuild it with your configured Developer ID identity:
           Run: bin/mac-helper build
         ERROR
       end
