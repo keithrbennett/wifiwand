@@ -179,6 +179,7 @@ RSpec.describe WifiWand::MacHelperRelease do
     let(:bundle_path) { '/tmp/wifiwand-helper.app' }
     let(:zip_path) { "#{bundle_path}.zip" }
     let(:codesign_status) { instance_double(Process::Status, success?: true) }
+    let(:codesign_failure_status) { instance_double(Process::Status, success?: false) }
     let(:developer_id_signature) do
       <<~OUTPUT
         Executable=#{bundle_path}/Contents/MacOS/wifiwand-helper
@@ -192,6 +193,23 @@ RSpec.describe WifiWand::MacHelperRelease do
       allow(described_class).to receive(:verify_source_attestation!)
       allow(WifiWand::MacOsWifiAuthHelper).to receive(:source_bundle_path).and_return(bundle_path)
       allow(File).to receive(:exist?).with(bundle_path).and_return(true)
+    end
+
+    it 'aborts before notarization work when codesign exits non-zero (unsigned binary)' do
+      allow(Open3).to receive(:capture3).with('codesign', '-dv', bundle_path).and_return(
+        ['', "#{bundle_path}: code object is not signed at all\n", codesign_failure_status]
+      )
+      allow(described_class::Operations).to receive(:create_zip)
+      allow(described_class::Operations).to receive(:submit_for_notarization)
+
+      expect_system_exit_with_stderr(
+        /Could not inspect code signature.*code object is not signed.*bin\/mac-helper build/m
+      ) do
+        described_class.notarize_helper
+      end
+
+      expect(described_class::Operations).not_to have_received(:create_zip)
+      expect(described_class::Operations).not_to have_received(:submit_for_notarization)
     end
 
     it 'aborts before notarization work when codesign reports an ad-hoc signature on stderr' do

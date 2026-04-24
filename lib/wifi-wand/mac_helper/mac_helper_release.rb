@@ -443,7 +443,15 @@ module WifiWand
 
       stdout, stderr, status = Open3.capture3('codesign', '-dv', bundle_path)
       codesign_output = [stdout, stderr].join("\n")
-      if status.success? && codesign_output.match?(/\badhoc\b/i)
+      if !status.success?
+        abort <<~ERROR.chomp
+          Error: Could not inspect code signature.
+
+          #{codesign_output.strip}
+
+          Run: bin/mac-helper build
+        ERROR
+      elsif codesign_output.match?(/\badhoc\b/i)
         abort <<~ERROR.chomp
           Error: Helper is ad-hoc signed. Must be signed with Developer ID.
           Rebuild it with your configured Developer ID identity:
