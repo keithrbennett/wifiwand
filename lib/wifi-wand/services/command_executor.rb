@@ -13,21 +13,55 @@ module WifiWand
     end
 
     # Executes an OS command using Open3 for security and better error handling.
-    # @param command [String, Array] Command string or array of arguments
+    # @param command [Array] Command array of arguments
     # @param raise_on_error [Boolean] Whether to raise on non-zero exit
     # @param timeout_in_secs [Numeric, nil] Optional command timeout in seconds
     # @return [OsCommandResult] Structured command result
     def run_os_command(command, raise_on_error = true, timeout_in_secs: nil)
-      # Support both string commands (for backwards compatibility with shell features)
-      # and array commands (for secure execution without shell interpretation)
-      if command.is_a?(Array)
-        command_array = command.map { |arg| arg.nil? ? '' : arg.to_s }
-        command_display = command_array.join(' ')
-      else
-        command_array = ['sh', '-c', command]
-        command_display = command
+      unless command.is_a?(Array)
+        raise ArgumentError,
+          "run_os_command requires an Array; got #{command.class}"
       end
 
+      command_array = command.map { |arg| arg.nil? ? '' : arg.to_s }
+      command_display = command_array.join(' ')
+      execute_command(command_array, command_display, raise_on_error: raise_on_error,
+        timeout_in_secs: timeout_in_secs)
+    end
+
+    def run_repl_command(command, raise_on_error = true, timeout_in_secs: nil)
+      unless command.is_a?(String)
+        raise ArgumentError,
+          "run_repl_command requires a String; got #{command.class}"
+      end
+
+      execute_command(['sh', '-c', command], command, raise_on_error: raise_on_error,
+        timeout_in_secs: timeout_in_secs)
+    end
+
+    # Tries an OS command until the stop condition is true.
+    # @command the command to run in the OS
+    # @stop_condition a lambda taking the command's stdout as its sole parameter
+    # @return the stdout produced by the command, or nil if max_tries was reached
+    def try_os_command_until(command, stop_condition, max_tries = 100)
+      report_attempt_count = ->(attempt_count) do
+        @output.puts "Command was executed #{attempt_count} time(s)." if @verbose
+      end
+
+      max_tries.times do |n|
+        result = run_os_command(command)
+        stdout_text = result.stdout
+        if stop_condition.(stdout_text)
+          report_attempt_count.(n + 1)
+          return stdout_text
+        end
+      end
+
+      report_attempt_count.(max_tries)
+      nil
+    end
+
+    private def execute_command(command_array, command_display, raise_on_error:, timeout_in_secs:)
       if @verbose
         @output.puts command_attempt_as_string(command_display)
       end
@@ -114,7 +148,7 @@ module WifiWand
         threads&.each(&:join)
       end
     rescue Errno::ENOENT => e
-      missing_command = missing_command_name(command, e)
+      missing_command = missing_command_name(command_array, e)
       raise CommandNotFoundError, missing_command
     else
       duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
@@ -148,28 +182,6 @@ module WifiWand
       end
 
       result
-    end
-
-    # Tries an OS command until the stop condition is true.
-    # @command the command to run in the OS
-    # @stop_condition a lambda taking the command's stdout as its sole parameter
-    # @return the stdout produced by the command, or nil if max_tries was reached
-    def try_os_command_until(command, stop_condition, max_tries = 100)
-      report_attempt_count = ->(attempt_count) do
-        @output.puts "Command was executed #{attempt_count} time(s)." if @verbose
-      end
-
-      max_tries.times do |n|
-        result = run_os_command(command)
-        stdout_text = result.stdout
-        if stop_condition.(stdout_text)
-          report_attempt_count.(n + 1)
-          return stdout_text
-        end
-      end
-
-      report_attempt_count.(max_tries)
-      nil
     end
 
     # Checks if a command is available in the system PATH.

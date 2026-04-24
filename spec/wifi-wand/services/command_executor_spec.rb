@@ -47,7 +47,7 @@ describe WifiWand::CommandExecutor do
       let(:executor) { described_class.new(verbose: false) }
 
       it 'executes commands successfully' do
-        result = executor.run_os_command('echo "test"')
+        result = executor.run_os_command(%w[echo test])
         expect(result).to be_a(WifiWand::CommandExecutor::OsCommandResult)
         expect(result.stdout.strip).to eq('test')
       end
@@ -65,26 +65,26 @@ describe WifiWand::CommandExecutor do
 
       it 'raises OsCommandError on command failure when raise_on_error is true' do
         expect do
-          executor.run_os_command('false')
+          executor.run_os_command(['false'])
         end.to raise_error(WifiWand::CommandExecutor::OsCommandError)
       end
 
       it 'returns result without raising on command failure when raise_on_error is false' do
-        result = executor.run_os_command('false', false)
+        result = executor.run_os_command(['false'], false)
         expect(result).to be_a(WifiWand::CommandExecutor::OsCommandResult)
         expect(result.exitstatus).not_to eq(0)
       end
 
-      it 'captures both stdout and stderr' do
-        result = executor.run_os_command("bash -c 'echo \"stdout\"; echo \"stderr\" >&2'", false)
-        expect(result.stdout).to include('stdout')
-        expect(result.stderr).to include('stderr')
+      it 'raises ArgumentError when run_os_command receives a String' do
+        expect do
+          executor.run_os_command('echo "test"')
+        end.to raise_error(ArgumentError, /run_os_command requires an Array/)
       end
 
-      it 'raises CommandTimeoutError for shell commands that exceed the timeout' do
+      it 'raises ArgumentError when run_repl_command receives a non-String' do
         expect do
-          executor.run_os_command("#{RbConfig.ruby} -e 'sleep 5'", true, timeout_in_secs: 0.2)
-        end.to raise_error(WifiWand::CommandTimeoutError, /sleep 5/)
+          executor.run_repl_command(%w[echo test])
+        end.to raise_error(ArgumentError, /run_repl_command requires a String/)
       end
 
       it 'terminates timed out child processes without leaking them' do
@@ -165,12 +165,28 @@ describe WifiWand::CommandExecutor do
       end
     end
 
+    context 'with REPL string commands' do
+      let(:executor) { described_class.new(verbose: false) }
+
+      it 'captures both stdout and stderr' do
+        result = executor.run_repl_command("bash -c 'echo \"stdout\"; echo \"stderr\" >&2'", false)
+        expect(result.stdout).to include('stdout')
+        expect(result.stderr).to include('stderr')
+      end
+
+      it 'raises CommandTimeoutError for shell commands that exceed the timeout' do
+        expect do
+          executor.run_repl_command("#{RbConfig.ruby} -e 'sleep 5'", true, timeout_in_secs: 0.2)
+        end.to raise_error(WifiWand::CommandTimeoutError, /sleep 5/)
+      end
+    end
+
     context 'with verbose mode enabled' do
       let(:executor) { described_class.new(verbose: true) }
 
       it 'outputs command attempt and duration info' do
         expect do
-          executor.run_os_command('echo "test"')
+          executor.run_repl_command('echo "test"')
         end.to output(/Command:.*echo "test".*Duration:.*seconds/m).to_stdout
       end
     end
@@ -181,7 +197,7 @@ describe WifiWand::CommandExecutor do
 
     it 'returns output when condition is met on first try' do
       condition = ->(output) { output.include?('success') }
-      expect(executor.try_os_command_until('echo "success"', condition, 3).strip).to eq('success')
+      expect(executor.try_os_command_until(%w[echo success], condition, 3).strip).to eq('success')
     end
 
     it 'retries until condition is met' do
@@ -201,21 +217,21 @@ describe WifiWand::CommandExecutor do
 
       condition = ->(output) { output.include?('attempt 2') }
 
-      result = executor.try_os_command_until('echo "test"', condition, 5)
+      result = executor.try_os_command_until(%w[echo test], condition, 5)
       expect(result.strip).to eq('attempt 2')
       expect(call_count).to eq(2)
     end
 
     it 'returns nil when max_tries is reached without success' do
       condition = ->(_output) { false }
-      expect(executor.try_os_command_until('echo "fail"', condition, 2)).to be_nil
+      expect(executor.try_os_command_until(%w[echo fail], condition, 2)).to be_nil
     end
 
     it 'reports attempt count in verbose mode' do
       io = StringIO.new
       verbose_executor = described_class.new(verbose: true, output: io)
       condition = ->(_output) { true }
-      verbose_executor.try_os_command_until('echo "test"', condition, 3)
+      verbose_executor.try_os_command_until(%w[echo test], condition, 3)
       expect(io.string).to match(/Command was executed 1 time/)
     end
   end

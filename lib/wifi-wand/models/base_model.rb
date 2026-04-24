@@ -265,6 +265,10 @@ module WifiWand
       @command_executor.run_os_command(command, raise_on_error, timeout_in_secs: timeout_in_secs)
     end
 
+    def run_repl_command(command, raise_on_error = true, timeout_in_secs: nil)
+      @command_executor.run_repl_command(command, raise_on_error, timeout_in_secs: timeout_in_secs)
+    end
+
     # Returns an explicit internet connectivity state:
     # :reachable, :unreachable, or :indeterminate.
     def internet_connectivity_state(tcp_working = nil, dns_working = nil,
