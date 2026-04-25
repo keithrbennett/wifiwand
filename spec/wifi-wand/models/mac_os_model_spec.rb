@@ -402,6 +402,40 @@ module WifiWand
 
           expect(model._connected_network_name).to eq('ProfilerNet')
         end
+
+        it 'refreshes connected network state across separate public read operations' do
+          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: nil)
+          first_airport_data = JSON.generate(
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                 => 'en0',
+                'spairport_current_network_information' => { '_name' => 'ProfilerNetA' },
+              }],
+            }]
+          )
+          second_airport_data = JSON.generate(
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                 => 'en0',
+                'spairport_current_network_information' => { '_name' => 'ProfilerNetB' },
+              }],
+            }]
+          )
+
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+          allow(model).to receive_messages(wifi_interface: 'en0', wifi_on?: true)
+          expect(model).to receive(:run_command_using_args).with(
+            %w[system_profiler -json SPAirPortDataType],
+            true,
+            timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
+          ).twice.and_return(
+            command_result(stdout: first_airport_data),
+            command_result(stdout: second_airport_data)
+          )
+
+          expect(model.connected_network_name).to eq('ProfilerNetA')
+          expect(model.connected_network_name).to eq('ProfilerNetB')
+        end
       end
 
       describe '#associated?' do
@@ -1410,17 +1444,27 @@ module WifiWand
           expect { model.send(:airport_data) }.to raise_error(/Failed to parse system_profiler output/)
         end
 
-        it 'memoizes parsed system_profiler data across repeated reads' do
-          json_output = '{"SPAirPortDataType": [{"test": "data"}]}'
+        it 'memoizes parsed system_profiler data only within a cache scope' do
+          first_json_output = '{"SPAirPortDataType": [{"test": "first"}]}'
+          second_json_output = '{"SPAirPortDataType": [{"test": "second"}]}'
 
           expect(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPAirPortDataType],
             true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
-          ).once.and_return(command_result(stdout: json_output))
+          ).twice.and_return(
+            command_result(stdout: first_json_output),
+            command_result(stdout: second_json_output)
+          )
 
-          2.times do
-            expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'data' }] })
+          model.send(:with_airport_data_cache_scope) do
+            2.times do
+              expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'first' }] })
+            end
+          end
+
+          model.send(:with_airport_data_cache_scope) do
+            expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'second' }] })
           end
         end
       end
@@ -1658,8 +1702,14 @@ module WifiWand
           expect(model.connection_security_type).to eq('WPA2')
         end
 
-        it 'reuses cached airport data across consecutive security lookups' do
+        it 'uses one airport snapshot while resolving security for a single lookup' do
+          helper_double = instance_double(WifiWand::MacOsWifiAuthHelper::Client)
           json_output = JSON.generate(connected_airport_data)
+          helper_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: nil)
+
+          allow(model).to receive(:_connected_network_name).and_call_original
+          allow(model).to receive(:mac_helper_client).and_return(helper_double)
+          allow(helper_double).to receive(:connected_network_name).and_return(helper_result)
 
           expect(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPAirPortDataType],
@@ -1667,9 +1717,52 @@ module WifiWand
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
           ).once.and_return(command_result(stdout: json_output))
 
-          2.times do
-            expect(model.connection_security_type).to eq('WPA2')
-          end
+          expect(model.connection_security_type).to eq('WPA2')
+        end
+
+        it 'refreshes airport data between separate security lookups' do
+          helper_double = instance_double(WifiWand::MacOsWifiAuthHelper::Client)
+          helper_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: nil)
+          first_airport_data = JSON.generate(
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                           => wifi_interface,
+                'spairport_airport_other_local_wireless_networks' => [{
+                  '_name'                   => network_name,
+                  'spairport_security_mode' => 'WPA2',
+                }],
+                'spairport_current_network_information'           => { '_name' => network_name },
+              }],
+            }]
+          )
+          second_airport_data = JSON.generate(
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                           => wifi_interface,
+                'spairport_airport_other_local_wireless_networks' => [{
+                  '_name'                   => network_name,
+                  'spairport_security_mode' => 'WPA3',
+                }],
+                'spairport_current_network_information'           => { '_name' => network_name },
+              }],
+            }]
+          )
+
+          allow(model).to receive(:_connected_network_name).and_call_original
+          allow(model).to receive(:mac_helper_client).and_return(helper_double)
+          allow(helper_double).to receive(:connected_network_name).and_return(helper_result)
+
+          expect(model).to receive(:run_command_using_args).with(
+            %w[system_profiler -json SPAirPortDataType],
+            true,
+            timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
+          ).twice.and_return(
+            command_result(stdout: first_airport_data),
+            command_result(stdout: second_airport_data)
+          )
+
+          expect(model.connection_security_type).to eq('WPA2')
+          expect(model.connection_security_type).to eq('WPA3')
         end
 
         it 'clears cached airport data before a state-changing operation' do

@@ -131,6 +131,26 @@ module WifiWand
       @mac_helper_client = nil
     end
 
+    def connection_ready?(network_name)
+      with_airport_data_cache_scope { super }
+    end
+
+    def wifi_info
+      with_airport_data_cache_scope { super }
+    end
+
+    def status_line_data(progress_callback: nil)
+      with_airport_data_cache_scope { super }
+    end
+
+    def generate_qr_code(filespec = nil, overwrite: false, delivery_mode: :print, password: nil,
+      in_stream: $stdin)
+      with_airport_data_cache_scope do
+        super(filespec, overwrite: overwrite, delivery_mode: delivery_mode, password: password,
+          in_stream: in_stream)
+      end
+    end
+
     def self.os_id
       :mac
     end
@@ -197,23 +217,25 @@ module WifiWand
 
     # Returns the network names sorted in descending order of signal strength.
     def _available_network_names
-      helper_networks = helper_available_network_names
-      return helper_networks if helper_networks
+      with_airport_data_cache_scope do
+        helper_networks = helper_available_network_names
+        return helper_networks if helper_networks
 
-      iface = wifi_interface
-      data = airport_data
+        iface = wifi_interface
+        data = airport_data
 
-      interfaces = find_airport_interfaces(data)
-      return [] unless interfaces
+        interfaces = find_airport_interfaces(data)
+        return [] unless interfaces
 
-      wifi_data = find_wifi_interface_data(interfaces, iface)
-      return [] unless wifi_data
+        wifi_data = find_wifi_interface_data(interfaces, iface)
+        return [] unless wifi_data
 
-      inner_key = network_list_key(wifi_data)
-      networks = wifi_data.fetch(inner_key, [])
-      return [] unless networks
+        inner_key = network_list_key(wifi_data)
+        networks = wifi_data.fetch(inner_key, [])
+        return [] unless networks
 
-      sort_networks_by_signal_strength(networks)
+        sort_networks_by_signal_strength(networks)
+      end
     end
 
     # Queries available WiFi network names via the macOS helper (CoreWLAN).
@@ -280,30 +302,34 @@ module WifiWand
     end
 
     def associated?
-      return false unless wifi_on?
+      with_airport_data_cache_scope do
+        return false unless wifi_on?
 
-      result = mac_helper_client.connected_network_name
-      return true if result.payload && !placeholder_network_name?(result.payload)
+        result = mac_helper_client.connected_network_name
+        return true if result.payload && !placeholder_network_name?(result.payload)
 
-      interface_associated_in_airport_data?(wifi_interface_airport_data)
+        interface_associated_in_airport_data?(wifi_interface_airport_data)
+      end
     rescue WifiWand::Error
       false
     end
 
     def connected?
-      return false unless wifi_on?
+      with_airport_data_cache_scope do
+        return false unless wifi_on?
 
-      # On Sonoma+, system_profiler may omit spairport_current_network_information
-      # entirely when SSID data is redacted. Check the helper first; a real SSID
-      # from the helper means the interface is connected even if system_profiler
-      # shows nothing.
-      result = mac_helper_client.connected_network_name
-      return true if result.payload && !placeholder_network_name?(result.payload)
+        # On Sonoma+, system_profiler may omit spairport_current_network_information
+        # entirely when SSID data is redacted. Check the helper first; a real SSID
+        # from the helper means the interface is connected even if system_profiler
+        # shows nothing.
+        result = mac_helper_client.connected_network_name
+        return true if result.payload && !placeholder_network_name?(result.payload)
 
-      interface_data = wifi_interface_airport_data
-      return true if interface_associated_in_airport_data?(interface_data)
+        interface_data = wifi_interface_airport_data
+        return true if interface_associated_in_airport_data?(interface_data)
 
-      associated_without_ssid?(interface_data)
+        associated_without_ssid?(interface_data)
+      end
     end
 
     # Turns WiFi on.
@@ -442,22 +468,24 @@ module WifiWand
     # Returns the network currently connected to, or nil if none.
 
     def _connected_network_name
-      result = mac_helper_client.connected_network_name
-      ssid = result.payload
-      return ssid if ssid && !placeholder_network_name?(ssid)
+      with_airport_data_cache_scope do
+        result = mac_helper_client.connected_network_name
+        ssid = result.payload
+        return ssid if ssid && !placeholder_network_name?(ssid)
 
-      wifi_interface_data = wifi_interface_airport_data
+        wifi_interface_data = wifi_interface_airport_data
 
-      # Handle interface not found
-      return nil unless wifi_interface_data
+        # Handle interface not found
+        return nil unless wifi_interface_data
 
-      # Handle no current network connection
-      current_network = wifi_interface_data['spairport_current_network_information']
-      return nil unless current_network
+        # Handle no current network connection
+        current_network = wifi_interface_data['spairport_current_network_information']
+        return nil unless current_network
 
-      # Return the network name (could still be nil)
-      network_name = current_network['_name']
-      placeholder_network_name?(network_name) ? nil : network_name
+        # Return the network name (could still be nil)
+        network_name = current_network['_name']
+        placeholder_network_name?(network_name) ? nil : network_name
+      end
     end
 
     def mac_helper_client
@@ -772,8 +800,39 @@ module WifiWand
       messages.join('; ')
     end
 
+    private def with_airport_data_cache_scope
+      cache_key = object_id
+      outermost_scope = airport_data_cache_depth(cache_key).zero?
+      invalidate_airport_data_cache if outermost_scope
+      airport_data_cache_depths[cache_key] = airport_data_cache_depth(cache_key) + 1
+      yield
+    ensure
+      next_depth = airport_data_cache_depth(cache_key) - 1
+
+      if next_depth.positive?
+        airport_data_cache_depths[cache_key] = next_depth
+      else
+        airport_data_cache_depths.delete(cache_key)
+        invalidate_airport_data_cache
+      end
+    end
+
+    private def airport_data_cache_depth(cache_key)
+      airport_data_cache_depths.fetch(cache_key, 0)
+    end
+
+    private def airport_data_cache_depths
+      Thread.current[:wifi_wand_airport_data_cache_depths] ||= {}
+    end
+
+    private def airport_data_cache_store
+      Thread.current[:wifi_wand_airport_data_cache_store] ||= {}
+    end
+
     private def airport_data
-      return @airport_data_cache if @airport_data_cache
+      cache_key = object_id
+      cached_data = airport_data_cache_store[cache_key]
+      return cached_data if cached_data
 
       json_text = run_command_using_args(
         %w[system_profiler -json SPAirPortDataType],
@@ -781,89 +840,93 @@ module WifiWand
         timeout_in_secs: SYSTEM_PROFILER_TIMEOUT_SECONDS
       ).stdout
       begin
-        @airport_data_cache = JSON.parse(json_text)
+        airport_data_cache_store[cache_key] = JSON.parse(json_text)
       rescue JSON::ParserError => e
         raise SystemProfilerError, "Failed to parse system_profiler output: #{e.message}"
       end
     end
 
     private def invalidate_airport_data_cache
-      @airport_data_cache = nil
+      airport_data_cache_store.delete(object_id)
     end
 
     # Gets the security type of the currently connected network.
     # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP", or nil if not connected/not found
     private def connection_security_type
-      network_name = _connected_network_name
-      return nil unless network_name
+      with_airport_data_cache_scope do
+        network_name = _connected_network_name
+        return nil unless network_name
 
-      data = airport_data
-      iface = wifi_interface
-      wifi_interface_data = data['SPAirPortDataType']
-        &.detect { |h| h.key?('spairport_airport_interfaces') }
-        &.dig('spairport_airport_interfaces')
-        &.detect { |h| h['_name'] == iface }
-      inner_key = network_list_key(wifi_interface_data)
+        data = airport_data
+        iface = wifi_interface
+        wifi_interface_data = data['SPAirPortDataType']
+          &.detect { |h| h.key?('spairport_airport_interfaces') }
+          &.dig('spairport_airport_interfaces')
+          &.detect { |h| h['_name'] == iface }
+        inner_key = network_list_key(wifi_interface_data)
 
-      networks = wifi_interface_data&.dig(inner_key)
+        networks = wifi_interface_data&.dig(inner_key)
 
-      return nil unless networks
+        return nil unless networks
 
-      # Find the network we're connected to
-      network = networks.detect { |net| net['_name'] == network_name }
-      return nil unless network
+        # Find the network we're connected to
+        network = networks.detect { |net| net['_name'] == network_name }
+        return nil unless network
 
-      # Extract security information
-      security_info = network['spairport_security_mode']
-      return nil unless security_info
+        # Extract security information
+        security_info = network['spairport_security_mode']
+        return nil unless security_info
 
-      canonical_security_type_from(security_info)
+        canonical_security_type_from(security_info)
+      end
     end
 
     # Checks if the currently connected network is a hidden network.
     # A hidden network does not broadcast its SSID.
     # @return [Boolean] true if connected to a hidden network, false otherwise
     private def network_hidden?
-      network_name = _connected_network_name
-      return false unless network_name
+      with_airport_data_cache_scope do
+        network_name = _connected_network_name
+        return false unless network_name
 
-      # Query the connection profile to check if it's marked as hidden
-      # On macOS, we can check this via networksetup or by examining if the network
-      # appears in the broadcast network list from system_profiler
-      data = airport_data
-      iface = wifi_interface
+        # Query the connection profile to check if it's marked as hidden
+        # On macOS, we can check this via networksetup or by examining if the network
+        # appears in the broadcast network list from system_profiler
+        data = airport_data
+        iface = wifi_interface
 
-      # Get the current network information
-      wifi_interface_data = data['SPAirPortDataType']
-        &.detect { |h| h.key?('spairport_airport_interfaces') }
-        &.dig('spairport_airport_interfaces')
-        &.detect { |h| h['_name'] == iface }
+        # Get the current network information
+        wifi_interface_data = data['SPAirPortDataType']
+          &.detect { |h| h.key?('spairport_airport_interfaces') }
+          &.dig('spairport_airport_interfaces')
+          &.detect { |h| h['_name'] == iface }
 
-      return false unless wifi_interface_data
+        return false unless wifi_interface_data
 
-      # Check if we have current network information
-      current_network = wifi_interface_data['spairport_current_network_information']
-      return false unless current_network
+        # Check if we have current network information
+        current_network = wifi_interface_data['spairport_current_network_information']
+        return false unless current_network
 
-      # system_profiler does not keep visible SSIDs in one stable array. Once the interface
-      # is associated, the current SSID may be moved out of
-      # 'spairport_airport_local_wireless_networks' and into
-      # 'spairport_airport_other_local_wireless_networks'. If we only inspect the "local"
-      # list, a normal visible network can be misclassified as hidden after association.
-      #
-      # Reuse network_list_key for the primary lookup so this method follows the same
-      # associated-network selection rule as connection_security_type, then fall back to
-      # checking both lists before concluding that the connected SSID is hidden.
-      preferred_networks = wifi_interface_data[network_list_key] || []
-      fallback_networks = [
-        wifi_interface_data['spairport_airport_local_wireless_networks'],
-        wifi_interface_data['spairport_airport_other_local_wireless_networks'],
-      ].compact.flatten
-      visible_networks = (preferred_networks + fallback_networks).uniq
-      network_in_visible_lists = visible_networks.any? { |net| net['_name'] == network_name }
+        # system_profiler does not keep visible SSIDs in one stable array. Once the interface
+        # is associated, the current SSID may be moved out of
+        # 'spairport_airport_local_wireless_networks' and into
+        # 'spairport_airport_other_local_wireless_networks'. If we only inspect the "local"
+        # list, a normal visible network can be misclassified as hidden after association.
+        #
+        # Reuse network_list_key for the primary lookup so this method follows the same
+        # associated-network selection rule as connection_security_type, then fall back to
+        # checking both lists before concluding that the connected SSID is hidden.
+        preferred_networks = wifi_interface_data[network_list_key] || []
+        fallback_networks = [
+          wifi_interface_data['spairport_airport_local_wireless_networks'],
+          wifi_interface_data['spairport_airport_other_local_wireless_networks'],
+        ].compact.flatten
+        visible_networks = (preferred_networks + fallback_networks).uniq
+        network_in_visible_lists = visible_networks.any? { |net| net['_name'] == network_name }
 
-      # If the network we're connected to is not in any visible scan list, it's hidden.
-      !network_in_visible_lists
+        # If the network we're connected to is not in any visible scan list, it's hidden.
+        !network_in_visible_lists
+      end
     end
 
     public :connection_security_type, :network_hidden?
