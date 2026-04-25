@@ -148,6 +148,8 @@ module WifiWand
     end
 
     private def confirmed_internet_state(tcp_working = nil)
+      # dns_working stays nil here so internet_connectivity_state can still
+      # perform its normal DNS and captive-portal confirmation work.
       @model.internet_connectivity_state(tcp_working, nil, timeout_in_secs: internet_probe_timeout)
     end
 
