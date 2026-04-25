@@ -13,16 +13,16 @@ module WifiWand
       0.01
     end
 
-    def terminate_probes(probes)
-      probes.each { |probe| terminate_probe(probe) }
+    def terminate_probes(probes, grace: helper_result_grace)
+      probes.each { |probe| terminate_probe(probe, grace: grace) }
     end
 
-    def terminate_probe(probe)
+    def terminate_probe(probe, grace: helper_result_grace)
       pid = probe[:pid]
       return unless pid
 
       Process.kill('TERM', pid)
-      wait_for_probe_exit(pid)
+      wait_for_probe_exit(pid, grace: grace)
     rescue Errno::ESRCH, Errno::ECHILD
       nil
     ensure
@@ -43,8 +43,8 @@ module WifiWand
       nil
     end
 
-    def wait_for_probe_exit(pid)
-      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + helper_result_grace
+    def wait_for_probe_exit(pid, grace: helper_result_grace)
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + grace
 
       loop do
         return if reap_probe(pid)

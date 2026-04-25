@@ -3,6 +3,7 @@
 require 'json'
 require 'time'
 require_relative '../connectivity_states'
+require_relative '../timing_constants'
 require_relative 'log_file_manager'
 
 module WifiWand
@@ -55,6 +56,7 @@ module WifiWand
       log_message("[#{timestamp}] Event logging started (polling every #{@interval}s)")
 
       begin
+        next_poll_at = monotonic_now
         while @running
           current_state = fetch_current_state
 
@@ -67,7 +69,8 @@ module WifiWand
 
           break unless @running
 
-          sleep(@interval)
+          next_poll_at += @interval
+          sleep_until(next_poll_at)
         end
       rescue Interrupt
         timestamp = Time.now.utc.iso8601
@@ -76,6 +79,11 @@ module WifiWand
       ensure
         cleanup
       end
+    end
+
+    private def sleep_until(deadline)
+      remaining = deadline - monotonic_now
+      sleep([remaining, 0].max)
     end
 
     def log_initial_state(state)
@@ -117,7 +125,13 @@ module WifiWand
       state
     end
 
-    private def current_internet_state = @model.internet_connectivity_state
+    private def current_internet_state
+      @model.internet_connectivity_state(timeout_in_secs: internet_probe_timeout)
+    end
+
+    private def internet_probe_timeout
+      [@interval, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT].min
+    end
 
     private def detect_and_emit_events(current_state)
       return if @previous_state.nil?
@@ -247,6 +261,8 @@ module WifiWand
     private def fetch_failed?(fetch_failures, field_name)
       fetch_failures.any? { |failure| failure[:field] == field_name }
     end
+
+    private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
     private def record_state_fetch_outcome(fetch_failures)
       if fetch_failures.empty?

@@ -30,25 +30,23 @@ module WifiWand
       timeout_in_secs: nil)
       deadline = timeout_in_secs && (current_time + timeout_in_secs)
 
-      tcp_result = connectivity_result_for(
+      tcp_result = probe_result_for(
         tcp_working,
         deadline:      deadline,
         stage_timeout: TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT,
         probe_method:  :tcp_connectivity?
       )
-      return ConnectivityStates::INTERNET_INDETERMINATE if tcp_result == :timed_out
+      return ConnectivityStates::INTERNET_INDETERMINATE if tcp_result[:timed_out]
+      return ConnectivityStates::INTERNET_UNREACHABLE unless tcp_result[:success]
 
-      dns_result = connectivity_result_for(
+      dns_result = probe_result_for(
         dns_working,
         deadline:      deadline,
         stage_timeout: TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT,
         probe_method:  :dns_working?
       )
-      return ConnectivityStates::INTERNET_INDETERMINATE if dns_result == :timed_out
-
-      tcp = tcp_result
-      dns = dns_result
-      return ConnectivityStates::INTERNET_UNREACHABLE unless tcp && dns
+      return ConnectivityStates::INTERNET_INDETERMINATE if dns_result[:timed_out]
+      return ConnectivityStates::INTERNET_UNREACHABLE unless dns_result[:success]
 
       if captive_portal_state.equal?(UNSET)
         remaining_time = deadline ? remaining_time_until(deadline) : nil
@@ -57,8 +55,8 @@ module WifiWand
         captive_portal_state = self.captive_portal_state(timeout_in_secs: remaining_time)
       end
       ConnectivityStates.internet_state_from(
-        tcp_working:          tcp,
-        dns_working:          dns,
+        tcp_working:          true,
+        dns_working:          true,
         captive_portal_state: captive_portal_state
       )
     end
@@ -96,7 +94,7 @@ module WifiWand
     #
     # @see tcp_connectivity? for the broader TCP check used in status/info flows
     # @see internet_connectivity_state for the full TCP + DNS + captive portal path
-    def fast_connectivity?
+    def fast_connectivity?(timeout_in_secs: nil, overall_timeout: nil, return_details: false)
       fast_endpoints = [
         { host: '1.1.1.1', port: 443 },
         { host: '8.8.8.8', port: 443 },
@@ -108,14 +106,17 @@ module WifiWand
         @output.puts "Fast connectivity check to: #{endpoints_list}"
       end
 
-      parallel_check_result(
+      result = parallel_check_result(
         fast_endpoints,
-        TimingConstants::FAST_CONNECTIVITY_TIMEOUT,
+        resolved_timeout(timeout_in_secs, overall_timeout, TimingConstants::FAST_CONNECTIVITY_TIMEOUT),
         helper_mode: :fast_tcp
-      )[:success]
+      )
+      return result if return_details
+
+      result[:success]
     end
 
-    def tcp_connectivity?(overall_timeout: TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT)
+    def tcp_connectivity?(timeout_in_secs: nil, overall_timeout: nil, return_details: false)
       test_endpoints = tcp_test_endpoints
 
       if @verbose
@@ -123,23 +124,29 @@ module WifiWand
         @output.puts "Testing internet TCP connectivity to: #{endpoints_list}"
       end
 
-      parallel_check_result(
+      result = parallel_check_result(
         test_endpoints,
-        overall_timeout,
+        resolved_timeout(timeout_in_secs, overall_timeout, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT),
         helper_mode: :tcp
-      )[:success]
+      )
+      return result if return_details
+
+      result[:success]
     end
 
-    def dns_working?(overall_timeout: TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT)
+    def dns_working?(timeout_in_secs: nil, overall_timeout: nil, return_details: false)
       test_domains = dns_test_domains
 
       @output.puts "Testing DNS resolution for domains: #{test_domains.join(', ')}" if @verbose
 
-      parallel_check_result(
+      result = parallel_check_result(
         test_domains,
-        overall_timeout,
+        resolved_timeout(timeout_in_secs, overall_timeout, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT),
         helper_mode: :dns
-      )[:success]
+      )
+      return result if return_details
+
+      result[:success]
     end
 
     # Shared probe interface used by the helper subprocess wrapper.
@@ -165,12 +172,13 @@ module WifiWand
 
       probes = items.filter_map { |item| start_connectivity_probe(item, helper_mode) }
       deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + overall_timeout
+      terminate_grace = constrained_timeout?(overall_timeout, helper_mode) ? 0 : helper_result_grace
       timed_out = false
 
       while probes.any?
         ready_readers = ready_probe_readers(probes, deadline)
         if ready_readers.nil? || ready_readers.empty?
-          timed_out = deadline_exceeded?(deadline) && probes.any?
+          timed_out = deadline_exceeded?(deadline)
           break
         end
 
@@ -190,7 +198,7 @@ module WifiWand
 
       { success: false, timed_out: timed_out }
     ensure
-      terminate_probes(probes || [])
+      terminate_probes(probes || [], grace: terminate_grace || helper_result_grace)
     end
 
     private def ready_probe_readers(probes, deadline)
@@ -201,14 +209,38 @@ module WifiWand
       ready_readers
     end
 
-    private def connectivity_result_for(value, deadline:, stage_timeout:, probe_method:)
-      return value unless value.nil?
-      return :timed_out if deadline && remaining_time_until(deadline) <= 0
+    private def probe_result_for(value, deadline:, stage_timeout:, probe_method:)
+      return { success: value, timed_out: false } unless value.nil?
+      return { success: false, timed_out: true } if deadline && remaining_time_until(deadline) <= 0
 
-      result = public_send(probe_method, overall_timeout: remaining_probe_timeout(deadline, stage_timeout))
-      return :timed_out if deadline && remaining_time_until(deadline) <= 0 && !result
+      timeout = remaining_probe_timeout(deadline, stage_timeout)
+      begin
+        result = normalize_probe_result(public_send(
+          probe_method,
+          overall_timeout: timeout,
+          return_details:  true
+        ))
+      rescue ArgumentError => e
+        raise unless e.message.include?('unknown keyword: :return_details')
+
+        result = normalize_probe_result(public_send(probe_method, overall_timeout: timeout))
+      ensure
+        if defined?(result) && deadline && remaining_time_until(deadline) <= 0 && !result[:success]
+          result = result.merge(timed_out: true)
+        end
+      end
 
       result
+    end
+
+    private def normalize_probe_result(result)
+      return result if result.is_a?(Hash)
+
+      { success: result == true, timed_out: false }
+    end
+
+    private def resolved_timeout(timeout_in_secs, overall_timeout, default_timeout)
+      timeout_in_secs || overall_timeout || default_timeout
     end
 
     private def remaining_probe_timeout(deadline, stage_timeout)
@@ -223,6 +255,21 @@ module WifiWand
 
     private def deadline_exceeded?(deadline)
       remaining_time_until(deadline) <= 0
+    end
+
+    private def constrained_timeout?(overall_timeout, helper_mode)
+      overall_timeout < default_timeout_for(helper_mode)
+    end
+
+    private def default_timeout_for(helper_mode)
+      case helper_mode
+      when :fast_tcp
+        TimingConstants::FAST_CONNECTIVITY_TIMEOUT
+      when :tcp, :dns
+        TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
+      else
+        raise ArgumentError, "Unsupported helper mode: #{helper_mode}"
+      end
     end
 
     private def current_time

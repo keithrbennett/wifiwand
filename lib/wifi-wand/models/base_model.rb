@@ -283,29 +283,38 @@ module WifiWand
     end
 
     # Tests TCP connectivity to internet hosts (not localhost)
-    def internet_tcp_connectivity?
+    def internet_tcp_connectivity?(timeout_in_secs: nil, return_details: false)
       debug_method_entry(__method__)
-      @connectivity_tester.tcp_connectivity?
+      @connectivity_tester.tcp_connectivity?(
+        timeout_in_secs: timeout_in_secs || TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT,
+        return_details:  return_details
+      )
     end
 
     # Tests DNS resolution capability
-    def dns_working?
+    def dns_working?(timeout_in_secs: nil, return_details: false)
       debug_method_entry(__method__)
-      @connectivity_tester.dns_working?
+      @connectivity_tester.dns_working?(
+        timeout_in_secs: timeout_in_secs || TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT,
+        return_details:  return_details
+      )
     end
 
     # Returns an explicit captive-portal state: :free, :present, or :indeterminate.
-    def captive_portal_state
+    def captive_portal_state(timeout_in_secs: nil)
       debug_method_entry(__method__)
-      @connectivity_tester.captive_portal_state
+      @connectivity_tester.captive_portal_state(timeout_in_secs: timeout_in_secs)
     end
 
     # Fast connectivity check optimized for continuous monitoring (e.g. `log` and `status` commands).
     # Returns true if any of 3 geographically diverse endpoints is reachable within 1 second.
     # Skips DNS checking (often cached). Ideal for outage detection.
-    def fast_connectivity?
+    def fast_connectivity?(timeout_in_secs: nil, return_details: false)
       debug_method_entry(__method__)
-      @connectivity_tester.fast_connectivity?
+      @connectivity_tester.fast_connectivity?(
+        timeout_in_secs: timeout_in_secs || TimingConstants::FAST_CONNECTIVITY_TIMEOUT,
+        return_details:  return_details
+      )
     end
 
     EXPECTED_NETWORK_ERRORS = [

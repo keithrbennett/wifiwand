@@ -705,7 +705,7 @@ describe WifiWand::EventLogger do
       allow(logger).to receive(:sleep) do |duration|
         sleep_count += 1
         logger.stop if sleep_count >= 1
-        expect(duration).to eq(7)
+        expect(duration).to be_within(0.01).of(7)
       end
       allow(logger).to receive(:detect_and_emit_events)
       logger.run

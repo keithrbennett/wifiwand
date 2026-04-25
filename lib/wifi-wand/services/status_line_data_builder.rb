@@ -234,24 +234,33 @@ module WifiWand
     end
 
     private def connectivity_data
+      deadline = monotonic_now + @worker_result_timeout_seconds
       return cancelled_worker_result(:connectivity) if cancelled?
 
-      tcp_working = tcp_connectivity?
+      tcp_result = tcp_connectivity_result(deadline)
       return cancelled_worker_result(:connectivity) if cancelled?
 
-      dns_working = dns_working?
+      dns_result = dns_working_result(deadline)
       return cancelled_worker_result(:connectivity) if cancelled?
 
-      return data_when_internet_unreachable(dns_working: dns_working) unless tcp_working && dns_working
+      return fallback_worker_result(:connectivity) if tcp_result[:timed_out]
 
-      portal_state = captive_portal_state
+      unless tcp_result[:success]
+        dns_working = dns_result[:timed_out] ? nil : dns_result[:success]
+        return data_when_internet_unreachable(dns_working: dns_working)
+      end
+
+      return fallback_worker_result(:connectivity) if dns_result[:timed_out]
+      return data_when_internet_unreachable(dns_working: dns_result[:success]) unless dns_result[:success]
+
+      portal_state = captive_portal_state(timeout_in_secs: remaining_connectivity_budget(deadline))
       return cancelled_worker_result(:connectivity) if cancelled?
 
       {
-        dns_working:                   dns_working,
+        dns_working:                   true,
         internet_state:                ConnectivityStates.internet_state_from(
-          tcp_working:          tcp_working,
-          dns_working:          dns_working,
+          tcp_working:          true,
+          dns_working:          true,
           captive_portal_state: portal_state
         ),
         internet_check_complete:       true,
@@ -267,22 +276,38 @@ module WifiWand
       fallback_worker_result(worker_name)
     end
 
-    private def tcp_connectivity?
-      model.internet_tcp_connectivity?
+    private def tcp_connectivity_result(deadline)
+      normalize_probe_result(model.internet_tcp_connectivity?(
+        timeout_in_secs: remaining_connectivity_budget(deadline),
+        return_details:  true
+      ))
     rescue *expected_network_errors, WifiWand::Error
-      false
+      { success: false, timed_out: false }
     end
 
-    private def dns_working?
-      model.dns_working?
+    private def dns_working_result(deadline)
+      normalize_probe_result(model.dns_working?(
+        timeout_in_secs: remaining_connectivity_budget(deadline),
+        return_details:  true
+      ))
     rescue *expected_network_errors, WifiWand::Error
-      false
+      { success: false, timed_out: false }
     end
 
-    private def captive_portal_state
-      model.captive_portal_state
+    private def captive_portal_state(timeout_in_secs:)
+      model.captive_portal_state(timeout_in_secs: timeout_in_secs)
     rescue *expected_network_errors, WifiWand::Error
       ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
+    end
+
+    private def remaining_connectivity_budget(deadline)
+      [deadline - monotonic_now, 0].max
+    end
+
+    private def normalize_probe_result(result)
+      return result if result.is_a?(Hash)
+
+      { success: result == true, timed_out: false }
     end
 
     private def captive_portal_login_required(portal_state)

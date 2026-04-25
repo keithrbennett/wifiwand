@@ -89,7 +89,7 @@ module WifiWand
         end
 
         sleep_duration = sleep_duration_for(wait_interval_in_secs, deadline)
-        raise_timeout_if_deadline_exceeded!(target_status, timeout_in_secs, deadline) if sleep_duration.zero?
+        raise_timeout_if_deadline_exceeded!(target_status, timeout_in_secs, deadline) if sleep_duration <= 0
 
         sleep(sleep_duration)
       end
@@ -143,7 +143,7 @@ module WifiWand
     end
 
     private def validate_target!(target_status, stringify_permitted_values_in_error_msg)
-      return if finished_predicates.key?(target_status)
+      return if PERMITTED_STATES.include?(target_status)
 
       allowed = PERMITTED_STATES.join(', ')
       legacy_hint = LEGACY_STATE_HINTS[target_status]

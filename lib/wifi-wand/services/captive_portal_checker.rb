@@ -83,7 +83,8 @@ module WifiWand
       results = []
       free_found = false
       probe_timeout = timeout_in_secs || TimingConstants::HTTP_CONNECTIVITY_TIMEOUT
-      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + probe_timeout + HELPER_RESULT_GRACE
+      terminate_grace = timeout_in_secs ? 0 : helper_result_grace
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + probe_timeout
 
       while probes.any?
         ready_readers = ready_probe_readers(probes, deadline)
@@ -111,11 +112,11 @@ module WifiWand
       # Probes still in-flight when we exited the loop (deadline hit or :free found early)
       # never wrote a result. Count each as :indeterminate before terminating them.
       results.concat(Array.new(probes.length, ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE))
-      terminate_probes(probes)
+      terminate_probes(probes, grace: terminate_grace)
       probes = []
       results
     ensure
-      terminate_probes(probes || [])
+      terminate_probes(probes || [], grace: terminate_grace || helper_result_grace)
     end
 
     private def ready_probe_readers(probes, deadline)

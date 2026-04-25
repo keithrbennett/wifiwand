@@ -84,6 +84,18 @@ describe WifiWand::CaptivePortalChecker do
       expect { Process.kill(0, spawned_pids.last) }.to raise_error(Errno::ESRCH)
     end
 
+    it 'does not expand a caller-provided timeout budget with helper grace' do
+      allow(checker).to receive(:start_captive_portal_probe).and_return(
+        spawn_probe(endpoint: endpoints.first, delay: 5)
+      )
+
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      expect(checker.captive_portal_state(timeout_in_secs: 0.05)).to eq(:indeterminate)
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+      expect(elapsed).to be < 0.2
+    end
+
     context 'with verbose mode' do
       let(:output) { StringIO.new }
       let(:checker) { described_class.new(verbose: true, output: output) }

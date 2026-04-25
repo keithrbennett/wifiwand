@@ -279,7 +279,7 @@ describe WifiWand::NetworkConnectivityTester do
         tester.send(:terminate_probe, probe)
 
         expect(Process).to have_received(:kill).with('TERM', 1234).ordered
-        expect(tester).to have_received(:wait_for_probe_exit).with(1234).ordered
+        expect(tester).to have_received(:wait_for_probe_exit).with(1234, grace: 0.05).ordered
         expect(reader).to have_received(:close)
         expect(tester).to have_received(:reap_probe).with(1234)
         expect(probe[:pid]).to be_nil
