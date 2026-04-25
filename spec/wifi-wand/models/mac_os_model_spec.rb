@@ -436,6 +436,31 @@ module WifiWand
           expect(model.connected_network_name).to eq('ProfilerNetA')
           expect(model.connected_network_name).to eq('ProfilerNetB')
         end
+
+        it 'raises a targeted exact-identity error when macOS redacts the current SSID' do
+          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
+            payload:                   nil,
+            location_services_blocked: true,
+            error_message:             'Location Services denied'
+          )
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+          allow(model).to receive_messages(
+            wifi_on?:       true,
+            connected?:     true,
+            airport_data:   { 'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                 => 'en0',
+                'spairport_current_network_information' => { '_name' => nil },
+              }],
+            }] },
+            wifi_interface: 'en0'
+          )
+
+          expect { model.connected_network_name }.to raise_error(
+            WifiWand::MacOsRedactionError,
+            /Exact WiFi network identity.*wifi-wand-macos-setup.*wifiwand-helper/
+          )
+        end
       end
 
       describe '#associated?' do

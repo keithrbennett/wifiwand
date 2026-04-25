@@ -63,6 +63,7 @@ module RSpecConfiguration
       test_types = RSpecConfiguration.analyze_test_types(examples_to_run)
       RSpecConfiguration.note_auth_requirements(test_types)
 
+      RSpecConfiguration.handle_real_env_preflight(test_types)
       RSpecConfiguration.handle_network_state_capture(test_types[:real_env_read_write])
 
       if RSpecConfiguration.macos_and_auth_tests_will_run?(test_types)
@@ -117,6 +118,17 @@ module RSpecConfiguration
     refresh_sudo_ticket!
   end
 
+  def self.handle_real_env_preflight(test_types)
+    return unless running_on_mac_os?
+    return unless test_types[:real_env]
+
+    model = NetworkStateManager.model
+    identity_error = real_env_wifi_identity_error(model)
+    return unless identity_error
+
+    raise real_env_wifi_identity_setup_error(identity_error)
+  end
+
   def self.handle_network_state_capture(real_env_read_write_tests_will_run)
     return unless real_env_read_write_tests_will_run
 
@@ -130,6 +142,11 @@ module RSpecConfiguration
     NetworkStateManager.capture_state
 
     unless NetworkStateManager.network_state[:network_name]
+      if running_on_mac_os?
+        identity_error = real_env_wifi_identity_error(NetworkStateManager.model)
+        raise real_env_wifi_identity_setup_error(identity_error) if identity_error
+      end
+
       raise 'Real-environment read-write tests require a restorable network state. ' \
         'Connected state was detected but network name could not be determined.'
     end
@@ -269,6 +286,39 @@ module RSpecConfiguration
     text.to_s.force_encoding('UTF-8').encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
   end
 
+  def self.real_env_wifi_identity_unverifiable?(model)
+    !real_env_wifi_identity_error(model).nil?
+  end
+
+  def self.real_env_wifi_identity_error(model)
+    return nil unless model.connected?
+
+    begin
+      network_name = model.connected_network_name
+      return nil if network_name && !network_name.empty?
+    rescue WifiWand::MacOsRedactionError => e
+      return e
+    rescue WifiWand::Error
+      return WifiWand::Error.new('macOS cannot verify the current WiFi network identity')
+    end
+
+    WifiWand::Error.new('macOS cannot verify the current WiFi network identity')
+  end
+
+  def self.real_env_wifi_identity_setup_error(error)
+    base_reason = if error.is_a?(WifiWand::MacOsRedactionError)
+      error.reason
+    else
+      'macOS cannot verify the current WiFi network identity'
+    end
+
+    'Requested real-environment tests on macOS require unredacted WiFi identity because the suite must ' \
+      'capture the starting SSID and verify restoration to that exact SSID afterward. ' \
+      "wifi-wand can detect generic association, but #{base_reason}, so exact-state restoration of the " \
+      'original network cannot be verified. Run `wifi-wand-macos-setup`, grant Location Services to ' \
+      '`wifiwand-helper`, and rerun the tests.'
+  end
+
   def self.show_test_usage_information
     puts <<~MESSAGE
 
@@ -298,6 +348,9 @@ module RSpecConfiguration
 
       ⚠️  IMPORTANT: Never run real-environment tests in CI environments.
       The default (WIFIWAND_REAL_ENV_TESTS unset) runs only safe tests.
+      On macOS, requested real-environment runs are refused up front when the
+      current WiFi SSID is redacted or otherwise unverifiable, because the
+      suite must restore the exact original network state.
 
       #{'=' * 60}
 

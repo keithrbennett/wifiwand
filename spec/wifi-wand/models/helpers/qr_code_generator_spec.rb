@@ -90,6 +90,16 @@ describe 'QR Code Generator (unit)' do
     silence_output { model.generate_qr_code(nil, password: provided_password) }
   end
 
+  it 'surfaces exact-identity errors when the current SSID is redacted' do
+    allow(model).to receive(:connected_network_name).and_raise(
+      WifiWand::MacOsRedactionError.new(operation_description: 'current WiFi network queries')
+    )
+
+    expect do
+      silence_output { model.generate_qr_code }
+    end.to raise_error(WifiWand::MacOsRedactionError, /Exact WiFi network identity.*wifi-wand-macos-setup/)
+  end
+
   [
     { filespec: 'out.svg', type: 'SVG' },
     { filespec: 'out.eps', type: 'EPS' },

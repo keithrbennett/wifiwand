@@ -73,7 +73,8 @@ wifi-wand-macos-setup
 ```
 
 This grants location permission needed for WiFi network access. Without it, network names may appear as
-`<hidden>` or `<redacted>`. See the **[macOS Setup Guide](docs/MACOS_SETUP.md)** for details.
+`<hidden>` or `<redacted>`. See the **[macOS Setup Guide](docs/MACOS_SETUP.md)** for details, including
+**Running WifiWand on macOS With Redacted Network Names**.
 
 ---
 

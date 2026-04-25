@@ -103,21 +103,7 @@ module WifiWand
             connect_for_restore(state[:network_name], password_to_use)
             wait_for_connection_restoration(state[:network_name])
           rescue WifiWand::WaitTimeoutError => e
-            begin
-              actual_network = @model.connected_network_name
-              if @verbose
-                @output.puts "Warning: Connection timeout - expected #{state[:network_name].inspect}, " \
-                  "currently connected to #{actual_network.inspect}"
-              end
-            rescue WifiWand::Error => name_error
-              if @verbose
-                @output.puts 'Warning: Connection timeout and failed to query current network: ' \
-                  "#{name_error.message}"
-              end
-              actual_network = nil
-            end
-
-            reason = "timed out waiting for connection; currently connected to #{actual_network.inspect}"
+            reason = restore_timeout_reason(state[:network_name])
             error = WifiWand::NetworkConnectionError.new(network_name: state[:network_name], reason: reason)
             error.set_backtrace(e.backtrace)
             raise error
@@ -231,10 +217,12 @@ module WifiWand
 
     private def restore_associated_with_target?(network_name)
       return false unless @model.associated?
-      return true unless @model.respond_to?(:mac?) && @model.mac?
+      return true unless @model.mac?
 
       @model.connected_network_name == network_name
     rescue WifiWand::Error
+      # Treat redaction or other identity-query failures as "target not verified"
+      # so restore falls through to an explicit reconnect attempt.
       false
     end
 
@@ -242,7 +230,7 @@ module WifiWand
     # OsCommandError stores the rendered command, so compare on the executable
     # name instead of the full command string.
     private def retry_restore_connect?(error, attempts)
-      return false unless @model.respond_to?(:mac?) && @model.mac?
+      return false unless @model.mac?
       return false unless command_executable(error.command) == 'networksetup'
       return false unless RESTORE_CONNECT_RETRY_PATTERNS.any? { |pattern| pattern.match?(error.text.to_s) }
 
@@ -276,6 +264,33 @@ module WifiWand
 
         sleep(TimingConstants::DEFAULT_WAIT_INTERVAL)
       end
+    end
+
+    private def redacted_identity_reason_for_restore(network_name, error)
+      base_reason = error.reason || error.message
+      "timed out waiting for connection; WiFi is associated, but #{base_reason}, so wifi-wand " \
+        "cannot verify that it restored '#{network_name}'"
+    end
+
+    private def restore_timeout_reason(network_name)
+      actual_network = @model.connected_network_name
+      if @verbose
+        @output.puts "Warning: Connection timeout - expected #{network_name.inspect}, " \
+          "currently connected to #{actual_network.inspect}"
+      end
+      "timed out waiting for connection; currently connected to #{actual_network.inspect}"
+    rescue MacOsRedactionError => e
+      if @verbose
+        @output.puts 'Warning: Connection timeout and failed to query current network: ' \
+          "#{e.message}"
+      end
+      redacted_identity_reason_for_restore(network_name, e)
+    rescue WifiWand::Error => e
+      if @verbose
+        @output.puts 'Warning: Connection timeout and failed to query current network: ' \
+          "#{e.message}"
+      end
+      'timed out waiting for connection; currently connected to an unknown network'
     end
   end
 end

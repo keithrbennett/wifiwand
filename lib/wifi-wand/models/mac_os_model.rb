@@ -467,6 +467,22 @@ module WifiWand
 
     # Returns the network currently connected to, or nil if none.
 
+    def connected_network_name
+      raise WifiOffError, 'WiFi is off, cannot determine connected network.' unless wifi_on?
+
+      network_name = _connected_network_name
+      return network_name if network_name
+
+      if connected? && network_identity_redacted?
+        raise MacOsRedactionError.new(
+          operation_description: 'Current WiFi network queries',
+          reason:                network_identity_redaction_reason
+        )
+      end
+
+      nil
+    end
+
     def _connected_network_name
       with_airport_data_cache_scope do
         result = mac_helper_client.connected_network_name
@@ -486,6 +502,21 @@ module WifiWand
         network_name = current_network['_name']
         placeholder_network_name?(network_name) ? nil : network_name
       end
+    end
+
+    def network_identity_redacted?
+      with_airport_data_cache_scope do
+        result = mac_helper_client.connected_network_name
+        result.location_services_blocked? || placeholder_network_name?(result.payload)
+      end
+    rescue WifiWand::Error
+      false
+    end
+
+    def network_identity_redaction_reason
+      return nil unless network_identity_redacted?
+
+      'macOS is redacting WiFi network names until Location Services access is granted'
     end
 
     def mac_helper_client

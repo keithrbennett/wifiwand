@@ -56,6 +56,12 @@ Key files:
   the semantic split between WiFi connection state and host-level internet reachability, with API cleanup
   suggestions.
 
+## Architecture Changes
+
+- **[macOS Redacted Network Names Policy](architecture/changes/macos-redacted-network-names-policy.md)** -
+  Design note covering the command-semantics problem created by macOS SSID redaction and the proposed default
+  policy for exact-SSID operations.
+
 ## Internal Reports And Planning
 
 - **[AI Library Analysis: Claude](../reports/ai/ww-as-library-claude.md)** - One-off analysis of `wifi-wand`

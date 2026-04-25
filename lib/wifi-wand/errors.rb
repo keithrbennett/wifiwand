@@ -165,6 +165,25 @@ module WifiWand
   class KeychainError < Error
   end
 
+  class MacOsRedactionError < Error
+    DEFAULT_REASON = 'macOS is redacting WiFi network names until Location Services access is granted'
+    DEFAULT_REMEDIATION = 'Run `wifi-wand-macos-setup`, grant Location Services to ' \
+      '`wifiwand-helper`, and retry.'
+
+    attr_reader :operation_description, :reason, :remediation
+
+    def initialize(operation_description: 'this operation', reason: nil, remediation: nil)
+      @operation_description = operation_description
+      @reason = reason || DEFAULT_REASON
+      @remediation = remediation || DEFAULT_REMEDIATION
+
+      super(
+        "Exact WiFi network identity is required for #{operation_description}, but #{@reason}. " \
+          "#{@remediation}"
+      )
+    end
+  end
+
   # === OPERATING SYSTEM DETECTION ERRORS ===
   class MultipleOSMatchError < Error
     def initialize(matching_os_names)

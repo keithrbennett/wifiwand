@@ -199,13 +199,9 @@ module WifiWand
     end
 
     private def verify_connection(network_name, _password)
-      return if active_connection_matches?(network_name)
+      return if active_connection_matches_or_raise!(network_name)
 
-      actual_network_name = begin
-        model.connected_network_name
-      rescue WifiWand::Error
-        nil
-      end
+      actual_network_name = connected_network_name_for_verification(network_name)
 
       # Some platforms can report the SSID before higher-level readiness checks
       # settle. Treat an exact SSID match as a successful connection.
@@ -219,6 +215,31 @@ module WifiWand
 
     private def active_connection_matches?(network_name)
       model.connection_ready?(network_name)
+    end
+
+    private def active_connection_matches_or_raise!(network_name)
+      active_connection_matches?(network_name)
+    rescue MacOsRedactionError => e
+      raise(NetworkConnectionError.new(
+        network_name: network_name,
+        reason:       redacted_identity_reason_for_connection(network_name, e)
+      ))
+    end
+
+    private def connected_network_name_for_verification(network_name)
+      model.connected_network_name
+    rescue MacOsRedactionError => e
+      raise(NetworkConnectionError.new(
+        network_name: network_name,
+        reason:       redacted_identity_reason_for_connection(network_name, e)
+      ))
+    rescue WifiWand::Error
+      nil
+    end
+
+    private def redacted_identity_reason_for_connection(network_name, error)
+      base_reason = error.reason || error.message
+      "associated, but #{base_reason}; wifi-wand cannot verify that the active network is '#{network_name}'"
     end
 
     private def wait_for_connection_activation(network_name)

@@ -11,6 +11,7 @@ describe WifiWand::NetworkStateManager do
       connection_security_type:   'WPA2',
       wifi_on?:                   true,
       mac?:                       false,
+      associated?:                false,
       connected_network_name:     'TestNetwork',
       wifi_interface:             'wlan0',
       preferred_network_password: 'testpass',
@@ -496,7 +497,40 @@ describe WifiWand::NetworkStateManager do
       expect do
         state_manager.restore_network_state(valid_state)
       end.to raise_error(WifiWand::NetworkConnectionError,
-        /timed out waiting for connection; currently connected to nil/)
+        /timed out waiting for connection; currently connected to an unknown network/)
+    end
+
+    it 'reports SSID redaction explicitly when restore cannot verify the target network' do
+      redaction_reason = 'macOS is redacting WiFi network names until ' \
+        'Location Services access is granted'
+      expected_error = Regexp.new(
+        'WiFi is associated, but macOS is redacting WiFi network names.*' \
+          "cannot verify that it restored 'TestNetwork'"
+      )
+
+      allow(mock_model).to receive_messages(
+        wifi_on?:                   true,
+        associated?:                true,
+        preferred_network_password: 'testpass'
+      )
+      allow(mock_model).to receive(:connected_network_name).and_raise(
+        WifiWand::MacOsRedactionError.new(
+          operation_description: 'Current WiFi network queries',
+          reason:                redaction_reason
+        )
+      )
+      allow(mock_model).to receive(:connection_ready?).and_return(false, false)
+      allow(mock_model).to receive(:connect)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
+      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
+        .and_return(0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
+
+      expect do
+        state_manager.restore_network_state(valid_state)
+      end.to raise_error(
+        WifiWand::NetworkConnectionError,
+        expected_error
+      )
     end
 
     it 'logs WaitTimeoutError details in verbose mode when network query succeeds' do

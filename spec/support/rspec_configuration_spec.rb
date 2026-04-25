@@ -119,10 +119,60 @@ RSpec.describe RSpecConfiguration do
       double('example', metadata: { real_env: true, real_env_read_write: true, needs_sudo_access: true }),
     ])
 
+    allow(NetworkStateManager).to receive(:model).and_return(double('model', connected?: false))
     expect(described_class).to receive(:handle_network_state_capture).with(true).once
     expect(described_class).to receive(:handle_sudo_preflight).with(true).and_return(nil)
 
     run_preflight
+  end
+
+  it 'does not gate mocked or hermetic suites when no real_env tests were requested' do
+    $compatible_os_tag = :os_mac
+
+    allow(described_class).to receive(:examples_to_run).and_return([
+      double('example', metadata: {}),
+    ])
+
+    expect(NetworkStateManager).not_to receive(:model)
+    expect(described_class).to receive(:handle_network_state_capture).with(false)
+
+    run_preflight
+  end
+
+  it 'refuses requested macOS real_env runs before the suite starts when WiFi identity is redacted' do
+    $compatible_os_tag = :os_mac
+    reason = [
+      'macOS is redacting WiFi network names until',
+      'Location Services access is granted',
+    ].join(' ')
+    expected_error = Regexp.new(
+      'Requested real-environment tests on macOS require unredacted WiFi identity.*' \
+        'exact-state restoration of the original network cannot be verified.*' \
+        'wifi-wand-macos-setup',
+      Regexp::MULTILINE
+    )
+    redacted_model = double(
+      'model',
+      connected?:             true,
+      connected_network_name: nil
+    )
+    allow(redacted_model).to receive(:connected_network_name).and_raise(
+      WifiWand::MacOsRedactionError.new(
+        operation_description: 'Current WiFi network queries',
+        reason:                reason
+      )
+    )
+
+    allow(described_class).to receive(:examples_to_run).and_return([
+      double('example', metadata: { real_env: true, real_env_read_only: true }),
+    ])
+    allow(NetworkStateManager).to receive(:model).and_return(redacted_model)
+
+    expect(described_class).not_to receive(:handle_network_state_capture)
+    expect(described_class).not_to receive(:handle_sudo_preflight)
+
+    expect { run_preflight }
+      .to raise_error(RuntimeError, expected_error)
   end
 
   describe '.handle_network_state_capture' do
@@ -149,12 +199,40 @@ RSpec.describe RSpecConfiguration do
     end
 
     it 'raises when connected but captured state has no network name' do
-      allow(mock_model).to receive(:connected?).and_return(true)
+      allow(mock_model).to receive_messages(connected?: true, connected_network_name: nil)
       allow(NetworkStateManager).to receive(:capture_state)
       allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: nil })
 
       expect { described_class.handle_network_state_capture(true) }
         .to raise_error(RuntimeError, /Real-environment read-write tests require a restorable network state/)
+    end
+
+    it 'raises a setup error on macOS when redaction prevents exact-state restoration verification' do
+      $compatible_os_tag = :os_mac
+      reason = [
+        'macOS is redacting WiFi network names until',
+        'Location Services access is granted',
+      ].join(' ')
+      expected_error = Regexp.new(
+        'Requested real-environment tests on macOS require unredacted WiFi identity.*' \
+          'exact-state restoration of the original network cannot be verified',
+        Regexp::MULTILINE
+      )
+      allow(mock_model).to receive_messages(
+        connected?:             true,
+        connected_network_name: nil
+      )
+      allow(mock_model).to receive(:connected_network_name).and_raise(
+        WifiWand::MacOsRedactionError.new(
+          operation_description: 'Current WiFi network queries',
+          reason:                reason
+        )
+      )
+      allow(NetworkStateManager).to receive(:capture_state)
+      allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: nil })
+
+      expect { described_class.handle_network_state_capture(true) }
+        .to raise_error(RuntimeError, expected_error)
     end
 
     it 'succeeds when connected and network name is captured' do

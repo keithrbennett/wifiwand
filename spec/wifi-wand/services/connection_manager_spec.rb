@@ -15,6 +15,7 @@ describe WifiWand::ConnectionManager do
       connected?:             false,
       connected_network_name: nil,
       connection_ready?:      false,
+      associated?:            false,
       has_preferred_network?: false,
       preferred_networks:     []
     )
@@ -285,6 +286,27 @@ describe WifiWand::ConnectionManager do
 
         expect { subject.connect('TestNetwork') }.to raise_error(WifiWand::NetworkConnectionError) do |error|
           expect(error.message).to include('unable to connect to any network')
+        end
+      end
+
+      it 'reports SSID redaction explicitly when associated identity cannot be verified' do
+        redaction_reason = 'macOS is redacting WiFi network names until ' \
+          'Location Services access is granted'
+
+        allow(mock_model).to receive_messages(
+          associated?:       true,
+          connection_ready?: false
+        )
+        allow(mock_model).to receive(:connected_network_name).and_raise(
+          WifiWand::MacOsRedactionError.new(
+            operation_description: 'Current WiFi network queries',
+            reason:                redaction_reason
+          )
+        )
+
+        expect { subject.connect('TestNetwork') }.to raise_error(WifiWand::NetworkConnectionError) do |error|
+          expect(error.message).to include('associated, but macOS is redacting WiFi network names')
+          expect(error.message).to include("cannot verify that the active network is 'TestNetwork'")
         end
       end
 
