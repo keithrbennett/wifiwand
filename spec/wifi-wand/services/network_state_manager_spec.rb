@@ -236,6 +236,7 @@ describe WifiWand::NetworkStateManager do
       )
       allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
       allow(state_manager).to receive(:sleep)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
 
       expect(mock_model).to receive(:connect).with('TestNetwork', 'testpass')
 
