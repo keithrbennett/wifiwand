@@ -41,6 +41,7 @@ module WifiWand
       wait_interval_in_secs ||= TimingConstants::DEFAULT_WAIT_INTERVAL
       validate_timing_value!(timeout_in_secs, :timeout_in_secs)
       validate_timing_value!(wait_interval_in_secs, :wait_interval_in_secs)
+      validate_target!(target_status, stringify_permitted_values_in_error_msg)
       message_prefix = "StatusWaiter (#{target_status}):"
 
       if @verbose
@@ -50,56 +51,113 @@ module WifiWand
         MESSAGE
       end
 
-      finished_predicates = {
-        wifi_on:       -> { @model.wifi_on? },
-        wifi_off:      -> { !@model.wifi_on? },
-        associated:    -> { @model.associated? },
-        disassociated: -> { !@model.associated? },
-        internet_on:   -> { @model.internet_connectivity_state == ConnectivityStates::INTERNET_REACHABLE },
-        internet_off:  -> { @model.internet_connectivity_state == ConnectivityStates::INTERNET_UNREACHABLE },
-      }
+      finished_predicate = finished_predicates.fetch(target_status)
+      expensive_predicate = %i[internet_on internet_off].include?(target_status)
 
-      finished_predicate = finished_predicates[target_status]
+      start_time = current_time
+      deadline = timeout_in_secs && (start_time + timeout_in_secs)
 
-      if finished_predicate.nil?
-        allowed = PERMITTED_STATES.join(', ')
-        legacy_hint = LEGACY_STATE_HINTS[target_status]
-        if legacy_hint
-          raise ArgumentError, <<~MESSAGE.chomp
-            #{legacy_hint}
-            Valid states: #{allowed}
-          MESSAGE
-        elsif stringify_permitted_values_in_error_msg
-          raise ArgumentError, "Option must be one of [#{allowed}]. Was: #{target_status}"
-        else
-          raise ArgumentError,
-            "Option must be one of #{PERMITTED_STATES.inspect}. Was: #{target_status.inspect}"
-        end
-      end
-
-      if finished_predicate.call
+      if predicate_satisfied?(
+        finished_predicate,
+        target_status:       target_status,
+        timeout_in_secs:     timeout_in_secs,
+        deadline:            deadline,
+        expensive_predicate: expensive_predicate
+      )
         (@output || $stdout).puts "#{message_prefix} completed without needing to wait" if @verbose
         return nil
       elsif @verbose
         (@output || $stdout).puts "#{message_prefix} First attempt failed, entering waiting loop"
       end
 
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       loop do
-        elapsed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-        if timeout_in_secs && elapsed_time >= timeout_in_secs
-          raise(WaitTimeoutError.new(action: target_status, timeout: timeout_in_secs))
-        end
+        raise_timeout_if_deadline_exceeded!(target_status, timeout_in_secs, deadline)
 
         (@output || $stdout).puts "#{message_prefix} checking predicate..." if @verbose
-        if finished_predicate.call
+        if predicate_satisfied?(
+          finished_predicate,
+          target_status:       target_status,
+          timeout_in_secs:     timeout_in_secs,
+          deadline:            deadline,
+          expensive_predicate: expensive_predicate
+        )
           if @verbose
-            end_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+            end_time = current_time
             (@output || $stdout).puts "#{message_prefix} wait time (seconds): #{end_time - start_time}"
           end
           return nil
         end
-        sleep(wait_interval_in_secs)
+
+        sleep_duration = sleep_duration_for(wait_interval_in_secs, deadline)
+        raise_timeout_if_deadline_exceeded!(target_status, timeout_in_secs, deadline) if sleep_duration.zero?
+
+        sleep(sleep_duration)
+      end
+    end
+
+    private def predicate_satisfied?(predicate, target_status:, timeout_in_secs:, deadline:,
+      expensive_predicate:)
+      return predicate.call unless expensive_predicate && timeout_in_secs
+
+      remaining_time = remaining_time_until(deadline)
+      raise_timeout_if_deadline_exceeded!(target_status, timeout_in_secs, deadline) if remaining_time <= 0
+
+      predicate.call(remaining_time)
+    end
+
+    private def sleep_duration_for(wait_interval_in_secs, deadline)
+      return wait_interval_in_secs unless deadline
+
+      [wait_interval_in_secs, remaining_time_until(deadline)].min
+    end
+
+    private def raise_timeout_if_deadline_exceeded!(target_status, timeout_in_secs, deadline)
+      return unless timeout_in_secs && deadline && remaining_time_until(deadline) <= 0
+
+      raise WaitTimeoutError.new(action: target_status, timeout: timeout_in_secs)
+    end
+
+    private def remaining_time_until(deadline)
+      deadline - current_time
+    end
+
+    private def current_time
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    end
+
+    private def finished_predicates
+      {
+        wifi_on:       -> { @model.wifi_on? },
+        wifi_off:      -> { !@model.wifi_on? },
+        associated:    -> { @model.associated? },
+        disassociated: -> { !@model.associated? },
+        internet_on:   ->(remaining_time = nil) {
+          @model.internet_connectivity_state(timeout_in_secs: remaining_time) ==
+            ConnectivityStates::INTERNET_REACHABLE
+        },
+        internet_off:  ->(remaining_time = nil) {
+          @model.internet_connectivity_state(timeout_in_secs: remaining_time) ==
+            ConnectivityStates::INTERNET_UNREACHABLE
+        },
+      }
+    end
+
+    private def validate_target!(target_status, stringify_permitted_values_in_error_msg)
+      return if finished_predicates.key?(target_status)
+
+      allowed = PERMITTED_STATES.join(', ')
+      legacy_hint = LEGACY_STATE_HINTS[target_status]
+
+      if legacy_hint
+        raise ArgumentError, <<~MESSAGE.chomp
+          #{legacy_hint}
+          Valid states: #{allowed}
+        MESSAGE
+      elsif stringify_permitted_values_in_error_msg
+        raise ArgumentError, "Option must be one of [#{allowed}]. Was: #{target_status}"
+      else
+        raise ArgumentError,
+          "Option must be one of #{PERMITTED_STATES.inspect}. Was: #{target_status.inspect}"
       end
     end
 

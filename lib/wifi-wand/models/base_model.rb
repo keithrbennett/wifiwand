@@ -272,9 +272,14 @@ module WifiWand
     # Returns an explicit internet connectivity state:
     # :reachable, :unreachable, or :indeterminate.
     def internet_connectivity_state(tcp_working = nil, dns_working = nil,
-      captive_portal_state = NetworkConnectivityTester::UNSET)
+      captive_portal_state = NetworkConnectivityTester::UNSET, timeout_in_secs: nil)
       debug_method_entry(__method__)
-      @connectivity_tester.internet_connectivity_state(tcp_working, dns_working, captive_portal_state)
+      @connectivity_tester.internet_connectivity_state(
+        tcp_working,
+        dns_working,
+        captive_portal_state,
+        timeout_in_secs: timeout_in_secs
+      )
     end
 
     # Tests TCP connectivity to internet hosts (not localhost)

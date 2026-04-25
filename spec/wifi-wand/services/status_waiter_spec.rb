@@ -126,7 +126,7 @@ describe WifiWand::StatusWaiter do
         call_count = 0
         allow(mock_model).to receive(:wifi_on?) { (call_count += 1) > 1 }
         allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
-          .and_return(1000.0, 1002.5)
+          .and_return(1000.0, 1002.5, 1002.5, 1002.5)
 
         verbose_waiter = described_class.new(mock_model, verbose: true)
         allow(verbose_waiter).to receive(:sleep)
@@ -134,6 +134,45 @@ describe WifiWand::StatusWaiter do
         expect do
           verbose_waiter.wait_for(:wifi_on, timeout_in_secs: 10)
         end.to output(/StatusWaiter \(wifi_on\): wait time \(seconds\): 2\.5/).to_stdout
+      end
+
+      it 'caps the initial :internet_on probe to the remaining timeout budget' do
+        allow(mock_model).to receive(:internet_connectivity_state) do |timeout_in_secs: nil|
+          sleep(timeout_in_secs || 0.2)
+          :indeterminate
+        end
+
+        start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+        expect do
+          waiter.wait_for(:internet_on, timeout_in_secs: 0.05, wait_interval_in_secs: 0)
+        end.to raise_error(WifiWand::WaitTimeoutError)
+
+        elapsed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+        expect(elapsed_time).to be < 0.18
+      end
+
+      it 'caps later :internet_on probes to the remaining timeout budget' do
+        call_count = 0
+        allow(mock_model).to receive(:internet_connectivity_state) do |timeout_in_secs: nil|
+          call_count += 1
+          if call_count > 1
+            sleep(timeout_in_secs || 0.2)
+          end
+
+          :indeterminate
+        end
+        allow(waiter).to receive(:sleep)
+
+        start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+        expect do
+          waiter.wait_for(:internet_on, timeout_in_secs: 0.05, wait_interval_in_secs: 0)
+        end.to raise_error(WifiWand::WaitTimeoutError)
+
+        elapsed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+        expect(call_count).to eq(2)
+        expect(elapsed_time).to be < 0.18
       end
     end
 

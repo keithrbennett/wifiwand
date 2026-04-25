@@ -225,10 +225,10 @@ describe WifiWand::NetworkConnectivityTester do
       allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
         item == endpoints.last ? success_command : hanging_command
       end
-      allow(tester).to receive(:run_parallel_checks?).and_wrap_original do |original,
-                                                                            _items,
-                                                                            timeout,
-                                                                            helper_mode:|
+      allow(tester).to receive(:parallel_check_result).and_wrap_original do |original,
+                                                                             _items,
+                                                                             timeout,
+                                                                             helper_mode:|
         original.call(endpoints, timeout, helper_mode: helper_mode)
       end
 
@@ -248,10 +248,10 @@ describe WifiWand::NetworkConnectivityTester do
         item == endpoints.last ? failure_command : hanging_command
       end
       allow(tester).to receive(:fast_connectivity?).and_call_original
-      allow(tester).to receive(:run_parallel_checks?).and_wrap_original do |original,
-                                                                            _items,
-                                                                            timeout,
-                                                                            helper_mode:|
+      allow(tester).to receive(:parallel_check_result).and_wrap_original do |original,
+                                                                             _items,
+                                                                             timeout,
+                                                                             helper_mode:|
         original.call(endpoints, timeout, helper_mode: helper_mode)
       end
 
@@ -394,6 +394,41 @@ describe WifiWand::NetworkConnectivityTester do
       expect(tester).not_to receive(:captive_portal_state)
 
       expect(tester.internet_connectivity_state(true, true, :indeterminate)).to eq(:indeterminate)
+    end
+
+    it 'returns :indeterminate when the caller timeout expires during TCP probing' do
+      allow(tester).to receive(:tcp_connectivity?) do |overall_timeout:|
+        sleep(overall_timeout)
+        false
+      end
+      expect(tester).not_to receive(:dns_working?)
+      expect(tester).not_to receive(:captive_portal_state)
+
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      result = tester.internet_connectivity_state(timeout_in_secs: 0.05)
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+      expect(result).to eq(:indeterminate)
+      expect(elapsed).to be < 0.18
+    end
+
+    it 'returns :indeterminate when the caller timeout expires before captive portal probing' do
+      allow(tester).to receive(:tcp_connectivity?) do |overall_timeout:|
+        sleep(overall_timeout / 2.0)
+        true
+      end
+      allow(tester).to receive(:dns_working?) do |overall_timeout:|
+        sleep(overall_timeout)
+        true
+      end
+      expect(tester).not_to receive(:captive_portal_state)
+
+      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      result = tester.internet_connectivity_state(timeout_in_secs: 0.05)
+      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+
+      expect(result).to eq(:indeterminate)
+      expect(elapsed).to be < 0.18
     end
   end
 

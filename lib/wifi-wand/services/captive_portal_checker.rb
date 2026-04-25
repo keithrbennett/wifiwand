@@ -39,12 +39,12 @@ module WifiWand
     # @see attempt_captive_portal_check for per-endpoint HTTP check details
     # @see captive_portal_check_endpoints for the configured endpoint list
     #
-    def captive_portal_state
+    def captive_portal_state(timeout_in_secs: nil)
       endpoints = captive_portal_check_endpoints
 
       @output.puts "Testing captive portal via HTTP: #{endpoints.map { _1[:url] }.join(', ')}" if @verbose
 
-      results = captive_portal_results(endpoints)
+      results = captive_portal_results(endpoints, timeout_in_secs: timeout_in_secs)
 
       state = if results.include?(ConnectivityStates::CAPTIVE_PORTAL_FREE)
         ConnectivityStates::CAPTIVE_PORTAL_FREE
@@ -78,12 +78,12 @@ module WifiWand
     # Short enough to keep overall check latency low, long enough for a clean exit.
     HELPER_RESULT_GRACE = 0.5
 
-    private def captive_portal_results(endpoints)
+    private def captive_portal_results(endpoints, timeout_in_secs: nil)
       probes = endpoints.filter_map { |endpoint| start_captive_portal_probe(endpoint) }
       results = []
       free_found = false
-      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) +
-        TimingConstants::HTTP_CONNECTIVITY_TIMEOUT + HELPER_RESULT_GRACE
+      probe_timeout = timeout_in_secs || TimingConstants::HTTP_CONNECTIVITY_TIMEOUT
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + probe_timeout + HELPER_RESULT_GRACE
 
       while probes.any?
         ready_readers = ready_probe_readers(probes, deadline)
