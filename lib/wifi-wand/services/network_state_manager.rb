@@ -175,7 +175,7 @@ module WifiWand
       # will often re-associate with a preferred network on its own. Polling here
       # first avoids competing with the OS reconnect mechanism, which causes -3900
       # tmpErr errors when explicit connection requests race with internal macOS state.
-      return if settle_for_restore?
+      return if settle_for_restore?(network_name)
 
       attempts = 0
 
@@ -194,7 +194,7 @@ module WifiWand
         # macOS may have auto-reconnected during the sleep; if so, skip
         # the next networksetup call to avoid another -3900 collision.
         begin
-          return if @model.associated?
+          return if restore_associated_with_target?(network_name)
         rescue
           nil
         end
@@ -202,21 +202,23 @@ module WifiWand
       end
     end
 
-    # Polls for macOS to auto-reconnect before resorting to an explicit connect
-    # call. Returns true if the network became associated during the settle window
-    # (caller should skip the explicit connect), false otherwise.
+    # Polls for the restore target to become associated before resorting to an
+    # explicit connect call. Returns true if the network became associated during
+    # the settle window (caller should skip the explicit connect), false otherwise.
     #
     # Uses associated? rather than connection_ready? because after a programmatic
     # CoreWLAN disconnect, macOS triggers an internal auto-reconnect. During this
     # reconnect the Swift helper may return a placeholder SSID ('<hidden>'),
     # causing connection_ready? to return false even when the interface is
     # already associated. associated? falls back to airport data, which reports
-    # association regardless of SSID visibility.
-    private def settle_for_restore?
+    # association regardless of SSID visibility. On macOS, we pair that broad
+    # association check with connected_network_name so a reassociation to the
+    # wrong preferred network does not suppress the explicit reconnect.
+    private def settle_for_restore?(network_name)
       deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + RESTORE_CONNECT_SETTLE_SECONDS
       loop do
         begin
-          return true if @model.associated?
+          return true if restore_associated_with_target?(network_name)
         rescue
           nil
         end
@@ -224,6 +226,15 @@ module WifiWand
 
         sleep(RESTORE_CONNECT_SETTLE_POLL_SECONDS)
       end
+      false
+    end
+
+    private def restore_associated_with_target?(network_name)
+      return false unless @model.associated?
+      return true unless @model.respond_to?(:mac?) && @model.mac?
+
+      @model.connected_network_name == network_name
+    rescue WifiWand::Error
       false
     end
 
