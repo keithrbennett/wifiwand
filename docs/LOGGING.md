@@ -111,7 +111,7 @@ Time between connectivity checks in seconds (default: 5). Must be greater than 0
 
 ```bash
 wifi-wand log --interval 2      # check every 2 seconds
-wifi-wand log --interval 0.5    # check every 0.5 seconds
+wifi-wand log --interval 1      # check every 1 second
 wifi-wand log --interval 10     # check every 10 seconds
 ```
 
@@ -119,6 +119,9 @@ wifi-wand log --interval 10     # check every 10 seconds
 - **Default (5)**: Recommended for most use cases
 - **Higher (10+)**: For long-term monitoring with less system load
 - **Lower (1-2)**: For faster outage detection when actively debugging
+- **Sub-second intervals**: Best reserved for short WiFi-association troubleshooting. Steady-state
+  polls use a fast TCP probe, but `internet_on` and `internet_off` are still confirmed with the full
+  explicit connectivity model before they are emitted.
 
 ### `--verbose`, `-v`
 
@@ -154,6 +157,16 @@ underlying state is still `internet_connectivity_state`.
 
 This ensures that related state changes are logged in a logical sequence.
 
+For frequent polling, the logger uses a two-stage internet check:
+
+- Stable reachable/unreachable states are re-polled with the fast TCP probe.
+- Startup, recoveries, and suspected changes are confirmed with
+  `internet_connectivity_state`.
+
+That keeps the loop responsive without changing what `internet_on` and
+`internet_off` mean: those events still represent transitions to the explicit
+`:reachable` and `:unreachable` states.
+
 ### Network Roaming
 
 When the network name changes from one non-nil value to another (e.g., "NetworkA" to "NetworkB"), both events
@@ -185,13 +198,14 @@ Example log file content:
 
 ## Practical Examples
 
-### Monitor WiFi for 1 minute with fast polling
+### Monitor WiFi for 1 minute with quick polling
 
 ```bash
-timeout 60 wifi-wand log --interval 0.1 --file --stdout
+timeout 60 wifi-wand log --interval 1 --file --stdout
 ```
 
-Use a small interval like 0.1 for rapid polling.
+Use a 1-second interval when you want fast event detection without the extra
+noise and load of sub-second polling.
 
 ### Continuously log to a dated file
 
@@ -233,7 +247,8 @@ cat debug.log
    - `wifi_on?` - WiFi power state
    - `connected?` - Whether the WiFi interface is connected or otherwise considered usable by the WiFi model
    - `connected_network_name` - Currently connected network
-   - `internet_connectivity_state` - Explicit internet state, checked on every poll
+   - `fast_connectivity?` - Cheap TCP reachability probe used during stable reachable/unreachable periods
+   - `internet_connectivity_state` - Explicit internet state used at startup and to confirm suspected changes
 3. **Change Detection**: Current state is compared to previous state
 4. **Event Emission**: Only actual changes are logged, in the order: WiFi power → Network → Internet
 5. **Graceful Shutdown**: Pressing `Ctrl+C` cleanly closes the log file and exits
@@ -245,7 +260,8 @@ The logger monitors three aspects of WiFi state:
 1. **WiFi Power**: Whether WiFi is turned on or off
 2. **Network Connection**: The name of the connected WiFi network (SSID)
 3. **Internet Connectivity**: Whether internet access is available
-   - Derived directly from `internet_connectivity_state` on every poll
+   - Stable reachable/unreachable periods are tracked with `fast_connectivity?`
+   - Suspected internet-state changes are confirmed with `internet_connectivity_state`
    - May still report reachable internet when WiFi is off or unassociated if another uplink, such as Ethernet,
      is active
    - This differs from `connected?`, which is intentionally WiFi-specific and may be `false` when Ethernet is
@@ -254,6 +270,9 @@ The logger monitors three aspects of WiFi state:
      in the initial-state line
    - Transition events are emitted only when both the previous and current
      states are explicit (`:reachable` or `:unreachable`)
+   - Fast polling improves steady-state responsiveness, but a recovery to
+     `internet_on` may still trail the first successful fast TCP probe while
+     DNS and captive-portal checks are being confirmed
 
 Unlike older boolean-style docs, connectivity is not always known with
 certainty. An indeterminate state means TCP and DNS succeeded but captive-portal

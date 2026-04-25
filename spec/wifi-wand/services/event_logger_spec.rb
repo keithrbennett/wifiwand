@@ -10,6 +10,7 @@ describe WifiWand::EventLogger do
 
   let(:mock_model) do
     double('Model',
+      fast_connectivity?:          true,
       internet_connectivity_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE,
       connected?:                  true,
       wifi_on?:                    true,
@@ -153,6 +154,106 @@ describe WifiWand::EventLogger do
       )
     end
 
+    it 'uses the fast probe to keep a stable reachable state without a full confirmation probe' do
+      logger = described_class.new(mock_model, output: output, interval: 0.5)
+      logger.instance_variable_set(:@previous_state,
+        {
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'TestNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE,
+        })
+
+      expect(mock_model).to receive(:wifi_on?).and_return(true)
+      expect(mock_model).to receive(:connected?).and_return(true)
+      expect(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      expect(mock_model).to receive(:fast_connectivity?).with(timeout_in_secs: 0.5).and_return(true)
+      expect(mock_model).not_to receive(:internet_connectivity_state)
+
+      expect(logger.send(:fetch_current_state)).to eq(
+        wifi_on:        true,
+        connected:      true,
+        network_name:   'TestNetwork',
+        internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE
+      )
+    end
+
+    it 'uses the fast probe to keep a stable unreachable state without a full confirmation probe' do
+      logger = described_class.new(mock_model, output: output, interval: 0.5)
+      logger.instance_variable_set(:@previous_state,
+        {
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'TestNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_UNREACHABLE,
+        })
+
+      expect(mock_model).to receive(:wifi_on?).and_return(true)
+      expect(mock_model).to receive(:connected?).and_return(true)
+      expect(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      expect(mock_model).to receive(:fast_connectivity?).with(timeout_in_secs: 0.5).and_return(false)
+      expect(mock_model).not_to receive(:internet_connectivity_state)
+
+      expect(logger.send(:fetch_current_state)).to eq(
+        wifi_on:        true,
+        connected:      true,
+        network_name:   'TestNetwork',
+        internet_state: WifiWand::ConnectivityStates::INTERNET_UNREACHABLE
+      )
+    end
+
+    it 'confirms recovery with the full explicit probe after the fast probe turns positive' do
+      logger = described_class.new(mock_model, output: output, interval: 0.5)
+      logger.instance_variable_set(:@previous_state,
+        {
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'TestNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_UNREACHABLE,
+        })
+
+      expect(mock_model).to receive(:wifi_on?).and_return(true)
+      expect(mock_model).to receive(:connected?).and_return(true)
+      expect(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      expect(mock_model).to receive(:fast_connectivity?).with(timeout_in_secs: 0.5).and_return(true)
+      expect(mock_model).to receive(:internet_connectivity_state)
+        .with(true, nil, timeout_in_secs: 0.5)
+        .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
+
+      expect(logger.send(:fetch_current_state)).to eq(
+        wifi_on:        true,
+        connected:      true,
+        network_name:   'TestNetwork',
+        internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE
+      )
+    end
+
+    it 'confirms loss quickly by reusing a negative fast probe as the TCP result' do
+      logger = described_class.new(mock_model, output: output, interval: 0.5)
+      logger.instance_variable_set(:@previous_state,
+        {
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'TestNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE,
+        })
+
+      expect(mock_model).to receive(:wifi_on?).and_return(true)
+      expect(mock_model).to receive(:connected?).and_return(true)
+      expect(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      expect(mock_model).to receive(:fast_connectivity?).with(timeout_in_secs: 0.5).and_return(false)
+      expect(mock_model).to receive(:internet_connectivity_state)
+        .with(false, nil, timeout_in_secs: 0.5)
+        .and_return(WifiWand::ConnectivityStates::INTERNET_UNREACHABLE)
+
+      expect(logger.send(:fetch_current_state)).to eq(
+        wifi_on:        true,
+        connected:      true,
+        network_name:   'TestNetwork',
+        internet_state: WifiWand::ConnectivityStates::INTERNET_UNREACHABLE
+      )
+    end
+
     it 'degrades to the previous internet state when that lookup fails' do
       logger = described_class.new(mock_model, output: output)
       logger.instance_variable_set(:@previous_state,
@@ -190,8 +291,8 @@ describe WifiWand::EventLogger do
       expect(mock_model).to receive(:wifi_on?).and_return(true)
       expect(mock_model).to receive(:connected?).and_raise(WifiWand::Error, 'Test error')
       expect(mock_model).not_to receive(:connected_network_name)
-      expect(mock_model).to receive(:internet_connectivity_state)
-        .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
+      expect(mock_model).to receive(:fast_connectivity?).with(timeout_in_secs: 1.0).and_return(true)
+      expect(mock_model).not_to receive(:internet_connectivity_state)
       expect(logger).to receive(:log_message).with(/Error fetching connected: Test error/)
 
       expect(logger.send(:fetch_current_state)).to eq(
@@ -217,13 +318,15 @@ describe WifiWand::EventLogger do
           wifi_on:        true,
           connected:      true,
           network_name:   'PreviousNetwork',
-          internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE,
+          internet_state: WifiWand::ConnectivityStates::INTERNET_UNREACHABLE,
         })
 
       expect(mock_model).to receive(:wifi_on?).and_return(true)
       expect(mock_model).to receive(:connected?).and_raise(WifiWand::Error, 'association probe failed')
       expect(mock_model).not_to receive(:connected_network_name)
+      expect(mock_model).to receive(:fast_connectivity?).with(timeout_in_secs: 1.0).and_return(true)
       expect(mock_model).to receive(:internet_connectivity_state)
+        .with(true, nil, timeout_in_secs: 1.0)
         .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
 
       expect(logger.send(:fetch_current_state)).to eq(
@@ -275,13 +378,14 @@ describe WifiWand::EventLogger do
           wifi_on:        true,
           connected:      true,
           network_name:   'PreviousNetwork',
-          internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE,
+          internet_state: WifiWand::ConnectivityStates::INTERNET_UNREACHABLE,
         })
 
       allow(mock_model).to receive_messages(
         wifi_on?:               true,
         connected?:             true,
-        connected_network_name: 'TestNetwork'
+        connected_network_name: 'TestNetwork',
+        fast_connectivity?:     true
       )
       allow(mock_model).to receive(:internet_connectivity_state)
         .and_raise(WifiWand::Error, 'internet probe failed')
