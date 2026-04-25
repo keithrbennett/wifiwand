@@ -273,6 +273,108 @@ describe WifiWand::EventLogger do
       )
     end
 
+    it 'keeps an indeterminate state when the fast TCP probe is still negative' do
+      logger = described_class.new(mock_model, output: output, interval: 0.5)
+      logger.instance_variable_set(:@previous_state,
+        {
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'TestNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_INDETERMINATE,
+        })
+
+      expect(mock_model).to receive(:wifi_on?).and_return(true)
+      expect(mock_model).to receive(:connected?).and_return(true)
+      expect(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      expect(mock_model).to receive(:fast_connectivity?).with(timeout_in_secs: 0.5).and_return(false)
+      expect(mock_model).not_to receive(:internet_connectivity_state)
+
+      expect(logger.send(:fetch_current_state)).to eq(
+        wifi_on:        true,
+        connected:      true,
+        network_name:   'TestNetwork',
+        internet_state: WifiWand::ConnectivityStates::INTERNET_INDETERMINATE
+      )
+    end
+
+    it 'reconfirms an indeterminate state when fast TCP starts succeeding' do
+      logger = described_class.new(mock_model, output: output, interval: 0.5)
+      logger.instance_variable_set(:@previous_state,
+        {
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'TestNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_INDETERMINATE,
+        })
+
+      expect(mock_model).to receive(:wifi_on?).and_return(true)
+      expect(mock_model).to receive(:connected?).and_return(true)
+      expect(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      expect(mock_model).to receive(:fast_connectivity?).with(timeout_in_secs: 0.5).and_return(true)
+      expect(mock_model).to receive(:internet_connectivity_state)
+        .with(true, nil, timeout_in_secs: 0.5)
+        .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
+
+      expect(logger.send(:fetch_current_state)).to eq(
+        wifi_on:        true,
+        connected:      true,
+        network_name:   'TestNetwork',
+        internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE
+      )
+    end
+
+    it 'always reconfirms a pending state because it is transient' do
+      logger = described_class.new(mock_model, output: output, interval: 0.5)
+      logger.instance_variable_set(:@previous_state,
+        {
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'TestNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_PENDING,
+        })
+
+      expect(mock_model).to receive(:wifi_on?).and_return(true)
+      expect(mock_model).to receive(:connected?).and_return(true)
+      expect(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      expect(mock_model).to receive(:fast_connectivity?).with(timeout_in_secs: 0.5).and_return(false)
+      expect(mock_model).to receive(:internet_connectivity_state)
+        .with(false, nil, timeout_in_secs: 0.5)
+        .and_return(WifiWand::ConnectivityStates::INTERNET_UNREACHABLE)
+
+      expect(logger.send(:fetch_current_state)).to eq(
+        wifi_on:        true,
+        connected:      true,
+        network_name:   'TestNetwork',
+        internet_state: WifiWand::ConnectivityStates::INTERNET_UNREACHABLE
+      )
+    end
+
+    it 'reconfirms a pending state even when the fast TCP probe turns positive' do
+      logger = described_class.new(mock_model, output: output, interval: 0.5)
+      logger.instance_variable_set(:@previous_state,
+        {
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'TestNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_PENDING,
+        })
+
+      expect(mock_model).to receive(:wifi_on?).and_return(true)
+      expect(mock_model).to receive(:connected?).and_return(true)
+      expect(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
+      expect(mock_model).to receive(:fast_connectivity?).with(timeout_in_secs: 0.5).and_return(true)
+      expect(mock_model).to receive(:internet_connectivity_state)
+        .with(true, nil, timeout_in_secs: 0.5)
+        .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
+
+      expect(logger.send(:fetch_current_state)).to eq(
+        wifi_on:        true,
+        connected:      true,
+        network_name:   'TestNetwork',
+        internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE
+      )
+    end
+
     it 'degrades to the previous internet state when that lookup fails' do
       logger = described_class.new(mock_model, output: output)
       logger.instance_variable_set(:@previous_state,

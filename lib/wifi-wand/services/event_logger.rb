@@ -154,8 +154,25 @@ module WifiWand
     end
 
     private def stable_internet_state?(previous_internet_state, fast_reachability)
-      (previous_internet_state == ConnectivityStates::INTERNET_REACHABLE && fast_reachability == true) ||
-        (previous_internet_state == ConnectivityStates::INTERNET_UNREACHABLE && fast_reachability == false)
+      case previous_internet_state
+      when ConnectivityStates::INTERNET_REACHABLE
+        fast_reachability == true
+      when ConnectivityStates::INTERNET_UNREACHABLE
+        fast_reachability == false
+      when ConnectivityStates::INTERNET_INDETERMINATE
+        stable_indeterminate_state?(fast_reachability)
+      else
+        false
+      end
+    end
+
+    private def stable_indeterminate_state?(fast_reachability)
+      # An indeterminate result means the full probe could not classify beyond
+      # "not conclusively online". When the cheap TCP probe is still negative,
+      # rerunning DNS and captive-portal checks every poll rarely adds signal,
+      # so keep the indeterminate state. If TCP starts succeeding again, fall
+      # through so the full probe can resolve DNS/captive-portal ambiguity.
+      fast_reachability == false
     end
 
     private def detect_and_emit_events(current_state)
