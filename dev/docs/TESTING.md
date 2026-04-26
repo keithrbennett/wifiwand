@@ -185,6 +185,53 @@ WIFIWAND_RESTORE_NETWORK_NAME="Your SSID" WIFIWAND_REAL_ENV_TESTS=all bundle exe
 Use this only when you are certain of the currently connected network name. The override is intended for
 real-host debugging on macOS systems that expose the current network as `<redacted>`.
 
+## macOS Preferred-Network Removal Moved Out Of Automated Test Suite
+
+The automated suite no longer exercises the privileged macOS preferred-network
+removal path.
+
+That change is intentional:
+
+- `rspec` must not silently enter `sudo` mode.
+- Local test runs must not prompt for elevated credentials.
+- CI and default local testing must stay non-privileged and predictable.
+
+The production code path still exists in
+`WifiWand::MacOsModel#remove_preferred_network`, which calls:
+
+```bash
+sudo networksetup -removepreferredwirelessnetwork <iface> <ssid>
+```
+
+Verification for that path is now manual-only. When you want occasional
+coverage of the real macOS removal flow, use an SSID you genuinely no longer
+need and verify removal through the CLI:
+
+```bash
+bundle exec exe/wifi-wand forget "Example SSID"
+bundle exec exe/wifi-wand pref_nets | grep "Example SSID"
+```
+
+Interpretation:
+
+- If `forget` succeeds and `grep` finds no match, the preferred-network entry
+  was removed.
+- If `forget` fails with an authentication or `networksetup` error, investigate
+  that production path directly.
+
+Use this carefully. It mutates the host's saved preferred-network state by
+removing the named SSID from macOS's preferred wireless network list.
+
+This manual check preserves occasional coverage only for the preferred-network
+removal path. It does not replace automated tests for ordinary behavior, and it
+must not expand into a general privileged host-mutation harness.
+
+In particular, it is not for:
+
+- nameserver or DNS mutation checks
+- other system-configuration mutation checks
+- CI or default local test flows
+
 ## Coverage Artifacts
 
 Two resultset filenames are used depending on whether the run touches the real host:
