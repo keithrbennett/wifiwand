@@ -62,6 +62,11 @@ current level of coupling between the core logic and the CLI:
 
 ## Revised Findings (Post-Analysis)
 
+Historical note: this section originally recommended introducing a facade
+object for library callers. The codebase has since moved in a different
+direction. The public library entry point is now `WifiWand.create_model`,
+which returns a concrete OS-specific model directly.
+
 My analysis after reading the key files confirms the initial assessment and clarifies the path to refactoring
 `wifi-wand` into a proper library.
 
@@ -92,6 +97,7 @@ Here is a proposed plan to achieve this:
    Instead, it should require the individual components that form the library's core, such as the services,
    models, and errors.
 
-3. **Establish a Clear Public API:** We can create a new file, for example `lib/wifi-wand/api.rb`, or a new
-   class `WifiWand::Client` that acts as a "facade". This would provide a simple, high-level interface for
-   library users.
+3. **Establish a Clear Public API:** The current codebase now does this with
+   `WifiWand.create_model` and the concrete model classes rather than with a
+   separate facade object. That keeps OS detection and model behavior explicit
+   without adding another wrapper layer.

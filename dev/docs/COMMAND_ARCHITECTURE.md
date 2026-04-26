@@ -186,8 +186,10 @@ The command architecture did not remove the CLI object, and it was not intended 
 - shell-mode behavior
 - top-level error handling
 
-Commands are CLI commands, not a separate general-purpose library API. For library use, callers should still
-prefer the client/model/service layers rather than instantiating CLI command objects.
+Commands are CLI commands, not a separate general-purpose library API. For
+library use, callers should prefer `WifiWand.create_model`, the concrete model
+classes, and lower-level services rather than instantiating CLI command
+objects.
 
 ## Why Some Commands Bind `output_support`
 

@@ -69,8 +69,8 @@ Observed uses include:
 - connection-change logging in `EventLogger`
 - OS-specific connection logic in `MacOsModel` and `UbuntuModel`
 
-It is not currently delegated on `WifiWand::Client`, so library consumers do
-not call `client.connected?`. They would need `client.model.connected?`.
+It is a model-level method, so library consumers call it directly on the
+returned model object, for example `WifiWand.create_model.connected?`.
 
 ### `internet_connectivity_state`
 
@@ -78,7 +78,7 @@ not call `client.connected?`. They would need `client.model.connected?`.
 
 Observed uses include:
 
-- `WifiWand::Client`
+- library callers using `WifiWand.create_model` or a concrete model directly
 - the `ci` command
 - `status`
 - `info`
@@ -97,13 +97,14 @@ project, `connected?` means something narrower and more WiFi-specific.
 
 That is defensible, but surprising.
 
-### 2. The public API is asymmetric
+### 2. The public API is still somewhat asymmetric
 
-`internet_connectivity_state` is part of `WifiWand::Client`, but `connected?`
-is not. That creates an odd split:
+`internet_connectivity_state` is documented prominently as part of the
+cross-platform library API, while `connected?` is more model-oriented in both
+the code and docs. That creates an odd split:
 
-- one connectivity concept is public and explicit
-- the other is real and important, but mostly internal / model-facing
+- one connectivity concept is highlighted and explicit
+- the other is real and important, but still presented as more model-facing
 
 ### 3. The CLI exposes one clearly and the other indirectly
 
@@ -175,16 +176,17 @@ A pragmatic migration path would be:
 3. Keep `connected?` for backward compatibility unless there is a major-version
    reason to deprecate it
 
-### Recommendation 4: Decide whether `connected?` should become public
+### Recommendation 4: Decide whether `connected?` should become a documented
+cross-platform API
 
 There are two reasonable choices:
 
 - Keep it internal-ish and document it as model-level only
-- Promote it to `WifiWand::Client` as an explicitly WiFi-scoped predicate
+- Promote it in the public library docs as an explicitly WiFi-scoped predicate
 
 Either choice is better than the current in-between state.
 
-My preference is to expose it publicly only if it gets a clearer name such as
+My preference is to emphasize it publicly only if it gets a clearer name such as
 `wifi_connected?`.
 
 ### Recommendation 5: Consider a CLI command only if it has a strong use case

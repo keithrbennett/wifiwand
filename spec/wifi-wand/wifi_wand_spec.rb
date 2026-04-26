@@ -3,6 +3,12 @@
 require 'ostruct'
 
 RSpec.describe WifiWand do
+  describe 'top-level require' do
+    it 'loads WifiWand::Error for library consumers' do
+      expect(defined?(WifiWand::Error)).to eq('constant')
+    end
+  end
+
   describe '.create_model' do
     it 'delegates to OperatingSystems.create_model_for_current_os with provided options' do
       options = OpenStruct.new(verbose: true, wifi_interface: 'en0')

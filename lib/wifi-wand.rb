@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'wifi-wand/version'
-require_relative 'wifi-wand/client'
+require_relative 'wifi-wand/errors'
 
 # When additional operating systems are added, we will need to modify this
 # to load only the model appropriate for the environment:

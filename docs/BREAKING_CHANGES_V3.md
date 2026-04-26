@@ -92,10 +92,10 @@ The companion captive-portal API is now `captive_portal_state`, returning:
 
 ```ruby
 # Old
-client.connected_to_internet? == true
+model.connected_to_internet? == true
 
 # New
-client.internet_connectivity_state == :reachable
+model.internet_connectivity_state == :reachable
 ```
 
 Callers should replace boolean checks with explicit state comparisons and

@@ -412,25 +412,27 @@ of preferred networks, so you might want to suppress their output:
 
 ### Using as a Library
 
-The `wifi-wand` gem can be used as a library in your own Ruby applications. The primary entry point for the
-library is the `WifiWand::Client` class.
+The `wifi-wand` gem can be used as a library in your own Ruby applications.
+Use the OS-specific models directly. For most callers, the simplest entry point
+is `WifiWand.create_model`, which returns the right model for the current host.
 
 #### Basic Usage
 
-First, add the gem to your Gemfile or install it system-wide. Then, require it and create a new client:
+First, add the gem to your Gemfile or install it system-wide. Then, require it
+and create a model:
 
 ```ruby
 require 'wifi-wand'
 
-# Create a new client instance
-client = WifiWand::Client.new
+# Create the current OS model (WifiWand::MacOsModel or WifiWand::UbuntuModel)
+model = WifiWand.create_model
 
-# You can now call methods on the client
-puts "WiFi is on: #{client.wifi_on?}"
-puts "Connected to: #{client.connected_network_name}"
+# You can now call methods on the model directly
+puts "WiFi is on: #{model.wifi_on?}"
+puts "Connected to: #{model.connected_network_name}"
 
 puts "\nAvailable Networks:"
-puts client.available_network_names.map { |n| "  - #{n}" }
+puts model.available_network_names.map { |n| "  - #{n}" }
 ```
 
 `available_network_names` reflects the SSIDs returned by the operating system scan, with wifi-wand's
@@ -439,23 +441,45 @@ depending on what the OS scan reports.
 
 #### Passing Options
 
-You can pass options to the client during initialization, such as `:verbose` to see underlying OS commands or
-`:wifi_interface` to specify a network interface.
+You can pass options when creating the model, such as `:verbose` to see
+underlying OS commands or `:wifi_interface` to specify a network interface.
 
 ```ruby
 require 'wifi-wand'
-require 'ostruct'
 
-options = OpenStruct.new(verbose: true, wifi_interface: 'en0')
-client = WifiWand::Client.new(options)
+model = WifiWand.create_model(
+  verbose: true,
+  wifi_interface: 'en0'
+)
 
-puts client.wifi_info
+puts model.wifi_info
+```
+
+`WifiWand.create_model` accepts either a `Hash` or an `OpenStruct`.
+
+#### Concrete Models
+
+If you know the host OS up front, you can instantiate the concrete class
+directly:
+
+```ruby
+require 'wifi-wand/models/mac_os_model'
+
+model = WifiWand::MacOsModel.create_model(verbose: true)
+puts model.connected_network_name
+```
+
+```ruby
+require 'wifi-wand/models/ubuntu_model'
+
+model = WifiWand::UbuntuModel.create_model(wifi_interface: 'wlp0s20f3')
+puts model.connected_network_name
 ```
 
 #### Available Methods
 
-The `Client` object provides a comprehensive API for interacting with your Wi-Fi interface. All public methods
-on the underlying OS-specific models are delegated to the client. Key methods include:
+The model classes provide the library API for interacting with your Wi-Fi
+interface. Key methods include:
 
 *   `available_network_names`
 *   `connect(ssid, password)`
@@ -482,20 +506,25 @@ on the underlying OS-specific models are delegated to the client. Key methods in
 *   `wifi_on`
 *   `wifi_on?`
 
-Please refer to the YARD documentation for a complete list of methods and their parameters.
+OS-specific methods remain available on the concrete models. For example,
+`preferred_network_password` is available on `WifiWand::MacOsModel` and
+`WifiWand::UbuntuModel`, but it is not part of the common cross-platform API.
+
+Please refer to the YARD documentation for a complete list of methods and
+their parameters.
 
 **Migration: `connected_to_internet?` → `internet_connectivity_state`**
 
 ```ruby
 # Old
-client.connected_to_internet? == true
+model.connected_to_internet? == true
 
 # New
-client.internet_connectivity_state == :reachable
+model.internet_connectivity_state == :reachable
 ```
 
 ```ruby
-case client.internet_connectivity_state
+case model.internet_connectivity_state
 when :reachable
   puts 'Internet reachable'
 when :unreachable

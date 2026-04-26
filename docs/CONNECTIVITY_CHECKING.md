@@ -32,7 +32,7 @@ The old boolean-style API `connected_to_internet?` has been removed.
 Library example:
 
 ```ruby
-case client.internet_connectivity_state
+case model.internet_connectivity_state
 when :reachable
   upload_file
 when :unreachable

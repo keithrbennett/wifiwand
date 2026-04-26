@@ -58,13 +58,15 @@ For upgrade-impacting API, CLI, and behavior changes, see
   such as `HelpSystem`, `OutputFormatter`, and `ErrorHandling`.
 - The system automatically detects the OS and loads the appropriate model.
 - Extracted hardcoded data into YAML configuration files.
-- Added `WifiWand::Client` as a cleaner programmatic API for library use.
+- Added a direct model API for library use, with OS detection separated from
+  model behavior.
 - All OS commands are now executed using `Open3` with argument arrays,
   eliminating shell interpolation and command injection vulnerabilities.
 - Renamed the direct command execution APIs to `run_command_using_args` and
   `run_command_using_shell` so structured execution and shell execution are
   distinguished explicitly for library consumers.
-- Switched from threads to the `async` gem for concurrent network detection.
+- Added native-thread concurrency for status and connectivity reporting where
+  overlapping OS and network checks improve latency.
 - Extracted captive-portal detection into `CaptivePortalChecker`.
 - Improved separation between OS detection, model creation, and command
   execution.

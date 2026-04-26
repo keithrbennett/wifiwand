@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'ostruct'
+
 require_relative 'errors'
 require_relative 'os/base_os'
 require_relative 'os/mac_os'
@@ -39,7 +41,6 @@ module WifiWand
       def current_display_name = current_os&.display_name
 
       def create_model_for_current_os(options = {})
-        options = OpenStruct.new(options) if options.is_a?(Hash)
         current_os_instance = current_os
         raise NoSupportedOSError unless current_os_instance
 
