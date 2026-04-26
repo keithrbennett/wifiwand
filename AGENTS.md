@@ -351,6 +351,7 @@ This copies hooks from the tracked `hooks/` directory to `.git/hooks/` and makes
   and external URIs.
 - When providing content intended for the user to copy and paste (like commit messages or configuration
   snippets), do not include line numbers or any other decorators that would interfere with direct usage.
+- When proposing commit messages, keep the subject concise and hard-wrap all body lines at 72 characters.
 - When providing shell commands for the user to run, render them flush-left with no leading spaces, bullets,
   or other prefixes so they can be copied and pasted directly. Some shell setups omit space-prefixed commands
   from history, and the examples should remain history-friendly.

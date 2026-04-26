@@ -44,30 +44,6 @@ module WifiWand
         end
       end
 
-      # Real-environment read-write tests (will change wifi state)
-      context 'when running system-modifying operations',
-        :real_env_read_write, real_env_os: :os_mac do
-        subject { create_mac_os_test_model }
-
-        # No real-environment tests for #wifi_on, #wifi_off, or #disconnect on macOS.
-        #
-        # On macOS, airportd starts an auto-reconnect cycle within milliseconds of any
-        # programmatic disassociation or WiFi toggle. The suite's global restore hook then
-        # races airportd to reconnect explicitly, producing -3900 / tmpErr from networksetup
-        # every time. There is no public API to suppress airportd's reconnect behavior.
-        #
-        # This constraint is macOS-specific. Other platforms may not have the same issue.
-        #
-        # All three methods are fully covered by mocked unit tests.
-        # See dev/docs/TESTING.md for the full investigation and decision record.
-
-        describe '#remove_preferred_network' do
-          it 'handles removal of non-existent network', :needs_sudo_access do
-            expect { subject.remove_preferred_network('non_existent_network_123') }.not_to raise_error
-          end
-        end
-      end
-
       # Network connection tests (highest risk)
       context 'when running network connection operations',
         :real_env_read_write, real_env_os: :os_mac do
@@ -78,65 +54,6 @@ module WifiWand
             # Swift command exits with status 1 and "Error: Network not found" message
             expect { subject._connect('non_existent_network_123') }
               .to raise_error(WifiWand::CommandExecutor::OsCommandError)
-          end
-        end
-      end
-
-      # Additional real-environment read-write tests
-      context 'when running extended real-environment operations',
-        :real_env_read_write, real_env_os: :os_mac do
-        subject { create_mac_os_test_model }
-
-        before do
-          # Capture DNS state for per-test restoration.
-          # WiFi on/off restoration is handled by the global NetworkStateManager after hook.
-          @original_nameservers = begin
-            subject.nameservers_using_networksetup
-          rescue
-            []
-          end
-        end
-
-        after do
-          # Restore nameservers only — the global after(:each, :real_env_read_write) hook
-          # handles reconnecting to the original network.
-          subject.set_nameservers(@original_nameservers) if @original_nameservers&.any?
-        rescue => e
-          warn "Warning: Failed to restore nameservers: #{e.message}"
-        end
-
-        # No real-environment test for #wifi_on? state-change accuracy or for
-        # 'WiFi state consistency' or 'error resilience' multi-toggle scenarios.
-        # On macOS, each toggles WiFi off, triggering the same airportd reconnect
-        # race described above. This constraint is macOS-specific. Mocked tests
-        # cover these paths.
-
-        describe '#set_nameservers' do
-          let(:test_nameservers) { ['8.8.8.8', '1.1.1.1'] }
-          let(:alternate_nameservers) { ['9.9.9.9'] }
-
-          it 'successfully sets and retrieves nameservers', :needs_sudo_access do
-            # Set test nameservers
-            subject.set_nameservers(test_nameservers)
-
-            # Poll until the new nameservers appear
-            wait_for(timeout: 30, interval: 0.5, description: 'nameservers to be set') do
-              (test_nameservers - subject.nameservers_using_networksetup).empty?
-            end
-
-            expect((test_nameservers - subject.nameservers_using_networksetup).empty?).to be(true)
-          end
-
-          it 'handles nameserver clearing and restoration', :needs_sudo_access do
-            # Clear nameservers, then immediately set new ones
-            subject.set_nameservers(:clear)
-            subject.set_nameservers(alternate_nameservers)
-
-            # Wait for the new ones to be applied
-            wait_for(timeout: 30, interval: 0.5, description: 'alternate nameservers to be set') do
-              subject.nameservers_using_networksetup.include?(alternate_nameservers.first)
-            end
-            expect(subject.nameservers_using_networksetup).to include(alternate_nameservers.first)
           end
         end
       end

@@ -6,7 +6,6 @@ require_relative 'os_filtering'
 
 module RSpecConfiguration
   VALID_REAL_ENV_TEST_OPTIONS = %w[none read_only all].freeze
-  @sudo_tests_will_run = false
   @restore_failed = false
 
   def self.configure(config)
@@ -38,10 +37,10 @@ module RSpecConfiguration
   def self.configure_test_ordering(config)
     auth_partition = ->(items) do
       items.partition do |item|
-        needs_auth = item.metadata[:needs_sudo_access] || item.metadata[:keychain_integration]
+        needs_auth = item.metadata[:keychain_integration]
         needs_auth || (
           item.respond_to?(:examples) &&
-            item.examples.any? { |ex| ex.metadata[:needs_sudo_access] || ex.metadata[:keychain_integration] }
+            item.examples.any? { |ex| ex.metadata[:keychain_integration] }
         )
       end
     end
@@ -61,19 +60,10 @@ module RSpecConfiguration
     config.before(:suite) do
       examples_to_run = RSpecConfiguration.examples_to_run
       test_types = RSpecConfiguration.analyze_test_types(examples_to_run)
-      RSpecConfiguration.note_auth_requirements(test_types)
 
       RSpecConfiguration.handle_real_env_preflight(test_types)
       RSpecConfiguration.handle_network_state_capture(test_types[:real_env_read_write])
-
-      if RSpecConfiguration.macos_and_auth_tests_will_run?(test_types)
-        RSpecConfiguration.handle_sudo_preflight(test_types[:sudo])
-      end
     end
-  end
-
-  def self.note_auth_requirements(test_types)
-    @sudo_tests_will_run = test_types[:sudo]
   end
 
   def self.examples_to_run
@@ -88,34 +78,8 @@ module RSpecConfiguration
     {
       real_env:            examples_to_run.any? { |ex| ex.metadata[:real_env] },
       real_env_read_write: examples_to_run.any? { |ex| ex.metadata[:real_env_read_write] },
-      sudo:                examples_to_run.any? { |ex| ex.metadata[:needs_sudo_access] },
       keychain:            examples_to_run.any? { |ex| ex.metadata[:keychain_integration] },
     }
-  end
-
-  def self.macos_and_auth_tests_will_run?(test_types)
-    defined?($compatible_os_tag) && $compatible_os_tag == :os_mac &&
-      (test_types[:real_env] || test_types[:sudo] || test_types[:keychain])
-  end
-
-  def self.handle_sudo_preflight(sudo_tests_will_run)
-    return unless sudo_tests_will_run
-
-    system('sudo -v')
-  end
-
-  def self.refresh_sudo_ticket!(allow_prompt: false)
-    return if system('sudo -n -v >/dev/null 2>&1')
-    return if allow_prompt && system('sudo -v')
-
-    raise 'sudo authentication expired before a :needs_sudo_access example ran. ' \
-      'Re-run the suite and authenticate again.'
-  end
-
-  def self.keep_sudo_ticket_alive_for_real_env_write!
-    return unless running_on_mac_os? && @sudo_tests_will_run
-
-    refresh_sudo_ticket!
   end
 
   def self.handle_real_env_preflight(test_types)
@@ -216,14 +180,7 @@ module RSpecConfiguration
 
   # Configure network state management for real-environment tests
   def self.configure_network_state_management(config)
-    config.before(:each, :needs_sudo_access) do
-      if RSpecConfiguration.running_on_mac_os?
-        RSpecConfiguration.refresh_sudo_ticket!(allow_prompt: true)
-      end
-    end
-
     config.before(:each, :real_env_read_write) do
-      RSpecConfiguration.keep_sudo_ticket_alive_for_real_env_write!
       RSpecConfiguration.ensure_network_state_capture!
     end
 

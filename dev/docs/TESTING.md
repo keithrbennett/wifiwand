@@ -164,9 +164,6 @@ Behavior:
 - after each `:real_env_read_write` example, the suite restores that state
 - at suite end, the suite attempts a final restoration and raises if restoration fails
 
-On macOS, examples tagged `:needs_sudo_access` refresh the sudo ticket immediately before the example instead
-of using a background keepalive thread.
-
 ### Recommended Real-Host Coverage
 
 When validating `:real_env_read_write` behavior locally, test both of these network types when possible:
