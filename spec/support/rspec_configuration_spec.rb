@@ -198,7 +198,10 @@ RSpec.describe RSpecConfiguration do
         )
     end
 
-    it 'raises when connected but captured state has no network name' do
+    # This example covers the generic non-macOS fallback path.
+    # macOS has a dedicated redaction/setup error path that is covered below.
+    it 'raises when connected but captured state has no network name on non-macOS hosts' do
+      $compatible_os_tag = :os_linux
       allow(mock_model).to receive_messages(connected?: true, connected_network_name: nil)
       allow(NetworkStateManager).to receive(:capture_state)
       allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: nil })

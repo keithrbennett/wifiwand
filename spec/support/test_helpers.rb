@@ -49,13 +49,15 @@ module TestHelpers
         { name: 'Wi-Fi', device: 'en0', ethernet_address: '34:b1:eb:f3:b8:1c' },
         { name: 'Ethernet', device: 'en1', ethernet_address: 'aa:bb:cc:dd:ee:ff' },
       ])
-      empty_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
-      helper_client = instance_double(
-        WifiWand::MacOsWifiAuthHelper::Client,
-        connected_network_name: empty_result,
-        scan_networks:          empty_result
-      )
-      allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_client)
+      unless uses_real_env?
+        empty_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+        helper_client = instance_double(
+          WifiWand::MacOsWifiAuthHelper::Client,
+          connected_network_name: empty_result,
+          scan_networks:          empty_result
+        )
+        allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_client)
+      end
       WifiWand::MacOsModel.create_model(merged_options)
     else
       raise WifiWand::NoSupportedOSError
@@ -82,10 +84,19 @@ module TestHelpers
 
   def uses_real_env?
     current_example = RSpec.current_example
-    example_real_env = current_example&.metadata&.fetch(:real_env, nil)
-    group_real_env = self.class.metadata[:real_env] ||
-      self.class.parent_groups.any? { |group| group.metadata[:real_env] }
+    example_metadata = current_example&.metadata || {}
+    example_real_env = example_metadata[:real_env] ||
+      example_metadata[:real_env_read_only] ||
+      example_metadata[:real_env_read_write]
+    group_real_env = all_example_groups.any? do |group|
+      metadata = group.metadata
+      metadata[:real_env] || metadata[:real_env_read_only] || metadata[:real_env_read_write]
+    end
     example_real_env || group_real_env
+  end
+
+  private def all_example_groups
+    [self.class] + self.class.parent_groups
   end
 
   private def merge_verbose_options(options = {})
