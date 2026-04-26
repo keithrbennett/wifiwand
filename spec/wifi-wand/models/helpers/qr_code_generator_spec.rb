@@ -27,7 +27,7 @@ describe 'QR Code Generator (unit)' do
     allow(model).to receive_messages(
       connected_network_name:     ssid,
       connection_security_type:   security,
-      connected_network_password: password,
+      preferred_network_password: password,
       network_hidden?:            false
     )
   end
