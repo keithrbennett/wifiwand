@@ -214,55 +214,6 @@ describe WifiWand::NetworkConnectivityTester do
       failing_items: %w[hung.test failed.test]
   end
 
-  describe '#fast_connectivity?' do
-    let(:tester) { described_class.new(verbose: false) }
-
-    it 'returns early when another fast helper succeeds before a hung helper finishes' do
-      endpoints = [
-        { host: 'hung.test', port: 443 },
-        { host: 'success.test', port: 443 },
-      ]
-      allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
-        item == endpoints.last ? success_command : hanging_command
-      end
-      allow(tester).to receive(:parallel_check_result).and_wrap_original do |original,
-                                                                             _items,
-                                                                             timeout,
-                                                                             helper_mode:|
-        original.call(endpoints, timeout, helper_mode: helper_mode)
-      end
-
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      expect(tester.fast_connectivity?).to be true
-      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-
-      expect(elapsed).to be < 0.5
-    end
-
-    it 'returns false within the fast timeout when a helper never returns' do
-      endpoints = [
-        { host: 'hung.test', port: 443 },
-        { host: 'failed.test', port: 443 },
-      ]
-      allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
-        item == endpoints.last ? failure_command : hanging_command
-      end
-      allow(tester).to receive(:fast_connectivity?).and_call_original
-      allow(tester).to receive(:parallel_check_result).and_wrap_original do |original,
-                                                                             _items,
-                                                                             timeout,
-                                                                             helper_mode:|
-        original.call(endpoints, timeout, helper_mode: helper_mode)
-      end
-
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      expect(tester.fast_connectivity?).to be false
-      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-
-      expect(elapsed).to be < (WifiWand::TimingConstants::FAST_CONNECTIVITY_TIMEOUT + 0.2)
-    end
-  end
-
   describe 'probe termination' do
     let(:tester) { described_class.new(verbose: false) }
 

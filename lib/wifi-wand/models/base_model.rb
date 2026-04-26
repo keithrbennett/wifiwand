@@ -306,19 +306,6 @@ module WifiWand
       @connectivity_tester.captive_portal_state(timeout_in_secs: timeout_in_secs)
     end
 
-    # Fast TCP-only connectivity check optimized for continuous monitoring code such as
-    # EventLogger's steady-state polling. Returns true if any of 3 geographically diverse
-    # endpoints is reachable within the fast timeout window. This is intentionally cheaper
-    # than internet_connectivity_state and should not be treated as a full connectivity
-    # diagnosis on its own.
-    def fast_connectivity?(timeout_in_secs: nil, return_details: false)
-      debug_method_entry(__method__)
-      @connectivity_tester.fast_connectivity?(
-        timeout_in_secs: timeout_in_secs || TimingConstants::FAST_CONNECTIVITY_TIMEOUT,
-        return_details:  return_details
-      )
-    end
-
     EXPECTED_NETWORK_ERRORS = [
       SocketError,
       IOError,

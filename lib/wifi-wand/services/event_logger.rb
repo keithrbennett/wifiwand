@@ -9,11 +9,10 @@ require_relative 'log_file_manager'
 module WifiWand
   # EventLogger continuously monitors WiFi status and logs state changes.
   # Each poll captures WiFi power and current SSID, then derives internet
-  # events from the explicit connectivity-state model. Stable internet states
-  # reuse the fast TCP probe so frequent polls do not pay for the full
-  # TCP+DNS+captive-portal path every time, but startup and suspected
-  # transitions are still confirmed with internet_connectivity_state so
-  # internet_on/internet_off keep their explicit-state semantics.
+  # events from the explicit connectivity-state model. Internet reachability
+  # is checked via internet_connectivity_state on every poll so
+  # internet_on/internet_off always reflect the full TCP+DNS+captive-portal
+  # path.
   # Internet reachability is checked independently of WiFi association so
   # alternate uplinks such as Ethernet still produce accurate Internet events.
   class EventLogger
@@ -130,49 +129,11 @@ module WifiWand
     end
 
     private def current_internet_state
-      return confirmed_internet_state unless @previous_state
-
-      fast_reachability = @model.fast_connectivity?(timeout_in_secs: fast_connectivity_timeout)
-      previous_internet_state = @previous_state[:internet_state]
-      return previous_internet_state if stable_internet_state?(previous_internet_state, fast_reachability)
-
-      confirmed_internet_state(fast_reachability)
+      @model.internet_connectivity_state(timeout_in_secs: internet_probe_timeout)
     end
 
     private def internet_probe_timeout
       [@interval, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT].min
-    end
-
-    private def fast_connectivity_timeout
-      [@interval, TimingConstants::FAST_CONNECTIVITY_TIMEOUT].min
-    end
-
-    private def confirmed_internet_state(tcp_working = nil)
-      # dns_working stays nil here so internet_connectivity_state can still
-      # perform its normal DNS and captive-portal confirmation work.
-      @model.internet_connectivity_state(tcp_working, nil, timeout_in_secs: internet_probe_timeout)
-    end
-
-    private def stable_internet_state?(previous_internet_state, fast_reachability)
-      case previous_internet_state
-      when ConnectivityStates::INTERNET_REACHABLE
-        fast_reachability == true
-      when ConnectivityStates::INTERNET_UNREACHABLE
-        fast_reachability == false
-      when ConnectivityStates::INTERNET_INDETERMINATE
-        stable_indeterminate_state?(fast_reachability)
-      else
-        false
-      end
-    end
-
-    private def stable_indeterminate_state?(fast_reachability)
-      # An indeterminate result means the full probe could not classify beyond
-      # "not conclusively online". When the cheap TCP probe is still negative,
-      # rerunning DNS and captive-portal checks every poll rarely adds signal,
-      # so keep the indeterminate state. If TCP starts succeeding again, fall
-      # through so the full probe can resolve DNS/captive-portal ambiguity.
-      fast_reachability == false
     end
 
     private def detect_and_emit_events(current_state)

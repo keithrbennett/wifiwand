@@ -9,7 +9,7 @@ module WifiWand
       mode, *args = argv
 
       case mode
-      when 'tcp', 'fast_tcp'
+      when 'tcp'
         host, port_arg = args
         raise ArgumentError, 'host argument is required' if host.to_s.strip.empty?
         raise ArgumentError, 'port argument is required' if port_arg.to_s.strip.empty?
@@ -21,7 +21,7 @@ module WifiWand
 
         { mode: :dns, target: domain }
       else
-        raise ArgumentError, 'mode must be tcp, fast_tcp, or dns'
+        raise ArgumentError, 'mode must be tcp or dns'
       end
     end
 

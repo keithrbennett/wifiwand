@@ -21,7 +21,7 @@ describe WifiWand::NetworkConnectivityProbeHelper do
 
     it 'raises ArgumentError for an unsupported mode' do
       expect { described_class.parse_argv(%w[icmp example.com]) }
-        .to raise_error(ArgumentError, /mode must be tcp, fast_tcp, or dns/)
+        .to raise_error(ArgumentError, /mode must be tcp or dns/)
     end
   end
 
@@ -56,8 +56,8 @@ describe WifiWand::NetworkConnectivityProbeHelper do
     let(:tester) { instance_double(WifiWand::NetworkConnectivityTester) }
 
     it 'delegates probe execution to the tester public interface' do
-      probe = { mode: :fast_tcp, target: { host: '1.1.1.1', port: 443 } }
-      expect(tester).to receive(:run_probe).with(:fast_tcp, probe[:target]).and_return(false)
+      probe = { mode: :tcp, target: { host: '1.1.1.1', port: 443 } }
+      expect(tester).to receive(:run_probe).with(:tcp, probe[:target]).and_return(false)
 
       expect(described_class.run_probe(tester, probe)).to be false
     end

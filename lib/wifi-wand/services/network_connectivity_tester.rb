@@ -65,57 +65,6 @@ module WifiWand
       @captive_portal_checker.captive_portal_state(timeout_in_secs: timeout_in_secs)
     end
 
-    # Fast connectivity check optimized for continuous monitoring commands.
-    #
-    # This is the cheap "are we probably online right now?" probe used in fast
-    # paths such as event logging, where keeping the command responsive matters
-    # more than building a full connectivity diagnosis. It intentionally skips DNS
-    # and captive-portal checks and instead races a small set of well-known TCP
-    # endpoints in parallel.
-    #
-    # The check preserves the same early-success behavior as the broader internet
-    # connectivity methods: it returns +true+ as soon as any endpoint reports a
-    # successful TCP connection. If no endpoint succeeds before the overall fast
-    # timeout expires, it returns +false+.
-    #
-    # Unlike the older thread-based implementation, each speculative TCP probe now
-    # runs in a short-lived helper subprocess. That gives the parent process a hard
-    # cancellation boundary when a resolver or socket syscall stops cooperating,
-    # so the public method stays within its documented timeout window even if an
-    # individual probe hangs.
-    #
-    # Endpoints tested:
-    # - 1.1.1.1:443 (Cloudflare)
-    # - 8.8.8.8:443 (Google)
-    # - 180.76.76.76:443 (Baidu)
-    #
-    # @return [Boolean] true when any fast TCP probe succeeds before the overall
-    #   timeout, false otherwise
-    #
-    # @see tcp_connectivity? for the broader TCP check used in status/info flows
-    # @see internet_connectivity_state for the full TCP + DNS + captive portal path
-    def fast_connectivity?(timeout_in_secs: nil, overall_timeout: nil, return_details: false)
-      fast_endpoints = [
-        { host: '1.1.1.1', port: 443 },
-        { host: '8.8.8.8', port: 443 },
-        { host: '180.76.76.76', port: 443 },
-      ]
-
-      if @verbose
-        endpoints_list = fast_endpoints.map { |e| "#{e[:host]}:#{e[:port]}" }.join(', ')
-        @output.puts "Fast connectivity check to: #{endpoints_list}"
-      end
-
-      result = parallel_check_result(
-        fast_endpoints,
-        resolved_timeout(timeout_in_secs, overall_timeout, TimingConstants::FAST_CONNECTIVITY_TIMEOUT),
-        helper_mode: :fast_tcp
-      )
-      return result if return_details
-
-      result[:success]
-    end
-
     def tcp_connectivity?(timeout_in_secs: nil, overall_timeout: nil, return_details: false)
       test_endpoints = tcp_test_endpoints
 
@@ -151,15 +100,13 @@ module WifiWand
 
     # Shared probe interface used by the helper subprocess wrapper.
     #
-    # @param mode [Symbol] one of :tcp, :fast_tcp, or :dns
+    # @param mode [Symbol] one of :tcp or :dns
     # @param target [Hash, String] endpoint hash for TCP modes or domain for DNS
     # @return [Boolean] true when the probe succeeds, false otherwise
     def run_probe(mode, target)
       case mode
       when :tcp
         attempt_tcp_connection(target)
-      when :fast_tcp
-        attempt_fast_tcp_connection(target)
       when :dns
         attempt_dns_resolution(target)
       else
@@ -263,8 +210,6 @@ module WifiWand
 
     private def default_timeout_for(helper_mode)
       case helper_mode
-      when :fast_tcp
-        TimingConstants::FAST_CONNECTIVITY_TIMEOUT
       when :tcp, :dns
         TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
       else
@@ -299,7 +244,7 @@ module WifiWand
 
     private def probe_command_args(item, helper_mode)
       case helper_mode
-      when :tcp, :fast_tcp
+      when :tcp
         [item[:host], item[:port].to_s]
       when :dns
         [item]
@@ -373,8 +318,6 @@ module WifiWand
       case probe[:helper_mode]
       when :tcp
         log_tcp_probe_result(probe[:item], result)
-      when :fast_tcp
-        log_fast_tcp_probe_result(probe[:item], result)
       when :dns
         log_dns_probe_result(probe[:item], result)
       end
@@ -385,15 +328,6 @@ module WifiWand
         @output.puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}"
       else
         @output.puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{result[:error_class]}"
-      end
-    end
-
-    private def log_fast_tcp_probe_result(endpoint, result)
-      if result[:success]
-        @output.puts "Fast check: connected to #{endpoint[:host]}:#{endpoint[:port]}"
-      else
-        @output.puts "Fast check: failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: " \
-          "#{result[:error_class]}"
       end
     end
 
@@ -409,7 +343,7 @@ module WifiWand
       return unless @verbose
 
       target = case helper_mode
-               when :tcp, :fast_tcp then "#{item[:host]}:#{item[:port]}"
+               when :tcp then "#{item[:host]}:#{item[:port]}"
                when :dns then item
                else item.inspect
       end
@@ -433,24 +367,6 @@ module WifiWand
       end
     rescue => e
       @output.puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if @verbose
-      false
-    end
-
-    private def attempt_fast_tcp_connection(endpoint)
-      Timeout.timeout(TimingConstants::FAST_TCP_CONNECTION_TIMEOUT) do
-        Socket.tcp(
-          endpoint[:host],
-          endpoint[:port],
-          connect_timeout: TimingConstants::FAST_TCP_CONNECTION_TIMEOUT
-        ) do
-          @output.puts "Fast check: connected to #{endpoint[:host]}:#{endpoint[:port]}" if @verbose
-          true
-        end
-      end
-    rescue => e
-      if @verbose
-        @output.puts "Fast check: failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}"
-      end
       false
     end
 

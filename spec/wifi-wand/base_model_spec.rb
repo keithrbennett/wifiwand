@@ -41,7 +41,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
         internet_tcp_connectivity?: true,
         dns_working?:               true,
         captive_portal_state:       :free,
-        fast_connectivity?:         true,
         run_command_using_args:     command_result(stdout: ''),
         till:                       nil
       )

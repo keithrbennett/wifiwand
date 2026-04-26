@@ -169,7 +169,6 @@ RSpec.describe WifiWand::BaseModel do
       builder = instance_double(WifiWand::StatusLineDataBuilder, call: { wifi_on: true })
       allow(WifiWand::StatusLineDataBuilder).to receive(:new).and_return(builder)
 
-      expect(model).not_to receive(:fast_connectivity?)
       expect(model).not_to receive(:internet_connectivity_state)
 
       expect(model.status_line_data).to eq(wifi_on: true)

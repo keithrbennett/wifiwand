@@ -33,13 +33,6 @@ module WifiWand
     # Default polling interval for event logging (in seconds)
     EVENT_LOG_POLLING_INTERVAL = 5
 
-    # Fast connectivity check timeout for steady-state monitoring polls (in seconds)
-    # EventLogger uses this for the cheap TCP-only probe that gates full
-    # connectivity confirmation during frequent polling.
-    FAST_CONNECTIVITY_TIMEOUT = 1.0
-    # Individual TCP connection timeout for fast checks
-    FAST_TCP_CONNECTION_TIMEOUT = 0.8
-
     # HTTP-level captive portal check timeout (in seconds)
     # Needs to be long enough for a full HTTP round-trip on slow networks.
     # Tests use a short value to keep specs fast.
