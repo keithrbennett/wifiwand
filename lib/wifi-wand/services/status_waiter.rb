@@ -2,10 +2,12 @@
 
 require_relative '../timing_constants'
 require_relative '../connectivity_states'
+require_relative '../runtime_config'
 
 module WifiWand
   class StatusWaiter
     PERMITTED_STATES = %i[wifi_on wifi_off associated disassociated internet_on internet_off].freeze
+    private attr_reader :runtime_config
 
     # Migration hints for removed legacy state names.  Shown in error messages so users know
     # exactly what to use instead.
@@ -18,10 +20,12 @@ module WifiWand
         "lost, or ':disassociated' to wait for WiFi to leave the current SSID.",
     }.freeze
 
-    def initialize(model, verbose: false, output: nil)
+    def initialize(model, verbose: false, output: $stdout, runtime_config: nil)
       @model = model
-      @verbose = verbose
-      @output = output
+      @runtime_config = runtime_config || RuntimeConfig.new(
+        verbose:    verbose,
+        out_stream: output
+      )
     end
 
     # Waits for the WiFi/Internet connection to be in the desired state.
@@ -44,9 +48,9 @@ module WifiWand
       validate_target!(target_status, stringify_permitted_values_in_error_msg)
       message_prefix = "StatusWaiter (#{target_status}):"
 
-      if @verbose
+      if verbose?
         timeout_display = timeout_in_secs ? "#{timeout_in_secs}s" : 'never'
-        (@output || $stdout).puts <<~MESSAGE.chomp
+        output.puts <<~MESSAGE.chomp
           #{message_prefix} starting, timeout: #{timeout_display}, interval: #{wait_interval_in_secs}s
         MESSAGE
       end
@@ -64,16 +68,16 @@ module WifiWand
         deadline:            deadline,
         expensive_predicate: expensive_predicate
       )
-        (@output || $stdout).puts "#{message_prefix} completed without needing to wait" if @verbose
+        output.puts "#{message_prefix} completed without needing to wait" if verbose?
         return nil
-      elsif @verbose
-        (@output || $stdout).puts "#{message_prefix} First attempt failed, entering waiting loop"
+      elsif verbose?
+        output.puts "#{message_prefix} First attempt failed, entering waiting loop"
       end
 
       loop do
         raise_timeout_if_deadline_exceeded!(target_status, timeout_in_secs, deadline)
 
-        (@output || $stdout).puts "#{message_prefix} checking predicate..." if @verbose
+        output.puts "#{message_prefix} checking predicate..." if verbose?
         if predicate_satisfied?(
           finished_predicate,
           target_status:       target_status,
@@ -81,9 +85,9 @@ module WifiWand
           deadline:            deadline,
           expensive_predicate: expensive_predicate
         )
-          if @verbose
+          if verbose?
             end_time = current_time
-            (@output || $stdout).puts "#{message_prefix} wait time (seconds): #{end_time - start_time}"
+            output.puts "#{message_prefix} wait time (seconds): #{end_time - start_time}"
           end
           return nil
         end
@@ -124,6 +128,10 @@ module WifiWand
     private def current_time
       Process.clock_gettime(Process::CLOCK_MONOTONIC)
     end
+
+    private def verbose? = runtime_config.verbose
+
+    private def output = runtime_config.out_stream
 
     private def finished_predicates
       {

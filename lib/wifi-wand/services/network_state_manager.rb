@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../timing_constants'
+require_relative '../runtime_config'
 
 module WifiWand
   class NetworkStateManager
@@ -24,11 +25,14 @@ module WifiWand
       Errno::EHOSTUNREACH,
       Errno::ENETUNREACH,
     ].freeze
+    private attr_reader :runtime_config
 
-    def initialize(model, verbose: false, output: $stdout)
+    def initialize(model, verbose: false, output: $stdout, runtime_config: nil)
       @model = model
-      @verbose = verbose
-      @output = output
+      @runtime_config = runtime_config || RuntimeConfig.new(
+        verbose:    verbose,
+        out_stream: output
+      )
     end
 
     # Network State Management for Testing
@@ -48,7 +52,7 @@ module WifiWand
         begin
           connected_network_password
         rescue WifiWand::Error => e
-          @output.puts "Warning: Failed to retrieve password for #{network_name}: #{e.message}" if @verbose
+          output.puts "Warning: Failed to retrieve password for #{network_name}: #{e.message}" if verbose?
           nil
         end
       end
@@ -62,7 +66,7 @@ module WifiWand
     end
 
     def restore_network_state(state, fail_silently: false)
-      @output.puts "restore_network_state: #{state} called" if @verbose
+      output.puts "restore_network_state: #{state} called" if verbose?
       return :no_state_to_restore unless state
 
       begin
@@ -89,8 +93,8 @@ module WifiWand
               return :already_connected
             end
           rescue WifiWand::Error => e
-            if @verbose
-              @output.puts "Warning: Unable to query current network (#{e.message}), " \
+            if verbose?
+              output.puts "Warning: Unable to query current network (#{e.message}), " \
                 'proceeding with connection attempt'
             end
           end
@@ -112,9 +116,9 @@ module WifiWand
       rescue *EXPECTED_RESTORE_ERRORS => e
         raise unless fail_silently
 
-        @output&.puts "Warning: Could not restore network state (#{e.class}): #{e.message}"
-        if state[:network_name] && @output
-          @output.puts "You may need to manually reconnect to: #{state[:network_name]}"
+        output.puts "Warning: Could not restore network state (#{e.class}): #{e.message}"
+        if state[:network_name]
+          output.puts "You may need to manually reconnect to: #{state[:network_name]}"
         end
         nil
       end
@@ -149,8 +153,8 @@ module WifiWand
 
       @model.preferred_network_password(network_name)
     rescue WifiWand::Error => e
-      if @verbose
-        @output.puts "Warning: Failed to retrieve fallback password for #{network_name}: " \
+      if verbose?
+        output.puts "Warning: Failed to retrieve fallback password for #{network_name}: " \
           "#{e.message}"
       end
       nil
@@ -171,8 +175,8 @@ module WifiWand
       rescue WifiWand::CommandExecutor::OsCommandError => e
         raise unless retry_restore_connect?(e, attempts)
 
-        if @verbose
-          @output.puts "Warning: Restore connection attempt #{attempts} failed with a transient " \
+        if verbose?
+          output.puts "Warning: Restore connection attempt #{attempts} failed with a transient " \
             "networksetup error; retrying after #{RESTORE_CONNECT_RETRY_WAIT_SECONDS} seconds"
         end
 
@@ -274,23 +278,27 @@ module WifiWand
 
     private def restore_timeout_reason(network_name)
       actual_network = @model.connected_network_name
-      if @verbose
-        @output.puts "Warning: Connection timeout - expected #{network_name.inspect}, " \
+      if verbose?
+        output.puts "Warning: Connection timeout - expected #{network_name.inspect}, " \
           "currently connected to #{actual_network.inspect}"
       end
       "timed out waiting for connection; currently connected to #{actual_network.inspect}"
     rescue MacOsRedactionError => e
-      if @verbose
-        @output.puts 'Warning: Connection timeout and failed to query current network: ' \
+      if verbose?
+        output.puts 'Warning: Connection timeout and failed to query current network: ' \
           "#{e.message}"
       end
       redacted_identity_reason_for_restore(network_name, e)
     rescue WifiWand::Error => e
-      if @verbose
-        @output.puts 'Warning: Connection timeout and failed to query current network: ' \
+      if verbose?
+        output.puts 'Warning: Connection timeout and failed to query current network: ' \
           "#{e.message}"
       end
       'timed out waiting for connection; currently connected to an unknown network'
     end
+
+    private def verbose? = runtime_config.verbose
+
+    private def output = runtime_config.out_stream
   end
 end

@@ -52,7 +52,7 @@ module WifiWand
       @model = skip_model_init ? nil : WifiWand.create_model(model_options)
     end
 
-    def verbose_mode = options.verbose
+    def verbose? = options.verbose
 
     # Dynamic output stream that respects current $stdout (for test silence_output compatibility)
     def out_stream = @original_out_stream || $stdout
@@ -97,7 +97,7 @@ module WifiWand
         process_command_line
         SUCCESS_EXIT_CODE
       rescue WifiWand::Error => e
-        @err_stream.puts(verbose_mode && e.respond_to?(:to_h) ? YAML.dump(e.to_h) : e.to_s)
+        @err_stream.puts(verbose? && e.respond_to?(:to_h) ? YAML.dump(e.to_h) : e.to_s)
         @err_stream.puts help_hint unless e.message.include?(help_hint)
         FAILURE_EXIT_CODE
       end

@@ -1,5 +1,8 @@
 ## Unreleased
 
+* Breaking change: remove the `verbose` and `verbose_mode` reader aliases from
+  the public library and CLI-facing objects.
+* Use `verbose?` to read the flag and `verbose=` to update it.
 * Rename the structured command API from `run_os_command` to `run_command_using_args`.
 * `run_command_using_args` is the default library API and accepts only argument arrays, enforcing
   structured non-shell command execution in library code.

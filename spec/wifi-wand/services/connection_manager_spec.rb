@@ -29,12 +29,12 @@ describe WifiWand::ConnectionManager do
     it 'stores model and verbose settings' do
       manager = described_class.new(mock_model, verbose: true)
       expect(manager.model).to eq(mock_model)
-      expect(manager.verbose_mode).to be true
+      expect(manager.verbose?).to be true
     end
 
     it 'defaults verbose to false' do
       manager = described_class.new(mock_model)
-      expect(manager.verbose_mode).to be false
+      expect(manager.verbose?).to be false
     end
   end
 

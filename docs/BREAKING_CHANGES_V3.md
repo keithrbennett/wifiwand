@@ -8,6 +8,21 @@ non-breaking additions, see [Version 2.x to 3.0 Code Base Changes](CHANGELOG_V2_
 
 ## Breaking Changes
 
+### Verbose API naming
+
+#### `verbose?` and `verbose=` are now the only supported forms
+
+The public `verbose` and `verbose_mode` aliases have been removed from the
+library-facing objects that exposed them.
+
+Use:
+
+- `verbose?` to read the flag
+- `verbose=` to update the flag
+
+This makes the API follow standard Ruby predicate naming instead of supporting
+multiple reader spellings for the same boolean state.
+
 ### Error constructor keywords
 
 Several `WifiWand::Error` subclasses that previously accepted multiple

@@ -16,7 +16,9 @@ module WifiWand
       usage:        'Usage: wifi-wand log [--interval N] [--file [PATH]] [--stdout] [--verbose]'
     )
 
-    binds :model, output: :out_stream, verbose: :verbose_mode
+    binds :model, output: :out_stream, verbose_flag: :verbose?
+
+    def verbose? = @verbose_flag
 
     def help_text
       # Reuse the command parser as the single source of truth for help text.
@@ -36,13 +38,13 @@ module WifiWand
       return if parse_result == :skip_execution
 
       interval, log_file_path, output_to_stdout, verbose_flag = parse_result
-      logger_output = output_to_stdout ? output : nil
+      logger_out_stream = output_to_stdout ? output : nil
 
       logger = build_logger(
-        interval:      interval,
-        verbose_flag:  verbose_flag,
-        log_file_path: log_file_path,
-        logger_output: logger_output
+        interval:          interval,
+        verbose_flag:      verbose_flag,
+        log_file_path:     log_file_path,
+        logger_out_stream: logger_out_stream
       )
 
       logger.run
@@ -52,7 +54,7 @@ module WifiWand
       interval = TimingConstants::EVENT_LOG_POLLING_INTERVAL
       log_file_path = nil
       output_to_stdout = true
-      verbose_flag = verbose
+      verbose_flag = verbose?
       stdout_explicit = false
       file_destination_requested = false
       help_requested = false
@@ -119,23 +121,25 @@ module WifiWand
       end
     end
 
-    private def build_logger(interval:, verbose_flag:, log_file_path:, logger_output:)
+    private def build_logger(interval:, verbose_flag:, log_file_path:, logger_out_stream:)
       WifiWand::EventLogger.new(
         model,
-        interval:      interval,
-        verbose:       verbose_flag,
-        log_file_path: log_file_path,
-        output:        logger_output
+        interval:       interval,
+        verbose:        verbose_flag,
+        log_file_path:  log_file_path,
+        out_stream:     logger_out_stream,
+        runtime_config: model.respond_to?(:runtime_config) ? model.runtime_config : nil
       )
     rescue WifiWand::LogFileInitializationError => e
-      raise WifiWand::ConfigurationError, e.message unless logger_output
+      raise WifiWand::ConfigurationError, e.message unless logger_out_stream
 
       warn_file_logging_fallback(e.message)
       WifiWand::EventLogger.new(
         model,
-        interval: interval,
-        verbose:  verbose_flag,
-        output:   logger_output
+        interval:       interval,
+        verbose:        verbose_flag,
+        out_stream:     logger_out_stream,
+        runtime_config: model.respond_to?(:runtime_config) ? model.runtime_config : nil
       )
     end
 

@@ -2,14 +2,18 @@
 
 require 'open3'
 require_relative '../errors'
+require_relative '../runtime_config'
 
 module WifiWand
   class CommandExecutor
     COMMAND_KILL_WAIT_SECS = 1.0
+    private attr_reader :runtime_config
 
-    def initialize(verbose: false, output: $stdout)
-      @verbose = verbose
-      @output = output
+    def initialize(verbose: false, output: $stdout, runtime_config: nil)
+      @runtime_config = runtime_config || RuntimeConfig.new(
+        verbose:    verbose,
+        out_stream: output
+      )
     end
 
     # Executes a command using an argument array with no shell parsing.
@@ -46,7 +50,7 @@ module WifiWand
     # @return the stdout produced by the command, or nil if max_tries was reached
     def try_os_command_until(command, stop_condition, max_tries = 100)
       report_attempt_count = ->(attempt_count) do
-        @output.puts "Command was executed #{attempt_count} time(s)." if @verbose
+        output.puts "Command was executed #{attempt_count} time(s)." if verbose?
       end
 
       max_tries.times do |n|
@@ -63,8 +67,8 @@ module WifiWand
     end
 
     private def execute_command(command_array, command_display, raise_on_error:, timeout_in_secs:)
-      if @verbose
-        @output.puts command_attempt_as_string(command_display)
+      if verbose?
+        output.puts command_attempt_as_string(command_display)
       end
 
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -165,16 +169,16 @@ module WifiWand
 
       status_string = "Exit code: #{result.exitstatus} (#{result.success? ? 'success' : 'error'})"
 
-      if @verbose
-        @output.puts "#{status_string}, Duration: #{format('%.4f', duration)} seconds -- #{Time.now.iso8601}"
+      if verbose?
+        output.puts "#{status_string}, Duration: #{format('%.4f', duration)} seconds -- #{Time.now.iso8601}"
         unless result.stdout.empty?
-          @output.puts command_result_as_string("STDOUT:\n#{result.stdout}")
+          output.puts command_result_as_string("STDOUT:\n#{result.stdout}")
         end
         unless result.stderr.empty?
-          @output.puts command_result_as_string("STDERR:\n#{result.stderr}")
+          output.puts command_result_as_string("STDERR:\n#{result.stderr}")
         end
         if result.stdout.empty? && result.stderr.empty?
-          @output.puts command_result_as_string('')
+          output.puts command_result_as_string('')
         end
       end
 
@@ -201,6 +205,10 @@ module WifiWand
     end
 
     private def banner_line = @banner_line ||= '-' * 79
+
+    private def verbose? = runtime_config.verbose
+
+    private def output = runtime_config.out_stream
 
     private def command_attempt_as_string(command) = "\n\n#{banner_line}\nCommand: #{command}\n"
 

@@ -16,7 +16,7 @@ describe WifiWand::EventLogger do
       connected_network_name:      'TestNetwork'
     )
   end
-  let(:output) { StringIO.new }
+  let(:out_stream) { StringIO.new }
   let(:mock_log_file_manager) { double('LogFileManager', write: nil, close: nil) }
 
   describe 'initialization' do
@@ -24,7 +24,7 @@ describe WifiWand::EventLogger do
       logger = described_class.new(mock_model)
       expect(logger.model).to eq(mock_model)
       expect(logger.interval).to eq(5)
-      expect(logger.verbose).to be false
+      expect(logger.verbose?).to be false
     end
 
     it 'accepts custom interval' do
@@ -34,18 +34,53 @@ describe WifiWand::EventLogger do
 
     it 'accepts verbose flag' do
       logger = described_class.new(mock_model, verbose: true)
-      expect(logger.verbose).to be true
+      expect(logger.verbose?).to be true
+    end
+
+    it 'reads verbose from shared runtime config after initialization' do
+      runtime_config = WifiWand::RuntimeConfig.new(verbose: false, out_stream: out_stream)
+      logger = described_class.new(mock_model, runtime_config: runtime_config)
+
+      runtime_config.verbose = true
+      fetch_failures = []
+
+      logger.send(:fetch_status_value, :wifi_on, nil, fetch_failures) do
+        raise WifiWand::Error, 'boom'
+      end
+
+      expect(out_stream.string).to include('Error fetching wifi_on: boom')
+    end
+
+    it 'uses an explicit verbose override without mutating shared runtime config' do
+      runtime_config = WifiWand::RuntimeConfig.new(verbose: false, out_stream: out_stream)
+      logger = described_class.new(mock_model, runtime_config: runtime_config, verbose: true)
+
+      expect(logger.verbose?).to be true
+      expect(runtime_config.verbose).to be false
+    end
+
+    it 'reads out_stream from shared runtime config after initialization' do
+      initial_output = StringIO.new
+      updated_output = StringIO.new
+      runtime_config = WifiWand::RuntimeConfig.new(verbose: true, out_stream: initial_output)
+      logger = described_class.new(mock_model, runtime_config: runtime_config)
+
+      runtime_config.out_stream = updated_output
+      logger.send(:log_message, 'updated destination')
+
+      expect(initial_output.string).to be_empty
+      expect(updated_output.string).to include('updated destination')
     end
 
     it 'does not create LogFileManager when no file path specified (stdout-only mode)' do
-      logger = described_class.new(mock_model, output: output)
+      logger = described_class.new(mock_model, out_stream: out_stream)
       expect(logger.log_file_manager).to be_nil
     end
 
     it 'creates LogFileManager when file path specified' do
       Dir.mktmpdir do |dir|
         log_file_path = File.join(dir, 'test.log')
-        logger = described_class.new(mock_model, log_file_path: log_file_path, output: output)
+        logger = described_class.new(mock_model, log_file_path: log_file_path, out_stream: out_stream)
         expect(logger.log_file_manager).to be_a(WifiWand::LogFileManager)
         logger.cleanup
       end
@@ -62,10 +97,10 @@ describe WifiWand::EventLogger do
         logger = described_class.new(
           mock_model,
           log_file_path:    log_file_path,
-          output:           nil,
+          out_stream:       nil,
           log_file_manager: mock_log_file_manager
         )
-        expect(logger.output).to be_nil
+        expect(logger.out_stream).to be_nil
         # Verify log_message doesn't call puts when output is nil
         expect { logger.send(:log_message, 'test message') }.not_to raise_error
         expect(mock_log_file_manager).to have_received(:write).with('test message')
@@ -75,7 +110,7 @@ describe WifiWand::EventLogger do
 
   describe '#fetch_current_state' do
     it 'uses the full explicit probe at startup before any previous state exists' do
-      logger = described_class.new(mock_model, output: output)
+      logger = described_class.new(mock_model, out_stream: out_stream)
 
       expect(mock_model).to receive(:wifi_on?).and_return(true)
       expect(mock_model).to receive(:connected?).and_return(true)
@@ -93,7 +128,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'builds state from WiFi, association, SSID, and explicit internet state' do
-      logger = described_class.new(mock_model, output: output)
+      logger = described_class.new(mock_model, out_stream: out_stream)
       state = {
         wifi_on:        true,
         connected:      true,
@@ -117,7 +152,7 @@ describe WifiWand::EventLogger do
       'treats captive portal sessions as internet unavailable',
     ].each do |description|
       it description do
-        logger = described_class.new(mock_model, output: output)
+        logger = described_class.new(mock_model, out_stream: out_stream)
 
         expect(mock_model).to receive(:wifi_on?).and_return(true)
         expect(mock_model).to receive(:connected?).and_return(true)
@@ -136,7 +171,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'still checks internet state when WiFi is off' do
-      logger = described_class.new(mock_model, output: output)
+      logger = described_class.new(mock_model, out_stream: out_stream)
       state = {
         wifi_on:        false,
         connected:      false,
@@ -156,7 +191,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'still checks internet state when WiFi is on but not connected' do
-      logger = described_class.new(mock_model, output: output)
+      logger = described_class.new(mock_model, out_stream: out_stream)
 
       expect(mock_model).to receive(:wifi_on?).and_return(true)
       expect(mock_model).to receive(:connected?).and_return(false)
@@ -174,7 +209,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'calls the full explicit probe on every poll when the previous internet state was reachable' do
-      logger = described_class.new(mock_model, output: output, interval: 0.5)
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 0.5)
       logger.instance_variable_set(:@previous_state,
         {
           wifi_on:        true,
@@ -199,7 +234,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'calls the full explicit probe on every poll when the previous internet state was unreachable' do
-      logger = described_class.new(mock_model, output: output, interval: 0.5)
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 0.5)
       logger.instance_variable_set(:@previous_state,
         {
           wifi_on:        true,
@@ -224,7 +259,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'calls the full explicit probe on every poll when the previous internet state was indeterminate' do
-      logger = described_class.new(mock_model, output: output, interval: 0.5)
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 0.5)
       logger.instance_variable_set(:@previous_state,
         {
           wifi_on:        true,
@@ -249,7 +284,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'still calls the full explicit probe when the previous internet state was pending' do
-      logger = described_class.new(mock_model, output: output, interval: 0.5)
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 0.5)
       logger.instance_variable_set(:@previous_state,
         {
           wifi_on:        true,
@@ -274,7 +309,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'degrades to the previous internet state when that lookup fails' do
-      logger = described_class.new(mock_model, output: output)
+      logger = described_class.new(mock_model, out_stream: out_stream)
       logger.instance_variable_set(:@previous_state,
         {
           wifi_on:        true,
@@ -299,7 +334,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'logs field-level failures in verbose mode while returning partial state' do
-      logger = described_class.new(mock_model, output: output, verbose: true)
+      logger = described_class.new(mock_model, out_stream: out_stream, verbose: true)
       logger.instance_variable_set(:@previous_state,
         {
           wifi_on:        true,
@@ -325,7 +360,7 @@ describe WifiWand::EventLogger do
     end
 
     it 're-raises programmer bugs instead of degrading them' do
-      logger = described_class.new(mock_model, output: output)
+      logger = described_class.new(mock_model, out_stream: out_stream)
 
       expect(mock_model).to receive(:wifi_on?).and_raise(NoMethodError, 'undefined helper')
 
@@ -333,7 +368,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'preserves the previous SSID when connected state falls back' do
-      logger = described_class.new(mock_model, output: output)
+      logger = described_class.new(mock_model, out_stream: out_stream)
       logger.instance_variable_set(:@previous_state,
         {
           wifi_on:        true,
@@ -358,7 +393,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'preserves connected state when SSID lookup returns nil' do
-      logger = described_class.new(mock_model, output: output)
+      logger = described_class.new(mock_model, out_stream: out_stream)
 
       expect(mock_model).to receive(:wifi_on?).and_return(true)
       expect(mock_model).to receive(:connected?).and_return(true)
@@ -375,7 +410,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'preserves an indeterminate startup internet state' do
-      logger = described_class.new(mock_model, output: output)
+      logger = described_class.new(mock_model, out_stream: out_stream)
 
       expect(mock_model).to receive(:wifi_on?).and_return(true)
       expect(mock_model).to receive(:connected?).and_return(true)
@@ -393,7 +428,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'warns once after repeated failures in normal mode and resets after recovery' do
-      logger = described_class.new(mock_model, output: output)
+      logger = described_class.new(mock_model, out_stream: out_stream)
       logger.instance_variable_set(:@previous_state,
         {
           wifi_on:        true,
@@ -415,7 +450,7 @@ describe WifiWand::EventLogger do
         'WARNING: Status polling is encountering repeated lookup failures.',
         'Continuing with partial state until lookups recover.',
       ].join(' ')
-      expect(output.string.scan(warning).length).to eq(1)
+      expect(out_stream.string.scan(warning).length).to eq(1)
 
       allow(mock_model).to receive(:internet_connectivity_state)
         .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
@@ -424,12 +459,12 @@ describe WifiWand::EventLogger do
         .and_raise(WifiWand::Error, 'internet probe failed')
 
       2.times { logger.send(:fetch_current_state) }
-      expect(output.string.scan(warning).length).to eq(2)
+      expect(out_stream.string.scan(warning).length).to eq(2)
     end
   end
 
   describe '#current_network_name' do
-    let(:logger) { described_class.new(mock_model, output: output) }
+    let(:logger) { described_class.new(mock_model, out_stream: out_stream) }
 
     it 'returns the actual SSID when one is available' do
       allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
@@ -454,7 +489,7 @@ describe WifiWand::EventLogger do
     let(:logger) do
       described_class.new(
         mock_model,
-        output:           output,
+        out_stream:       out_stream,
         log_file_manager: mock_log_file_manager
       )
     end
@@ -673,7 +708,7 @@ describe WifiWand::EventLogger do
     let(:logger) do
       described_class.new(
         mock_model,
-        output:           output,
+        out_stream:       out_stream,
         log_file_manager: mock_log_file_manager
       )
     end
@@ -709,7 +744,7 @@ describe WifiWand::EventLogger do
 
   describe '#format_event_message' do
     let(:logger) do
-      described_class.new(mock_model, output: output)
+      described_class.new(mock_model, out_stream: out_stream)
     end
 
     it 'formats wifi_on event' do
@@ -785,7 +820,7 @@ describe WifiWand::EventLogger do
 
   describe '#run' do
     it 'logs startup message' do
-      logger = described_class.new(mock_model, output: output, interval: 0)
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
       allow(logger).to receive(:sleep)
       call_count = 0
       allow(logger).to receive(:detect_and_emit_events) do
@@ -793,26 +828,26 @@ describe WifiWand::EventLogger do
         logger.stop if call_count >= 1
       end
       logger.run
-      expect(output.string).to match(/Event logging started/)
+      expect(out_stream.string).to match(/Event logging started/)
     end
 
     it 'logs initial state on startup' do
-      logger = described_class.new(mock_model, output: output, interval: 0)
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
       allow(logger).to receive(:sleep)
       allow(logger).to receive(:detect_and_emit_events) { logger.stop }
       logger.run
-      expect(output.string).to match(/Current state: WiFi/)
+      expect(out_stream.string).to match(/Current state: WiFi/)
     end
 
     it 'logs stopped message on Ctrl+C' do
-      logger = described_class.new(mock_model, output: output, interval: 0)
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
       allow(logger).to receive(:sleep).and_raise(Interrupt)
       logger.run
-      expect(output.string).to match(/Event logging stopped/)
+      expect(out_stream.string).to match(/Event logging stopped/)
     end
 
     it 'calls detect_and_emit_events each iteration after initial state' do
-      logger = described_class.new(mock_model, output: output, interval: 0)
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
       allow(logger).to receive(:sleep)
       call_count = 0
       allow(logger).to receive(:detect_and_emit_events) do
@@ -824,7 +859,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'sleeps for the configured interval between polls' do
-      logger = described_class.new(mock_model, output: output, interval: 7)
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 7)
       sleep_count = 0
       allow(logger).to receive(:sleep) do |duration|
         sleep_count += 1
@@ -838,7 +873,7 @@ describe WifiWand::EventLogger do
     it 'cleans up log file manager on exit' do
       logger = described_class.new(
         mock_model,
-        output:           output,
+        out_stream:       out_stream,
         interval:         0,
         log_file_manager: mock_log_file_manager
       )
@@ -850,7 +885,7 @@ describe WifiWand::EventLogger do
 
   describe '#stop' do
     it 'sets running to false, stopping the run loop' do
-      logger = described_class.new(mock_model, output: output, interval: 0)
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
       allow(logger).to receive(:sleep)
       allow(logger).to receive(:detect_and_emit_events) { logger.stop }
       logger.run
@@ -860,7 +895,7 @@ describe WifiWand::EventLogger do
 
   describe '#log_initial_state' do
     let(:logger) do
-      described_class.new(mock_model, output: output)
+      described_class.new(mock_model, out_stream: out_stream)
     end
 
     it 'logs initial state with all fields available' do
@@ -918,7 +953,7 @@ describe WifiWand::EventLogger do
     it 'closes log file manager and sets it to nil' do
       logger = described_class.new(
         mock_model,
-        output:           output,
+        out_stream:       out_stream,
         log_file_manager: mock_log_file_manager
       )
       logger.cleanup
@@ -927,7 +962,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'handles nil log file manager gracefully' do
-      logger = described_class.new(mock_model, output: output)
+      logger = described_class.new(mock_model, out_stream: out_stream)
       logger.instance_variable_set(:@log_file_manager, nil)
       expect { logger.cleanup }.not_to raise_error
       expect(logger.instance_variable_get(:@log_file_manager)).to be_nil
@@ -938,15 +973,15 @@ describe WifiWand::EventLogger do
     it 'warns and falls back to stdout when a log file write fails after initialization' do
       logger = described_class.new(
         mock_model,
-        output:           output,
+        out_stream:       out_stream,
         log_file_manager: mock_log_file_manager
       )
       allow(mock_log_file_manager).to receive(:write)
         .and_raise(WifiWand::LogWriteError, 'Failed to write to log file /tmp/test.log: disk full')
 
       expect { logger.send(:log_message, 'test message') }.not_to raise_error
-      expect(output.string).to include('test message')
-      expect(output.string).to include(
+      expect(out_stream.string).to include('test message')
+      expect(out_stream.string).to include(
         'WARNING: File logging is disabled. Stdout is the only remaining log destination.'
       )
       expect(mock_log_file_manager).to have_received(:close)
@@ -956,7 +991,7 @@ describe WifiWand::EventLogger do
     it 'falls back to stdout even when closing the broken log file also fails' do
       logger = described_class.new(
         mock_model,
-        output:           output,
+        out_stream:       out_stream,
         log_file_manager: mock_log_file_manager
       )
       allow(mock_log_file_manager).to receive(:write)
@@ -964,17 +999,17 @@ describe WifiWand::EventLogger do
       allow(mock_log_file_manager).to receive(:close).and_raise(StandardError, 'close failed')
 
       expect { logger.send(:log_message, 'test message') }.not_to raise_error
-      expect(output.string).to include(
+      expect(out_stream.string).to include(
         'WARNING: File logging is disabled. Stdout is the only remaining log destination.'
       )
-      expect(output.string).to include('Cleanup also failed: close failed')
+      expect(out_stream.string).to include('Cleanup also failed: close failed')
       expect(logger.log_file_manager).to be_nil
     end
 
     it 'raises when a log file write fails and no stdout fallback exists' do
       logger = described_class.new(
         mock_model,
-        output:           nil,
+        out_stream:       nil,
         log_file_manager: mock_log_file_manager
       )
       allow(mock_log_file_manager).to receive(:write)

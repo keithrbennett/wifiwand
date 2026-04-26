@@ -7,15 +7,20 @@ require 'timeout'
 require 'yaml'
 require_relative '../timing_constants'
 require_relative '../connectivity_states'
+require_relative '../runtime_config'
 require_relative 'process_probe_manager'
 
 module WifiWand
   class CaptivePortalChecker
     include ProcessProbeManager
 
-    def initialize(verbose: false, output: $stdout)
-      @verbose = verbose
-      @output = output
+    private attr_reader :runtime_config
+
+    def initialize(verbose: false, output: $stdout, runtime_config: nil)
+      @runtime_config = runtime_config || RuntimeConfig.new(
+        verbose:    verbose,
+        out_stream: output
+      )
     end
 
     # Determines whether the current network connection is free of captive portal
@@ -42,7 +47,7 @@ module WifiWand
     def captive_portal_state(timeout_in_secs: nil)
       endpoints = captive_portal_check_endpoints
 
-      @output.puts "Testing captive portal via HTTP: #{endpoints.map { _1[:url] }.join(', ')}" if @verbose
+      output.puts "Testing captive portal via HTTP: #{endpoints.map { _1[:url] }.join(', ')}" if verbose?
 
       results = captive_portal_results(endpoints, timeout_in_secs: timeout_in_secs)
 
@@ -54,13 +59,13 @@ module WifiWand
         ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
       end
 
-      if @verbose
+      if verbose?
         status = case state
                  when ConnectivityStates::CAPTIVE_PORTAL_FREE then 'free'
                  when ConnectivityStates::CAPTIVE_PORTAL_PRESENT then 'detected'
                  else 'indeterminate'
         end
-        @output.puts "Captive portal results: #{results.inspect} — #{status}"
+        output.puts "Captive portal results: #{results.inspect} — #{status}"
       end
 
       state
@@ -140,7 +145,7 @@ module WifiWand
     rescue => e
       reader&.close unless reader&.closed?
       writer&.close unless writer&.closed?
-      @output.puts "Failed to start captive portal helper for #{endpoint[:url]}: #{e.class}" if @verbose
+      output.puts "Failed to start captive portal helper for #{endpoint[:url]}: #{e.class}" if verbose?
       nil
     end
 
@@ -213,17 +218,21 @@ module WifiWand
     end
 
     private def log_probe_result(endpoint, result)
-      return unless @verbose
+      return unless verbose?
 
       case result[:state]
       when ConnectivityStates::CAPTIVE_PORTAL_FREE, ConnectivityStates::CAPTIVE_PORTAL_PRESENT
         status = result[:state] == ConnectivityStates::CAPTIVE_PORTAL_FREE ? 'pass' : 'mismatch'
-        @output.puts "Captive portal check #{endpoint[:url]}: " \
+        output.puts "Captive portal check #{endpoint[:url]}: " \
           "HTTP #{result[:actual_code]} (expected #{endpoint[:expected_code]}) -> #{status}"
       else
-        @output.puts "Captive portal check network error for #{endpoint[:url]}: #{result[:error_class]}"
+        output.puts "Captive portal check network error for #{endpoint[:url]}: #{result[:error_class]}"
       end
     end
+
+    private def verbose? = runtime_config.verbose
+
+    private def output = runtime_config.out_stream
 
     # Attempts an HTTP GET to a captive portal check endpoint and compares the response code.
     #

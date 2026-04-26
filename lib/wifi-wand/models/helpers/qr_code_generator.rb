@@ -158,7 +158,7 @@ module WifiWand
           begin
             model.run_command_using_args(cmd)
             File.rename(staged_filename, filename)
-            model.out_stream.puts "QR code generated: #{filename}" if model.verbose_mode
+            model.out_stream.puts "QR code generated: #{filename}" if model.verbose?
           rescue WifiWand::CommandExecutor::OsCommandError => e
             raise WifiWand::Error, "Failed to generate QR code: #{e.message}"
           rescue SystemCallError => e

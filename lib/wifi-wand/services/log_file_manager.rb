@@ -2,6 +2,7 @@
 
 require 'fileutils'
 require_relative '../errors'
+require_relative '../runtime_config'
 
 module WifiWand
   # LogFileManager handles writing timestamped events to a log file.
@@ -19,14 +20,24 @@ module WifiWand
   class LogFileManager
     DEFAULT_LOG_FILE = 'wifiwand-events.log'
 
-    attr_reader :log_file_path, :output, :verbose
+    attr_reader :log_file_path
+    private attr_reader :runtime_config
 
-    def initialize(log_file_path: nil, verbose: false, output: nil)
+    def initialize(log_file_path: nil, runtime_config: nil, **kwargs)
       @log_file_path = log_file_path || DEFAULT_LOG_FILE
-      @verbose = verbose
-      @output = output || $stdout
+      @runtime_config = runtime_config || RuntimeConfig.new(verbose: kwargs[:verbose], out_stream: $stdout)
+      @verbose_override = kwargs[:verbose] if kwargs.key?(:verbose)
+      @out_stream_override = kwargs[:out_stream] if kwargs.key?(:out_stream)
       @file_handle = nil
       setup_log_file
+    end
+
+    def out_stream
+      if instance_variable_defined?(:@out_stream_override)
+        @out_stream_override
+      else
+        runtime_config.out_stream
+      end
     end
 
     # Propagate write failures so EventLogger can either fall back to stdout or stop.
@@ -48,7 +59,7 @@ module WifiWand
 
     private def setup_log_file
       open_log_file
-      log_message("Log file initialized at #{@log_file_path}") if @verbose
+      log_message("Log file initialized at #{@log_file_path}") if verbose?
     rescue WifiWand::LogFileInitializationError
       raise
     rescue => e
@@ -64,8 +75,16 @@ module WifiWand
     end
 
     private def log_message(message)
-      @output.puts(message) if @output
-      @output.flush if @output&.respond_to?(:flush)
+      out_stream.puts(message) if out_stream
+      out_stream.flush if out_stream&.respond_to?(:flush)
+    end
+
+    def verbose?
+      if instance_variable_defined?(:@verbose_override)
+        @verbose_override
+      else
+        runtime_config.verbose
+      end
     end
   end
 end

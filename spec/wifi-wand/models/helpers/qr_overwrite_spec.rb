@@ -19,7 +19,7 @@ describe 'QR Code Overwrite Confirmation' do
 
   before do
     # Stub environment and dependencies
-    model.instance_variable_set(:@original_out_stream, out_stream)
+    model.out_stream = out_stream
     allow(model).to receive(:command_available?).with('qrencode').and_return(true)
     allow(model).to receive_messages(
       connected_network_name:     ssid,

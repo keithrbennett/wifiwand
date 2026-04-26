@@ -11,6 +11,7 @@ require 'uri'
 require_relative 'helpers/resource_manager'
 require_relative 'helpers/qr_code_generator'
 require_relative '../errors'
+require_relative '../runtime_config'
 require_relative '../connectivity_states'
 require_relative '../services/command_executor'
 require_relative '../services/network_connectivity_tester'
@@ -22,8 +23,8 @@ require_relative '../services/status_line_data_builder'
 module WifiWand
   class BaseModel
     attr_writer :wifi_interface
-    attr_accessor :verbose_mode, :command_executor, :connectivity_tester, :state_manager,
-      :status_waiter, :connection_manager
+    attr_reader :runtime_config
+    attr_accessor :command_executor, :connectivity_tester, :state_manager, :status_waiter, :connection_manager
 
     def self.create_model(options = {})
       options = OpenStruct.new(options) if options.is_a?(Hash)
@@ -40,18 +41,28 @@ module WifiWand
     def initialize(options = {})
       options = OpenStruct.new(options) if options.is_a?(Hash)
       @options = options
-      @verbose_mode = options.verbose
-      # Store the original output stream option, but use a dynamic method for out_stream
-      @original_out_stream = options.respond_to?(:out_stream) && options.out_stream
-      @command_executor = CommandExecutor.new(verbose: @verbose_mode, output: out_stream)
-      @connectivity_tester = NetworkConnectivityTester.new(verbose: @verbose_mode, output: out_stream)
-      @state_manager = NetworkStateManager.new(self, verbose: @verbose_mode, output: out_stream)
-      @status_waiter = StatusWaiter.new(self, verbose: @verbose_mode, output: out_stream)
-      @connection_manager = ConnectionManager.new(self, verbose: @verbose_mode)
+      @runtime_config = RuntimeConfig.new(
+        verbose:    options.verbose,
+        out_stream: options.respond_to?(:out_stream) ? options.out_stream : $stdout
+      )
+      @command_executor = CommandExecutor.new(runtime_config: @runtime_config)
+      @connectivity_tester = NetworkConnectivityTester.new(runtime_config: @runtime_config)
+      @state_manager = NetworkStateManager.new(self, runtime_config: @runtime_config)
+      @status_waiter = StatusWaiter.new(self, runtime_config: @runtime_config)
+      @connection_manager = ConnectionManager.new(self, runtime_config: @runtime_config)
     end
 
-    # Dynamic output stream that respects current $stdout (for test silence_output compatibility)
-    def out_stream = @original_out_stream || $stdout
+    def out_stream = runtime_config.out_stream
+
+    def out_stream=(stream)
+      runtime_config.out_stream = stream
+    end
+
+    def verbose? = runtime_config.verbose
+
+    def verbose=(value)
+      runtime_config.verbose = !!value
+    end
 
     # Returns a symbol identifying the operating system for this model
     # Examples: :mac, :ubuntu
@@ -251,7 +262,7 @@ module WifiWand
     def connection_ready?(network_name)
       connected? && connected_network_name == network_name
     rescue WifiWand::Error => e
-      out_stream.puts("connection_ready? check failed: #{e.class}: #{e.message}") if @verbose_mode
+      out_stream.puts("connection_ready? check failed: #{e.class}: #{e.message}") if verbose?
       false
     end
 
@@ -386,8 +397,7 @@ module WifiWand
     def status_line_data(progress_callback: nil)
       StatusLineDataBuilder.new(
         self,
-        verbose:                 @verbose_mode,
-        output:                  out_stream,
+        runtime_config:          runtime_config,
         expected_network_errors: EXPECTED_NETWORK_ERRORS
       ).call(progress_callback: progress_callback)
     end
@@ -669,7 +679,7 @@ module WifiWand
     # @param param_names [Symbol, Array<Symbol>, nil] local variable names to include
     # @return [void]
     private def debug_method_entry(method_name, caller_binding = nil, param_names = nil)
-      return unless verbose_mode
+      return unless verbose?
 
       s = "Entered #{self.class.name.split('::').last}##{method_name}"
       param_names = Array(param_names) # force to array if passed a single symbol

@@ -101,19 +101,19 @@ describe WifiWand::CommandLineInterface do
   end
 
   describe 'accessor methods' do
-    describe '#verbose_mode' do
+    describe '#verbose?' do
       let(:verbose_options) { create_cli_options(verbose: true) }
       let(:verbose_cli) { described_class.new(verbose_options) }
 
       context 'when verbose option is true' do
         it 'returns true' do
-          expect(verbose_cli.verbose_mode).to be(true)
+          expect(verbose_cli.verbose?).to be(true)
         end
       end
 
       context 'when verbose option is false' do
         it 'returns false' do
-          expect(cli.verbose_mode).to be(false)
+          expect(cli.verbose?).to be(false)
         end
       end
     end

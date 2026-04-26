@@ -15,12 +15,14 @@ describe 'QR Code Generator (unit)' do
   let(:ssid) { 'TestNetwork' }
   let(:password) { 'password123' }
   let(:security) { 'WPA2' }
+  let(:out_stream) { StringIO.new }
 
   before do
     FileUtils.rm_f('TestNetwork-qr-code.png')
     FileUtils.rm_f('out.svg')
     FileUtils.rm_f('out.eps')
-    model.verbose_mode = false
+    model.verbose = false
+    model.out_stream = out_stream
     allow(model).to receive(:command_available?).with('qrencode').and_return(true)
     allow(model).to receive_messages(
       connected_network_name:     ssid,
@@ -47,8 +49,8 @@ describe 'QR Code Generator (unit)' do
       command_result(stdout: "[QR-ANSI]\n")
     end
 
-    result = nil
-    expect { result = model.generate_qr_code('-') }.to output(a_string_including('[QR-ANSI]')).to_stdout
+    result = model.generate_qr_code('-')
+    expect(out_stream.string).to include('[QR-ANSI]')
     expect(result).to eq('-')
   end
 
@@ -59,8 +61,8 @@ describe 'QR Code Generator (unit)' do
       command_result(stdout: "[QR-ANSI]\n")
     end
 
-    result = nil
-    expect { result = model.generate_qr_code('-', delivery_mode: :return) }.not_to output.to_stdout
+    result = model.generate_qr_code('-', delivery_mode: :return)
+    expect(out_stream.string).to eq('')
     expect(result).to eq("[QR-ANSI]\n")
   end
 
@@ -170,8 +172,8 @@ describe 'QR Code Generator (unit)' do
       command_result(stdout: "[QR-ANSI]\n")
     end
 
-    result = nil
-    expect { result = model.generate_qr_code('-') }.to output(a_string_including('[QR-ANSI]')).to_stdout
+    result = model.generate_qr_code('-')
+    expect(out_stream.string).to include('[QR-ANSI]')
     expect(result).to eq('-')
   end
 

@@ -8,6 +8,7 @@ require 'yaml'
 require 'ipaddr'
 require_relative '../timing_constants'
 require_relative '../connectivity_states'
+require_relative '../runtime_config'
 require_relative 'captive_portal_checker'
 require_relative 'process_probe_manager'
 
@@ -19,11 +20,16 @@ module WifiWand
     HELPER_RESULT_GRACE = 0.05
 
     attr_reader :captive_portal_checker
+    private attr_reader :runtime_config
 
-    def initialize(verbose: false, output: $stdout)
-      @verbose = verbose
-      @output = output
-      @captive_portal_checker = CaptivePortalChecker.new(verbose: verbose, output: output)
+    def initialize(verbose: false, output: $stdout, runtime_config: nil)
+      @runtime_config = runtime_config || RuntimeConfig.new(
+        verbose:    verbose,
+        out_stream: output
+      )
+      @captive_portal_checker = CaptivePortalChecker.new(
+        runtime_config: @runtime_config
+      )
     end
 
     def internet_connectivity_state(tcp_working = nil, dns_working = nil, captive_portal_state = UNSET,
@@ -68,9 +74,9 @@ module WifiWand
     def tcp_connectivity?(timeout_in_secs: nil, overall_timeout: nil, return_details: false)
       test_endpoints = tcp_test_endpoints
 
-      if @verbose
+      if verbose?
         endpoints_list = test_endpoints.map { |e| "#{e[:host]}:#{e[:port]}" }.join(', ')
-        @output.puts "Testing internet TCP connectivity to: #{endpoints_list}"
+        output.puts "Testing internet TCP connectivity to: #{endpoints_list}"
       end
 
       result = parallel_check_result(
@@ -86,7 +92,7 @@ module WifiWand
     def dns_working?(timeout_in_secs: nil, overall_timeout: nil, return_details: false)
       test_domains = dns_test_domains
 
-      @output.puts "Testing DNS resolution for domains: #{test_domains.join(', ')}" if @verbose
+      output.puts "Testing DNS resolution for domains: #{test_domains.join(', ')}" if verbose?
 
       result = parallel_check_result(
         test_domains,
@@ -313,7 +319,7 @@ module WifiWand
     end
 
     private def log_probe_result(probe, result)
-      return unless @verbose
+      return unless verbose?
 
       case probe[:helper_mode]
       when :tcp
@@ -325,29 +331,29 @@ module WifiWand
 
     private def log_tcp_probe_result(endpoint, result)
       if result[:success]
-        @output.puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}"
+        output.puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}"
       else
-        @output.puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{result[:error_class]}"
+        output.puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{result[:error_class]}"
       end
     end
 
     private def log_dns_probe_result(domain, result)
       if result[:success]
-        @output.puts "Successfully resolved #{domain}"
+        output.puts "Successfully resolved #{domain}"
       else
-        @output.puts "Failed to resolve #{domain}: #{result[:error_class]}"
+        output.puts "Failed to resolve #{domain}: #{result[:error_class]}"
       end
     end
 
     private def log_helper_start_failure(item, helper_mode, error)
-      return unless @verbose
+      return unless verbose?
 
       target = case helper_mode
                when :tcp then "#{item[:host]}:#{item[:port]}"
                when :dns then item
                else item.inspect
       end
-      @output.puts "Failed to start #{helper_mode} helper for #{target}: #{error.class}"
+      output.puts "Failed to start #{helper_mode} helper for #{target}: #{error.class}"
     end
 
     private def helper_exit_poll_interval
@@ -361,30 +367,30 @@ module WifiWand
           endpoint[:port],
           connect_timeout: TimingConstants::TCP_CONNECTION_TIMEOUT
         ) do
-          @output.puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}" if @verbose
+          output.puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}" if verbose?
           true
         end
       end
     rescue => e
-      @output.puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if @verbose
+      output.puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{e.class}" if verbose?
       false
     end
 
     private def attempt_dns_resolution(domain)
       Timeout.timeout(TimingConstants::DNS_RESOLUTION_TIMEOUT) do
         IPSocket.getaddress(domain)
-        @output.puts "Successfully resolved #{domain}" if @verbose
+        output.puts "Successfully resolved #{domain}" if verbose?
         true
       end
     rescue => e
-      @output.puts "Failed to resolve #{domain}: #{e.class}" if @verbose
+      output.puts "Failed to resolve #{domain}: #{e.class}" if verbose?
       false
     end
 
     private def log_unexpected_error(error)
-      return unless @verbose
+      return unless verbose?
 
-      @output.puts "Unexpected error during connectivity test: #{error.class} - #{error.message}"
+      output.puts "Unexpected error during connectivity test: #{error.class} - #{error.message}"
     end
 
     private def tcp_test_endpoints
@@ -402,5 +408,9 @@ module WifiWand
         data['domains'].map { |domain| domain['domain'] }
       end
     end
+
+    private def verbose? = runtime_config.verbose
+
+    private def output = runtime_config.out_stream
   end
 end

@@ -129,7 +129,7 @@ module TestHelpers
   # Factory method for creating standard CLI mock model with common methods
   private def create_standard_mock_model(overrides = {})
     defaults = {
-      verbose_mode:                         false,
+      verbose?:                             false,
       wifi_on?:                             true,
       wifi_off:                             nil,
       wifi_on:                              nil,

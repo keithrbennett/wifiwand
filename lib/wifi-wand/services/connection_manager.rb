@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../errors'
+require_relative '../runtime_config'
 
 module WifiWand
   class ConnectionManager
@@ -12,13 +13,16 @@ module WifiWand
     RAW_PSK_PATTERN = /\A\h{64}\z/
     CONTROL_CHAR_PATTERN = /\p{Cntrl}/
 
-    attr_reader :model, :verbose_mode
+    attr_reader :model
+    private attr_reader :runtime_config
 
-    def initialize(model, verbose: false)
+    def initialize(model, verbose: false, runtime_config: nil)
       @model = model
-      @verbose_mode = verbose
+      @runtime_config = runtime_config || RuntimeConfig.new(verbose: verbose)
       @last_connection_used_saved_password = nil
     end
+
+    def verbose? = runtime_config.verbose
 
     # Connects to the passed network name, optionally with password.
     # Turns WiFi on first, in case it was turned off.

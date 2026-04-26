@@ -4,6 +4,7 @@ require 'json'
 require 'time'
 require_relative '../connectivity_states'
 require_relative '../timing_constants'
+require_relative '../runtime_config'
 require_relative 'log_file_manager'
 
 module WifiWand
@@ -27,22 +28,31 @@ module WifiWand
       internet_off: 'Internet unavailable',
     }.freeze
 
-    attr_reader :model, :interval, :verbose, :output, :log_file_manager
+    attr_reader :model, :interval, :log_file_manager
+    private attr_reader :runtime_config
 
-    def initialize(model, interval: 5, verbose: false, log_file_path: nil,
-      output: $stdout, log_file_manager: nil)
+    def initialize(
+      model,
+      interval: 5,
+      log_file_path: nil,
+      log_file_manager: nil,
+      runtime_config: nil,
+      **kwargs
+    )
       @model = model
       @interval = interval
-      @verbose = verbose
-      @output = output
+      @runtime_config = runtime_config || RuntimeConfig.new(verbose: kwargs[:verbose])
+      @verbose_override = kwargs[:verbose] if kwargs.key?(:verbose)
+      @out_stream_override = kwargs[:out_stream] if kwargs.key?(:out_stream)
       # Only create LogFileManager if file logging is requested
       @log_file_manager = if log_file_manager
         log_file_manager
       elsif log_file_path
         LogFileManager.new(
-          log_file_path: log_file_path,
-          verbose:       @verbose,
-          output:        @output
+          log_file_path:  log_file_path,
+          out_stream:     (@out_stream_override if kwargs.key?(:out_stream)),
+          verbose:        (@verbose_override if kwargs.key?(:verbose)),
+          runtime_config: @runtime_config
         )
       end
       @previous_state = nil
@@ -105,6 +115,14 @@ module WifiWand
     end
 
     def stop = @running = false
+
+    def out_stream
+      if instance_variable_defined?(:@out_stream_override)
+        @out_stream_override
+      else
+        runtime_config.out_stream
+      end
+    end
 
     private def fetch_current_state
       fetch_failures = []
@@ -257,7 +275,7 @@ module WifiWand
       yield
     rescue WifiWand::Error => e
       fetch_failures << { field: field_name, error: e }
-      log_message("Error fetching #{field_name}: #{e.message}") if @verbose
+      log_message("Error fetching #{field_name}: #{e.message}") if verbose?
       fallback_value
     end
 
@@ -283,8 +301,8 @@ module WifiWand
     end
 
     private def should_emit_state_fetch_warning?
-      !@verbose &&
-        @output &&
+      !verbose? &&
+        out_stream &&
         !@state_fetch_warning_emitted &&
         @consecutive_state_fetch_failures >= 2
     end
@@ -295,8 +313,8 @@ module WifiWand
         'WARNING: Status polling is encountering repeated lookup failures.',
         'Continuing with partial state until lookups recover.',
       ].join(' ')
-      @output.puts(warning)
-      @output.flush if @output.respond_to?(:flush)
+      out_stream.puts(warning)
+      out_stream.flush if out_stream.respond_to?(:flush)
     end
 
     private def comparable_boolean_values?(current_value, previous_value)
@@ -351,8 +369,8 @@ module WifiWand
 
     # Preserve the current stdout-first behavior, then enforce file-sink health explicitly.
     private def log_message(message)
-      @output.puts(message) if @output
-      @output.flush if @output&.respond_to?(:flush)
+      out_stream.puts(message) if out_stream
+      out_stream.flush if out_stream&.respond_to?(:flush)
       write_to_log_file(message) if @log_file_manager
     end
 
@@ -366,7 +384,7 @@ module WifiWand
     private def handle_log_file_failure(error)
       close_error = detach_log_file_manager
 
-      if @output
+      if out_stream
         emit_file_logging_warning(compose_log_file_failure_message(error, close_error))
         return
       end
@@ -398,8 +416,16 @@ module WifiWand
       @file_logging_warning_emitted = true
       warning =
         "WARNING: File logging is disabled. Stdout is the only remaining log destination. #{error_message}"
-      @output.puts(warning)
-      @output.flush if @output.respond_to?(:flush)
+      out_stream.puts(warning)
+      out_stream.flush if out_stream.respond_to?(:flush)
+    end
+
+    def verbose?
+      if instance_variable_defined?(:@verbose_override)
+        @verbose_override
+      else
+        runtime_config.verbose
+      end
     end
   end
 end

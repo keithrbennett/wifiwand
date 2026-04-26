@@ -10,7 +10,7 @@ describe WifiWand::LogFileManager do
 
   let(:temp_dir) { Dir.mktmpdir }
   let(:log_file_path) { File.join(temp_dir, 'test.log') }
-  let(:output) { StringIO.new }
+  let(:out_stream) { StringIO.new }
 
   after do
     FileUtils.remove_entry(temp_dir) if Dir.exist?(temp_dir)
@@ -50,14 +50,26 @@ describe WifiWand::LogFileManager do
     it 'accepts verbose flag' do
       silence_output do
         manager = described_class.new(log_file_path: log_file_path, verbose: true)
-        expect(manager.verbose).to be true
+        expect(manager.verbose?).to be true
         manager.close
       end
     end
 
-    it 'accepts output stream' do
-      manager = described_class.new(log_file_path: log_file_path, output: output)
-      expect(manager.output).to eq(output)
+    it 'accepts out_stream' do
+      manager = described_class.new(log_file_path: log_file_path, out_stream: out_stream)
+      expect(manager.out_stream).to eq(out_stream)
+      manager.close
+    end
+
+    it 'reads out_stream from runtime config after initialization' do
+      initial_output = StringIO.new
+      updated_output = StringIO.new
+      runtime_config = WifiWand::RuntimeConfig.new(verbose: false, out_stream: initial_output)
+      manager = described_class.new(log_file_path: log_file_path, runtime_config: runtime_config)
+
+      runtime_config.out_stream = updated_output
+
+      expect(manager.out_stream).to eq(updated_output)
       manager.close
     end
   end

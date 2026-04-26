@@ -96,9 +96,7 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
 
       alias_method :interactive_mode, :interactive_mode?
 
-      def verbose_mode? = false
-
-      alias_method :verbose_mode, :verbose_mode?
+      def verbose? = false
 
       def out_stream = StringIO.new
     end

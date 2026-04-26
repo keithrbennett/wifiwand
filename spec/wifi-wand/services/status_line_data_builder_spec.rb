@@ -22,7 +22,7 @@ describe WifiWand::StatusLineDataBuilder do
     described_class.new(
       model,
       verbose:                             false,
-      output:                              StringIO.new,
+      out_stream:                          StringIO.new,
       worker_result_timeout_seconds:       0.05,
       worker_result_poll_interval_seconds: 0.001,
       worker_cleanup_timeout_seconds:      0.01
@@ -63,6 +63,27 @@ describe WifiWand::StatusLineDataBuilder do
       captive_portal_state:          :free,
       captive_portal_login_required: :no,
     }
+  end
+
+  describe 'initialization' do
+    it 'reads out_stream from runtime config after initialization' do
+      initial_output = StringIO.new
+      updated_output = StringIO.new
+      runtime_config = WifiWand::RuntimeConfig.new(verbose: false, out_stream: initial_output)
+      builder = described_class.new(model, runtime_config: runtime_config)
+
+      runtime_config.out_stream = updated_output
+
+      expect(builder.out_stream).to eq(updated_output)
+    end
+
+    it 'prefers runtime config over explicit out_stream when runtime config is provided' do
+      runtime_out_stream = StringIO.new
+      runtime_config = WifiWand::RuntimeConfig.new(verbose: false, out_stream: runtime_out_stream)
+      builder = described_class.new(model, runtime_config: runtime_config, out_stream: StringIO.new)
+
+      expect(builder.out_stream).to eq(runtime_out_stream)
+    end
   end
 
   describe '#call' do
@@ -153,15 +174,15 @@ describe WifiWand::StatusLineDataBuilder do
     end
 
     it 'returns nil and emits a nil progress update when the initial wifi check fails' do
-      output = StringIO.new
-      failing_builder = described_class.new(model, verbose: true, output: output)
+      out_stream = StringIO.new
+      failing_builder = described_class.new(model, verbose: true, out_stream: out_stream)
       allow(model).to receive(:wifi_on?).and_raise(WifiWand::Error, 'boom')
 
       result = failing_builder.call(progress_callback: ->(data) { progress_updates << data })
 
       expect(result).to be_nil
       expect(progress_updates).to eq([nil])
-      expect(output.string).to include('Warning: status_line_data failed: WifiWand::Error: boom')
+      expect(out_stream.string).to include('Warning: status_line_data failed: WifiWand::Error: boom')
     end
 
     it 'reports connected with SSID unavailable when connected? is true but the SSID is nil' do
@@ -285,11 +306,11 @@ describe WifiWand::StatusLineDataBuilder do
     end
 
     it 'falls back gracefully when network identity raises an expected error' do
-      output = StringIO.new
+      out_stream = StringIO.new
       failing_builder = described_class.new(
         model,
         verbose:                 true,
-        output:                  output,
+        out_stream:              out_stream,
         expected_network_errors: [StatusLineDataBuilderSpecExpectedError]
       )
       allow(model).to receive(:connected?).and_raise(StatusLineDataBuilderSpecExpectedError, 'network down')
@@ -306,7 +327,7 @@ describe WifiWand::StatusLineDataBuilder do
         captive_portal_state:          :free,
         captive_portal_login_required: :no
       )
-      expect(output.string).to include(
+      expect(out_stream.string).to include(
         'Warning: network status lookup failed: StatusLineDataBuilderSpecExpectedError: network down'
       )
     end
@@ -315,7 +336,7 @@ describe WifiWand::StatusLineDataBuilder do
       failing_builder = described_class.new(
         model,
         verbose:                 true,
-        output:                  StringIO.new,
+        out_stream:              StringIO.new,
         expected_network_errors: [StatusLineDataBuilderSpecExpectedError]
       )
       allow(model).to receive(:internet_tcp_connectivity?).and_raise(
@@ -437,7 +458,7 @@ describe WifiWand::StatusLineDataBuilder do
     it 'cancels follow-up work so cleanup stays bounded when a worker is merely slow' do
       slow_builder = described_class.new(
         model,
-        output:                              StringIO.new,
+        out_stream:                          StringIO.new,
         worker_result_timeout_seconds:       0.005,
         worker_result_poll_interval_seconds: 0.001,
         worker_cleanup_timeout_seconds:      0.05
@@ -464,11 +485,11 @@ describe WifiWand::StatusLineDataBuilder do
     end
 
     it 'logs and forcefully terminates a worker that misses the cleanup timeout' do
-      output = StringIO.new
+      out_stream = StringIO.new
       verbose_builder = described_class.new(
         model,
         verbose:                        true,
-        output:                         output,
+        out_stream:                     out_stream,
         worker_cleanup_timeout_seconds: 0.001
       )
       worker_release = Queue.new
@@ -483,7 +504,7 @@ describe WifiWand::StatusLineDataBuilder do
 
       verbose_builder.send(:cleanup_worker_threads, worker)
 
-      expect(output.string).to include('Warning: forcing worker thread termination after timeout')
+      expect(out_stream.string).to include('Warning: forcing worker thread termination after timeout')
       expect(worker_terminated.pop(timeout: 1)).to eq(:terminated)
       expect(worker).not_to be_alive
       expect(worker_release.size).to eq(0)

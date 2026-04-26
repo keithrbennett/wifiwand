@@ -42,7 +42,7 @@ module WifiWand
       FAILURE_EXIT_CODE
     end
 
-    private def handle_error(error, verbose_mode)
+    private def handle_error(error, verbose)
       case error
       when OptionParser::InvalidOption
         # Clean error message for invalid command line options
@@ -65,7 +65,7 @@ module WifiWand
         @err_stream.puts "Error: #{error.message}"
       else
         # Unknown errors - show message but not stack trace unless verbose
-        message = if verbose_mode
+        message = if verbose
           <<~MESSAGE
             Error: #{error.message}
 

@@ -394,7 +394,7 @@ module WifiWand
           # the `networksetup` fallback. Everything else should preserve the
           # original failure.
           if swift_connect_should_fallback?(e.text)
-            if verbose_mode
+            if verbose?
               out_stream.puts "Swift/CoreWLAN failed (#{e.text.strip}). " \
                 'Trying networksetup fallback...'
             end
@@ -403,7 +403,7 @@ module WifiWand
             raise
           end
         rescue => e
-          if verbose_mode
+          if verbose?
             out_stream.puts "Swift/CoreWLAN failed: #{e.message}. " \
               'Trying networksetup fallback...'
           end
@@ -522,7 +522,7 @@ module WifiWand
     def mac_helper_client
       @mac_helper_client ||= WifiWand::MacOsWifiAuthHelper::Client.new(
         out_stream_proc:    -> { out_stream },
-        verbose_proc:       -> { verbose_mode },
+        verbose_proc:       -> { verbose? },
         macos_version_proc: -> { macos_version }
       )
     end
@@ -537,13 +537,13 @@ module WifiWand
           run_swift_command('WifiNetworkDisconnector')
           return nil
         rescue => e
-          if verbose_mode
+          if verbose?
             out_stream.puts "Swift/CoreWLAN disconnect failed: #{e.message}. " \
               'Falling back to ifconfig...'
           end
           # Fall through to ifconfig fallback
         end
-      elsif verbose_mode
+      elsif verbose?
         out_stream.puts 'Swift/CoreWLAN not available. Using ifconfig...'
       end
 
@@ -628,7 +628,7 @@ module WifiWand
         true
       rescue WifiWand::CommandExecutor::OsCommandError => e
         # Log the specific error if in verbose mode
-        if verbose_mode
+        if verbose?
           case e.exitstatus
           when 127
             out_stream.puts "Swift command not found (exit code #{e.exitstatus}). " \
@@ -641,7 +641,7 @@ module WifiWand
         end
         false
       rescue => e
-        out_stream.puts "Unexpected error checking Swift/CoreWLAN: #{e.message}" if verbose_mode
+        out_stream.puts "Unexpected error checking Swift/CoreWLAN: #{e.message}" if verbose?
         false
       end
     end
@@ -666,7 +666,7 @@ module WifiWand
       version = output.strip
       version.empty? ? nil : version
     rescue => e
-      if verbose_mode
+      if verbose?
         out_stream.puts "Could not detect macOS version: #{e.message}."
       end
       nil
@@ -674,7 +674,7 @@ module WifiWand
 
     def validate_os_preconditions
       # All core commands are built-in, just warn about optional ones
-      if !command_available?('swift') && verbose_mode
+      if !command_available?('swift') && verbose?
         out_stream.puts 'Warning: Swift not available. Some advanced features ' \
           'may use fallback methods. Install with: xcode-select --install'
       end

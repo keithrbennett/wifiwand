@@ -5,8 +5,10 @@ require 'ostruct'
 require 'stringio'
 
 RSpec.describe WifiWand::BaseModel do
+  let(:model_options) { OpenStruct.new(verbose: false, out_stream: StringIO.new) }
+
   describe '#wifi_interface' do
-    let(:model) { described_class.allocate }
+    let(:model) { described_class.new(model_options) }
 
     it 'returns existing interface without reinitializing' do
       model.instance_variable_set(:@wifi_interface, 'wlan0')
@@ -31,7 +33,7 @@ RSpec.describe WifiWand::BaseModel do
   end
 
   describe '#nameservers_using_resolv_conf' do
-    let(:model) { described_class.allocate }
+    let(:model) { described_class.new(model_options) }
 
     it 'returns nil when resolv.conf is unavailable' do
       allow(File).to receive(:readlines).with('/etc/resolv.conf').and_raise(Errno::ENOENT)
@@ -89,7 +91,7 @@ RSpec.describe WifiWand::BaseModel do
   end
 
   describe 'WiFi-off wrappers' do
-    let(:model) { described_class.allocate }
+    let(:model) { described_class.new(model_options) }
 
     before do
       allow(model).to receive_messages(wifi_on?: false, connected?: false)
@@ -118,7 +120,7 @@ RSpec.describe WifiWand::BaseModel do
   end
 
   describe 'wifi on, not connected' do
-    let(:model) { described_class.allocate }
+    let(:model) { described_class.new(model_options) }
 
     before do
       allow(model).to receive_messages(wifi_on?: true, connected?: false, _connected_network_name: nil)
@@ -139,15 +141,17 @@ RSpec.describe WifiWand::BaseModel do
   end
 
   describe 'debug-logged connectivity checks' do
-    let(:model) { described_class.allocate }
+    let(:model) { described_class.new(model_options) }
     let(:output) { StringIO.new }
     let(:tester) do
       double('tester', internet_connectivity_state: :reachable, tcp_connectivity?: true, dns_working?: true)
     end
 
     before do
-      model.instance_variable_set(:@verbose_mode, true)
-      model.instance_variable_set(:@original_out_stream, output)
+      model.instance_variable_set(:@runtime_config, WifiWand::RuntimeConfig.new(
+        verbose:    true,
+        out_stream: output
+      ))
       model.instance_variable_set(:@connectivity_tester, tester)
     end
 
@@ -163,7 +167,7 @@ RSpec.describe WifiWand::BaseModel do
   end
 
   describe '#status_line_data' do
-    let(:model) { described_class.allocate }
+    let(:model) { described_class.new(model_options) }
 
     it 'does not invoke deprecated connectivity shortcuts directly' do
       builder = instance_double(WifiWand::StatusLineDataBuilder, call: { wifi_on: true })
@@ -176,7 +180,7 @@ RSpec.describe WifiWand::BaseModel do
   end
 
   describe '#preferred_network_password' do
-    let(:model) { described_class.allocate }
+    let(:model) { described_class.new(model_options) }
 
     it 'returns the stored password using the resolved lookup name' do
       allow(model).to receive(:preferred_networks).and_return(['CafeNet'])
@@ -203,7 +207,7 @@ RSpec.describe WifiWand::BaseModel do
   end
 
   describe 'public IP lookups' do
-    let(:model) { described_class.allocate }
+    let(:model) { described_class.new(model_options) }
     let(:fake_http) { double('http') }
 
     before do
@@ -264,8 +268,10 @@ RSpec.describe WifiWand::BaseModel do
     it 'stores malformed response details on the error in verbose mode' do
       output = StringIO.new
       fake_response = double('response', body: '{"ip":"not-an-ip","country":"TH"}')
-      model.instance_variable_set(:@verbose_mode, true)
-      model.instance_variable_set(:@original_out_stream, output)
+      model.instance_variable_set(:@runtime_config, WifiWand::RuntimeConfig.new(
+        verbose:    true,
+        out_stream: output
+      ))
       allow(fake_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
       allow(fake_http).to receive(:request).and_return(fake_response)
 
@@ -288,7 +294,7 @@ RSpec.describe WifiWand::BaseModel do
   end
 
   describe 'helper memoization' do
-    let(:model) { described_class.allocate }
+    let(:model) { described_class.new(model_options) }
 
     it 'memoizes qr_code_generator helper' do
       helper = double('qr')
@@ -305,8 +311,10 @@ RSpec.describe WifiWand::BaseModel do
       output = StringIO.new
       manager = double('state_manager')
 
-      model.instance_variable_set(:@verbose_mode, true)
-      model.instance_variable_set(:@original_out_stream, output)
+      model.instance_variable_set(:@runtime_config, WifiWand::RuntimeConfig.new(
+        verbose:    true,
+        out_stream: output
+      ))
       model.instance_variable_set(:@state_manager, manager)
 
       expect(manager).to receive(:capture_network_state).and_return(:snapshot)

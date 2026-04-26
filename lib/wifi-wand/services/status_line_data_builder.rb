@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../connectivity_states'
+require_relative '../runtime_config'
 
 module WifiWand
   class StatusLineDataBuilder
@@ -12,25 +13,40 @@ module WifiWand
     # that close pipes, sockets, and subprocess handles before this method returns.
     FINAL_WORKER_JOIN_AFTER_KILL_SECONDS = 0.25
 
-    attr_reader :model, :verbose_mode, :output, :expected_network_errors
+    attr_reader :model, :expected_network_errors
+    private attr_reader :runtime_config
 
     def initialize(
       model,
-      verbose: false,
-      output: $stdout,
+      runtime_config: nil,
       expected_network_errors: [],
       worker_result_timeout_seconds: DEFAULT_WORKER_RESULT_TIMEOUT_SECONDS,
       worker_result_poll_interval_seconds: DEFAULT_WORKER_RESULT_POLL_INTERVAL_SECONDS,
-      worker_cleanup_timeout_seconds: DEFAULT_WORKER_CLEANUP_TIMEOUT_SECONDS
+      worker_cleanup_timeout_seconds: DEFAULT_WORKER_CLEANUP_TIMEOUT_SECONDS,
+      **kwargs
     )
       @model = model
-      @verbose_mode = verbose
-      @output = output
+      @runtime_config = runtime_config || RuntimeConfig.new(
+        verbose:    kwargs[:verbose],
+        out_stream: kwargs.key?(:out_stream) ? kwargs[:out_stream] : $stdout
+      )
+      unless runtime_config
+        @verbose_override = kwargs[:verbose] if kwargs.key?(:verbose)
+        @out_stream_override = kwargs[:out_stream] if kwargs.key?(:out_stream)
+      end
       @expected_network_errors = expected_network_errors
       @worker_result_timeout_seconds = worker_result_timeout_seconds
       @worker_result_poll_interval_seconds = worker_result_poll_interval_seconds
       @worker_cleanup_timeout_seconds = worker_cleanup_timeout_seconds
       @cancelled = false
+    end
+
+    def out_stream
+      if instance_variable_defined?(:@out_stream_override)
+        @out_stream_override
+      else
+        runtime_config.out_stream
+      end
     end
 
     def call(progress_callback: nil)
@@ -58,7 +74,7 @@ module WifiWand
       progress_callback&.call(final_data)
       final_data
     rescue *expected_network_errors, WifiWand::Error => e
-      output.puts "Warning: status_line_data failed: #{e.class}: #{e.message}" if verbose_mode
+      out_stream.puts "Warning: status_line_data failed: #{e.class}: #{e.message}" if verbose?
       progress_callback&.call(nil)
       nil
     ensure
@@ -138,14 +154,14 @@ module WifiWand
         # partial data and must not leave the thread behind. We use Thread#kill here as a
         # last-resort teardown and still wait briefly so the thread can unwind its ensure
         # blocks before returning.
-        output.puts 'Warning: forcing worker thread termination after timeout' if verbose_mode
+        out_stream.puts 'Warning: forcing worker thread termination after timeout' if verbose?
         thread.kill
         thread.join(FINAL_WORKER_JOIN_AFTER_KILL_SECONDS)
       end
     end
 
     private def worker_timeout_result(worker_name)
-      output.puts "Warning: #{worker_name} status worker timed out" if verbose_mode
+      out_stream.puts "Warning: #{worker_name} status worker timed out" if verbose?
       fallback_worker_result(worker_name)
     end
 
@@ -176,6 +192,15 @@ module WifiWand
     end
 
     private def cancelled? = @cancelled
+
+    def verbose?
+      if instance_variable_defined?(:@verbose_override)
+        @verbose_override
+      else
+        runtime_config.verbose
+      end
+    end
+
 
     private def initial_data
       {
@@ -215,7 +240,7 @@ module WifiWand
         network_name: network_name,
       }
     rescue WifiWand::Error, *expected_network_errors => e
-      output.puts "Warning: network status lookup failed: #{e.class}: #{e.message}" if verbose_mode
+      out_stream.puts "Warning: network status lookup failed: #{e.class}: #{e.message}" if verbose?
       {
         connected:    false,
         network_name: nil,

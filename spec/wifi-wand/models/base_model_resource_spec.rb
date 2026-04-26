@@ -33,23 +33,23 @@ describe 'BaseModel Resource Management' do
     it 'accepts OpenStruct options' do
       options = OpenStruct.new(verbose: true, wifi_interface: 'wlan0')
       test_model = model_class.new(options)
-      expect(test_model.verbose_mode).to be(true)
+      expect(test_model.verbose?).to be(true)
     end
 
     it 'accepts Hash options and converts to OpenStruct internally' do
       hash_options = { verbose: true, wifi_interface: 'wlan0' }
       test_model = model_class.new(hash_options)
-      expect(test_model.verbose_mode).to be(true)
+      expect(test_model.verbose?).to be(true)
     end
 
     it 'accepts empty Hash as default options' do
       test_model = model_class.new({})
-      expect(test_model.verbose_mode).to be_falsy
+      expect(test_model).not_to be_verbose
     end
 
     it 'uses empty Hash as default when no options provided' do
       test_model = model_class.new
-      expect(test_model.verbose_mode).to be_falsy
+      expect(test_model).not_to be_verbose
     end
   end
 
