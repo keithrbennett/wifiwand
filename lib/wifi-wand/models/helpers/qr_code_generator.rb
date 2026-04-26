@@ -34,7 +34,7 @@ module WifiWand
         ensure_qrencode_available(model)
 
         network_name = require_connected_network_name(model)
-        # If no password is provided, fetch the saved password from the system (may require auth on macOS)
+        # If no password is provided, ask the model for the current network password.
         password ||= connected_password_for(model)
         security     = model.connection_security_type
         is_hidden    = model.network_hidden?
@@ -79,7 +79,14 @@ module WifiWand
         name
       end
 
-      private def connected_password_for(model) = model.send(:connected_network_password)
+      private def connected_password_for(model)
+        network_name = model.connected_network_name
+        return nil unless network_name
+
+        # QR generation may block on a macOS keychain auth dialog, so do not
+        # route through BaseModel#connected_network_password's default timeout.
+        model.preferred_network_password(network_name, timeout_in_secs: nil)
+      end
 
       private def build_wifi_qr_string(network_name, password, security_type, is_hidden = false)
         qr_password = password.to_s

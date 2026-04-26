@@ -76,7 +76,7 @@ describe 'QR Code Generator (unit)' do
   it 'uses provided password without querying system password' do
     provided_password = 'provided123'
 
-    expect(model).not_to receive(:connected_network_password)
+    expect(model).not_to receive(:preferred_network_password)
 
     expect(model).to receive(:run_command_using_args) do |cmd|
       expect(cmd).to be_an(Array)
@@ -88,6 +88,20 @@ describe 'QR Code Generator (unit)' do
     end
 
     silence_output { model.generate_qr_code(nil, password: provided_password) }
+  end
+
+  it 'looks up the connected network password without a timeout when no password is provided' do
+    expect(model).to receive(:preferred_network_password)
+      .with(ssid, timeout_in_secs: nil)
+      .and_return(password)
+
+    expect(model).to receive(:run_command_using_args) do |cmd|
+      expect(cmd).to include('qrencode')
+      expect(cmd.last).to include('P:password123')
+      command_result(stdout: '')
+    end
+
+    silence_output { model.generate_qr_code(nil) }
   end
 
   it 'surfaces exact-identity errors when the current SSID is redacted' do

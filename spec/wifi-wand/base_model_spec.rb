@@ -1154,9 +1154,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
       ].each do |test_network, test_password, expected_qr_string|
         it "properly escapes special characters in '#{test_network}' / '#{test_password}'" do
           allow(subject).to receive_messages(
-            connected_network_name:     test_network,
-            connected_network_password: test_password
+            connected_network_name: test_network
           )
+          allow(subject).to receive(:preferred_network_password)
+            .with(test_network, timeout_in_secs: nil)
+            .and_return(test_password)
 
           silence_output { subject.generate_qr_code }
 
@@ -1194,7 +1196,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     context 'when handling open networks' do
       it 'generates QR code for open network (no password)' do
-        allow(subject).to receive_messages(connected_network_password: nil, connection_security_type: nil)
+        allow(subject).to receive(:preferred_network_password)
+          .with('TestNetwork', timeout_in_secs: nil)
+          .and_return(nil)
+        allow(subject).to receive(:connection_security_type).and_return(nil)
         expected_qr_string = 'WIFI:T:nopass;S:TestNetwork;P:;H:false;;'
 
         result = silence_output { subject.generate_qr_code }
