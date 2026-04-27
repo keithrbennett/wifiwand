@@ -2,6 +2,7 @@
 
 require 'rbconfig'
 require_relative '../wifi-wand/mac_helper/mac_os_wifi_auth_helper'
+require_relative '../wifi-wand/mac_helper/mac_os_helper_build'
 
 namespace :swift do
   helper = WifiWand::MacOsWifiAuthHelper

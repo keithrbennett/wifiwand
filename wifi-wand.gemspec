@@ -18,6 +18,7 @@ Gem::Specification.new do |spec|
     %r{\Adocs/(?:ai-reports|dev)/},
     %r{\Alib/tasks/},
     %r{\Alib/wifi-wand/mac_helper/mac_helper_release\.rb\z},
+    %r{\Alib/wifi-wand/mac_helper/mac_os_helper_build\.rb\z},
     %r{\Alibexec/macos/(?:src/|wifiwand-helper\.entitlements\z|wifiwand-helper\.source-manifest\.json\z)},
     %r{\Adocs/TESTING\.md\z},
   ].freeze

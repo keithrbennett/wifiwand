@@ -29,6 +29,7 @@ RSpec.describe 'wifi-wand.gemspec packaging' do
       'bin/setup-hooks',
       'docs/TESTING.md',
       'lib/wifi-wand/mac_helper/mac_helper_release.rb',
+      'lib/wifi-wand/mac_helper/mac_os_helper_build.rb',
       'libexec/macos/src/wifiwand-helper.swift',
       'libexec/macos/wifiwand-helper.entitlements',
       'libexec/macos/wifiwand-helper.source-manifest.json',

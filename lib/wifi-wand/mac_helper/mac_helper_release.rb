@@ -6,6 +6,7 @@ require 'json'
 require 'rbconfig'
 require 'shellwords'
 require_relative 'mac_os_wifi_auth_helper'
+require_relative 'mac_os_helper_build'
 
 module WifiWand
   module MacHelperRelease
