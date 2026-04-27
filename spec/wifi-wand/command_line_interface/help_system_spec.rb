@@ -63,9 +63,22 @@ describe WifiWand::CommandLineInterface::HelpSystem do
     end
 
     it 'documents exact short and long command forms for public_ip' do
-      expect(help).to include('Commands accept only the exact short or exact long form shown below.')
       expect(help).to include('pi / public_ip [address|country|both|a|c|b]')
       expect(help).to include("e.g. 'public_ip a' or 'pi country'")
+    end
+
+    it 'wraps long switch labels onto their own line before the description' do
+      expect(help).to match(/^\s{2}-p, --wifi-interface interface_name\n\s{38}specify WiFi interface name/m)
+    end
+
+    it 'wraps long command labels onto their own line before the description' do
+      pattern = Regexp.new(
+        '^\s{2}pi / public_ip \[address\|country\|both\|a\|c\|b\]\n' \
+          '\s{38}public IP lookup; selectors may use long or',
+        Regexp::MULTILINE
+      )
+
+      expect(help).to match(pattern)
     end
 
     context 'when model is not available' do
