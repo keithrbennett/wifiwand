@@ -75,7 +75,7 @@ module WifiWand
     end
 
     private def formatter_for(raw_value)
-      choice = raw_value[0].downcase
+      choice = raw_value.to_s[0]&.downcase
 
       unless FORMATTERS.key?(choice)
         @err_stream.puts <<~MESSAGE

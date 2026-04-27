@@ -59,7 +59,15 @@ describe WifiWand::CommandLineParser do
     it 'handles invalid output format' do
       expect do
         described_class.new(['-o', 'z', 'info'], ENV, err_stream).parse
-      end.to raise_error(WifiWand::ConfigurationError)
+      end.to raise_error(WifiWand::ConfigurationError, /Invalid output format 'z'/)
+      expect(err_stream.string).to include('Output format "z" not in list of available formats')
+    end
+
+    it 'handles empty output format with a configuration error' do
+      expect do
+        described_class.new(['-o', '', 'info'], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /Invalid output format ''/)
+      expect(err_stream.string).to include('Output format "" not in list of available formats')
     end
 
     it 'handles unrecognized flags' do
@@ -166,36 +174,41 @@ describe WifiWand::CommandLineParser do
   end
 
   describe 'output format processors' do
-    it 'creates JSON processor' do
-      options = parse_with_argv('-o', 'j', 'info')
-      result = options.post_processor.call({ 'test' => 'value' })
-      expect(JSON.parse(result)).to eq({ 'test' => 'value' })
-    end
+    {
+      'i' => 'inspect',
+      'j' => 'JSON',
+      'k' => 'pretty JSON',
+      'p' => 'puts',
+      'y' => 'YAML',
+    }.each do |format_code, format_name|
+      it "correctly formats as #{format_name}" do
+        options = parse_with_argv('-o', format_code, 'info')
+        result = options.post_processor.call({ 'test' => 'value' })
 
-    it 'creates YAML processor' do
-      options = parse_with_argv('-o', 'y', 'info')
-      result = options.post_processor.call({ 'test' => 'value' })
-      expect(YAML.load(result)).to eq({ 'test' => 'value' })
-    end
-
-    it 'creates inspect processor' do
-      options = parse_with_argv('-o', 'i', 'info')
-      result = options.post_processor.call({ 'test' => 'value' })
-      expect(result).to eq({ 'test' => 'value' }.inspect)
-    end
-
-    it 'creates pretty JSON processor' do
-      options = parse_with_argv('-o', 'k', 'info')
-      result = options.post_processor.call({ 'test' => 'value' })
-      expect(JSON.parse(result)).to eq({ 'test' => 'value' })
-      expect(result).to include("\n")
-    end
-
-    it 'creates StringIO processor' do
-      options = parse_with_argv('-o', 'p', 'info')
-      test_data = { 'test' => 'value' }
-      result = options.post_processor.call(test_data)
-      expect(result).to eq("#{test_data}\n")
+        case format_code
+        when 'i'
+          expect(result).to eq({ 'test' => 'value' }.inspect)
+        when 'j'
+          expect(result).to eq('{"test":"value"}')
+        when 'k'
+          expect(result).to eq(<<~JSON.chomp)
+            {
+              "test": "value"
+            }
+          JSON
+        when 'p'
+          expect(result).to eq(<<~PUTS)
+            {"test" => "value"}
+          PUTS
+        when 'y'
+          expect(result).to eq(<<~YAML)
+            ---
+            test: value
+          YAML
+        else
+          raise "No assertion defined for format code #{format_code.inspect}"
+        end
+      end
     end
   end
 end
