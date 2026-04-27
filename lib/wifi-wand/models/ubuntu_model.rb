@@ -11,6 +11,7 @@ module WifiWand
       802-11-wireless-security.psk
       802-11-wireless-security.wep-key0
     ].freeze
+    PREFERRED_NETWORK_SECRET_PLACEHOLDERS = %w[--].freeze
     DNS_CONNECTION_FIELDS = %w[
       ipv4.dns
       ipv4.ignore-auto-dns
@@ -384,13 +385,25 @@ module WifiWand
     end
 
     public def extract_preferred_network_secret(connection_output)
-      secret_line = connection_output.split("\n").find do |line|
-        PREFERRED_NETWORK_SECRET_FIELDS.any? { |field_name| line.include?("#{field_name}:") }
-      end
-      return nil unless secret_line
+      connection_lines = connection_output.split("\n")
 
-      secret = secret_line.split(':', 2).last&.strip
-      secret.empty? ? nil : secret
+      PREFERRED_NETWORK_SECRET_FIELDS.each do |field_name|
+        secret_line = connection_lines.find { |line| line.include?("#{field_name}:") }
+        next unless secret_line
+
+        secret = secret_line.split(':', 2).last&.strip
+        next unless preferred_network_secret_value?(secret)
+
+        return secret
+      end
+
+      nil
+    end
+
+    private def preferred_network_secret_value?(secret)
+      return false if secret.nil? || secret.empty?
+
+      !PREFERRED_NETWORK_SECRET_PLACEHOLDERS.include?(secret)
     end
 
     public def _ip_address

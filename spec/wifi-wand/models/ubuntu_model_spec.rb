@@ -1439,6 +1439,19 @@ module WifiWand
             expect(result).to eq('legacy-wep-key')
           end
 
+          it 'prefers a real PSK over a placeholder WEP value when both are present' do
+            password_output = <<~OUTPUT
+              802-11-wireless-security.wep-key0:      --
+              802-11-wireless-security.psk:           weplaychess
+            OUTPUT
+            allow(subject).to receive(:run_command_using_args)
+              .with(%w[nmcli --show-secrets connection show MyProfile], false)
+              .and_return(command_result(stdout: password_output))
+
+            result = subject.send(:_preferred_network_password, 'MyProfile')
+            expect(result).to eq('weplaychess')
+          end
+
           it 'returns nil when no password is stored' do
             password_output = <<~OUTPUT
               connection.id: MyProfile
@@ -1449,6 +1462,27 @@ module WifiWand
               .and_return(command_result(stdout: password_output))
 
             expect(subject.send(:_preferred_network_password, 'MyProfile')).to be_nil
+          end
+        end
+
+        describe '#extract_preferred_network_secret' do
+          it 'ignores placeholder and empty values before falling back to a real WEP secret' do
+            connection_output = <<~OUTPUT
+              802-11-wireless-security.psk:
+              802-11-wireless-security.wep-key0:      actual-wep-key
+            OUTPUT
+
+            result = subject.extract_preferred_network_secret(connection_output)
+            expect(result).to eq('actual-wep-key')
+          end
+
+          it 'returns nil when only placeholder secret values are present' do
+            connection_output = <<~OUTPUT
+              802-11-wireless-security.wep-key0:      --
+            OUTPUT
+
+            result = subject.extract_preferred_network_secret(connection_output)
+            expect(result).to be_nil
           end
         end
       end
