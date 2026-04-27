@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'tempfile'
+require 'timeout'
 require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/services/event_logger'
 require_relative '../../../lib/wifi-wand/services/log_file_manager'
@@ -896,6 +897,7 @@ describe WifiWand::EventLogger do
       )
 
       first_poll_completed = Queue.new
+      sleep_started = Queue.new
       first_poll_recorded = false
       allow(logger).to receive(:fetch_current_state).and_wrap_original do |original, *args|
         result = original.call(*args)
@@ -905,15 +907,14 @@ describe WifiWand::EventLogger do
         end
         result
       end
+      allow(logger).to receive(:sleep_until).and_wrap_original do |original, *args|
+        sleep_started << true
+        original.call(*args)
+      end
 
       runner = Thread.new { logger.run }
-      first_poll_completed.pop
-
-      20.times do
-        break if runner.status == 'sleep'
-
-        sleep(0.01)
-      end
+      Timeout.timeout(0.5) { first_poll_completed.pop }
+      Timeout.timeout(0.5) { sleep_started.pop }
 
       logger.stop
       expect(runner.join(0.3)).to eq(runner)
@@ -925,6 +926,7 @@ describe WifiWand::EventLogger do
     it 'interrupts the polling wait so the run loop stops promptly' do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 2)
       first_poll_completed = Queue.new
+      sleep_started = Queue.new
       first_poll_recorded = false
 
       allow(logger).to receive(:fetch_current_state).and_wrap_original do |original, *args|
@@ -935,15 +937,14 @@ describe WifiWand::EventLogger do
         end
         result
       end
+      allow(logger).to receive(:sleep_until).and_wrap_original do |original, *args|
+        sleep_started << true
+        original.call(*args)
+      end
 
       runner = Thread.new { logger.run }
-      first_poll_completed.pop
-
-      20.times do
-        break if runner.status == 'sleep'
-
-        sleep(0.01)
-      end
+      Timeout.timeout(0.5) { first_poll_completed.pop }
+      Timeout.timeout(0.5) { sleep_started.pop }
 
       stop_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       logger.stop
