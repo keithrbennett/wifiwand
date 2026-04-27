@@ -821,7 +821,6 @@ describe WifiWand::EventLogger do
   describe '#run' do
     it 'logs startup message' do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
-      allow(logger).to receive(:sleep)
       call_count = 0
       allow(logger).to receive(:detect_and_emit_events) do
         call_count += 1
@@ -833,7 +832,6 @@ describe WifiWand::EventLogger do
 
     it 'logs initial state on startup' do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
-      allow(logger).to receive(:sleep)
       allow(logger).to receive(:detect_and_emit_events) { logger.stop }
       logger.run
       expect(out_stream.string).to match(/Current state: WiFi/)
@@ -841,14 +839,13 @@ describe WifiWand::EventLogger do
 
     it 'logs stopped message on Ctrl+C' do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
-      allow(logger).to receive(:sleep).and_raise(Interrupt)
+      allow(logger).to receive(:sleep_until).and_raise(Interrupt)
       logger.run
       expect(out_stream.string).to match(/Event logging stopped/)
     end
 
     it 'calls detect_and_emit_events each iteration after initial state' do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
-      allow(logger).to receive(:sleep)
       call_count = 0
       allow(logger).to receive(:detect_and_emit_events) do
         call_count += 1
@@ -858,38 +855,104 @@ describe WifiWand::EventLogger do
       expect(call_count).to eq(2)
     end
 
-    it 'sleeps for the configured interval between polls' do
-      logger = described_class.new(mock_model, out_stream: out_stream, interval: 7)
-      sleep_count = 0
-      allow(logger).to receive(:sleep) do |duration|
-        sleep_count += 1
-        logger.stop if sleep_count >= 1
-        expect(duration).to be_within(0.01).of(7)
+    it 'keeps the configured polling cadence when not stopped early' do
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 0.05)
+      poll_times = []
+      poll_times_mutex = Mutex.new
+
+      allow(logger).to receive(:fetch_current_state) do
+        poll_times_mutex.synchronize do
+          poll_times << Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        end
+
+        {
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'TestNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE,
+        }
       end
-      allow(logger).to receive(:detect_and_emit_events)
+
+      allow(logger).to receive(:detect_and_emit_events) do
+        logger.stop if poll_times_mutex.synchronize { poll_times.length >= 3 }
+      end
+
       logger.run
+
+      poll_intervals = poll_times_mutex.synchronize do
+        poll_times.each_cons(2).map { |previous_poll, current_poll| current_poll - previous_poll }
+      end
+
+      expect(poll_intervals.length).to eq(2)
+      expect(poll_intervals).to all(be_within(0.03).of(0.05))
     end
 
-    it 'cleans up log file manager on exit' do
+    it 'cleans up log file manager on exit after stop interrupts the wait' do
       logger = described_class.new(
         mock_model,
         out_stream:       out_stream,
-        interval:         0,
+        interval:         2,
         log_file_manager: mock_log_file_manager
       )
-      allow(logger).to receive(:sleep).and_raise(Interrupt)
-      logger.run
+
+      first_poll_completed = Queue.new
+      first_poll_recorded = false
+      allow(logger).to receive(:fetch_current_state).and_wrap_original do |original, *args|
+        result = original.call(*args)
+        unless first_poll_recorded
+          first_poll_completed << true
+          first_poll_recorded = true
+        end
+        result
+      end
+
+      runner = Thread.new { logger.run }
+      first_poll_completed.pop
+
+      20.times do
+        break if runner.status == 'sleep'
+
+        sleep(0.01)
+      end
+
+      logger.stop
+      expect(runner.join(0.3)).to eq(runner)
       expect(mock_log_file_manager).to have_received(:close)
     end
   end
 
   describe '#stop' do
-    it 'sets running to false, stopping the run loop' do
-      logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
-      allow(logger).to receive(:sleep)
-      allow(logger).to receive(:detect_and_emit_events) { logger.stop }
-      logger.run
+    it 'interrupts the polling wait so the run loop stops promptly' do
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 2)
+      first_poll_completed = Queue.new
+      first_poll_recorded = false
+
+      allow(logger).to receive(:fetch_current_state).and_wrap_original do |original, *args|
+        result = original.call(*args)
+        unless first_poll_recorded
+          first_poll_completed << true
+          first_poll_recorded = true
+        end
+        result
+      end
+
+      runner = Thread.new { logger.run }
+      first_poll_completed.pop
+
+      20.times do
+        break if runner.status == 'sleep'
+
+        sleep(0.01)
+      end
+
+      stop_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      logger.stop
+      expect(runner.join(0.3)).to eq(runner)
+
+      stop_duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - stop_started_at
+
       expect(logger.instance_variable_get(:@running)).to be false
+      expect(stop_duration).to be < 0.3
     end
   end
 

@@ -16,6 +16,20 @@ module WifiWand
   # path.
   # Internet reachability is checked independently of WiFi association so
   # alternate uplinks such as Ethernet still produce accurate Internet events.
+  #
+  # Threading model:
+  # - `run` is a blocking loop. If a caller wants to stop it programmatically,
+  #   `run` should usually execute in a background thread.
+  # - The calling thread, often the main thread, can then call `stop` and wait
+  #   for the logger thread to exit.
+  # - If `run` and `stop` are both expected to happen on the same thread, then
+  #   `stop` cannot interrupt the loop while that thread is blocked waiting for
+  #   the next poll.
+  # - Ctrl+C is different because it raises `Interrupt`, which can break into
+  #   the blocking wait without requiring another Ruby thread to call `stop`.
+  #
+  # In other words, `stop` is intended for coordinated shutdown from another
+  # thread, while `Interrupt` covers interactive termination from the console.
   class EventLogger
     SSID_UNAVAILABLE_LABEL = '[SSID unavailable]'
 
@@ -56,6 +70,8 @@ module WifiWand
         )
       end
       @previous_state = nil
+      @wait_mutex = Mutex.new
+      @wait_condition = ConditionVariable.new
       @running = false
       @file_logging_warning_emitted = false
       @consecutive_state_fetch_failures = 0
@@ -63,14 +79,16 @@ module WifiWand
     end
 
     # Start polling loop. This method blocks until stop is called or Ctrl+C is pressed.
+    # For programmatic shutdown, callers should usually run this in a background
+    # thread so another thread can call `stop`.
     def run
-      @running = true
+      start_running
       timestamp = Time.now.utc.iso8601
       log_message("[#{timestamp}] Event logging started (polling every #{@interval}s)")
 
       begin
         next_poll_at = monotonic_now
-        while @running
+        while running?
           current_state = fetch_current_state
 
           if @previous_state
@@ -80,7 +98,7 @@ module WifiWand
           end
           @previous_state = current_state
 
-          break unless @running
+          break unless running?
 
           next_poll_at += @interval
           sleep_until(next_poll_at)
@@ -88,15 +106,35 @@ module WifiWand
       rescue Interrupt
         timestamp = Time.now.utc.iso8601
         log_message("[#{timestamp}] Event logging stopped")
-        @running = false
+        stop
       ensure
         cleanup
       end
     end
 
+    # Timing model:
+    # - `next_poll_at` stores the monotonic-clock deadline for the next poll.
+    # - After each poll we advance that deadline by exactly `@interval`, so the
+    #   logger aims for a steady cadence instead of "sleeping @interval from now"
+    #   and drifting later every iteration.
+    # - `sleep_until` waits only until that deadline, using a condition
+    #   variable instead of one long blocking `sleep`.
+    # - `stop` flips `@running` to false and broadcasts on the same condition
+    #   variable, which wakes this wait immediately.
+    # - The loop then re-checks `@running` before polling again, so shutdown is
+    #   prompt even if `stop` is called in the middle of the sleep phase.
+    # - We use the monotonic clock for deadlines so wall-clock changes (NTP,
+    #   timezone updates, manual clock edits) do not stretch or shrink the poll
+    #   interval unexpectedly.
     private def sleep_until(deadline)
-      remaining = deadline - monotonic_now
-      sleep([remaining, 0].max)
+      @wait_mutex.synchronize do
+        while @running
+          remaining = deadline - monotonic_now
+          break if remaining <= 0
+
+          @wait_condition.wait(@wait_mutex, remaining)
+        end
+      end
     end
 
     def log_initial_state(state)
@@ -114,7 +152,12 @@ module WifiWand
       end
     end
 
-    def stop = @running = false
+    def stop
+      @wait_mutex.synchronize do
+        @running = false
+        @wait_condition.broadcast
+      end
+    end
 
     def out_stream
       if instance_variable_defined?(:@out_stream_override)
@@ -284,6 +327,18 @@ module WifiWand
     end
 
     private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+    private def start_running
+      @wait_mutex.synchronize do
+        @running = true
+      end
+    end
+
+    private def running?
+      @wait_mutex.synchronize do
+        @running
+      end
+    end
 
     private def record_state_fetch_outcome(fetch_failures)
       if fetch_failures.empty?
