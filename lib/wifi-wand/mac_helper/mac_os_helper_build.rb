@@ -1,12 +1,30 @@
 # frozen_string_literal: true
 
+require 'digest'
 require 'fileutils'
 require 'json'
 require 'open3'
-require_relative 'mac_os_wifi_auth_helper'
+require_relative 'mac_os_helper_artifacts'
 
 module WifiWand
   module MacOsWifiAuthHelper
+    SOURCE_MANIFEST_FILENAME = 'wifiwand-helper.source-manifest.json'
+
+    # Returns the path to the Swift source file in the gem's libexec directory
+    #
+    # @return [String] absolute path to wifiwand-helper.swift source file
+    #   Example: /path/to/gem/libexec/macos/src/wifiwand-helper.swift
+    module_function def source_swift_path = File.expand_path(
+      '../../../libexec/macos/src/wifiwand-helper.swift', __dir__)
+
+    # Returns the path to the source attestation manifest committed with the helper bundle.
+    #
+    # @return [String] absolute path to the helper source manifest
+    module_function def source_bundle_manifest_path =
+      File.expand_path("../../../libexec/macos/#{SOURCE_MANIFEST_FILENAME}", __dir__)
+
+    module_function def source_swift_fingerprint = Digest::SHA256.file(source_swift_path).hexdigest
+
     module_function def source_bundle_current?
       manifest = read_source_bundle_manifest
 

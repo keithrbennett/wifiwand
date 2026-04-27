@@ -16,9 +16,12 @@ RSpec.describe 'wifi-wand.gemspec packaging' do
       'exe/wifi-wand',
       'exe/wifi-wand-macos-setup',
       'lib/wifi-wand/mac_helper/mac_os_wifi_auth_helper.rb',
+      'lib/wifi-wand/mac_helper/mac_os_helper_artifacts.rb',
       'lib/wifi-wand/mac_helper/swift/WifiNetworkConnector.swift',
       'lib/wifi-wand/mac_helper/swift/WifiNetworkDisconnector.swift',
-      'libexec/macos/wifiwand-helper.app/Contents/MacOS/wifiwand-helper'
+      'libexec/macos/wifiwand-helper.app/Contents/Info.plist',
+      'libexec/macos/wifiwand-helper.app/Contents/MacOS/wifiwand-helper',
+      'libexec/macos/wifiwand-helper.app/Contents/_CodeSignature/CodeResources'
     )
   end
 

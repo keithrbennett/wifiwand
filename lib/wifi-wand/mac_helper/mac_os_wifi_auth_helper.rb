@@ -15,14 +15,10 @@ require 'open3'
 require 'rubygems/version'
 require 'securerandom'
 require 'tmpdir'
-require 'digest'
-require 'pathname'
-require_relative '../version'
+require_relative 'mac_os_helper_artifacts'
 
 module WifiWand
   module MacOsWifiAuthHelper
-    BUNDLE_NAME = 'wifiwand-helper.app'
-    EXECUTABLE_NAME = 'wifiwand-helper'
     INSTALL_PARENT = File.join(Dir.home, 'Library', 'Application Support', 'WifiWand')
     # Only enable the helper on macOS Sonoma (14.0) and newer where redactions occur
     MINIMUM_HELPER_VERSION = Gem::Version.new('14.0')
@@ -32,29 +28,6 @@ module WifiWand
       (ENV['WIFIWAND_HELPER_TIMEOUT_SECONDS'] || 3.0).to_f
     HELPER_TERMINATION_WAIT_SECONDS = 0.25
     MANIFEST_FILENAME = 'INSTALL_MANIFEST.json'
-    SOURCE_MANIFEST_FILENAME = 'wifiwand-helper.source-manifest.json'
-
-    module_function def helper_version = WifiWand::VERSION
-
-    # Returns the path to the Swift source file in the gem's libexec directory
-    #
-    # @return [String] absolute path to wifiwand-helper.swift source file
-    #   Example: /path/to/gem/libexec/macos/src/wifiwand-helper.swift
-    module_function def source_swift_path = File.expand_path(
-      '../../../libexec/macos/src/wifiwand-helper.swift', __dir__)
-
-    # Returns the path to the app bundle template in the gem's libexec directory
-    #
-    # @return [String] absolute path to the bundle template directory
-    #   Example: /path/to/gem/libexec/macos/wifiwand-helper.app
-    module_function def source_bundle_path = File.expand_path('../../../libexec/macos/wifiwand-helper.app',
-      __dir__)
-
-    # Returns the path to the source attestation manifest committed with the helper bundle.
-    #
-    # @return [String] absolute path to the helper source manifest
-    module_function def source_bundle_manifest_path =
-      File.expand_path("../../../libexec/macos/#{SOURCE_MANIFEST_FILENAME}", __dir__)
 
     # Returns the versioned installation directory in user's Library folder
     #
@@ -82,14 +55,12 @@ module WifiWand
     #   - :installed_bundle - path to installed .app bundle
     #   - :installed_executable - path to compiled executable
     #   - :source_bundle - path to bundle template in gem
-    #   - :source_swift - path to Swift source in gem
     module_function def helper_info
       {
         version:              helper_version,
         installed_bundle:     installed_bundle_path,
         installed_executable: installed_executable_path,
         source_bundle:        source_bundle_path,
-        source_swift:         source_swift_path,
       }
     end
 
@@ -410,34 +381,6 @@ module WifiWand
       end
     rescue JSON::ParserError
       nil
-    end
-
-    module_function def bundle_fingerprint(bundle_path)
-      digest = Digest::SHA256.new
-
-      tracked_bundle_files(bundle_path).each do |path|
-        digest << File.basename(path)
-        digest << "\0"
-        digest << File.read(path)
-        digest << "\0"
-      end
-
-      digest.hexdigest
-    end
-
-    module_function def source_swift_fingerprint = Digest::SHA256.file(source_swift_path).hexdigest
-
-    module_function def tracked_bundle_files(bundle_path)
-      [
-        File.join(bundle_path, 'Contents', 'Info.plist'),
-        File.join(bundle_path, 'Contents', '_CodeSignature', 'CodeResources'),
-        File.join(bundle_path, 'Contents', 'MacOS', EXECUTABLE_NAME),
-      ]
-    end
-
-    module_function def relative_helper_path(path)
-      repo_root = File.expand_path('../../..', __dir__)
-      Pathname.new(path).relative_path_from(Pathname.new(repo_root)).to_s
     end
 
     HelperQueryResult = Struct.new(
