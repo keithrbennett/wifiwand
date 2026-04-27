@@ -11,8 +11,10 @@ require_relative '../../../spec_helper'
 require 'tempfile'
 require 'fileutils'
 
-# Integration tests that create real QR code files and verify their contents
-describe 'QR Code Integration Tests' do
+# Integration tests that create real QR code files and verify their contents.
+# They depend on host-installed tools, so they are excluded from the default
+# CI-safe suite unless external-tool specs are requested explicitly.
+describe 'QR Code Integration Tests', :requires_external_tools do
   before(:all) do
     # Check if required tools are available
     unless system('which qrencode > /dev/null 2>&1')

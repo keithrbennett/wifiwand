@@ -304,7 +304,8 @@ module RSpecConfiguration
       Real-environment resultset: coverage/.resultset.<os>.json
 
       ⚠️  IMPORTANT: Never run real-environment tests in CI environments.
-      The default (WIFIWAND_REAL_ENV_TESTS unset) runs only safe tests.
+      The default (WIFIWAND_REAL_ENV_TESTS unset) runs only safe tests and
+      excludes specs that require external host tools such as `qrencode`.
       On macOS, requested real-environment runs are refused up front when the
       current WiFi SSID is redacted or otherwise unverifiable, because the
       suite must restore the exact original network state.
@@ -323,6 +324,7 @@ module RSpecConfiguration
     case option
     when 'none'
       config.filter_run_excluding real_env: true
+      config.filter_run_excluding requires_external_tools: true
       # loopback_socket tests open a TCPServer on 127.0.0.1; skip them in
       # sandboxed environments that forbid socket creation.
       config.filter_run_excluding loopback_socket: true
