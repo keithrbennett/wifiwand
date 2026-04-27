@@ -820,14 +820,35 @@ describe WifiWand::EventLogger do
   end
 
   describe '#run' do
-    def stub_fetch_current_state_for_overrun(logger, poll_times, poll_times_mutex)
+    def with_fake_monotonic_clock(logger)
+      current_time = 0.0
+      clock_mutex = Mutex.new
+
+      allow(logger).to receive(:monotonic_now) do
+        clock_mutex.synchronize { current_time }
+      end
+
+      allow(logger).to receive(:sleep_until) do |deadline|
+        clock_mutex.synchronize do
+          current_time = deadline if deadline > current_time
+        end
+      end
+
+      [clock_mutex, -> { clock_mutex.synchronize { current_time } }, ->(duration) {
+        clock_mutex.synchronize do
+          current_time += duration
+        end
+      }]
+    end
+
+    def stub_fetch_current_state_for_overrun(logger, poll_times, poll_times_mutex, advance_clock)
       allow(logger).to receive(:fetch_current_state) do
         current_poll_number = poll_times_mutex.synchronize do
-          poll_times << Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          poll_times << logger.send(:monotonic_now)
           poll_times.length
         end
 
-        sleep(0.12) if current_poll_number == 2
+        advance_clock.call(0.12) if current_poll_number == 2
 
         {
           wifi_on:        true,
@@ -878,10 +899,11 @@ describe WifiWand::EventLogger do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0.05)
       poll_times = []
       poll_times_mutex = Mutex.new
+      _clock_mutex, _read_clock, _advance_clock = with_fake_monotonic_clock(logger)
 
       allow(logger).to receive(:fetch_current_state) do
         poll_times_mutex.synchronize do
-          poll_times << Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          poll_times << logger.send(:monotonic_now)
         end
 
         {
@@ -910,8 +932,9 @@ describe WifiWand::EventLogger do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0.05)
       poll_times = []
       poll_times_mutex = Mutex.new
+      _clock_mutex, _read_clock, advance_clock = with_fake_monotonic_clock(logger)
 
-      stub_fetch_current_state_for_overrun(logger, poll_times, poll_times_mutex)
+      stub_fetch_current_state_for_overrun(logger, poll_times, poll_times_mutex, advance_clock)
 
       allow(logger).to receive(:detect_and_emit_events) do
         logger.stop if poll_times_mutex.synchronize { poll_times.length >= 3 }
@@ -930,8 +953,9 @@ describe WifiWand::EventLogger do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0.05)
       poll_times = []
       poll_times_mutex = Mutex.new
+      _clock_mutex, _read_clock, advance_clock = with_fake_monotonic_clock(logger)
 
-      stub_fetch_current_state_for_overrun(logger, poll_times, poll_times_mutex)
+      stub_fetch_current_state_for_overrun(logger, poll_times, poll_times_mutex, advance_clock)
 
       allow(logger).to receive(:detect_and_emit_events) do
         logger.stop if poll_times_mutex.synchronize { poll_times.length >= 4 }
