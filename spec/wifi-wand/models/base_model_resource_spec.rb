@@ -27,19 +27,25 @@ describe 'BaseModel Resource Management' do
     end
   end
 
-  let(:model) { model_class.new(OpenStruct.new(verbose: false)) }
+  let(:model) { model_class.new(verbose: false) }
 
   describe 'initialization with options' do
-    it 'accepts OpenStruct options' do
-      options = OpenStruct.new(verbose: true, wifi_interface: 'wlan0')
+    it 'accepts internal Options struct input' do
+      options = WifiWand::BaseModel::Options.new(verbose: true, wifi_interface: 'wlan0')
       test_model = model_class.new(options)
       expect(test_model.verbose?).to be(true)
     end
 
-    it 'accepts Hash options and converts to OpenStruct internally' do
+    it 'accepts Hash options and normalizes them internally' do
       hash_options = { verbose: true, wifi_interface: 'wlan0' }
       test_model = model_class.new(hash_options)
       expect(test_model.verbose?).to be(true)
+    end
+
+    it 'rejects unsupported constructor option types' do
+      expect do
+        model_class.new(Object.new)
+      end.to raise_error(ArgumentError, /Hash or WifiWand::BaseModel::Options/)
     end
 
     it 'accepts empty Hash as default options' do
@@ -50,6 +56,18 @@ describe 'BaseModel Resource Management' do
     it 'uses empty Hash as default when no options provided' do
       test_model = model_class.new
       expect(test_model).not_to be_verbose
+    end
+  end
+
+  describe '.create_model' do
+    it 'accepts Hash input' do
+      expect { model_class.create_model(verbose: true) }.not_to raise_error
+    end
+
+    it 'rejects non-Hash input' do
+      expect do
+        model_class.create_model(WifiWand::BaseModel::Options.new(verbose: true))
+      end.to raise_error(ArgumentError, /options must be a Hash/)
     end
   end
 

@@ -22,15 +22,17 @@ require_relative '../services/status_line_data_builder'
 
 module WifiWand
   class BaseModel
+    Options = Struct.new(:verbose, :wifi_interface, :out_stream, keyword_init: true)
+
     attr_writer :wifi_interface
     attr_reader :runtime_config
     attr_accessor :command_executor, :connectivity_tester, :state_manager, :status_waiter, :connection_manager
 
     def self.create_model(options = {})
-      options = OpenStruct.new(options) if options.is_a?(Hash)
-      instance = new(options)
+      normalized_options = normalize_create_model_options(options)
+      instance = new(normalized_options)
       # Eagerly validate an explicitly-specified interface; defer discovery otherwise.
-      instance.init if options.respond_to?(:wifi_interface) && options.wifi_interface
+      instance.init if normalized_options.wifi_interface
       instance
     end
 
@@ -39,11 +41,11 @@ module WifiWand
     end
 
     def initialize(options = {})
-      options = OpenStruct.new(options) if options.is_a?(Hash)
+      options = normalize_constructor_options(options)
       @options = options
       @runtime_config = RuntimeConfig.new(
         verbose:    options.verbose,
-        out_stream: options.respond_to?(:out_stream) ? options.out_stream : $stdout
+        out_stream: options.out_stream || $stdout
       )
       @command_executor = CommandExecutor.new(runtime_config: @runtime_config)
       @connectivity_tester = NetworkConnectivityTester.new(runtime_config: @runtime_config)
@@ -104,6 +106,21 @@ module WifiWand
     def wifi_interface
       init_wifi_interface if @wifi_interface.nil?
       @wifi_interface
+    end
+
+    def self.normalize_create_model_options(options)
+      raise ArgumentError, 'options must be a Hash' unless options.is_a?(Hash)
+
+      Options.new(**options)
+    end
+
+    private_class_method :normalize_create_model_options
+
+    private def normalize_constructor_options(options)
+      return Options.new(**options) if options.is_a?(Hash)
+      return options if options.is_a?(Options)
+
+      raise ArgumentError, 'options must be a Hash or WifiWand::BaseModel::Options'
     end
 
     # @return array of nameserver IP addresses from /etc/resolv.conf, or nil if not found

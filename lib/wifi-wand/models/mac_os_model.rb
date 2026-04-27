@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'ipaddr'
-require 'ostruct'
 require 'shellwords'
 
 require_relative 'base_model'

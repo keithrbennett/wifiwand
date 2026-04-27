@@ -41,7 +41,7 @@ module NetworkStateManager
   end
 
   def self.build_model
-    options = OpenStruct.new(verbose: ENV['WIFIWAND_VERBOSE'] == 'true')
+    options = { verbose: ENV['WIFIWAND_VERBOSE'] == 'true' }
     WifiWand::OperatingSystems.create_model_for_current_os(options)
   end
 

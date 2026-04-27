@@ -97,6 +97,12 @@ module WifiWand
 
         expect(subject.create_model(options)).to eq(mock_model)
       end
+
+      it 'rejects nil options' do
+        expect do
+          subject.create_model(nil)
+        end.to raise_error(ArgumentError, /options must be a Hash/)
+      end
     end
   end
 end

@@ -104,7 +104,7 @@ module TestHelpers
     verbose = ENV['WIFIWAND_VERBOSE'] == 'true'
 
     # Merge environment default with provided options (options override env)
-    OpenStruct.new({ verbose: verbose }.merge(options))
+    { verbose: verbose }.merge(options)
   end
 
   # Suppress stdout/stderr within the given block

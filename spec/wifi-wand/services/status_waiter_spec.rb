@@ -219,8 +219,7 @@ describe WifiWand::StatusWaiter do
   describe 'integration with BaseModel' do
     it 'is accessible through BaseModel#till (delegates to wait_for)' do
       require_relative '../../../lib/wifi-wand/models/base_model'
-      require 'ostruct'
-      model = WifiWand::BaseModel.new(OpenStruct.new(verbose: false))
+      model = WifiWand::BaseModel.new(verbose: false)
       allow(model).to receive(:wifi_on?).and_return(true)
       expect(model.till(:wifi_on)).to be_nil
     end

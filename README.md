@@ -455,7 +455,7 @@ model = WifiWand.create_model(
 puts model.wifi_info
 ```
 
-`WifiWand.create_model` accepts either a `Hash` or an `OpenStruct`.
+`WifiWand.create_model` accepts a `Hash`.
 
 #### Concrete Models
 

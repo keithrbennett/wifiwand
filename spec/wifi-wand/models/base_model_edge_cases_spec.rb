@@ -1,11 +1,10 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require 'ostruct'
 require 'stringio'
 
 RSpec.describe WifiWand::BaseModel do
-  let(:model_options) { OpenStruct.new(verbose: false, out_stream: StringIO.new) }
+  let(:model_options) { { verbose: false, out_stream: StringIO.new } }
 
   describe '#wifi_interface' do
     let(:model) { described_class.new(model_options) }

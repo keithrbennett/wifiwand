@@ -59,16 +59,10 @@ describe WifiWand::MacOs do
       expect(os.create_model(options)).to eq(mock_model)
     end
 
-    it 'passes through nil options' do
-      require_relative '../../../lib/wifi-wand/models/mac_os_model'
-      options = nil
-      mock_model = instance_double(WifiWand::MacOsModel)
-
-      model_class = class_double(WifiWand::MacOsModel)
-      stub_const('WifiWand::MacOsModel', model_class)
-      expect(model_class).to receive(:create_model).with(options).and_return(mock_model)
-
-      expect(os.create_model(options)).to eq(mock_model)
+    it 'rejects nil options' do
+      expect do
+        os.create_model(nil)
+      end.to raise_error(ArgumentError, /options must be a Hash/)
     end
   end
 end

@@ -295,10 +295,9 @@ describe WifiWand::CommandExecutor do
   describe 'integration with BaseModel' do
     it 'is accessible through BaseModel' do
       require_relative '../../../lib/wifi-wand/models/base_model'
-      require 'ostruct'
 
       expect do
-        WifiWand::BaseModel.new(OpenStruct.new(verbose: false))
+        WifiWand::BaseModel.new(verbose: false)
       end.not_to raise_error
     end
   end

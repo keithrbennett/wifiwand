@@ -141,10 +141,16 @@ module WifiWand
 
       it 'accepts options and passes them to model creation' do
         if described_class.current_os
-          options = OpenStruct.new(verbose: true)
+          options = { verbose: true }
           model = described_class.create_model_for_current_os(options)
           expect(model).not_to be_nil
         end
+      end
+
+      it 'rejects non-Hash options' do
+        expect do
+          described_class.create_model_for_current_os(Object.new)
+        end.to raise_error(ArgumentError, /options must be a Hash/)
       end
     end
 
@@ -192,7 +198,7 @@ module WifiWand
       it 'can create models for detectable OSes without errors' do
         described_class.supported_operating_systems.each do |os|
           if os.current_os_is_this_os?
-            model = os.create_model(OpenStruct.new(verbose: false))
+            model = os.create_model(verbose: false)
             expect(model).not_to be_nil
             # Basic interface validation
             expect(model).to respond_to(:wifi_on?)

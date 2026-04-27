@@ -607,7 +607,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   describe '#init_wifi_interface' do
     context 'when provided interface is valid' do
       it 'uses the provided wifi interface' do
-        options = OpenStruct.new(wifi_interface: 'wlan1', verbose: false)
+        options = { wifi_interface: 'wlan1', verbose: false }
         model = subject.class.new(options)
 
         allow(model).to receive(:validate_os_preconditions)
@@ -620,7 +620,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     context 'when provided interface is invalid' do
       it 'raises InvalidInterfaceError' do
-        options = OpenStruct.new(wifi_interface: 'invalid0', verbose: false)
+        options = { wifi_interface: 'invalid0', verbose: false }
         model = subject.class.new(options)
 
         allow(model).to receive(:validate_os_preconditions)
@@ -773,7 +773,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       let(:captured_output) { StringIO.new }
 
       let(:test_model) do
-        model_options = OpenStruct.new(verbose: true, wifi_interface: nil, out_stream: captured_output)
+        model_options = { verbose: true, wifi_interface: nil, out_stream: captured_output }
         model = subject.class.new(model_options)
 
         # Mock the necessary methods for wifi_info to work
@@ -1067,7 +1067,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     let(:initial_verbose) { false }
     let(:initial_out_stream) { StringIO.new }
-    let(:options) { OpenStruct.new(verbose: initial_verbose, out_stream: initial_out_stream) }
+    let(:options) { { verbose: initial_verbose, out_stream: initial_out_stream } }
 
     it 'applies verbose mode changes to helper services after initialization' do
       expect(model.connection_manager.verbose?).to be(false)
