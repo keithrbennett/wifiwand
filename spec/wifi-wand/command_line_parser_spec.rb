@@ -197,9 +197,8 @@ describe WifiWand::CommandLineParser do
             }
           JSON
         when 'p'
-          expect(result).to eq(<<~PUTS)
-            {"test" => "value"}
-          PUTS
+          expect(result).to end_with("\n")
+          expect(result.chomp).to match(/\{"test"\s*=>\s*"value"\}/)
         when 'y'
           expect(result).to eq(<<~YAML)
             ---
