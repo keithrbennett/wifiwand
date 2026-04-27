@@ -16,6 +16,10 @@ describe WifiWand::StatusWaiter do
   let(:waiter) { described_class.new(mock_model, verbose: false) }
 
   describe '#wait_for' do
+    def stub_monotonic_clock(*times)
+      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(*times)
+    end
+
     # For each wait state, declare: which model predicate it polls, and what
     # return value from that predicate satisfies the condition.
     state_predicates = {
@@ -126,8 +130,7 @@ describe WifiWand::StatusWaiter do
       it 'reports elapsed time accurately via monotonic clock' do
         call_count = 0
         allow(mock_model).to receive(:wifi_on?) { (call_count += 1) > 1 }
-        allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
-          .and_return(1000.0, 1002.5, 1002.5, 1002.5)
+        stub_monotonic_clock(1000.0, 1002.5, 1002.5, 1002.5)
 
         output = StringIO.new
         verbose_waiter = described_class.new(mock_model, verbose: true, output: output)
@@ -139,25 +142,26 @@ describe WifiWand::StatusWaiter do
       end
 
       it 'caps the initial :internet_on probe to the remaining timeout budget' do
+        probe_timeouts = []
         allow(mock_model).to receive(:internet_connectivity_state) do |timeout_in_secs: nil|
-          sleep(timeout_in_secs || 0.2)
+          probe_timeouts << timeout_in_secs
           :indeterminate
         end
-
-        start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        stub_monotonic_clock(1000.0, 1000.0, 1000.05)
 
         expect do
           waiter.wait_for(:internet_on, timeout_in_secs: 0.05, wait_interval_in_secs: 0)
         end.to raise_error(WifiWand::WaitTimeoutError)
 
-        elapsed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-        expect(elapsed_time).to be < 0.18
+        expect(probe_timeouts).to contain_exactly(be_within(0.01).of(0.05))
       end
 
       it 'caps later :internet_on probes to the remaining timeout budget' do
         call_count = 0
+        probe_timeouts = []
         allow(mock_model).to receive(:internet_connectivity_state) do |timeout_in_secs: nil|
           call_count += 1
+          probe_timeouts << timeout_in_secs
           if call_count > 1
             sleep(timeout_in_secs || 0.2)
           end
@@ -165,21 +169,21 @@ describe WifiWand::StatusWaiter do
           :indeterminate
         end
         allow(waiter).to receive(:sleep)
-
-        start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        stub_monotonic_clock(1000.0, 1000.0, 1000.02, 1000.02, 1000.05)
 
         expect do
           waiter.wait_for(:internet_on, timeout_in_secs: 0.05, wait_interval_in_secs: 0)
         end.to raise_error(WifiWand::WaitTimeoutError)
 
-        elapsed_time = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
         expect(call_count).to eq(2)
-        expect(elapsed_time).to be < 0.18
+        expect(probe_timeouts).to contain_exactly(be_within(0.01).of(0.05), be_within(0.01).of(0.03))
       end
     end
 
     context 'with timeout' do
       it 'raises WaitTimeoutError when timeout elapses before state is reached' do
+        stub_monotonic_clock(1000.0, 1000.0)
+
         expect { waiter.wait_for(:wifi_on, timeout_in_secs: 0) }
           .to raise_error(WifiWand::WaitTimeoutError)
       end
