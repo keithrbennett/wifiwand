@@ -820,6 +820,24 @@ describe WifiWand::EventLogger do
   end
 
   describe '#run' do
+    def stub_fetch_current_state_for_overrun(logger, poll_times, poll_times_mutex)
+      allow(logger).to receive(:fetch_current_state) do
+        current_poll_number = poll_times_mutex.synchronize do
+          poll_times << Process.clock_gettime(Process::CLOCK_MONOTONIC)
+          poll_times.length
+        end
+
+        sleep(0.12) if current_poll_number == 2
+
+        {
+          wifi_on:        true,
+          connected:      true,
+          network_name:   'TestNetwork',
+          internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE,
+        }
+      end
+    end
+
     it 'logs startup message' do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
       call_count = 0
@@ -856,7 +874,7 @@ describe WifiWand::EventLogger do
       expect(call_count).to eq(2)
     end
 
-    it 'keeps the configured polling cadence when not stopped early' do
+    it 'keeps the configured polling cadence when polls finish within the interval' do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0.05)
       poll_times = []
       poll_times_mutex = Mutex.new
@@ -886,6 +904,48 @@ describe WifiWand::EventLogger do
 
       expect(poll_intervals.length).to eq(2)
       expect(poll_intervals).to all(be_within(0.03).of(0.05))
+    end
+
+    it 'starts the next poll immediately after a poll overruns the interval' do
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 0.05)
+      poll_times = []
+      poll_times_mutex = Mutex.new
+
+      stub_fetch_current_state_for_overrun(logger, poll_times, poll_times_mutex)
+
+      allow(logger).to receive(:detect_and_emit_events) do
+        logger.stop if poll_times_mutex.synchronize { poll_times.length >= 3 }
+      end
+
+      logger.run
+
+      second_to_third_interval = poll_times_mutex.synchronize do
+        poll_times[2] - poll_times[1]
+      end
+
+      expect(second_to_third_interval).to be_within(0.04).of(0.12)
+    end
+
+    it 'does not perform repeated catch-up polls after one slow poll' do
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 0.05)
+      poll_times = []
+      poll_times_mutex = Mutex.new
+
+      stub_fetch_current_state_for_overrun(logger, poll_times, poll_times_mutex)
+
+      allow(logger).to receive(:detect_and_emit_events) do
+        logger.stop if poll_times_mutex.synchronize { poll_times.length >= 4 }
+      end
+
+      logger.run
+
+      intervals = poll_times_mutex.synchronize do
+        poll_times.each_cons(2).map { |previous_poll, current_poll| current_poll - previous_poll }
+      end
+
+      expect(intervals.length).to eq(3)
+      expect(intervals[1]).to be_within(0.04).of(0.12)
+      expect(intervals[2]).to be_within(0.03).of(0.05)
     end
 
     it 'cleans up log file manager on exit after stop interrupts the wait' do

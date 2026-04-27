@@ -87,8 +87,8 @@ module WifiWand
       log_message("[#{timestamp}] Event logging started (polling every #{@interval}s)")
 
       begin
-        next_poll_at = monotonic_now
         while running?
+          poll_started_at = monotonic_now
           current_state = fetch_current_state
 
           if @previous_state
@@ -100,8 +100,7 @@ module WifiWand
 
           break unless running?
 
-          next_poll_at += @interval
-          sleep_until(next_poll_at)
+          sleep_until(poll_started_at + @interval)
         end
       rescue Interrupt
         timestamp = Time.now.utc.iso8601
@@ -113,10 +112,12 @@ module WifiWand
     end
 
     # Timing model:
-    # - `next_poll_at` stores the monotonic-clock deadline for the next poll.
-    # - After each poll we advance that deadline by exactly `@interval`, so the
-    #   logger aims for a steady cadence instead of "sleeping @interval from now"
-    #   and drifting later every iteration.
+    # - Each poll records its own monotonic start time.
+    # - The interval is minimum spacing between poll starts, not a fixed
+    #   absolute schedule that tries to catch up after delays.
+    # - After the poll finishes we wait only until `poll_started_at +
+    #   @interval`, so slow polls reduce that sleep and overruns make it zero
+    #   for that iteration only.
     # - `sleep_until` waits only until that deadline, using a condition
     #   variable instead of one long blocking `sleep`.
     # - `stop` flips `@running` to false and broadcasts on the same condition
