@@ -24,7 +24,7 @@ module WifiWand
       tracked_bundle_files(bundle_path).each do |path|
         digest << File.basename(path)
         digest << "\0"
-        digest << File.read(path)
+        digest << File.binread(path)
         digest << "\0"
       end
 
