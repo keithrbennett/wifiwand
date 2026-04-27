@@ -3,15 +3,18 @@
 require 'json'
 require 'open3'
 require 'shellwords'
+require 'uri'
 
 module WifiWand
   module Scripts
     class LatestCiStatus
       def call
         branch = fetch_current_branch
+        repository = fetch_repository
         puts "Fetching latest CI run for branch: #{branch}..."
+        puts "Repository: #{repository}"
 
-        run_data = fetch_latest_run(branch)
+        run_data = fetch_latest_run(branch, repository)
 
         if run_data.nil?
           puts "No workflow runs found for branch '#{branch}'."
@@ -25,16 +28,26 @@ module WifiWand
         run_command(%w[git rev-parse --abbrev-ref HEAD])
       end
 
-      private def fetch_latest_run(branch)
-        json_output, success = run_command_with_status(
-          ['gh', 'run', 'list', '--branch', branch, '--limit', '1', '--json',
-            'databaseId,status,conclusion,url,displayTitle,createdAt']
-        )
+      private def fetch_repository
+        remote_url = run_command(%w[git remote get-url origin])
 
-        return JSON.parse(json_output).first if success
+        parse_github_repository(remote_url)
+      end
 
-        warn "Failed to fetch runs. Ensure 'gh' is installed and you are authenticated."
-        exit 1
+      private def fetch_latest_run(branch, repository)
+        run_list_response = run_command_with_status(gh_run_list_command(branch, repository))
+
+        abort_with_gh_error('Failed to fetch runs', run_list_response) unless run_list_response[:success]
+
+        run_data = parse_run_list_response(run_list_response[:stdout])
+        return run_data unless run_data.nil?
+
+        api_response = run_command_with_status(gh_api_run_lookup_command(branch, repository))
+        unless api_response[:success]
+          abort_with_gh_error('Failed to fetch runs from the Actions API', api_response)
+        end
+
+        parse_actions_api_response(api_response[:stdout])
       end
 
       private def display_run_details(run)
@@ -61,15 +74,15 @@ module WifiWand
         puts "Status:     #{colorize(display_status, color)}"
         puts "URL:        #{url}"
 
-        handle_status_action(status, conclusion, id)
+        handle_status_action(status, conclusion, id, run['repository'])
       end
 
-      private def handle_status_action(status, conclusion, id)
+      private def handle_status_action(status, conclusion, id, repository)
         if status == 'completed' && %w[failure startup_failure timed_out].include?(conclusion)
           puts
           puts colorize('Fetching failure logs...', 31)
           puts '------------------------'
-          Kernel.system('gh', 'run', 'view', id.to_s, '--log-failed')
+          Kernel.system('gh', 'run', 'view', id.to_s, '--repo', repository, '--log-failed')
         elsif status == 'in_progress'
           puts
           puts colorize('Build is currently running...', 34)
@@ -99,6 +112,58 @@ module WifiWand
         end
       end
 
+      private def parse_github_repository(remote_url)
+        matched_repository = remote_url.match(%r{\Agit@github\.com:(.+?)(?:\.git)?\z}) ||
+          remote_url.match(%r{\Ahttps://github\.com/(.+?)(?:\.git)?\z})
+
+        return matched_repository[1] if matched_repository
+
+        warn "Unable to determine GitHub repository from origin remote: #{remote_url}"
+        exit 1
+      end
+
+      private def gh_run_list_command(branch, repository)
+        ['gh', 'run', 'list', '--repo', repository, '--branch', branch, '--limit', '1', '--json',
+          'databaseId,status,conclusion,url,displayTitle,createdAt']
+      end
+
+      private def gh_api_run_lookup_command(branch, repository)
+        encoded_branch = URI.encode_www_form_component(branch)
+        ['gh', 'api', "repos/#{repository}/actions/runs?branch=#{encoded_branch}&per_page=1"]
+      end
+
+      private def parse_run_list_response(json_output)
+        JSON.parse(json_output).first
+      rescue JSON::ParserError => e
+        warn "Unable to parse gh run list output: #{e.message}"
+        exit 1
+      end
+
+      private def parse_actions_api_response(json_output)
+        parsed_response = JSON.parse(json_output)
+        latest_run = parsed_response.fetch('workflow_runs', []).first
+        return nil if latest_run.nil?
+
+        {
+          'databaseId'   => latest_run['id'],
+          'status'       => latest_run['status'],
+          'conclusion'   => latest_run['conclusion'],
+          'url'          => latest_run['html_url'],
+          'displayTitle' => latest_run['display_title'],
+          'createdAt'    => latest_run['created_at'],
+          'repository'   => latest_run.dig('repository', 'full_name'),
+        }
+      rescue JSON::ParserError => e
+        warn "Unable to parse GitHub Actions API output: #{e.message}"
+        exit 1
+      end
+
+      private def abort_with_gh_error(prefix, response)
+        warn "#{prefix}. Ensure 'gh' is installed and you are authenticated."
+        warn response[:stderr] unless response[:stderr].strip.empty?
+        exit 1
+      end
+
       private def run_command(cmd)
         stdout, stderr, status = capture_command(cmd)
 
@@ -113,10 +178,18 @@ module WifiWand
       end
 
       private def run_command_with_status(cmd)
-        stdout, _stderr, status = capture_command(cmd)
-        [stdout.strip, status.success?]
+        stdout, stderr, status = capture_command(cmd)
+        {
+          stdout:  stdout.strip,
+          stderr:  stderr.strip,
+          success: status.success?,
+        }
       rescue Errno::ENOENT
-        ["Command not found: #{command_display(cmd)}", false]
+        {
+          stdout:  '',
+          stderr:  "Command not found: #{command_display(cmd)}",
+          success: false,
+        }
       end
 
       private def capture_command(cmd)
