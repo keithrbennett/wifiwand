@@ -145,7 +145,8 @@ module WifiWand
 
     module_function def source_bundle_mismatch_message
       "Shipped macOS helper bundle is out of sync with #{relative_helper_path(source_swift_path)}. " \
-        'Run `bundle exec rake swift:compile` or `bin/mac-helper build` to rebuild the signed bundle ' \
+        'Run `bundle exec rake swift:compile` or ' \
+        '`bin/mac-helper-release build` to rebuild the signed bundle ' \
         "and refresh #{relative_helper_path(source_bundle_manifest_path)}."
     end
   end

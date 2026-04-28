@@ -3,11 +3,11 @@
 require_relative '../spec_helper'
 require 'open3'
 require 'rbconfig'
-load File.expand_path('../../bin/mac-helper', __dir__)
+load File.expand_path('../../bin/mac-helper-release', __dir__)
 
-MAC_HELPER_PATH = File.expand_path('../../bin/mac-helper', __dir__)
+MAC_HELPER_PATH = File.expand_path('../../bin/mac-helper-release', __dir__)
 
-RSpec.describe 'bin/mac-helper' do
+RSpec.describe 'bin/mac-helper-release' do
   def run_mac_helper(argv:, chdir:, command_path: MAC_HELPER_PATH, env: {})
     stdout, stderr, status = Open3.capture3(env, RbConfig.ruby, command_path, *argv, chdir:)
     { stdout:, stderr:, exit_code: status.exitstatus }
@@ -191,10 +191,10 @@ RSpec.describe 'bin/mac-helper' do
 
     expect(result[:exit_code]).to eq(0)
     expect(result[:stderr]).to eq('')
-    expect(result[:stdout]).to include('bin/mac-helper store-credentials')
+    expect(result[:stdout]).to include('bin/mac-helper-release store-credentials')
     expect(result[:stdout]).to include('WIFIWAND_NOTARYTOOL_PROFILE')
-    expect(result[:stdout]).to include('bin/mac-helper public-info')
-    expect(result[:stdout]).to include('bin/mac-helper store-credentials')
+    expect(result[:stdout]).to include('bin/mac-helper-release public-info')
+    expect(result[:stdout]).to include('bin/mac-helper-release store-credentials')
     expect(result[:stdout]).not_to include('WIFIWAND_APPLE_DEV_PASSWORD')
   end
 end

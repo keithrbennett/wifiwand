@@ -139,10 +139,10 @@ As the gem maintainer, you perform signing and notarization **before releasing**
 
 ```bash
 # 1. Sign with your Developer ID (uses values from lib/wifi-wand/mac_helper/mac_helper_release.rb)
-bin/mac-helper build
+bin/mac-helper-release build
 
 # 2. Notarize with Apple (uses the stored keychain profile)
-bin/mac-helper notarize
+bin/mac-helper-release notarize
 
 # 3. Commit the signed binary
 git add libexec/macos/wifiwand-helper.app
@@ -245,7 +245,8 @@ name only.
 
 - **Password stays out of argv**: `ps` and command logging only see the profile name
 - **Apple-supported workflow**: `notarytool store-credentials` is the intended mechanism
-- **Repeatable runtime commands**: `bin/mac-helper` can use the same profile for submit, history, info, log,
+- **Repeatable runtime commands**: `bin/mac-helper-release` can use the same profile for submit, history,
+  info, log,
   and cancel
 
 ### Setup (One-time)
@@ -261,11 +262,11 @@ xcrun notarytool store-credentials wifiwand-notarytool --apple-id you@example.co
 #### 2. Use the profile at runtime
 
 ```bash
-bin/mac-helper public-info
-bin/mac-helper store-credentials
-bin/mac-helper notarize
-bin/mac-helper release
-bin/mac-helper history
+bin/mac-helper-release public-info
+bin/mac-helper-release store-credentials
+bin/mac-helper-release notarize
+bin/mac-helper-release release
+bin/mac-helper-release history
 ```
 
 If you need a different name or keychain:
@@ -285,7 +286,7 @@ export WIFIWAND_NOTARYTOOL_KEYCHAIN="$HOME/Library/Keychains/custom.keychain-db"
 
 ```bash
 # Complete workflow with the stored notarytool profile
-bin/mac-helper release
+bin/mac-helper-release release
 ```
 
 **Option 2: Override the profile name or keychain**
@@ -295,7 +296,7 @@ export WIFIWAND_NOTARYTOOL_PROFILE="wifiwand-notarytool"
 export WIFIWAND_NOTARYTOOL_KEYCHAIN="$HOME/Library/Keychains/login.keychain-db"
 
 # Run complete workflow
-bin/mac-helper release
+bin/mac-helper-release release
 ```
 
 **What this does:**
@@ -312,7 +313,7 @@ bin/mac-helper release
 #### Step 1: Build and Sign
 
 ```bash
-bin/mac-helper build
+bin/mac-helper-release build
 ```
 
 This compiles the helper and signs it with:
@@ -324,7 +325,7 @@ This compiles the helper and signs it with:
 #### Step 2: Test the Signed Helper
 
 ```bash
-bin/mac-helper test
+bin/mac-helper-release test
 ```
 
 This verifies:
@@ -336,7 +337,7 @@ This verifies:
 #### Step 3: Notarize with Apple
 
 ```bash
-bin/mac-helper notarize
+bin/mac-helper-release notarize
 ```
 
 This:
@@ -348,7 +349,7 @@ This:
 #### Step 4: Check Status
 
 ```bash
-bin/mac-helper status
+bin/mac-helper-release status
 ```
 
 Shows:
@@ -392,7 +393,7 @@ All developer tasks are in the `dev:` namespace and are **not included in the di
 
 **Example:**
 ```bash
-bin/mac-helper build
+bin/mac-helper-release build
 ```
 
 **Output:**
@@ -411,7 +412,7 @@ bin/mac-helper build
 
 **Example:**
 ```bash
-bin/mac-helper test
+bin/mac-helper-release test
 ```
 
 **Checks:**
@@ -421,7 +422,8 @@ bin/mac-helper test
 - WiFi information retrieval
 
 > **Prerequisite:** macOS only lists `wifiwand-helper` in Location Services after the helper runs once (for
-> example via `bin/mac-helper test`). Make sure it appears under **System Settings → Privacy & Security →
+> example via `bin/mac-helper-release test`). Make sure it appears under **System Settings → Privacy &
+> Security →
 > Location Services** and toggle it on before running the test to avoid a hidden prompt that makes the task
 > appear stuck. For the shipped end-user flow, use `wifi-wand-macos-setup`.
 
@@ -446,7 +448,7 @@ Runtime notarization now uses:
 
 **Example:**
 ```bash
-bin/mac-helper notarize
+bin/mac-helper-release notarize
 ```
 
 **Process:**
@@ -473,7 +475,7 @@ xcrun stapler staple libexec/macos/wifiwand-helper.app
 
 **Example:**
 ```bash
-bin/mac-helper release
+bin/mac-helper-release release
 ```
 
 **This is the recommended command for releases.**
@@ -488,7 +490,7 @@ bin/mac-helper release
 
 **Example:**
 ```bash
-bin/mac-helper status
+bin/mac-helper-release status
 ```
 
 **Output:**
@@ -510,7 +512,7 @@ bin/mac-helper status
 
 **Example:**
 ```bash
-bin/mac-helper history
+bin/mac-helper-release history
 ```
 
 **Output:** `xcrun notarytool history` table with submission IDs, dates, and states.
@@ -528,11 +530,11 @@ preferring one that is still `In Progress`.
 **Example:**
 ```bash
 # Auto-select most recent submission
-bin/mac-helper info
+bin/mac-helper-release info
 
 # Or specify an explicit ID
 env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
-  bin/mac-helper info
+  bin/mac-helper-release info
 ```
 
 **Output:** The detailed `xcrun notarytool info` report for that submission.
@@ -549,11 +551,11 @@ back to the latest submission if omitted.
 **Example:**
 ```bash
 # Auto-select most recent submission
-bin/mac-helper log
+bin/mac-helper-release log
 
 # Or specify an explicit ID
 env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
-  bin/mac-helper log
+  bin/mac-helper-release log
 ```
 
 **Output:** The JSON/diagnostic log Apple provides, streamed to stdout for easier debugging.
@@ -571,11 +573,11 @@ optional—omit it to let the task auto-select the oldest candidate.
 **Example:**
 ```bash
 # Cancel the oldest in-progress submission
-bin/mac-helper cancel
+bin/mac-helper-release cancel
 
 # Cancel a specific ID
 env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
-  bin/mac-helper cancel
+  bin/mac-helper-release cancel
 ```
 
 **Output:** The underlying `xcrun notarytool queue remove` response plus a confirmation message when the
@@ -620,7 +622,7 @@ Error: Could not find code signing identity 'Developer ID Application: ...'
 security find-identity -v -p codesigning
 
 # Use exact name from output (update CODESIGN_IDENTITY in lib/wifi-wand/mac_helper/mac_helper_release.rb)
-bin/mac-helper build
+bin/mac-helper-release build
 ```
 
 ---
@@ -641,7 +643,7 @@ status: Invalid
 
 ```bash
 # Rebuild with correct signing (after updating CODESIGN_IDENTITY in lib/wifi-wand/mac_helper/mac_helper_release.rb)
-bin/mac-helper build
+bin/mac-helper-release build
 
 # Verify before notarizing
 codesign -dvv libexec/macos/wifiwand-helper.app | grep runtime
@@ -661,7 +663,7 @@ codesign -dvv libexec/macos/wifiwand-helper.app | grep runtime
 **Solution:**
 ```bash
 # Run the helper once so macOS creates/refreshes the Location Services entry
-bin/mac-helper test
+bin/mac-helper-release test
 
 # Check system Location Services
 open "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices"

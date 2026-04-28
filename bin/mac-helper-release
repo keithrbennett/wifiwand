@@ -53,7 +53,7 @@ module MacHelperCLI
 
       unless SUBCOMMANDS.key?(subcommand)
         warn "Error: Unknown subcommand '#{subcommand}'"
-        warn "Run 'bin/mac-helper help' for usage information."
+        warn "Run 'bin/mac-helper-release help' for usage information."
         exit 1
       end
 
@@ -66,7 +66,7 @@ module MacHelperCLI
 
     def show_help
       puts <<~HELP
-        Usage: bin/mac-helper <subcommand> [options]
+        Usage: bin/mac-helper-release <subcommand> [options]
 
         Subcommands:
       HELP
@@ -80,40 +80,40 @@ module MacHelperCLI
         Examples:
 
           Build & sign:
-            bin/mac-helper build
+            bin/mac-helper-release build
 
           Verify source attestation:
-            bin/mac-helper verify
+            bin/mac-helper-release verify
 
           Test:
-            bin/mac-helper test
+            bin/mac-helper-release test
 
           Show public signing info:
-            bin/mac-helper public-info
+            bin/mac-helper-release public-info
 
           One-time secure credential setup:
-            bin/mac-helper store-credentials
+            bin/mac-helper-release store-credentials
 
           Notarize:
-            bin/mac-helper notarize
+            bin/mac-helper-release notarize
 
           Full workflow:
-            bin/mac-helper release
+            bin/mac-helper-release release
 
           Notarization history:
-            bin/mac-helper history
+            bin/mac-helper-release history
 
           Notarization status (specific submission):
-            bin/mac-helper info --submission-id <uuid>
+            bin/mac-helper-release info --submission-id <uuid>
 
           Notarization log (specific submission):
-            bin/mac-helper log --submission-id <uuid>
+            bin/mac-helper-release log --submission-id <uuid>
 
           Cancel oldest queued notarization:
-            bin/mac-helper cancel
+            bin/mac-helper-release cancel
 
           Cancel specific notarization:
-            bin/mac-helper cancel --submission-id <uuid>
+            bin/mac-helper-release cancel --submission-id <uuid>
 
         Note: Runtime notarization commands use a notarytool keychain profile.
         This keeps the app-specific password out of process argv.
@@ -137,7 +137,7 @@ module MacHelperCLI
 
     def parse_options(subcommand)
       parser = OptionParser.new do |opts|
-        opts.banner = "Usage: bin/mac-helper #{subcommand} [options]"
+        opts.banner = "Usage: bin/mac-helper-release #{subcommand} [options]"
 
         opts.on('--submission-id ID', 'Submission ID for info/log/cancel commands') do |id|
           @options[:submission_id] = id
@@ -160,7 +160,7 @@ module MacHelperCLI
       parser.parse!(@args)
     rescue OptionParser::InvalidOption => e
       warn "Error: #{e.message}"
-      warn "Run 'bin/mac-helper #{subcommand} --help' for usage information."
+      warn "Run 'bin/mac-helper-release #{subcommand} --help' for usage information."
       exit 1
     end
 

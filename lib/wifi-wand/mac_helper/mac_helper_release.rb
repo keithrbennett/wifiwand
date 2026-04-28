@@ -39,8 +39,8 @@ module WifiWand
         ✓ Helper built and signed successfully!
 
         Next steps:
-          1. Test the signed helper: bin/mac-helper test
-          2. Notarize for distribution: bin/mac-helper notarize
+          1. Test the signed helper: bin/mac-helper-release test
+          2. Notarize for distribution: bin/mac-helper-release notarize
       MSG
 
       TESTING_HEADER = <<~MSG
@@ -121,7 +121,7 @@ module WifiWand
           ✓ Helper is now signed and notarized!
 
           Next steps:
-            1. Test the notarized helper: bin/mac-helper test
+            1. Test the notarized helper: bin/mac-helper-release test
             2. Commit the signed helper: git add #{bundle_path}
             3. Build and release the gem: gem build wifi-wand.gemspec
         MSG
@@ -175,7 +175,7 @@ module WifiWand
       def self.bundle_not_found(bundle_path)
         <<~MSG
           Helper bundle not found at #{bundle_path}
-          Run: bin/mac-helper build
+          Run: bin/mac-helper-release build
         MSG
       end
 
@@ -299,7 +299,7 @@ module WifiWand
           "--apple-id #{escaped_apple_id} --team-id #{escaped_team_id}"
       end
 
-      def self.verify_credentials(profile_name, team_id, command_hint: 'bin/mac-helper notarize')
+      def self.verify_credentials(profile_name, team_id, command_hint: 'bin/mac-helper-release notarize')
         return if profile_name && !profile_name.empty?
 
         abort <<~ERROR
@@ -409,7 +409,9 @@ module WifiWand
       Operations.require_macos!(__method__.to_s)
       helper = WifiWand::MacOsWifiAuthHelper
       executable = Operations.helper_executable_path
-      abort "Helper not found at #{executable}. Run: bin/mac-helper build" unless File.exist?(executable)
+      unless File.exist?(executable)
+        abort "Helper not found at #{executable}. Run: bin/mac-helper-release build"
+      end
 
       verify_source_attestation!
 
@@ -429,7 +431,7 @@ module WifiWand
 
     module_function def notarize_helper
       Operations.require_macos!(__method__.to_s)
-      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper notarize')
+      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper-release notarize')
       profile_name = creds[:profile_name]
       keychain_path = creds[:keychain_path]
       team_id = creds[:team_id]
@@ -437,7 +439,7 @@ module WifiWand
       helper = WifiWand::MacOsWifiAuthHelper
       bundle_path = helper.source_bundle_path
       zip_path = "#{bundle_path}.zip"
-      abort "Helper bundle not found at #{bundle_path}. Run: bin/mac-helper build" \
+      abort "Helper bundle not found at #{bundle_path}. Run: bin/mac-helper-release build" \
         unless File.exist?(bundle_path)
 
       verify_source_attestation!
@@ -450,13 +452,13 @@ module WifiWand
 
           #{codesign_output.strip}
 
-          Run: bin/mac-helper build
+          Run: bin/mac-helper-release build
         ERROR
       elsif codesign_output.match?(/\badhoc\b/i)
         abort <<~ERROR.chomp
           Error: Helper is ad-hoc signed. Must be signed with Developer ID.
           Rebuild it with your configured Developer ID identity:
-          Run: bin/mac-helper build
+          Run: bin/mac-helper-release build
         ERROR
       end
 
@@ -480,7 +482,7 @@ module WifiWand
     end
 
     module_function def notarization_history
-      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper history')
+      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper-release history')
       puts 'Recent notarization submissions:'
       Operations.run_notarytool(
         ['history'],
@@ -494,7 +496,7 @@ module WifiWand
         abort 'Error: Submission ID is required. Use --submission-id <uuid> ' \
           'or let the script auto-select.'
       end
-      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper info --submission-id <uuid>')
+      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper-release info --submission-id <uuid>')
       puts "Status for submission #{submission_id}:"
       Operations.run_notarytool(
         ['info', submission_id],
@@ -508,7 +510,7 @@ module WifiWand
         abort 'Error: Submission ID is required. Use --submission-id <uuid> ' \
           'or let the script auto-select.'
       end
-      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper log --submission-id <uuid>')
+      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper-release log --submission-id <uuid>')
       puts "Log for submission #{submission_id}:"
       Operations.run_notarytool(
         ['log', submission_id],
@@ -522,7 +524,7 @@ module WifiWand
         abort 'Error: Submission ID is required. Use --submission-id <uuid> ' \
           'or let the script auto-select.'
       end
-      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper cancel --submission-id <uuid>')
+      creds = fetch_notary_credentials!(command_hint: 'bin/mac-helper-release cancel --submission-id <uuid>')
       validate_pending_submission_for_cancel!(submission_id, creds: creds)
       puts "Canceling submission #{submission_id}..."
       Operations.run_notarytool(
@@ -538,7 +540,7 @@ module WifiWand
 
     module_function def select_submission_id(order:, pending_only: false)
       normalized_order = normalize_submission_order(order)
-      entries = notarization_history_entries(command_hint: 'bin/mac-helper history')
+      entries = notarization_history_entries(command_hint: 'bin/mac-helper-release history')
       return nil if entries.nil? || entries.empty?
 
       ordered_entries = case normalized_order
@@ -582,13 +584,16 @@ module WifiWand
     module_function def validate_pending_submission_for_cancel!(submission_id, creds:)
       entries = notarization_history_entries_with_credentials(creds)
       unless entries
-        abort 'Error: Unable to validate notarization status from history. Run: bin/mac-helper history'
+        abort(
+          'Error: Unable to validate notarization status from history. ' \
+            'Run: bin/mac-helper-release history'
+        )
       end
 
       entry = entries.find { |item| item['id'] == submission_id }
       unless entry
         abort "Error: Submission #{submission_id} was not found in notarization history. " \
-          'Run: bin/mac-helper history'
+          'Run: bin/mac-helper-release history'
       end
 
       return if pending_submission?(entry)
@@ -656,7 +661,8 @@ module WifiWand
       elsif stdout.include?('source=Notarized Developer ID')
         '✓ Helper is notarized'
       else
-        "⚠ Helper is not notarized - users may see Gatekeeper warnings\n  Run: bin/mac-helper notarize"
+        "⚠ Helper is not notarized - users may see Gatekeeper warnings\n  " \
+          'Run: bin/mac-helper-release notarize'
       end
       puts message
     end

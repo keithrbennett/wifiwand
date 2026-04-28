@@ -35,8 +35,8 @@ Apple will not show this password again later.
 Preferred path:
 
 ```bash
-bin/mac-helper public-info
-bin/mac-helper store-credentials
+bin/mac-helper-release public-info
+bin/mac-helper-release store-credentials
 ```
 
 If `WIFIWAND_APPLE_DEV_ID` is unset, the command prompts for the Apple ID email first. Then `notarytool`
@@ -45,7 +45,7 @@ prompts for the app-specific password interactively, so the password never appea
 Explicit email form:
 
 ```bash
-WIFIWAND_APPLE_DEV_ID="you@example.com" bin/mac-helper store-credentials
+WIFIWAND_APPLE_DEV_ID="you@example.com" bin/mac-helper-release store-credentials
 ```
 
 Equivalent raw `notarytool` command:
@@ -64,7 +64,7 @@ the login keychain under the selected profile name.
 You can then test the profile with:
 
 ```bash
-bin/mac-helper history
+bin/mac-helper-release history
 ```
 
 ## Current Blocker Seen On 2026-04-23
@@ -92,7 +92,7 @@ or waiting for acceptance.
 6. After the agreement issue is resolved, rerun:
 
 ```bash
-bin/mac-helper store-credentials
+bin/mac-helper-release store-credentials
 ```
 
 ## Quick Sanity Check Commands
@@ -100,17 +100,17 @@ bin/mac-helper store-credentials
 Show the current public configuration:
 
 ```bash
-bin/mac-helper public-info
+bin/mac-helper-release public-info
 ```
 
 Retry storing credentials:
 
 ```bash
-bin/mac-helper store-credentials
+bin/mac-helper-release store-credentials
 ```
 
 Test the profile after it stores successfully:
 
 ```bash
-bin/mac-helper history
+bin/mac-helper-release history
 ```

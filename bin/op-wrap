@@ -7,7 +7,7 @@
 #
 # Usage:
 #   bin/op-wrap bundle exec rake dev:notarize_helper
-#   bin/op-wrap bin/mac-helper notarize
+#   bin/op-wrap bin/mac-helper-release notarize
 #
 
 module OpWrapScript
@@ -45,7 +45,7 @@ module OpWrapScript
   def self.show_usage_and_exit
     warn "Usage: #{$PROGRAM_NAME} <command> [args...]"
     warn "Example: #{$PROGRAM_NAME} bundle exec rake dev:notarize_helper"
-    warn "Example: #{$PROGRAM_NAME} bin/mac-helper notarize"
+    warn "Example: #{$PROGRAM_NAME} bin/mac-helper-release notarize"
     exit 64
   end
 end

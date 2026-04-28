@@ -47,7 +47,11 @@ RSpec.describe WifiWand::MacHelperRelease do
       expect_system_exit_with_stderr(
         /See #{Regexp.escape(signing_instructions_path)} for detailed instructions\./
       ) do
-        described_class::Operations.verify_credentials('', 'TEAM123', command_hint: 'bin/mac-helper notarize')
+        described_class::Operations.verify_credentials(
+          '',
+          'TEAM123',
+          command_hint: 'bin/mac-helper-release notarize'
+        )
       end
     end
   end
@@ -68,7 +72,11 @@ RSpec.describe WifiWand::MacHelperRelease do
       allow(described_class::Operations).to receive(:verify_team_id_configured)
       allow(described_class::Operations).to receive(:verify_credentials)
 
-      expect(described_class.fetch_notary_credentials!(command_hint: 'bin/mac-helper notarize')).to eq(
+      expect(
+        described_class.fetch_notary_credentials!(
+          command_hint: 'bin/mac-helper-release notarize'
+        )
+      ).to eq(
         profile_name:  described_class::DEFAULT_NOTARYTOOL_PROFILE,
         keychain_path: nil,
         team_id:       described_class::APPLE_TEAM_ID
@@ -236,7 +244,7 @@ RSpec.describe WifiWand::MacHelperRelease do
     it 'aborts when the built helper executable is missing' do
       allow(File).to receive(:exist?).with(executable_path).and_return(false)
 
-      expect_system_exit_with_stderr(/Helper not found at .* Run: bin\/mac-helper build/) do
+      expect_system_exit_with_stderr(/Helper not found at .* Run: bin\/mac-helper-release build/) do
         described_class.test_signed_helper
       end
     end
@@ -331,7 +339,7 @@ RSpec.describe WifiWand::MacHelperRelease do
       )
 
       expect_system_exit_with_stderr(
-        /Submission missing-001 was not found in notarization history.*Run: bin\/mac-helper history/m
+        /Submission missing-001 was not found in notarization history.*Run: bin\/mac-helper-release history/m
       ) do
         described_class.cancel_notarization('missing-001')
       end
@@ -366,7 +374,7 @@ RSpec.describe WifiWand::MacHelperRelease do
       allow(described_class::Operations).to receive(:submit_for_notarization)
 
       expect_system_exit_with_stderr(
-        /Could not inspect code signature.*code object is not signed.*bin\/mac-helper build/m
+        /Could not inspect code signature.*code object is not signed.*bin\/mac-helper-release build/m
       ) do
         described_class.notarize_helper
       end
@@ -386,7 +394,7 @@ RSpec.describe WifiWand::MacHelperRelease do
         %r{
           Helper\ is\ ad-hoc\ signed.*
           Rebuild\ it\ with\ your\ configured\ Developer\ ID\ identity:.*
-          Run:\ bin/mac-helper\ build
+          Run:\ bin/mac-helper-release\ build
         }mx
       ) do
         described_class.notarize_helper
@@ -559,7 +567,7 @@ RSpec.describe WifiWand::MacHelperRelease do
       expect do
         expect { described_class.codesign_status }.to raise_error(SystemExit)
       end.to output(
-        /Helper bundle not found at #{Regexp.escape(bundle_path)}.*Run: bin\/mac-helper build/m
+        /Helper bundle not found at #{Regexp.escape(bundle_path)}.*Run: bin\/mac-helper-release build/m
       ).to_stdout
     end
 
