@@ -26,6 +26,6 @@ RSpec.describe TestHelpers do
 
     model = create_test_model
 
-    expect(model.send(:mac_helper_client)).to be_a(WifiWand::MacOsWifiAuthHelper::Client)
+    expect(model.send(:mac_helper_client)).to be_a(WifiWand::MacOsHelperClient)
   end
 end

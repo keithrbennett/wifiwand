@@ -4,8 +4,8 @@ require 'spec_helper'
 require 'tmpdir'
 require 'stringio'
 
-RSpec.describe WifiWand::MacOsWifiAuthHelper do
-  describe WifiWand::MacOsWifiAuthHelper::Client do
+RSpec.describe WifiWand::MacOsHelperBundle do
+  describe WifiWand::MacOsHelperClient do
     subject(:client) do
       described_class.new(
         out_stream_proc:    -> { out_stream },
@@ -77,18 +77,33 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
     end
 
     describe '#connected_network_name' do
+      subject(:client) do
+        Class.new(described_class) do
+          def initialize(execute_result:, **kwargs)
+            super(**kwargs)
+            @execute_result = execute_result
+          end
+
+          private def execute(_command) = @execute_result
+        end.new(
+          execute_result:     raw_result,
+          out_stream_proc:    -> { out_stream },
+          verbose_proc:       -> { verbose_flag },
+          macos_version_proc: -> { macos_version }
+        )
+      end
+
+      let(:raw_result) { WifiWand::MacOsHelperBundle::HelperQueryResult.new }
+
       it 'returns a result with the SSID payload' do
-        raw_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: { 'ssid' => 'OfficeWiFi' })
-        expect(client).to receive(:execute).with('current-network').and_return(raw_result)
+        raw_result.payload = { 'ssid' => 'OfficeWiFi' }
         result = client.connected_network_name
-        expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+        expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
         expect(result.payload).to eq('OfficeWiFi')
         expect(result).not_to be_location_services_blocked
       end
 
       it 'returns a result with nil payload when the helper does not respond' do
-        raw_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
-        expect(client).to receive(:execute).with('current-network').and_return(raw_result)
         result = client.connected_network_name
         expect(result.payload).to be_nil
         expect(result).not_to be_location_services_blocked
@@ -96,20 +111,33 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
     end
 
     describe '#scan_networks' do
-      it 'returns a result with network data payload' do
-        raw_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
-          payload: { 'networks' => [{ 'ssid' => 'Cafe' }] }
+      subject(:client) do
+        Class.new(described_class) do
+          def initialize(execute_result:, **kwargs)
+            super(**kwargs)
+            @execute_result = execute_result
+          end
+
+          private def execute(_command) = @execute_result
+        end.new(
+          execute_result:     raw_result,
+          out_stream_proc:    -> { out_stream },
+          verbose_proc:       -> { verbose_flag },
+          macos_version_proc: -> { macos_version }
         )
-        expect(client).to receive(:execute).with('scan-networks').and_return(raw_result)
+      end
+
+      let(:raw_result) { WifiWand::MacOsHelperBundle::HelperQueryResult.new }
+
+      it 'returns a result with network data payload' do
+        raw_result.payload = { 'networks' => [{ 'ssid' => 'Cafe' }] }
         result = client.scan_networks
-        expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+        expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
         expect(result.payload).to eq([{ 'ssid' => 'Cafe' }])
         expect(result).not_to be_location_services_blocked
       end
 
       it 'returns a result with empty array payload when the helper does not respond' do
-        raw_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
-        expect(client).to receive(:execute).with('scan-networks').and_return(raw_result)
         result = client.scan_networks
         expect(result.payload).to eq([])
         expect(result).not_to be_location_services_blocked
@@ -131,41 +159,91 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
     describe '#execute' do
       subject(:execute_command) { client.send(:execute, command) }
 
+      let(:client) do
+        client_class.new(
+          available_result:    helper_available,
+          helper_command_proc: helper_command_proc,
+          parse_json_result:   parse_json_result,
+          out_stream_proc:     -> { out_stream },
+          verbose_proc:        -> { verbose_flag },
+          macos_version_proc:  -> { macos_version }
+        )
+      end
+
+      let(:client_class) do
+        Class.new(described_class) do
+          attr_reader :handled_errors, :log_messages, :helper_command_invocations
+
+          def initialize(available_result:, helper_command_proc:, parse_json_result:, **kwargs)
+            super(**kwargs)
+            @available_result = available_result
+            @helper_command_proc = helper_command_proc
+            @parse_json_result = parse_json_result
+            @handled_errors = []
+            @log_messages = []
+            @helper_command_invocations = 0
+          end
+
+          private def available? = @available_result
+
+          private def ensure_helper_installed
+          end
+
+          private def execute_helper_command(command)
+            @helper_command_invocations += 1
+            @helper_command_proc.call(command)
+          end
+
+          private def parse_json(_text)
+            return super if @parse_json_result == :__use_super__
+
+            @parse_json_result
+          end
+
+          private def handle_error(message)
+            @handled_errors << message
+            super
+          end
+
+          private def log_verbose(message)
+            @log_messages << message
+          end
+        end
+      end
+
       let(:command) { 'scan-networks' }
       let(:helper_available) { true }
-
-      before do
-        allow(client).to receive(:available?).and_return(helper_available)
-        allow(client).to receive(:ensure_helper_installed)
-        allow(WifiWand::MacOsWifiAuthHelper).to receive(:installed_executable_path).and_return('/tmp/helper')
-      end
+      let(:parse_json_result) { :__use_super__ }
+      let(:helper_command_proc) { ->(_command) { raise 'override in example' } }
 
       context 'when the helper is unavailable' do
         let(:helper_available) { false }
+        let(:helper_command_proc) { ->(_command) { raise 'should not run' } }
 
         it 'returns an empty result without invoking the executable' do
-          expect(client).not_to receive(:execute_helper_command)
           result = execute_command
-          expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+          expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to be_nil
           expect(result).not_to be_location_services_blocked
+          expect(client.helper_command_invocations).to eq(0)
         end
       end
 
       context 'when the helper command succeeds' do
         let(:status) { instance_double(Process::Status, success?: true) }
-
-        before do
-          allow(client).to receive(:execute_helper_command).with(command).and_return(
-            stdout: '{"status":"ok","payload":1}',
-            stderr: '',
-            status: status
-          )
+        let(:helper_command_proc) do
+          ->(_command) do
+            {
+              stdout: '{"status":"ok","payload":1}',
+              stderr: '',
+              status: status,
+            }
+          end
         end
 
         it 'returns a result with the parsed payload' do
           result = execute_command
-          expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+          expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to eq('status' => 'ok', 'payload' => 1)
           expect(result).not_to be_location_services_blocked
         end
@@ -173,72 +251,63 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
 
       context 'when the helper exits with a non-zero status' do
         let(:status) { instance_double(Process::Status, success?: false, exitstatus: 64) }
-
-        before do
-          allow(client).to receive(:execute_helper_command).and_return(
-            stdout: '',
-            stderr: 'boom',
-            status: status
-          )
+        let(:helper_command_proc) do
+          ->(_command) do
+            {
+              stdout: '',
+              stderr: 'boom',
+              status: status,
+            }
+          end
         end
 
         it 'logs the failure and returns an empty result' do
-          expect(client).to receive(:log_verbose).with('helper exited with status 64: boom')
           result = execute_command
-          expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+          expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to be_nil
+          expect(client.log_messages).to include('helper exited with status 64: boom')
         end
       end
 
       context 'when the helper output cannot be parsed' do
         let(:status) { instance_double(Process::Status, success?: true) }
-
-        before do
-          allow(client).to receive_messages(
-            execute_helper_command: {
-              stdout: '{}',
-              stderr: '',
-              status: status,
-            },
-            parse_json:             nil
-          )
-        end
+        let(:helper_command_proc) { ->(_command) { { stdout: '{}', stderr: '', status: status } } }
+        let(:parse_json_result) { nil }
 
         it 'returns an empty result' do
           result = execute_command
-          expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+          expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to be_nil
         end
       end
 
       context 'when the helper reports an error status' do
         let(:status) { instance_double(Process::Status, success?: true) }
-
-        before do
-          allow(client).to receive(:execute_helper_command).and_return(
-            stdout: '{"status":"error","error":"Location Services denied"}',
-            stderr: '',
-            status: status
-          )
+        let(:helper_command_proc) do
+          ->(_command) do
+            {
+              stdout: '{"status":"error","error":"Location Services denied"}',
+              stderr: '',
+              status: status,
+            }
+          end
         end
 
         it 'delegates to handle_error and returns a result with location_services_blocked' do
-          expect(client).to receive(:handle_error).with('Location Services denied')
           result = execute_command
-          expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+          expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result).to be_location_services_blocked
           expect(result.error_message).to eq('Location Services denied')
+          expect(client.handled_errors).to include('Location Services denied')
         end
       end
 
       context 'when the helper times out' do
-        before do
-          allow(client).to receive(:execute_helper_command).with(command).and_return(nil)
-        end
+        let(:helper_command_proc) { ->(*) {} }
 
         it 'returns a safe empty result so callers can fall back' do
           result = execute_command
-          expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+          expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to be_nil
           expect(result).not_to be_location_services_blocked
           expect(result.error_message).to be_nil
@@ -246,28 +315,27 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       end
 
       context 'when the executable is missing' do
-        before do
-          allow(client).to receive(:execute_helper_command).and_raise(Errno::ENOENT.new('wifiwand-helper'))
-        end
+        let(:helper_command_proc) { ->(_command) { raise Errno::ENOENT, 'wifiwand-helper' } }
 
         it 'logs the error and returns an empty result' do
-          expect(client).to receive(:log_verbose).with(/helper executable missing:/)
           result = execute_command
-          expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+          expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to be_nil
+          has_missing_message = client.log_messages.any? do |message|
+            message.match?(/helper executable missing:/)
+          end
+          expect(has_missing_message).to be(true)
         end
       end
 
       context 'when an unexpected error occurs' do
-        before do
-          allow(client).to receive(:execute_helper_command).and_raise(StandardError, 'boom')
-        end
+        let(:helper_command_proc) { ->(_command) { raise StandardError, 'boom' } }
 
         it 'logs the failure and returns an empty result' do
-          expect(client).to receive(:log_verbose).with("helper command 'scan-networks' failed: boom")
           result = execute_command
-          expect(result).to be_a(WifiWand::MacOsWifiAuthHelper::HelperQueryResult)
+          expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to be_nil
+          expect(client.log_messages).to include("helper command 'scan-networks' failed: boom")
         end
       end
     end
@@ -284,7 +352,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       let(:wait_thr) { double('wait thread', join: wait_join_result, value: status, pid: 4321) }
 
       before do
-        allow(WifiWand::MacOsWifiAuthHelper).to receive(:installed_executable_path).and_return('/tmp/helper')
+        allow(WifiWand::MacOsHelperBundle).to receive(:installed_executable_path).and_return('/tmp/helper')
         allow(Open3).to receive(:popen3).with('/tmp/helper', command)
           .and_yield(stdin, stdout, stderr, wait_thr)
       end
@@ -298,14 +366,15 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
         let(:stdout) { instance_double(IO, read: '', close: nil, closed?: false) }
         let(:stderr) { instance_double(IO, read: '', close: nil, closed?: false) }
         let(:wait_join_result) { nil }
+        let(:verbose_flag) { true }
 
         it 'logs the timeout and returns nil' do
           timeout_seconds = described_class::HELPER_COMMAND_TIMEOUT_SECONDS
           timeout_message =
             "helper command 'scan-networks' timed out after #{timeout_seconds}s"
 
-          expect(client).to receive(:log_verbose).with(timeout_message)
           expect(helper_command_result).to be_nil
+          expect(out_stream.string).to include(timeout_message)
         end
       end
     end
@@ -314,41 +383,43 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       let(:helper_path) { '/tmp/helper' }
 
       before do
-        allow(WifiWand::MacOsWifiAuthHelper).to receive(:installed_executable_path).and_return(helper_path)
+        allow(WifiWand::MacOsHelperBundle).to receive(:installed_executable_path).and_return(helper_path)
       end
 
       context 'when the helper executable is present and valid' do
         it 'returns immediately without reinstalling' do
           expect(File).to receive(:executable?).with(helper_path).and_return(true)
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true)
-          expect(WifiWand::MacOsWifiAuthHelper).not_to receive(:ensure_helper_installed)
+          expect(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?).and_return(true)
+          expect(WifiWand::MacOsHelperBundle).not_to receive(:ensure_helper_installed)
           client.send(:ensure_helper_installed)
         end
 
         it 'caches successful validation for subsequent calls' do
           expect(File).to receive(:executable?).with(helper_path).and_return(true).once
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true).once
+          expect(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?).and_return(true).once
 
           2.times { client.send(:ensure_helper_installed) }
         end
       end
 
       context 'when the helper executable is missing' do
+        let(:verbose_flag) { true }
+
         it 'installs the helper' do
           expect(File).to receive(:executable?).with(helper_path).and_return(false)
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(false)
-          expect(client).to receive(:log_verbose).with('helper not installed; running installer')
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed).with(out_stream: nil)
+          expect(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?).and_return(false)
+          expect(WifiWand::MacOsHelperBundle).to receive(:ensure_helper_installed)
+            .with(out_stream: out_stream)
           client.send(:ensure_helper_installed)
+          expect(out_stream.string).to include('helper not installed; running installer')
         end
 
         it 'disables helper retries after an install failure' do
           expect(File).to receive(:executable?).with(helper_path).and_return(false).once
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?)
+          expect(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?)
             .and_return(false).once
-          allow(client).to receive(:log_verbose)
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed)
-            .with(out_stream: nil).ordered.and_raise(StandardError, 'boom')
+          expect(WifiWand::MacOsHelperBundle).to receive(:ensure_helper_installed)
+            .with(out_stream: out_stream).ordered.and_raise(StandardError, 'boom')
 
           client.send(:ensure_helper_installed)
 
@@ -363,22 +434,24 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       end
 
       context 'when the helper executable is present but invalid' do
+        let(:verbose_flag) { true }
+
         it 'attempts reinstall through the module installer' do
           expect(File).to receive(:executable?).with(helper_path).and_return(true)
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(false)
-          expect(client).to receive(:log_verbose)
-            .with('existing helper install failed validation; attempting reinstall')
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed).with(out_stream: nil)
+          expect(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?).and_return(false)
+          expect(WifiWand::MacOsHelperBundle).to receive(:ensure_helper_installed)
+            .with(out_stream: out_stream)
           client.send(:ensure_helper_installed)
+          expect(out_stream.string)
+            .to include('existing helper install failed validation; attempting reinstall')
         end
 
         it 'emits repair guidance and disables helper retries when reinstall fails' do
           expect(File).to receive(:executable?).with(helper_path).and_return(true).once
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?)
+          expect(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?)
             .and_return(false).once
-          allow(client).to receive(:log_verbose)
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed)
-            .with(out_stream: nil).once.and_raise(StandardError, 'boom')
+          expect(WifiWand::MacOsHelperBundle).to receive(:ensure_helper_installed)
+            .with(out_stream: out_stream).once.and_raise(StandardError, 'boom')
 
           2.times { client.send(:ensure_helper_installed) }
 
@@ -393,21 +466,22 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
 
         it 'does not attempt validation or installation retries' do
           expect(File).not_to receive(:executable?)
-          expect(WifiWand::MacOsWifiAuthHelper).not_to receive(:helper_installed_and_valid?)
-          expect(WifiWand::MacOsWifiAuthHelper).not_to receive(:ensure_helper_installed)
+          expect(WifiWand::MacOsHelperBundle).not_to receive(:helper_installed_and_valid?)
+          expect(WifiWand::MacOsHelperBundle).not_to receive(:ensure_helper_installed)
 
           2.times { client.send(:ensure_helper_installed) }
         end
       end
 
       context 'when reinstall succeeds after validation failure' do
+        let(:verbose_flag) { true }
+
         it 'marks the helper as verified for later calls' do
           expect(File).to receive(:executable?).with(helper_path).and_return(true).once
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?)
+          expect(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?)
             .and_return(false).once
-          allow(client).to receive(:log_verbose)
-          expect(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed)
-            .with(out_stream: nil).once
+          expect(WifiWand::MacOsHelperBundle).to receive(:ensure_helper_installed)
+            .with(out_stream: out_stream).once
 
           2.times { client.send(:ensure_helper_installed) }
         end
@@ -420,25 +494,27 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       end
 
       it 'logs an error when parsing fails' do
-        expect(client).to receive(:log_verbose).with(/failed to parse helper JSON:/)
+        allow(client.instance_variable_get(:@verbose_proc)).to receive(:call).and_return(true)
         expect(client.send(:parse_json, '{invalid-json')).to be_nil
+        expect(out_stream.string).to match(/failed to parse helper JSON:/)
       end
     end
 
     describe '#handle_error' do
       it 'emits a location warning when permissions are denied' do
-        expect(client).to receive(:emit_location_warning)
         client.send(:handle_error, 'Location Services denied by user')
+        expect(out_stream.string).to include('Location Services denied')
       end
 
       it 'logs non-location failures' do
-        expect(client).to receive(:log_verbose).with('helper error: unexpected failure')
+        allow(client.instance_variable_get(:@verbose_proc)).to receive(:call).and_return(true)
         client.send(:handle_error, 'unexpected failure')
+        expect(out_stream.string).to include('helper error: unexpected failure')
       end
 
       it 'ignores nil messages' do
-        expect(client).not_to receive(:log_verbose)
         client.send(:handle_error, nil)
+        expect(out_stream.string).to eq('')
       end
     end
 
@@ -464,20 +540,42 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
     end
 
     describe 'helper-backed calls after install failure' do
+      subject(:client) do
+        client_class.new(
+          out_stream_proc:    -> { out_stream },
+          verbose_proc:       -> { verbose_flag },
+          macos_version_proc: -> { macos_version }
+        )
+      end
+
+      let(:client_class) do
+        Class.new(described_class) do
+          attr_reader :execute_helper_command_calls
+
+          def initialize(**kwargs)
+            super
+            @execute_helper_command_calls = 0
+          end
+
+          private def execute_helper_command(_command)
+            @execute_helper_command_calls += 1
+            {
+              stdout: '{"status":"ok","payload":{"ssid":"OfficeWiFi"}}',
+              stderr: '',
+              status: instance_double(Process::Status, success?: true),
+            }
+          end
+        end
+      end
+
       let(:status) { instance_double(Process::Status, success?: true) }
 
       before do
-        allow(client).to receive(:available?).and_call_original
         allow(File).to receive(:executable?).with('/tmp/helper').and_return(false)
-        allow(WifiWand::MacOsWifiAuthHelper).to receive_messages(installed_executable_path: '/tmp/helper',
+        allow(WifiWand::MacOsHelperBundle).to receive_messages(installed_executable_path: '/tmp/helper',
           helper_installed_and_valid?: false)
-        allow(WifiWand::MacOsWifiAuthHelper).to receive(:ensure_helper_installed).and_raise(StandardError,
+        allow(WifiWand::MacOsHelperBundle).to receive(:ensure_helper_installed).and_raise(StandardError,
           'boom')
-        allow(client).to receive(:execute_helper_command).and_return(
-          stdout: '{"status":"ok","payload":{"ssid":"OfficeWiFi"}}',
-          stderr: '',
-          status: status
-        )
       end
 
       it 'does not retry helper installation on a later helper-backed call in the same process' do
@@ -486,8 +584,8 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
 
         expect(first_result.payload).to be_nil
         expect(second_result.payload).to eq([])
-        expect(WifiWand::MacOsWifiAuthHelper).to have_received(:ensure_helper_installed).once
-        expect(client).not_to have_received(:execute_helper_command)
+        expect(WifiWand::MacOsHelperBundle).to have_received(:ensure_helper_installed).once
+        expect(client.execute_helper_command_calls).to eq(0)
       end
     end
 
@@ -527,6 +625,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
   end
 
   describe '.install_helper_bundle' do
+    let(:installer) { WifiWand::MacOsHelperInstaller }
     let(:out_stream) { StringIO.new }
     let(:temp_dir) { Dir.mktmpdir('wifiwand-helper-install-spec') }
     let(:versioned_install_dir) { File.join(temp_dir, 'installed') }
@@ -554,7 +653,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
         source_bundle_path:        source_bundle_path,
         helper_version:            '9.9.9'
       )
-      allow(described_class).to receive(:run_bounded_helper_command) do |executable_path, command|
+      allow(installer).to receive(:run_bounded_helper_command) do |executable_path, command|
         script = File.read(executable_path)
         success = command == 'help' && !script.include?("exit 1\n")
         instance_double(
@@ -685,7 +784,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
 
     it 'serializes concurrent first-run installs so only one copy executes' do
       installation_started = Queue.new
-      allow(described_class)
+      allow(installer)
         .to receive(:stage_helper_bundle).and_wrap_original do |original, staged_bundle_path|
         installation_started << :started
         sleep(0.1)
@@ -699,13 +798,14 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
 
       [first_thread, second_thread].each(&:join)
 
-      expect(described_class).to have_received(:stage_helper_bundle).once
+      expect(installer).to have_received(:stage_helper_bundle).once
       expect(described_class.helper_installed_and_valid?).to be(true)
       expect(File.read(manifest_path)).to eq('9.9.9')
     end
   end
 
   describe '.helper_bundle_valid?' do
+    let(:installer) { WifiWand::MacOsHelperInstaller }
     let(:temp_dir) { Dir.mktmpdir('wifiwand-helper-valid-spec') }
     let(:bundle_path) { File.join(temp_dir, described_class::BUNDLE_NAME) }
     let(:executable_path) do
@@ -735,7 +835,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       SH
       FileUtils.chmod(0o755, executable_path)
       status = instance_double(Process::Status, success?: true, exitstatus: 0)
-      expect(described_class).to receive(:run_bounded_helper_command)
+      expect(installer).to receive(:run_bounded_helper_command)
         .with(executable_path, 'help')
         .and_return(stdout: 'wifiwand helper usage', stderr: '', status: status)
 
@@ -746,7 +846,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       File.write(executable_path, "#!/bin/sh\nexit 0\n")
       FileUtils.chmod(0o755, executable_path)
       status = instance_double(Process::Status, success?: true, exitstatus: 0)
-      expect(described_class).to receive(:run_bounded_helper_command)
+      expect(installer).to receive(:run_bounded_helper_command)
         .with(executable_path, 'help')
         .and_return(stdout: '', stderr: 'wifiwand helper usage', status: status)
 
@@ -757,7 +857,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       File.write(executable_path, "#!/bin/sh\nexit 0\n")
       FileUtils.chmod(0o755, executable_path)
       status = instance_double(Process::Status, success?: true, exitstatus: 0)
-      expect(described_class).to receive(:run_bounded_helper_command)
+      expect(installer).to receive(:run_bounded_helper_command)
         .with(executable_path, 'help')
         .and_return(stdout: '', stderr: 'stream closed in another thread', status: status)
 
@@ -767,7 +867,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
     it 'returns false when the helper validation probe times out' do
       File.write(executable_path, "#!/bin/sh\nexit 0\n")
       FileUtils.chmod(0o755, executable_path)
-      allow(described_class).to receive(:run_bounded_helper_command)
+      allow(installer).to receive(:run_bounded_helper_command)
         .with(executable_path, 'help')
         .and_return(nil)
 
@@ -776,6 +876,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
   end
 
   describe '.helper_installed_and_valid?' do
+    let(:installer) { WifiWand::MacOsHelperInstaller }
     let(:temp_dir) { Dir.mktmpdir('wifiwand-helper-current-spec') }
     let(:versioned_install_dir) { File.join(temp_dir, 'installed') }
     let(:installed_bundle_path) { File.join(versioned_install_dir, described_class::BUNDLE_NAME) }
@@ -795,7 +896,7 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
         source_bundle_path:        source_bundle_path,
         helper_version:            '9.9.9'
       )
-      allow(described_class).to receive(:run_bounded_helper_command) do |executable_path, command|
+      allow(installer).to receive(:run_bounded_helper_command) do |executable_path, command|
         script = File.read(executable_path)
         success = command == 'help' && !script.include?("exit 1\n")
         status = instance_double(Process::Status, success?: success, exitstatus: success ? 0 : 1)
@@ -822,6 +923,16 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
 
       expect(described_class.helper_bundle_valid?(installed_bundle_path)).to be(true)
       expect(described_class.helper_installed_and_valid?).to be(false)
+    end
+  end
+
+  describe 'compatibility aliases' do
+    it 'keeps the legacy helper module name resolving to the new bundle module' do
+      expect(WifiWand::MacOsWifiAuthHelper).to equal(described_class)
+    end
+
+    it 'keeps the legacy nested client constant resolving to the new client class' do
+      expect(WifiWand::MacOsWifiAuthHelper::Client).to equal(WifiWand::MacOsHelperClient)
     end
   end
 

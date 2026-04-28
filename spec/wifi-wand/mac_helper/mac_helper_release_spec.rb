@@ -161,14 +161,14 @@ RSpec.describe WifiWand::MacHelperRelease do
 
   describe '.verify_source_attestation!' do
     it 'confirms the bundle matches the checked-in Swift sources' do
-      allow(WifiWand::MacOsWifiAuthHelper).to receive(:verify_source_bundle_current!)
+      allow(WifiWand::MacOsHelperBundle).to receive(:verify_source_bundle_current!)
 
       expect { described_class.verify_source_attestation! }
         .to output(/Source attestation matches committed Swift source and bundle/).to_stdout
     end
 
     it 'aborts with the attestation failure reason when verification raises' do
-      allow(WifiWand::MacOsWifiAuthHelper).to receive(:verify_source_bundle_current!)
+      allow(WifiWand::MacOsHelperBundle).to receive(:verify_source_bundle_current!)
         .and_raise(StandardError, 'manifest digest mismatch')
 
       expect_system_exit_with_stderr(/Source attestation failed:.*manifest digest mismatch/m) do
@@ -178,7 +178,7 @@ RSpec.describe WifiWand::MacHelperRelease do
   end
 
   describe '.build_signed_helper' do
-    let(:helper) { WifiWand::MacOsWifiAuthHelper }
+    let(:helper) { WifiWand::MacOsHelperBundle }
     let(:source_path) { '/tmp/WifiNetworkConnector.swift' }
     let(:bundle_path) { '/tmp/wifiwand-helper.app' }
     let(:destination_path) { "#{bundle_path}/Contents/MacOS/#{helper::EXECUTABLE_NAME}" }
@@ -230,7 +230,7 @@ RSpec.describe WifiWand::MacHelperRelease do
   end
 
   describe '.test_signed_helper' do
-    let(:helper) { WifiWand::MacOsWifiAuthHelper }
+    let(:helper) { WifiWand::MacOsHelperBundle }
     let(:bundle_path) { '/tmp/wifiwand-helper.app' }
     let(:executable_path) { "#{bundle_path}/Contents/MacOS/#{helper::EXECUTABLE_NAME}" }
 
@@ -362,7 +362,7 @@ RSpec.describe WifiWand::MacHelperRelease do
       allow(described_class::Operations).to receive(:require_macos!)
       allow(described_class).to receive(:fetch_notary_credentials!).and_return(creds)
       allow(described_class).to receive(:verify_source_attestation!)
-      allow(WifiWand::MacOsWifiAuthHelper).to receive(:source_bundle_path).and_return(bundle_path)
+      allow(WifiWand::MacOsHelperBundle).to receive(:source_bundle_path).and_return(bundle_path)
       allow(File).to receive(:exist?).with(bundle_path).and_return(true)
     end
 
@@ -551,7 +551,7 @@ RSpec.describe WifiWand::MacHelperRelease do
   end
 
   describe '.codesign_status' do
-    let(:helper) { WifiWand::MacOsWifiAuthHelper }
+    let(:helper) { WifiWand::MacOsHelperBundle }
     let(:bundle_path) { '/tmp/wifiwand-helper.app' }
     let(:executable_path) { "#{bundle_path}/Contents/MacOS/#{helper::EXECUTABLE_NAME}" }
 

@@ -89,7 +89,7 @@ RSpec.describe 'bin/mac-helper-release' do
 
     it 'prints public signing info' do
       cli = build_cli(['public-info'])
-      helper = WifiWand::MacOsWifiAuthHelper
+      helper = WifiWand::MacOsHelperBundle
       helper_exec_path = File.join(helper.source_bundle_path, 'Contents', 'MacOS', helper::EXECUTABLE_NAME)
 
       allow(WifiWand::MacHelperRelease::Operations).to receive(:require_macos!)

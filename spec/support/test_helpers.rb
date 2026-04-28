@@ -50,13 +50,13 @@ module TestHelpers
         { name: 'Ethernet', device: 'en1', ethernet_address: 'aa:bb:cc:dd:ee:ff' },
       ])
       unless uses_real_env?
-        empty_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+        empty_result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
         helper_client = instance_double(
-          WifiWand::MacOsWifiAuthHelper::Client,
+          WifiWand::MacOsHelperClient,
           connected_network_name: empty_result,
           scan_networks:          empty_result
         )
-        allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_client)
+        allow(WifiWand::MacOsHelperClient).to receive(:new).and_return(helper_client)
       end
       WifiWand::MacOsModel.create_model(merged_options)
     else

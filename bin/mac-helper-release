@@ -230,7 +230,7 @@ module MacHelperCLI
     def public_signing_info
       WifiWand::MacHelperRelease::Operations.require_macos!(__method__.to_s)
 
-      helper = WifiWand::MacOsWifiAuthHelper
+      helper = WifiWand::MacOsHelperBundle
       profile_name = ENV.fetch(
         'WIFIWAND_NOTARYTOOL_PROFILE',
         WifiWand::MacHelperRelease::DEFAULT_NOTARYTOOL_PROFILE

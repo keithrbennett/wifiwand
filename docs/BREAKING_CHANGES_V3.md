@@ -8,6 +8,34 @@ non-breaking additions, see [Version 2.x to 3.0 Code Base Changes](CHANGELOG_V2_
 
 ## Breaking Changes
 
+### macOS helper runtime naming
+
+#### Legacy helper require path removed
+
+The legacy runtime helper file
+`wifi-wand/mac_helper/mac_os_wifi_auth_helper` is no longer shipped.
+
+Code that previously did a direct require such as:
+
+```ruby
+require 'wifi-wand/mac_helper/mac_os_wifi_auth_helper'
+```
+
+must now require the new primary runtime entry point instead:
+
+```ruby
+require 'wifi-wand/mac_helper/mac_os_helper_bundle'
+```
+
+#### Migration
+
+- old require path: `wifi-wand/mac_helper/mac_os_wifi_auth_helper`
+- new require path: `wifi-wand/mac_helper/mac_os_helper_bundle`
+
+The legacy constant name `WifiWand::MacOsWifiAuthHelper` still resolves for
+now, but the legacy file path does not. Load the new file path before using
+the helper runtime API directly.
+
 ### Verbose API naming
 
 #### `verbose?` and `verbose=` are now the only supported forms

@@ -263,23 +263,23 @@ module WifiWand
 
       describe '#_connected_network_name' do
         let(:helper_double) do
-          instance_double(WifiWand::MacOsWifiAuthHelper::Client)
+          instance_double(WifiWand::MacOsHelperClient)
         end
 
         before do
           model.instance_variable_set(:@mac_helper_client, nil)
-          allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_double)
+          allow(WifiWand::MacOsHelperClient).to receive(:new).and_return(helper_double)
         end
 
         it 'returns the helper-provided SSID when available' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: 'HelperSSID')
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: 'HelperSSID')
           allow(helper_double).to receive(:connected_network_name).and_return(result)
 
           expect(model._connected_network_name).to eq('HelperSSID')
         end
 
         it 'falls back to airport data when helper returns nil' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(airport_data: { 'SPAirPortDataType' => [{
             'spairport_airport_interfaces' => [{
@@ -292,7 +292,7 @@ module WifiWand
         end
 
         it 'returns nil when helper returns nil and airport data is missing current network information' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(airport_data: { 'SPAirPortDataType' => [{
             'spairport_airport_interfaces' => [{
@@ -305,7 +305,7 @@ module WifiWand
         end
 
         it 'falls back to airport data when helper is blocked by Location Services' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(
             location_services_blocked: true,
             error_message:             'Location Services denied'
           )
@@ -321,7 +321,7 @@ module WifiWand
         end
 
         it 'refreshes connected network state across separate public read operations' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: nil)
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: nil)
           first_airport_data = JSON.generate(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
@@ -355,7 +355,7 @@ module WifiWand
         end
 
         it 'raises a targeted exact-identity error when macOS redacts the current SSID' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(
             payload:                   nil,
             location_services_blocked: true,
             error_message:             'Location Services denied'
@@ -382,17 +382,17 @@ module WifiWand
 
       describe '#associated?' do
         let(:helper_double) do
-          instance_double(WifiWand::MacOsWifiAuthHelper::Client)
+          instance_double(WifiWand::MacOsHelperClient)
         end
 
         before do
           model.instance_variable_set(:@mac_helper_client, nil)
-          allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_double)
+          allow(WifiWand::MacOsHelperClient).to receive(:new).and_return(helper_double)
           allow(model).to receive_messages(wifi_on?: true, wifi_interface: 'en0')
         end
 
         it 'returns true when the helper provides a real SSID' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: 'MyNetwork')
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: 'MyNetwork')
           allow(helper_double).to receive(:connected_network_name).and_return(result)
 
           expect(model).not_to receive(:airport_data)
@@ -401,7 +401,7 @@ module WifiWand
 
         it 'returns true when airport data shows non-empty current network information ' \
           'without an SSID name' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive(:airport_data).and_return(
             'SPAirPortDataType' => [{
@@ -416,7 +416,7 @@ module WifiWand
         end
 
         it 'returns false when airport data only has an empty current-network hash' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive(:airport_data).and_return(
             'SPAirPortDataType' => [{
@@ -431,7 +431,7 @@ module WifiWand
         end
 
         it 'returns false when the helper reports no SSID and airport data has no current network info' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive(:airport_data).and_return(
             'SPAirPortDataType' => [{
@@ -445,17 +445,17 @@ module WifiWand
 
       describe '#connected?' do
         let(:helper_double) do
-          instance_double(WifiWand::MacOsWifiAuthHelper::Client)
+          instance_double(WifiWand::MacOsHelperClient)
         end
 
         before do
           model.instance_variable_set(:@mac_helper_client, nil)
-          allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_double)
+          allow(WifiWand::MacOsHelperClient).to receive(:new).and_return(helper_double)
           allow(model).to receive(:wifi_on?).and_return(true)
         end
 
         it 'returns true when the helper provides a real SSID (Sonoma redaction case)' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: 'MyNetwork')
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: 'MyNetwork')
           allow(helper_double).to receive(:connected_network_name).and_return(result)
 
           expect(model).not_to receive(:airport_data)
@@ -470,7 +470,7 @@ module WifiWand
         end
 
         it 'falls back to system_profiler when helper returns nil' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(
             airport_data:   { 'SPAirPortDataType' => [{
@@ -486,7 +486,7 @@ module WifiWand
         end
 
         it 'returns false when helper returns nil and system_profiler lacks current-network info' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(
             airport_data:      { 'SPAirPortDataType' => [{
@@ -503,7 +503,7 @@ module WifiWand
         end
 
         it 'does not treat a placeholder SSID from the helper as connected' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: '<redacted>')
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: '<redacted>')
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(
             airport_data:      { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [] }] },
@@ -516,7 +516,7 @@ module WifiWand
         end
 
         it 'returns true when association evidence exists but SSID is redacted' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(
             location_services_blocked: true,
             error_message:             'Location Services denied'
           )
@@ -535,7 +535,7 @@ module WifiWand
 
         it 'returns true when the helper is disabled and the WiFi interface still has an IP address' do
           model.instance_variable_set(:@mac_helper_client, nil)
-          allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_call_original
+          allow(WifiWand::MacOsHelperClient).to receive(:new).and_call_original
           allow(model).to receive_messages(
             airport_data:      { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [{
               '_name' => 'en0',
@@ -548,7 +548,7 @@ module WifiWand
           original_env = ENV['WIFIWAND_DISABLE_MAC_HELPER']
           ENV['WIFIWAND_DISABLE_MAC_HELPER'] = '1'
           begin
-            expect_any_instance_of(WifiWand::MacOsWifiAuthHelper::Client)
+            expect_any_instance_of(WifiWand::MacOsHelperClient)
               .not_to receive(:ensure_helper_installed)
             expect(model.connected?).to be(true)
           ensure
@@ -558,7 +558,7 @@ module WifiWand
       end
 
       describe 'Sonoma SSID redaction: helper succeeds but system_profiler lacks current-network data' do
-        let(:helper_double) { instance_double(WifiWand::MacOsWifiAuthHelper::Client) }
+        let(:helper_double) { instance_double(WifiWand::MacOsHelperClient) }
         let(:airport_data_without_current_network) do
           { 'SPAirPortDataType' => [{
             'spairport_airport_interfaces' => [{ '_name' => 'en0' }],
@@ -567,14 +567,14 @@ module WifiWand
 
         before do
           model.instance_variable_set(:@mac_helper_client, nil)
-          allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_double)
+          allow(WifiWand::MacOsHelperClient).to receive(:new).and_return(helper_double)
           allow(model).to receive_messages(
             wifi_on?:       true,
             wifi_interface: 'en0',
             airport_data:   airport_data_without_current_network
           )
           # Helper returns real SSID; system_profiler has no current-network key
-          helper_ssid_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: 'SonomaNet')
+          helper_ssid_result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: 'SonomaNet')
           allow(helper_double).to receive(:connected_network_name).and_return(helper_ssid_result)
         end
 
@@ -1161,13 +1161,13 @@ module WifiWand
 
       describe '#_available_network_names' do
         let(:default_scan_result) do
-          WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: [])
+          WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: [])
         end
         let(:default_connected_result) do
-          WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new
+          WifiWand::MacOsHelperBundle::HelperQueryResult.new
         end
         let(:helper_double) do
-          instance_double(WifiWand::MacOsWifiAuthHelper::Client)
+          instance_double(WifiWand::MacOsHelperClient)
         end
         let(:mock_airport_data) do
           {
@@ -1186,7 +1186,7 @@ module WifiWand
 
         before do
           model.instance_variable_set(:@mac_helper_client, nil)
-          allow(WifiWand::MacOsWifiAuthHelper::Client).to receive(:new).and_return(helper_double)
+          allow(WifiWand::MacOsHelperClient).to receive(:new).and_return(helper_double)
           allow(helper_double).to receive_messages(
             scan_networks:          default_scan_result,
             connected_network_name: default_connected_result
@@ -1283,7 +1283,7 @@ module WifiWand
         end
 
         it 'filters placeholder network names from helper results' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(
             payload: [
               { 'ssid' => '<hidden>' },
               { 'ssid' => '<redacted>' },
@@ -1321,7 +1321,7 @@ module WifiWand
         end
 
         it 'falls back to system_profiler when helper is blocked by Location Services' do
-          result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(
             payload:                   [],
             location_services_blocked: true,
             error_message:             'Location Services denied'
@@ -1486,9 +1486,9 @@ module WifiWand
         end
 
         it 'uses one airport snapshot while resolving security for a single lookup' do
-          helper_double = instance_double(WifiWand::MacOsWifiAuthHelper::Client)
+          helper_double = instance_double(WifiWand::MacOsHelperClient)
           json_output = JSON.generate(connected_airport_data)
-          helper_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: nil)
+          helper_result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: nil)
 
           allow(model).to receive(:_connected_network_name).and_call_original
           allow(model).to receive(:mac_helper_client).and_return(helper_double)
@@ -1504,8 +1504,8 @@ module WifiWand
         end
 
         it 'refreshes airport data between separate security lookups' do
-          helper_double = instance_double(WifiWand::MacOsWifiAuthHelper::Client)
-          helper_result = WifiWand::MacOsWifiAuthHelper::HelperQueryResult.new(payload: nil)
+          helper_double = instance_double(WifiWand::MacOsHelperClient)
+          helper_result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: nil)
           first_airport_data = JSON.generate(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{

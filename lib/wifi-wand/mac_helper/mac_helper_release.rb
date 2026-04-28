@@ -5,7 +5,7 @@ require 'open3'
 require 'json'
 require 'rbconfig'
 require 'shellwords'
-require_relative 'mac_os_wifi_auth_helper'
+require_relative 'mac_os_helper_bundle'
 require_relative 'mac_os_helper_build'
 
 module WifiWand
@@ -201,8 +201,8 @@ module WifiWand
       end
 
       def self.helper_executable_path
-        helper = WifiWand::MacOsWifiAuthHelper
-        File.join(helper.source_bundle_path, 'Contents', 'MacOS', WifiWand::MacOsWifiAuthHelper::EXECUTABLE_NAME)
+        helper = WifiWand::MacOsHelperBundle
+        File.join(helper.source_bundle_path, 'Contents', 'MacOS', WifiWand::MacOsHelperBundle::EXECUTABLE_NAME)
       end
 
       def self.get_binary_architectures(binary_path)
@@ -377,7 +377,7 @@ module WifiWand
 
     # Public API - main operations
     module_function def verify_source_attestation!
-      WifiWand::MacOsWifiAuthHelper.verify_source_bundle_current!
+      WifiWand::MacOsHelperBundle.verify_source_bundle_current!
       puts Messages::SOURCE_ATTESTATION_VALID
     rescue => e
       abort Messages.source_attestation_invalid(e.message)
@@ -390,9 +390,9 @@ module WifiWand
       Operations.verify_identity_exists(identity)
       ENV['WIFIWAND_CODESIGN_IDENTITY'] ||= identity
 
-      helper = WifiWand::MacOsWifiAuthHelper
+      helper = WifiWand::MacOsHelperBundle
       source = helper.source_swift_path
-      destination = File.join(helper.source_bundle_path, 'Contents', 'MacOS', WifiWand::MacOsWifiAuthHelper::EXECUTABLE_NAME)
+      destination = File.join(helper.source_bundle_path, 'Contents', 'MacOS', WifiWand::MacOsHelperBundle::EXECUTABLE_NAME)
 
       puts Messages.building_helper(source: source, destination: destination, identity: identity)
       helper.compile_helper(source, destination, out_stream: $stdout)
@@ -407,7 +407,7 @@ module WifiWand
 
     module_function def test_signed_helper
       Operations.require_macos!(__method__.to_s)
-      helper = WifiWand::MacOsWifiAuthHelper
+      helper = WifiWand::MacOsHelperBundle
       executable = Operations.helper_executable_path
       unless File.exist?(executable)
         abort "Helper not found at #{executable}. Run: bin/mac-helper-release build"
@@ -436,7 +436,7 @@ module WifiWand
       keychain_path = creds[:keychain_path]
       team_id = creds[:team_id]
 
-      helper = WifiWand::MacOsWifiAuthHelper
+      helper = WifiWand::MacOsHelperBundle
       bundle_path = helper.source_bundle_path
       zip_path = "#{bundle_path}.zip"
       abort "Helper bundle not found at #{bundle_path}. Run: bin/mac-helper-release build" \
@@ -626,7 +626,7 @@ module WifiWand
 
     module_function def codesign_status
       Operations.require_macos!(__method__.to_s)
-      helper = WifiWand::MacOsWifiAuthHelper
+      helper = WifiWand::MacOsHelperBundle
       bundle_path = helper.source_bundle_path
       executable_path = Operations.helper_executable_path
       unless File.exist?(bundle_path)

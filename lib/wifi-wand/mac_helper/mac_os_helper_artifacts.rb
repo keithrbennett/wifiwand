@@ -5,7 +5,7 @@ require 'pathname'
 require_relative '../version'
 
 module WifiWand
-  module MacOsWifiAuthHelper
+  module MacOsHelperBundle
     BUNDLE_NAME = 'wifiwand-helper.app'
     EXECUTABLE_NAME = 'wifiwand-helper'
 

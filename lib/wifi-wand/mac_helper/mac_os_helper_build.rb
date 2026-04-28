@@ -7,7 +7,7 @@ require 'open3'
 require_relative 'mac_os_helper_artifacts'
 
 module WifiWand
-  module MacOsWifiAuthHelper
+  module MacOsHelperBundle
     SOURCE_MANIFEST_FILENAME = 'wifiwand-helper.source-manifest.json'
 
     # Returns the path to the Swift source file in the gem's libexec directory

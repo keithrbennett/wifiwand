@@ -4,7 +4,7 @@ require 'spec_helper'
 require 'tmpdir'
 require_relative '../../../lib/wifi-wand/mac_helper/mac_os_helper_artifacts'
 
-RSpec.describe WifiWand::MacOsWifiAuthHelper do
+RSpec.describe WifiWand::MacOsHelperBundle do
   describe '.bundle_fingerprint' do
     let(:temp_dir) { Dir.mktmpdir('wifiwand-helper-artifacts-spec') }
     let(:bundle_path) { File.join(temp_dir, described_class::BUNDLE_NAME) }

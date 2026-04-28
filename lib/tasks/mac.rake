@@ -2,7 +2,7 @@
 
 require 'rbconfig'
 require 'open3'
-require_relative '../wifi-wand/mac_helper/mac_os_wifi_auth_helper'
+require_relative '../wifi-wand/mac_helper/mac_os_helper_bundle'
 
 def ensure_os_is_mac
   unless RbConfig::CONFIG['host_os'] =~ /darwin/i
@@ -15,7 +15,7 @@ namespace :mac do
   task :install_dev_helper do
     ensure_os_is_mac
 
-    helper = WifiWand::MacOsWifiAuthHelper
+    helper = WifiWand::MacOsHelperBundle
     source = helper.source_bundle_path
     dest = helper.installed_bundle_path
 
@@ -38,7 +38,7 @@ namespace :mac do
   task :rm_helper do
     ensure_os_is_mac
 
-    helper = WifiWand::MacOsWifiAuthHelper
+    helper = WifiWand::MacOsHelperBundle
     install_dir = File.dirname(helper.installed_bundle_path)
 
     if File.exist?(install_dir)

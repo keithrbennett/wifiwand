@@ -37,7 +37,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
     allow(setup).to receive(:install_helper)
     allow(setup).to receive(:reinstall_helper)
     allow(setup).to receive(:open_location_settings)
-    allow(WifiWand::MacOsWifiAuthHelper)
+    allow(WifiWand::MacOsHelperBundle)
       .to receive_messages(installed_executable_path: '/fake/helper', installed_bundle_path: '/fake/bundle')
   end
 
@@ -82,7 +82,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
       before do
         allow(setup).to receive(:reinstall_helper)
         stub_setup(setup, initial_status: complete_status)
-        allow(WifiWand::MacOsWifiAuthHelper)
+        allow(WifiWand::MacOsHelperBundle)
           .to receive(:installed_bundle_path).and_return('/fake/bundle')
       end
 
@@ -107,7 +107,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
       before do
         allow(setup).to receive(:reinstall_helper).and_raise('bundle copy failed')
         allow(setup).to receive(:check_status).and_return(complete_status)
-        allow(WifiWand::MacOsWifiAuthHelper)
+        allow(WifiWand::MacOsHelperBundle)
           .to receive(:installed_bundle_path).and_return('/fake/bundle')
       end
 
@@ -125,7 +125,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
       before do
         allow(setup).to receive(:reinstall_helper)
         stub_setup(setup, initial_status: complete_status)
-        allow(WifiWand::MacOsWifiAuthHelper)
+        allow(WifiWand::MacOsHelperBundle)
           .to receive(:installed_bundle_path).and_return('/fake/bundle')
       end
 
@@ -144,7 +144,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
     let(:missing_status)  { build_result(installed: false, valid: false) }
 
     before do
-      allow(WifiWand::MacOsWifiAuthHelper)
+      allow(WifiWand::MacOsHelperBundle)
         .to receive(:installed_executable_path).and_return('/fake/helper')
       allow(setup).to receive(:install_helper)
       allow(setup).to receive(:open_location_settings)
@@ -213,7 +213,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
     before do
       allow(setup).to receive(:reinstall_helper)
       allow(setup).to receive(:open_location_settings)
-      allow(WifiWand::MacOsWifiAuthHelper)
+      allow(WifiWand::MacOsHelperBundle)
         .to receive_messages(installed_executable_path: '/fake/helper', installed_bundle_path: '/fake/bundle')
     end
 
@@ -280,7 +280,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
     before do
       allow(setup).to receive(:check_status).and_return(needs_permission)
       allow(setup).to receive(:open_location_settings)
-      allow(WifiWand::MacOsWifiAuthHelper)
+      allow(WifiWand::MacOsHelperBundle)
         .to receive(:installed_executable_path).and_return('/fake/helper')
     end
 
@@ -318,7 +318,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
 
     before do
       allow(setup).to receive(:open_location_settings)
-      allow(WifiWand::MacOsWifiAuthHelper)
+      allow(WifiWand::MacOsHelperBundle)
         .to receive(:installed_executable_path).and_return('/fake/helper')
     end
 
@@ -326,7 +326,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
       invalid = build_result(valid: false)
       allow(setup).to receive(:check_status).and_return(invalid, build_result(authorized: false))
       allow(setup).to receive(:reinstall_helper)
-      allow(WifiWand::MacOsWifiAuthHelper)
+      allow(WifiWand::MacOsHelperBundle)
         .to receive(:installed_bundle_path).and_return('/fake/bundle')
 
       build_cli(setup: setup).run
@@ -352,7 +352,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
     it 'returns exit code 1 when an unexpected error occurs during steps' do
       allow(setup).to receive(:check_status).and_return(build_result(authorized: false))
       allow(setup).to receive(:open_location_settings).and_raise('unexpected failure')
-      allow(WifiWand::MacOsWifiAuthHelper)
+      allow(WifiWand::MacOsHelperBundle)
         .to receive(:installed_executable_path).and_return('/fake/helper')
 
       expect(build_cli(setup: setup).run).to eq(1)
@@ -361,7 +361,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
     it 'prints the error message' do
       allow(setup).to receive(:check_status).and_return(build_result(authorized: false))
       allow(setup).to receive(:open_location_settings).and_raise('unexpected failure')
-      allow(WifiWand::MacOsWifiAuthHelper)
+      allow(WifiWand::MacOsHelperBundle)
         .to receive(:installed_executable_path).and_return('/fake/helper')
 
       build_cli(setup: setup).run

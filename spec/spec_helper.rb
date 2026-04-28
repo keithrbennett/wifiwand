@@ -22,10 +22,10 @@ WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT       = 0.25
 WifiWand::TimingConstants::DNS_RESOLUTION_TIMEOUT       = 0.25
 WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT = 1.0
 WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT    = 0.25
-require_relative '../lib/wifi-wand/mac_helper/mac_os_wifi_auth_helper'
-WifiWand::MacOsWifiAuthHelper::HELPER_COMMAND_TIMEOUT_SECONDS  = 1.0
-WifiWand::MacOsWifiAuthHelper::HELPER_TERMINATION_WAIT_SECONDS = 0.1
-WifiWand::MacOsWifiAuthHelper::Client::HELPER_COMMAND_TIMEOUT_SECONDS = 1.0
+require_relative '../lib/wifi-wand/mac_helper/mac_os_helper_bundle'
+WifiWand::MacOsHelperBundle::HELPER_COMMAND_TIMEOUT_SECONDS  = 1.0
+WifiWand::MacOsHelperBundle::HELPER_TERMINATION_WAIT_SECONDS = 0.1
+WifiWand::MacOsHelperClient::HELPER_COMMAND_TIMEOUT_SECONDS = 1.0
 $VERBOSE = original_verbose
 
 $stdout.sync = true # Essential for test suite output to be in the correct order.

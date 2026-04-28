@@ -4,7 +4,7 @@ require 'spec_helper'
 require 'tmpdir'
 require_relative '../../../lib/wifi-wand/mac_helper/mac_os_helper_build'
 
-RSpec.describe WifiWand::MacOsWifiAuthHelper do
+RSpec.describe WifiWand::MacOsHelperBundle do
   describe '.source_bundle_current?' do
     let(:temp_dir) { Dir.mktmpdir('wifiwand-helper-source-spec') }
     let(:source_root) { File.join(temp_dir, 'libexec', 'macos') }

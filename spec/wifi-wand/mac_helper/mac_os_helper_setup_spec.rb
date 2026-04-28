@@ -114,14 +114,14 @@ RSpec.describe WifiWand::MacOsHelperSetup do
     let(:helper_path) { '/tmp/fake-helper' }
 
     before do
-      allow(WifiWand::MacOsWifiAuthHelper)
+      allow(WifiWand::MacOsHelperBundle)
         .to receive(:installed_executable_path).and_return(helper_path)
     end
 
     context 'when the helper is not installed' do
       before do
         allow(File).to receive(:executable?).with(helper_path).and_return(false)
-        allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(false)
+        allow(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?).and_return(false)
       end
 
       it 'returns installed: false, valid: false, authorized: false' do
@@ -133,7 +133,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
       end
 
       it 'does not attempt to invoke the helper executable' do
-        expect(WifiWand::MacOsWifiAuthHelper).not_to receive(:run_bounded_helper_command)
+        expect(WifiWand::MacOsHelperBundle).not_to receive(:run_bounded_helper_command)
         setup.check_status
       end
     end
@@ -141,7 +141,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
     context 'when the helper is installed but structurally invalid (repair recommended)' do
       before do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
-        allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(false)
+        allow(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?).and_return(false)
       end
 
       it 'returns installed: true, valid: false, authorized: false' do
@@ -153,7 +153,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
       end
 
       it 'does not invoke the broken executable to probe authorization' do
-        expect(WifiWand::MacOsWifiAuthHelper).not_to receive(:run_bounded_helper_command)
+        expect(WifiWand::MacOsHelperBundle).not_to receive(:run_bounded_helper_command)
         setup.check_status
       end
 
@@ -168,8 +168,8 @@ RSpec.describe WifiWand::MacOsHelperSetup do
 
       before do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
-        allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true)
-        allow(WifiWand::MacOsWifiAuthHelper)
+        allow(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?).and_return(true)
+        allow(WifiWand::MacOsHelperBundle)
           .to receive(:run_bounded_helper_command).with(helper_path, 'check-permission')
           .and_return(stdout: response, stderr: '', status: ok_status)
       end
@@ -193,8 +193,8 @@ RSpec.describe WifiWand::MacOsHelperSetup do
 
       before do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
-        allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true)
-        allow(WifiWand::MacOsWifiAuthHelper)
+        allow(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?).and_return(true)
+        allow(WifiWand::MacOsHelperBundle)
           .to receive(:run_bounded_helper_command).with(helper_path, 'check-permission')
           .and_return(stdout: response, stderr: '', status: ok_status)
       end
@@ -211,8 +211,8 @@ RSpec.describe WifiWand::MacOsHelperSetup do
 
       before do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
-        allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true)
-        allow(WifiWand::MacOsWifiAuthHelper)
+        allow(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?).and_return(true)
+        allow(WifiWand::MacOsHelperBundle)
           .to receive(:run_bounded_helper_command).with(helper_path, 'check-permission')
           .and_return(stdout: '{invalid', stderr: '', status: ok_status)
       end
@@ -227,8 +227,8 @@ RSpec.describe WifiWand::MacOsHelperSetup do
     context 'when the helper authorization probe times out' do
       before do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
-        allow(WifiWand::MacOsWifiAuthHelper).to receive(:helper_installed_and_valid?).and_return(true)
-        allow(WifiWand::MacOsWifiAuthHelper)
+        allow(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?).and_return(true)
+        allow(WifiWand::MacOsHelperBundle)
           .to receive(:run_bounded_helper_command).with(helper_path, 'check-permission')
           .and_return(nil)
       end
@@ -245,8 +245,8 @@ RSpec.describe WifiWand::MacOsHelperSetup do
   # MacOsHelperSetup#install_helper
   # ---------------------------------------------------------------------------
   describe '#install_helper' do
-    it 'delegates to MacOsWifiAuthHelper.ensure_helper_installed with the output stream' do
-      expect(WifiWand::MacOsWifiAuthHelper)
+    it 'delegates to MacOsHelperBundle.ensure_helper_installed with the output stream' do
+      expect(WifiWand::MacOsHelperBundle)
         .to receive(:ensure_helper_installed).with(out_stream: out_stream)
       setup.install_helper
     end
@@ -258,9 +258,9 @@ RSpec.describe WifiWand::MacOsHelperSetup do
   describe '#reinstall_helper' do
     context 'when reinstall succeeds and validation passes' do
       before do
-        allow(WifiWand::MacOsWifiAuthHelper)
+        allow(WifiWand::MacOsHelperBundle)
           .to receive(:install_helper_bundle).with(out_stream: out_stream)
-        allow(WifiWand::MacOsWifiAuthHelper)
+        allow(WifiWand::MacOsHelperBundle)
           .to receive_messages(helper_installed_and_valid?: true, installed_bundle_path: '/fake/bundle')
       end
 
@@ -271,9 +271,9 @@ RSpec.describe WifiWand::MacOsHelperSetup do
 
     context 'when reinstall validation fails' do
       before do
-        allow(WifiWand::MacOsWifiAuthHelper)
+        allow(WifiWand::MacOsHelperBundle)
           .to receive(:install_helper_bundle).with(out_stream: out_stream)
-        allow(WifiWand::MacOsWifiAuthHelper)
+        allow(WifiWand::MacOsHelperBundle)
           .to receive(:helper_installed_and_valid?).and_return(false)
       end
 

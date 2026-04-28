@@ -7,7 +7,7 @@ require_relative 'base_model'
 require_relative '../errors'
 require_relative '../mac_helper/mac_os_swift_runtime'
 require_relative '../mac_helper/mac_os_wifi_transport'
-require_relative '../mac_helper/mac_os_wifi_auth_helper'
+require_relative '../mac_helper/mac_os_helper_bundle'
 
 
 module WifiWand
@@ -439,7 +439,7 @@ module WifiWand
     end
 
     def mac_helper_client
-      @mac_helper_client ||= WifiWand::MacOsWifiAuthHelper::Client.new(
+      @mac_helper_client ||= WifiWand::MacOsHelperClient.new(
         out_stream_proc:    -> { out_stream },
         verbose_proc:       -> { verbose? },
         macos_version_proc: -> { macos_version }

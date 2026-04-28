@@ -11,7 +11,7 @@
 
 require 'optparse'
 require_relative 'mac_os_helper_setup'
-require_relative 'mac_os_wifi_auth_helper'
+require_relative 'mac_os_helper_bundle'
 
 module WifiWand
   class MacOsSetupCli
@@ -71,7 +71,7 @@ module WifiWand
     private def perform_repair
       @out_stream.puts 'Reinstalling wifiwand-helper...'
       @setup.reinstall_helper
-      @out_stream.puts "✓ Helper reinstalled at: #{MacOsWifiAuthHelper.installed_bundle_path}"
+      @out_stream.puts "✓ Helper reinstalled at: #{MacOsHelperBundle.installed_bundle_path}"
       @out_stream.puts
       @out_stream.puts 'Note: macOS may have revoked the location permission after reinstall.'
       @out_stream.puts 'If prompted, re-grant permission in System Settings.'
@@ -145,7 +145,7 @@ module WifiWand
         @out_stream.puts
         @out_stream.puts "[#{current_step}/#{total_steps}] Installing wifiwand-helper..."
         @setup.install_helper
-        @out_stream.puts "✓ Helper installed at: #{MacOsWifiAuthHelper.installed_executable_path}"
+        @out_stream.puts "✓ Helper installed at: #{MacOsHelperBundle.installed_executable_path}"
 
         # macOS sometimes restores a previously-granted permission after install.
         @out_stream.puts
@@ -161,7 +161,7 @@ module WifiWand
         @out_stream.puts
         @out_stream.puts "[#{current_step}/#{total_steps}] Reinstalling wifiwand-helper..."
         @setup.reinstall_helper
-        @out_stream.puts "✓ Helper reinstalled at: #{MacOsWifiAuthHelper.installed_executable_path}"
+        @out_stream.puts "✓ Helper reinstalled at: #{MacOsHelperBundle.installed_executable_path}"
 
         # macOS sometimes preserves authorization across reinstalls.
         @out_stream.puts

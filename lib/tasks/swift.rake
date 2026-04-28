@@ -1,18 +1,18 @@
 # frozen_string_literal: true
 
 require 'rbconfig'
-require_relative '../wifi-wand/mac_helper/mac_os_wifi_auth_helper'
+require_relative '../wifi-wand/mac_helper/mac_os_helper_bundle'
 require_relative '../wifi-wand/mac_helper/mac_os_helper_build'
 
 namespace :swift do
-  helper = WifiWand::MacOsWifiAuthHelper
+  helper = WifiWand::MacOsHelperBundle
 
   helper_source = helper.source_swift_path
   helper_binary = File.join(
     helper.source_bundle_path,
     'Contents',
     'MacOS',
-    WifiWand::MacOsWifiAuthHelper::EXECUTABLE_NAME
+    WifiWand::MacOsHelperBundle::EXECUTABLE_NAME
   )
 
   file helper_binary => helper_source do
