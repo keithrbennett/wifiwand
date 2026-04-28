@@ -54,7 +54,7 @@ Notes:
 ### `networksetup -setairportnetwork <interface> <network_name> [password]`
 - Description: Connects to a Wi-Fi network using the built-in Network Setup tool.
 - Dynamic Values: `interface` (from `wifi_interface`), `network_name`, `password` (optional)
-- Base Model Method(s): `os_level_connect_using_networksetup`, `_connect`
+- Base Model Method(s): `MacOsModel#_connect`, `MacOsWifiTransport#connect`
 - CLI Command(s): `co`
 - Helpful Info: `networksetup` exits with code 0 even on failure; the implementation inspects the combined
   output for error patterns and raises on authentication failures.
@@ -144,7 +144,7 @@ The `security` tool integrates with the macOS Keychain to retrieve stored Wi-Fi 
 ### `sudo ifconfig <interface> disassociate`
 - Description: Disconnects the interface from its current Wi-Fi network when Swift/CoreWLAN is unavailable.
 - Dynamic Values: `interface` (from `wifi_interface`)
-- Base Model Method(s): `_disconnect`
+- Base Model Method(s): `MacOsModel#_disconnect`, `MacOsWifiTransport#disconnect`
 - CLI Command(s): `d`
 - Helpful Info: Falls back to `ifconfig <interface> disassociate` without sudo if the privileged form fails;
   both invocations suppress exceptions (`raise_on_error = false`) so alternate paths can run.
