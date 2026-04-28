@@ -894,7 +894,7 @@ module WifiWand
 
       # Runs early to surface any auth prompts before the long suite.
       describe 'preferred_network_password command integration', :keychain_integration do
-        it 'invokes security find-generic-password with correct arguments and handles not-found' do
+        it 'defaults to an unlimited keychain lookup and handles not-found' do
           model = create_mac_os_test_model
           ssid = 'TestNet'
 
@@ -909,7 +909,7 @@ module WifiWand
             call_sequence << [command, args, kwargs]
             if command == expected_cmd
               expect(args).to eq([true])
-              expect(kwargs).to eq(timeout_in_secs: described_class::KEYCHAIN_LOOKUP_TIMEOUT_SECONDS)
+              expect(kwargs).to eq(timeout_in_secs: nil)
               raise os_command_error(exitstatus: 44, command: 'security', text: '')
             else
               command_result(stdout: 'Wi-Fi Power (en0): On')
@@ -920,7 +920,7 @@ module WifiWand
           expect(call_sequence.map(&:first)).to include(expected_cmd)
         end
 
-        it 'allows callers to disable the keychain lookup timeout explicitly' do
+        it 'allows callers to request an explicit keychain lookup timeout' do
           model = create_mac_os_test_model
           ssid = 'TestNet'
 
@@ -931,14 +931,15 @@ module WifiWand
           allow(model).to receive(:run_command_using_args) do |command, *args, **kwargs|
             if command == expected_cmd
               expect(args).to eq([true])
-              expect(kwargs).to eq(timeout_in_secs: nil)
+              expect(kwargs).to eq(timeout_in_secs: described_class::KEYCHAIN_LOOKUP_TIMEOUT_SECONDS)
               raise os_command_error(exitstatus: 44, command: 'security', text: '')
             else
               command_result(stdout: 'Wi-Fi Power (en0): On')
             end
           end
 
-          expect(model.preferred_network_password(ssid, timeout_in_secs: nil)).to be_nil
+          expect(model.preferred_network_password(ssid,
+            timeout_in_secs: described_class::KEYCHAIN_LOOKUP_TIMEOUT_SECONDS)).to be_nil
         end
       end
 

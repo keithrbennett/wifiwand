@@ -1252,9 +1252,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
           allow(subject).to receive_messages(
             connected_network_name: test_network
           )
-          allow(subject).to receive(:preferred_network_password)
-            .with(test_network, timeout_in_secs: nil)
-            .and_return(test_password)
+          allow(subject).to receive(:preferred_network_password).with(test_network).and_return(test_password)
 
           silence_output { subject.generate_qr_code }
 
@@ -1292,9 +1290,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     context 'when handling open networks' do
       it 'generates QR code for open network (no password)' do
-        allow(subject).to receive(:preferred_network_password)
-          .with('TestNetwork', timeout_in_secs: nil)
-          .and_return(nil)
+        allow(subject).to receive(:preferred_network_password).with('TestNetwork').and_return(nil)
         allow(subject).to receive(:connection_security_type).and_return(nil)
         expected_qr_string = 'WIFI:T:nopass;S:TestNetwork;P:;H:false;;'
 

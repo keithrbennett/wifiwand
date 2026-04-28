@@ -83,9 +83,7 @@ module WifiWand
         network_name = model.connected_network_name
         return nil unless network_name
 
-        # QR generation may block on a macOS keychain auth dialog, so do not
-        # route through BaseModel#connected_network_password's default timeout.
-        model.preferred_network_password(network_name, timeout_in_secs: nil)
+        model.preferred_network_password(network_name)
       end
 
       private def build_wifi_qr_string(network_name, password, security_type, is_hidden = false)

@@ -92,10 +92,8 @@ describe 'QR Code Generator (unit)' do
     silence_output { model.generate_qr_code(nil, password: provided_password) }
   end
 
-  it 'looks up the connected network password without a timeout when no password is provided' do
-    expect(model).to receive(:preferred_network_password)
-      .with(ssid, timeout_in_secs: nil)
-      .and_return(password)
+  it 'looks up the connected network password through the model API when no password is provided' do
+    expect(model).to receive(:preferred_network_password).with(ssid).and_return(password)
 
     expect(model).to receive(:run_command_using_args) do |cmd|
       expect(cmd).to include('qrencode')

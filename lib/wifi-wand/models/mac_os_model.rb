@@ -336,6 +336,13 @@ module WifiWand
       mac_os_wifi_transport.connect(network_name, password)
     end
 
+    # Password lookups on macOS may block on a user-facing keychain approval
+    # dialog, so the public lookup API defaults to waiting indefinitely unless
+    # a caller explicitly requests a timeout.
+    def preferred_network_password(preferred_network_name, timeout_in_secs: nil)
+      super
+    end
+
     # @return:
     #   If the network is in the preferred networks list
     #     If a password is associated w/this network, return the password

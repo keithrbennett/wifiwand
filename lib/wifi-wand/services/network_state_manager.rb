@@ -133,7 +133,7 @@ module WifiWand
       return nil unless network_name
       return nil unless connected_network_requires_password?
 
-      @model.preferred_network_password(network_name, timeout_in_secs: nil)
+      @model.preferred_network_password(network_name)
     end
 
     private def connected_network_requires_password?

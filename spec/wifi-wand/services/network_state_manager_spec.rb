@@ -26,9 +26,7 @@ describe WifiWand::NetworkStateManager do
 
   describe '#capture_network_state' do
     it 'captures current network state' do
-      expect(mock_model).to receive(:preferred_network_password)
-        .with('TestNetwork', timeout_in_secs: nil)
-        .and_return('testpass')
+      expect(mock_model).to receive(:preferred_network_password).with('TestNetwork').and_return('testpass')
 
       expect(state_manager.capture_network_state).to include(
         wifi_enabled:     true,
@@ -49,9 +47,7 @@ describe WifiWand::NetworkStateManager do
       allow(mock_model).to receive_messages(
         connected_network_name: 'TestNetwork'
       )
-      allow(mock_model).to receive(:preferred_network_password)
-        .with('TestNetwork', timeout_in_secs: nil)
-        .and_return(nil)
+      allow(mock_model).to receive(:preferred_network_password).with('TestNetwork').and_return(nil)
       state = state_manager.capture_network_state
       expect(state[:network_name]).to eq('TestNetwork')
       expect(state[:network_password]).to be_nil
@@ -61,8 +57,7 @@ describe WifiWand::NetworkStateManager do
       output = StringIO.new
       verbose_manager = described_class.new(mock_model, verbose: true, output: output)
       allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
-      allow(mock_model).to receive(:preferred_network_password)
-        .with('TestNetwork', timeout_in_secs: nil)
+      allow(mock_model).to receive(:preferred_network_password).with('TestNetwork')
         .and_raise(WifiWand::KeychainError.new('Keychain error'))
 
       state = verbose_manager.capture_network_state
@@ -635,7 +630,7 @@ describe WifiWand::NetworkStateManager do
       manager = described_class.new(mock_model)
       allow(mock_model).to receive_messages(connected_network_name: 'CurrentNetwork',
         connection_security_type: 'WPA2')
-      allow(mock_model).to receive(:preferred_network_password).with('CurrentNetwork', timeout_in_secs: nil)
+      allow(mock_model).to receive(:preferred_network_password).with('CurrentNetwork')
         .and_return('current_password')
       expect(manager.send(:connected_network_password)).to eq('current_password')
     end
@@ -650,7 +645,7 @@ describe WifiWand::NetworkStateManager do
       manager = described_class.new(mock_model)
       allow(mock_model).to receive_messages(connected_network_name: 'CurrentNetwork',
         connection_security_type: nil)
-      allow(mock_model).to receive(:preferred_network_password).with('CurrentNetwork', timeout_in_secs: nil)
+      allow(mock_model).to receive(:preferred_network_password).with('CurrentNetwork')
         .and_return(nil)
 
       # nil means macOS could not report the security type; attempt lookup rather
