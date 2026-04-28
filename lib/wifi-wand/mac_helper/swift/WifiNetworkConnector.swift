@@ -7,7 +7,7 @@
    PURPOSE
    -------
    This Swift script provides WiFi network connection functionality using macOS's native
-   CoreWLAN framework. It's used by wifi-wand's MacOsModel as the PRIMARY method for
+   CoreWLAN framework. It's used by wifi-wand via MacOsSwiftRuntime as the PRIMARY method for
    connecting to WiFi networks, with networksetup as a fallback.
 
    WHY SWIFT INSTEAD OF COMMAND-LINE TOOLS?
@@ -22,7 +22,7 @@
 
    USAGE FROM RUBY
    ---------------
-   Called via MacOsModel#os_level_connect_using_swift (mac_os_model.rb:310-314):
+   Called via MacOsSwiftRuntime#connect:
 
      run_swift_command('WifiNetworkConnector', network_name, password)
 
@@ -31,7 +31,8 @@
 
    INTEGRATION ARCHITECTURE
    ------------------------
-   MacOsModel#_connect uses a fallback strategy (mac_os_model.rb:316-337):
+   MacOsModel#_connect delegates direct Swift dispatch through MacOsSwiftRuntime
+   and uses a fallback strategy:
      1. Try Swift/CoreWLAN first (this script)
      2. If CoreWLAN fails with specific errors (-3900, -3905), fall back to networksetup
      3. networksetup: `networksetup -setairportnetwork en0 "NetworkName" "password"`

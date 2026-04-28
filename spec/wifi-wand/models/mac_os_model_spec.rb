@@ -707,38 +707,6 @@ module WifiWand
         end
       end
 
-      describe '#swift_and_corewlan_present?' do
-        it 'detects Swift/CoreWLAN availability' do
-          test_cases = [
-            [nil, true],  # Command succeeds
-            [os_command_error(exitstatus: 127, command: 'swift', text: ''), false], # Swift not found
-            [os_command_error(exitstatus: 1, command: 'swift', text: ''), false],   # CoreWLAN not available
-            [os_command_error(exitstatus: 2, command: 'swift', text: ''), false],    # Other error
-          ]
-
-          test_cases.each do |error, expected|
-            fresh_model = create_mac_os_test_model
-
-            if error
-              allow(fresh_model).to receive(:run_command_using_args).and_raise(error)
-            else
-              allow(fresh_model).to receive(:run_command_using_args).and_return(command_result(stdout: ''))
-            end
-
-            expect(fresh_model.swift_and_corewlan_present?).to eq(expected)
-          end
-        end
-
-        it 'memoizes the subprocess probe result across repeated calls' do
-          expect(model).to receive(:run_command_using_args).with(['swift', '-e', 'import CoreWLAN'], false)
-            .once.and_return(command_result(stdout: ''))
-
-          2.times do
-            expect(model.swift_and_corewlan_present?).to be(true)
-          end
-        end
-      end
-
       describe '#default_interface' do
         it 'extracts default interface from route output' do
           test_cases = [
@@ -1051,14 +1019,16 @@ module WifiWand
         end
 
         it 'raises when swift fails, fallback runs, and the interface remains associated' do
+          runtime = instance_double(WifiWand::MacOsSwiftRuntime)
+          allow(model).to receive(:swift_runtime).and_return(runtime)
+          allow(runtime).to receive(:swift_and_corewlan_present?).and_return(true)
           allow(model).to receive_messages(
-            swift_and_corewlan_present?: true,
-            wifi_interface:              'en0',
-            wifi_on?:                    true,
-            associated?:                 true,
-            connected_network_name:      'TestNet'
+            wifi_interface:         'en0',
+            wifi_on?:               true,
+            associated?:            true,
+            connected_network_name: 'TestNet'
           )
-          allow(model).to receive(:run_swift_command).and_raise(StandardError.new('swift failed'))
+          allow(runtime).to receive(:disconnect).and_raise(StandardError.new('swift failed'))
           expect(model).to receive(:run_command_using_args).with(
             %w[sudo ifconfig en0 disassociate],
             false,
@@ -1076,13 +1046,14 @@ module WifiWand
         end
 
         it 'is a no-op when already disconnected' do
+          runtime = instance_double(WifiWand::MacOsSwiftRuntime, disconnect: nil)
+          allow(model).to receive(:swift_runtime).and_return(runtime)
           allow(model).to receive_messages(wifi_on?: true, associated?: false)
-          allow(model).to receive(:run_swift_command)
           allow(model).to receive(:run_command_using_args)
           allow(model).to receive(:till)
 
           expect(model.disconnect).to be_nil
-          expect(model).not_to have_received(:run_swift_command)
+          expect(runtime).not_to have_received(:disconnect)
           expect(model).not_to have_received(:run_command_using_args)
           expect(model).not_to have_received(:till)
         end
@@ -1090,7 +1061,8 @@ module WifiWand
 
       describe '#_disconnect' do
         it 'returns nil when the sudo ifconfig path succeeds' do
-          allow(model).to receive_messages(swift_and_corewlan_present?: false, wifi_interface: 'en0')
+          runtime = instance_double(WifiWand::MacOsSwiftRuntime, swift_and_corewlan_present?: false)
+          allow(model).to receive_messages(swift_runtime: runtime, wifi_interface: 'en0')
 
           expect(model).to receive(:run_command_using_args).with(
             %w[sudo ifconfig en0 disassociate],
@@ -1103,8 +1075,10 @@ module WifiWand
         end
 
         it 'falls back to plain ifconfig after sudo failure and returns nil' do
-          allow(model).to receive(:run_swift_command).and_raise(StandardError.new('swift failed'))
-          allow(model).to receive_messages(swift_and_corewlan_present?: true, wifi_interface: 'en0')
+          runtime = instance_double(WifiWand::MacOsSwiftRuntime)
+          allow(runtime).to receive_messages(swift_and_corewlan_present?: true)
+          allow(runtime).to receive(:disconnect).and_raise(StandardError.new('swift failed'))
+          allow(model).to receive_messages(swift_runtime: runtime, wifi_interface: 'en0')
 
           expect(model).to receive(:run_command_using_args).with(
             %w[sudo ifconfig en0 disassociate],
@@ -1119,7 +1093,8 @@ module WifiWand
         end
 
         it 'raises a disconnect error when both sudo and plain ifconfig fail' do
-          allow(model).to receive_messages(swift_and_corewlan_present?: false, wifi_interface: 'en0')
+          runtime = instance_double(WifiWand::MacOsSwiftRuntime, swift_and_corewlan_present?: false)
+          allow(model).to receive_messages(swift_runtime: runtime, wifi_interface: 'en0')
 
           expect(model).to receive(:run_command_using_args).with(
             %w[sudo ifconfig en0 disassociate],
@@ -1142,13 +1117,6 @@ module WifiWand
             expect(error.message).to include('ifconfig en0 disassociate exited with status 1')
             expect(error.message).to include('permission denied')
           end
-        end
-      end
-
-      describe '#swift_and_corewlan_present?' do
-        it 'handles unexpected errors gracefully and returns false' do
-          allow(model).to receive(:run_command_using_args).and_raise(StandardError.new('unexpected'))
-          expect(model.swift_and_corewlan_present?).to be(false)
         end
       end
 
@@ -1411,56 +1379,44 @@ module WifiWand
         end
       end
 
-      describe '#run_swift_command' do
-        it 'constructs and executes swift command with arguments' do
-          expect(model).to receive(:run_command_using_args) do |cmd|
-            expect(cmd[0]).to eq('swift')
-            expect(cmd[1]).to end_with('WifiNetworkConnector.swift')
-            expect(cmd[2]).to eq('TestNetwork')
-            expect(cmd[3]).to eq('password123')
-          end
-
-          model.run_swift_command('WifiNetworkConnector', 'TestNetwork', 'password123')
-        end
-
-        it 'handles commands with no arguments' do
-          expect(model).to receive(:run_command_using_args) do |cmd|
-            expect(cmd[0]).to eq('swift')
-            expect(cmd[1]).to end_with('WifiNetworkDisconnector.swift')
-            expect(cmd.length).to eq(2)
-          end
-
-          model.run_swift_command('WifiNetworkDisconnector')
-        end
-      end
-
       describe '#_connect method branching' do
         it 'uses Swift method when CoreWLAN is available' do
-          allow(model).to receive(:swift_and_corewlan_present?).and_return(true)
-          expect(model).to receive(:os_level_connect_using_swift).with('TestNetwork', 'password')
+          runtime = instance_double(
+            WifiWand::MacOsSwiftRuntime,
+            swift_and_corewlan_present?: true,
+            fallback_connect_error?:     false
+          )
+          allow(model).to receive_messages(swift_runtime: runtime)
+          expect(runtime).to receive(:connect).with('TestNetwork', 'password')
           expect(model).not_to receive(:os_level_connect_using_networksetup)
 
           model._connect('TestNetwork', 'password')
         end
 
         it 'uses networksetup method when CoreWLAN is not available' do
-          allow(model).to receive(:swift_and_corewlan_present?).and_return(false)
+          runtime = instance_double(WifiWand::MacOsSwiftRuntime, swift_and_corewlan_present?: false)
+          allow(model).to receive_messages(swift_runtime: runtime)
           expect(model).to receive(:os_level_connect_using_networksetup).with('TestNetwork', 'password')
-          expect(model).not_to receive(:os_level_connect_using_swift)
 
           model._connect('TestNetwork', 'password')
         end
 
         it 'handles connection without password' do
-          allow(model).to receive(:swift_and_corewlan_present?).and_return(true)
-          expect(model).to receive(:os_level_connect_using_swift).with('TestNetwork', nil)
+          runtime = instance_double(
+            WifiWand::MacOsSwiftRuntime,
+            swift_and_corewlan_present?: true,
+            fallback_connect_error?:     false
+          )
+          allow(model).to receive_messages(swift_runtime: runtime)
+          expect(runtime).to receive(:connect).with('TestNetwork', nil)
 
           model._connect('TestNetwork')
         end
 
         it 'falls back to networksetup for transient tmpErr Swift failures' do
-          allow(model).to receive(:swift_and_corewlan_present?).and_return(true)
-          allow(model).to receive(:os_level_connect_using_swift)
+          runtime = instance_double(WifiWand::MacOsSwiftRuntime, swift_and_corewlan_present?: true)
+          allow(model).to receive_messages(swift_runtime: runtime)
+          allow(runtime).to receive(:connect)
             .with('TestNetwork', 'password')
             .and_raise(
               os_command_error(
@@ -1469,14 +1425,18 @@ module WifiWand
                 text:       "Error connecting: The operation couldn't be completed. tmpErr (code: 82)"
               )
             )
+          expect(runtime).to receive(:fallback_connect_error?)
+            .with("Error connecting: The operation couldn't be completed. tmpErr (code: 82)")
+            .and_return(true)
           expect(model).to receive(:os_level_connect_using_networksetup).with('TestNetwork', 'password')
 
           model._connect('TestNetwork', 'password')
         end
 
         it 'falls back to networksetup for CoreWLAN generic Swift failures' do
-          allow(model).to receive(:swift_and_corewlan_present?).and_return(true)
-          allow(model).to receive(:os_level_connect_using_swift)
+          runtime = instance_double(WifiWand::MacOsSwiftRuntime, swift_and_corewlan_present?: true)
+          allow(model).to receive_messages(swift_runtime: runtime)
+          allow(runtime).to receive(:connect)
             .with('TestNetwork', 'password')
             .and_raise(
               os_command_error(
@@ -1485,14 +1445,18 @@ module WifiWand
                 text:       'Error: CoreWLAN generic error - possible keychain access or authentication issue'
               )
             )
+          expect(runtime).to receive(:fallback_connect_error?)
+            .with('Error: CoreWLAN generic error - possible keychain access or authentication issue')
+            .and_return(true)
           expect(model).to receive(:os_level_connect_using_networksetup).with('TestNetwork', 'password')
 
           model._connect('TestNetwork', 'password')
         end
 
         it 're-raises Swift errors that are not fallback candidates' do
-          allow(model).to receive(:swift_and_corewlan_present?).and_return(true)
-          allow(model).to receive(:os_level_connect_using_swift)
+          runtime = instance_double(WifiWand::MacOsSwiftRuntime, swift_and_corewlan_present?: true)
+          allow(model).to receive_messages(swift_runtime: runtime)
+          allow(runtime).to receive(:connect)
             .with('TestNetwork', 'password')
             .and_raise(
               os_command_error(
@@ -1501,6 +1465,8 @@ module WifiWand
                 text:       'Error connecting: permission denied'
               )
             )
+          expect(runtime).to receive(:fallback_connect_error?).with('Error connecting: permission denied')
+            .and_return(false)
           expect(model).not_to receive(:os_level_connect_using_networksetup)
 
           expect do
@@ -1541,21 +1507,6 @@ module WifiWand
             expect(error.reason).to eq('Reason: Invalid password.')
             expect(error.message).to include('Invalid password')
           end
-        end
-      end
-
-      describe '#os_level_connect_using_swift' do
-        it 'passes network and password to Swift command' do
-          expect(model).to receive(:run_swift_command).with('WifiNetworkConnector', 'TestNetwork',
-            'password123')
-
-          model.os_level_connect_using_swift('TestNetwork', 'password123')
-        end
-
-        it 'passes only network name when no password provided' do
-          expect(model).to receive(:run_swift_command).with('WifiNetworkConnector', 'TestNetwork')
-
-          model.os_level_connect_using_swift('TestNetwork')
         end
       end
 

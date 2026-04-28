@@ -5,6 +5,7 @@ require 'shellwords'
 
 require_relative 'base_model'
 require_relative '../errors'
+require_relative '../mac_helper/mac_os_swift_runtime'
 require_relative '../mac_helper/mac_os_wifi_auth_helper'
 
 
@@ -30,16 +31,6 @@ module WifiWand
       /authentication (?:failed|timeout|timed out)/i,
       /802\.1x authentication failed/i,
       /password required/i,
-    ].freeze
-
-    SWIFT_CONNECT_FALLBACK_PATTERNS = [
-      /code:\s*-3900/i,
-      /code:\s*-3905/i,
-      /corewlan generic error/i,
-      /possible keychain access or authentication issue/i,
-      /network not found/i,
-      /tmpErr\s*\(code:\s*82\)/i,
-      /couldn(?:\?\?\?|')t be completed.*tmpErr/i,
     ].freeze
 
     SYSTEM_PROFILER_TIMEOUT_SECONDS = 15
@@ -128,6 +119,7 @@ module WifiWand
       # Defer macOS version detection until first needed to minimize incidental OS calls
       @macos_version = nil
       @mac_helper_client = nil
+      @swift_runtime = nil
     end
 
     def connection_ready?(network_name)
@@ -375,24 +367,18 @@ module WifiWand
       reason.empty? ? output_text.strip : reason
     end
 
-    def os_level_connect_using_swift(network_name, password = nil)
-      args = [network_name]
-      args << password if password
-      run_swift_command('WifiNetworkConnector', *args)
-    end
-
     def _connect(network_name, password = nil)
       invalidate_airport_data_cache
 
-      if swift_and_corewlan_present?
+      if swift_runtime.swift_and_corewlan_present?
         begin
-          os_level_connect_using_swift(network_name, password)
+          swift_runtime.connect(network_name, password)
           return
         rescue WifiWand::CommandExecutor::OsCommandError => e
           # Only a small set of CoreWLAN errors are known to be recoverable via
           # the `networksetup` fallback. Everything else should preserve the
           # original failure.
-          if swift_connect_should_fallback?(e.text)
+          if swift_runtime.fallback_connect_error?(e.text)
             if verbose?
               out_stream.puts "Swift/CoreWLAN failed (#{e.text.strip}). " \
                 'Trying networksetup fallback...'
@@ -410,10 +396,6 @@ module WifiWand
       end
 
       os_level_connect_using_networksetup(network_name, password)
-    end
-
-    def swift_connect_should_fallback?(error_text)
-      SWIFT_CONNECT_FALLBACK_PATTERNS.any? { |pattern| pattern.match?(error_text.to_s) }
     end
 
     # @return:
@@ -531,9 +513,9 @@ module WifiWand
       invalidate_airport_data_cache
 
       # Try Swift/CoreWLAN first (preferred method)
-      if swift_and_corewlan_present?
+      if swift_runtime.swift_and_corewlan_present?
         begin
-          run_swift_command('WifiNetworkDisconnector')
+          swift_runtime.disconnect
           return nil
         rescue => e
           if verbose?
@@ -619,32 +601,6 @@ module WifiWand
 
     def nameservers = nameservers_using_scutil
 
-    def swift_and_corewlan_present?
-      return @swift_and_corewlan_present if defined?(@swift_and_corewlan_present)
-
-      @swift_and_corewlan_present = begin
-        run_command_using_args(['swift', '-e', 'import CoreWLAN'], false)
-        true
-      rescue WifiWand::CommandExecutor::OsCommandError => e
-        # Log the specific error if in verbose mode
-        if verbose?
-          case e.exitstatus
-          when 127
-            out_stream.puts "Swift command not found (exit code #{e.exitstatus}). " \
-              'Install Xcode Command Line Tools.'
-          when 1
-            out_stream.puts "CoreWLAN framework not available (exit code #{e.exitstatus}). Install Xcode."
-          else
-            out_stream.puts "Swift/CoreWLAN check failed with exit code #{e.exitstatus}: #{e.text.strip}"
-          end
-        end
-        false
-      rescue => e
-        out_stream.puts "Unexpected error checking Swift/CoreWLAN: #{e.message}" if verbose?
-        false
-      end
-    end
-
     # Returns the network interface used for default internet route on macOS
     def default_interface
       output = run_command_using_args(%w[route -n get default], false).stdout
@@ -681,17 +637,19 @@ module WifiWand
       :ok
     end
 
-    def run_swift_command(basename, *args)
-      swift_filespec = File.absolute_path(File.join(File.dirname(__FILE__),
-        "../mac_helper/swift/#{basename}.swift"))
-      run_command_using_args(['swift', swift_filespec] + args)
-    end
-
     private :detect_wifi_service_name_from_ports,
       :extract_auth_failure_reason,
       :fetch_hardware_ports,
       :find_wifi_port,
       :helper_available_network_names
+
+    private def swift_runtime
+      @swift_runtime ||= WifiWand::MacOsSwiftRuntime.new(
+        command_runner:  ->(*args, **kwargs) { run_command_using_args(*args, **kwargs) },
+        out_stream_proc: -> { out_stream },
+        verbose_proc:    -> { verbose? }
+      )
+    end
 
     private def detect_wifi_interface_from_profiler_networks(nets)
       # Reuse the service name learned from the fast path when it is available.

@@ -7,7 +7,7 @@
    PURPOSE
    -------
    This Swift script disconnects from the currently connected WiFi network using macOS's
-   native CoreWLAN framework. It's used by wifi-wand's MacOsModel as the PRIMARY method
+   native CoreWLAN framework. It's used by wifi-wand via MacOsSwiftRuntime as the PRIMARY method
    for disconnecting, with ifconfig as a fallback.
 
    WHY SWIFT INSTEAD OF COMMAND-LINE TOOLS?
@@ -21,7 +21,7 @@
 
    USAGE FROM RUBY
    ---------------
-   Called via MacOsModel#_disconnect (mac_os_model.rb:411-434):
+   Called via MacOsSwiftRuntime#disconnect:
 
      run_swift_command('WifiNetworkDisconnector')
 
@@ -30,7 +30,8 @@
 
    INTEGRATION ARCHITECTURE
    ------------------------
-   MacOsModel#_disconnect uses a fallback strategy (mac_os_model.rb:411-434):
+   MacOsModel#_disconnect delegates direct Swift dispatch through MacOsSwiftRuntime
+   and uses a fallback strategy:
      1. Try Swift/CoreWLAN first (this script) - preferred method
      2. If CoreWLAN unavailable, fall back to ifconfig:
         `sudo ifconfig en0 disassociate` (or without sudo on some systems)
@@ -108,7 +109,7 @@ if let wifiInterface = CWWiFiClient.shared().interface() {
     */
     wifiInterface.disassociate()
 
-    print("ok")  /* Ruby code in MacOsModel checks for "ok" in stdout */
+    print("ok")  /* Ruby code invoked via MacOsSwiftRuntime treats "ok" in stdout as success */
     exit(0)      /* Exit with success code */
 
 } else {

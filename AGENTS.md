@@ -165,7 +165,8 @@ The macOS model uses Swift scripts with the CoreWLAN framework for improved WiFi
 **Fallback Strategy**:
 - Swift/CoreWLAN methods are attempted first when available
 - If Swift or CoreWLAN unavailable, automatically falls back to traditional utilities
-- Detection happens via `swift_and_corewlan_present?` method in `mac_os_model.rb:472`
+- Detection happens via `swift_and_corewlan_present?` in
+  `lib/wifi-wand/mac_helper/mac_os_swift_runtime.rb`
 - Users can use wifi-wand without Xcode/Swift installed (reduced functionality)
 
 **Installation**: Users can install Swift/CoreWLAN support with `xcode-select --install`
