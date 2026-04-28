@@ -310,41 +310,6 @@ RSpec.describe WifiWand::MacOsWifiAuthHelper do
       end
     end
 
-    describe '#terminate_helper_process' do
-      let(:wait_thr) { double('wait thread', pid: 4321, alive?: alive_after_term) }
-      let(:alive_after_term) { true }
-
-      it 'sends TERM, waits briefly, then escalates to KILL when the helper is still running' do
-        expect(Process).to receive(:kill).with('TERM', 4321).ordered
-        expect(client).to receive(:helper_exited_within_grace_period?)
-          .with(wait_thr).ordered.and_return(false)
-        expect(wait_thr).to receive(:alive?).ordered.and_return(true)
-        expect(Process).to receive(:kill).with('KILL', 4321).ordered
-        expect(client).to receive(:helper_exited_within_grace_period?).with(wait_thr).ordered
-
-        client.send(:terminate_helper_process, wait_thr)
-      end
-
-      it 'does not send KILL when the helper exits during the TERM grace period' do
-        expect(Process).to receive(:kill).with('TERM', 4321).ordered
-        expect(client).to receive(:helper_exited_within_grace_period?).with(wait_thr).ordered.and_return(true)
-        expect(wait_thr).not_to receive(:alive?)
-        expect(Process).not_to receive(:kill).with('KILL', 4321)
-
-        client.send(:terminate_helper_process, wait_thr)
-      end
-
-      it 'does not send KILL when the waiter shows the helper already exited after the grace period' do
-        expect(Process).to receive(:kill).with('TERM', 4321).ordered
-        expect(client).to receive(:helper_exited_within_grace_period?)
-          .with(wait_thr).ordered.and_return(false)
-        expect(wait_thr).to receive(:alive?).ordered.and_return(false)
-        expect(Process).not_to receive(:kill).with('KILL', 4321)
-
-        client.send(:terminate_helper_process, wait_thr)
-      end
-    end
-
     describe '#ensure_helper_installed' do
       let(:helper_path) { '/tmp/helper' }
 

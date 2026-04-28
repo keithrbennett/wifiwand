@@ -16,7 +16,6 @@ module WifiWand
 
     class Client
       HELPER_COMMAND_TIMEOUT_SECONDS = MacOsWifiAuthHelper::HELPER_COMMAND_TIMEOUT_SECONDS
-      HELPER_TERMINATION_WAIT_SECONDS = MacOsWifiAuthHelper::HELPER_TERMINATION_WAIT_SECONDS
       attr_reader :last_error_message
 
       def initialize(out_stream_proc:, verbose_proc:, macos_version_proc:)
@@ -128,22 +127,6 @@ module WifiWand
             log_verbose("helper command '#{timed_out_command}' timed out after #{timeout_seconds}s")
           end
         )
-      end
-
-      private def terminate_helper_process(wait_thr)
-        pid = wait_thr.pid
-        Process.kill('TERM', pid)
-        return if helper_exited_within_grace_period?(wait_thr)
-        return unless wait_thr.alive?
-
-        Process.kill('KILL', pid)
-        helper_exited_within_grace_period?(wait_thr)
-      rescue Errno::ESRCH, Errno::ECHILD
-        nil
-      end
-
-      private def helper_exited_within_grace_period?(wait_thr)
-        !!wait_thr.join(HELPER_TERMINATION_WAIT_SECONDS)
       end
 
       private def ensure_helper_installed
