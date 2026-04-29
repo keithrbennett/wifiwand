@@ -19,8 +19,8 @@ module WifiWand
     MINIMUM_HELPER_VERSION = Gem::Version.new('14.0')
     # Allows power users/CI to opt out of helper usage via environment flag
     DISABLE_ENV_KEY = 'WIFIWAND_DISABLE_MAC_HELPER'
-    HELPER_COMMAND_TIMEOUT_SECONDS =
-      (ENV['WIFIWAND_HELPER_TIMEOUT_SECONDS'] || 3.0).to_f
+    DEFAULT_HELPER_COMMAND_TIMEOUT_SECONDS = 3.0
+    SCAN_NETWORKS_HELPER_COMMAND_TIMEOUT_SECONDS = 15.0
     HELPER_TERMINATION_WAIT_SECONDS = 0.25
     HELPER_OUTPUT_READER_JOIN_SECONDS = 0.05
     MANIFEST_FILENAME = 'INSTALL_MANIFEST.json'
@@ -39,6 +39,14 @@ module WifiWand
         installed_executable: installed_executable_path,
         source_bundle:        source_bundle_path,
       }
+    end
+
+    module_function def helper_command_timeout_seconds(command)
+      if command == 'scan-networks'
+        SCAN_NETWORKS_HELPER_COMMAND_TIMEOUT_SECONDS
+      else
+        DEFAULT_HELPER_COMMAND_TIMEOUT_SECONDS
+      end
     end
   end
 end
@@ -72,8 +80,15 @@ module WifiWand
 
     module_function def installed_bundle_current? = MacOsHelperInstaller.installed_bundle_current?
 
-    module_function def run_bounded_helper_command(executable_path, command, on_timeout: nil)
-      MacOsHelperInstaller.run_bounded_helper_command(executable_path, command, on_timeout: on_timeout)
+    module_function def run_bounded_helper_command(
+      executable_path, command, timeout_seconds: nil, on_timeout: nil
+    )
+      MacOsHelperInstaller.run_bounded_helper_command(
+        executable_path,
+        command,
+        timeout_seconds: timeout_seconds,
+        on_timeout:      on_timeout
+      )
     end
 
     module_function def terminate_helper_process(wait_thr)

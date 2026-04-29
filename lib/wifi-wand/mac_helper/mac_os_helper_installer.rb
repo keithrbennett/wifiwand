@@ -91,15 +91,18 @@ module WifiWand
       end
     end
 
-    module_function def run_bounded_helper_command(executable_path, command, on_timeout: nil)
+    module_function def run_bounded_helper_command(
+      executable_path, command, timeout_seconds: nil, on_timeout: nil
+    )
       Open3.popen3(executable_path, command) do |stdin, stdout, stderr, wait_thr|
         stdin.close
         stdout_reader = helper_output_reader(stdout)
         stderr_reader = helper_output_reader(stderr)
-        wait_result = wait_thr.join(MacOsHelperBundle::HELPER_COMMAND_TIMEOUT_SECONDS)
+        timeout_seconds ||= MacOsHelperBundle.helper_command_timeout_seconds(command)
+        wait_result = wait_thr.join(timeout_seconds)
 
         unless wait_result
-          on_timeout&.call(command, MacOsHelperBundle::HELPER_COMMAND_TIMEOUT_SECONDS)
+          on_timeout&.call(command, timeout_seconds)
           terminate_helper_process(wait_thr)
           return nil
         end

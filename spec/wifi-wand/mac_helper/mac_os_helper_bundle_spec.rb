@@ -353,6 +353,8 @@ RSpec.describe WifiWand::MacOsHelperBundle do
 
       before do
         allow(WifiWand::MacOsHelperBundle).to receive(:installed_executable_path).and_return('/tmp/helper')
+        allow(WifiWand::MacOsHelperBundle).to receive(:helper_command_timeout_seconds)
+          .with(command).and_return(4.5)
         allow(Open3).to receive(:popen3).with('/tmp/helper', command)
           .and_yield(stdin, stdout, stderr, wait_thr)
       end
@@ -362,6 +364,21 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         expect(result).to eq(stdout: '{"status":"ok"}', stderr: '', status: status)
       end
 
+      it 'passes the command-specific timeout to the helper runner' do
+        allow(WifiWand::MacOsHelperBundle).to receive(:run_bounded_helper_command).and_return(
+          stdout: '{"status":"ok"}', stderr: '', status: status
+        )
+
+        helper_command_result
+
+        expect(WifiWand::MacOsHelperBundle).to have_received(:run_bounded_helper_command).with(
+          '/tmp/helper',
+          command,
+          timeout_seconds: 4.5,
+          on_timeout:      kind_of(Proc)
+        )
+      end
+
       context 'when the helper never exits before the deadline' do
         let(:stdout) { instance_double(IO, read: '', close: nil, closed?: false) }
         let(:stderr) { instance_double(IO, read: '', close: nil, closed?: false) }
@@ -369,7 +386,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         let(:verbose_flag) { true }
 
         it 'logs the timeout and returns nil' do
-          timeout_seconds = described_class::HELPER_COMMAND_TIMEOUT_SECONDS
+          timeout_seconds = 4.5
           timeout_message =
             "helper command 'scan-networks' timed out after #{timeout_seconds}s"
 
@@ -828,8 +845,12 @@ RSpec.describe WifiWand::MacOsHelperBundle do
       expect(result[:status].exitstatus).to eq(0)
     end
 
+    it 'uses a longer default timeout for scan-networks than for current-network' do
+      expect(described_class.helper_command_timeout_seconds('scan-networks'))
+        .to be > described_class.helper_command_timeout_seconds('current-network')
+    end
+
     it 'calls on_timeout, terminates the helper, and returns nil when the helper hangs' do
-      stub_const('WifiWand::MacOsHelperBundle::HELPER_COMMAND_TIMEOUT_SECONDS', 0.05)
       stub_const('WifiWand::MacOsHelperBundle::HELPER_TERMINATION_WAIT_SECONDS', 0.05)
       stub_const('WifiWand::MacOsHelperBundle::HELPER_OUTPUT_READER_JOIN_SECONDS', 0.05)
       write_helper_script(executable_path, <<~SH)
@@ -844,7 +865,8 @@ RSpec.describe WifiWand::MacOsHelperBundle do
       result = described_class.run_bounded_helper_command(
         executable_path,
         'help',
-        on_timeout: ->(command, timeout_seconds) { timed_out << [command, timeout_seconds] }
+        timeout_seconds: 0.05,
+        on_timeout:      ->(command, timeout_seconds) { timed_out << [command, timeout_seconds] }
       )
 
       expect(result).to be_nil
@@ -852,7 +874,6 @@ RSpec.describe WifiWand::MacOsHelperBundle do
     end
 
     it 'does not leak stream cleanup IOErrors to stderr during timeout cleanup' do
-      stub_const('WifiWand::MacOsHelperBundle::HELPER_COMMAND_TIMEOUT_SECONDS', 0.05)
       stub_const('WifiWand::MacOsHelperBundle::HELPER_TERMINATION_WAIT_SECONDS', 0.05)
       stub_const('WifiWand::MacOsHelperBundle::HELPER_OUTPUT_READER_JOIN_SECONDS', 0.05)
       write_helper_script(executable_path, <<~SH)
@@ -862,8 +883,20 @@ RSpec.describe WifiWand::MacOsHelperBundle do
       SH
 
       expect do
-        described_class.run_bounded_helper_command(executable_path, 'help')
+        described_class.run_bounded_helper_command(executable_path, 'help', timeout_seconds: 0.05)
       end.not_to output(/stream closed in another thread/).to_stderr
+    end
+  end
+
+  describe '.helper_command_timeout_seconds' do
+    it 'keeps current-network on the short default timeout' do
+      expect(described_class.helper_command_timeout_seconds('current-network'))
+        .to eq(described_class::DEFAULT_HELPER_COMMAND_TIMEOUT_SECONDS)
+    end
+
+    it 'gives scan-networks a longer default timeout' do
+      expect(described_class.helper_command_timeout_seconds('scan-networks'))
+        .to eq(described_class::SCAN_NETWORKS_HELPER_COMMAND_TIMEOUT_SECONDS)
     end
   end
 

@@ -1343,6 +1343,25 @@ module WifiWand
 
           expect(model._available_network_names).to eq(['VisibleNetwork'])
         end
+
+        it 'falls back to system_profiler when helper scan returns no networks after timing out' do
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: [])
+          allow(helper_double).to receive(:scan_networks).and_return(result)
+          allow(model).to receive_messages(
+            airport_data:           { 'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                     => 'en0',
+                'spairport_airport_local_wireless_networks' => [
+                  { '_name' => 'VisibleNetwork', 'spairport_signal_noise' => '75/10' },
+                ],
+              }],
+            }] },
+            wifi_interface:         'en0',
+            connected_network_name: nil
+          )
+
+          expect(model._available_network_names).to eq(['VisibleNetwork'])
+        end
       end
 
       describe '#airport_data (private)' do

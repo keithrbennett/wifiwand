@@ -16,7 +16,6 @@ module WifiWand
   end
 
   class MacOsHelperClient
-    HELPER_COMMAND_TIMEOUT_SECONDS = MacOsHelperBundle::HELPER_COMMAND_TIMEOUT_SECONDS
     attr_reader :last_error_message
 
     def initialize(out_stream_proc:, verbose_proc:, macos_version_proc:)
@@ -124,7 +123,8 @@ module WifiWand
       WifiWand::MacOsHelperBundle.run_bounded_helper_command(
         helper_executable_path,
         command,
-        on_timeout: ->(timed_out_command, timeout_seconds) do
+        timeout_seconds: WifiWand::MacOsHelperBundle.helper_command_timeout_seconds(command),
+        on_timeout:      ->(timed_out_command, timeout_seconds) do
           log_verbose("helper command '#{timed_out_command}' timed out after #{timeout_seconds}s")
         end
       )
