@@ -140,6 +140,20 @@ describe WifiWand::CommandLineInterface::CommandRegistry do
       expect(subject.find_command_action('connect')).to respond_to(:call)
     end
 
+    it 'resolves shell through the normal long command lookup' do
+      command = subject.resolve_command('shell')
+
+      expect(command).to be_a(WifiWand::ShellCommand)
+      expect(command.help_text).to include('Usage: wifi-wand shell')
+    end
+
+    it 'resolves shell through the normal short command lookup' do
+      command = subject.resolve_command('sh')
+
+      expect(command).to be_a(WifiWand::ShellCommand)
+      expect(command.help_text).to include('Usage: wifi-wand shell')
+    end
+
     it 'does not match intermediate partial command names' do
       expect(subject.find_command_action('con')).to be_nil
       expect(subject.find_command_action('conn')).to be_nil

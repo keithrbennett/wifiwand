@@ -21,11 +21,39 @@ describe WifiWand::CommandLineInterface do
       expect(cli.call).to eq(described_class::SUCCESS_EXIT_CODE)
     end
 
-    it 'starts the shell from call in interactive mode' do
-      cli = described_class.new(create_cli_options(interactive_mode: true))
-      expect(cli).to receive(:run_shell).and_return(0)
+    it 'dispatches shell through the registered command path' do
+      cli = described_class.new(create_cli_options, argv: ['shell'])
+      shell_command = instance_double(WifiWand::ShellCommand)
 
-      expect(cli.call).to eq(0)
+      expect(cli).to receive(:validate_command_line).and_return(described_class::SUCCESS_EXIT_CODE)
+      expect(cli).to receive(:resolve_command).with('shell').and_return(shell_command)
+      expect(shell_command).to receive(:call)
+
+      expect(cli.call).to eq(described_class::SUCCESS_EXIT_CODE)
+    end
+
+    it 'returns failure when shell startup is requested with an output formatter' do
+      err_stream = StringIO.new
+      opts = create_cli_options(post_processor: ->(object) { object.to_json })
+      opts.err_stream = err_stream
+      cli = described_class.new(opts, argv: ['shell'])
+
+      expect(cli).not_to receive(:run_shell)
+
+      expect(cli.call).to eq(described_class::FAILURE_EXIT_CODE)
+      expect(err_stream.string).to include('Output formatting is not supported for the shell command.')
+    end
+
+    it 'returns failure when shell startup receives trailing arguments' do
+      err_stream = StringIO.new
+      opts = create_cli_options
+      opts.err_stream = err_stream
+      cli = described_class.new(opts, argv: ['shell', '-o', 'j'])
+
+      expect(cli).not_to receive(:run_shell)
+
+      expect(cli.call).to eq(described_class::FAILURE_EXIT_CODE)
+      expect(err_stream.string).to include('The shell command does not accept arguments.')
     end
 
     it 'handles BadCommandError with error message and help hint' do

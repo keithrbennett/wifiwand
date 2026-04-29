@@ -112,7 +112,7 @@ canonical migration guide. Highlights include:
 
 - `connected_to_internet?` replaced by `internet_connectivity_state`
 - `till` wait-state names changed (`on`/`off`/`conn`/`disc` removed)
-- `-s` / `--shell` replaced by the `shell` subcommand
+- `-s` / `--shell` replaced by the `shell` command
 - partial CLI abbreviations removed; use exact short or long command names
 - `WifiWand::Main#parse_command_line` removed from the public API
 
@@ -180,10 +180,6 @@ Command Line Switches     [wifi-wand version 3.0.0-alpha.1 at https://github.com
 -v, --[no-]verbose        - verbose mode (prints OS commands and their outputs)
                             To disable: use --no-verbose or --no-v (short form negation like -v- is not supported)
 
-Subcommands
------------
-shell                     - start interactive shell (interactive pry REPL session)
-
 Commands
 --------
 Commands accept only the exact short or exact long form shown below.
@@ -217,6 +213,7 @@ q / quit                - exits this program (interactive shell mode only) (same
 qr [filespec|'-'] [password]
                          - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats; optional password avoids macOS auth prompt
 ro / ropen              - open web resources: 'cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page)
+sh / shell              - start interactive shell (interactive pry REPL session)
 s / status              - status line (WiFi, WiFi Network, DNS, Internet; shows captive portal warning if login is required)
                             (see docs/STATUS_COMMAND.md for details on connectivity detection and machine-readable status fields)
 t / till                - wait until state is reached:
@@ -281,7 +278,7 @@ wifi-wand info          # Run once, show output, exit
 wifi-wand connect MyNet # Connect and exit
 ```
 
-**Interactive Shell Mode** (`shell` subcommand): Start a persistent Ruby session
+**Interactive Shell Mode** (`shell` command): Start a persistent Ruby session
 ```bash
 wifi-wand shell         # Enter interactive mode
 [1] pry(#<WifiWandView>)> info

@@ -268,7 +268,7 @@ the valid state names.
 - Removed `fancy_print`. Awesome Print is now a required gem, so there is no
   need for a separate fallback.
 - The `-s` / `--shell` command-line option has been replaced with a `shell`
-  subcommand.
+  command.
 - All environment variables have been renamed to use the `WIFIWAND_` prefix
   (for example `WIFIWAND_VERBOSE` and `WIFIWAND_OPTS`).
 - Removed the `l` / `ls_avail_nets` command; it is no longer operational.

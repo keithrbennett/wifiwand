@@ -42,10 +42,10 @@ wifi-wand info
 export WIFIWAND_OPTS="--verbose"
 wifi-wand status
 ```
-- **Overrides:** Later command-line arguments can override most defaults, but subcommands (e.g., `shell`)
+- **Overrides:** Later command-line arguments can override most defaults, but commands (e.g., `shell`)
   cannot be negated, nor can their options be overridden from the environment.
-- **Scope:** `WIFIWAND_OPTS` only supports top-level flags; subcommand options (like `log --file`) must still
-  be passed on the command line when you invoke the subcommand.
+- **Scope:** `WIFIWAND_OPTS` only supports top-level flags; command options (like `log --file`) must still
+  be passed on the command line when you invoke the command.
 - **Parsing errors:** If the value contains unmatched quotes or otherwise cannot be parsed, wifi-wand aborts
   with a configuration error.
 

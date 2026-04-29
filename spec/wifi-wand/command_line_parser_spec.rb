@@ -34,10 +34,10 @@ describe WifiWand::CommandLineParser do
       end
     end
 
-    it 'parses shell subcommand and sets interactive_mode' do
+    it 'leaves shell in argv for normal command dispatch' do
       options = parse_with_argv('shell')
-      expect(options.interactive_mode).to be(true)
-      expect(options.argv).to eq([])
+      expect(options.interactive_mode).to be_nil
+      expect(options.argv).to eq(['shell'])
     end
 
     it 'parses wifi interface options' do
@@ -115,12 +115,12 @@ describe WifiWand::CommandLineParser do
       expect(options.post_processor).to respond_to(:call)
     end
 
-    it 'handles shell subcommand alongside other flags' do
+    it 'handles shell command alongside other flags' do
       options = described_class.new(['-v', '-p', 'eth0', 'shell'], ENV, err_stream).parse
       expect(options.verbose).to be(true)
       expect(options.wifi_interface).to eq('eth0')
-      expect(options.interactive_mode).to be(true)
-      expect(options.argv).to eq([])
+      expect(options.interactive_mode).to be_nil
+      expect(options.argv).to eq(['shell'])
     end
 
     it 'prepends options from WIFIWAND_OPTS before CLI arguments' do
@@ -160,7 +160,7 @@ describe WifiWand::CommandLineParser do
       expect(input).to eq(original)
     end
 
-    it 'does not mutate the argv array when parsing shell subcommand' do
+    it 'does not mutate the argv array when parsing shell command' do
       input = ['-v', 'shell']
       described_class.new(input, ENV, err_stream).parse
       expect(input).to eq(['-v', 'shell'])

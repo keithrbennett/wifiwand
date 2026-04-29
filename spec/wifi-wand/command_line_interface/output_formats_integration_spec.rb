@@ -467,11 +467,13 @@ describe 'Output Format Integration Tests' do
     it 'returns raw data in interactive mode regardless of post_processor' do
       test_data = { 'network' => 'TestNet' }
 
-      options = parse_options('-o', 'j', 'shell', 'i')
+      options = parse_options('-o', 'j', 'info')
       cli = WifiWand::CommandLineInterface.new(options)
       allow(cli.model).to receive(:wifi_info).and_return(test_data)
 
-      result = invoke_command(cli, 'info')
+      result = cli.with_interactive_mode do
+        invoke_command(cli, 'info')
+      end
 
       # In interactive mode, raw data is returned, not formatted
       expect(result).to eq(test_data)

@@ -32,10 +32,6 @@ module WifiWand
         ['-v, --[no-]verbose', 'verbose mode (prints OS commands and their outputs)'],
       ].freeze
 
-      HELP_SUBCOMMANDS = [
-        ['shell', 'start interactive shell (interactive pry REPL session)'],
-      ].freeze
-
       # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.
       def help_text
         resource_help = resource_manager.open_resources.help_string
@@ -43,16 +39,13 @@ module WifiWand
 
         body = [
           HORIZONTAL_RULE,
-          format_header_line('Usage', 'wifi-wand [options] [subcommand] [args]'),
+          format_header_line('Usage', 'wifi-wand [options] command [args]'),
           format_header_line('Repository', REPOSITORY_URL),
           format_header_line('Version', WifiWand::VERSION),
           HORIZONTAL_RULE,
           nil,
           nil,
           section('Command Line Switches', HELP_SWITCHES),
-          nil,
-          nil,
-          section('Subcommands', HELP_SUBCOMMANDS),
           nil,
           nil,
           'Commands',
@@ -160,6 +153,7 @@ module WifiWand
             ],
           ],
           ['ro / ropen', "open web resources: #{resource_help}"],
+          ['sh / shell', 'start interactive shell (interactive pry REPL session)'],
           [
             's / status',
             'status line (WiFi, Network, DNS, Internet; shows captive portal warning if login is required)',

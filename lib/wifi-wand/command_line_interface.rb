@@ -62,7 +62,7 @@ module WifiWand
     # Asserts that a command has been passed on the command line.
     def validate_command_line(argv = @argv)
       if argv.empty?
-        @err_stream.puts "Syntax is: #{File.basename($PROGRAM_NAME)} [options] command [command_options]. " \
+        @err_stream.puts "Syntax is: #{File.basename($PROGRAM_NAME)} [options] command [args]. " \
           "#{help_hint}"
         return FAILURE_EXIT_CODE
       end
@@ -101,6 +101,14 @@ module WifiWand
         @err_stream.puts help_hint unless e.message.include?(help_hint)
         FAILURE_EXIT_CODE
       end
+    end
+
+    def with_interactive_mode
+      previous_mode = @interactive_mode
+      @interactive_mode = true
+      yield
+    ensure
+      @interactive_mode = previous_mode
     end
   end
 end

@@ -64,9 +64,6 @@ module WifiWand
       if help_requested
         options.help_requested = true
         options.argv = ['h']
-      elsif args.first == 'shell'
-        options.interactive_mode = true
-        options.argv = args.drop(1)
       else
         options.argv = args
       end

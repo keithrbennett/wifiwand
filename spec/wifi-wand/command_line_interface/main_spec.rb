@@ -58,9 +58,9 @@ describe WifiWand::Main do
       expect(err_stream.string).to match(/Stack trace:/)
     end
 
-    it 'returns code 1 for interactive-mode failures too' do
+    it 'returns code 1 for shell command failures too' do
       ex = StandardError.new('Shell startup failed')
-      options = OpenStruct.new(verbose: false, interactive_mode: true, argv: [])
+      options = OpenStruct.new(verbose: false, argv: ['shell'])
       allow(mock_parser).to receive(:parse).and_return(options)
       allow(mock_cli).to receive(:call).and_raise(ex)
 
@@ -105,9 +105,9 @@ describe WifiWand::Main do
 
       expect(WifiWand::CommandLineInterface).to receive(:new) do |options, argv:|
         expect(options.verbose).to be(true)
-        expect(options.interactive_mode).to be(true)
+        expect(options.interactive_mode).to be_nil
         expect(options.wifi_interface).to eq('wlan0')
-        expect(argv).to eq([])
+        expect(argv).to eq(['shell'])
         mock_cli
       end
       expect(mock_cli).to receive(:call).and_return(0)

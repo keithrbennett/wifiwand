@@ -38,6 +38,7 @@ describe WifiWand::CommandLineInterface do
         'wifi_on'      => WifiWand::WifiOnCommand,
         'qr'           => WifiWand::QrCommand,
         'quit'         => WifiWand::QuitCommand,
+        'shell'        => WifiWand::ShellCommand,
         'status'       => WifiWand::StatusCommand,
         'till'         => WifiWand::TillCommand,
       }.each do |command_name, command_class|
@@ -136,6 +137,26 @@ describe WifiWand::CommandLineInterface do
       it 'xit calls quit method' do
         expect(cli).to receive(:quit)
         invoke_command(cli, 'xit')
+      end
+    end
+
+    describe 'shell command aliases' do
+      before do
+        allow(cli).to receive(:run_shell).and_return(0)
+      end
+
+      it 'shell calls the shared shell runner inside interactive mode' do
+        expect(cli).to receive(:with_interactive_mode).and_yield
+        expect(cli).to receive(:run_shell).and_return(0)
+
+        invoke_command(cli, 'shell')
+      end
+
+      it 'sh calls the shared shell runner inside interactive mode' do
+        expect(cli).to receive(:with_interactive_mode).and_yield
+        expect(cli).to receive(:run_shell).and_return(0)
+
+        invoke_command(cli, 'sh')
       end
     end
 

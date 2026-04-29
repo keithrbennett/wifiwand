@@ -27,9 +27,9 @@ At runtime, the command system has four main layers:
 
 Very roughly:
 
-- `CommandLineInterface` owns process-level concerns, CLI mode, shell mode, streams, options, and model setup.
+- `CommandLineInterface` owns process-level concerns, CLI mode, streams, options, model setup, and shell support.
 - `CommandRegistry` knows which command classes exist and resolves a command name to a bound command object.
-- Each command class owns the behavior of one subcommand.
+- Each command class owns the behavior of one command.
 - `CommandOutputSupport` provides a narrower command-facing interface for output and rendering helpers.
 
 ## Main Flow
@@ -44,9 +44,9 @@ For normal command-line execution, the flow is:
 6. `Command#bind`
 7. `SomeConcreteCommand#call`
 
-In shell mode, the flow is almost the same. `ShellInterface#method_missing` forwards the entered method name
-and arguments into `attempt_command_action`, so shell dispatch and command-line dispatch share the same command
-resolution path.
+For shell startup, `ShellCommand#call` enters interactive mode and delegates to `run_shell`. Once the shell is
+running, `ShellInterface#method_missing` forwards the entered method name and arguments into
+`attempt_command_action`, so shell dispatch and command-line dispatch share the same command resolution path.
 
 ## Core Types
 

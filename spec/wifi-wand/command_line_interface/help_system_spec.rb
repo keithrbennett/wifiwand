@@ -55,7 +55,7 @@ describe WifiWand::CommandLineInterface::HelpSystem do
     end
 
     it 'includes Usage line' do
-      expect(help).to include('Usage:                 wifi-wand [options] [subcommand] [args]')
+      expect(help).to include('Usage:                 wifi-wand [options] command [args]')
     end
 
     it 'documents DNS in the status command description' do
@@ -65,6 +65,11 @@ describe WifiWand::CommandLineInterface::HelpSystem do
     it 'documents exact short and long command forms for public_ip' do
       expect(help).to include('pi / public_ip [address|country|both|a|c|b]')
       expect(help).to include("e.g. 'public_ip a' or 'pi country'")
+    end
+
+    it 'lists shell with the normal commands' do
+      expect(help).to include('sh / shell')
+      expect(help).not_to include('Subcommands')
     end
 
     it 'wraps long switch labels onto their own line before the description' do
