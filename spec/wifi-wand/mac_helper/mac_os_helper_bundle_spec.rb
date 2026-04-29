@@ -804,6 +804,69 @@ RSpec.describe WifiWand::MacOsHelperBundle do
     end
   end
 
+  describe '.run_bounded_helper_command' do
+    let(:temp_dir) { Dir.mktmpdir('wifiwand-helper-run-spec') }
+    let(:executable_path) { File.join(temp_dir, 'wifiwand-helper-test') }
+
+    after do
+      FileUtils.rm_rf(temp_dir)
+    end
+
+    it 'returns stdout, stderr, and status when the helper exits successfully' do
+      write_helper_script(executable_path, <<~SH)
+        #!/bin/sh
+        echo "helper output"
+        echo "helper warning" >&2
+        exit 0
+      SH
+
+      result = described_class.run_bounded_helper_command(executable_path, 'help')
+
+      expect(result[:stdout]).to eq("helper output\n")
+      expect(result[:stderr]).to eq("helper warning\n")
+      expect(result[:status]).to be_success
+      expect(result[:status].exitstatus).to eq(0)
+    end
+
+    it 'calls on_timeout, terminates the helper, and returns nil when the helper hangs' do
+      stub_const('WifiWand::MacOsHelperBundle::HELPER_COMMAND_TIMEOUT_SECONDS', 0.05)
+      stub_const('WifiWand::MacOsHelperBundle::HELPER_TERMINATION_WAIT_SECONDS', 0.05)
+      stub_const('WifiWand::MacOsHelperBundle::HELPER_OUTPUT_READER_JOIN_SECONDS', 0.05)
+      write_helper_script(executable_path, <<~SH)
+        #!/bin/sh
+        trap 'exit 0' TERM
+        echo "starting"
+        echo "still running" >&2
+        sleep 10
+      SH
+      timed_out = []
+
+      result = described_class.run_bounded_helper_command(
+        executable_path,
+        'help',
+        on_timeout: ->(command, timeout_seconds) { timed_out << [command, timeout_seconds] }
+      )
+
+      expect(result).to be_nil
+      expect(timed_out).to eq([['help', 0.05]])
+    end
+
+    it 'does not leak stream cleanup IOErrors to stderr during timeout cleanup' do
+      stub_const('WifiWand::MacOsHelperBundle::HELPER_COMMAND_TIMEOUT_SECONDS', 0.05)
+      stub_const('WifiWand::MacOsHelperBundle::HELPER_TERMINATION_WAIT_SECONDS', 0.05)
+      stub_const('WifiWand::MacOsHelperBundle::HELPER_OUTPUT_READER_JOIN_SECONDS', 0.05)
+      write_helper_script(executable_path, <<~SH)
+        #!/bin/sh
+        trap 'exit 0' TERM
+        sleep 10
+      SH
+
+      expect do
+        described_class.run_bounded_helper_command(executable_path, 'help')
+      end.not_to output(/stream closed in another thread/).to_stderr
+    end
+  end
+
   describe '.helper_bundle_valid?' do
     let(:installer) { WifiWand::MacOsHelperInstaller }
     let(:temp_dir) { Dir.mktmpdir('wifiwand-helper-valid-spec') }
@@ -953,5 +1016,10 @@ RSpec.describe WifiWand::MacOsHelperBundle do
 
     FileUtils.mkdir_p(File.dirname(code_resources_path))
     File.write(code_resources_path, "signature=#{help_text}\n")
+  end
+
+  def write_helper_script(executable_path, contents)
+    File.write(executable_path, contents)
+    FileUtils.chmod(0o755, executable_path)
   end
 end

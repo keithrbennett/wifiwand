@@ -22,6 +22,7 @@ module WifiWand
     HELPER_COMMAND_TIMEOUT_SECONDS =
       (ENV['WIFIWAND_HELPER_TIMEOUT_SECONDS'] || 3.0).to_f
     HELPER_TERMINATION_WAIT_SECONDS = 0.25
+    HELPER_OUTPUT_READER_JOIN_SECONDS = 0.05
     MANIFEST_FILENAME = 'INSTALL_MANIFEST.json'
 
     module_function def versioned_install_dir = File.join(INSTALL_PARENT, helper_version)

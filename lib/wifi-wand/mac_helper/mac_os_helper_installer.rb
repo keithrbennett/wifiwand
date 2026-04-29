@@ -94,8 +94,8 @@ module WifiWand
     module_function def run_bounded_helper_command(executable_path, command, on_timeout: nil)
       Open3.popen3(executable_path, command) do |stdin, stdout, stderr, wait_thr|
         stdin.close
-        stdout_reader = Thread.new { stdout.read }
-        stderr_reader = Thread.new { stderr.read }
+        stdout_reader = helper_output_reader(stdout)
+        stderr_reader = helper_output_reader(stderr)
         wait_result = wait_thr.join(MacOsHelperBundle::HELPER_COMMAND_TIMEOUT_SECONDS)
 
         unless wait_result
@@ -110,13 +110,32 @@ module WifiWand
           status: wait_thr.value,
         }
       ensure
-        stdout&.close unless stdout&.closed?
-        stderr&.close unless stderr&.closed?
-        stdout_reader&.join
-        stderr_reader&.join
+        finalize_helper_output_reader(stdout_reader, stdout)
+        finalize_helper_output_reader(stderr_reader, stderr)
       end
     rescue Errno::ENOENT
       nil
+    end
+
+    module_function def helper_output_reader(stream)
+      Thread.new do
+        Thread.current.report_on_exception = false
+        stream.read
+      rescue IOError
+        ''
+      end
+    end
+
+    module_function def finalize_helper_output_reader(reader, stream)
+      return unless reader
+
+      begin
+        stream.close unless stream.closed?
+      rescue IOError
+        nil
+      ensure
+        reader.join(MacOsHelperBundle::HELPER_OUTPUT_READER_JOIN_SECONDS)
+      end
     end
 
     module_function def terminate_helper_process(wait_thr)
