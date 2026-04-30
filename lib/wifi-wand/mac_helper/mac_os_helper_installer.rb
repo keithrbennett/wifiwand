@@ -361,8 +361,4 @@ module WifiWand
       nil
     end
   end
-
-  module MacOsHelperBundle
-    Installer = WifiWand::MacOsHelperInstaller unless const_defined?(:Installer, false)
-  end
 end

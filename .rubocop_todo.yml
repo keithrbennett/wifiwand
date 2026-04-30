@@ -252,7 +252,6 @@ RSpec/SubjectStub:
     - 'spec/wifi-wand/command_line_interface/shell_interface_spec.rb'
     - 'spec/wifi-wand/command_line_interface_spec.rb'
     - 'spec/wifi-wand/mac_helper/mac_os_helper_setup_spec.rb'
-    - 'spec/wifi-wand/mac_helper/mac_os_wifi_auth_helper_spec.rb'
     - 'spec/wifi-wand/services/connection_manager_spec.rb'
 
 
@@ -345,7 +344,6 @@ Style/SafeNavigation:
   Exclude:
     - 'lib/wifi-wand/command_line_interface.rb'
     - 'lib/wifi-wand/command_line_interface/command_registry.rb'
-    - 'lib/wifi-wand/mac_helper/mac_os_wifi_auth_helper.rb'
     - 'lib/wifi-wand/models/helpers/qr_code_generator.rb'
     - 'lib/wifi-wand/services/event_logger.rb'
     - 'lib/wifi-wand/services/log_file_manager.rb'
@@ -366,12 +364,4 @@ Style/StructInheritance:
 Style/SafeNavigationChainLength:
   Exclude:
     - 'spec/wifi-wand/models/mac_os_model_spec.rb'
-
-
-
-
-
-
-
-
-
+  

@@ -177,6 +177,4 @@ module WifiWand
 
     module_function def read_install_manifest = MacOsHelperInstaller.read_install_manifest
   end
-
-  MacOsWifiAuthHelper = MacOsHelperBundle unless const_defined?(:MacOsWifiAuthHelper, false)
 end

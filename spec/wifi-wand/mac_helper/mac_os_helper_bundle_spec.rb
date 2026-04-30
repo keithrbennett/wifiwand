@@ -1022,16 +1022,6 @@ RSpec.describe WifiWand::MacOsHelperBundle do
     end
   end
 
-  describe 'compatibility aliases' do
-    it 'keeps the legacy helper module name resolving to the new bundle module' do
-      expect(WifiWand::MacOsWifiAuthHelper).to equal(described_class)
-    end
-
-    it 'keeps the legacy nested client constant resolving to the new client class' do
-      expect(WifiWand::MacOsWifiAuthHelper::Client).to equal(WifiWand::MacOsHelperClient)
-    end
-  end
-
   def create_helper_bundle(bundle_path, help_text:)
     executable_path = File.join(bundle_path, 'Contents', 'MacOS', described_class::EXECUTABLE_NAME)
     info_plist_path = File.join(bundle_path, 'Contents', 'Info.plist')

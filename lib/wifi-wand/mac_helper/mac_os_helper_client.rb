@@ -217,8 +217,4 @@ module WifiWand
 
     private def verbose? = !!(@verbose_proc && @verbose_proc.call)
   end
-
-  module MacOsHelperBundle
-    Client = WifiWand::MacOsHelperClient unless const_defined?(:Client, false)
-  end
 end

@@ -32,9 +32,16 @@ require 'wifi-wand/mac_helper/mac_os_helper_bundle'
 - old require path: `wifi-wand/mac_helper/mac_os_wifi_auth_helper`
 - new require path: `wifi-wand/mac_helper/mac_os_helper_bundle`
 
-The legacy constant name `WifiWand::MacOsWifiAuthHelper` still resolves for
-now, but the legacy file path does not. Load the new file path before using
-the helper runtime API directly.
+The legacy constant name `WifiWand::MacOsWifiAuthHelper` no longer resolves.
+Load `wifi-wand/mac_helper/mac_os_helper_bundle` and use the supported runtime
+names directly:
+
+- `WifiWand::MacOsHelperBundle`
+- `WifiWand::MacOsHelperClient`
+- `WifiWand::MacOsHelperInstaller`
+
+The older nested constants `WifiWand::MacOsHelperBundle::Client` and
+`WifiWand::MacOsHelperBundle::Installer` are also no longer provided.
 
 ### Verbose API naming
 
