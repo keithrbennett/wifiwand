@@ -1,19 +1,21 @@
 # frozen_string_literal: true
 
+require_relative '../wifi-wand/docs_tooling'
+
 namespace :docs do
   desc 'Build documentation with mkdocs'
   task :build do
-    sh 'bin/build-docs'
+    sh WifiWand::DocsTooling.build_script_path
   end
 
   desc 'Set up Python environment for the documentation server'
   task :setup do
-    sh 'bash', '-lc', 'python3 -m venv .docs-venv && .docs-venv/bin/pip install -q -r requirements-lock.txt'
+    WifiWand::DocsTooling.setup_environment!
   end
 
   desc 'Start documentation server'
   task :serve do
-    sh 'bin/start-doc-server'
+    sh WifiWand::DocsTooling.start_server_script_path
   end
 end
 

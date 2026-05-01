@@ -1,13 +1,11 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-mkdocs_path = File.exist?('.docs-venv/bin/mkdocs') ? '.docs-venv/bin/mkdocs' : 'mkdocs'
+require_relative '../lib/wifi-wand/docs_tooling'
 
-unless system('bash', '-lc', "command -v #{mkdocs_path} >/dev/null 2>&1")
-  warn "Error: mkdocs not found. Run 'source bin/set-up-python-for-doc-server' or " \
-       "'bundle exec rake docs:setup' first."
-  exit 1
-end
+WifiWand::DocsTooling.ensure_mkdocs_available!
 
 puts 'Starting documentation server...'
-exec(mkdocs_path, 'serve', '--config-file', File.expand_path('../mkdocs.yml', __dir__))
+$stdout.flush
+exec(WifiWand::DocsTooling.mkdocs_command, 'serve', '--config-file',
+     WifiWand::DocsTooling.mkdocs_config_path)

@@ -9,9 +9,12 @@ if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
   exit 1
 fi
 
-python3 -m venv .docs-venv
-source .docs-venv/bin/activate
-pip install -q -r requirements.txt
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+repo_root="$(cd -- "${script_dir}/.." && pwd -P)"
+venv_dir="$(ruby -r "${repo_root}/lib/wifi-wand/docs_tooling" -e 'print WifiWand::DocsTooling.venv_dir')"
+
+ruby -r "${repo_root}/lib/wifi-wand/docs_tooling" -e 'WifiWand::DocsTooling.setup_environment!'
+source "${venv_dir}/bin/activate"
 
 echo "Documentation environment ready."
-echo "Activate later with: source .docs-venv/bin/activate"
+echo "Activate later with: source ${venv_dir}/bin/activate"
