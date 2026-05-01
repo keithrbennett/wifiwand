@@ -6,7 +6,8 @@ require_relative '../runtime_config'
 module WifiWand
   class StatusLineDataBuilder
     SSID_UNAVAILABLE_LABEL = '[SSID unavailable]'
-    DEFAULT_WORKER_RESULT_TIMEOUT_SECONDS = 2
+    DEFAULT_NETWORK_WORKER_RESULT_TIMEOUT_SECONDS = 2
+    DEFAULT_CONNECTIVITY_WORKER_RESULT_TIMEOUT_SECONDS = 2
     DEFAULT_WORKER_RESULT_POLL_INTERVAL_SECONDS = 0.01
     DEFAULT_WORKER_CLEANUP_TIMEOUT_SECONDS = 0.05
     # A killed worker still needs a short window to run Ruby-level ensure blocks
@@ -20,7 +21,8 @@ module WifiWand
       model,
       runtime_config: nil,
       expected_network_errors: [],
-      worker_result_timeout_seconds: DEFAULT_WORKER_RESULT_TIMEOUT_SECONDS,
+      network_worker_result_timeout_seconds: nil,
+      connectivity_worker_result_timeout_seconds: nil,
       worker_result_poll_interval_seconds: DEFAULT_WORKER_RESULT_POLL_INTERVAL_SECONDS,
       worker_cleanup_timeout_seconds: DEFAULT_WORKER_CLEANUP_TIMEOUT_SECONDS,
       **kwargs
@@ -35,7 +37,10 @@ module WifiWand
         @out_stream_override = kwargs[:out_stream] if kwargs.key?(:out_stream)
       end
       @expected_network_errors = expected_network_errors
-      @worker_result_timeout_seconds = worker_result_timeout_seconds
+      @network_worker_result_timeout_seconds =
+        network_worker_result_timeout_seconds || DEFAULT_NETWORK_WORKER_RESULT_TIMEOUT_SECONDS
+      @connectivity_worker_result_timeout_seconds =
+        connectivity_worker_result_timeout_seconds || DEFAULT_CONNECTIVITY_WORKER_RESULT_TIMEOUT_SECONDS
       @worker_result_poll_interval_seconds = worker_result_poll_interval_seconds
       @worker_cleanup_timeout_seconds = worker_cleanup_timeout_seconds
       @cancelled = false
@@ -62,13 +67,14 @@ module WifiWand
       end
 
       result_queue = Queue.new
-      network_thread, connectivity_thread = build_status_threads(result_queue)
+      worker_start_time = monotonic_now
+      network_thread, connectivity_thread = build_status_threads(result_queue, worker_start_time)
       cached_results = {}
 
-      partial.merge!(await_worker_result(result_queue, :network, cached_results))
+      partial.merge!(await_worker_result(result_queue, :network, cached_results, worker_start_time))
       progress_callback&.call(partial.dup)
 
-      partial.merge!(await_worker_result(result_queue, :connectivity, cached_results))
+      partial.merge!(await_worker_result(result_queue, :connectivity, cached_results, worker_start_time))
 
       final_data = partial.dup
       progress_callback&.call(final_data)
@@ -81,7 +87,7 @@ module WifiWand
       cleanup_worker_threads(network_thread, connectivity_thread)
     end
 
-    private def build_status_threads(result_queue)
+    private def build_status_threads(result_queue, worker_start_time)
       # Audit note for cleanup risk:
       # - network_identity may block inside model.connected? or model.connected_network_name.
       #   On macOS that can reach helper subprocess I/O and system_profiler reads; on Ubuntu it
@@ -91,7 +97,9 @@ module WifiWand
       #   subprocesses, so this worker mostly waits on bounded pipe reads and helper deadlines.
       [
         spawn_worker { publish_worker_result(result_queue, :network) { network_identity } },
-        spawn_worker { publish_worker_result(result_queue, :connectivity) { connectivity_data } },
+        spawn_worker do
+          publish_worker_result(result_queue, :connectivity) { connectivity_data(worker_start_time) }
+        end,
       ]
     end
 
@@ -103,7 +111,7 @@ module WifiWand
       result_queue << [worker_name, :error, e]
     end
 
-    private def await_worker_result(result_queue, worker_name, cached_results)
+    private def await_worker_result(result_queue, worker_name, cached_results, worker_start_time)
       if cached_results.key?(worker_name)
         status, payload = cached_results.delete(worker_name)
         raise payload if status == :error
@@ -111,7 +119,7 @@ module WifiWand
         return payload
       end
 
-      deadline = monotonic_now + @worker_result_timeout_seconds
+      deadline = worker_start_time + worker_result_timeout_seconds_for(worker_name)
 
       loop do
         queue_entry = pop_worker_result_before_deadline(result_queue, deadline)
@@ -137,6 +145,17 @@ module WifiWand
         return nil if remaining <= 0
 
         sleep([@worker_result_poll_interval_seconds, remaining].min)
+      end
+    end
+
+    private def worker_result_timeout_seconds_for(worker_name)
+      case worker_name
+      when :network
+        @network_worker_result_timeout_seconds
+      when :connectivity
+        @connectivity_worker_result_timeout_seconds
+      else
+        raise ArgumentError, "Unknown worker name: #{worker_name}"
       end
     end
 
@@ -258,8 +277,8 @@ module WifiWand
       model.connected?
     end
 
-    private def connectivity_data
-      deadline = monotonic_now + @worker_result_timeout_seconds
+    private def connectivity_data(worker_start_time)
+      deadline = worker_start_time + worker_result_timeout_seconds_for(:connectivity)
       return cancelled_worker_result(:connectivity) if cancelled?
 
       tcp_result = tcp_connectivity_result(deadline)

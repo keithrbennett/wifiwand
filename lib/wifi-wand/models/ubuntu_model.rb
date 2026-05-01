@@ -4,6 +4,8 @@ require 'ipaddr'
 
 require_relative 'base_model'
 require_relative '../errors'
+require_relative '../timing_constants'
+require_relative '../services/status_line_data_builder'
 
 module WifiWand
   class UbuntuModel < BaseModel
@@ -23,6 +25,15 @@ module WifiWand
 
     def self.os_id
       :ubuntu
+    end
+
+    def status_line_data(progress_callback: nil)
+      StatusLineDataBuilder.new(
+        self,
+        runtime_config:                             runtime_config,
+        expected_network_errors:                    EXPECTED_NETWORK_ERRORS,
+        connectivity_worker_result_timeout_seconds: TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
+      ).call(progress_callback: progress_callback)
     end
 
     def validate_os_preconditions

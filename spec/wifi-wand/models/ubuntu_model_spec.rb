@@ -28,6 +28,24 @@ module WifiWand
 
     # Mocked tests with proper stubbing
     context 'when running core functionality tests' do
+      describe '#status_line_data' do
+        let(:builder) { instance_double(WifiWand::StatusLineDataBuilder, call: {}) }
+        let(:progress_callback) { ->(_data) {} }
+
+        it 'uses the longer connectivity worker timeout for Ubuntu status checks' do
+          expect(WifiWand::StatusLineDataBuilder).to receive(:new).with(
+            subject,
+            runtime_config:                             subject.runtime_config,
+            expected_network_errors:                    WifiWand::BaseModel::EXPECTED_NETWORK_ERRORS,
+            connectivity_worker_result_timeout_seconds: WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
+          ).and_return(builder)
+
+          expect(builder).to receive(:call).with(progress_callback: progress_callback).and_return({})
+
+          subject.status_line_data(progress_callback: progress_callback)
+        end
+      end
+
       describe '#wifi_on and #wifi_off failure paths' do
         it 'raises WifiEnableError when WiFi remains disabled after enable attempt' do
           allow(subject).to receive(:wifi_on?).and_return(false, false)

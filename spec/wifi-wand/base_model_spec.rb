@@ -1006,8 +1006,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'delegates to StatusLineDataBuilder with the current model context' do
       expect(WifiWand::StatusLineDataBuilder).to receive(:new).with(
         subject,
-        runtime_config:          subject.runtime_config,
-        expected_network_errors: WifiWand::BaseModel::EXPECTED_NETWORK_ERRORS
+        hash_including(
+          runtime_config:          subject.runtime_config,
+          expected_network_errors: WifiWand::BaseModel::EXPECTED_NETWORK_ERRORS
+        )
       ).and_return(builder)
       expect(builder).to receive(:call).with(progress_callback: progress_callback).and_return({})
 
