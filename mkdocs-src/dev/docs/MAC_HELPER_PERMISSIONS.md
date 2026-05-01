@@ -1,0 +1,1 @@
+--8<-- "dev/docs/MAC_HELPER_PERMISSIONS.md"

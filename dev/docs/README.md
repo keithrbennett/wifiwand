@@ -25,26 +25,8 @@ Use [../../docs/README.md](../../docs/README.md) for end-user and operator docum
 
 ## Documentation Server
 
-This repo can now serve its Markdown docs locally with MkDocs, using the same basic pattern as `cov-loupe`.
-
-```bash
-source bin/set-up-python-for-doc-server
-bin/start-doc-server
-```
-
-The site will be available at `http://127.0.0.1:8000/` with live reload. For non-interactive use:
-
-```bash
-bundle exec rake docs:setup
-bundle exec rake docs:build
-```
-
-Key files:
-
-- `mkdocs.yml` - MkDocs configuration and navigation.
-- `docs/index.md` - MkDocs landing page that includes the project `README.md`.
-- `requirements.txt` / `requirements-lock.txt` - Python dependencies for docs work.
-- `bin/start-doc-server` / `bin/build-docs` - Local serve and strict build helpers.
+- **[Documentation Server](DOC_SERVER.md)** - Local MkDocs setup, live server usage, strict builds, and
+  troubleshooting.
 
 ## General Information
 

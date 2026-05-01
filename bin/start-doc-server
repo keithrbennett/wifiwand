@@ -8,4 +8,4 @@ WifiWand::DocsTooling.ensure_mkdocs_available!
 puts 'Starting documentation server...'
 $stdout.flush
 exec(WifiWand::DocsTooling.mkdocs_command, 'serve', '--config-file',
-     WifiWand::DocsTooling.mkdocs_config_path)
+     WifiWand::DocsTooling.mkdocs_config_path, *ARGV)

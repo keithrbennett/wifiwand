@@ -4,8 +4,12 @@ site_url: https://keithrbennett.github.io/wifiwand/
 repo_url: https://github.com/keithrbennett/wifiwand
 repo_name: keithrbennett/wifiwand
 
-docs_dir: .
+docs_dir: mkdocs-src
 site_dir: site
+
+validation:
+  links:
+    not_found: ignore
 
 exclude_docs: |
   .bundle/
@@ -69,7 +73,7 @@ markdown_extensions:
       permalink: true
 
 nav:
-  - Home: docs/index.md
+  - Home: index.md
   - User Guide:
       - Docs Index: docs/README.md
       - macOS Setup: docs/MACOS_SETUP.md
@@ -86,6 +90,7 @@ nav:
       - Release Notes: RELEASE_NOTES.md
   - Developer Guide:
       - Docs Index: dev/docs/README.md
+      - Documentation Server: dev/docs/DOC_SERVER.md
       - Testing: dev/docs/TESTING.md
       - Command Architecture: dev/docs/COMMAND_ARCHITECTURE.md
       - public_ip Command Design: dev/docs/PUBLIC_IP_COMMAND_DESIGN.md

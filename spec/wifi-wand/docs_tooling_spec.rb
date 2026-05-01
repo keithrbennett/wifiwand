@@ -4,6 +4,7 @@ require_relative '../spec_helper'
 require_relative '../../lib/wifi-wand/docs_tooling'
 require 'fileutils'
 require 'open3'
+require 'rake'
 require 'rbconfig'
 require 'tmpdir'
 
@@ -16,10 +17,11 @@ RSpec.describe WifiWand::DocsTooling do
     File.chmod(0o755, path)
   end
 
-  def run_docs_script(script_name, chdir:)
+  def run_docs_script(script_name, chdir:, args: [])
     Dir.mktmpdir do |bin_dir|
       with_executable(File.join(bin_dir, 'mkdocs'), <<~SH)
         #!/bin/sh
+        pwd
         printf '%s\\n' "$@"
       SH
 
@@ -28,7 +30,52 @@ RSpec.describe WifiWand::DocsTooling do
         'WIFIWAND_DOCS_VENV_DIR' => File.join(bin_dir, 'no-docs-venv'),
       }
       script_path = File.join(repo_root, 'bin', script_name)
+      stdout, stderr, status = Open3.capture3(env, RbConfig.ruby, script_path, *args, chdir: chdir)
+
+      { stdout:, stderr:, exit_code: status.exitstatus }
+    end
+  end
+
+  def run_docs_script_without_mkdocs(script_name, chdir:)
+    Dir.mktmpdir do |bin_dir|
+      env = {
+        'PATH'                   => [bin_dir, ENV.fetch('PATH', '')].join(File::PATH_SEPARATOR),
+        'WIFIWAND_DOCS_MKDOCS'   => File.join(bin_dir, 'missing-mkdocs'),
+        'WIFIWAND_DOCS_VENV_DIR' => File.join(bin_dir, 'no-docs-venv'),
+      }
+      script_path = File.join(repo_root, 'bin', script_name)
       stdout, stderr, status = Open3.capture3(env, RbConfig.ruby, script_path, chdir: chdir)
+
+      { stdout:, stderr:, exit_code: status.exitstatus }
+    end
+  end
+
+  def run_rake_task_from(task_name:, chdir:, args: [])
+    Dir.mktmpdir do |bin_dir|
+      venv_dir = File.join(bin_dir, 'docs-venv')
+      with_executable(File.join(venv_dir, 'bin', 'mkdocs'), <<~SH)
+        #!/bin/sh
+        pwd
+        printf '%s\\n' "$@"
+      SH
+
+      env = {
+        'PATH'                   => [bin_dir, ENV.fetch('PATH', '')].join(File::PATH_SEPARATOR),
+        'BUNDLE_GEMFILE'         => File.join(repo_root, 'Gemfile'),
+        'WIFIWAND_DOCS_VENV_DIR' => venv_dir,
+      }
+
+      stdout, stderr, status = Open3.capture3(
+        env,
+        'bundle',
+        'exec',
+        'rake',
+        '-f',
+        File.join(repo_root, 'Rakefile'),
+        task_name,
+        *args,
+        chdir: chdir
+      )
 
       { stdout:, stderr:, exit_code: status.exitstatus }
     end
@@ -65,26 +112,25 @@ RSpec.describe WifiWand::DocsTooling do
       expect(described_class.mkdocs_config_path).to eq(File.join(repo_root, 'mkdocs.yml'))
     end
 
-    it 'resolves the build script under the repository root' do
-      expect(described_class.build_script_path).to eq(File.join(repo_root, 'bin', 'build-docs'))
+    it 'keeps MkDocs input and output paths outside the config directory' do
+      config = File.read(described_class.mkdocs_config_path)
+
+      expect(config).to include("docs_dir: mkdocs-src\n")
+      expect(config).to include("site_dir: site\n")
     end
 
-    it 'builds a Rake shell-safe command array for the build script' do
-      expect(described_class.build_script_command).to eq([
-        described_class.build_script_path,
-        described_class.build_script_path,
-      ])
+    it 'resolves the build script under the repository root' do
+      expect(described_class.build_script_path).to eq(File.join(repo_root, 'bin', 'build-docs'))
     end
 
     it 'resolves the start-server script under the repository root' do
       expect(described_class.start_server_script_path).to eq(File.join(repo_root, 'bin', 'start-doc-server'))
     end
 
-    it 'builds a Rake shell-safe command array for the start-server script' do
-      expect(described_class.start_server_script_command).to eq([
-        described_class.start_server_script_path,
-        described_class.start_server_script_path,
-      ])
+    it 'resolves the setup script under the repository root' do
+      expect(described_class.setup_script_path).to eq(
+        File.join(repo_root, 'bin', 'set-up-python-for-doc-server')
+      )
     end
   end
 
@@ -113,13 +159,57 @@ RSpec.describe WifiWand::DocsTooling do
 
       allow(described_class).to receive(:executable?).with(venv_mkdocs).and_return(true)
 
-      expect(described_class.mkdocs_command).to eq(venv_mkdocs)
+      with_env('WIFIWAND_DOCS_MKDOCS' => nil) do
+        expect(described_class.mkdocs_command).to eq(venv_mkdocs)
+      end
     end
 
     it 'falls back to PATH lookup when the repository virtual environment is unavailable' do
       allow(described_class).to receive(:executable?).with(described_class.venv_mkdocs_path).and_return(false)
 
-      expect(described_class.mkdocs_command).to eq('mkdocs')
+      with_env('WIFIWAND_DOCS_MKDOCS' => nil) do
+        expect(described_class.mkdocs_command).to eq('mkdocs')
+      end
+    end
+
+    it 'allows the MkDocs executable to be overridden' do
+      with_env('WIFIWAND_DOCS_MKDOCS' => '/opt/docs/bin/mkdocs') do
+        expect(described_class.mkdocs_command).to eq('/opt/docs/bin/mkdocs')
+      end
+    end
+
+    it 'ignores a blank MkDocs executable override' do
+      allow(described_class).to receive(:executable?).with(described_class.venv_mkdocs_path).and_return(false)
+
+      with_env('WIFIWAND_DOCS_MKDOCS' => ' ') do
+        expect(described_class.mkdocs_command).to eq('mkdocs')
+      end
+    end
+  end
+
+  describe '.extract_rake_passthrough_args!' do
+    it 'removes post-separator arguments from Rake task selection and returns them' do
+      rake_application = instance_double(Rake::Application)
+      top_level_tasks = ['docs:build', 'alt-site']
+      argv = ['docs:build', '--', '--site-dir', 'alt-site']
+
+      allow(rake_application).to receive(:top_level_tasks).and_return(top_level_tasks)
+
+      expect(described_class.extract_rake_passthrough_args!(argv, rake_application)).to eq(
+        ['--site-dir', 'alt-site']
+      )
+      expect(argv).to eq(['docs:build'])
+      expect(top_level_tasks).to eq(['docs:build'])
+    end
+  end
+
+  describe '.setup_guidance' do
+    it 'returns cwd-independent setup commands' do
+      source_command, rake_command = described_class.setup_guidance
+
+      expect(source_command).to include(described_class.setup_script_path.shellescape)
+      expect(rake_command).to include("BUNDLE_GEMFILE=#{described_class.gemfile_path.shellescape}")
+      expect(rake_command).to include("rake -f #{described_class.rakefile_path.shellescape} docs:setup")
     end
   end
 
@@ -179,13 +269,29 @@ RSpec.describe WifiWand::DocsTooling do
   describe 'bin/build-docs' do
     it 'uses the repository MkDocs config when launched outside the repository root' do
       Dir.mktmpdir('docs cwd ') do |chdir|
-        result = run_docs_script('build-docs', chdir: chdir)
+        result = run_docs_script('build-docs', chdir: chdir, args: ['--site-dir', 'alt-site'])
 
         expect(result[:exit_code]).to eq(0)
         expect(result[:stderr]).to eq('')
+        expect(result[:stdout]).to include("#{chdir}\n")
         expect(result[:stdout]).to include('build')
         expect(result[:stdout]).to include('--strict')
         expect(result[:stdout]).to include(described_class.mkdocs_config_path)
+        expect(result[:stdout]).to include('--site-dir')
+        expect(result[:stdout]).to include('alt-site')
+      end
+    end
+
+    it 'prints cwd-independent setup guidance when MkDocs is missing' do
+      Dir.mktmpdir('docs cwd ') do |chdir|
+        result = run_docs_script_without_mkdocs('build-docs', chdir: chdir)
+
+        expect(result[:exit_code]).to eq(1)
+        expect(result[:stdout]).to eq('')
+        expect(result[:stderr]).to include('mkdocs not found')
+        expect(result[:stderr]).to include("source #{described_class.setup_script_path}")
+        expect(result[:stderr]).to include("BUNDLE_GEMFILE=#{described_class.gemfile_path}")
+        expect(result[:stderr]).to include("rake -f #{described_class.rakefile_path} docs:setup")
       end
     end
   end
@@ -193,13 +299,56 @@ RSpec.describe WifiWand::DocsTooling do
   describe 'bin/start-doc-server' do
     it 'uses the repository MkDocs config when launched outside the repository root' do
       Dir.mktmpdir('docs cwd ') do |chdir|
-        result = run_docs_script('start-doc-server', chdir: chdir)
+        result = run_docs_script('start-doc-server', chdir: chdir, args: ['--dev-addr', '127.0.0.1:8001'])
 
         expect(result[:exit_code]).to eq(0)
         expect(result[:stderr]).to eq('')
         expect(result[:stdout]).to include('Starting documentation server...')
+        expect(result[:stdout]).to include("#{chdir}\n")
         expect(result[:stdout]).to include('serve')
         expect(result[:stdout]).to include(described_class.mkdocs_config_path)
+        expect(result[:stdout]).to include('--dev-addr')
+        expect(result[:stdout]).to include('127.0.0.1:8001')
+      end
+    end
+  end
+
+  describe 'docs rake tasks' do
+    it 'builds docs from outside the repository root with an absolute Rakefile path' do
+      Dir.mktmpdir('docs rake cwd ') do |chdir|
+        result = run_rake_task_from(
+          task_name: 'docs:build',
+          chdir:     chdir,
+          args:      ['--', '--site-dir', 'alt-site']
+        )
+
+        expect(result[:exit_code]).to eq(0)
+        expect(result[:stderr]).to include(described_class.build_script_path)
+        expect(result[:stdout]).to include("#{chdir}\n")
+        expect(result[:stdout]).to include('build')
+        expect(result[:stdout]).to include('--strict')
+        expect(result[:stdout]).to include(described_class.mkdocs_config_path)
+        expect(result[:stdout]).to include('--site-dir')
+        expect(result[:stdout]).to include('alt-site')
+      end
+    end
+
+    it 'serves docs from outside the repository root with an absolute Rakefile path' do
+      Dir.mktmpdir('docs rake cwd ') do |chdir|
+        result = run_rake_task_from(
+          task_name: 'docs:serve',
+          chdir:     chdir,
+          args:      ['--', '--dev-addr', '127.0.0.1:8002']
+        )
+
+        expect(result[:exit_code]).to eq(0)
+        expect(result[:stderr]).to include(described_class.start_server_script_path)
+        expect(result[:stdout]).to include('Starting documentation server...')
+        expect(result[:stdout]).to include("#{chdir}\n")
+        expect(result[:stdout]).to include('serve')
+        expect(result[:stdout]).to include(described_class.mkdocs_config_path)
+        expect(result[:stdout]).to include('--dev-addr')
+        expect(result[:stdout]).to include('127.0.0.1:8002')
       end
     end
   end
@@ -212,8 +361,8 @@ RSpec.describe WifiWand::DocsTooling do
       expect(status.exitstatus).to eq(1)
       expect(stdout).to eq('')
       expect(stderr).to include('Error: This script must be sourced, not executed directly.')
-      expect(stderr).to include('Usage: source bin/set-up-python-for-doc-server')
-      expect(stderr).to include('or: . bin/set-up-python-for-doc-server')
+      expect(stderr).to include("Usage: source #{script_path}")
+      expect(stderr).to include("or: . #{script_path}")
     end
 
     it 'returns before activation when setup fails while sourced' do
@@ -232,6 +381,26 @@ RSpec.describe WifiWand::DocsTooling do
         expect(stdout).to include('after:1')
         expect(stdout).not_to include('Documentation environment ready.')
         expect(stderr).to include('set WIFIWAND_DOCS_PYTHON')
+      end
+    end
+
+    it 'resolves its script path when sourced from zsh outside the repository root' do
+      Dir.mktmpdir('docs zsh setup ') do |tmpdir|
+        venv_dir = File.join(tmpdir, 'venv')
+        command = [
+          "cd #{tmpdir.inspect}",
+          "export WIFIWAND_DOCS_VENV_DIR=#{venv_dir.inspect}",
+          "export WIFIWAND_DOCS_PYTHON=#{File.join(tmpdir, 'missing-python').inspect}",
+          "source #{File.join(repo_root, 'bin', 'set-up-python-for-doc-server').inspect}",
+          'printf "after:%s\\n" "$?"',
+        ].join("\n")
+
+        stdout, stderr, status = Open3.capture3('zsh', '-fc', command)
+
+        expect(status.exitstatus).to eq(0)
+        expect(stdout).to include('after:1')
+        expect(stderr).to include('set WIFIWAND_DOCS_PYTHON')
+        expect(stderr).not_to include('LoadError')
       end
     end
   end

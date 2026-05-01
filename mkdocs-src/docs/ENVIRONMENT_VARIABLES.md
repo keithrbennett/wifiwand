@@ -1,0 +1,1 @@
+--8<-- "docs/ENVIRONMENT_VARIABLES.md"

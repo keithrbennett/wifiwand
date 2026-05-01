@@ -1,0 +1,1 @@
+--8<-- "docs/CONNECTIVITY_CHECKING.md"

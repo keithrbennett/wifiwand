@@ -1,0 +1,1 @@
+--8<-- "dev/docs/CONNECTED_VS_INTERNET_CONNECTIVITY.md"
