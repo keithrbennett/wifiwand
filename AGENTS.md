@@ -316,8 +316,10 @@ Apply these patterns proactively when creating new test files to ensure consiste
 The repository includes git hooks to maintain code quality:
 
 ### Pre-commit Hook
-- Automatically runs `bundle exec rspec` (safe tests) before each commit
+- Automatically runs `bundle exec rubocop` and `bundle exec rspec` before each commit
 - Prevents commits if tests fail
+- Because the hook blocks failing commits, agents do not need to rerun RuboCop or RSpec only to validate
+  changes that are already committed.
 - Installed via `bin/setup-hooks` script
 
 ### Setup for New Developers
