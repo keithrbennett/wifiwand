@@ -661,10 +661,11 @@ To install Swift and CoreWLAN support:
 xcode-select --install
 ```
 
-The following tasks were restored by using `networksetup` and `system_profiler`:
+The following tasks now rely on a mix of helper-backed reads and traditional
+macOS utilities:
 * determining whether or not WiFi is on
-* the name of the currently connected network
-* listing names of all available networks
+* reading the name of the currently connected network
+* listing names of available networks
 
 The only remaining issue is that we were getting some extended information from airport for each available
 network. This extended information has now been removed in version 2.17.0.
