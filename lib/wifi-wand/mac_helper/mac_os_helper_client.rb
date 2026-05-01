@@ -15,6 +15,9 @@ module WifiWand
     end
   end
 
+  # Talks to the compiled macOS helper app used for permission-sensitive
+  # read/query operations such as current-network lookups and network scans.
+  # Connect/disconnect mutations still run through MacOsSwiftRuntime.
   class MacOsHelperClient
     attr_reader :last_error_message
 

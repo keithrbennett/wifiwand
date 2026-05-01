@@ -4,6 +4,9 @@ require_relative '../errors'
 require_relative '../services/command_executor'
 
 module WifiWand
+  # Orchestrates the direct Swift-source runtime path for macOS
+  # connect/disconnect mutations. Query/read operations that need a stable app
+  # identity stay on the compiled helper path via MacOsHelperClient.
   class MacOsWifiTransport
     CONNECTION_FAILURE_PATTERNS = [
       /Failed to join network/i,

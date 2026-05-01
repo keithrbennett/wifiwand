@@ -97,6 +97,8 @@ Notes:
 ## `system_profiler`
 
 `system_profiler` emits structured JSON snapshots of hardware and Wi-Fi state that the model parses.
+For read/query operations, it now sits behind the compiled helper-app path rather
+than defining the primary runtime by itself.
 
 ### `system_profiler -json SPNetworkDataType`
 - Description: Produces JSON metadata describing network services and interfaces.
@@ -111,8 +113,10 @@ Notes:
 - Base Model Method(s): `airport_data`, `_available_network_names`, `_connected_network_name`,
   `connection_security_type`, `network_hidden?`
 - CLI Command(s): `a` (available networks), `i` (info), `ne` (network name), `qr` (QR code generation)
-- Helpful Info: The model caches parsed results and extracts signal strength noise ratios to sort networks by
-  quality.
+- Helpful Info: The compiled `wifiwand-helper.app` path is checked first for
+  `_available_network_names` and `_connected_network_name`. `system_profiler`
+  remains the structured fallback and still provides cached telemetry that the
+  model parses for signal sorting and security details.
 
 ## `security`
 
@@ -170,7 +174,10 @@ The `security` tool integrates with the macOS Keychain to retrieve stored Wi-Fi 
 
 ## `swift`
 
-Swift helpers leverage the CoreWLAN framework for rich Wi-Fi control when the toolchain is available.
+Swift helpers leverage the CoreWLAN framework for rich Wi-Fi control when the
+toolchain is available. In the current architecture, this section documents the
+direct Swift source path used for connect/disconnect mutations rather than the
+compiled helper-app read/query path.
 
 ### `swift -e 'import CoreWLAN'`
 - Description: Verifies that the Swift toolchain and CoreWLAN framework are available.
@@ -181,21 +188,27 @@ Swift helpers leverage the CoreWLAN framework for rich Wi-Fi control when the to
   unavailable).
 
 ### `swift lib/wifi-wand/mac_helper/swift/WifiNetworkConnector.swift <network_name> [password]`
-- Description: Uses a Swift helper to connect via CoreWLAN when available.
-- Dynamic Values: `swift_filespec` (absolute path to the helper), `network_name`, `password` (optional)
+- Description: Uses the direct Swift source path to connect via CoreWLAN when
+  available.
+- Dynamic Values: `swift_filespec` (absolute path to the script), `network_name`, `password` (optional)
 - Base Model Method(s): `MacOsModel#swift_runtime`, `MacOsSwiftRuntime#run_swift_command`,
   `MacOsSwiftRuntime#connect`, `_connect`
 - CLI Command(s): `co`
-- Helpful Info: The CoreWLAN path is attempted before the `networksetup` fallback; specific CoreWLAN error
-  codes trigger retries with the legacy command.
+- Helpful Info: This mutation path remains separate from the compiled helper
+  app because connect/disconnect still run through direct Swift source plus
+  command-line fallbacks. Specific CoreWLAN error codes trigger retries with
+  the `networksetup` fallback.
 
 ### `swift lib/wifi-wand/mac_helper/swift/WifiNetworkDisconnector.swift`
-- Description: Invokes a Swift helper to disconnect using CoreWLAN.
-- Dynamic Values: `swift_filespec` (absolute path to the helper)
+- Description: Invokes the direct Swift source path to disconnect using
+  CoreWLAN.
+- Dynamic Values: `swift_filespec` (absolute path to the script)
 - Base Model Method(s): `MacOsModel#swift_runtime`, `MacOsSwiftRuntime#run_swift_command`,
   `MacOsSwiftRuntime#disconnect`, `_disconnect`
 - CLI Command(s): `d`
-- Helpful Info: Failure automatically falls back to the `ifconfig disassociate` path described above.
+- Helpful Info: This mutation path remains separate from the compiled helper
+  app. Failure automatically falls back to the `ifconfig disassociate` path
+  described above.
 
 ## `route`
 

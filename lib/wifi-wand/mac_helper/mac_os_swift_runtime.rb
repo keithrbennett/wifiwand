@@ -3,6 +3,9 @@
 require_relative '../services/command_executor'
 
 module WifiWand
+  # Runs the direct Swift-source runtime path used for macOS connect/disconnect
+  # operations. Read/query operations that need a stable app identity flow
+  # through MacOsHelperClient and the compiled helper app instead.
   class MacOsSwiftRuntime
     SWIFT_CONNECT_FALLBACK_PATTERNS = [
       /code:\s*-3900/i,

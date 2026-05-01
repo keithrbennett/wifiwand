@@ -7,8 +7,18 @@
    PURPOSE
    -------
    This Swift script disconnects from the currently connected WiFi network using macOS's
-   native CoreWLAN framework. It's used by wifi-wand via MacOsSwiftRuntime as the PRIMARY method
-   for disconnecting, with ifconfig as a fallback.
+   native CoreWLAN framework. It is the direct Swift-source runtime path used by wifi-wand via
+   MacOsSwiftRuntime for disconnect operations, with ifconfig as a fallback.
+
+   RUNTIME CONTEXT
+   ---------------
+   macOS currently uses two Swift execution patterns at runtime:
+   1. A compiled helper app for query/read operations that need a stable app identity,
+      permission prompting, and helper-managed CoreWLAN access
+   2. This loose Swift source script for connect/disconnect mutations
+
+   That split is intentional for now. Consolidation may happen later, but is not part of
+   the current cleanup.
 
    WHY SWIFT INSTEAD OF COMMAND-LINE TOOLS?
    -----------------------------------------
@@ -30,8 +40,8 @@
 
    INTEGRATION ARCHITECTURE
    ------------------------
-   MacOsModel#_disconnect delegates direct Swift dispatch through MacOsSwiftRuntime
-   and uses a fallback strategy:
+   MacOsModel#_disconnect delegates the direct Swift-source path through
+   MacOsSwiftRuntime and uses a fallback strategy:
      1. Try Swift/CoreWLAN first (this script) - preferred method
      2. If CoreWLAN unavailable, fall back to ifconfig:
         `sudo ifconfig en0 disassociate` (or without sudo on some systems)

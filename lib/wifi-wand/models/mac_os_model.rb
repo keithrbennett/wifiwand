@@ -214,7 +214,12 @@ module WifiWand
       end
     end
 
-    # Queries available WiFi network names via the macOS helper (CoreWLAN).
+    # Queries available WiFi network names via the compiled macOS helper app.
+    # macOS currently uses two Swift runtime paths:
+    # - compiled helper bundle for read/query operations that may need a stable
+    #   app identity and Location Services handling
+    # - direct Swift source execution for connect/disconnect mutations
+    # Consolidating those paths is a future architecture task.
     #
     # Returns:
     #   - Array<String> of unique SSID names when the helper returns usable data
@@ -281,6 +286,9 @@ module WifiWand
       with_airport_data_cache_scope do
         return false unless wifi_on?
 
+        # Query the compiled helper path first because association checks may
+        # still need the helper's stable app identity to return an unredacted
+        # SSID on modern macOS.
         result = mac_helper_client.connected_network_name
         return true if result.payload && !placeholder_network_name?(result.payload)
 
@@ -295,9 +303,9 @@ module WifiWand
         return false unless wifi_on?
 
         # On Sonoma+, system_profiler may omit spairport_current_network_information
-        # entirely when SSID data is redacted. Check the helper first; a real SSID
-        # from the helper means the interface is connected even if system_profiler
-        # shows nothing.
+        # entirely when SSID data is redacted. Check the compiled helper path
+        # first; it is the runtime used for read/query operations that need
+        # CoreWLAN plus a stable app identity.
         result = mac_helper_client.connected_network_name
         return true if result.payload && !placeholder_network_name?(result.payload)
 
@@ -331,6 +339,10 @@ module WifiWand
       wifi_on? ? raise(WifiDisableError) : nil
     end
 
+    # Connect mutations flow through the direct Swift-source transport path.
+    # That path owns the Swift/CoreWLAN attempt plus fallback to traditional
+    # macOS utilities when Swift is unavailable or the connect attempt fails in
+    # known ways.
     def _connect(network_name, password = nil)
       invalidate_airport_data_cache
       mac_os_wifi_transport.connect(network_name, password)
@@ -411,6 +423,9 @@ module WifiWand
 
     def _connected_network_name
       with_airport_data_cache_scope do
+        # Current-network reads check the compiled helper path first because it
+        # is the read/query runtime with stable app identity and Location
+        # Services handling.
         result = mac_helper_client.connected_network_name
         ssid = result.payload
         return ssid if ssid && !placeholder_network_name?(ssid)
@@ -432,6 +447,8 @@ module WifiWand
 
     def network_identity_redacted?
       with_airport_data_cache_scope do
+        # Redaction detection is tied to the compiled helper path because that
+        # runtime surfaces Location Services blocking directly.
         result = mac_helper_client.connected_network_name
         result.location_services_blocked? || placeholder_network_name?(result.payload)
       end
@@ -454,6 +471,9 @@ module WifiWand
     end
 
     # Disconnects from the currently connected network. Does not turn off WiFi.
+    # Disconnect mutations use the direct Swift-source transport path first,
+    # with `ifconfig` fallback when the Swift/CoreWLAN path is unavailable or
+    # fails.
     def _disconnect
       invalidate_airport_data_cache
       mac_os_wifi_transport.disconnect
@@ -541,9 +561,9 @@ module WifiWand
     end
 
     def validate_os_preconditions
-      # All core commands are built-in. Eagerly warm the optional
-      # Swift/CoreWLAN availability probe here so the runtime owns both the
-      # cached result and any targeted verbose diagnostics.
+      # All core commands are built-in. Eagerly warm the direct Swift-source
+      # runtime probe here so the runtime owns both the cached result and any
+      # targeted verbose diagnostics before connect/disconnect runs.
       swift_runtime.swift_and_corewlan_present?
 
       :ok

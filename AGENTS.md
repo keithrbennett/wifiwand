@@ -153,23 +153,29 @@ The CLI uses modular design with mixins:
   Swift/CoreWLAN wrappers
 - **UbuntuModel** - Ubuntu-specific operations using `nmcli`, `iw`, `ip`
 
-### Swift/CoreWLAN Wrappers (macOS)
+### macOS Swift Runtime Paths
 
-The macOS model uses Swift scripts with the CoreWLAN framework for improved WiFi operations:
+The macOS model currently uses two distinct Swift/CoreWLAN runtime paths:
 
-**Location**: `lib/wifi-wand/mac_helper/swift/` directory
-- `WifiNetworkConnector.swift` - Connects to WiFi networks (preferred over `networksetup`)
-- `WifiNetworkDisconnector.swift` - Disconnects from networks (no sudo required)
-- `AvailableWifiNetworkLister.swift` - Legacy/unused (network listing uses `system_profiler` instead)
+- **Compiled helper app path** - `lib/wifi-wand/mac_helper/mac_os_helper_client.rb` talks to the installed
+  `wifiwand-helper.app` for read/query operations such as current-network lookups and nearby-network scans.
+  This path exists because modern macOS read/query behavior increasingly depends on CoreWLAN plus a stable
+  app identity for Location Services handling.
+- **Direct Swift source path** - `lib/wifi-wand/mac_helper/mac_os_swift_runtime.rb` runs
+  `lib/wifi-wand/mac_helper/swift/WifiNetworkConnector.swift` and
+  `lib/wifi-wand/mac_helper/swift/WifiNetworkDisconnector.swift` for connect/disconnect operations.
 
 **Fallback Strategy**:
-- Swift/CoreWLAN methods are attempted first when available
-- If Swift or CoreWLAN unavailable, automatically falls back to traditional utilities
-- Detection happens via `swift_and_corewlan_present?` in
-  `lib/wifi-wand/mac_helper/mac_os_swift_runtime.rb`
-- Users can use wifi-wand without Xcode/Swift installed (reduced functionality)
+- The compiled helper path covers permission-sensitive reads on supported macOS versions.
+- The direct Swift source path is attempted for connect/disconnect when Swift/CoreWLAN is available.
+- If the direct Swift source path is unavailable or fails in known ways, wifi-wand falls back to traditional
+  utilities such as `networksetup` and `ifconfig`.
+- Users can use wifi-wand without Xcode/Swift installed, with reduced connect/disconnect functionality.
 
-**Installation**: Users can install Swift/CoreWLAN support with `xcode-select --install`
+**Installation**: Users can install Swift/CoreWLAN support for the direct Swift source path with
+`xcode-select --install`
+
+**Architecture Note**: Consolidating these paths is a future architecture task.
 
 ## Testing Strategy
 

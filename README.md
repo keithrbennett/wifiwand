@@ -637,17 +637,24 @@ functionality relies has been disabled and will presumably eventually be removed
 
 #### Swift/CoreWLAN Wrappers
 
-To maintain functionality after airport deprecation, wifi-wand now uses Swift scripts with the CoreWLAN
-framework for several operations:
+To maintain functionality after airport deprecation and macOS permission changes, wifi-wand now uses two
+Swift/CoreWLAN runtime paths on macOS:
 
-* **Connecting to networks** - Uses `WifiNetworkConnector.swift` (preferred method, with automatic fallback to
-  `networksetup`)
-* **Disconnecting from networks** - Uses `WifiNetworkDisconnector.swift` (with the added benefit that sudo
-  access is no longer required, falls back to `ifconfig`)
+* **Compiled helper app for read/query operations** - On macOS Sonoma (14.0) and later, the signed
+  `wifiwand-helper.app` handles permission-sensitive operations such as reading current network details and
+  scanning nearby networks.
+* **Direct Swift source for connect/disconnect** - `WifiNetworkConnector.swift` and
+  `WifiNetworkDisconnector.swift` still handle connect/disconnect, with automatic fallback to
+  `networksetup` or `ifconfig` when needed.
 
-These Swift wrappers are **optional dependencies**. If Swift or CoreWLAN are not available (e.g., Xcode
-Command Line Tools not installed), wifi-wand automatically falls back to traditional command-line utilities
-(`networksetup`, `ifconfig`) with slightly reduced functionality.
+The helper path exists because modern macOS read/query operations increasingly depend on CoreWLAN plus a
+stable app identity for Location Services behavior. The direct Swift-source path remains in place because the
+existing connect/disconnect flow still works well with its fallbacks. Consolidating these paths is a later
+architecture topic, not part of the current cleanup.
+
+The direct Swift scripts are **optional dependencies**. If Swift or CoreWLAN are not available (for example,
+Xcode Command Line Tools are not installed), wifi-wand automatically falls back to traditional command-line
+utilities (`networksetup`, `ifconfig`) with slightly reduced functionality for connect/disconnect.
 
 To install Swift and CoreWLAN support:
 ```bash

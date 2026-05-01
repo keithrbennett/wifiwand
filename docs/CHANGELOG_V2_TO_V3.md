@@ -35,8 +35,11 @@ For upgrade-impacting API, CLI, and behavior changes, see
 
 ### macOS Helper Application
 
-- Replaced Swift/CoreWLAN scripts with a signed, notarized macOS helper
-  application (`wifiwand-helper`).
+- Added a signed, notarized macOS helper application (`wifiwand-helper`) for
+  read/query operations that need a stable app identity and Location Services
+  handling.
+- Kept the direct Swift/CoreWLAN scripts for connect/disconnect operations,
+  rather than routing every macOS WiFi action through the helper app.
 - The helper is a Universal binary (ARM + Intel) and requires macOS 14.0 or
   later for location-based network scanning.
 - Added `wifi-wand-macos-setup` to guide users through granting the necessary

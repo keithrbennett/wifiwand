@@ -9,6 +9,13 @@ wifi-wand can still detect that WiFi is associated, but commands that must verif
 the exact SSID such as `connect` and test-state restoration may report that the
 network identity could not be verified until permission is granted.
 
+wifi-wand currently uses two Swift/CoreWLAN runtime paths on macOS:
+- The compiled `wifiwand-helper.app` path handles read/query operations and is
+  the main path this setup flow grants Location Services permission for.
+- The direct Swift source scripts handle connect/disconnect mutations, but
+  connect can still be affected when macOS redacts permission-sensitive WiFi
+  identity.
+
 On macOS 15 and earlier, wifi-wand can fall back to slower system commands. On newer macOS versions, CoreWLAN
 with location permission may be the only way to access network names.
 

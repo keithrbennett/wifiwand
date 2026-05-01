@@ -24,6 +24,14 @@ macOS 14 (Sonoma) and later.
 The `wifiwand-helper` is a small native macOS application written in Swift that wifi-wand uses to retrieve
 WiFi network information (SSID, BSSID, signal strength, etc.) on modern versions of macOS.
 
+wifi-wand currently has two distinct Swift runtime paths on macOS:
+- The compiled `wifiwand-helper.app` path handles query/read operations.
+- The loose Swift source scripts handle connect/disconnect operations.
+
+This document focuses on the compiled helper path. The split exists because read/query operations need a
+stable app identity for macOS permission handling, while connect/disconnect still run through the older direct
+Swift-source transport. Consolidating those paths is a future architecture task.
+
 **Location:**
 ```
 ~/Library/Application Support/WifiWand/{version}/wifiwand-helper.app
@@ -367,6 +375,25 @@ The helper is automatically installed when you first run a wifi-wand command on 
        ▼
    WiFi Interface
 ```
+
+### Two Swift Runtime Paths
+
+wifi-wand currently uses both of these runtime paths on macOS:
+
+- Compiled helper app path:
+  `wifiwand-helper.app`, launched through the helper client, handles query/read operations such as current
+  network details and nearby network scans.
+- Direct Swift source path:
+  `lib/wifi-wand/mac_helper/swift/WifiNetworkConnector.swift` and
+  `lib/wifi-wand/mac_helper/swift/WifiNetworkDisconnector.swift`, launched through
+  `MacOsSwiftRuntime`, handle connect/disconnect operations.
+
+The compiled helper path exists because macOS read/query operations increasingly depend on CoreWLAN plus a
+stable, signed app identity for permission-sensitive behavior. The direct Swift source path remains in place
+for connect/disconnect because it already provides working mutation flows with existing fallbacks.
+
+Those two paths are intentionally documented here so contributors know where to look today. Unifying them is a
+future architecture decision.
 
 ### Helper Output Format
 
