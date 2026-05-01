@@ -412,11 +412,12 @@ module WifiWand
     # The returned hash includes :internet_state and :captive_portal_state
     # plus the derived :captive_portal_login_required (:yes/:no/:unknown).
     def status_line_data(progress_callback: nil)
-      StatusLineDataBuilder.new(
+      StatusLineDataBuilder.call(
         self,
+        progress_callback:       progress_callback,
         runtime_config:          runtime_config,
         expected_network_errors: EXPECTED_NETWORK_ERRORS
-      ).call(progress_callback: progress_callback)
+      )
     end
 
     def connected_to?(network_name)

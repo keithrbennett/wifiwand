@@ -28,12 +28,13 @@ module WifiWand
     end
 
     def status_line_data(progress_callback: nil)
-      StatusLineDataBuilder.new(
+      StatusLineDataBuilder.call(
         self,
+        progress_callback:                          progress_callback,
         runtime_config:                             runtime_config,
         expected_network_errors:                    EXPECTED_NETWORK_ERRORS,
         connectivity_worker_result_timeout_seconds: TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
-      ).call(progress_callback: progress_callback)
+      )
     end
 
     def validate_os_preconditions

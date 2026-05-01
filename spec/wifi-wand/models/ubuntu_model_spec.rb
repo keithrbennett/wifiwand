@@ -29,18 +29,16 @@ module WifiWand
     # Mocked tests with proper stubbing
     context 'when running core functionality tests' do
       describe '#status_line_data' do
-        let(:builder) { instance_double(WifiWand::StatusLineDataBuilder, call: {}) }
         let(:progress_callback) { ->(_data) {} }
 
         it 'uses the longer connectivity worker timeout for Ubuntu status checks' do
-          expect(WifiWand::StatusLineDataBuilder).to receive(:new).with(
+          expect(WifiWand::StatusLineDataBuilder).to receive(:call).with(
             subject,
+            progress_callback:                          progress_callback,
             runtime_config:                             subject.runtime_config,
             expected_network_errors:                    WifiWand::BaseModel::EXPECTED_NETWORK_ERRORS,
             connectivity_worker_result_timeout_seconds: WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
-          ).and_return(builder)
-
-          expect(builder).to receive(:call).with(progress_callback: progress_callback).and_return({})
+          ).and_return({})
 
           subject.status_line_data(progress_callback: progress_callback)
         end

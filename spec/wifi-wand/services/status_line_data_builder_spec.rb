@@ -67,6 +67,23 @@ describe WifiWand::StatusLineDataBuilder do
   end
 
   describe 'initialization' do
+    it 'supports one-shot invocation through the class-level call method' do
+      progress_callback = ->(_data) {}
+      builder = instance_double(described_class)
+
+      expect(described_class).to receive(:new).with(
+        model,
+        runtime_config: :runtime_config
+      ).and_return(builder)
+      expect(builder).to receive(:call).with(progress_callback: progress_callback).and_return({})
+
+      described_class.call(
+        model,
+        progress_callback: progress_callback,
+        runtime_config:    :runtime_config
+      )
+    end
+
     it 'uses the short default worker deadlines unless a caller overrides them' do
       default_builder = described_class.new(model)
 

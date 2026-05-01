@@ -169,8 +169,7 @@ RSpec.describe WifiWand::BaseModel do
     let(:model) { described_class.new(model_options) }
 
     it 'does not invoke deprecated connectivity shortcuts directly' do
-      builder = instance_double(WifiWand::StatusLineDataBuilder, call: { wifi_on: true })
-      allow(WifiWand::StatusLineDataBuilder).to receive(:new).and_return(builder)
+      allow(WifiWand::StatusLineDataBuilder).to receive(:call).and_return({ wifi_on: true })
 
       expect(model).not_to receive(:internet_connectivity_state)
 

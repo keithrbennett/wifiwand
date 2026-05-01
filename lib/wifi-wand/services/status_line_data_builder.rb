@@ -17,6 +17,10 @@ module WifiWand
     attr_reader :model, :expected_network_errors
     private attr_reader :runtime_config
 
+    def self.call(model, progress_callback: nil, **)
+      new(model, **).call(progress_callback: progress_callback)
+    end
+
     def initialize(
       model,
       runtime_config: nil,
@@ -32,10 +36,6 @@ module WifiWand
         verbose:    kwargs[:verbose],
         out_stream: kwargs.key?(:out_stream) ? kwargs[:out_stream] : $stdout
       )
-      unless runtime_config
-        @verbose_override = kwargs[:verbose] if kwargs.key?(:verbose)
-        @out_stream_override = kwargs[:out_stream] if kwargs.key?(:out_stream)
-      end
       @expected_network_errors = expected_network_errors
       @network_worker_result_timeout_seconds =
         network_worker_result_timeout_seconds || DEFAULT_NETWORK_WORKER_RESULT_TIMEOUT_SECONDS
@@ -46,13 +46,7 @@ module WifiWand
       @cancelled = false
     end
 
-    def out_stream
-      if instance_variable_defined?(:@out_stream_override)
-        @out_stream_override
-      else
-        runtime_config.out_stream
-      end
-    end
+    def out_stream = runtime_config.out_stream
 
     def call(progress_callback: nil)
       @cancelled = false
@@ -212,14 +206,7 @@ module WifiWand
 
     private def cancelled? = @cancelled
 
-    def verbose?
-      if instance_variable_defined?(:@verbose_override)
-        @verbose_override
-      else
-        runtime_config.verbose
-      end
-    end
-
+    def verbose? = runtime_config.verbose
 
     private def initial_data
       {

@@ -1000,25 +1000,23 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   describe '#status_line_data' do
-    let(:builder) { instance_double(WifiWand::StatusLineDataBuilder) }
     let(:progress_callback) { ->(_data) {} }
 
     it 'delegates to StatusLineDataBuilder with the current model context' do
-      expect(WifiWand::StatusLineDataBuilder).to receive(:new).with(
+      expect(WifiWand::StatusLineDataBuilder).to receive(:call).with(
         subject,
         hash_including(
+          progress_callback:       progress_callback,
           runtime_config:          subject.runtime_config,
           expected_network_errors: WifiWand::BaseModel::EXPECTED_NETWORK_ERRORS
         )
-      ).and_return(builder)
-      expect(builder).to receive(:call).with(progress_callback: progress_callback).and_return({})
+      ).and_return({})
 
       subject.status_line_data(progress_callback: progress_callback)
     end
 
     it 'returns the builder result unchanged' do
-      allow(WifiWand::StatusLineDataBuilder).to receive(:new).and_return(builder)
-      allow(builder).to receive(:call).and_return({ wifi_on: true })
+      allow(WifiWand::StatusLineDataBuilder).to receive(:call).and_return({ wifi_on: true })
 
       expect(subject.status_line_data).to eq(wifi_on: true)
     end
