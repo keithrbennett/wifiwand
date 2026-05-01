@@ -21,7 +21,7 @@ module WifiWand
           return
         end
 
-        display_run_details(run_data)
+        display_run_details(run_data, repository)
       end
 
       private def fetch_current_branch
@@ -50,7 +50,7 @@ module WifiWand
         parse_actions_api_response(api_response[:stdout])
       end
 
-      private def display_run_details(run)
+      private def display_run_details(run, repository)
         id = run['databaseId']
         status = run['status']
         conclusion = run['conclusion']
@@ -74,7 +74,7 @@ module WifiWand
         puts "Status:     #{colorize(display_status, color)}"
         puts "URL:        #{url}"
 
-        handle_status_action(status, conclusion, id, run['repository'])
+        handle_status_action(status, conclusion, id, repository)
       end
 
       private def handle_status_action(status, conclusion, id, repository)
@@ -151,7 +151,6 @@ module WifiWand
           'url'          => latest_run['html_url'],
           'displayTitle' => latest_run['display_title'],
           'createdAt'    => latest_run['created_at'],
-          'repository'   => latest_run.dig('repository', 'full_name'),
         }
       rescue JSON::ParserError => e
         warn "Unable to parse GitHub Actions API output: #{e.message}"

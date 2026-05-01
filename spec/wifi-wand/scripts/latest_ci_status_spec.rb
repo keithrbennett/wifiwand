@@ -12,12 +12,12 @@ RSpec.describe WifiWand::Scripts::LatestCiStatus do
   let(:failure_status) { instance_double(Process::Status, success?: false) }
   let(:successful_run_json) do
     [{ databaseId: 123, status: 'completed', conclusion: 'success',
-       url: 'https://github.com/example/repo/actions/runs/123', displayTitle: 'test', repository: repository,
+       url: 'https://github.com/example/repo/actions/runs/123', displayTitle: 'test',
        createdAt: '2026-04-27T12:00:00Z' }].to_json
   end
   let(:failed_run_json) do
     [{ databaseId: 456, status: 'completed', conclusion: 'failure',
-       url: 'https://github.com/example/repo/actions/runs/456', displayTitle: 'test', repository: repository,
+       url: 'https://github.com/example/repo/actions/runs/456', displayTitle: 'test',
        createdAt: '2026-04-27T12:00:00Z' }].to_json
   end
 
