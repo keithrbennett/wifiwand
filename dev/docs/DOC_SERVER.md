@@ -78,8 +78,10 @@ BUNDLE_GEMFILE=/path/to/wifiwand/Gemfile \
   bundle exec rake -f /path/to/wifiwand/Rakefile docs:build
 ```
 
-This writes the generated site to `site/` and fails on strict MkDocs errors. The `.docs-venv/` and `site/`
-directories are ignored by Git.
+This builds with a temporary generated config, source tree, and site directory under `tmp/`, then removes
+them when MkDocs exits. The command still fails on strict MkDocs errors. Git ignores both `.docs-venv/` and
+`tmp/`. The committed MkDocs config still names `site/` as its default output directory, but the helper
+scripts no longer leave a built site there.
 
 ## Key Files
 
@@ -102,10 +104,8 @@ source /path/to/wifiwand/bin/set-up-python-for-doc-server
 If `python3 -m venv` is unavailable on Ubuntu, install the system venv package for your Python version and run
 the setup command again.
 
-If port `8000` is already in use, run MkDocs directly with another address:
+If port `8000` is already in use, pass another address through the helper script:
 
 ```bash
-/path/to/wifiwand/.docs-venv/bin/mkdocs serve \
-  --config-file /path/to/wifiwand/mkdocs.yml \
-  --dev-addr 127.0.0.1:8001
+/path/to/wifiwand/bin/start-doc-server --dev-addr 127.0.0.1:8001
 ```

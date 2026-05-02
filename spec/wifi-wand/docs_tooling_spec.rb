@@ -15,6 +15,22 @@ RSpec.describe WifiWand::DocsTooling do
     %r{#{Regexp.escape(File.join(repo_root, 'tmp'))}/mkdocs-\d+\.yml}
   end
 
+  after do
+    described_class.cleanup_mkdocs_workspace!
+  end
+
+  def generated_config_path_from(output)
+    output.match(generated_config_path_pattern)[0]
+  end
+
+  def generated_docs_dir_for(config_path)
+    config_path.sub(%r{/mkdocs-(\d+)\.yml\z}, '/mkdocs-src-\1')
+  end
+
+  def generated_site_dir_for(config_path)
+    config_path.sub(%r{/mkdocs-(\d+)\.yml\z}, '/mkdocs-site-\1')
+  end
+
   def with_executable(path, body = "#!/bin/sh\nprintf '%s\\n' \"$@\"\n")
     FileUtils.mkdir_p(File.dirname(path))
     File.write(path, body)
@@ -259,8 +275,79 @@ RSpec.describe WifiWand::DocsTooling do
       expect(developer_readme).not_to include('../prompts/')
       expect(generated_config['nav'].first['Home']).to eq('README.md')
       expect(generated_config['docs_dir']).to eq(described_class.generated_docs_dir)
+      expect(generated_config['site_dir']).to eq(described_class.generated_site_dir)
       expect(generated_config['exclude_docs']).not_to include("lib/\n")
       expect(generated_config['exclude_docs']).not_to include("spec/\n")
+    end
+
+    it 'rewrites committed absolute links from another clone path' do
+      described_class.prepare_mkdocs_workspace!
+      markdown_path = File.join(described_class.generated_docs_dir, 'dev', 'docs', 'COMMAND_ARCHITECTURE.md')
+
+      expect(
+        described_class.generated_relative_link(
+          '/Users/example/code/wifiwand/primary/lib/wifi-wand/commands/command.rb',
+          markdown_path
+        )
+      ).to eq('(../../lib/wifi-wand/commands/command.rb)')
+    end
+
+    it 'rewrites committed absolute links from a CI checkout path' do
+      described_class.prepare_mkdocs_workspace!
+      markdown_path = File.join(described_class.generated_docs_dir, 'dev', 'docs', 'COMMAND_ARCHITECTURE.md')
+
+      expect(
+        described_class.generated_relative_link(
+          '/home/runner/work/wifiwand/wifiwand/lib/wifi-wand/commands/command.rb',
+          markdown_path
+        )
+      ).to eq('(../../lib/wifi-wand/commands/command.rb)')
+    end
+
+    it 'rewrites committed absolute links from a CI checkout path with a fragment' do
+      described_class.prepare_mkdocs_workspace!
+      markdown_path = File.join(described_class.generated_docs_dir, 'dev', 'docs', 'README.md')
+
+      expect(
+        described_class.generated_relative_link(
+          '/home/runner/work/wifiwand/wifiwand/docs/MACOS_SETUP.md',
+          markdown_path,
+          fragment: '#permissions'
+        )
+      ).to eq('(../../docs/MACOS_SETUP.md#permissions)')
+    end
+
+    it 'does not rewrite unrelated absolute paths that only match a repo file name' do
+      described_class.prepare_mkdocs_workspace!
+      markdown_path = File.join(described_class.generated_docs_dir, 'dev', 'docs', 'README.md')
+
+      expect(
+        described_class.generated_relative_link('/tmp/README.md', markdown_path)
+      ).to eq('(/tmp/README.md)')
+    end
+
+    it 'recognizes absolute links to excluded optional source directories' do
+      described_class.prepare_mkdocs_workspace!
+      markdown_path = File.join(described_class.generated_docs_dir, 'dev', 'docs', 'README.md')
+
+      expect(
+        described_class.excluded_generated_link?(
+          '/Users/example/code/wifiwand/primary/dev/prompts/',
+          markdown_path
+        )
+      ).to be(true)
+    end
+
+    it 'cleans up generated files when workspace preparation fails' do
+      allow(described_class).to receive(:write_generated_config).and_raise('boom')
+
+      expect do
+        described_class.prepare_mkdocs_workspace!
+      end.to raise_error(RuntimeError, 'boom')
+
+      expect(File).not_to exist(described_class.generated_config_path)
+      expect(File).not_to exist(described_class.generated_docs_dir)
+      expect(File).not_to exist(described_class.generated_site_dir)
     end
   end
 
@@ -340,6 +427,10 @@ RSpec.describe WifiWand::DocsTooling do
         expect(result[:stdout]).to match(generated_config_path_pattern)
         expect(result[:stdout]).to include('--site-dir')
         expect(result[:stdout]).to include('alt-site')
+        generated_config_path = generated_config_path_from(result[:stdout])
+        expect(File).not_to exist(generated_config_path)
+        expect(File).not_to exist(generated_docs_dir_for(generated_config_path))
+        expect(File).not_to exist(generated_site_dir_for(generated_config_path))
       end
     end
 
@@ -370,6 +461,10 @@ RSpec.describe WifiWand::DocsTooling do
         expect(result[:stdout]).to match(generated_config_path_pattern)
         expect(result[:stdout]).to include('--dev-addr')
         expect(result[:stdout]).to include('127.0.0.1:8001')
+        generated_config_path = generated_config_path_from(result[:stdout])
+        expect(File).not_to exist(generated_config_path)
+        expect(File).not_to exist(generated_docs_dir_for(generated_config_path))
+        expect(File).not_to exist(generated_site_dir_for(generated_config_path))
       end
     end
   end

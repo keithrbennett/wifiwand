@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'English'
 require 'shellwords'
 require 'fileutils'
 require 'pathname'
@@ -55,6 +56,10 @@ module WifiWand
 
     def self.generated_config_path
       File.join(REPO_ROOT, 'tmp', "mkdocs-#{Process.pid}.yml")
+    end
+
+    def self.generated_site_dir
+      File.join(REPO_ROOT, 'tmp', "mkdocs-site-#{Process.pid}")
     end
 
     def self.python_command
@@ -115,6 +120,22 @@ module WifiWand
       write_generated_config
 
       generated_config_path
+    rescue
+      cleanup_mkdocs_workspace!
+      raise
+    end
+
+    def self.cleanup_mkdocs_workspace!
+      FileUtils.rm_rf(generated_docs_dir)
+      FileUtils.rm_rf(generated_site_dir)
+      FileUtils.rm_f(generated_config_path)
+    end
+
+    def self.run_mkdocs!(*)
+      success = system(mkdocs_command, *)
+      exit($CHILD_STATUS&.exitstatus || 1) unless success
+    ensure
+      cleanup_mkdocs_workspace!
     end
 
     def self.copy_docs_source(relative_path)
@@ -149,7 +170,7 @@ module WifiWand
     def self.write_generated_config
       config = YAML.load_file(mkdocs_config_path)
       config['docs_dir'] = generated_docs_dir
-      config['site_dir'] = File.join(REPO_ROOT, 'site')
+      config['site_dir'] = generated_site_dir
       config['exclude_docs'] = generated_exclude_docs(config['exclude_docs'])
       config['nav'] = generated_nav(config['nav'])
 
@@ -171,25 +192,68 @@ module WifiWand
     def self.rewrite_generated_markdown_links
       Dir.glob(File.join(generated_docs_dir, '**', '*.md')).each do |markdown_path|
         markdown = File.read(markdown_path)
-        rewritten = markdown.gsub(%r{\((#{Regexp.escape(REPO_ROOT)}/[^)\s]+?)(?::\d+)?\)}) do
-          generated_relative_link(Regexp.last_match(1), markdown_path)
+        rewritten = markdown.gsub(%r{\((/[^)\s]+?)(?::\d+)?(#[^)\s]+)?\)}) do
+          generated_relative_link(
+            Regexp.last_match(1),
+            markdown_path,
+            fragment: Regexp.last_match(2).to_s
+          )
         end
         rewritten = rewrite_excluded_generated_links(rewritten, markdown_path)
         File.write(markdown_path, rewritten) if rewritten != markdown
       end
     end
 
-    def self.generated_relative_link(absolute_target, markdown_path)
-      repo_relative_target = absolute_target.delete_prefix("#{REPO_ROOT}/")
+    def self.generated_relative_link(absolute_target, markdown_path, fragment: '')
+      repo_relative_target = repo_relative_link_target(absolute_target)
+      return "(#{absolute_target}#{fragment})" unless repo_relative_target
+
       generated_target = File.join(generated_docs_dir, repo_relative_target)
-      return "(#{absolute_target})" unless File.exist?(generated_target)
+      return "(#{absolute_target}#{fragment})" unless File.exist?(generated_target)
 
       generated_target = directory_index_path(generated_target) if File.directory?(generated_target)
       relative_target = Pathname
         .new(generated_target)
         .relative_path_from(Pathname.new(File.dirname(markdown_path)))
         .to_s
-      "(#{relative_target})"
+      "(#{relative_target}#{fragment})"
+    end
+
+    def self.repo_relative_link_target(absolute_target)
+      current_repo_prefix = "#{REPO_ROOT}/"
+      if absolute_target.start_with?(current_repo_prefix)
+        return absolute_target.delete_prefix(current_repo_prefix)
+      end
+
+      clone_relative_target(absolute_target)
+    end
+
+    def self.clone_relative_target(absolute_target)
+      path_parts = absolute_target.split('/').reject(&:empty?)
+      path_parts.each_cons(2).with_index do |(project_dir, clone_dir), index|
+        next unless project_dir == repo_project_name
+        next unless [repo_project_name, repo_worktree_name].include?(clone_dir)
+
+        candidate = path_parts[(index + 2)..].join('/')
+        return candidate if repository_relative_candidate?(candidate)
+      end
+
+      nil
+    end
+
+    def self.repository_relative_candidate?(candidate)
+      return false unless candidate && !candidate.empty?
+      return true if excluded_generated_path?(candidate)
+
+      File.exist?(File.join(REPO_ROOT, candidate))
+    end
+
+    def self.repo_project_name
+      File.basename(File.dirname(REPO_ROOT))
+    end
+
+    def self.repo_worktree_name
+      File.basename(REPO_ROOT)
     end
 
     def self.directory_index_path(directory)
@@ -217,11 +281,21 @@ module WifiWand
       target_path = target.split('#', 2).first
       return false if target_path.empty? || target_path.match?(%r{\A[a-z][a-z0-9+.-]*:}i)
 
+      excluded_generated_path?(repo_relative_link_target(target_path)) ||
+        excluded_generated_path?(generated_relative_target(target_path, markdown_path))
+    end
+
+    def self.generated_relative_target(target_path, markdown_path)
       absolute_target = File.expand_path(target_path, File.dirname(markdown_path))
-      repo_relative_target = Pathname
+      Pathname
         .new(absolute_target)
         .relative_path_from(Pathname.new(generated_docs_dir))
         .to_s
+    end
+
+    def self.excluded_generated_path?(repo_relative_target)
+      return false unless repo_relative_target
+
       %w[dev/reports dev/prompts].any? do |prefix|
         repo_relative_target == prefix || repo_relative_target.start_with?("#{prefix}/")
       end

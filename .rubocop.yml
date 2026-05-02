@@ -13,6 +13,7 @@ AllCops:
     - 'bin/**/*'
     - 'node_modules/**/*'
     - 'site/**/*'
+    - '**/*.md'
 
 Naming/PredicatePrefix:
   Enabled: true

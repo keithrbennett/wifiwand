@@ -8,5 +8,4 @@ mkdocs_config = WifiWand::DocsTooling.prepare_mkdocs_workspace!
 
 puts 'Starting documentation server...'
 $stdout.flush
-exec(WifiWand::DocsTooling.mkdocs_command, 'serve', '--config-file',
-     mkdocs_config, *ARGV)
+WifiWand::DocsTooling.run_mkdocs!('serve', '--config-file', mkdocs_config, *ARGV)
