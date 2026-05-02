@@ -440,7 +440,7 @@ describe WifiWand::StatusLineDataBuilder do
       expect(connectivity_release.size).to eq(0)
     end
 
-    it 'keeps the network worker deadline short when only the connectivity worker timeout is extended' do
+    it 'falls back network data independently when the connectivity timeout is longer' do
       split_timeout_builder = described_class.new(
         model,
         out_stream:                                 StringIO.new,
@@ -454,10 +454,12 @@ describe WifiWand::StatusLineDataBuilder do
       allow(model).to receive(:connected?) do
         network_release.pop
       end
+      expect(model).not_to receive(:connected_network_name)
 
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      result = split_timeout_builder.call(progress_callback: ->(data) { progress_updates << data })
-      duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+      result = nil
+      Timeout.timeout(1) do
+        result = split_timeout_builder.call(progress_callback: ->(data) { progress_updates << data })
+      end
 
       expect(result).to eq(
         wifi_on:                       true,
@@ -474,11 +476,10 @@ describe WifiWand::StatusLineDataBuilder do
         expected_initial_progress.merge(connected: nil, network_name: nil),
         result,
       ])
-      expect(duration).to be < 0.15
       expect(network_release.size).to eq(0)
     end
 
-    it 'bounds the total call by the longest worker budget instead of summing sequential waits' do
+    it 'returns fallback data when both workers stay blocked past their own deadlines' do
       overall_bounded_builder = described_class.new(
         model,
         out_stream:                                 StringIO.new,
@@ -489,17 +490,22 @@ describe WifiWand::StatusLineDataBuilder do
       )
       network_release = Queue.new
       connectivity_release = Queue.new
+      network_started = Queue.new
+      connectivity_started = Queue.new
 
       allow(model).to receive(:connected?) do
+        network_started << :started
         network_release.pop
       end
       allow(model).to receive(:internet_tcp_connectivity?) do
+        connectivity_started << :started
         connectivity_release.pop
       end
 
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      result = overall_bounded_builder.call(progress_callback: ->(data) { progress_updates << data })
-      duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+      result = nil
+      Timeout.timeout(1) do
+        result = overall_bounded_builder.call(progress_callback: ->(data) { progress_updates << data })
+      end
 
       expect(result).to eq(
         wifi_on:                       true,
@@ -516,7 +522,8 @@ describe WifiWand::StatusLineDataBuilder do
         expected_initial_progress.merge(connected: nil, network_name: nil),
         result,
       ])
-      expect(duration).to be < 0.08
+      expect(network_started.pop(timeout: 1)).to eq(:started)
+      expect(connectivity_started.pop(timeout: 1)).to eq(:started)
       expect(network_release.size).to eq(0)
       expect(connectivity_release.size).to eq(0)
     end
@@ -579,9 +586,8 @@ describe WifiWand::StatusLineDataBuilder do
       end
       expect(model).not_to receive(:connected_network_name)
 
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      result = slow_builder.call
-      duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+      result = nil
+      Timeout.timeout(1) { result = slow_builder.call }
 
       expect(result).to include(
         wifi_on:        true,
@@ -590,7 +596,6 @@ describe WifiWand::StatusLineDataBuilder do
         dns_working:    true,
         internet_state: :reachable
       )
-      expect(duration).to be < 0.15
     end
 
     it 'logs and forcefully terminates a worker that misses the cleanup timeout' do

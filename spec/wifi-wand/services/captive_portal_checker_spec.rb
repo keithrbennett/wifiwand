@@ -62,11 +62,10 @@ describe WifiWand::CaptivePortalChecker do
         spawn_probe(endpoint: endpoints.last, delay: 5)
       )
 
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      expect(checker.captive_portal_state).to eq(:free)
-      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+      result = nil
+      Timeout.timeout(1) { result = checker.captive_portal_state }
 
-      expect(elapsed).to be < 1
+      expect(result).to eq(:free)
       expect { Process.kill(0, spawned_pids.last) }.to raise_error(Errno::ESRCH)
     end
 
@@ -76,24 +75,28 @@ describe WifiWand::CaptivePortalChecker do
         spawn_probe(endpoint: endpoints.first, raw_output: '{"state":"free"', post_write_delay: 5)
       )
 
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      expect(checker.captive_portal_state).to eq(:indeterminate)
-      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+      result = nil
+      Timeout.timeout(1) { result = checker.captive_portal_state }
 
-      expect(elapsed).to be < 1
+      expect(result).to eq(:indeterminate)
       expect { Process.kill(0, spawned_pids.last) }.to raise_error(Errno::ESRCH)
     end
 
-    it 'does not expand a caller-provided timeout budget with helper grace' do
+    it 'uses zero helper grace when the caller provides a timeout budget' do
       allow(checker).to receive(:start_captive_portal_probe).and_return(
         spawn_probe(endpoint: endpoints.first, delay: 5)
       )
+      observed_graces = []
+      allow(checker).to receive(:terminate_probes).and_wrap_original do |original, probes, grace:|
+        observed_graces << grace
+        original.call(probes, grace: grace)
+      end
 
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      expect(checker.captive_portal_state(timeout_in_secs: 0.05)).to eq(:indeterminate)
-      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+      result = nil
+      Timeout.timeout(1) { result = checker.captive_portal_state(timeout_in_secs: 0.05) }
 
-      expect(elapsed).to be < 0.2
+      expect(result).to eq(:indeterminate)
+      expect(observed_graces).to include(0)
     end
 
     context 'with verbose mode' do

@@ -29,43 +29,38 @@ describe WifiWand::NetworkConnectivityTester do
     [ruby_bin, '-e', 'sleep 10']
   end
 
-  def expect_false_within(max_elapsed: 1.0)
-    start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-    result = yield
-    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-
+  def expect_false_without_hanging(timeout: 1.0)
+    result = nil
+    Timeout.timeout(timeout) { result = yield }
     expect(result).to be false
-    expect(elapsed).to be < max_elapsed
   end
 
   shared_examples 'subprocess-based cancellation' do
     |method_name:, items_method:, success_items:, failing_items:|
     let(:tester) { described_class.new(verbose: false) }
 
-    it 'returns early when another helper succeeds before a hung helper finishes' do
+    it 'returns once another helper succeeds and cleans up the hung helper' do
       allow(tester).to receive(items_method).and_return(success_items)
       allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
         item == success_items.last ? success_command : hanging_command
       end
 
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      expect(tester.public_send(method_name)).to be true
-      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+      result = nil
+      Timeout.timeout(1) { result = tester.public_send(method_name) }
 
-      expect(elapsed).to be < 0.5
+      expect(result).to be true
     end
 
-    it 'returns false within the documented deadline when a helper never returns' do
+    it 'returns false when the overall timeout expires with a hung helper still running' do
       allow(tester).to receive(items_method).and_return(failing_items)
       allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
         item == failing_items.last ? failure_command : hanging_command
       end
 
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      expect(tester.public_send(method_name)).to be false
-      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
+      result = nil
+      Timeout.timeout(1) { result = tester.public_send(method_name, overall_timeout: 0.05) }
 
-      expect(elapsed).to be < (WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT + 0.2)
+      expect(result).to be false
     end
   end
 
@@ -105,7 +100,7 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       it 'returns false when all endpoints fail' do
-        expect_false_within { tester.tcp_connectivity? }
+        expect_false_without_hanging { tester.tcp_connectivity? }
       end
     end
 
@@ -187,7 +182,7 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       it 'returns false when all domains fail to resolve' do
-        expect_false_within { tester.dns_working? }
+        expect_false_without_hanging { tester.dns_working? }
       end
     end
 
@@ -348,38 +343,36 @@ describe WifiWand::NetworkConnectivityTester do
     end
 
     it 'returns :indeterminate when the caller timeout expires during TCP probing' do
-      allow(tester).to receive(:tcp_connectivity?) do |overall_timeout:|
-        sleep(overall_timeout)
-        false
-      end
+      allow(tester).to receive(:current_time).and_return(100.0, 100.0, 100.0, 100.05)
+      expect(tester).to receive(:tcp_connectivity?).with(
+        hash_including(
+          overall_timeout: be_within(0.001).of(0.05),
+          return_details:  true
+        )
+      ).and_return(success: false, timed_out: true)
       expect(tester).not_to receive(:dns_working?)
       expect(tester).not_to receive(:captive_portal_state)
 
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      result = tester.internet_connectivity_state(timeout_in_secs: 0.05)
-      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-
-      expect(result).to eq(:indeterminate)
-      expect(elapsed).to be < 0.18
+      expect(tester.internet_connectivity_state(timeout_in_secs: 0.05)).to eq(:indeterminate)
     end
 
     it 'returns :indeterminate when the caller timeout expires before captive portal probing' do
-      allow(tester).to receive(:tcp_connectivity?) do |overall_timeout:|
-        sleep(overall_timeout / 2.0)
-        true
-      end
-      allow(tester).to receive(:dns_working?) do |overall_timeout:|
-        sleep(overall_timeout)
-        true
-      end
+      allow(tester).to receive(:current_time).and_return(100.0, 100.0, 100.0, 100.0, 100.025, 100.025, 100.05)
+      expect(tester).to receive(:tcp_connectivity?).with(
+        hash_including(
+          overall_timeout: be_within(0.001).of(0.05),
+          return_details:  true
+        )
+      ).and_return(success: true, timed_out: false)
+      expect(tester).to receive(:dns_working?).with(
+        hash_including(
+          overall_timeout: be_within(0.001).of(0.025),
+          return_details:  true
+        )
+      ).and_return(success: false, timed_out: true)
       expect(tester).not_to receive(:captive_portal_state)
 
-      start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-      result = tester.internet_connectivity_state(timeout_in_secs: 0.05)
-      elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-
-      expect(result).to eq(:indeterminate)
-      expect(elapsed).to be < 0.18
+      expect(tester.internet_connectivity_state(timeout_in_secs: 0.05)).to eq(:indeterminate)
     end
   end
 

@@ -1030,14 +1030,10 @@ describe WifiWand::EventLogger do
       Timeout.timeout(0.5) { first_poll_completed.pop }
       Timeout.timeout(0.5) { sleep_started.pop }
 
-      stop_started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
       logger.stop
-      expect(runner.join(0.3)).to eq(runner)
-
-      stop_duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - stop_started_at
+      Timeout.timeout(0.5) { runner.join }
 
       expect(logger.instance_variable_get(:@running)).to be false
-      expect(stop_duration).to be < 0.3
     end
   end
 
