@@ -19,7 +19,7 @@ module MacHelperCLI
   REPO_ROOT = File.expand_path('..', SCRIPT_DIR)
   SUBCOMMANDS = {
     'build' => 'Build and sign helper with Developer ID (for gem distribution)',
-    'verify' => 'Verify the committed helper bundle matches the current Swift source',
+    'verify' => 'Verify the committed helper bundle matches the current source attestation inputs',
     'test' => 'Test the signed helper binary',
     'public-info' => 'Print public macOS signing and notarization configuration',
     'store-credentials' => 'Store notarytool credentials in the keychain',

@@ -10,13 +10,6 @@ module WifiWand
   module MacOsHelperBundle
     SOURCE_MANIFEST_FILENAME = 'wifiwand-helper.source-manifest.json'
 
-    # Returns the path to the Swift source file in the gem's libexec directory
-    #
-    # @return [String] absolute path to wifiwand-helper.swift source file
-    #   Example: /path/to/gem/libexec/macos/src/wifiwand-helper.swift
-    module_function def source_swift_path = File.expand_path(
-      '../../../libexec/macos/src/wifiwand-helper.swift', __dir__)
-
     # Returns the path to the source attestation manifest committed with the helper bundle.
     #
     # @return [String] absolute path to the helper source manifest
@@ -25,12 +18,15 @@ module WifiWand
 
     module_function def source_swift_fingerprint = Digest::SHA256.file(source_swift_path).hexdigest
 
+    module_function def entitlements_fingerprint = Digest::SHA256.file(entitlements_path).hexdigest
+
     module_function def source_bundle_current?
       manifest = read_source_bundle_manifest
 
       if manifest
         manifest['helper_version'] == helper_version &&
           manifest['source_sha256'] == source_swift_fingerprint &&
+          manifest['entitlements_sha256'] == entitlements_fingerprint &&
           manifest['bundle_fingerprint'] == bundle_fingerprint(source_bundle_path)
       else
         false
@@ -57,10 +53,10 @@ module WifiWand
       end
 
       FileUtils.chmod(0o755, destination)
-      out_stream&.puts 'Helper compiled successfully.'
 
       # Code sign the helper bundle to enable proper TCC registration
       sign_helper_bundle(destination, out_stream: out_stream)
+      out_stream&.puts 'Helper compiled and signed successfully.'
     end
 
     module_function def compile_architecture(source, output, target, arch_name)
@@ -96,9 +92,6 @@ module WifiWand
       identity = ENV['WIFIWAND_CODESIGN_IDENTITY'] ||
         'Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)'
 
-      # Path to entitlements file
-      entitlements_path = File.expand_path('../../../libexec/macos/wifiwand-helper.entitlements', __dir__)
-
       command = [
         'codesign',
         '--force',
@@ -117,8 +110,11 @@ module WifiWand
         raise "Failed to code sign helper bundle (status=#{status.exitstatus}): " \
           "#{stderr.empty? ? stdout : stderr}"
       end
+    end
 
-      out_stream&.puts 'Helper bundle signed successfully.'
+    module_function def build_source_bundle(out_stream: $stdout)
+      compile_helper(source_swift_path, source_bundle_executable_path, out_stream: out_stream)
+      write_source_bundle_manifest
     end
 
     module_function def write_source_bundle_manifest
@@ -127,11 +123,13 @@ module WifiWand
 
     module_function def source_bundle_manifest_payload
       {
-        'helper_version'     => helper_version,
-        'source_path'        => relative_helper_path(source_swift_path),
-        'source_sha256'      => source_swift_fingerprint,
-        'bundle_path'        => relative_helper_path(source_bundle_path),
-        'bundle_fingerprint' => bundle_fingerprint(source_bundle_path),
+        'helper_version'      => helper_version,
+        'source_path'         => relative_helper_path(source_swift_path),
+        'source_sha256'       => source_swift_fingerprint,
+        'entitlements_path'   => relative_helper_path(entitlements_path),
+        'entitlements_sha256' => entitlements_fingerprint,
+        'bundle_path'         => relative_helper_path(source_bundle_path),
+        'bundle_fingerprint'  => bundle_fingerprint(source_bundle_path),
       }
     end
 
@@ -144,8 +142,10 @@ module WifiWand
     end
 
     module_function def source_bundle_mismatch_message
-      "Shipped macOS helper bundle is out of sync with #{relative_helper_path(source_swift_path)}. " \
-        'Run `bundle exec rake swift:compile` or ' \
+      'Shipped macOS helper bundle is out of sync with the committed helper source, ' \
+        "entitlements, or bundle contents (#{relative_helper_path(source_swift_path)}, " \
+        "#{relative_helper_path(entitlements_path)}, #{relative_helper_path(source_bundle_path)}). " \
+        'Run `bundle exec rake swift:compile_helper` or ' \
         '`bin/mac-helper-release build` to rebuild the signed bundle ' \
         "and refresh #{relative_helper_path(source_bundle_manifest_path)}."
     end

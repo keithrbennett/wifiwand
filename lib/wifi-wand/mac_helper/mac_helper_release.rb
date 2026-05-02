@@ -73,7 +73,8 @@ module WifiWand
         MSG
       end
 
-      SOURCE_ATTESTATION_VALID = '✓ Source attestation matches committed Swift source and bundle'
+      SOURCE_ATTESTATION_VALID =
+        '✓ Source attestation matches committed helper source, entitlements, and bundle contents'
 
       def self.notarizing_header(bundle_path:, profile_name:, keychain_path:)
         details = [
@@ -395,8 +396,7 @@ module WifiWand
       destination = File.join(helper.source_bundle_path, 'Contents', 'MacOS', WifiWand::MacOsHelperBundle::EXECUTABLE_NAME)
 
       puts Messages.building_helper(source: source, destination: destination, identity: identity)
-      helper.compile_helper(source, destination, out_stream: $stdout)
-      helper.write_source_bundle_manifest
+      helper.build_source_bundle(out_stream: $stdout)
 
       puts "\nVerifying binary architectures..."
       Operations.verify_universal_binary(destination)

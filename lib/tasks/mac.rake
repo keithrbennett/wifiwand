@@ -20,7 +20,7 @@ namespace :mac do
     dest = helper.installed_bundle_path
 
     unless File.exist?(source)
-      abort "Source helper not found at #{source}. Run `bundle exec rake swift:compile` first."
+      abort "Source helper not found at #{source}. Run `bundle exec rake swift:compile_helper` first."
     end
 
     puts 'Installing development helper...'

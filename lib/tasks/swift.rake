@@ -7,31 +7,29 @@ require_relative '../wifi-wand/mac_helper/mac_os_helper_build'
 namespace :swift do
   helper = WifiWand::MacOsHelperBundle
 
-  helper_source = helper.source_swift_path
-  helper_binary = File.join(
-    helper.source_bundle_path,
-    'Contents',
-    'MacOS',
-    WifiWand::MacOsHelperBundle::EXECUTABLE_NAME
-  )
+  helper_binary = helper.source_bundle_executable_path
 
-  file helper_binary => helper_source do
+  file helper_binary => helper.build_task_prerequisites do
     unless RbConfig::CONFIG['host_os'] =~ /darwin/i
       abort 'macOS is required to compile Swift helpers.'
     end
 
-    puts "Compiling #{helper_source} -> #{helper_binary}"
-    helper.compile_helper(helper_source, helper_binary, out_stream: $stdout)
-    helper.write_source_bundle_manifest
+    puts "Compiling #{helper.source_swift_path} -> #{helper_binary}"
+    helper.build_source_bundle(out_stream: $stdout)
   end
 
   desc 'Compile the wifiwand macOS helper bundle executable (requires WIFIWAND_CODESIGN_IDENTITY)'
-  task compile_helper: helper_binary
+  task :compile_helper do
+    source_bundle_stale = !File.exist?(helper_binary) || !helper.source_bundle_current?
 
-  desc 'Verify the committed wifiwand macOS helper bundle matches the current Swift source'
+    Rake::Task[helper_binary].execute if source_bundle_stale
+    helper.verify_source_bundle_current!
+  end
+
+  desc 'Verify the committed wifiwand macOS helper bundle matches the current source attestation inputs'
   task :verify_helper do
     helper.verify_source_bundle_current!
-    puts 'Source attestation matches committed Swift source and bundle.'
+    puts 'Source attestation matches committed helper source, entitlements, and bundle contents.'
   end
 
   desc 'Compile all Swift targets that require compilation (requires WIFIWAND_CODESIGN_IDENTITY)'

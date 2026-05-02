@@ -160,11 +160,12 @@ RSpec.describe WifiWand::MacHelperRelease do
   end
 
   describe '.verify_source_attestation!' do
-    it 'confirms the bundle matches the checked-in Swift sources' do
+    it 'confirms the bundle matches the checked-in helper source attestation inputs' do
       allow(WifiWand::MacOsHelperBundle).to receive(:verify_source_bundle_current!)
 
       expect { described_class.verify_source_attestation! }
-        .to output(/Source attestation matches committed Swift source and bundle/).to_stdout
+        .to output(/Source attestation matches committed helper source, entitlements, and bundle contents/)
+        .to_stdout
     end
 
     it 'aborts with the attestation failure reason when verification raises' do
@@ -193,8 +194,7 @@ RSpec.describe WifiWand::MacHelperRelease do
         source_swift_path:  source_path,
         source_bundle_path: bundle_path
       )
-      allow(helper).to receive(:compile_helper)
-      allow(helper).to receive(:write_source_bundle_manifest)
+      allow(helper).to receive(:build_source_bundle)
     end
 
     around do |example|
@@ -206,10 +206,7 @@ RSpec.describe WifiWand::MacHelperRelease do
     end
 
     it 'builds the helper, writes the manifest, verifies attestation, and exposes the signing identity' do
-      expect(helper).to receive(:compile_helper).with(
-        source_path, destination_path, hash_including(:out_stream)
-      )
-      expect(helper).to receive(:write_source_bundle_manifest).ordered
+      expect(helper).to receive(:build_source_bundle).with(hash_including(:out_stream))
       expect(described_class::Operations).to receive(:verify_universal_binary).with(destination_path).ordered
       expect(described_class).to receive(:verify_source_attestation!).ordered
 
