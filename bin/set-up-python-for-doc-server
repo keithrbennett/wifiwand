@@ -1,22 +1,28 @@
 #!/bin/bash
 
-if [[ -n "${BASH_VERSION:-}" ]]; then
+if [ -n "${BASH_VERSION:-}" ]; then
   script_path="${BASH_SOURCE[0]}"
   script_sourced=false
-  [[ "${script_path}" != "${0}" ]] && script_sourced=true
-elif [[ -n "${ZSH_VERSION:-}" ]]; then
+  [ "${script_path}" != "${0}" ] && script_sourced=true
+elif [ -n "${ZSH_VERSION:-}" ]; then
   script_path="${(%):-%x}"
   script_sourced=false
-  [[ ":${ZSH_EVAL_CONTEXT:-}:" == *:file:* ]] && script_sourced=true
+  case ":${ZSH_EVAL_CONTEXT:-}:" in
+    *:file:*) script_sourced=true ;;
+  esac
 else
-  script_path="${0}"
+  script_path="bin/set-up-python-for-doc-server"
   script_sourced=false
 fi
 
-if [[ "${script_sourced}" != true ]]; then
+if [ "${script_sourced}" != true ]; then
   echo "Error: This script must be sourced, not executed directly." >&2
   echo "Usage: source ${script_path}" >&2
   echo "   or: . ${script_path}" >&2
+  if [ -z "${BASH_VERSION:-}${ZSH_VERSION:-}" ]; then
+    return 1 2>/dev/null || exit 1
+  fi
+
   exit 1
 fi
 

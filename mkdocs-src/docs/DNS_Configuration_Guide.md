@@ -1,1 +1,0 @@
---8<-- "docs/DNS_Configuration_Guide.md"

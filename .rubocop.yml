@@ -12,6 +12,7 @@ AllCops:
     - 'coverage/**/*'
     - 'bin/**/*'
     - 'node_modules/**/*'
+    - 'site/**/*'
 
 Naming/PredicatePrefix:
   Enabled: true

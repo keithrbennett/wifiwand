@@ -4,12 +4,8 @@ site_url: https://keithrbennett.github.io/wifiwand/
 repo_url: https://github.com/keithrbennett/wifiwand
 repo_name: keithrbennett/wifiwand
 
-docs_dir: mkdocs-src
+docs_dir: docs
 site_dir: site
-
-validation:
-  links:
-    not_found: ignore
 
 exclude_docs: |
   .bundle/

@@ -365,7 +365,7 @@ calls `disconnect` — mocked coverage is sufficient.
 
 ## Related Files
 
-- [spec/spec_helper.rb](../spec/spec_helper.rb)
-- [spec/support/rspec_configuration.rb](../spec/support/rspec_configuration.rb)
-- [spec/support/coverage_config.rb](../spec/support/coverage_config.rb)
-- [docs/ENVIRONMENT_VARIABLES.md](ENVIRONMENT_VARIABLES.md)
+- [spec/spec_helper.rb](../../spec/spec_helper.rb)
+- [spec/support/rspec_configuration.rb](../../spec/support/rspec_configuration.rb)
+- [spec/support/coverage_config.rb](../../spec/support/coverage_config.rb)
+- [docs/ENVIRONMENT_VARIABLES.md](../../docs/ENVIRONMENT_VARIABLES.md)

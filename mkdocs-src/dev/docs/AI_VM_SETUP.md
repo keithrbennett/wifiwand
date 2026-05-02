@@ -1,1 +1,0 @@
---8<-- "dev/docs/AI_VM_SETUP.md"

@@ -1,1 +1,0 @@
---8<-- "dev/docs/COMMAND_ARCHITECTURE.md"

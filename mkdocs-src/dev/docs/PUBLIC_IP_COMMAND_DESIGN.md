@@ -1,1 +1,0 @@
---8<-- "dev/docs/PUBLIC_IP_COMMAND_DESIGN.md"

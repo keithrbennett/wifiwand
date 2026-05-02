@@ -7,9 +7,13 @@ require 'open3'
 require 'rake'
 require 'rbconfig'
 require 'tmpdir'
+require 'yaml'
 
 RSpec.describe WifiWand::DocsTooling do
   let(:repo_root) { File.expand_path('../..', __dir__) }
+  let(:generated_config_path_pattern) do
+    %r{#{Regexp.escape(File.join(repo_root, 'tmp'))}/mkdocs-\d+\.yml}
+  end
 
   def with_executable(path, body = "#!/bin/sh\nprintf '%s\\n' \"$@\"\n")
     FileUtils.mkdir_p(File.dirname(path))
@@ -112,11 +116,12 @@ RSpec.describe WifiWand::DocsTooling do
       expect(described_class.mkdocs_config_path).to eq(File.join(repo_root, 'mkdocs.yml'))
     end
 
-    it 'keeps MkDocs input and output paths outside the config directory' do
+    it 'keeps the committed MkDocs config free of generated source paths' do
       config = File.read(described_class.mkdocs_config_path)
 
-      expect(config).to include("docs_dir: mkdocs-src\n")
+      expect(config).to include("docs_dir: docs\n")
       expect(config).to include("site_dir: site\n")
+      expect(config).not_to include('not_found: ignore')
     end
 
     it 'resolves the build script under the repository root' do
@@ -201,6 +206,62 @@ RSpec.describe WifiWand::DocsTooling do
       expect(argv).to eq(['docs:build'])
       expect(top_level_tasks).to eq(['docs:build'])
     end
+
+    it 'does not replace Rake task selection with raw ARGV options' do
+      rake_application = instance_double(Rake::Application)
+      top_level_tasks = ['docs:build', 'alt-site']
+      argv = ['-f', described_class.rakefile_path, 'docs:build', '--', '--site-dir', 'alt-site']
+
+      allow(rake_application).to receive(:top_level_tasks).and_return(top_level_tasks)
+
+      expect(described_class.extract_rake_passthrough_args!(argv, rake_application)).to eq(
+        ['--site-dir', 'alt-site']
+      )
+      expect(top_level_tasks).to eq(['docs:build'])
+    end
+  end
+
+  describe '.prepare_mkdocs_workspace!' do
+    it 'generates MkDocs source and config under tmp' do
+      config_path = described_class.prepare_mkdocs_workspace!
+
+      expect(config_path).to eq(described_class.generated_config_path)
+      expect(File).not_to exist(File.join(described_class.generated_docs_dir, 'index.md'))
+      expect(File).to exist(File.join(described_class.generated_docs_dir, 'README.md'))
+      expect(File).to exist(File.join(described_class.generated_docs_dir, 'docs', 'README.md'))
+      expect(File).to exist(File.join(described_class.generated_docs_dir, 'dev', 'docs', 'README.md'))
+      expect(File).to exist(
+        File.join(described_class.generated_docs_dir, 'lib', 'wifi-wand', 'commands', 'command.rb')
+      )
+      expect(File).to exist(File.join(described_class.generated_docs_dir, 'spec', 'spec_helper.rb'))
+      command_architecture = File.read(
+        File.join(described_class.generated_docs_dir, 'dev', 'docs', 'COMMAND_ARCHITECTURE.md')
+      )
+      developer_readme = File.read(File.join(described_class.generated_docs_dir, 'dev', 'docs', 'README.md'))
+      generated_config = YAML.load_file(config_path)
+
+      expect(command_architecture).not_to include(described_class::REPO_ROOT)
+      expect(command_architecture).to include('../../lib/wifi-wand/commands/command.rb')
+      expect(command_architecture).to include('../../spec/wifi-wand/command_line_interface/index.md')
+      generated_spec_index = File.join(
+        described_class.generated_docs_dir,
+        'spec',
+        'wifi-wand',
+        'command_line_interface',
+        'index.md'
+      )
+      expect(File).to exist(
+        generated_spec_index
+      )
+      expect(developer_readme).to include('**AI Library Analysis: Claude**')
+      expect(developer_readme).to include('**Prompt Library**')
+      expect(developer_readme).not_to include('../reports/')
+      expect(developer_readme).not_to include('../prompts/')
+      expect(generated_config['nav'].first['Home']).to eq('README.md')
+      expect(generated_config['docs_dir']).to eq(described_class.generated_docs_dir)
+      expect(generated_config['exclude_docs']).not_to include("lib/\n")
+      expect(generated_config['exclude_docs']).not_to include("spec/\n")
+    end
   end
 
   describe '.setup_guidance' do
@@ -276,7 +337,7 @@ RSpec.describe WifiWand::DocsTooling do
         expect(result[:stdout]).to include("#{chdir}\n")
         expect(result[:stdout]).to include('build')
         expect(result[:stdout]).to include('--strict')
-        expect(result[:stdout]).to include(described_class.mkdocs_config_path)
+        expect(result[:stdout]).to match(generated_config_path_pattern)
         expect(result[:stdout]).to include('--site-dir')
         expect(result[:stdout]).to include('alt-site')
       end
@@ -306,7 +367,7 @@ RSpec.describe WifiWand::DocsTooling do
         expect(result[:stdout]).to include('Starting documentation server...')
         expect(result[:stdout]).to include("#{chdir}\n")
         expect(result[:stdout]).to include('serve')
-        expect(result[:stdout]).to include(described_class.mkdocs_config_path)
+        expect(result[:stdout]).to match(generated_config_path_pattern)
         expect(result[:stdout]).to include('--dev-addr')
         expect(result[:stdout]).to include('127.0.0.1:8001')
       end
@@ -327,7 +388,7 @@ RSpec.describe WifiWand::DocsTooling do
         expect(result[:stdout]).to include("#{chdir}\n")
         expect(result[:stdout]).to include('build')
         expect(result[:stdout]).to include('--strict')
-        expect(result[:stdout]).to include(described_class.mkdocs_config_path)
+        expect(result[:stdout]).to match(generated_config_path_pattern)
         expect(result[:stdout]).to include('--site-dir')
         expect(result[:stdout]).to include('alt-site')
       end
@@ -346,7 +407,7 @@ RSpec.describe WifiWand::DocsTooling do
         expect(result[:stdout]).to include('Starting documentation server...')
         expect(result[:stdout]).to include("#{chdir}\n")
         expect(result[:stdout]).to include('serve')
-        expect(result[:stdout]).to include(described_class.mkdocs_config_path)
+        expect(result[:stdout]).to match(generated_config_path_pattern)
         expect(result[:stdout]).to include('--dev-addr')
         expect(result[:stdout]).to include('127.0.0.1:8002')
       end

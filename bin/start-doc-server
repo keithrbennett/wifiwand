@@ -4,8 +4,9 @@
 require_relative '../lib/wifi-wand/docs_tooling'
 
 WifiWand::DocsTooling.ensure_mkdocs_available!
+mkdocs_config = WifiWand::DocsTooling.prepare_mkdocs_workspace!
 
 puts 'Starting documentation server...'
 $stdout.flush
 exec(WifiWand::DocsTooling.mkdocs_command, 'serve', '--config-file',
-     WifiWand::DocsTooling.mkdocs_config_path, *ARGV)
+     mkdocs_config, *ARGV)

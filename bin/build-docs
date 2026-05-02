@@ -4,6 +4,7 @@
 require_relative '../lib/wifi-wand/docs_tooling'
 
 WifiWand::DocsTooling.ensure_mkdocs_available!
+mkdocs_config = WifiWand::DocsTooling.prepare_mkdocs_workspace!
 
 exec(WifiWand::DocsTooling.mkdocs_command, 'build', '--strict', '--config-file',
-     WifiWand::DocsTooling.mkdocs_config_path, *ARGV)
+     mkdocs_config, *ARGV)
