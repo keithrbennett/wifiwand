@@ -230,15 +230,22 @@ module WifiWand
 
     def self.clone_relative_target(absolute_target)
       path_parts = absolute_target.split('/').reject(&:empty?)
-      path_parts.each_cons(2).with_index do |(project_dir, clone_dir), index|
-        next unless project_dir == repo_project_name
-        next unless [repo_project_name, repo_worktree_name].include?(clone_dir)
+      path_parts.each_index do |index|
+        candidate = path_parts[index..].join('/')
+        next unless repository_relative_candidate?(candidate)
+        next unless plausible_repo_relative_target?(candidate)
 
-        candidate = path_parts[(index + 2)..].join('/')
-        return candidate if repository_relative_candidate?(candidate)
+        return candidate
       end
 
       nil
+    end
+
+    def self.plausible_repo_relative_target?(candidate)
+      first_segment = candidate.split('/', 2).first
+      return false unless repository_root_entries.include?(first_segment)
+
+      candidate.include?('/') || excluded_generated_path?(candidate)
     end
 
     def self.repository_relative_candidate?(candidate)
@@ -248,12 +255,8 @@ module WifiWand
       File.exist?(File.join(REPO_ROOT, candidate))
     end
 
-    def self.repo_project_name
-      File.basename(File.dirname(REPO_ROOT))
-    end
-
-    def self.repo_worktree_name
-      File.basename(REPO_ROOT)
+    def self.repository_root_entries
+      @repository_root_entries ||= Dir.children(REPO_ROOT).reject { |entry| entry.start_with?('.') }
     end
 
     def self.directory_index_path(directory)

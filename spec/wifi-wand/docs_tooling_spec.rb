@@ -541,6 +541,8 @@ RSpec.describe WifiWand::DocsTooling do
     end
 
     it 'resolves its script path when sourced from zsh outside the repository root' do
+      skip 'zsh is not available in this environment' unless described_class.executable?('zsh')
+
       Dir.mktmpdir('docs zsh setup ') do |tmpdir|
         venv_dir = File.join(tmpdir, 'venv')
         command = [
