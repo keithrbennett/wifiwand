@@ -12,7 +12,7 @@ module WifiWand
     DEFAULT_WORKER_CLEANUP_TIMEOUT_SECONDS = 0.05
     # A killed worker still needs a short window to run Ruby-level ensure blocks
     # that close pipes, sockets, and subprocess handles before this method returns.
-    FINAL_WORKER_JOIN_AFTER_KILL_SECONDS = 0.25
+    FINAL_WORKER_JOIN_AFTER_KILL_SECONDS = 0.01
 
     attr_reader :model, :expected_network_errors
     private attr_reader :runtime_config

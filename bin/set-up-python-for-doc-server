@@ -28,11 +28,20 @@ fi
 
 script_dir="$(cd -- "$(dirname -- "${script_path}")" && pwd -P)" || return 1
 repo_root="$(cd -- "${script_dir}/.." && pwd -P)" || return 1
+
+run_docs_tooling_ruby() {
+  env -u BUNDLE_BIN_PATH \
+    -u BUNDLE_GEMFILE \
+    -u RUBYLIB \
+    -u RUBYOPT \
+    ruby -r "${repo_root}/lib/wifi-wand/docs_tooling" "$@"
+}
+
 venv_dir="$(
-  ruby -r "${repo_root}/lib/wifi-wand/docs_tooling" -e 'print WifiWand::DocsTooling.venv_dir'
+  run_docs_tooling_ruby -e 'print WifiWand::DocsTooling.venv_dir'
 )" || return 1
 
-ruby -r "${repo_root}/lib/wifi-wand/docs_tooling" -e 'WifiWand::DocsTooling.setup_environment!' || return 1
+run_docs_tooling_ruby -e 'WifiWand::DocsTooling.setup_environment!' || return 1
 source "${venv_dir}/bin/activate" || return 1
 
 echo "Documentation environment ready."
