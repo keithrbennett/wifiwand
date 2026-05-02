@@ -8,6 +8,13 @@ RSpec.describe WifiWand::Scripts::LatestCiStatus do
   subject(:script) { described_class.new }
 
   let(:repository) { 'keithrbennett/wifiwand' }
+  let(:pager_disabled_env) do
+    {
+      'GH_PAGER'  => 'cat',
+      'PAGER'     => 'cat',
+      'GIT_PAGER' => 'cat',
+    }
+  end
   let(:success_status) { instance_double(Process::Status, success?: true) }
   let(:failure_status) { instance_double(Process::Status, success?: false) }
   let(:successful_run_json) do
@@ -119,13 +126,19 @@ RSpec.describe WifiWand::Scripts::LatestCiStatus do
       'gh', 'run', 'list', '--repo', repository, '--branch', 'main', '--limit', '1', '--json',
       'databaseId,status,conclusion,url,displayTitle,createdAt'
     ).and_return([failed_run_json, '', success_status])
-    allow(Kernel).to receive(:system).with('gh', 'run', 'view', '456', '--repo', repository, '--log-failed')
+    allow(Kernel).to receive(:system).with(
+      pager_disabled_env,
+      'gh', 'run', 'view', '456', '--repo', repository, '--log-failed',
+      hash_including(out: an_instance_of(StringIO), err: $stderr)
+    )
 
     expect { script.call }.to output(
       a_string_including('Fetching failure logs...')
     ).to_stdout
     expect(Kernel).to have_received(:system).with(
-      'gh', 'run', 'view', '456', '--repo', repository, '--log-failed'
+      pager_disabled_env,
+      'gh', 'run', 'view', '456', '--repo', repository, '--log-failed',
+      hash_including(out: an_instance_of(StringIO), err: $stderr)
     )
   end
 

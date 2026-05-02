@@ -82,7 +82,11 @@ module WifiWand
           puts
           puts colorize('Fetching failure logs...', 31)
           puts '------------------------'
-          Kernel.system('gh', 'run', 'view', id.to_s, '--repo', repository, '--log-failed')
+          Kernel.system(
+            pager_disabled_env,
+            'gh', 'run', 'view', id.to_s, '--repo', repository, '--log-failed',
+            out: $stdout, err: $stderr
+          )
         elsif status == 'in_progress'
           puts
           puts colorize('Build is currently running...', 34)
@@ -197,6 +201,14 @@ module WifiWand
         else
           Open3.capture3(cmd)
         end
+      end
+
+      private def pager_disabled_env
+        {
+          'GH_PAGER'  => 'cat',
+          'PAGER'     => 'cat',
+          'GIT_PAGER' => 'cat',
+        }
       end
 
       private def command_display(cmd)
