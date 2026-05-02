@@ -109,6 +109,14 @@ RSpec.describe WifiWand::DocsTooling do
     saved.each { |key, value| value.nil? ? ENV.delete(key) : ENV.store(key, value) }
   end
 
+  def inherited_bundler_env
+    %w[BUNDLE_BIN_PATH BUNDLE_GEMFILE RUBYLIB RUBYOPT]
+      .select { |key| ENV[key] }
+      .each_with_object({}) do |key, env|
+        env[key] = ENV[key]
+      end
+  end
+
   describe 'repository-relative paths' do
     it 'resolves the virtual environment under the repository root' do
       with_env('WIFIWAND_DOCS_VENV_DIR' => nil) do
@@ -531,7 +539,7 @@ RSpec.describe WifiWand::DocsTooling do
           'printf "after:%s\\n" "$?"',
         ].join("\n")
 
-        stdout, stderr, status = Open3.capture3('bash', '-lc', command)
+        stdout, stderr, status = Open3.capture3(inherited_bundler_env, 'bash', '-lc', command)
 
         expect(status.exitstatus).to eq(0)
         expect(stdout).to include('after:1')
@@ -553,7 +561,7 @@ RSpec.describe WifiWand::DocsTooling do
           'printf "after:%s\\n" "$?"',
         ].join("\n")
 
-        stdout, stderr, status = Open3.capture3('zsh', '-fc', command)
+        stdout, stderr, status = Open3.capture3(inherited_bundler_env, 'zsh', '-fc', command)
 
         expect(status.exitstatus).to eq(0)
         expect(stdout).to include('after:1')
