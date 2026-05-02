@@ -30,10 +30,15 @@ script_dir="$(cd -- "$(dirname -- "${script_path}")" && pwd -P)" || return 1
 repo_root="$(cd -- "${script_dir}/.." && pwd -P)" || return 1
 
 run_docs_tooling_ruby() {
-  env -u BUNDLE_BIN_PATH \
-    -u BUNDLE_GEMFILE \
-    -u RUBYLIB \
-    -u RUBYOPT \
+  env -i \
+    HOME="${HOME:-}" \
+    PATH="${PATH:-/usr/bin:/bin}" \
+    LANG="${LANG:-}" \
+    LC_ALL="${LC_ALL:-}" \
+    TMPDIR="${TMPDIR:-}" \
+    WIFIWAND_DOCS_MKDOCS="${WIFIWAND_DOCS_MKDOCS:-}" \
+    WIFIWAND_DOCS_PYTHON="${WIFIWAND_DOCS_PYTHON:-}" \
+    WIFIWAND_DOCS_VENV_DIR="${WIFIWAND_DOCS_VENV_DIR:-}" \
     ruby -r "${repo_root}/lib/wifi-wand/docs_tooling" "$@"
 }
 
