@@ -38,7 +38,6 @@ RSpec.describe 'swift:compile_helper task' do
       source_swift_path:             source_swift_path,
       entitlements_path:             entitlements_path,
       source_bundle_manifest_path:   source_bundle_manifest_path,
-      build_task_prerequisites:      [source_swift_path, entitlements_path, info_plist_path],
       helper_version:                '9.9.9'
     )
 

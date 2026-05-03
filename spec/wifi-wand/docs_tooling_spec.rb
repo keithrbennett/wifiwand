@@ -115,6 +115,10 @@ RSpec.describe WifiWand::DocsTooling do
       .to_h { |key| [key, ENV[key]] }
   end
 
+  def supported_ruby_path
+    [File.dirname(RbConfig.ruby), ENV.fetch('PATH', '')].join(File::PATH_SEPARATOR)
+  end
+
   describe 'repository-relative paths' do
     it 'resolves the virtual environment under the repository root' do
       with_env('WIFIWAND_DOCS_VENV_DIR' => nil) do
@@ -531,6 +535,7 @@ RSpec.describe WifiWand::DocsTooling do
       Dir.mktmpdir('docs setup ') do |tmpdir|
         venv_dir = File.join(tmpdir, 'venv')
         command = [
+          "export PATH=#{supported_ruby_path.inspect}",
           "export WIFIWAND_DOCS_VENV_DIR=#{venv_dir.inspect}",
           "export WIFIWAND_DOCS_PYTHON=#{File.join(tmpdir, 'missing-python').inspect}",
           "source #{File.join(repo_root, 'bin', 'set-up-python-for-doc-server').inspect}",
@@ -553,6 +558,7 @@ RSpec.describe WifiWand::DocsTooling do
         venv_dir = File.join(tmpdir, 'venv')
         command = [
           "cd #{tmpdir.inspect}",
+          "export PATH=#{supported_ruby_path.inspect}",
           "export WIFIWAND_DOCS_VENV_DIR=#{venv_dir.inspect}",
           "export WIFIWAND_DOCS_PYTHON=#{File.join(tmpdir, 'missing-python').inspect}",
           "source #{File.join(repo_root, 'bin', 'set-up-python-for-doc-server').inspect}",

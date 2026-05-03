@@ -29,7 +29,7 @@ RSpec.describe 'swift tasks' do
     allow(RbConfig::CONFIG).to receive(:[]).with('host_os').and_return('linux')
 
     expect(helper).not_to receive(:build_source_bundle)
-    expect(helper).to receive(:verify_source_bundle_current!)
+    expect(helper).not_to receive(:verify_source_bundle_current!)
 
     Rake::Task['swift:compile_helper'].invoke
   end

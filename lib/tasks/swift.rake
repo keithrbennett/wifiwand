@@ -23,9 +23,8 @@ namespace :swift do
       end
 
       helper.build_source_bundle(out_stream: $stdout)
+      helper.verify_source_bundle_current!
     end
-
-    helper.verify_source_bundle_current!
   end
 
   desc 'Verify the committed wifiwand macOS helper bundle matches the current source attestation inputs'
