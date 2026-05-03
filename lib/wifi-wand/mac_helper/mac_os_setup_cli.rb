@@ -40,6 +40,9 @@ module WifiWand
       parse_options
       return perform_remove if @action == :remove
 
+      support_status = @setup.helper_support_status
+      return perform_not_applicable(support_status) if support_status.unsupported?
+
       perform_reinstall if @action == :reinstall
 
       status = @setup.check_status
@@ -87,6 +90,15 @@ module WifiWand
       @out_stream.puts 'Location Services permission is managed by macOS and may remain listed.'
       @out_stream.puts 'To revoke it, open System Settings > Privacy & Security > Location Services'
       @out_stream.puts 'and toggle off wifiwand-helper.'
+      0
+    end
+
+    private def perform_not_applicable(support_status)
+      @out_stream.puts 'WifiWand macOS helper setup is not applicable on this macOS version.'
+      @out_stream.puts
+      @out_stream.puts "Detected macOS version: #{support_status.macos_version}"
+      @out_stream.puts "wifiwand-helper is only used on macOS #{MacOsHelperBundle::MINIMUM_HELPER_VERSION}+."
+      @out_stream.puts 'wifi-wand will continue using fallback WiFi paths on older macOS.'
       0
     end
 

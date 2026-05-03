@@ -57,7 +57,7 @@ module WifiWand
       version = macos_version
       return false unless version
 
-      sanitized_version = sanitize_version_string(version)
+      sanitized_version = MacOsHelperBundle.sanitize_macos_version(version)
       unless sanitized_version
         log_verbose("macOS version '#{version}' does not match expected format")
         return false
@@ -73,14 +73,6 @@ module WifiWand
       return false unless @last_error_message
 
       @last_error_message.downcase.include?('location services')
-    end
-
-    private def sanitize_version_string(version)
-      return nil unless version
-
-      version_string = version.to_s.strip
-      match = version_string.match(/\d+(?:\.\d+)*/)
-      match&.[](0)
     end
 
     private def execute(command)

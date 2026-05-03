@@ -22,7 +22,18 @@ RSpec.describe WifiWand::MacOsSetupCli do
     )
   end
 
-  def build_cli(argv: [], setup: nil)
+  def build_support_status(version)
+    WifiWand::MacOsHelperSetup::SupportStatus.new(
+      macos_version:  version,
+      parsed_version: WifiWand::MacOsHelperBundle.parse_macos_version(version)
+    )
+  end
+
+  def supported_helper_status = build_support_status('14.0')
+
+  def build_cli(argv: [], setup: nil, support_status: supported_helper_status)
+    allow(setup).to receive(:helper_support_status).and_return(support_status) if setup
+
     described_class.new(
       argv:       argv,
       setup:      setup,
@@ -40,6 +51,85 @@ RSpec.describe WifiWand::MacOsSetupCli do
     allow(setup).to receive(:open_location_settings)
     allow(WifiWand::MacOsHelperBundle)
       .to receive_messages(installed_executable_path: '/fake/helper', installed_bundle_path: '/fake/bundle')
+  end
+
+  # ---------------------------------------------------------------------------
+  # macOS version applicability
+  # ---------------------------------------------------------------------------
+  describe 'when macOS is older than the helper minimum' do
+    let(:setup) { instance_double(WifiWand::MacOsHelperSetup) }
+    let(:support_status) { build_support_status('13.6.1') }
+
+    before do
+      allow(setup).to receive(:check_status)
+      allow(setup).to receive(:install_helper)
+      allow(setup).to receive(:reinstall_helper)
+      allow(setup).to receive(:remove_helper)
+      allow(setup).to receive(:open_location_settings)
+    end
+
+    it 'returns exit code 0' do
+      expect(build_cli(setup: setup, support_status: support_status).run).to eq(0)
+    end
+
+    it 'prints a not-applicable message with fallback behavior' do
+      build_cli(setup: setup, support_status: support_status).run
+      expect(out_stream.string).to include('not applicable')
+      expect(out_stream.string).to include('only used on macOS 14.0+')
+      expect(out_stream.string).to include('fallback WiFi paths')
+    end
+
+    it 'does not prompt for ENTER or show Location Services instructions' do
+      build_cli(setup: setup, support_status: support_status).run
+      expect(out_stream.string).not_to include('Press ENTER')
+      expect(out_stream.string).not_to include('Manual Setup Instructions')
+    end
+
+    it 'does not install, reinstall, or open Location Services' do
+      build_cli(setup: setup, support_status: support_status).run
+      expect(setup).not_to have_received(:install_helper)
+      expect(setup).not_to have_received(:reinstall_helper)
+      expect(setup).not_to have_received(:open_location_settings)
+    end
+
+    it 'treats --reinstall as the same no-op exit 0' do
+      expect(build_cli(argv: ['--reinstall'], setup: setup, support_status: support_status).run).to eq(0)
+      expect(setup).not_to have_received(:reinstall_helper)
+      expect(out_stream.string).to include('not applicable')
+    end
+
+    it 'still allows --remove to remove installed files' do
+      allow(setup).to receive(:remove_helper).and_return('/fake/install-dir')
+
+      expect(build_cli(argv: ['--remove'], setup: setup, support_status: support_status).run).to eq(0)
+      expect(setup).to have_received(:remove_helper)
+      expect(out_stream.string).to include('Removed wifiwand-helper installation')
+    end
+  end
+
+  describe 'when macOS support cannot be detected' do
+    let(:setup) { instance_double(WifiWand::MacOsHelperSetup) }
+    let(:missing_status) { build_result(installed: false, valid: false) }
+
+    before do
+      allow(setup).to receive(:check_status).and_return(missing_status, build_result(authorized: false))
+      allow(setup).to receive(:install_helper)
+      allow(setup).to receive(:open_location_settings)
+      allow(WifiWand::MacOsHelperBundle)
+        .to receive_messages(installed_executable_path: '/fake/helper', installed_bundle_path: '/fake/bundle')
+    end
+
+    it 'preserves the existing setup path for missing versions' do
+      build_cli(setup: setup, support_status: build_support_status(nil)).run
+      expect(setup).to have_received(:install_helper)
+      expect(out_stream.string).to include('Press ENTER')
+    end
+
+    it 'preserves the existing setup path for malformed versions' do
+      build_cli(setup: setup, support_status: build_support_status('developer seed')).run
+      expect(setup).to have_received(:install_helper)
+      expect(out_stream.string).to include('Press ENTER')
+    end
   end
 
   # ---------------------------------------------------------------------------

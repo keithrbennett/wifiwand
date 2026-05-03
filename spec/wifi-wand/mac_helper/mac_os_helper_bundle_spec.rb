@@ -626,17 +626,39 @@ RSpec.describe WifiWand::MacOsHelperBundle do
       end
     end
 
-    describe '#sanitize_version_string' do
+    describe '.sanitize_macos_version' do
       it 'keeps only numeric segments from versions with build metadata in parentheses' do
-        expect(client.send(:sanitize_version_string, '15.6 (24A335)')).to eq('15.6')
+        expect(WifiWand::MacOsHelperBundle.sanitize_macos_version('15.6 (24A335)')).to eq('15.6')
       end
 
       it 'removes prerelease suffixes like beta tags' do
-        expect(client.send(:sanitize_version_string, '15.6.1-beta2')).to eq('15.6.1')
+        expect(WifiWand::MacOsHelperBundle.sanitize_macos_version('15.6.1-beta2')).to eq('15.6.1')
       end
 
       it 'returns nil when the version does not include numeric components' do
-        expect(client.send(:sanitize_version_string, 'unknown')).to be_nil
+        expect(WifiWand::MacOsHelperBundle.sanitize_macos_version('unknown')).to be_nil
+      end
+    end
+
+    describe '.helper_supported_on_macos_version?' do
+      it 'returns false below the minimum helper version' do
+        expect(WifiWand::MacOsHelperBundle.helper_supported_on_macos_version?('13.6.1')).to be(false)
+      end
+
+      it 'returns true at the minimum helper version' do
+        expect(WifiWand::MacOsHelperBundle.helper_supported_on_macos_version?('14.0')).to be(true)
+      end
+
+      it 'returns true above the minimum helper version with build metadata' do
+        expect(WifiWand::MacOsHelperBundle.helper_supported_on_macos_version?('15.6 (24G84)')).to be(true)
+      end
+
+      it 'returns false when the version is missing' do
+        expect(WifiWand::MacOsHelperBundle.helper_supported_on_macos_version?(nil)).to be(false)
+      end
+
+      it 'returns false when the version is malformed' do
+        expect(WifiWand::MacOsHelperBundle.helper_supported_on_macos_version?('developer seed')).to be(false)
       end
     end
   end

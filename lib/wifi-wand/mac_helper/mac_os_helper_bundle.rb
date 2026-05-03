@@ -49,6 +49,30 @@ module WifiWand
       end
     end
 
+    module_function def sanitize_macos_version(version)
+      return nil unless version
+
+      version_string = version.to_s.strip
+      match = version_string.match(/\d+(?:\.\d+)*/)
+      match&.[](0)
+    end
+
+    module_function def parse_macos_version(version)
+      sanitized_version = sanitize_macos_version(version)
+      return nil unless sanitized_version
+
+      Gem::Version.new(sanitized_version)
+    rescue ArgumentError
+      nil
+    end
+
+    module_function def helper_supported_on_macos_version?(version)
+      parsed_version = parse_macos_version(version)
+      return false unless parsed_version
+
+      parsed_version >= MINIMUM_HELPER_VERSION
+    end
+
     require_relative 'mac_os_helper_installer'
     require_relative 'mac_os_helper_client'
 

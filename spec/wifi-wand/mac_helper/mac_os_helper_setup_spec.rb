@@ -5,10 +5,10 @@ require 'stringio'
 require 'wifi-wand/mac_helper/mac_os_helper_setup'
 
 RSpec.describe WifiWand::MacOsHelperSetup do
-  subject(:setup) { described_class.new(out_stream: out_stream) }
+  subject(:setup) { described_class.new(out_stream: out_stream, macos_version_proc: -> { macos_version }) }
 
   let(:out_stream) { StringIO.new }
-
+  let(:macos_version) { '14.0' }
 
   # ---------------------------------------------------------------------------
   # Result value object
@@ -103,6 +103,69 @@ RSpec.describe WifiWand::MacOsHelperSetup do
       it 'returns [:grant_permission] when installed and valid but not authorized' do
         expect(build(installed: true, valid: true, authorized: false).steps_needed)
           .to eq(%i[grant_permission])
+      end
+
+      it 'returns [] when helper setup is not applicable' do
+        result = build(installed: false, valid: false, authorized: false)
+        result.helper_applicable = false
+        expect(result.steps_needed).to eq([])
+      end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # MacOsHelperSetup#helper_support_status
+  # ---------------------------------------------------------------------------
+  describe '#helper_support_status' do
+    context 'when macOS is older than Sonoma' do
+      let(:macos_version) { '13.6.1' }
+
+      it 'reports the helper setup as not applicable' do
+        status = setup.helper_support_status
+        expect(status).to be_known
+        expect(status).to be_unsupported
+        expect(status).not_to be_applicable
+      end
+    end
+
+    context 'when macOS is exactly Sonoma' do
+      let(:macos_version) { '14.0' }
+
+      it 'reports the helper setup as supported' do
+        status = setup.helper_support_status
+        expect(status).to be_known
+        expect(status).to be_supported
+        expect(status).to be_applicable
+      end
+    end
+
+    context 'when macOS has build metadata' do
+      let(:macos_version) { '15.6 (24G84)' }
+
+      it 'reports the helper setup as supported' do
+        status = setup.helper_support_status
+        expect(status).to be_supported
+        expect(status).to be_applicable
+      end
+    end
+
+    context 'when macOS version detection returns nil' do
+      let(:macos_version) { nil }
+
+      it 'preserves the existing setup path because support cannot be proven unsupported' do
+        status = setup.helper_support_status
+        expect(status).to be_unknown
+        expect(status).to be_applicable
+      end
+    end
+
+    context 'when macOS version detection returns malformed text' do
+      let(:macos_version) { 'developer seed' }
+
+      it 'preserves the existing setup path because support cannot be proven unsupported' do
+        status = setup.helper_support_status
+        expect(status).to be_unknown
+        expect(status).to be_applicable
       end
     end
   end
@@ -237,6 +300,50 @@ RSpec.describe WifiWand::MacOsHelperSetup do
         status = setup.check_status
         expect(status.authorized?).to be(false)
         expect(status.permission_message).to eq('Permission status unknown')
+      end
+    end
+
+    context 'when the macOS version is older than the helper minimum' do
+      let(:macos_version) { '13.6.1' }
+
+      it 'returns a not-applicable result without checking installed files' do
+        expect(File).not_to receive(:executable?)
+        expect(WifiWand::MacOsHelperBundle).not_to receive(:helper_installed_and_valid?)
+
+        status = setup.check_status
+        expect(status).to be_not_applicable
+        expect(status.steps_needed).to eq([])
+        expect(status.permission_message).to include('not applicable')
+      end
+    end
+
+    context 'when the macOS version is missing' do
+      let(:macos_version) { nil }
+
+      before do
+        allow(File).to receive(:executable?).with(helper_path).and_return(false)
+        allow(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?).and_return(false)
+      end
+
+      it 'preserves the existing setup path instead of silently skipping setup' do
+        status = setup.check_status
+        expect(status).to be_helper_applicable
+        expect(status.steps_needed).to eq(%i[install_helper grant_permission])
+      end
+    end
+
+    context 'when the macOS version is malformed' do
+      let(:macos_version) { 'developer seed' }
+
+      before do
+        allow(File).to receive(:executable?).with(helper_path).and_return(false)
+        allow(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?).and_return(false)
+      end
+
+      it 'preserves the existing setup path instead of silently skipping setup' do
+        status = setup.check_status
+        expect(status).to be_helper_applicable
+        expect(status.steps_needed).to eq(%i[install_helper grant_permission])
       end
     end
   end

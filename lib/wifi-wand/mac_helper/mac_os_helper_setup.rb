@@ -18,28 +18,56 @@
 
 require 'fileutils'
 require 'json'
+require 'open3'
 require_relative 'mac_os_helper_bundle'
 
 module WifiWand
   class MacOsHelperSetup
+    SupportStatus = Struct.new(:macos_version, :parsed_version, keyword_init: true) do
+      def known? = !!parsed_version
+
+      def supported?
+        known? && parsed_version >= MacOsHelperBundle::MINIMUM_HELPER_VERSION
+      end
+
+      def unsupported?
+        known? && !supported?
+      end
+
+      def unknown? = !known?
+
+      def applicable? = !unsupported?
+    end
+
     # Immutable value object describing the current state of the helper.
-    Result = Struct.new(:installed, :valid, :authorized, :permission_message, keyword_init: true) do
+    Result = Struct.new(
+      :installed,
+      :valid,
+      :authorized,
+      :permission_message,
+      :helper_applicable,
+      :macos_version,
+      keyword_init: true
+    ) do
       def installed? = installed
       def valid?     = valid
       def authorized? = authorized
+      def helper_applicable? = helper_applicable != false
+      def not_applicable? = !helper_applicable?
 
       # True only when the helper is installed, structurally valid, and
       # macOS location permission has been granted.
-      def setup_complete? = installed? && valid? && authorized?
+      def setup_complete? = helper_applicable? && installed? && valid? && authorized?
 
       # True when the helper is on disk but failed structural validation
       # (e.g. the bundle is corrupt or the executable does not respond to the
       # `help` command). In this case reinstall is preferable to a first-time install.
-      def reinstall_recommended? = installed? && !valid?
+      def reinstall_recommended? = helper_applicable? && installed? && !valid?
 
       # Ordered list of symbolic steps still required.  Callers map these to
       # human-readable labels and execution logic.
       def steps_needed
+        return [] unless helper_applicable?
         return %i[reinstall_helper grant_permission] if reinstall_recommended?
         return %i[install_helper grant_permission]   unless installed?
         return %i[grant_permission]                  unless authorized?
@@ -48,12 +76,26 @@ module WifiWand
       end
     end
 
-    def initialize(out_stream: $stdout) = @out_stream = out_stream
+    def initialize(out_stream: $stdout, macos_version_proc: nil)
+      @out_stream = out_stream
+      @macos_version_proc = macos_version_proc || -> { detect_macos_version }
+    end
+
+    def helper_support_status
+      macos_version = @macos_version_proc&.call
+      SupportStatus.new(
+        macos_version:  macos_version,
+        parsed_version: MacOsHelperBundle.parse_macos_version(macos_version)
+      )
+    end
 
     # Inspect the current installation and return a Result value object.
     #
     # @return [Result]
     def check_status
+      support_status = helper_support_status
+      return unsupported_result(support_status) if support_status.unsupported?
+
       helper_path = MacOsHelperBundle.installed_executable_path
       installed   = File.executable?(helper_path)
       valid       = installed && MacOsHelperBundle.helper_installed_and_valid?
@@ -63,7 +105,9 @@ module WifiWand
         installed:          installed,
         valid:              valid,
         authorized:         authorized,
-        permission_message: permission_message
+        permission_message: permission_message,
+        helper_applicable:  true,
+        macos_version:      support_status.macos_version
       )
     end
 
@@ -106,6 +150,26 @@ module WifiWand
     # can grant permission to wifiwand-helper.
     def open_location_settings
       system('open', 'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices')
+    end
+
+    private def detect_macos_version
+      stdout, _stderr, status = Open3.capture3('sw_vers', '-productVersion')
+      return nil unless status.success?
+
+      stdout.strip
+    rescue Errno::ENOENT
+      nil
+    end
+
+    private def unsupported_result(support_status)
+      Result.new(
+        installed:          false,
+        valid:              false,
+        authorized:         false,
+        permission_message: 'wifiwand-helper setup is not applicable on this macOS version',
+        helper_applicable:  false,
+        macos_version:      support_status.macos_version
+      )
     end
 
     private def check_authorization(helper_path, valid)
