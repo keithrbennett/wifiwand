@@ -32,6 +32,32 @@ RSpec.describe WifiWand::MacOsHelperBundle do
     end
   end
 
+  describe '.build_source_bundle' do
+    let(:source_swift_path) { '/tmp/libexec/macos/src/wifiwand-helper.swift' }
+    let(:source_bundle_executable_path) do
+      '/tmp/libexec/macos/wifiwand-helper.app/Contents/MacOS/wifiwand-helper'
+    end
+    let(:out_stream) { StringIO.new }
+
+    it 'compiles the source bundle executable and refreshes its attestation manifest' do
+      allow(described_class).to receive_messages(
+        source_swift_path:             source_swift_path,
+        source_bundle_executable_path: source_bundle_executable_path
+      )
+
+      expect(described_class).to receive(:compile_helper)
+        .with(source_swift_path, source_bundle_executable_path, out_stream: out_stream)
+        .ordered
+      expect(described_class).to receive(:write_source_bundle_manifest).ordered
+
+      described_class.build_source_bundle(out_stream: out_stream)
+
+      expect(out_stream.string).to include(
+        "Compiling #{source_swift_path} -> #{source_bundle_executable_path}"
+      )
+    end
+  end
+
   describe '.source_bundle_current?' do
     let(:temp_dir) { Dir.mktmpdir('wifiwand-helper-source-spec') }
     let(:source_root) { File.join(temp_dir, 'libexec', 'macos') }

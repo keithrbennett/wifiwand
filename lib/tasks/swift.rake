@@ -6,23 +6,25 @@ require_relative '../wifi-wand/mac_helper/mac_os_helper_build'
 
 namespace :swift do
   helper = WifiWand::MacOsHelperBundle
-
   helper_binary = helper.source_bundle_executable_path
-
-  file helper_binary => helper.build_task_prerequisites do
-    unless RbConfig::CONFIG['host_os'] =~ /darwin/i
-      abort 'macOS is required to compile Swift helpers.'
-    end
-
-    puts "Compiling #{helper.source_swift_path} -> #{helper_binary}"
-    helper.build_source_bundle(out_stream: $stdout)
-  end
 
   desc 'Compile the wifiwand macOS helper bundle executable (requires WIFIWAND_CODESIGN_IDENTITY)'
   task :compile_helper do
-    source_bundle_stale = !File.exist?(helper_binary) || !helper.source_bundle_current?
+    source_bundle_current = begin
+      File.exist?(helper_binary) && helper.source_bundle_current?
+    rescue Errno::ENOENT
+      false
+    end
+    rebuild_needed = !source_bundle_current
 
-    Rake::Task[helper_binary].execute if source_bundle_stale
+    if rebuild_needed
+      unless RbConfig::CONFIG['host_os'] =~ /darwin/i
+        abort 'macOS is required to compile Swift helpers.'
+      end
+
+      helper.build_source_bundle(out_stream: $stdout)
+    end
+
     helper.verify_source_bundle_current!
   end
 

@@ -13,8 +13,9 @@ module WifiWand
     # Returns the path to the source attestation manifest committed with the helper bundle.
     #
     # @return [String] absolute path to the helper source manifest
-    module_function def source_bundle_manifest_path =
+    module_function def source_bundle_manifest_path
       File.expand_path("../../../libexec/macos/#{SOURCE_MANIFEST_FILENAME}", __dir__)
+    end
 
     module_function def source_swift_fingerprint = Digest::SHA256.file(source_swift_path).hexdigest
 
@@ -113,6 +114,7 @@ module WifiWand
     end
 
     module_function def build_source_bundle(out_stream: $stdout)
+      out_stream&.puts "Compiling #{source_swift_path} -> #{source_bundle_executable_path}"
       compile_helper(source_swift_path, source_bundle_executable_path, out_stream: out_stream)
       write_source_bundle_manifest
     end

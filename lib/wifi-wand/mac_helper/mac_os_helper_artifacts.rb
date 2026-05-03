@@ -71,10 +71,6 @@ module WifiWand
       tracked_bundle_files(bundle_path) - generated_bundle_paths(bundle_path)
     end
 
-    module_function def build_task_prerequisites
-      ([source_swift_path, entitlements_path] + bundle_template_input_paths).uniq.sort
-    end
-
     module_function def relative_helper_path(path)
       repo_root = File.expand_path('../../..', __dir__)
       Pathname.new(path).relative_path_from(Pathname.new(repo_root)).to_s
