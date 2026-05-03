@@ -73,6 +73,13 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         it 'returns true' do
           expect(client.available?).to be(true)
         end
+
+        it 'uses the centralized helper support predicate' do
+          expect(WifiWand::MacOsHelperBundle)
+            .to receive(:helper_support_status_for_macos_version).with('15.0 (24A335)').and_call_original
+
+          client.available?
+        end
       end
     end
 
@@ -659,6 +666,48 @@ RSpec.describe WifiWand::MacOsHelperBundle do
 
       it 'returns false when the version is malformed' do
         expect(WifiWand::MacOsHelperBundle.helper_supported_on_macos_version?('developer seed')).to be(false)
+      end
+    end
+
+    describe '.helper_support_status_for_macos_version' do
+      it 'parses the version once for callers that need status and diagnostics' do
+        expect(WifiWand::MacOsHelperBundle).to receive(:parse_macos_version).with('developer seed').once
+          .and_call_original
+
+        status = WifiWand::MacOsHelperBundle.helper_support_status_for_macos_version('developer seed')
+        expect(status).to be_unknown
+      end
+    end
+
+    describe '.detect_macos_version' do
+      let(:success_status) { instance_double(Process::Status, success?: true) }
+      let(:failure_status) { instance_double(Process::Status, success?: false) }
+
+      it 'returns the stripped sw_vers product version' do
+        allow(Open3).to receive(:capture3).with('sw_vers', '-productVersion')
+          .and_return(["15.6\n", '', success_status])
+
+        expect(WifiWand::MacOsHelperBundle.detect_macos_version).to eq('15.6')
+      end
+
+      it 'returns nil when sw_vers exits successfully with empty output' do
+        allow(Open3).to receive(:capture3).with('sw_vers', '-productVersion')
+          .and_return(["\n", '', success_status])
+
+        expect(WifiWand::MacOsHelperBundle.detect_macos_version).to be_nil
+      end
+
+      it 'returns nil when sw_vers exits unsuccessfully' do
+        allow(Open3).to receive(:capture3).with('sw_vers', '-productVersion')
+          .and_return(['', 'failed', failure_status])
+
+        expect(WifiWand::MacOsHelperBundle.detect_macos_version).to be_nil
+      end
+
+      it 'returns nil when sw_vers is not available' do
+        allow(Open3).to receive(:capture3).with('sw_vers', '-productVersion').and_raise(Errno::ENOENT)
+
+        expect(WifiWand::MacOsHelperBundle.detect_macos_version).to be_nil
       end
     end
   end

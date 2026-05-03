@@ -132,6 +132,9 @@ RSpec.describe WifiWand::MacOsHelperSetup do
       let(:macos_version) { '14.0' }
 
       it 'reports the helper setup as supported' do
+        expect(WifiWand::MacOsHelperBundle)
+          .to receive(:helper_support_status_for_macos_version).with('14.0').and_call_original
+
         status = setup.helper_support_status
         expect(status).to be_known
         expect(status).to be_supported
@@ -166,6 +169,16 @@ RSpec.describe WifiWand::MacOsHelperSetup do
         status = setup.helper_support_status
         expect(status).to be_unknown
         expect(status).to be_applicable
+      end
+    end
+
+    context 'when no version proc is injected' do
+      subject(:setup) { described_class.new(out_stream: out_stream) }
+
+      it 'uses the centralized macOS version detector' do
+        allow(WifiWand::MacOsHelperBundle).to receive(:detect_macos_version).and_return('14.0')
+
+        expect(setup.helper_support_status.macos_version).to eq('14.0')
       end
     end
   end

@@ -18,26 +18,11 @@
 
 require 'fileutils'
 require 'json'
-require 'open3'
 require_relative 'mac_os_helper_bundle'
 
 module WifiWand
   class MacOsHelperSetup
-    SupportStatus = Struct.new(:macos_version, :parsed_version, keyword_init: true) do
-      def known? = !!parsed_version
-
-      def supported?
-        known? && parsed_version >= MacOsHelperBundle::MINIMUM_HELPER_VERSION
-      end
-
-      def unsupported?
-        known? && !supported?
-      end
-
-      def unknown? = !known?
-
-      def applicable? = !unsupported?
-    end
+    SupportStatus = MacOsHelperBundle::HelperSupportStatus
 
     # Immutable value object describing the current state of the helper.
     Result = Struct.new(
@@ -78,15 +63,12 @@ module WifiWand
 
     def initialize(out_stream: $stdout, macos_version_proc: nil)
       @out_stream = out_stream
-      @macos_version_proc = macos_version_proc || -> { detect_macos_version }
+      @macos_version_proc = macos_version_proc || -> { MacOsHelperBundle.detect_macos_version }
     end
 
     def helper_support_status
       macos_version = @macos_version_proc&.call
-      SupportStatus.new(
-        macos_version:  macos_version,
-        parsed_version: MacOsHelperBundle.parse_macos_version(macos_version)
-      )
+      MacOsHelperBundle.helper_support_status_for_macos_version(macos_version)
     end
 
     # Inspect the current installation and return a Result value object.
@@ -150,15 +132,6 @@ module WifiWand
     # can grant permission to wifiwand-helper.
     def open_location_settings
       system('open', 'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices')
-    end
-
-    private def detect_macos_version
-      stdout, _stderr, status = Open3.capture3('sw_vers', '-productVersion')
-      return nil unless status.success?
-
-      stdout.strip
-    rescue Errno::ENOENT
-      nil
     end
 
     private def unsupported_result(support_status)

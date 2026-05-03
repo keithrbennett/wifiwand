@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'json'
-require 'rubygems/version'
 
 module WifiWand
   module MacOsHelperBundle
@@ -57,15 +56,12 @@ module WifiWand
       version = macos_version
       return false unless version
 
-      sanitized_version = MacOsHelperBundle.sanitize_macos_version(version)
-      unless sanitized_version
-        log_verbose("macOS version '#{version}' does not match expected format")
-        return false
-      end
+      support_status = MacOsHelperBundle.helper_support_status_for_macos_version(version)
+      return true if support_status.supported?
 
-      Gem::Version.new(sanitized_version) >= MacOsHelperBundle::MINIMUM_HELPER_VERSION
-    rescue ArgumentError => e
-      log_verbose("unable to parse macOS version '#{sanitized_version || version}': #{e.message}")
+      if support_status.unknown?
+        log_verbose("macOS version '#{version}' does not match expected format")
+      end
       false
     end
 

@@ -32,13 +32,25 @@ module WifiWand
           model = create_mac_os_test_model
           allow(model).to receive(:run_command_using_args).with(%w[sw_vers -productVersion])
             .and_return(command_result(stdout: "15.6\n"))
+
           expect(model.send(:detect_macos_version)).to eq('15.6')
+        end
+
+        it 'uses the model command runner so verbose mode can trace sw_vers' do
+          model = create_mac_os_test_model
+          allow(model).to receive(:run_command_using_args).with(%w[sw_vers -productVersion])
+            .and_return(command_result(stdout: "15.6\n"))
+
+          model.send(:detect_macos_version)
+
+          expect(model).to have_received(:run_command_using_args).with(%w[sw_vers -productVersion])
         end
 
         it 'returns nil when command fails' do
           model = create_mac_os_test_model
           allow(model).to receive(:run_command_using_args).with(%w[sw_vers -productVersion])
             .and_raise(StandardError.new('Command failed'))
+
           expect { model.send(:detect_macos_version) }.not_to raise_error
           expect(model.send(:detect_macos_version)).to be_nil
         end
@@ -946,13 +958,10 @@ module WifiWand
 
       describe '#macos_version' do
         it 'handles version detection failure gracefully' do
-          # Allow all other commands to execute normally
-          allow_any_instance_of(described_class).to receive(:run_command_using_args).and_call_original
-          # Cause only the sw_vers call to fail; detection should rescue and set nil
-          allow_any_instance_of(described_class)
-            .to receive(:run_command_using_args).with(%w[sw_vers -productVersion])
-            .and_raise(StandardError.new('Command failed'))
           failing_model = create_mac_os_test_model
+          allow(failing_model).to receive(:run_command_using_args).with(%w[sw_vers -productVersion])
+            .and_raise(StandardError.new('Command failed'))
+
           silence_output { expect(failing_model.macos_version).to be_nil }
         end
       end

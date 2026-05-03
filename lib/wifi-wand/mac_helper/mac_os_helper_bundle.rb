@@ -9,6 +9,7 @@
 #   * MacOsHelperClient#scan_networks -> runs the helper's `scan-networks` command.
 #   * MacOsHelperClient#available? -> tells callers when the helper can safely be invoked.
 
+require 'open3'
 require 'rubygems/version'
 require_relative 'mac_os_helper_artifacts'
 
@@ -24,6 +25,22 @@ module WifiWand
     HELPER_TERMINATION_WAIT_SECONDS = 0.25
     HELPER_OUTPUT_READER_JOIN_SECONDS = 0.05
     MANIFEST_FILENAME = 'INSTALL_MANIFEST.json'
+
+    HelperSupportStatus = Struct.new(:macos_version, :parsed_version, keyword_init: true) do
+      def known? = !!parsed_version
+
+      def supported?
+        known? && parsed_version >= MINIMUM_HELPER_VERSION
+      end
+
+      def unsupported?
+        known? && !supported?
+      end
+
+      def unknown? = !known?
+
+      def applicable? = !unsupported?
+    end
 
     module_function def versioned_install_dir = File.join(INSTALL_PARENT, helper_version)
 
@@ -66,11 +83,29 @@ module WifiWand
       nil
     end
 
-    module_function def helper_supported_on_macos_version?(version)
-      parsed_version = parse_macos_version(version)
-      return false unless parsed_version
+    module_function def helper_support_status_for_macos_version(version)
+      HelperSupportStatus.new(
+        macos_version:   version,
+        parsed_version: parse_macos_version(version)
+      )
+    end
 
-      parsed_version >= MINIMUM_HELPER_VERSION
+    module_function def helper_supported_on_macos_version?(version)
+      helper_support_status_for_macos_version(version).supported?
+    end
+
+    module_function def detect_macos_version
+      stdout, _stderr, status = Open3.capture3('sw_vers', '-productVersion')
+      return nil unless status.success?
+
+      normalize_detected_macos_version(stdout)
+    rescue Errno::ENOENT
+      nil
+    end
+
+    module_function def normalize_detected_macos_version(version)
+      normalized_version = version.to_s.strip
+      normalized_version.empty? ? nil : normalized_version
     end
 
     require_relative 'mac_os_helper_installer'

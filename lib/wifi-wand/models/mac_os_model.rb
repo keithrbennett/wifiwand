@@ -552,8 +552,7 @@ module WifiWand
     # Detects the current macOS version
     def detect_macos_version
       output = run_command_using_args(%w[sw_vers -productVersion]).stdout
-      version = output.strip
-      version.empty? ? nil : version
+      MacOsHelperBundle.normalize_detected_macos_version(output)
     rescue => e
       if verbose?
         out_stream.puts "Could not detect macOS version: #{e.message}."
