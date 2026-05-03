@@ -42,7 +42,7 @@ module WifiWand
         # Normalize filespec for robust API (support symbols as '-' too)
         spec = filespec.nil? ? nil : filespec.to_s
 
-        qr_string = build_wifi_qr_string(network_name, password, security, is_hidden)
+        qr_string = build_wifi_qr_string(network_name, password, security, is_hidden: is_hidden)
         return run_qrencode_text(model, qr_string, delivery_mode: delivery_mode) if spec == '-'
 
         filename  = spec && !spec.empty? ? spec : build_filename(network_name)
@@ -86,7 +86,7 @@ module WifiWand
         model.preferred_network_password(network_name)
       end
 
-      private def build_wifi_qr_string(network_name, password, security_type, is_hidden = false)
+      private def build_wifi_qr_string(network_name, password, security_type, is_hidden: false)
         qr_password = password.to_s
         qr_security = map_security_for_qr(security_type, !qr_password.empty?)
 

@@ -323,18 +323,6 @@ Style/MultilineBlockChain:
 Style/OpenStructUse:
   Enabled: false
 
-# Offense count: 4
-# Configuration parameters: AllowedMethods.
-# AllowedMethods: respond_to_missing?
-Style/OptionalBooleanParameter:
-  Exclude:
-    - 'lib/wifi-wand/models/base_model.rb'
-    - 'lib/wifi-wand/models/helpers/qr_code_generator.rb'
-    - 'lib/wifi-wand/services/command_executor.rb'
-    - 'lib/wifi-wand/services/connection_manager.rb'
-
-
-
 
 # Offense count: 13
 # This cop supports unsafe autocorrection (--autocorrect-all).

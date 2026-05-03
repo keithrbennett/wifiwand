@@ -18,7 +18,8 @@ module WifiWand
 
     describe '#swift_and_corewlan_present?' do
       it 'probes Swift/CoreWLAN availability once and memoizes the result' do
-        expect(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'], false).once
+        expect(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false).once
           .and_return(command_result(stdout: ''))
 
         2.times do
@@ -27,14 +28,16 @@ module WifiWand
       end
 
       it 'returns false for Swift/CoreWLAN probe failures' do
-        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'], false)
+        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false)
           .and_raise(os_command_error(exitstatus: 127, command: 'swift', text: ''))
 
         expect(runtime.swift_and_corewlan_present?).to be(false)
       end
 
       it 'logs a targeted message when Swift is not installed' do
-        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'], false)
+        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false)
           .and_raise(os_command_error(exitstatus: 127, command: 'swift', text: ''))
 
         expect(runtime.swift_and_corewlan_present?).to be(false)
@@ -42,7 +45,8 @@ module WifiWand
       end
 
       it 'logs a targeted message when CoreWLAN is unavailable' do
-        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'], false)
+        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false)
           .and_raise(os_command_error(exitstatus: 1, command: 'swift', text: 'missing framework'))
 
         expect(runtime.swift_and_corewlan_present?).to be(false)
@@ -50,7 +54,8 @@ module WifiWand
       end
 
       it 'logs the command output for other OsCommandError probe failures' do
-        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'], false)
+        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false)
           .and_raise(os_command_error(exitstatus: 2, command: 'swift', text: 'toolchain mismatch'))
 
         expect(runtime.swift_and_corewlan_present?).to be(false)
@@ -59,7 +64,8 @@ module WifiWand
       end
 
       it 'logs an unexpected-error message for non-command probe failures' do
-        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'], false)
+        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false)
           .and_raise(StandardError.new('unexpected'))
 
         expect(runtime.swift_and_corewlan_present?).to be(false)

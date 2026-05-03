@@ -343,7 +343,7 @@ module WifiWand
           allow(model).to receive_messages(wifi_interface: 'en0', wifi_on?: true)
           expect(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPAirPortDataType],
-            true,
+            raise_on_error:  true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
           ).twice.and_return(
             command_result(stdout: first_airport_data),
@@ -719,10 +719,10 @@ module WifiWand
           test_cases.each do |response, expected|
             if response.is_a?(Exception)
               allow(model).to receive(:run_command_using_args).with(%w[route -n get default],
-                false).and_raise(response)
+                raise_on_error: false).and_raise(response)
             else
               allow(model).to receive(:run_command_using_args).with(%w[route -n get default],
-                false).and_return(command_result(stdout: response))
+                raise_on_error: false).and_return(command_result(stdout: response))
             end
 
             expect(model.default_interface).to eq(expected)
@@ -767,7 +767,7 @@ module WifiWand
           test_cases.each do |network_name, expected_command_array|
             expect(model).to receive(:run_command_using_args).with(
               expected_command_array,
-              true,
+              raise_on_error:  true,
               timeout_in_secs: described_class::SUDO_NETWORKSETUP_TIMEOUT_SECONDS
             )
             expect(model.remove_preferred_network(network_name)).to eq([network_name])
@@ -817,7 +817,7 @@ module WifiWand
         it 'detects WiFi interface from system_profiler' do
           expect(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPNetworkDataType],
-            true,
+            raise_on_error:  true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
           ).and_return(command_result(stdout: system_profiler_output))
 
@@ -908,8 +908,8 @@ module WifiWand
           allow(model).to receive(:run_command_using_args) do |command, *args, **kwargs|
             call_sequence << [command, args, kwargs]
             if command == expected_cmd
-              expect(args).to eq([true])
-              expect(kwargs).to eq(timeout_in_secs: nil)
+              expect(args).to eq([])
+              expect(kwargs).to eq(raise_on_error: true, timeout_in_secs: nil)
               raise os_command_error(exitstatus: 44, command: 'security', text: '')
             else
               command_result(stdout: 'Wi-Fi Power (en0): On')
@@ -930,8 +930,9 @@ module WifiWand
             '-w']
           allow(model).to receive(:run_command_using_args) do |command, *args, **kwargs|
             if command == expected_cmd
-              expect(args).to eq([true])
-              expect(kwargs).to eq(timeout_in_secs: described_class::KEYCHAIN_LOOKUP_TIMEOUT_SECONDS)
+              expect(args).to eq([])
+              expect(kwargs).to eq(raise_on_error: true,
+                timeout_in_secs: described_class::KEYCHAIN_LOOKUP_TIMEOUT_SECONDS)
               raise os_command_error(exitstatus: 44, command: 'security', text: '')
             else
               command_result(stdout: 'Wi-Fi Power (en0): On')
@@ -1032,7 +1033,7 @@ module WifiWand
           allow(swift_runtime).to receive(:disconnect).and_raise(StandardError, 'swift failure')
           allow(model).to receive(:run_command_using_args).with(
             %w[sudo ifconfig en0 disassociate],
-            false,
+            raise_on_error:  false,
             timeout_in_secs: WifiWand::MacOsWifiTransport::SUDO_IFCONFIG_TIMEOUT_SECONDS
           ).and_return(command_result(
             stdout:     '',
@@ -1042,7 +1043,7 @@ module WifiWand
           ))
           allow(model).to receive(:run_command_using_args).with(
             %w[ifconfig en0 disassociate],
-            false
+            raise_on_error: false
           ).and_return(command_result(
             stdout:     '',
             stderr:     '',
@@ -1086,7 +1087,7 @@ module WifiWand
           verbose_model = create_mac_os_test_model(verbose: true, out_stream: StringIO.new)
           expect(verbose_model).to receive(:run_command_using_args).with(
             ['swift', '-e', 'import CoreWLAN'],
-            false
+            raise_on_error: false
           ).and_return(command_result(stdout: ''))
 
           expect(verbose_model.validate_os_preconditions).to eq(:ok)
@@ -1097,7 +1098,7 @@ module WifiWand
           verbose_model = create_mac_os_test_model(verbose: true, out_stream: StringIO.new)
           expect(verbose_model).to receive(:run_command_using_args).with(
             ['swift', '-e', 'import CoreWLAN'],
-            false
+            raise_on_error: false
           ).and_raise(os_command_error(exitstatus: 127, command: 'swift', text: ''))
 
           expect(verbose_model.validate_os_preconditions).to eq(:ok)
@@ -1108,7 +1109,7 @@ module WifiWand
           verbose_model = create_mac_os_test_model(verbose: true, out_stream: StringIO.new)
           expect(verbose_model).to receive(:run_command_using_args).with(
             ['swift', '-e', 'import CoreWLAN'],
-            false
+            raise_on_error: false
           ).and_raise(os_command_error(exitstatus: 1, command: 'swift', text: 'missing framework'))
 
           expect(verbose_model.validate_os_preconditions).to eq(:ok)
@@ -1119,7 +1120,7 @@ module WifiWand
           quiet_model = create_mac_os_test_model(verbose: false, out_stream: StringIO.new)
           expect(quiet_model).to receive(:run_command_using_args).with(
             ['swift', '-e', 'import CoreWLAN'],
-            false
+            raise_on_error: false
           ).and_raise(os_command_error(exitstatus: 127, command: 'swift', text: ''))
 
           expect(quiet_model.validate_os_preconditions).to eq(:ok)
@@ -1130,7 +1131,7 @@ module WifiWand
           verbose_model = create_mac_os_test_model(verbose: true, out_stream: StringIO.new)
           expect(verbose_model).to receive(:run_command_using_args).with(
             ['swift', '-e', 'import CoreWLAN'],
-            false
+            raise_on_error: false
           ).and_return(command_result(stdout: ''))
 
           expect(verbose_model.validate_os_preconditions).to eq(:ok)
@@ -1369,7 +1370,7 @@ module WifiWand
           json_output = '{"SPAirPortDataType": [{"test": "data"}]}'
           allow(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPAirPortDataType],
-            true,
+            raise_on_error:  true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
           ).and_return(command_result(stdout: json_output))
 
@@ -1389,7 +1390,7 @@ module WifiWand
 
           expect(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPAirPortDataType],
-            true,
+            raise_on_error:  true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
           ).twice.and_return(
             command_result(stdout: first_json_output),
@@ -1516,7 +1517,7 @@ module WifiWand
 
           expect(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPAirPortDataType],
-            true,
+            raise_on_error:  true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
           ).once.and_return(command_result(stdout: json_output))
 
@@ -1557,7 +1558,7 @@ module WifiWand
 
           expect(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPAirPortDataType],
-            true,
+            raise_on_error:  true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
           ).twice.and_return(
             command_result(stdout: first_airport_data),
@@ -1573,7 +1574,7 @@ module WifiWand
 
           expect(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPAirPortDataType],
-            true,
+            raise_on_error:  true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
           ).twice.and_return(command_result(stdout: json_output))
           allow(model).to receive(:wifi_interface).and_return(wifi_interface)

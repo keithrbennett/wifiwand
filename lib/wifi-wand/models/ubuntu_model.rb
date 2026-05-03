@@ -69,12 +69,12 @@ module WifiWand
     end
 
     def is_wifi_interface?(interface)
-      result = run_command_using_args(['iw', 'dev', interface, 'info'], false)
+      result = run_command_using_args(['iw', 'dev', interface, 'info'], raise_on_error: false)
       result.success?
     end
 
     def wifi_on?
-      output = run_command_using_args(%w[nmcli radio wifi], false).stdout
+      output = run_command_using_args(%w[nmcli radio wifi], raise_on_error: false).stdout
       output.match?(/enabled/)
     end
 
@@ -82,7 +82,7 @@ module WifiWand
       return false unless wifi_on?
 
       output = run_command_using_args(
-        ['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], false
+        ['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], raise_on_error: false
       ).stdout
       output.split("\n").any? { |line| line.strip == wifi_interface }
     end
@@ -137,7 +137,7 @@ module WifiWand
       interface = wifi_interface
       return nil unless interface
 
-      output = run_command_using_args(['iw', 'dev', interface, 'link'], false).stdout
+      output = run_command_using_args(['iw', 'dev', interface, 'link'], raise_on_error: false).stdout
       return nil if output.strip.start_with?('Not connected')
 
       ssid_line = output.split("\n").find { |line| line.strip.start_with?('SSID:') }
@@ -262,7 +262,7 @@ module WifiWand
       # Use the terse, machine-readable output to get the security protocol.
       begin
         output = run_command_using_args(
-          ['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false
+          ['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], raise_on_error: false
         ).stdout
       rescue WifiWand::CommandExecutor::OsCommandError
         return nil # Can't scan, so can't determine the type.
@@ -329,7 +329,7 @@ module WifiWand
 
       begin
         output = run_command_using_args(
-          ['nmcli', '-t', '-f', 'NAME,TIMESTAMP', 'connection', 'show'], false
+          ['nmcli', '-t', '-f', 'NAME,TIMESTAMP', 'connection', 'show'], raise_on_error: false
         ).stdout
       rescue WifiWand::CommandExecutor::OsCommandError
         # If the command fails for any reason, we can't find profiles.
@@ -391,7 +391,7 @@ module WifiWand
       debug_method_entry(__method__, binding, :preferred_network_name)
 
       output = run_command_using_args(
-        ['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name], false
+        ['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name], raise_on_error: false
       ).stdout
       extract_preferred_network_secret(output)
     end
@@ -421,7 +421,8 @@ module WifiWand
     public def _ip_address
       debug_method_entry(__method__)
 
-      output = run_command_using_args(['ip', '-4', 'addr', 'show', wifi_interface], false).stdout
+      output = run_command_using_args(['ip', '-4', 'addr', 'show', wifi_interface],
+        raise_on_error: false).stdout
       inet_line = output.split("\n").find { |line| line.include?('inet ') }
       return nil unless inet_line
 
@@ -435,7 +436,7 @@ module WifiWand
     public def mac_address
       debug_method_entry(__method__)
 
-      output = run_command_using_args(['ip', 'link', 'show', wifi_interface], false).stdout
+      output = run_command_using_args(['ip', 'link', 'show', wifi_interface], raise_on_error: false).stdout
       ether_line = output.split("\n").find { |line| line.include?('ether') }
       return nil unless ether_line
 
@@ -533,7 +534,7 @@ module WifiWand
 
       begin
         output = run_command_using_args(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', interface],
-          false).stdout
+          raise_on_error: false).stdout
       rescue WifiWand::CommandExecutor::OsCommandError
         return nil
       end
@@ -550,7 +551,7 @@ module WifiWand
       debug_method_entry(__method__)
 
       begin
-        output = run_command_using_args(%w[ip route show default], false).stdout
+        output = run_command_using_args(%w[ip route show default], raise_on_error: false).stdout
         return nil if output.empty?
 
         # Extract interface name (5th field in: "default via 192.168.1.1 dev wlp0s20f3 ...")
@@ -568,7 +569,8 @@ module WifiWand
       debug_method_entry(__method__, binding, :connection_name)
 
       begin
-        output = run_command_using_args(['nmcli', 'connection', 'show', connection_name], false).stdout
+        output = run_command_using_args(['nmcli', 'connection', 'show', connection_name],
+          raise_on_error: false).stdout
 
         # Extract DNS servers from connection configuration
         # Look for both configured DNS (ipv4.dns[1]:) and runtime DNS (IP4.DNS[1]:)
@@ -729,7 +731,7 @@ module WifiWand
 
       begin
         output = run_command_using_args(
-          ['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], false
+          ['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], raise_on_error: false
         ).stdout
       rescue WifiWand::CommandExecutor::OsCommandError
         return nil # Can't scan, return nil
@@ -760,7 +762,9 @@ module WifiWand
       begin
         # Query the connection profile to check if it's marked as hidden
         output = run_command_using_args(
-          ['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name], false).stdout
+          ['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show', profile_name],
+          raise_on_error: false
+        ).stdout
 
         # The output will be like "802-11-wireless.hidden:yes" or "802-11-wireless.hidden:no"
         hidden_line = output.split("\n").find { |line| line.include?('802-11-wireless.hidden:') }

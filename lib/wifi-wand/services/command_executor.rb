@@ -21,7 +21,7 @@ module WifiWand
     # @param raise_on_error [Boolean] Whether to raise on non-zero exit
     # @param timeout_in_secs [Numeric, nil] Optional command timeout in seconds
     # @return [OsCommandResult] Structured command result
-    def run_command_using_args(command, raise_on_error = true, timeout_in_secs: nil)
+    def run_command_using_args(command, raise_on_error: true, timeout_in_secs: nil)
       unless command.is_a?(Array)
         raise ArgumentError,
           "run_command_using_args requires an Array; got #{command.class}"
@@ -34,7 +34,7 @@ module WifiWand
     end
 
     # Executes a command string through the shell when shell semantics are intended.
-    def run_command_using_shell(command, raise_on_error = true, timeout_in_secs: nil)
+    def run_command_using_shell(command, raise_on_error: true, timeout_in_secs: nil)
       unless command.is_a?(String)
         raise ArgumentError,
           "run_command_using_shell requires a String; got #{command.class}"

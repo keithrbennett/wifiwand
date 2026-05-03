@@ -27,7 +27,7 @@ module WifiWand
       return @swift_and_corewlan_present if defined?(@swift_and_corewlan_present)
 
       @swift_and_corewlan_present = begin
-        run_command_using_args(['swift', '-e', 'import CoreWLAN'], false)
+        run_command_using_args(['swift', '-e', 'import CoreWLAN'], raise_on_error: false)
         true
       rescue WifiWand::CommandExecutor::OsCommandError => e
         log_swift_probe_failure(e) if verbose?

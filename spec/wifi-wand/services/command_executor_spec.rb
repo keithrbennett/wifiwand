@@ -55,7 +55,7 @@ describe WifiWand::CommandExecutor do
       it 'supports timeouts for array commands without changing successful behavior' do
         result = executor.run_command_using_args(
           [RbConfig.ruby, '-e', 'sleep 0.05; print "ok"'],
-          true,
+          raise_on_error:  true,
           timeout_in_secs: 1
         )
 
@@ -70,7 +70,7 @@ describe WifiWand::CommandExecutor do
       end
 
       it 'returns result without raising on command failure when raise_on_error is false' do
-        result = executor.run_command_using_args(['false'], false)
+        result = executor.run_command_using_args(['false'], raise_on_error: false)
         expect(result).to be_a(WifiWand::CommandExecutor::OsCommandResult)
         expect(result.exitstatus).not_to eq(0)
       end
@@ -98,7 +98,7 @@ describe WifiWand::CommandExecutor do
           ]
 
           expect do
-            executor.run_command_using_args(command, true, timeout_in_secs: 0.2)
+            executor.run_command_using_args(command, raise_on_error: true, timeout_in_secs: 0.2)
           end.to raise_error(WifiWand::CommandTimeoutError)
 
           pid = wait_for_file_contents(pid_file.path).to_i
@@ -123,7 +123,7 @@ describe WifiWand::CommandExecutor do
           ]
 
           expect do
-            executor.run_command_using_args(command, true, timeout_in_secs: 0.2)
+            executor.run_command_using_args(command, raise_on_error: true, timeout_in_secs: 0.2)
           end.to raise_error(WifiWand::CommandTimeoutError)
 
           descendant_pid = wait_for_file_contents(pid_file.path).to_i
@@ -169,14 +169,16 @@ describe WifiWand::CommandExecutor do
       let(:executor) { described_class.new(verbose: false) }
 
       it 'captures both stdout and stderr' do
-        result = executor.run_command_using_shell("bash -c 'echo \"stdout\"; echo \"stderr\" >&2'", false)
+        result = executor.run_command_using_shell("bash -c 'echo \"stdout\"; echo \"stderr\" >&2'",
+          raise_on_error: false)
         expect(result.stdout).to include('stdout')
         expect(result.stderr).to include('stderr')
       end
 
       it 'raises CommandTimeoutError for shell commands that exceed the timeout' do
         expect do
-          executor.run_command_using_shell("#{RbConfig.ruby} -e 'sleep 5'", true, timeout_in_secs: 0.2)
+          executor.run_command_using_shell("#{RbConfig.ruby} -e 'sleep 5'", raise_on_error: true,
+            timeout_in_secs: 0.2)
         end.to raise_error(WifiWand::CommandTimeoutError, /sleep 5/)
       end
     end

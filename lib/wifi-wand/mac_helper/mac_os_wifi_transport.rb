@@ -105,12 +105,12 @@ module WifiWand
       iface = wifi_interface
       sudo_result = run_command_using_args(
         ['sudo', 'ifconfig', iface, 'disassociate'],
-        false,
+        raise_on_error:  false,
         timeout_in_secs: SUDO_IFCONFIG_TIMEOUT_SECONDS
       )
       return nil if sudo_result.success?
 
-      plain_result = run_command_using_args(['ifconfig', iface, 'disassociate'], false)
+      plain_result = run_command_using_args(['ifconfig', iface, 'disassociate'], raise_on_error: false)
       return nil if plain_result.success?
 
       raise(WifiWand::NetworkDisconnectionError.new(

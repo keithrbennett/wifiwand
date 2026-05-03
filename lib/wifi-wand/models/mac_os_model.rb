@@ -178,7 +178,7 @@ module WifiWand
 
       json_text = run_command_using_args(
         %w[system_profiler -json SPNetworkDataType],
-        true,
+        raise_on_error:  true,
         timeout_in_secs: SYSTEM_PROFILER_TIMEOUT_SECONDS
       ).stdout
       return nil if json_text.nil? || json_text.strip.empty?
@@ -372,7 +372,7 @@ module WifiWand
           preferred_network_name,
           '-w',
         ],
-        true,
+        raise_on_error:  true,
         timeout_in_secs: timeout_in_secs
       ).stdout.chomp
     rescue WifiWand::CommandExecutor::OsCommandError => e
@@ -397,7 +397,7 @@ module WifiWand
       iface = wifi_interface
       run_command_using_args(
         ['sudo', 'networksetup', '-removepreferredwirelessnetwork', iface, network_name],
-        true,
+        raise_on_error:  true,
         timeout_in_secs: SUDO_NETWORKSETUP_TIMEOUT_SECONDS
       )
       [network_name]
@@ -536,7 +536,7 @@ module WifiWand
 
     # Returns the network interface used for default internet route on macOS
     def default_interface
-      output = run_command_using_args(%w[route -n get default], false).stdout
+      output = run_command_using_args(%w[route -n get default], raise_on_error: false).stdout
       return nil if output.empty?
 
       # Find line containing 'interface:' and extract value
@@ -732,7 +732,7 @@ module WifiWand
 
       json_text = run_command_using_args(
         %w[system_profiler -json SPAirPortDataType],
-        true,
+        raise_on_error:  true,
         timeout_in_secs: SYSTEM_PROFILER_TIMEOUT_SECONDS
       ).stdout
       begin

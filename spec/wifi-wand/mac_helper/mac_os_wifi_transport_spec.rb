@@ -160,10 +160,11 @@ module WifiWand
         allow(swift_runtime).to receive(:disconnect).and_raise(StandardError.new('swift failed'))
         expect(command_runner).to receive(:call).with(
           %w[sudo ifconfig en0 disassociate],
-          false,
+          raise_on_error:  false,
           timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
         ).and_return(command_result(stdout: '', command: 'sudo ifconfig en0 disassociate'))
-        expect(command_runner).not_to receive(:call).with(%w[ifconfig en0 disassociate], false)
+        expect(command_runner).not_to receive(:call).with(%w[ifconfig en0 disassociate],
+          raise_on_error: false)
 
         expect(transport.disconnect).to be_nil
         expect(out_stream.string).to include(
@@ -175,11 +176,12 @@ module WifiWand
         allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
         expect(command_runner).to receive(:call).with(
           %w[sudo ifconfig en0 disassociate],
-          false,
+          raise_on_error:  false,
           timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
         ).and_return(command_result(stderr: 'sudo authentication failed', exitstatus: 1,
           command: 'sudo ifconfig en0 disassociate'))
-        expect(command_runner).to receive(:call).with(%w[ifconfig en0 disassociate], false)
+        expect(command_runner).to receive(:call).with(%w[ifconfig en0 disassociate],
+          raise_on_error: false)
           .and_return(command_result(stderr: 'permission denied', exitstatus: 1,
             command: 'ifconfig en0 disassociate'))
 
@@ -196,7 +198,7 @@ module WifiWand
         allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
         expect(command_runner).to receive(:call).with(
           %w[sudo ifconfig en0 disassociate],
-          false,
+          raise_on_error:  false,
           timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
         ).and_return(command_result(stdout: '', command: 'sudo ifconfig en0 disassociate'))
 
@@ -211,7 +213,7 @@ module WifiWand
           allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
           expect(command_runner).to receive(:call).with(
             %w[sudo ifconfig en0 disassociate],
-            false,
+            raise_on_error:  false,
             timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
           ).and_return(command_result(stdout: '', command: 'sudo ifconfig en0 disassociate'))
 

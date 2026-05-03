@@ -46,7 +46,8 @@ module WifiWand
       # If we're already connected to the desired network, no need to proceed
       return if already_connected?(network_name)
 
-      password, used_saved_password = resolve_password(network_name, password, skip_saved_password_lookup)
+      password, used_saved_password = resolve_password(network_name, password,
+        skip_saved_password_lookup: skip_saved_password_lookup)
 
       perform_connection(network_name, password)
       store_saved_password_usage(used_saved_password)
@@ -160,7 +161,7 @@ module WifiWand
     # @return [Array<(String,nil), Boolean>] A two-element array of
     #   `[resolved_password, used_saved_password]`, where `resolved_password` may be
     #   nil when no password could be determined.
-    private def resolve_password(network_name, password, skip_saved_password_lookup = false)
+    private def resolve_password(network_name, password, skip_saved_password_lookup: false)
       return [password, false] if skip_saved_password_lookup
 
       if password == ''
