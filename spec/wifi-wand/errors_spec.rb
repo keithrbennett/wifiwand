@@ -47,13 +47,15 @@ module WifiWand
 
     # Unit tests for each error class to verify message formatting
     describe 'Unit tests for each error class' do
-      keyword_error_args = {
-        NetworkNotFoundError    => %i[network_name available_networks],
-        NetworkConnectionError  => %i[network_name reason],
-        WaitTimeoutError        => %i[action timeout],
-        InvalidNetworkNameError => %i[network_name reason],
-        CommandTimeoutError     => %i[command timeout_in_secs],
-      }.freeze
+      let(:keyword_error_args) do
+        {
+          NetworkNotFoundError    => %i[network_name available_networks],
+          NetworkConnectionError  => %i[network_name reason],
+          WaitTimeoutError        => %i[action timeout],
+          InvalidNetworkNameError => %i[network_name reason],
+          CommandTimeoutError     => %i[command timeout_in_secs],
+        }
+      end
 
       error_test_cases = [
         [NetworkNotFoundError,          ['MyNet'],
@@ -230,16 +232,18 @@ module WifiWand
       ].flatten(1)
 
       error_raising_test_cases.each do |test_case|
-        t = test_case
-        it "raises #{t[:error]} when calling #{t[:method]} with #{t[:args]}", t[:os_tag] || {} do
+        it "raises #{test_case[:error]} when calling #{test_case[:method]} with #{test_case[:args]}",
+          test_case[:os_tag] || {} do
           # Run the before block in the context of the test
-          instance_exec(&t[:before]) if t[:before]
+          instance_exec(&test_case[:before]) if test_case[:before]
 
           # Special case for methods that are not public
-          if model.private_methods.include?(t[:method])
-            expect { model.send(t[:method], *t[:args]) }.to raise_error(t[:error])
+          if model.private_methods.include?(test_case[:method])
+            expect { model.send(test_case[:method], *test_case[:args]) }.to raise_error(test_case[:error])
           else
-            expect { model.public_send(t[:method], *t[:args]) }.to raise_error(t[:error])
+            expect do
+              model.public_send(test_case[:method], *test_case[:args])
+            end.to raise_error(test_case[:error])
           end
         end
       end

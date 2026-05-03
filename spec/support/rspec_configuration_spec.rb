@@ -354,13 +354,17 @@ RSpec.describe RSpecConfiguration do
     it 'raises after printing a visible failure for expected restoration errors' do
       error = network_connection_error(network_name: 'MyNetwork', reason: 'timed out')
       allow(NetworkStateManager).to receive(:restore_state).with(fail_silently: false).and_raise(error)
+      allow(RSpec.configuration.reporter).to receive(:message)
+
+      expect(RSpec.configuration.reporter).to receive(:message).with(
+        a_string_matching(
+          /Could not restore network connection: Failed to connect to network 'MyNetwork': timed out/
+        )
+      )
 
       expect do
         described_class.attempt_final_network_restoration
-      end.to output(
-        /Could not restore network connection: Failed to connect to network 'MyNetwork': timed out/
-      ).to_stdout
-        .and raise_error(WifiWand::NetworkConnectionError, /timed out/)
+      end.to raise_error(WifiWand::NetworkConnectionError, /timed out/)
     end
 
     it 'propagates unexpected exceptions from final restoration' do

@@ -632,8 +632,8 @@ module WifiWand
     # Reads the current profile values up front so rollback can restore the
     # exact pre-transaction state instead of inferring defaults.
     public def dns_configuration_snapshot(connection_name)
-      DNS_CONNECTION_FIELDS.each_with_object({}) do |field_name, dns_configuration|
-        dns_configuration[field_name] = connection_property_value(connection_name, field_name)
+      DNS_CONNECTION_FIELDS.to_h do |field_name|
+        [field_name, connection_property_value(connection_name, field_name)]
       end
     end
 

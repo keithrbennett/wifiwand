@@ -13,7 +13,7 @@ RSpec::Matchers.define :be_nil_or_a_string_matching do |regex|
 end
 
 RSpec::Matchers.define :be_nil_or_an_array_of_strings do
-  match { |actual| actual.nil? || (actual.is_a?(Array) && actual.all? { |i| i.is_a?(String) }) }
+  match { |actual| actual.nil? || (actual.is_a?(Array) && actual.all?(String)) }
   failure_message { |actual| "expected that #{actual.inspect} would be nil or an Array of Strings" }
 end
 

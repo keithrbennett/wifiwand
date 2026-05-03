@@ -48,14 +48,10 @@ module WifiWand
         DEFAULT_HELPER_COMMAND_TIMEOUT_SECONDS
       end
     end
-  end
-end
 
-require_relative 'mac_os_helper_installer'
-require_relative 'mac_os_helper_client'
+    require_relative 'mac_os_helper_installer'
+    require_relative 'mac_os_helper_client'
 
-module WifiWand
-  module MacOsHelperBundle
     module_function def helper_installed_and_valid? = MacOsHelperInstaller.helper_installed_and_valid?
 
     module_function def ensure_helper_installed(out_stream: $stdout)

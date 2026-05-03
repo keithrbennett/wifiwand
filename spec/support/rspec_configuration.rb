@@ -160,12 +160,12 @@ module RSpecConfiguration
       allow_any_instance_of(WifiWand::CommandExecutor)
         .to receive(:run_command_using_args)
         .and_wrap_original do |method, command, *args, **kwargs|
-        if command.to_s.match?(security_regex)
-          raise os_command_error(exitstatus: 44, command: 'security', text: '')
-        end
+          if command.to_s.match?(security_regex)
+            raise os_command_error(exitstatus: 44, command: 'security', text: '')
+          end
 
-        method.call(command, *args, **kwargs)
-      end
+          method.call(command, *args, **kwargs)
+        end
     end
   end
 
@@ -209,20 +209,22 @@ module RSpecConfiguration
     return unless network_state && network_state[:network_name]
     return if previous_restore_failed?
 
-    puts "\n#{'=' * 60}"
+    RSpec.configuration.reporter.message("\n#{'=' * 60}")
     begin
       NetworkStateManager.restore_state(fail_silently: false)
-      puts "✅ Successfully restored network connection: #{network_state[:network_name]}"
+      RSpec.configuration.reporter.message(
+        "✅ Successfully restored network connection: #{network_state[:network_name]}"
+      )
     rescue WifiWand::Error => e
       safe_message = safe_utf8(e.message)
       safe_network_name = safe_utf8(network_state[:network_name])
-      puts <<~ERROR_MESSAGE
+      RSpec.configuration.reporter.message(<<~ERROR_MESSAGE)
         ⚠️  Could not restore network connection: #{safe_message}
         You may need to manually reconnect to: #{safe_network_name}
       ERROR_MESSAGE
       raise
     end
-    puts "#{'=' * 60}\n\n"
+    RSpec.configuration.reporter.message("#{'=' * 60}\n\n")
   end
 
   def self.mark_restore_failure!
@@ -277,7 +279,7 @@ module RSpecConfiguration
   end
 
   def self.show_test_usage_information
-    puts <<~MESSAGE
+    RSpec.configuration.reporter.message(<<~MESSAGE)
 
       #{'=' * 60}
       TEST FILTERING OPTIONS:

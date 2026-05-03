@@ -7,8 +7,10 @@ module OSFiltering
     current_os = WifiWand::OperatingSystems.current_os
     $compatible_os_tag = :"os_#{current_os.id}"
   rescue => e
-    puts "Warning: Could not detect current OS for test filtering: #{e.message}"
-    puts 'Running all tests - some may fail due to OS incompatibility'
+    RSpec.configuration.reporter.message(
+      "Warning: Could not detect current OS for test filtering: #{e.message}"
+    )
+    RSpec.configuration.reporter.message('Running all tests - some may fail due to OS incompatibility')
   end
 
   def self.configure_os_filtering(config)

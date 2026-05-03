@@ -112,9 +112,7 @@ RSpec.describe WifiWand::DocsTooling do
   def inherited_bundler_env
     %w[BUNDLE_BIN_PATH BUNDLE_GEMFILE RUBYLIB RUBYOPT]
       .select { |key| ENV[key] }
-      .each_with_object({}) do |key, env|
-        env[key] = ENV[key]
-      end
+      .to_h { |key| [key, ENV[key]] }
   end
 
   describe 'repository-relative paths' do

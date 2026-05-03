@@ -7,9 +7,15 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   # Regex patterns for color code detection
   ANSI_COLOR_REGEX = /\e\[\d+m/
   GREEN_TEXT_REGEX = /\e\[32m.*\e\[0m/
-  RED_TEXT_REGEX   = /\e\[31m.*\e\[0m/
+  RED_TEXT_REGEX = /\e\[31m.*\e\[0m/
   YELLOW_TEXT_REGEX = /\e\[33m.*\e\[0m/
-  CYAN_TEXT_REGEX  = /\e\[36m.*\e\[0m/
+  CYAN_TEXT_REGEX = /\e\[36m.*\e\[0m/
+  STATUS_LINE_HASH_KEY_MAP = {
+    wifi_on?:                    :wifi_on,
+    dns_working?:                :dns_working,
+    connected_network_name:      :network_name,
+    internet_connectivity_state: :internet_state,
+  }.freeze
 
   # Create a test class that includes the OutputFormatter module
   subject { test_class.new(options, mock_model) }
@@ -318,13 +324,6 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         expect(result).to match(GREEN_TEXT_REGEX)     # Green YES statuses
       end
 
-      hash_key_map = {
-        wifi_on?:                    :wifi_on,
-        dns_working?:                :dns_working,
-        connected_network_name:      :network_name,
-        internet_connectivity_state: :internet_state,
-      }
-
       {
         'WiFi off'         => [:wifi_on?, false, /WiFi.*OFF/, RED_TEXT_REGEX],
         'no network'       => [:connected_network_name, nil, /WiFi Network.*none/, YELLOW_TEXT_REGEX],
@@ -333,7 +332,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       }.each do |scenario, (mock_method, return_value, expected_pattern, expected_color)|
         it "displays error status when #{scenario}" do
           data = status_data.clone
-          target_key = hash_key_map[mock_method]
+          target_key = STATUS_LINE_HASH_KEY_MAP[mock_method]
           data[target_key] = return_value
 
           result = subject.status_line(data)
