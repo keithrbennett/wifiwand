@@ -6,7 +6,7 @@ module WifiWand
   describe BaseOs do
     describe 'private constructor' do
       it 'prevents direct instantiation via new' do
-        expect { described_class.new(:test_id, 'Test Display Name') }.to raise_error(WifiWand::BaseOs::NonSubclassInstantiationError)
+        expect { described_class.new(:test_id, 'Test Display Name') }.to raise_error(WifiWand::NonSubclassInstantiationError)
       end
     end
 
@@ -21,7 +21,7 @@ module WifiWand
     describe 'error messages' do
       it 'provides meaningful NonSubclassInstantiationError message' do
         described_class.new(:test, 'test')
-      rescue WifiWand::BaseOs::NonSubclassInstantiationError => e
+      rescue WifiWand::NonSubclassInstantiationError => e
         expect(e.to_s).to include('can only be instantiated by subclasses')
       end
 
@@ -30,8 +30,8 @@ module WifiWand
 
         instance = test_subclass.new(:test_id, 'Test Display Name')
 
-        expect { instance.current_os_is_this_os? }.to raise_error(WifiWand::BaseOs::MethodNotImplementedError)
-        expect { instance.create_model({}) }.to raise_error(WifiWand::BaseOs::MethodNotImplementedError)
+        expect { instance.current_os_is_this_os? }.to raise_error(WifiWand::MethodNotImplementedError)
+        expect { instance.create_model({}) }.to raise_error(WifiWand::MethodNotImplementedError)
       end
     end
   end

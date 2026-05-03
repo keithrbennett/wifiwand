@@ -123,10 +123,10 @@ module WifiWand
       end
 
       it 'BaseOs errors provide meaningful messages' do
-        non_subclass_error = BaseOs::NonSubclassInstantiationError.new
+        non_subclass_error = NonSubclassInstantiationError.new
         expect(non_subclass_error.to_s).to include('can only be instantiated by subclasses')
 
-        method_not_impl_error = BaseOs::MethodNotImplementedError.new
+        method_not_impl_error = MethodNotImplementedError.new
         expect(method_not_impl_error.to_s).to include('must be implemented in, and called on, a subclass')
       end
     end

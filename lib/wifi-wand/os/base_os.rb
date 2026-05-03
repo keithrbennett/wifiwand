@@ -5,11 +5,7 @@
 require_relative '../errors'
 
 module WifiWand
-  class BaseOs < Struct.new(:id, :display_name)
-    class NonSubclassInstantiationError < Error
-      def to_s = "Class #{self.class} can only be instantiated by subclasses"
-    end
-
+  BaseOs = Struct.new(:id, :display_name) do
     def initialize(id, display_name)
       instantiated_by_subclass = (self.class.name != WifiWand::BaseOs.name)
       if instantiated_by_subclass
@@ -17,13 +13,6 @@ module WifiWand
       else
         # Prohibit BaseOs.new call
         raise NonSubclassInstantiationError
-      end
-    end
-
-    class MethodNotImplementedError < Error
-      def to_s
-        'This method is not implemented in this base class. ' \
-          'It must be implemented in, and called on, a subclass.'
       end
     end
 

@@ -197,6 +197,17 @@ module WifiWand
     end
   end
 
+  class NonSubclassInstantiationError < Error
+    def to_s = "Class #{self.class} can only be instantiated by subclasses"
+  end
+
+  class MethodNotImplementedError < Error
+    def to_s
+      'This method is not implemented in this base class. ' \
+        'It must be implemented in, and called on, a subclass.'
+    end
+  end
+
   class PreferredNetworkNotFoundError < Error
     def initialize(network_name) = super("Network '#{network_name}' not in preferred networks list")
   end
