@@ -214,22 +214,22 @@ module WifiWand
       end
     end
 
-    # Queries available WiFi network names via the compiled macOS helper app.
+    # Queries available WiFi network names via the compiled macOS helper application.
     # macOS currently uses two Swift runtime paths:
-    # - compiled helper bundle for read/query operations that may need a stable
-    #   app identity and Location Services handling
+    # - compiled helper application bundle for read/query operations that may
+    #   need a stable app identity and Location Services handling
     # - direct Swift source execution for connect/disconnect mutations
     # Consolidating those paths is a future architecture task.
     #
     # Returns:
-    #   - Array<String> of unique SSID names when the helper returns usable data
-    #   - nil when the helper is unavailable, Location Services blocks the
-    #     helper, returns no networks, or all SSIDs are filtered placeholders
+    #   - Array<String> of unique SSID names when the helper application returns usable data
+    #   - nil when the helper application is unavailable, Location Services
+    #     blocks the helper application, returns no networks, or all SSIDs are filtered placeholders
     #     (signals the caller to try fallback sources)
     #
     # Placeholder SSIDs such as "<hidden>" and "<redacted>" are excluded from
-    # the result. All interpretation of the helper response uses the explicit
-    # HelperQueryResult returned by scan_networks—no hidden client state is
+    # the result. All interpretation of the helper application response uses the
+    # explicit HelperQueryResult returned by scan_networks—no hidden client state is
     # consulted.
     def helper_available_network_names
       result = mac_helper_client.scan_networks
@@ -286,9 +286,9 @@ module WifiWand
       with_airport_data_cache_scope do
         return false unless wifi_on?
 
-        # Query the compiled helper path first because association checks may
-        # still need the helper's stable app identity to return an unredacted
-        # SSID on modern macOS.
+        # Query the compiled helper application path first because association
+        # checks may still need the helper application's stable app identity to
+        # return an unredacted SSID on modern macOS.
         result = mac_helper_client.connected_network_name
         return true if result.payload && !placeholder_network_name?(result.payload)
 
@@ -303,9 +303,9 @@ module WifiWand
         return false unless wifi_on?
 
         # On Sonoma+, system_profiler may omit spairport_current_network_information
-        # entirely when SSID data is redacted. Check the compiled helper path
-        # first; it is the runtime used for read/query operations that need
-        # CoreWLAN plus a stable app identity.
+        # entirely when SSID data is redacted. Check the compiled helper
+        # application path first; it is the runtime used for read/query
+        # operations that need CoreWLAN plus a stable app identity.
         result = mac_helper_client.connected_network_name
         return true if result.payload && !placeholder_network_name?(result.payload)
 
@@ -423,9 +423,9 @@ module WifiWand
 
     def _connected_network_name
       with_airport_data_cache_scope do
-        # Current-network reads check the compiled helper path first because it
-        # is the read/query runtime with stable app identity and Location
-        # Services handling.
+        # Current-network reads check the compiled helper application path first
+        # because it is the read/query runtime with stable app identity and
+        # Location Services handling.
         result = mac_helper_client.connected_network_name
         ssid = result.payload
         return ssid if ssid && !placeholder_network_name?(ssid)
@@ -447,8 +447,8 @@ module WifiWand
 
     def network_identity_redacted?
       with_airport_data_cache_scope do
-        # Redaction detection is tied to the compiled helper path because that
-        # runtime surfaces Location Services blocking directly.
+        # Redaction detection is tied to the compiled helper application path
+        # because that runtime surfaces Location Services blocking directly.
         result = mac_helper_client.connected_network_name
         result.location_services_blocked? || placeholder_network_name?(result.payload)
       end
@@ -459,7 +459,8 @@ module WifiWand
     def network_identity_redaction_reason
       return nil unless network_identity_redacted?
 
-      'macOS is redacting WiFi network names until Location Services access is granted'
+      'macOS is redacting WiFi network names until Location Services access is granted ' \
+        'to wifiwand-helper, the macOS helper application'
     end
 
     def mac_helper_client

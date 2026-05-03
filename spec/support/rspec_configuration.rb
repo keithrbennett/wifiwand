@@ -275,7 +275,7 @@ module RSpecConfiguration
       'capture the starting SSID and verify restoration to that exact SSID afterward. ' \
       "wifi-wand can detect generic association, but #{base_reason}, so exact-state restoration of the " \
       'original network cannot be verified. Run `wifi-wand-macos-setup`, grant Location Services to ' \
-      '`wifiwand-helper`, and rerun the tests.'
+      '`wifiwand-helper`, the macOS helper application, and rerun the tests.'
   end
 
   def self.show_test_usage_information

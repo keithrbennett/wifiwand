@@ -41,7 +41,8 @@ module WifiWand
         if cli.model.is_a?(WifiWand::MacOsModel)
           <<~MESSAGE.chomp
             No visible networks were found.
-            On macOS 14+, this can mean the helper could not get usable Location Services authorization for WiFi SSIDs.
+            On macOS 14+, this can mean the macOS helper application could not get usable
+            Location Services authorization for WiFi SSIDs.
           MESSAGE
         elsif cli.model.is_a?(WifiWand::UbuntuModel)
           <<~MESSAGE.chomp

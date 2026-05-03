@@ -275,7 +275,8 @@ checks could not reach a conclusion.
 ### macOS Performance Note
 
 On macOS, `connected_network_name` can be slow without the Swift/CoreWLAN helper installed (see
-[MACOS_SETUP.md](./MACOS_SETUP.md)). This affects logging performance on macOS systems without the helper.
+[MACOS_SETUP.md](./MACOS_SETUP.md)). This affects logging performance on macOS systems without the helper
+application.
 
 ## File Permission Errors
 

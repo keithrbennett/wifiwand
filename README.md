@@ -64,17 +64,18 @@ These are typically pre-installed on Ubuntu systems.
 
 ---
 
-### ⚠️ Important for macOS Users (10.15+)
+### ⚠️ Important for macOS Users (14+)
 
-**After installation, run the one-time setup script (not required for Ubuntu):**
+**On macOS 14 or later, install the macOS helper application after gem installation:**
 
 ```bash
 wifi-wand-macos-setup
 ```
 
-This grants location permission needed for WiFi network access. Without it, network names may appear as
+This installs the `wifiwand-helper` helper application and grants the Location Services permission needed for
+unredacted WiFi network names. Without the helper application or its permission, network names may appear as
 `<hidden>` or `<redacted>`. See the **[macOS Setup Guide](docs/MACOS_SETUP.md)** for details, including
-**Running WifiWand on macOS Without the Helper or With Redacted Network Names**.
+**Running WifiWand on macOS Without the Helper Application or With Redacted Network Names**.
 
 ---
 
@@ -155,7 +156,8 @@ Setup and platform guides:
 
 - **[macOS Setup Guide](docs/MACOS_SETUP.md)** - One-time setup for macOS Location Services access.
 - **[Ubuntu Setup & Requirements](docs/UBUNTU_SETUP.md)** - NetworkManager and tool requirements for Ubuntu.
-- **[macOS Helper Application](docs/MACOS_HELPER.md)** - End-user details for the native macOS helper.
+- **[macOS Helper Application](docs/MACOS_HELPER.md)** - End-user details for the native macOS helper
+  application.
 
 Command-specific guides:
 
@@ -655,17 +657,17 @@ functionality relies has been disabled and will presumably eventually be removed
 To maintain functionality after airport deprecation and macOS permission changes, wifi-wand now uses two
 Swift/CoreWLAN runtime paths on macOS:
 
-* **Compiled helper app for read/query operations** - On macOS Sonoma (14.0) and later, the signed
-  `wifiwand-helper.app` handles permission-sensitive operations such as reading current network details and
-  scanning nearby networks.
+* **Compiled helper application for read/query operations** - On macOS Sonoma (14.0) and later, the signed
+  `wifiwand-helper.app` helper application handles permission-sensitive operations such as reading current
+  network details and scanning nearby networks.
 * **Direct Swift source for connect/disconnect** - `WifiNetworkConnector.swift` and
   `WifiNetworkDisconnector.swift` still handle connect/disconnect, with automatic fallback to
   `networksetup` or `ifconfig` when needed.
 
-The helper path exists because modern macOS read/query operations increasingly depend on CoreWLAN plus a
-stable app identity for Location Services behavior. The direct Swift-source path remains in place because the
-existing connect/disconnect flow still works well with its fallbacks. Consolidating these paths is a later
-architecture topic, not part of the current cleanup.
+The helper application path exists because modern macOS read/query operations increasingly depend on CoreWLAN
+plus a stable app identity for Location Services behavior. The direct Swift-source path remains in place
+because the existing connect/disconnect flow still works well with its fallbacks. Consolidating these paths
+is a later architecture topic, not part of the current cleanup.
 
 The direct Swift scripts are **optional dependencies**. If Swift or CoreWLAN are not available (for example,
 Xcode Command Line Tools are not installed), wifi-wand automatically falls back to traditional command-line
@@ -676,8 +678,8 @@ To install Swift and CoreWLAN support:
 xcode-select --install
 ```
 
-The following tasks now rely on a mix of helper-backed reads and traditional
-macOS utilities:
+The following tasks now rely on a mix of helper-application-backed reads and
+traditional macOS utilities:
 * determining whether or not WiFi is on
 * reading the name of the currently connected network
 * listing names of available networks
@@ -691,14 +693,14 @@ version 2.17.0.
 
 ### macOS Helper Cleanup (macOS Sonoma+)
 
-On macOS Sonoma (14.0) and later, wifi-wand installs a native helper app to `~/Library/Application
-Support/WifiWand/<version>/` to provide unredacted WiFi information. Each gem version creates its own helper
-directory to support running multiple gem versions simultaneously.
+On macOS Sonoma (14.0) and later, wifi-wand installs a native macOS helper application to
+`~/Library/Application Support/WifiWand/<version>/` to provide unredacted WiFi information. Each gem version
+creates its own helper application directory to support running multiple gem versions simultaneously.
 
-Over time, old helper versions may accumulate as you upgrade. Each helper is ~100-200KB, so this is rarely a
-concern, but you can clean them up if desired.
+Over time, old helper application versions may accumulate as you upgrade. Each helper application is
+~100-200KB, so this is rarely a concern, but you can clean them up if desired.
 
-**List installed helper versions:**
+**List installed helper application versions:**
 ```bash
 ls -la ~/Library/Application\ Support/WifiWand/
 ```
@@ -715,8 +717,8 @@ cd ~/Library/Application\ Support/WifiWand/
 ls | grep -v "3.0.0-alpha.1" | xargs rm -rf
 ```
 
-The helper will be automatically reinstalled the next time you run a wifi-wand command that requires it.
-If you want to refresh the currently installed helper immediately, run:
+The helper application will be automatically reinstalled the next time you run a wifi-wand command that
+requires it. If you want to refresh the currently installed helper application immediately, run:
 
 ```bash
 wifi-wand-macos-setup --repair
