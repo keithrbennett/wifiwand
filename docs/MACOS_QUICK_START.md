@@ -1,7 +1,7 @@
 # macOS Location Permission Setup
 
 Use this guide for the one-time setup required on macOS 14 Sonoma and later. For the detailed explanation of
-the native helper application, privacy model, repair behavior, and technical details, see
+the native helper application, privacy model, reinstall behavior, removal behavior, and technical details, see
 [MACOS_HELPER_APP_DETAILS.md](MACOS_HELPER_APP_DETAILS.md).
 
 ## Recommendation
@@ -51,10 +51,10 @@ wifi-wand info
 
 You should see real network names instead of `<hidden>` or `<redacted>`.
 
-## Repair Setup
+## Reinstall Setup
 
 If setup completed but network names are still hidden or redacted, see
-[MACOS_HELPER_APP_DETAILS.md](MACOS_HELPER_APP_DETAILS.md) for repair and troubleshooting steps.
+[MACOS_HELPER_APP_DETAILS.md](MACOS_HELPER_APP_DETAILS.md) for reinstall and troubleshooting steps.
 
 ## Running With Redacted Network Names
 

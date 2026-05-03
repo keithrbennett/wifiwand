@@ -25,9 +25,9 @@ module WifiWand
       MacOsHelperBundle.installed_bundle_path
     end
 
-    module_function def install_helper_bundle(out_stream: $stdout)
+    module_function def install_helper_bundle(out_stream: $stdout, force: false)
       with_install_lock do
-        return MacOsHelperBundle.installed_bundle_path if helper_installed_and_valid?
+        return MacOsHelperBundle.installed_bundle_path if !force && helper_installed_and_valid?
 
         out_stream&.puts 'Installing wifiwand macOS helper...'
 

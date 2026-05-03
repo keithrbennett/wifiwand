@@ -71,17 +71,17 @@ RSpec.describe WifiWand::MacOsHelperSetup do
       end
     end
 
-    describe '#repair_recommended?' do
+    describe '#reinstall_recommended?' do
       it 'returns true when installed but not valid' do
-        expect(build(installed: true, valid: false).repair_recommended?).to be(true)
+        expect(build(installed: true, valid: false).reinstall_recommended?).to be(true)
       end
 
       it 'returns false when not installed at all' do
-        expect(build(installed: false, valid: false).repair_recommended?).to be(false)
+        expect(build(installed: false, valid: false).reinstall_recommended?).to be(false)
       end
 
       it 'returns false when installed and valid' do
-        expect(build(installed: true, valid: true).repair_recommended?).to be(false)
+        expect(build(installed: true, valid: true).reinstall_recommended?).to be(false)
       end
     end
 
@@ -138,7 +138,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
       end
     end
 
-    context 'when the helper is installed but structurally invalid (repair recommended)' do
+    context 'when the helper is installed but structurally invalid (reinstall recommended)' do
       before do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
         allow(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?).and_return(false)
@@ -149,7 +149,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
         expect(status.installed?).to be(true)
         expect(status.valid?).to be(false)
         expect(status.authorized?).to be(false)
-        expect(status.repair_recommended?).to be(true)
+        expect(status.reinstall_recommended?).to be(true)
       end
 
       it 'does not invoke the broken executable to probe authorization' do
@@ -259,7 +259,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
     context 'when reinstall succeeds and validation passes' do
       before do
         allow(WifiWand::MacOsHelperBundle)
-          .to receive(:install_helper_bundle).with(out_stream: out_stream)
+          .to receive(:install_helper_bundle).with(out_stream: out_stream, force: true)
         allow(WifiWand::MacOsHelperBundle)
           .to receive_messages(helper_installed_and_valid?: true, installed_bundle_path: '/fake/bundle')
       end
@@ -272,7 +272,7 @@ RSpec.describe WifiWand::MacOsHelperSetup do
     context 'when reinstall validation fails' do
       before do
         allow(WifiWand::MacOsHelperBundle)
-          .to receive(:install_helper_bundle).with(out_stream: out_stream)
+          .to receive(:install_helper_bundle).with(out_stream: out_stream, force: true)
         allow(WifiWand::MacOsHelperBundle)
           .to receive(:helper_installed_and_valid?).and_return(false)
       end
@@ -281,6 +281,28 @@ RSpec.describe WifiWand::MacOsHelperSetup do
         expect { setup.reinstall_helper }
           .to raise_error(RuntimeError, /reinstallation failed/)
       end
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # MacOsHelperSetup#remove_helper
+  # ---------------------------------------------------------------------------
+  describe '#remove_helper' do
+    let(:install_dir) { '/tmp/fake-wifiwand-helper-install' }
+
+    before do
+      allow(WifiWand::MacOsHelperBundle)
+        .to receive(:versioned_install_dir).and_return(install_dir)
+    end
+
+    it 'removes the versioned helper installation directory idempotently' do
+      expect(FileUtils).to receive(:rm_rf).with(install_dir)
+      setup.remove_helper
+    end
+
+    it 'returns the target installation directory path' do
+      allow(FileUtils).to receive(:rm_rf).with(install_dir)
+      expect(setup.remove_helper).to eq(install_dir)
     end
   end
 

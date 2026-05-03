@@ -441,7 +441,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
           client.send(:ensure_helper_installed)
 
           expect(out_stream.string).to include('failed to install helper (boom)')
-          expect(out_stream.string).not_to include('wifi-wand-macos-setup --repair')
+          expect(out_stream.string).not_to include('wifi-wand-macos-setup --reinstall')
           expect(client.available?).to be(false)
 
           client.send(:ensure_helper_installed)
@@ -463,7 +463,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
             .to include('existing helper install failed validation; attempting reinstall')
         end
 
-        it 'emits repair guidance and disables helper retries when reinstall fails' do
+        it 'emits reinstall guidance and disables helper retries when reinstall fails' do
           expect(File).to receive(:executable?).with(helper_path).and_return(true).once
           expect(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?)
             .and_return(false).once
@@ -473,7 +473,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
           2.times { client.send(:ensure_helper_installed) }
 
           expect(out_stream.string).to include('failed to install helper (boom)')
-          expect(out_stream.string).to include('wifi-wand-macos-setup --repair')
+          expect(out_stream.string).to include('wifi-wand-macos-setup --reinstall')
           expect(client.available?).to be(false)
         end
       end
@@ -550,9 +550,9 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         expect(out_stream.string).to include('failed to install helper (boom)')
       end
 
-      it 'includes repair guidance when an existing helper install is corrupt' do
-        client.send(:emit_install_failure, 'boom', repair_required: true)
-        expect(out_stream.string).to include('wifi-wand-macos-setup --repair')
+      it 'includes reinstall guidance when an existing helper install is corrupt' do
+        client.send(:emit_install_failure, 'boom', reinstall_required: true)
+        expect(out_stream.string).to include('wifi-wand-macos-setup --reinstall')
       end
     end
 
@@ -707,6 +707,29 @@ RSpec.describe WifiWand::MacOsHelperBundle do
       expect(out_stream.string).to include('Helper bundle installed from pre-signed binary.')
     end
 
+    it 'skips installation when the current helper is already valid' do
+      described_class.install_helper_bundle(out_stream: nil)
+
+      expect(installer).not_to receive(:stage_helper_bundle)
+
+      described_class.install_helper_bundle(out_stream: out_stream)
+      expect(out_stream.string).to be_empty
+    end
+
+    it 'force-installs even when the current helper is already valid' do
+      described_class.install_helper_bundle(out_stream: nil)
+      previous_release_path = described_class.resolved_installed_bundle_target
+
+      allow(installer).to receive(:stage_helper_bundle).and_call_original
+
+      described_class.install_helper_bundle(out_stream: out_stream, force: true)
+      expect(installer).to have_received(:stage_helper_bundle).once
+      expect(described_class.helper_installed_and_valid?).to be(true)
+      expect(described_class.resolved_installed_bundle_target).not_to eq(previous_release_path)
+      expect(out_stream.string).to include('Installing wifiwand macOS helper...')
+      expect(out_stream.string).to include('Helper bundle installed from pre-signed binary.')
+    end
+
     it 'does not publish a bundle when staged validation fails on first install' do
       File.write(source_executable_path, "#!/bin/sh\nexit 1\n")
       FileUtils.chmod(0o755, source_executable_path)
@@ -803,10 +826,10 @@ RSpec.describe WifiWand::MacOsHelperBundle do
       installation_started = Queue.new
       allow(installer)
         .to receive(:stage_helper_bundle).and_wrap_original do |original, staged_bundle_path|
-        installation_started << :started
-        sleep(0.1)
-        original.call(staged_bundle_path)
-      end
+          installation_started << :started
+          sleep(0.1)
+          original.call(staged_bundle_path)
+        end
 
       first_thread = Thread.new { described_class.install_helper_bundle(out_stream: nil) }
       installation_started.pop

@@ -36,6 +36,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
     allow(setup).to receive(:check_status).and_return(initial_status, *(post_status ? [post_status] : []))
     allow(setup).to receive(:install_helper)
     allow(setup).to receive(:reinstall_helper)
+    allow(setup).to receive(:remove_helper)
     allow(setup).to receive(:open_location_settings)
     allow(WifiWand::MacOsHelperBundle)
       .to receive_messages(installed_executable_path: '/fake/helper', installed_bundle_path: '/fake/bundle')
@@ -64,17 +65,18 @@ RSpec.describe WifiWand::MacOsSetupCli do
       expect(out_stream.string).not_to include('Press ENTER')
     end
 
-    it 'does not call install_helper or reinstall_helper' do
+    it 'does not call helper lifecycle operations' do
       expect(setup).not_to receive(:install_helper)
       expect(setup).not_to receive(:reinstall_helper)
+      expect(setup).not_to receive(:remove_helper)
       build_cli(setup: setup).run
     end
   end
 
   # ---------------------------------------------------------------------------
-  # --repair flag
+  # --reinstall flag
   # ---------------------------------------------------------------------------
-  describe '--repair flag' do
+  describe '--reinstall flag' do
     let(:setup)          { instance_double(WifiWand::MacOsHelperSetup) }
     let(:complete_status) { build_result(authorized: true) }
 
@@ -89,17 +91,17 @@ RSpec.describe WifiWand::MacOsSetupCli do
       it 'calls reinstall_helper before the normal status check' do
         expect(setup).to receive(:reinstall_helper).ordered
         expect(setup).to receive(:check_status).and_return(complete_status).ordered
-        build_cli(argv: ['--repair'], setup: setup).run
+        build_cli(argv: ['--reinstall'], setup: setup).run
       end
 
       it 'prints a reinstall confirmation message' do
-        build_cli(argv: ['--repair'], setup: setup).run
+        build_cli(argv: ['--reinstall'], setup: setup).run
         expect(out_stream.string).to include('Reinstalling')
         expect(out_stream.string).to include('reinstalled at:')
       end
 
-      it 'returns exit code 0 when the post-repair status is complete' do
-        expect(build_cli(argv: ['--repair'], setup: setup).run).to eq(0)
+      it 'returns exit code 0 when the post-reinstall status is complete' do
+        expect(build_cli(argv: ['--reinstall'], setup: setup).run).to eq(0)
       end
     end
 
@@ -112,27 +114,49 @@ RSpec.describe WifiWand::MacOsSetupCli do
       end
 
       it 'returns exit code 1' do
-        expect(build_cli(argv: ['--repair'], setup: setup).run).to eq(1)
+        expect(build_cli(argv: ['--reinstall'], setup: setup).run).to eq(1)
       end
 
       it 'prints the error message' do
-        build_cli(argv: ['--repair'], setup: setup).run
+        build_cli(argv: ['--reinstall'], setup: setup).run
         expect(out_stream.string).to include('bundle copy failed')
       end
     end
+  end
 
-    context 'with --reinstall alias' do
-      before do
-        allow(setup).to receive(:reinstall_helper)
-        stub_setup(setup, initial_status: complete_status)
-        allow(WifiWand::MacOsHelperBundle)
-          .to receive(:installed_bundle_path).and_return('/fake/bundle')
-      end
+  # ---------------------------------------------------------------------------
+  # --remove flag
+  # ---------------------------------------------------------------------------
+  describe '--remove flag' do
+    let(:setup) { instance_double(WifiWand::MacOsHelperSetup) }
 
-      it 'also triggers the repair path' do
-        expect(setup).to receive(:reinstall_helper)
-        build_cli(argv: ['--reinstall'], setup: setup).run
-      end
+    before do
+      allow(setup).to receive(:remove_helper).and_return('/fake/install-dir')
+    end
+
+    it 'removes the helper installation' do
+      expect(setup).to receive(:remove_helper).and_return('/fake/install-dir')
+      build_cli(argv: ['--remove'], setup: setup).run
+    end
+
+    it 'does not run setup status checks' do
+      expect(setup).not_to receive(:check_status)
+      build_cli(argv: ['--remove'], setup: setup).run
+    end
+
+    it 'does not open Location Services' do
+      expect(setup).not_to receive(:open_location_settings)
+      build_cli(argv: ['--remove'], setup: setup).run
+    end
+
+    it 'prints revocation guidance' do
+      build_cli(argv: ['--remove'], setup: setup).run
+      expect(out_stream.string).to include('Removed wifiwand-helper installation at: /fake/install-dir')
+      expect(out_stream.string).to include('Location Services permission is managed by macOS')
+    end
+
+    it 'returns exit code 0' do
+      expect(build_cli(argv: ['--remove'], setup: setup).run).to eq(0)
     end
   end
 
@@ -145,7 +169,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
 
     before do
       allow(WifiWand::MacOsHelperBundle)
-        .to receive(:installed_executable_path).and_return('/fake/helper')
+        .to receive_messages(installed_executable_path: '/fake/helper', installed_bundle_path: '/fake/bundle')
       allow(setup).to receive(:install_helper)
       allow(setup).to receive(:open_location_settings)
     end
@@ -173,6 +197,12 @@ RSpec.describe WifiWand::MacOsSetupCli do
         expect(out_stream.string).to include('already granted (restored by macOS)')
       end
 
+      it 'prints the helper app bundle path instead of the internal executable path' do
+        build_cli(setup: setup).run
+        expect(out_stream.string).to include('Helper installed at: /fake/bundle')
+        expect(out_stream.string).not_to include('Helper installed at: /fake/helper')
+      end
+
       it 'returns exit code 0' do
         expect(build_cli(setup: setup).run).to eq(0)
       end
@@ -197,6 +227,12 @@ RSpec.describe WifiWand::MacOsSetupCli do
         expect(out_stream.string).to include('Manual Setup Instructions')
       end
 
+      it 'prints the helper app bundle path instead of the internal executable path' do
+        build_cli(setup: setup).run
+        expect(out_stream.string).to include('Helper installed at: /fake/bundle')
+        expect(out_stream.string).not_to include('Helper installed at: /fake/helper')
+      end
+
       it 'returns exit code 0' do
         expect(build_cli(setup: setup).run).to eq(0)
       end
@@ -206,7 +242,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
   # ---------------------------------------------------------------------------
   # Helper installed but invalid → reinstall path
   # ---------------------------------------------------------------------------
-  describe 'when the helper is invalid (repair recommended)' do
+  describe 'when the helper is invalid (reinstall recommended)' do
     let(:setup)          { instance_double(WifiWand::MacOsHelperSetup) }
     let(:invalid_status) { build_result(valid: false) }
 
@@ -241,6 +277,12 @@ RSpec.describe WifiWand::MacOsSetupCli do
         expect(out_stream.string).to include('preserved by macOS')
       end
 
+      it 'prints the helper app bundle path instead of the internal executable path' do
+        build_cli(setup: setup).run
+        expect(out_stream.string).to include('Helper reinstalled at: /fake/bundle')
+        expect(out_stream.string).not_to include('Helper reinstalled at: /fake/helper')
+      end
+
       it 'returns exit code 0' do
         expect(build_cli(setup: setup).run).to eq(0)
       end
@@ -262,6 +304,12 @@ RSpec.describe WifiWand::MacOsSetupCli do
       it 'shows the reinstall step label in the steps list' do
         build_cli(setup: setup).run
         expect(out_stream.string).to include('Reinstall wifiwand-helper')
+      end
+
+      it 'prints the helper app bundle path instead of the internal executable path' do
+        build_cli(setup: setup).run
+        expect(out_stream.string).to include('Helper reinstalled at: /fake/bundle')
+        expect(out_stream.string).not_to include('Helper reinstalled at: /fake/helper')
       end
 
       it 'returns exit code 0' do
@@ -322,7 +370,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
         .to receive(:installed_executable_path).and_return('/fake/helper')
     end
 
-    it 'shows "repair recommended" when the helper is installed but invalid' do
+    it 'shows "reinstall recommended" when the helper is installed but invalid' do
       invalid = build_result(valid: false)
       allow(setup).to receive(:check_status).and_return(invalid, build_result(authorized: false))
       allow(setup).to receive(:reinstall_helper)
@@ -330,7 +378,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
         .to receive(:installed_bundle_path).and_return('/fake/bundle')
 
       build_cli(setup: setup).run
-      expect(out_stream.string).to include('repair recommended')
+      expect(out_stream.string).to include('reinstall recommended')
     end
 
     it 'shows "will check after installation" when helper is not installed' do
@@ -348,6 +396,24 @@ RSpec.describe WifiWand::MacOsSetupCli do
   # ---------------------------------------------------------------------------
   describe 'error handling' do
     let(:setup) { instance_double(WifiWand::MacOsHelperSetup) }
+
+    it 'returns exit code 1 for the removed --repair option' do
+      expect(build_cli(argv: ['--repair'], setup: setup).run).to eq(1)
+    end
+
+    it 'prints an invalid option error for the removed --repair option' do
+      build_cli(argv: ['--repair'], setup: setup).run
+      expect(out_stream.string).to include('invalid option: --repair')
+    end
+
+    it 'returns exit code 1 when reinstall and remove are both requested' do
+      expect(build_cli(argv: %w[--reinstall --remove], setup: setup).run).to eq(1)
+    end
+
+    it 'prints the mutual-exclusion error when reinstall and remove are both requested' do
+      build_cli(argv: %w[--reinstall --remove], setup: setup).run
+      expect(out_stream.string).to include('choose only one of --reinstall or --remove')
+    end
 
     it 'returns exit code 1 when an unexpected error occurs during steps' do
       allow(setup).to receive(:check_status).and_return(build_result(authorized: false))

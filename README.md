@@ -717,10 +717,16 @@ ls | grep -v "3.0.0-alpha.1" | xargs rm -rf
 ```
 
 The helper application will be automatically reinstalled the next time you run a wifi-wand command that
-requires it. If you want to refresh the currently installed helper application immediately, run:
+requires it. To remove the helper for the currently installed wifi-wand version, run:
 
 ```bash
-wifi-wand-macos-setup --repair
+wifi-wand-macos-setup --remove
+```
+
+If you want to refresh the currently installed helper application immediately, run:
+
+```bash
+wifi-wand-macos-setup --reinstall
 ```
 
 

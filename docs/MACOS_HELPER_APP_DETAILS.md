@@ -169,10 +169,10 @@ This command:
 
 For a shorter setup-only walkthrough, see [MACOS_QUICK_START.md](MACOS_QUICK_START.md).
 
-### Repair, Reinstall, or Update
+### Reinstall or Update
 
 ```bash
-wifi-wand-macos-setup --repair
+wifi-wand-macos-setup --reinstall
 ```
 
 Use this when:
@@ -182,7 +182,17 @@ Use this when:
 - wifi-wand still shows `<hidden>` or `<redacted>` after the helper application previously worked
 - macOS appears to have lost track of the helper application's Location Services permission
 
-The repair command force-replaces the helper application bundle and re-runs the authorization flow.
+The reinstall command force-replaces the helper application bundle and re-runs the authorization flow.
+
+### Remove Helper Application
+
+```bash
+wifi-wand-macos-setup --remove
+```
+
+This removes the helper application files for the current wifi-wand version. It does not revoke Location
+Services permission; macOS manages that separately. To revoke permission, use the manual Location Services
+steps below.
 
 ### Revoke Location Permission
 
@@ -287,10 +297,10 @@ open "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationSe
 **Solution:**
 ```bash
 # Force-reinstall the helper application and re-run the permission flow
-wifi-wand-macos-setup --repair
+wifi-wand-macos-setup --reinstall
 ```
 
-If the prompt still does not appear after repair, open System Settings manually and look for
+If the prompt still does not appear after reinstalling, open System Settings manually and look for
 the **wifiwand-helper** helper application under Location Services. If it is present, toggle it off and back
 on.
 
@@ -306,10 +316,10 @@ on.
 
 **Solution:**
 ```bash
-# Repair the helper application installation
-wifi-wand-macos-setup --repair
+# Reinstall the helper application
+wifi-wand-macos-setup --reinstall
 
-# If repair fails, remove the helper application directory and run setup again
+# If reinstall fails, remove the helper application directory and run setup again
 rm -rf ~/Library/Application\ Support/WifiWand/
 wifi-wand-macos-setup
 ```
@@ -464,7 +474,7 @@ safely delete old version directories.
 Within the same gem version, wifi-wand also tracks whether the installed helper application bundle still
 matches the currently shipped helper application files. If the helper application bundle on disk is stale,
 wifi-wand reinstalls it automatically before using it. You can force that refresh yourself at any time with
-`wifi-wand-macos-setup --repair`.
+`wifi-wand-macos-setup --reinstall`.
 
 ### Permission Identity and Version Upgrades
 
@@ -479,7 +489,7 @@ installed path. This means:
 
 > **Note:** macOS TCC (Transparency, Consent, and Control) behavior can sometimes be sensitive to path,
 > signature, or OS-version quirks. If macOS prompts for permission again after a gem upgrade, run
-> `wifi-wand-macos-setup --repair` to force re-registration.
+> `wifi-wand-macos-setup --reinstall` to force re-registration.
 
 Multiple installed helper application copies may exist on disk (one per gem version), but they present as one
 logical macOS app identity for permission purposes via the stable bundle identifier `com.wifiwand.helper`.
@@ -504,6 +514,6 @@ the maintainer documentation in the repository:
 
 ---
 
-**Last Updated:** 2026-04-18
+**Last Updated:** 2026-05-03
 **macOS Compatibility:** macOS 14.0 (Sonoma) and later
 **Helper Version:** Matches wifi-wand gem version

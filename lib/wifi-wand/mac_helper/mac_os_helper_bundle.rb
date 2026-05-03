@@ -58,8 +58,8 @@ module WifiWand
       MacOsHelperInstaller.ensure_helper_installed(out_stream: out_stream)
     end
 
-    module_function def install_helper_bundle(out_stream: $stdout)
-      MacOsHelperInstaller.install_helper_bundle(out_stream: out_stream)
+    module_function def install_helper_bundle(out_stream: $stdout, force: false)
+      MacOsHelperInstaller.install_helper_bundle(out_stream: out_stream, force: force)
     end
 
     module_function def install_lock_path = MacOsHelperInstaller.install_lock_path

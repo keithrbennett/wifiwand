@@ -1,6 +1,6 @@
 # macOS Redacted Network Names Policy
 
-_Last updated: 2026-04-25_
+_Last updated: 2026-05-03_
 
 This document explains the problem created by macOS WiFi-name redaction, the
 behavioral conflicts it introduces in `wifi-wand`, and the implementation

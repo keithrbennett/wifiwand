@@ -155,7 +155,7 @@ module WifiWand
     rescue => e
       @helper_install_verified = false
       @disabled = true
-      emit_install_failure(e.message, repair_required: helper_present)
+      emit_install_failure(e.message, reinstall_required: helper_present)
     end
 
     private def helper_executable_path = WifiWand::MacOsHelperBundle.installed_executable_path
@@ -188,22 +188,22 @@ module WifiWand
       stream = out_stream || $stdout
       if stream
         stream.puts('wifiwand helper: Location Services denied. ' \
-          'Run `wifi-wand-macos-setup` (or `wifi-wand-macos-setup --repair`) ' \
+          'Run `wifi-wand-macos-setup` (or `wifi-wand-macos-setup --reinstall`) ' \
           'to grant location access.')
       end
       @location_warning_emitted = true
     end
 
-    private def emit_install_failure(detail, repair_required: false)
+    private def emit_install_failure(detail, reinstall_required: false)
       stream = out_stream || $stdout
       if stream
-        repair_hint = if repair_required
-          ' Run `wifi-wand-macos-setup --repair` to reinstall it.'
+        reinstall_hint = if reinstall_required
+          ' Run `wifi-wand-macos-setup --reinstall` to reinstall it.'
         else
           ''
         end
         stream.puts("wifiwand helper: failed to install helper (#{detail}). " \
-          "Helper disabled until the next run.#{repair_hint}")
+          "Helper disabled until the next run.#{reinstall_hint}")
       end
     end
 

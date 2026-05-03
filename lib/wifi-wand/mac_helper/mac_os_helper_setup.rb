@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Encapsulates the business logic for checking, installing, and repairing
+# Encapsulates the business logic for checking, installing, reinstalling, and removing
 # the wifiwand-helper on macOS. This class is the authoritative source of
 # truth for setup status; the exe/wifi-wand-macos-setup script delegates
 # all decisions to it.
@@ -8,13 +8,15 @@
 # Usage:
 #   setup = WifiWand::MacOsHelperSetup.new
 #   status = setup.check_status
-#   status.setup_complete?     # => true/false
-#   status.repair_recommended? # => true when installed but structurally broken
-#   status.steps_needed        # => [:install_helper, :grant_permission] etc.
+#   status.setup_complete?        # => true/false
+#   status.reinstall_recommended? # => true when installed but structurally broken
+#   status.steps_needed           # => [:install_helper, :grant_permission] etc.
 #   setup.install_helper
 #   setup.reinstall_helper
+#   setup.remove_helper
 #   setup.open_location_settings
 
+require 'fileutils'
 require 'json'
 require_relative 'mac_os_helper_bundle'
 
@@ -33,12 +35,12 @@ module WifiWand
       # True when the helper is on disk but failed structural validation
       # (e.g. the bundle is corrupt or the executable does not respond to the
       # `help` command). In this case reinstall is preferable to a first-time install.
-      def repair_recommended? = installed? && !valid?
+      def reinstall_recommended? = installed? && !valid?
 
       # Ordered list of symbolic steps still required.  Callers map these to
       # human-readable labels and execution logic.
       def steps_needed
-        return %i[reinstall_helper grant_permission] if repair_recommended?
+        return %i[reinstall_helper grant_permission] if reinstall_recommended?
         return %i[install_helper grant_permission]   unless installed?
         return %i[grant_permission]                  unless authorized?
 
@@ -73,13 +75,13 @@ module WifiWand
     def install_helper = MacOsHelperBundle.ensure_helper_installed(out_stream: @out_stream)
 
     # Force-replace the installed bundle regardless of current validity, then
-    # re-validate.  Use this for the --repair path where the user knows the
+    # re-validate.  Use this for the --reinstall path where the user knows the
     # existing install is stale or macOS TCC has lost track of it.
     #
     # @return [String] installed bundle path on success
     # @raise  [RuntimeError] if reinstallation fails validation
     def reinstall_helper
-      MacOsHelperBundle.install_helper_bundle(out_stream: @out_stream)
+      MacOsHelperBundle.install_helper_bundle(out_stream: @out_stream, force: true)
 
       unless MacOsHelperBundle.helper_installed_and_valid?
         raise 'Helper reinstallation failed validation. ' \
@@ -87,6 +89,17 @@ module WifiWand
       end
 
       MacOsHelperBundle.installed_bundle_path
+    end
+
+    # Remove the helper application files installed for the current wifi-wand
+    # version. This intentionally does not try to mutate macOS TCC permission
+    # records; users can revoke Location Services access in System Settings.
+    #
+    # @return [String] removed installation directory path
+    def remove_helper
+      install_dir = MacOsHelperBundle.versioned_install_dir
+      FileUtils.rm_rf(install_dir)
+      install_dir
     end
 
     # Open the macOS System Settings pane for Location Services so the user

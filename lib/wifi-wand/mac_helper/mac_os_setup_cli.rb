@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Orchestrates the user-facing macOS setup/repair flow.
+# Orchestrates the user-facing macOS setup, reinstall, and remove flows.
 # All decision logic lives in MacOsHelperSetup; this class owns output
 # formatting, step sequencing, and the ENTER-to-continue prompt so that
 # the exe/wifi-wand-macos-setup script stays trivially thin and the flow
@@ -30,15 +30,17 @@ module WifiWand
       @out_stream      = out_stream
       @in_stream       = in_stream
       @setup           = setup || MacOsHelperSetup.new(out_stream: out_stream)
-      @repair_requested = false
+      @action          = nil
     end
 
-    # Run the full setup/repair flow.
+    # Run the full setup, reinstall, or remove flow.
     #
     # @return [Integer] exit code (0 = success, 1 = failure)
     def run
       parse_options
-      perform_repair if @repair_requested
+      return perform_remove if @action == :remove
+
+      perform_reinstall if @action == :reinstall
 
       status = @setup.check_status
       return 0 if already_complete(status)
@@ -60,15 +62,35 @@ module WifiWand
 
     private def parse_options
       OptionParser.new do |opts|
-        opts.banner = 'Usage: wifi-wand-macos-setup [--repair]'
-        opts.on('--repair', '--reinstall',
+        opts.banner = 'Usage: wifi-wand-macos-setup [--reinstall | --remove]'
+        opts.on('--reinstall',
           'Force reinstall the helper app and re-run setup') do
-          @repair_requested = true
+          select_action(:reinstall)
+        end
+        opts.on('--remove',
+          'Remove the installed helper app for this wifi-wand version') do
+          select_action(:remove)
         end
       end.parse!(@argv)
     end
 
-    private def perform_repair
+    private def select_action(action)
+      raise OptionParser::InvalidOption, 'choose only one of --reinstall or --remove' if @action
+
+      @action = action
+    end
+
+    private def perform_remove
+      install_dir = @setup.remove_helper
+      @out_stream.puts "Removed wifiwand-helper installation at: #{install_dir}"
+      @out_stream.puts
+      @out_stream.puts 'Location Services permission is managed by macOS and may remain listed.'
+      @out_stream.puts 'To revoke it, open System Settings > Privacy & Security > Location Services'
+      @out_stream.puts 'and toggle off wifiwand-helper.'
+      0
+    end
+
+    private def perform_reinstall
       @out_stream.puts 'Reinstalling wifiwand-helper...'
       @setup.reinstall_helper
       @out_stream.puts "✓ Helper reinstalled at: #{MacOsHelperBundle.installed_bundle_path}"
@@ -112,7 +134,7 @@ module WifiWand
       row.(separator_line)
       row.('Helper installed:', status.installed? ? '✓ Yes' : '✗ No')
       if status.installed?
-        validity = status.valid? ? '✓ Yes' : '✗ No (repair recommended)'
+        validity = status.valid? ? '✓ Yes' : '✗ No (reinstall recommended)'
         row.('Helper valid:', validity)
         row.('Location permission granted:', status.authorized? ? '✓ Yes' : '✗ No')
         unless status.authorized?
@@ -145,7 +167,7 @@ module WifiWand
         @out_stream.puts
         @out_stream.puts "[#{current_step}/#{total_steps}] Installing wifiwand-helper..."
         @setup.install_helper
-        @out_stream.puts "✓ Helper installed at: #{MacOsHelperBundle.installed_executable_path}"
+        @out_stream.puts "✓ Helper installed at: #{MacOsHelperBundle.installed_bundle_path}"
 
         # macOS sometimes restores a previously-granted permission after install.
         @out_stream.puts
@@ -161,7 +183,7 @@ module WifiWand
         @out_stream.puts
         @out_stream.puts "[#{current_step}/#{total_steps}] Reinstalling wifiwand-helper..."
         @setup.reinstall_helper
-        @out_stream.puts "✓ Helper reinstalled at: #{MacOsHelperBundle.installed_executable_path}"
+        @out_stream.puts "✓ Helper reinstalled at: #{MacOsHelperBundle.installed_bundle_path}"
 
         # macOS sometimes preserves authorization across reinstalls.
         @out_stream.puts
@@ -205,7 +227,7 @@ module WifiWand
 
         If you don't see 'wifiwand-helper' in the list, try running:
 
-          wifi-wand-macos-setup --repair
+          wifi-wand-macos-setup --reinstall
 
       INSTRUCTIONS
     end
