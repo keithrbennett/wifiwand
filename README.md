@@ -28,8 +28,7 @@ export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 export PATH="/usr/local/opt/ruby/bin:$PATH"
 ```
 
-<details>
-<summary><strong>Unsupported workaround for Ruby < 3.2</strong></summary>
+#### Unsupported workaround for Ruby < 3.2
 
 If you must use an older Ruby version (not supported), you can try modifying `wifi-wand.gemspec` before
 building:
@@ -46,7 +45,6 @@ gem install wifi-wand-*.gem
 ```
 
 Note: This configuration is not tested or supported. Use at your own risk.
-</details>
 
 Optional dependency for QR codes:
 

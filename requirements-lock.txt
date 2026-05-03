@@ -2,7 +2,6 @@
 # Generated from the same baseline used in cov-loupe's doc server setup.
 babel==2.17.0
 backrefs==6.1
-bracex==2.6
 certifi==2025.11.12
 charset-normalizer==3.4.4
 click==8.3.1
@@ -18,7 +17,6 @@ MarkupSafe==3.0.3
 mergedeep==1.3.4
 mkdocs==1.6.1
 mkdocs-get-deps==0.2.0
-mkdocs-include-markdown-plugin==7.2.0
 mkdocs-material==9.7.1
 mkdocs-material-extensions==1.3.1
 mkdocs-minify-plugin==0.8.0
@@ -35,4 +33,3 @@ requests==2.33.0
 six==1.17.0
 urllib3==2.6.3
 watchdog==6.0.0
-wcmatch==10.1

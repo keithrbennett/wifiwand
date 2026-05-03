@@ -50,20 +50,14 @@ theme:
 
 plugins:
   - search
-  - include-markdown
   - minify:
       minify_html: true
 
 markdown_extensions:
-  - admonition
-  - pymdownx.details
-  - pymdownx.highlight:
-      anchor_linenums: true
-  - pymdownx.inlinehilite
   - pymdownx.snippets:
       base_path:
         - .
-  - pymdownx.superfences
+  - fenced_code
   - tables
   - toc:
       permalink: true

@@ -28,8 +28,9 @@ MkDocs prints the local URL when it starts. By default, the site is served at:
 http://127.0.0.1:8000/
 ```
 
-The server watches Markdown and configuration files and reloads the browser after changes. Stop it with
-`Ctrl+C`.
+The server watches the generated Markdown workspace under `tmp/` and reloads the browser after changes. Stop
+it with `Ctrl+C`. Because the helper scripts copy repository files into that generated workspace at startup,
+restart the server after changing `mkdocs.yml`, `README.md`, or files outside the generated `tmp/` tree.
 
 ## Later Sessions
 
@@ -109,3 +110,6 @@ If port `8000` is already in use, pass another address through the helper script
 ```bash
 /path/to/wifiwand/bin/start-doc-server --dev-addr 127.0.0.1:8001
 ```
+
+If rendered Markdown still looks stale after restarting the server, hard-refresh the browser page. For
+example, use `Cmd+Shift+R` on macOS.
