@@ -74,7 +74,7 @@ wifi-wand-macos-setup
 
 This grants location permission needed for WiFi network access. Without it, network names may appear as
 `<hidden>` or `<redacted>`. See the **[macOS Setup Guide](docs/MACOS_SETUP.md)** for details, including
-**Running WifiWand on macOS With Redacted Network Names**.
+**Running WifiWand on macOS Without the Helper or With Redacted Network Names**.
 
 ---
 
@@ -149,20 +149,35 @@ wifi-wand -v ...
 
 ### Documentation
 
-For detailed information about specific features:
+Start with the **[user documentation index](docs/README.md)** for the complete guide map.
+
+Setup and platform guides:
+
+- **[macOS Setup Guide](docs/MACOS_SETUP.md)** - One-time setup for macOS Location Services access.
+- **[Ubuntu Setup & Requirements](docs/UBUNTU_SETUP.md)** - NetworkManager and tool requirements for Ubuntu.
+- **[macOS Helper Application](docs/MACOS_HELPER.md)** - End-user details for the native macOS helper.
+
+Command-specific guides:
 
 - **[Event Logging (`log` command)](docs/LOGGING.md)** - Continuously monitor WiFi state changes, log events
-  over time, and detect network issues
-- **[Status Command](docs/STATUS_COMMAND.md)** - Understand WiFi and connectivity status display
-- **[Info Command](docs/INFO_COMMAND.md)** - Get detailed network configuration and status information
+  over time, and detect network issues.
+- **[Status Command](docs/STATUS_COMMAND.md)** - Understand WiFi and connectivity status display.
+- **[Info Command](docs/INFO_COMMAND.md)** - Get detailed network configuration and status information.
 - **[Connectivity Checking (`ci` command)](docs/CONNECTIVITY_CHECKING.md)** - Check internet availability in
-  scripts and automation
-- **[DNS Configuration Guide](docs/DNS_Configuration_Guide.md)** - Managing nameservers and DNS settings
+  scripts and automation.
+- **[DNS Configuration Guide](docs/DNS_Configuration_Guide.md)** - Managing nameservers and DNS settings.
+
+Reference, migration, and history:
+
 - **[Environment Variables Reference](docs/ENVIRONMENT_VARIABLES.md)** - Configuration via environment
-  variables (including the `WIFIWAND_OPTS` default-options helper)
-- **[Developer Testing Guide](dev/docs/TESTING.md)** - Running tests, coverage reports, and test categories
-- **[Developer Documentation Index](dev/docs/README.md)** - Maintainer architecture, release, and workflow
-  notes
+  variables, including the `WIFIWAND_OPTS` default-options helper.
+- **[Version 3 Breaking Changes](docs/BREAKING_CHANGES_V3.md)** - Required migration steps for version 3.
+- **[Version 3.0 Changes](docs/CHANGELOG_V2_TO_V3.md)** - Broader version 3.0 change summary.
+- **[Release Notes](RELEASE_NOTES.md)** - Historical release-by-release notes.
+
+Maintainer documentation is available in the full source checkout under
+**[dev/docs](dev/docs/README.md)**. Those files are not packaged with the gem, so that link is intended for
+readers browsing the source repository rather than installed gem documentation.
 
 ### Usage
 
