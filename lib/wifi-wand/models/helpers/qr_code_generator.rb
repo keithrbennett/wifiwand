@@ -40,7 +40,7 @@ module WifiWand
         is_hidden    = model.network_hidden?
 
         # Normalize filespec for robust API (support symbols as '-' too)
-        spec = filespec.nil? ? nil : filespec.to_s
+        spec = filespec&.to_s
 
         qr_string = build_wifi_qr_string(network_name, password, security, is_hidden: is_hidden)
         return run_qrencode_text(model, qr_string, delivery_mode: delivery_mode) if spec == '-'

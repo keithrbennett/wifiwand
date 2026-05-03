@@ -45,7 +45,7 @@ describe 'QR Code Integration Tests', :requires_external_tools do
     # Extract the QR code content (format: "QR-Code:CONTENT")
     lines = output.split("\n")
     qr_line = lines.find { |line| line.start_with?('QR-Code:') }
-    qr_line ? qr_line.sub('QR-Code:', '') : nil
+    qr_line&.sub('QR-Code:', '')
   end
 
   # Helper method to parse WiFi QR code string into components

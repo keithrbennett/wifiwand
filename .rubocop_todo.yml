@@ -322,18 +322,3 @@ Style/MultilineBlockChain:
 # Offense count: 32
 Style/OpenStructUse:
   Enabled: false
-
-
-# Offense count: 13
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: ConvertCodeThatCanStartToReturnNil, AllowedMethods, MaxChainLength.
-# AllowedMethods: present?, blank?, presence, try, try!
-Style/SafeNavigation:
-  Exclude:
-    - 'lib/wifi-wand/command_line_interface.rb'
-    - 'lib/wifi-wand/command_line_interface/command_registry.rb'
-    - 'lib/wifi-wand/models/helpers/qr_code_generator.rb'
-    - 'lib/wifi-wand/services/event_logger.rb'
-    - 'lib/wifi-wand/services/log_file_manager.rb'
-    - 'spec/wifi-wand/command_line_interface/shell_interface_spec.rb'
-    - 'spec/wifi-wand/models/helpers/qr_code_integration_spec.rb'
