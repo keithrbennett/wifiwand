@@ -2,8 +2,8 @@
 
 require_relative 'spec_helper'
 
-RSpec.describe 'docs/MACOS_HELPER.md' do
-  let(:helper_doc) { File.read(File.expand_path('../docs/MACOS_HELPER.md', __dir__)) }
+RSpec.describe 'docs/MACOS_HELPER_APP_DETAILS.md' do
+  let(:helper_doc) { File.read(File.expand_path('../docs/MACOS_HELPER_APP_DETAILS.md', __dir__)) }
   let(:removed_signing_doc) { ['docs/dev/', 'MACOS_CODE_SIGNING', '.md'].join }
 
   it 'links maintainers to the current macOS code-signing instructions' do

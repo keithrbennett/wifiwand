@@ -93,8 +93,8 @@ Gem::Specification.new do |spec|
 
           wifi-wand-macos-setup
 
-      For more information, see: docs/MACOS_SETUP.md
-      or visit: https://github.com/keithrbennett/wifiwand/blob/main/docs/MACOS_SETUP.md
+      For more information, see: docs/MACOS_QUICK_START.md
+      or visit: https://github.com/keithrbennett/wifiwand/blob/main/docs/MACOS_QUICK_START.md
 
     MESSAGE
   end

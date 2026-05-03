@@ -10,7 +10,8 @@ RSpec.describe 'wifi-wand.gemspec packaging' do
   it 'includes runtime executables, code, assets, and user-facing docs needed by gem consumers' do
     expect(packaged_files).to include(
       'README.md',
-      'docs/MACOS_SETUP.md',
+      'docs/MACOS_QUICK_START.md',
+      'docs/MACOS_HELPER_APP_DETAILS.md',
       'docs/CHANGELOG_V2_TO_V3.md',
       'docs/BREAKING_CHANGES_V3.md',
       'exe/wifi-wand',

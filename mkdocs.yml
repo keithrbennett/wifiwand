@@ -72,7 +72,7 @@ nav:
   - Home: index.md
   - User Guide:
       - Docs Index: docs/README.md
-      - macOS Setup: docs/MACOS_SETUP.md
+      - macOS Quick Start: docs/MACOS_QUICK_START.md
       - Ubuntu Setup: docs/UBUNTU_SETUP.md
       - Status Command: docs/STATUS_COMMAND.md
       - Info Command: docs/INFO_COMMAND.md
@@ -80,7 +80,7 @@ nav:
       - Logging: docs/LOGGING.md
       - DNS Configuration: docs/DNS_Configuration_Guide.md
       - Environment Variables: docs/ENVIRONMENT_VARIABLES.md
-      - macOS Helper: docs/MACOS_HELPER.md
+      - macOS Helper App Details: docs/MACOS_HELPER_APP_DETAILS.md
       - Breaking Changes v3: docs/BREAKING_CHANGES_V3.md
       - Version 3 Change Log: docs/CHANGELOG_V2_TO_V3.md
       - Release Notes: RELEASE_NOTES.md

@@ -320,11 +320,11 @@ RSpec.describe WifiWand::DocsTooling do
 
       expect(
         described_class.generated_relative_link(
-          '/home/runner/work/wifiwand/wifiwand/docs/MACOS_SETUP.md',
+          '/home/runner/work/wifiwand/wifiwand/docs/MACOS_QUICK_START.md',
           markdown_path,
           fragment: '#permissions'
         )
-      ).to eq('(../../docs/MACOS_SETUP.md#permissions)')
+      ).to eq('(../../docs/MACOS_QUICK_START.md#permissions)')
     end
 
     it 'does not rewrite unrelated absolute paths that only match a repo file name' do

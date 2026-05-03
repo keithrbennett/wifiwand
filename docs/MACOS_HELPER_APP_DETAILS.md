@@ -5,6 +5,8 @@
 This document explains the native macOS helper application that wifi-wand uses to access WiFi information on
 macOS 14 (Sonoma) and later.
 
+For the short one-time install and permission flow, see [MACOS_QUICK_START.md](MACOS_QUICK_START.md).
+
 ---
 
 ## Table of Contents
@@ -150,23 +152,6 @@ The helper application has **no access** to:
 
 wifi-wand ships a setup script for installing the helper application and managing location permission.
 
-### Update the Helper
-
-If you want to force wifi-wand to replace the installed helper application with the currently shipped one,
-run:
-
-```bash
-wifi-wand-macos-setup --repair
-```
-
-Use this after:
-- Upgrading wifi-wand when you want to refresh the helper application immediately
-- Seeing helper application crashes or startup failures
-- Seeing `<hidden>` or `<redacted>` unexpectedly after the helper application previously worked
-
-If you have already installed a wifi-wand build that includes newer helper application files, `--repair` is
-the fastest way to put that updated helper application on disk right now.
-
 ### Check Status and Install
 
 ```bash
@@ -182,19 +167,22 @@ This command:
    ```
 4. Otherwise installs the helper application (if needed) and opens System Settings so you can grant permission
 
-### Repair or Reinstall
+For a shorter setup-only walkthrough, see [MACOS_QUICK_START.md](MACOS_QUICK_START.md).
+
+### Repair, Reinstall, or Update
 
 ```bash
 wifi-wand-macos-setup --repair
 ```
 
-Use this when the helper application is already installed but wifi-wand still shows `<hidden>` or
-`<redacted>` for network names. It force-replaces the helper application bundle and re-runs the authorization
-flow.
+Use this when:
 
-This is also the correct command when you want to update the installed helper application immediately without
-waiting for the next helper-application-backed wifi-wand command to notice that the bundle on disk is out of
-date.
+- Upgrading wifi-wand and you want to refresh the installed helper application immediately
+- The helper application crashes or fails to start
+- wifi-wand still shows `<hidden>` or `<redacted>` after the helper application previously worked
+- macOS appears to have lost track of the helper application's Location Services permission
+
+The repair command force-replaces the helper application bundle and re-runs the authorization flow.
 
 ### Revoke Location Permission
 
@@ -217,6 +205,41 @@ variable before running wifi-wand:
 ```bash
 export WIFIWAND_DISABLE_MAC_HELPER=1
 ```
+
+### Behavior Without the Helper or With Redacted Network Names
+
+If the helper application is disabled, missing, denied Location Services permission, or unable to return
+unredacted SSIDs, wifi-wand can still perform some tasks. The limits come from macOS hiding network identity,
+not from wifi-wand ignoring available data.
+
+What still usually works:
+
+- Detecting whether WiFi is on or off
+- Detecting whether the interface is associated with some WiFi network
+- `wifi_on`, `wifi_off`, nameserver changes, interface lookup, IP/MAC queries, and internet connectivity
+  checks when their underlying system commands provide enough information
+- `disconnect`, using the direct Swift source path when available and falling back to `ifconfig`
+- `connect <ssid>` association attempts, using the direct Swift source path when available and falling back to
+  `networksetup`
+- Commands that do not need the exact current SSID
+
+What becomes limited or ambiguous:
+
+- Available-network output may fall back to `system_profiler`, but on macOS 14 and later that fallback may
+  show `<hidden>`, `<redacted>`, blank values, or no visible network names.
+- Exact-SSID queries such as `network_name` and `connected_network_name` may return nil or fail even when the
+  radio is associated.
+- `connect <ssid>` may associate successfully but still fail afterward if wifi-wand cannot verify that the
+  active network is the requested SSID.
+- QR generation for the current network may refuse to proceed because it depends on the exact current SSID.
+- Test-state restoration may reconnect WiFi but still report that wifi-wand could not verify restoration to
+  the original network.
+- Requested real-environment test runs on macOS are refused before the suite starts when the current SSID is
+  redacted or otherwise unverifiable.
+
+wifi-wand does not silently downgrade exact-network verification to "some network is good enough." If a
+command's contract requires confirming the requested or original SSID, wifi-wand reports that verification
+could not be completed instead of pretending success.
 
 ### Manual Permission Management
 
@@ -460,19 +483,6 @@ installed path. This means:
 
 Multiple installed helper application copies may exist on disk (one per gem version), but they present as one
 logical macOS app identity for permission purposes via the stable bundle identifier `com.wifiwand.helper`.
-
-### Disabling the Helper
-
-If you prefer not to use the helper application (accepting that WiFi names will be redacted), set:
-```bash
-export WIFIWAND_DISABLE_MAC_HELPER=1
-```
-
-wifi-wand will fall back to traditional methods. On macOS 14+, SSID names may still be unavailable or appear
-as `<redacted>` unless the invoking process already has Location Services approval, but wifi-wand should still
-detect an active WiFi association when the interface remains connected.
-
----
 
 ## For Gem Maintainers
 

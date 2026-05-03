@@ -7,8 +7,8 @@ behavioral conflicts it introduces in `wifi-wand`, and the implementation
 decision for commands and test-state restoration.
 
 It is an internal design note for maintainers. It is not end-user setup
-documentation. User-facing remediation belongs in [docs/MACOS_SETUP.md](/home/kbennett/code/wifiwand/primary/docs/MACOS_SETUP.md)
-and related operator docs.
+documentation. User-facing remediation belongs in
+[docs/MACOS_QUICK_START.md](../../../../docs/MACOS_QUICK_START.md) and related operator docs.
 
 ## Purpose
 

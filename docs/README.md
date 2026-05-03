@@ -5,7 +5,8 @@ This directory contains end-user and operator documentation for `wifi-wand`.
 ## Getting Started
 
 - **[Installation & Quick Start](../README.md)** - Basic setup and common command overview.
-- **[macOS Setup Guide](MACOS_SETUP.md)** - Crucial one-time setup steps for macOS users (Sonoma and later).
+- **[macOS Quick Start](MACOS_QUICK_START.md)** - Crucial one-time setup steps for macOS users
+  (Sonoma and later).
 - **[Ubuntu Setup & Requirements](UBUNTU_SETUP.md)** - Requirements and configuration for Ubuntu systems.
 
 ## Command-Specific Guides
@@ -21,8 +22,8 @@ This directory contains end-user and operator documentation for `wifi-wand`.
 
 ## Technical Reference
 
-- **[macOS Helper Application](MACOS_HELPER.md)** - End-user guidance for the native helper used on macOS
-  14+.
+- **[macOS Helper App Details](MACOS_HELPER_APP_DETAILS.md)** - End-user guidance for the native helper used
+  on macOS 14+.
 
 ## Advanced Usage & Troubleshooting
 

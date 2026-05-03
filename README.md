@@ -74,8 +74,9 @@ wifi-wand-macos-setup
 
 This installs the `wifiwand-helper` helper application and grants the Location Services permission needed for
 unredacted WiFi network names. Without the helper application or its permission, network names may appear as
-`<hidden>` or `<redacted>`. See the **[macOS Setup Guide](docs/MACOS_SETUP.md)** for details, including
-**Running WifiWand on macOS Without the Helper Application or With Redacted Network Names**.
+`<hidden>` or `<redacted>`. See the **[macOS Quick Start](docs/MACOS_QUICK_START.md)** for setup steps and
+the **[macOS Helper App Details](docs/MACOS_HELPER_APP_DETAILS.md)** for behavior with redacted network
+names.
 
 ---
 
@@ -154,10 +155,10 @@ Start with the **[user documentation index](docs/README.md)** for the complete g
 
 Setup and platform guides:
 
-- **[macOS Setup Guide](docs/MACOS_SETUP.md)** - One-time setup for macOS Location Services access.
+- **[macOS Quick Start](docs/MACOS_QUICK_START.md)** - One-time setup for macOS Location Services access.
 - **[Ubuntu Setup & Requirements](docs/UBUNTU_SETUP.md)** - NetworkManager and tool requirements for Ubuntu.
-- **[macOS Helper Application](docs/MACOS_HELPER.md)** - End-user details for the native macOS helper
-  application.
+- **[macOS Helper App Details](docs/MACOS_HELPER_APP_DETAILS.md)** - End-user details for the native macOS
+  helper application.
 
 Command-specific guides:
 
