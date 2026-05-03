@@ -2,11 +2,11 @@
 
 require 'json'
 require 'optparse'
-require 'ostruct'
 require 'shellwords'
 require 'stringio'
 require 'yaml'
 
+require_relative 'command_line_options'
 require_relative 'errors'
 
 module WifiWand
@@ -34,7 +34,7 @@ module WifiWand
       # appears, the remaining argv belongs to command dispatch and is left
       # untouched here.
       args = Array(@argv).dup
-      options = OpenStruct.new
+      options = CommandLineOptions.new
       help_requested = false
       prepend_env_options(args)
 

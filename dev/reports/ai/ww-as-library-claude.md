@@ -17,7 +17,7 @@ require 'wifi-wand'
 model = WifiWand.create_model
 
 # Use with options
-options = OpenStruct.new(verbose: true, wifi_interface: 'en0')  
+options = { verbose: true, wifi_interface: 'en0' }
 model = WifiWand.create_model(options)
 ```
 
@@ -26,7 +26,7 @@ model = WifiWand.create_model(options)
 ### 1. Simple Entry Point
 - **Clean API**: `WifiWand.create_model` provides straightforward access (`lib/wifi-wand.rb:13`)
 - **Auto OS Detection**: Automatically detects and creates appropriate model (macOS/Ubuntu)
-- **Option Support**: Accepts configuration via OpenStruct
+- **Option Support**: Accepts configuration via Hash options
 
 ### 2. Cross-Platform Abstraction
 - **Unified Interface**: Single API across macOS and Ubuntu via `BaseModel`

@@ -258,6 +258,32 @@ the valid state names.
 - Restore flows wait for WiFi power state (`:wifi_on` / `:wifi_off`) as
   appropriate.
 
+### Library Entry Point
+
+#### `WifiWand.create_model` now strictly enforces Hash options
+
+The `WifiWand.create_model` method (and the underlying `BaseModel.create_model`
+and `OperatingSystems.create_model_for_current_os`) now strictly validates that
+the `options` argument is a `Hash`.
+
+Previously, these methods were more permissive, which allowed passing objects
+like `OpenStruct`. They now raise an `ArgumentError` if a non-Hash is provided.
+
+##### Migration
+
+If you were passing an `OpenStruct` or another custom object, convert it to a
+`Hash` before calling `create_model`.
+
+```ruby
+# Old
+options = OpenStruct.new(verbose: true)
+model = WifiWand.create_model(options)
+
+# New
+options = { verbose: true }
+model = WifiWand.create_model(options)
+```
+
 ### CLI and Configuration Changes
 
 - `WifiWand::Main#parse_command_line` has been removed from the public API.

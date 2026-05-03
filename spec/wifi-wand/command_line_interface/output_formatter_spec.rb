@@ -21,7 +21,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
       attr_accessor :options, :model, :out_stream
 
       def initialize(options = nil, model = nil)
-        @options = options || OpenStruct.new
+        @options = options || WifiWand::CommandLineOptions.new
         @model = model
         @out_stream = StringIO.new
       end
@@ -38,7 +38,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
     )
   end
 
-  let(:options) { OpenStruct.new(post_processor: nil) }
+  let(:options) { WifiWand::CommandLineOptions.new(post_processor: nil) }
 
 
   # Shared examples for colorization methods
@@ -479,7 +479,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
     context 'when post_processor is set' do
       let(:processor) { ->(obj) { obj.to_s.upcase } }
-      let(:options) { OpenStruct.new(post_processor: processor) }
+      let(:options) { WifiWand::CommandLineOptions.new(post_processor: processor) }
 
       it 'applies the post processor' do
         result = subject.post_process(test_object)
@@ -499,7 +499,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
   describe '#post_processor' do
     context 'when options has post_processor' do
       let(:processor) { ->(x) { x.to_s } }
-      let(:options) { OpenStruct.new(post_processor: processor) }
+      let(:options) { WifiWand::CommandLineOptions.new(post_processor: processor) }
 
       it 'returns the post_processor from options' do
         expect(subject.post_processor).to eq(processor)

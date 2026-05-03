@@ -3,7 +3,7 @@
 require 'yaml'
 require 'awesome_print'
 require_relative 'operating_systems'
-require 'ostruct'
+require_relative 'command_line_options'
 require_relative 'errors'
 require_relative 'version'
 require_relative 'project_url'
@@ -31,11 +31,11 @@ module WifiWand
 
     def initialize(options, argv: nil)
       @options = options
-      parsed_argv = argv || (options.respond_to?(:argv) && options.argv)
+      parsed_argv = argv || options.argv
       @argv = Array(parsed_argv).dup
-      @original_out_stream = options.respond_to?(:out_stream) && options.out_stream
-      @err_stream = (options.respond_to?(:err_stream) && options.err_stream) || $stderr
-      @in_stream = (options.respond_to?(:in_stream) && options.in_stream) || $stdin
+      @original_out_stream = options.out_stream
+      @err_stream = options.err_stream || $stderr
+      @in_stream = options.in_stream || $stdin
 
       model_options = {
         verbose:        options.verbose,
@@ -46,7 +46,7 @@ module WifiWand
       # Skip model initialization when help was explicitly requested in non-interactive mode,
       # so that `--help` works even on systems without Wi‑Fi hardware or permissions.
       @interactive_mode = !!options.interactive_mode
-      help_requested = options.respond_to?(:help_requested) && options.help_requested
+      help_requested = options.help_requested
       skip_model_init = help_requested && !@interactive_mode
 
       @model = skip_model_init ? nil : WifiWand.create_model(model_options)

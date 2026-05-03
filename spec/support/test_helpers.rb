@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'ostruct'
 require 'socket'
 require 'stringio'
 require_relative 'network_state_manager'
+require_relative '../../lib/wifi-wand/command_line_options'
 require_relative '../../lib/wifi-wand/operating_systems'
 require_relative '../../lib/wifi-wand/models/ubuntu_model'
 require_relative '../../lib/wifi-wand/models/mac_os_model'
@@ -172,7 +172,7 @@ module TestHelpers
       interactive_mode: false,
       post_processor:   nil,
     }
-    OpenStruct.new(defaults.merge(overrides))
+    WifiWand::CommandLineOptions.new(**defaults, **overrides)
   end
 
   # Helper for mocking Socket.tcp failures

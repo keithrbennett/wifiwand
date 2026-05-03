@@ -4,7 +4,7 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/commands/shell_command'
 
 describe WifiWand::ShellCommand do
-  let(:options) { OpenStruct.new(post_processor: nil) }
+  let(:options) { WifiWand::CommandLineOptions.new(post_processor: nil) }
   let(:cli) { double('cli', options: options) }
 
   it_behaves_like 'binds command context', bound_attributes: { cli: :cli }

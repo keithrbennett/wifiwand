@@ -8,7 +8,7 @@ describe WifiWand::Main do
 
   let(:out_stream) { StringIO.new }
   let(:err_stream) { StringIO.new }
-  let(:default_options) { OpenStruct.new(verbose: false, interactive_mode: false, argv: ['info']) }
+  let(:default_options) { WifiWand::CommandLineOptions.new(verbose: false, interactive_mode: false, argv: ['info']) }
   let(:mock_parser) { instance_double(WifiWand::CommandLineParser, parse: default_options) }
 
   describe '#call' do
@@ -20,7 +20,7 @@ describe WifiWand::Main do
     end
 
     it 'creates CLI with parsed options and calls it' do
-      options = OpenStruct.new(verbose: true, wifi_interface: 'wlan0', argv: ['info'])
+      options = WifiWand::CommandLineOptions.new(verbose: true, wifi_interface: 'wlan0', argv: ['info'])
       allow(mock_parser).to receive(:parse).and_return(options)
 
       expect(WifiWand::CommandLineInterface)
@@ -50,7 +50,7 @@ describe WifiWand::Main do
       allow(ex).to receive(:backtrace).and_return(%w[line1 line2 line3])
       allow(mock_cli).to receive(:call).and_raise(ex)
 
-      options = OpenStruct.new(verbose: true, interactive_mode: false, argv: ['info'])
+      options = WifiWand::CommandLineOptions.new(verbose: true, interactive_mode: false, argv: ['info'])
       allow(mock_parser).to receive(:parse).and_return(options)
 
       expect(subject.call).to eq(1)
@@ -60,7 +60,7 @@ describe WifiWand::Main do
 
     it 'returns code 1 for shell command failures too' do
       ex = StandardError.new('Shell startup failed')
-      options = OpenStruct.new(verbose: false, argv: ['shell'])
+      options = WifiWand::CommandLineOptions.new(verbose: false, argv: ['shell'])
       allow(mock_parser).to receive(:parse).and_return(options)
       allow(mock_cli).to receive(:call).and_raise(ex)
 
@@ -75,7 +75,9 @@ describe WifiWand::Main do
     end
 
     it 'prints version and skips CLI initialization when requested' do
-      allow(mock_parser).to receive(:parse).and_return(OpenStruct.new(version_requested: true))
+      allow(mock_parser).to receive(:parse).and_return(
+        WifiWand::CommandLineOptions.new(version_requested: true)
+      )
 
       expect(WifiWand::CommandLineInterface).not_to receive(:new)
       expect(subject.call).to eq(0)
@@ -84,7 +86,7 @@ describe WifiWand::Main do
 
     it 'returns immediately after printing version even when other options are present' do
       allow(mock_parser).to receive(:parse).and_return(
-        OpenStruct.new(version_requested: true, verbose: true)
+        WifiWand::CommandLineOptions.new(version_requested: true, verbose: true)
       )
 
       expect(WifiWand::CommandLineInterface).not_to receive(:new)
@@ -173,7 +175,7 @@ describe WifiWand::Main do
       allow(ex).to receive(:backtrace).and_return(['line 1', 'line 2'])
       allow(mock_cli).to receive(:call).and_raise(ex)
 
-      options = OpenStruct.new(verbose: true, interactive_mode: false, argv: ['info'])
+      options = WifiWand::CommandLineOptions.new(verbose: true, interactive_mode: false, argv: ['info'])
       allow(mock_parser).to receive(:parse).and_return(options)
 
       expect(subject.call).to eq(1)

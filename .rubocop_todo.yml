@@ -317,8 +317,3 @@ Style/MultilineBlockChain:
     - 'lib/wifi-wand/models/ubuntu_model.rb'
     - 'spec/wifi-wand/command_line_interface_spec.rb'
     - 'spec/wifi-wand/models/mac_os_model_spec.rb'
-
-
-# Offense count: 32
-Style/OpenStructUse:
-  Enabled: false
