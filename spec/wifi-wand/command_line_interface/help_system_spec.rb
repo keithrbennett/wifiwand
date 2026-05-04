@@ -50,6 +50,12 @@ describe WifiWand::CommandLineInterface::HelpSystem do
       expect(help).to include(WifiWand::CommandLineInterface::HelpSystem::REPOSITORY_URL)
     end
 
+    it 'includes the local documentation path' do
+      expect(help).to include(
+        "Documentation (Local): #{WifiWand::CommandLineInterface::HelpSystem::LOCAL_README_PATH}"
+      )
+    end
+
     it 'includes horizontal rule separators' do
       expect(help).to include(WifiWand::CommandLineInterface::HelpSystem::HORIZONTAL_RULE)
     end

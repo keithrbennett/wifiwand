@@ -9,6 +9,7 @@ module WifiWand
     module HelpSystem
       HORIZONTAL_RULE = '-' * 100
       REPOSITORY_URL = 'https://github.com/keithrbennett/wifiwand'
+      LOCAL_README_PATH = File.expand_path('../../../README.md', __dir__).freeze
       HELP_BODY_WIDTH = 100
       HELP_LEFT_COLUMN_WIDTH = 34
       HELP_GAP = '  '
@@ -41,6 +42,7 @@ module WifiWand
           HORIZONTAL_RULE,
           format_header_line('Usage', 'wifi-wand [options] command [args]'),
           format_header_line('Repository', REPOSITORY_URL),
+          format_header_line('Documentation (Local)', LOCAL_README_PATH),
           format_header_line('Version', WifiWand::VERSION),
           HORIZONTAL_RULE,
           nil,
