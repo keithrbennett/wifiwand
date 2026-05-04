@@ -18,7 +18,10 @@ describe WifiWand::StatusCommand do
       end
 
       def status_line(data)
-        data.nil? ? '[status unavailable]' : @rendered_status
+        return '[status unavailable]' if data.nil?
+        return @rendered_status.(data) if @rendered_status.respond_to?(:call)
+
+        @rendered_status
       end
 
       def handle_output(data, producer)
@@ -75,6 +78,7 @@ describe WifiWand::StatusCommand do
         expect(command.call).to be_nil
         expect(out_stream.string).to eq("#{rendered_status}
 ")
+        expect(output_support.handled).to be_nil
       end
     end
 
@@ -85,22 +89,93 @@ describe WifiWand::StatusCommand do
         result = command.call
 
         expect(result).to eq(status_data)
-        expect(out_stream.string).to include("\r#{rendered_status}")
-        expect(out_stream.string).to end_with($INPUT_RECORD_SEPARATOR)
+        expect(out_stream.string).to eq("#{rendered_status}\n")
       end
 
-      it 'rewrites the progress line with unavailable status when inline status data fails' do
+      it 'continues with final status data after a nil progress update' do
         allow(mock_model).to receive(:status_line_data) do |progress_callback:|
           progress_callback.call(nil)
-          nil
+          status_data
+        end
+        allow(output_support).to receive(:status_line) do |data|
+          data[:wifi_on].nil? ? 'WiFi: WAIT | Network: [pending]' : rendered_status
+        end
+        expected_padding = ' ' * ('WiFi: WAIT | Network: [pending]'.length - rendered_status.length)
+        expected_output = "WiFi: WAIT | Network: [pending]\r#{rendered_status}#{expected_padding}\n"
+
+        result = command.call
+
+        expect(result).to eq(status_data)
+        expect(out_stream.string).to eq(expected_output)
+        expect(out_stream.string).not_to include('[status unavailable]')
+      end
+
+      it 'finishes the progress line when a post-error final render is empty' do
+        allow(mock_model).to receive(:status_line_data) do |progress_callback:|
+          progress_callback.call(nil)
+          status_data
+        end
+        allow(output_support).to receive(:status_line) do |data|
+          data[:wifi_on].nil? ? rendered_status : ''
         end
 
         result = command.call
 
+        expect(result).to eq(status_data)
+        expect(out_stream.string).to eq("#{rendered_status}\n")
+      end
+
+      it 'rewrites the progress line with unavailable status when inline status data fails' do
+        allow(mock_model).to receive(:status_line_data) do |progress_callback:|
+          progress_callback.call(wifi_on: false, internet_state: :unreachable)
+          progress_callback.call(nil)
+          nil
+        end
+        expected_padding = ' ' * (rendered_status.length - '[status unavailable]'.length)
+        expected_unavailable_line = "\r[status unavailable]#{expected_padding}#{$INPUT_RECORD_SEPARATOR}"
+
+        result = command.call
+
         expect(result).to be_nil
-        expect(out_stream.string).to start_with("\r")
-        expect(out_stream.string).to include("\r[status unavailable]#{$INPUT_RECORD_SEPARATOR}")
+        expect(out_stream.string).to start_with(rendered_status)
+        expect(out_stream.string).to include(expected_unavailable_line)
         expect(out_stream.string).not_to include('\r')
+      end
+
+      context 'when no inline progress text is rendered' do
+        let(:rendered_status) do
+          ->(data) do
+            data[:wifi_on].nil? ? '' : 'WiFi: ON | Network: "TestNet"'
+          end
+        end
+
+        it 'prints the final status line without an in-place progress prefix' do
+          result = command.call
+
+          expect(result).to eq(status_data)
+          expect(out_stream.string).to eq("WiFi: ON | Network: \"TestNet\"\n")
+        end
+
+        it 'prints unavailable status without an in-place progress prefix when status data fails' do
+          allow(mock_model).to receive(:status_line_data).and_return(nil)
+
+          result = command.call
+
+          expect(result).to be_nil
+          expect(out_stream.string).to eq("[status unavailable]\n")
+        end
+
+        it 'does not prefix the first visible callback with a carriage return' do
+          allow(mock_model).to receive(:status_line_data) do |progress_callback:|
+            progress_callback.call(status_data)
+            status_data
+          end
+
+          result = command.call
+
+          expect(result).to eq(status_data)
+          expect(out_stream.string).to eq("WiFi: ON | Network: \"TestNet\"\n")
+        end
       end
     end
   end

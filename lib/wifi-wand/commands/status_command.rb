@@ -33,12 +33,14 @@ module WifiWand
 
           current_snapshot.merge!(update)
           rendered = output_support.status_line(current_snapshot)
+          next if rendered.to_s.empty?
 
           visible_length = output_support.strip_ansi(rendered).length
           padding = [last_visible_length - visible_length, 0].max
           padded_render = padding.zero? ? rendered : "#{rendered}#{' ' * padding}"
 
-          out_stream.print("\r#{padded_render}")
+          prefix = inline_progress_printed ? "\r" : ''
+          out_stream.print("#{prefix}#{padded_render}")
           out_stream.flush if out_stream.respond_to?(:flush)
 
           last_visible_length = visible_length
@@ -52,9 +54,16 @@ module WifiWand
 
       if progress_mode == :inline
         if inline_progress_printed
-          if saw_progress_error && status_data.nil?
-            out_stream.print("\r")
-            out_stream.puts output_support.status_line(nil)
+          if saw_progress_error
+            rendered = output_support.status_line(status_data)
+            if rendered.to_s.empty?
+              out_stream.puts
+            else
+              visible_length = output_support.strip_ansi(rendered).length
+              padding = [last_visible_length - visible_length, 0].max
+
+              out_stream.puts "\r#{rendered}#{' ' * padding}"
+            end
           else
             out_stream.puts
           end
