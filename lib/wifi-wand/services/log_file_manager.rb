@@ -9,12 +9,13 @@ module WifiWand
   #
   # Responsibilities:
   # - Opens log file in append mode (creates if it does not exist)
+  # - Creates parent directories for the log file path if needed
   # - Writes messages with timestamps
   # - Flushes after each write to ensure data is written to disk
   # - Closes file handle properly
   #
   # Design notes:
-  # - Does not create parent directories (directory must exist)
+  # - Parent directories are created before opening the log file
   # - File open, write, and close errors are propagated to the caller
   # - Each write is flushed immediately for real-time log visibility
   class LogFileManager
@@ -68,6 +69,7 @@ module WifiWand
     end
 
     private def open_log_file
+      FileUtils.mkdir_p(File.dirname(@log_file_path))
       @file_handle = File.open(@log_file_path, 'a')
     rescue => e
       raise WifiWand::LogFileInitializationError,

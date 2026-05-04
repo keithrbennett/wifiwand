@@ -39,12 +39,15 @@ describe WifiWand::LogFileManager do
       manager.close
     end
 
-    it 'raises when the parent directory does not exist' do
-      missing_path = File.join(temp_dir, 'missing', 'test.log')
+    it 'creates the parent directory when it does not exist' do
+      missing_path = File.join(temp_dir, 'missing', 'deeper', 'test.log')
 
-      expect do
-        described_class.new(log_file_path: missing_path)
-      end.to raise_error(WifiWand::LogFileInitializationError, /Cannot open log file/)
+      manager = described_class.new(log_file_path: missing_path)
+      manager.write('Created directory log message')
+      manager.close
+
+      expect(File.directory?(File.dirname(missing_path))).to be true
+      expect(File.read(missing_path)).to include('Created directory log message')
     end
 
     it 'accepts verbose flag' do

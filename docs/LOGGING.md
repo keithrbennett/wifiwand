@@ -95,7 +95,7 @@ Enables file logging.
 
 When this option is used alone, output goes to file only (stdout is disabled).
 
-**Note:** The directory must already exist. The command will not create parent directories.
+**Note:** Missing parent directories are created automatically before the log file is opened.
 
 ### `--stdout`
 
@@ -287,11 +287,11 @@ wifi-wand log --file /root/wifi.log  # Assuming you're not root
 # Error: Cannot open log file /root/wifi.log: Permission denied
 ```
 
-Solution: Ensure the directory exists and you have write permissions:
+Solution: Choose a path where your user has write permission:
 
 ```bash
-touch ~/wifi-events.log               # Create in home directory
 wifi-wand log --file ~/wifi-events.log
+wifi-wand log --file ~/logs/wifi-events.log
 ```
 
 ## Use Cases
