@@ -191,6 +191,8 @@ module WifiWand
 
     # Automatically verify underscore methods when a subclass is inherited
     def self.inherited(subclass)
+      super
+
       trace = TracePoint.new(:end) do |tp|
         if tp.self == subclass
           verify_required_methods_implemented(subclass)

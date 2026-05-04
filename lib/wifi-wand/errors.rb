@@ -7,6 +7,12 @@ module WifiWand
     # keyword-only constructors. Ruby calls `exception` while raising an
     # existing exception object.
     def exception(_message = nil) = self
+
+    # Subclasses can override this when CLI output needs more context than
+    # Exception#message while preserving message for exception matching.
+    def display_message = nil
+
+    def message_for_display = display_message || to_s
   end
 
   # === NETWORK CONNECTION ERRORS ===

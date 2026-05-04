@@ -154,6 +154,20 @@ describe WifiWand::Main do
       expect(err_stream.string).to eq(expected_output)
     end
 
+    it 'handles silent OsCommandError without printing a blank error line' do
+      ex = os_command_error(exitstatus: 7, command: 'silent command', text: '')
+      allow(mock_cli).to receive(:call).and_raise(ex)
+
+      expected_output = <<~MESSAGE
+
+        Error: Command failed: silent command
+        Exit code: 7
+      MESSAGE
+
+      expect(subject.call).to eq(1)
+      expect(err_stream.string).to eq(expected_output)
+    end
+
     it 'handles WifiWand::Error with a simple error message and returns code 1' do
       ex = WifiWand::Error.new('a message')
       allow(mock_cli).to receive(:call).and_raise(ex)

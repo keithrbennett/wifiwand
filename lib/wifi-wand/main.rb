@@ -56,9 +56,7 @@ module WifiWand
         # Show the helpful command error message and details but not the stack trace
         @err_stream.puts <<~MESSAGE
 
-          Error: #{error.text}
-          Command failed: #{error.command}
-          Exit code: #{error.exitstatus}
+          Error: #{error.message_for_display}
         MESSAGE
       when WifiWand::Error
         # Custom WiFi-related errors already have user-friendly messages

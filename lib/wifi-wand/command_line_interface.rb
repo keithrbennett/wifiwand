@@ -97,9 +97,17 @@ module WifiWand
         process_command_line
         SUCCESS_EXIT_CODE
       rescue WifiWand::Error => e
-        @err_stream.puts(verbose? && e.respond_to?(:to_h) ? YAML.dump(e.to_h) : e.to_s)
+        @err_stream.puts(error_message_for(e))
         @err_stream.puts help_hint unless e.message.include?(help_hint)
         FAILURE_EXIT_CODE
+      end
+    end
+
+    private def error_message_for(error)
+      if verbose? && error.respond_to?(:to_h)
+        YAML.dump(error.to_h)
+      else
+        error.message_for_display
       end
     end
 

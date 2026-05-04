@@ -88,6 +88,28 @@ describe WifiWand::CommandLineInterface do
       expect(err_stream.string).to include('Type help for usage')
     end
 
+    it 'prints command error display context in non-verbose mode' do
+      error = WifiWand::CommandExecutor::OsCommandError.new(
+        exitstatus: 1,
+        command:    'nmcli device wifi connect Test',
+        text:       'activation failed'
+      )
+      err_stream = StringIO.new
+      opts = options.dup
+      opts.err_stream = err_stream
+      cli = described_class.new(opts)
+      allow(cli).to receive_messages(
+        validate_command_line: described_class::SUCCESS_EXIT_CODE,
+        help_hint:             'Type help for usage'
+      )
+      allow(cli).to receive(:process_command_line).and_raise(error)
+
+      expect(cli.call).to eq(described_class::FAILURE_EXIT_CODE)
+      expect(err_stream.string).to include('activation failed')
+      expect(err_stream.string).to include('Command failed: nmcli device wifi connect Test')
+      expect(err_stream.string).to include('Exit code: 1')
+    end
+
     it 'prints verbose error details as YAML when verbose mode is enabled' do
       error = WifiWand::PublicIPLookupError.new(
         message: 'Public IP lookup failed: malformed response',

@@ -426,7 +426,7 @@ module WifiWand
     # Preserve the current stdout-first behavior, then enforce file-sink health explicitly.
     private def log_message(message)
       out_stream.puts(message) if out_stream
-      out_stream.flush if out_stream&.respond_to?(:flush)
+      out_stream.flush if out_stream.respond_to?(:flush)
       write_to_log_file(message) if @log_file_manager
     end
 

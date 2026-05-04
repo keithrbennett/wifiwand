@@ -277,11 +277,26 @@ describe WifiWand::CommandExecutor do
       expect(error.result.combined_output).to eq('command failed')
     end
 
-    it 'provides readable string representation' do
-      error_string = error.to_s
-      expect(error_string).to include('Error code 1')
-      expect(error_string).to include('command = false')
-      expect(error_string).to include('text = command failed')
+    it 'uses command output as the exception message' do
+      expect(error.message).to eq('command failed')
+      expect(error.to_s).to eq('command failed')
+    end
+
+    it 'provides a user-facing display message with command context' do
+      expect(error.display_message).to eq(<<~MESSAGE.chomp)
+        command failed
+        Command failed: false
+        Exit code: 1
+      MESSAGE
+    end
+
+    it 'omits the command output line from display message when output is empty' do
+      error = described_class.new(exitstatus: 7, command: 'silent-command', text: '')
+
+      expect(error.display_message).to eq(<<~MESSAGE.chomp)
+        Command failed: silent-command
+        Exit code: 7
+      MESSAGE
     end
 
     it 'provides hash representation' do

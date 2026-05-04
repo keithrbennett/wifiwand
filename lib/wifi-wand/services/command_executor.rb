@@ -292,9 +292,16 @@ module WifiWand
         @exitstatus = @result.exitstatus
         @command = @result.command
         @text = @result.combined_output
+        super(@text)
       end
 
-      def to_s = "#{self.class.name}: Error code #{exitstatus}, command = #{command}, text = #{text}"
+      def display_message
+        lines = []
+        lines << message unless message.empty?
+        lines << "Command failed: #{command}"
+        lines << "Exit code: #{exitstatus}"
+        lines.join("\n")
+      end
 
       def to_h = { exitstatus: exitstatus, command: command, text: text }
     end
