@@ -146,6 +146,21 @@ describe WifiWand::CaptivePortalChecker do
     end
   end
 
+  describe '#start_captive_portal_probe' do
+    let(:checker) { described_class.new(verbose: false) }
+    let(:endpoint) { { url: 'http://example.com/check', expected_code: 204 } }
+
+    it 'returns nil and closes the helper pipe when spawn fails' do
+      reader, writer = IO.pipe
+      allow(IO).to receive(:pipe).and_return([reader, writer])
+      allow(Process).to receive(:spawn).and_raise(Errno::EAGAIN)
+
+      expect(checker.send(:start_captive_portal_probe, endpoint)).to be_nil
+      expect(reader).to be_closed
+      expect(writer).to be_closed
+    end
+  end
+
   describe '#perform_captive_portal_check' do
     let(:checker) { described_class.new(verbose: false) }
     let(:endpoint) { { url: 'http://example.com/check', expected_code: 204 } }
@@ -199,6 +214,17 @@ describe WifiWand::CaptivePortalChecker do
       expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
         state: :indeterminate, error_class: 'Errno::ECONNREFUSED'
       )
+    end
+
+    it 'returns :indeterminate metadata on HTTP-level network failures' do
+      allow(Net::HTTP).to receive(:get_response).and_raise(SocketError)
+
+      expect do
+        expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
+          state:       WifiWand::ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
+          error_class: 'SocketError'
+        )
+      end.not_to raise_error
     end
   end
 
