@@ -34,9 +34,10 @@ module WifiWand
         ensure_qrencode_available(model)
 
         network_name = require_connected_network_name(model)
-        # If no password is provided, ask the model for the current network password.
-        password ||= connected_password_for(model)
         security     = model.connection_security_type
+        # If no password is provided, ask the model for the current network password
+        # only when the security type indicates that a password may be needed.
+        password ||= connected_password_for(model, network_name, security)
         is_hidden    = model.network_hidden?
 
         # Normalize filespec for robust API (support symbols as '-' too)
@@ -79,11 +80,38 @@ module WifiWand
         name
       end
 
-      private def connected_password_for(model)
-        network_name = model.connected_network_name
-        return nil unless network_name
+      private def connected_password_for(model, network_name, security_type)
+        return nil if open_security_type?(security_type)
 
-        model.preferred_network_password(network_name)
+        password = model.preferred_network_password(network_name)
+        ensure_password_available!(network_name, password, security_type)
+        password
+      rescue WifiWand::PreferredNetworkNotFoundError
+        raise missing_password_error(network_name, security_type) if secured_security_type?(security_type)
+
+        nil
+      end
+
+      private def ensure_password_available!(network_name, password, security_type)
+        return unless secured_security_type?(security_type)
+        return unless password.to_s.empty?
+
+        raise missing_password_error(network_name, security_type)
+      end
+
+      private def missing_password_error(network_name, security_type)
+        WifiWand::Error.new(
+          "Network '#{network_name}' uses #{security_type} security, but no saved password is available. " \
+            'Pass the optional password argument to generate a QR code.'
+        )
+      end
+
+      private def secured_security_type?(security_type)
+        %w[WPA WPA2 WPA3 WEP].include?(security_type.to_s.upcase)
+      end
+
+      private def open_security_type?(security_type)
+        %w[NONE OPEN NOPASS].include?(security_type.to_s.upcase)
       end
 
       private def build_wifi_qr_string(network_name, password, security_type, is_hidden: false)

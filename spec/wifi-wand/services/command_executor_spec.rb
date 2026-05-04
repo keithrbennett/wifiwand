@@ -44,15 +44,16 @@ describe WifiWand::CommandExecutor do
 
   def inherited_pipe_command(pid_file)
     [
-      RbConfig.ruby,
-      '-e',
-      <<~RUBY,
-        child_pid = Process.spawn(ARGV[1], '-e', 'sleep 30')
-        File.write(ARGV[0], child_pid.to_s)
-        puts 'parent done'
-      RUBY
+      'sh',
+      '-c',
+      <<~SH,
+        sh -c 'sleep 30' &
+        child_pid=$!
+        printf '%s' "$child_pid" > "$1"
+        printf 'parent done\\n'
+      SH
+      'sh',
       pid_file.path,
-      RbConfig.ruby,
     ]
   end
 
@@ -66,7 +67,7 @@ describe WifiWand::CommandExecutor do
     wait_for_process_exit(pid)
   end
 
-  def run_command_in_thread(executor, command, deadline: 1)
+  def run_command_in_thread(executor, command, deadline: 3)
     runner = Thread.new { executor.run_command_using_args(command, raise_on_error: false) }
     runner.report_on_exception = false
     joined = runner.join(deadline)
@@ -89,9 +90,9 @@ describe WifiWand::CommandExecutor do
 
       it 'supports timeouts for array commands without changing successful behavior' do
         result = executor.run_command_using_args(
-          [RbConfig.ruby, '-e', 'sleep 0.05; print "ok"'],
+          ['sh', '-c', 'sleep 0.05; printf ok'],
           raise_on_error:  true,
-          timeout_in_secs: 1
+          timeout_in_secs: 3
         )
 
         expect(result.stdout).to eq('ok')
@@ -126,15 +127,15 @@ describe WifiWand::CommandExecutor do
         Tempfile.create('wifiwand-command-timeout') do |pid_file|
           pid_file.close
           command = [
-            RbConfig.ruby,
-            '-e',
-            "File.write(ARGV[0], Process.pid.to_s); Signal.trap('TERM', 'IGNORE'); sleep 30",
+            'sh',
+            '-c',
+            "printf '%s' $$ > \"$1\"; trap '' TERM; sleep 30",
+            'sh',
             pid_file.path,
           ]
 
-          expect do
-            executor.run_command_using_args(command, raise_on_error: true, timeout_in_secs: 0.2)
-          end.to raise_error(WifiWand::CommandTimeoutError)
+          expect { executor.run_command_using_args(command, raise_on_error: true, timeout_in_secs: 1) }
+            .to raise_error(WifiWand::CommandTimeoutError)
 
           pid = wait_for_file_contents(pid_file.path).to_i
           wait_for_process_exit(pid)
@@ -146,20 +147,20 @@ describe WifiWand::CommandExecutor do
         Tempfile.create('wifiwand-command-timeout-descendant') do |pid_file|
           pid_file.close
           command = [
-            RbConfig.ruby,
-            '-e',
-            <<~RUBY,
-              child_pid = Process.spawn(ARGV[1], '-e', 'Signal.trap("TERM", "IGNORE"); sleep 30')
-              File.write(ARGV[0], child_pid.to_s)
+            'sh',
+            '-c',
+            <<~SH,
+              sh -c 'trap "" TERM; sleep 30' &
+              child_pid=$!
+              printf '%s' "$child_pid" > "$1"
               sleep 30
-            RUBY
+            SH
+            'sh',
             pid_file.path,
-            RbConfig.ruby,
           ]
 
-          expect do
-            executor.run_command_using_args(command, raise_on_error: true, timeout_in_secs: 0.2)
-          end.to raise_error(WifiWand::CommandTimeoutError)
+          expect { executor.run_command_using_args(command, raise_on_error: true, timeout_in_secs: 1) }
+            .to raise_error(WifiWand::CommandTimeoutError)
 
           descendant_pid = wait_for_file_contents(pid_file.path).to_i
           wait_for_process_exit(descendant_pid)

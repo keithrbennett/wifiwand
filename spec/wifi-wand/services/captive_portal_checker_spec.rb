@@ -58,7 +58,7 @@ describe WifiWand::CaptivePortalChecker do
 
     it 'returns promptly after a helper reports :free and terminates slower helpers' do
       allow(checker).to receive(:start_captive_portal_probe).and_return(
-        spawn_probe(endpoint: endpoints.first, payload: { state: 'free', actual_code: 204 }),
+        completed_probe(endpoint: endpoints.first, payload: { state: 'free', actual_code: 204 }),
         spawn_probe(endpoint: endpoints.last, delay: 5)
       )
 
@@ -116,7 +116,7 @@ describe WifiWand::CaptivePortalChecker do
 
       it 'logs a pass result' do
         allow(checker).to receive(:start_captive_portal_probe).and_return(
-          spawn_probe(endpoint: endpoints.first, payload: { state: 'free', actual_code: 204 })
+          completed_probe(endpoint: endpoints.first, payload: { state: 'free', actual_code: 204 })
         )
 
         checker.captive_portal_state
@@ -131,7 +131,7 @@ describe WifiWand::CaptivePortalChecker do
       before do
         allow(checker).to receive_messages(
           captive_portal_check_endpoints: [endpoints.first],
-          start_captive_portal_probe:     spawn_probe(
+          start_captive_portal_probe:     completed_probe(
             endpoint: endpoints.first,
             payload:  { state: 'present', actual_code: 302 }
           )
@@ -362,6 +362,17 @@ describe WifiWand::CaptivePortalChecker do
     writer.close
     spawned_pids << pid
     { pid: pid, reader: reader, endpoint: endpoint, buffer: +'', eof: false }
+  rescue
+    reader&.close unless reader&.closed?
+    writer&.close unless writer&.closed?
+    raise
+  end
+
+  def completed_probe(endpoint:, payload:)
+    reader, writer = IO.pipe
+    writer.write(JSON.generate(payload))
+    writer.close
+    { pid: nil, reader: reader, endpoint: endpoint, buffer: +'', eof: false }
   rescue
     reader&.close unless reader&.closed?
     writer&.close unless writer&.closed?

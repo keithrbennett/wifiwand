@@ -104,6 +104,61 @@ describe 'QR Code Generator (unit)' do
     silence_output { model.generate_qr_code(nil) }
   end
 
+  it 'does not look up a stored password for a confirmed open network' do
+    allow(model).to receive(:connection_security_type).and_return('NONE')
+    allow(model).to receive(:preferred_network_password)
+      .with(ssid)
+      .and_raise(WifiWand::PreferredNetworkNotFoundError.new(ssid))
+
+    expect(model).to receive(:run_command_using_args) do |cmd|
+      expect(cmd).to include('qrencode')
+      expect(cmd.last).to include('T:nopass')
+      expect(cmd.last).to include('P:')
+      command_result(stdout: '')
+    end
+
+    silence_output { model.generate_qr_code(nil) }
+    expect(model).not_to have_received(:preferred_network_password)
+  end
+
+  it 'generates a nopass QR code when unknown security has no saved preferred network' do
+    allow(model).to receive(:connection_security_type).and_return(nil)
+    allow(model).to receive(:preferred_network_password)
+      .with(ssid)
+      .and_raise(WifiWand::PreferredNetworkNotFoundError.new(ssid))
+
+    expect(model).to receive(:run_command_using_args) do |cmd|
+      expect(cmd).to include('qrencode')
+      expect(cmd.last).to include('T:nopass')
+      expect(cmd.last).to include('P:')
+      command_result(stdout: '')
+    end
+
+    silence_output { model.generate_qr_code(nil) }
+  end
+
+  it 'raises a targeted error when a secured network has no saved password' do
+    allow(model).to receive(:preferred_network_password).with(ssid).and_return(nil)
+
+    expect(model).not_to receive(:run_command_using_args)
+
+    expect do
+      silence_output { model.generate_qr_code(nil) }
+    end.to raise_error(WifiWand::Error, /Pass the optional password argument/)
+  end
+
+  it 'raises a targeted error when a secured network is not in the preferred list' do
+    allow(model).to receive(:preferred_network_password)
+      .with(ssid)
+      .and_raise(WifiWand::PreferredNetworkNotFoundError.new(ssid))
+
+    expect(model).not_to receive(:run_command_using_args)
+
+    expect do
+      silence_output { model.generate_qr_code(nil) }
+    end.to raise_error(WifiWand::Error, /Pass the optional password argument/)
+  end
+
   it 'surfaces exact-identity errors when the current SSID is redacted' do
     allow(model).to receive(:connected_network_name).and_raise(
       WifiWand::MacOsRedactionError.new(operation_description: 'current WiFi network queries')
