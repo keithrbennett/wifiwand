@@ -333,8 +333,17 @@ describe WifiWand::CommandExecutor do
       expect(executor.command_available?('nonexistent_command_12345')).to be false
     end
 
+    it 'returns false when PATH is unset' do
+      original_path = ENV['PATH']
+      ENV.delete('PATH')
+
+      expect(executor.command_available?('echo')).to be false
+    ensure
+      original_path ? (ENV['PATH'] = original_path) : ENV.delete('PATH')
+    end
+
     it 'checks executable files in PATH directories' do
-      allow(ENV).to receive(:[]).with('PATH').and_return('/usr/bin:/bin')
+      allow(ENV).to receive(:fetch).with('PATH', '').and_return('/usr/bin:/bin')
       allow(File).to receive_messages(executable?: false, directory?: false)
       allow(File).to receive(:executable?).with('/usr/bin/test_cmd').and_return(true)
 
@@ -342,7 +351,7 @@ describe WifiWand::CommandExecutor do
     end
 
     it 'excludes directories even if marked executable' do
-      allow(ENV).to receive(:[]).with('PATH').and_return('/usr/bin')
+      allow(ENV).to receive(:fetch).with('PATH', '').and_return('/usr/bin')
       allow(File).to receive(:executable?).with('/usr/bin/test_dir').and_return(true)
       allow(File).to receive(:directory?).with('/usr/bin/test_dir').and_return(true)
 

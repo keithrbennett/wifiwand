@@ -576,6 +576,17 @@ module WifiWand
           expect(subject.validate_os_preconditions).to eq(:ok)
         end
 
+        it 'raises dependency guidance instead of a raw exception when PATH is unset' do
+          original_path = ENV['PATH']
+          ENV.delete('PATH')
+
+          expect do
+            subject.validate_os_preconditions
+          end.to raise_error(WifiWand::CommandNotFoundError, /sudo apt install/)
+        ensure
+          original_path ? (ENV['PATH'] = original_path) : ENV.delete('PATH')
+        end
+
         it 'raises CommandNotFoundError when iw is missing' do
           allow(subject).to receive(:command_available?).with('iw').and_return(false)
           allow(subject).to receive(:command_available?).with('nmcli').and_return(true)

@@ -193,7 +193,7 @@ module WifiWand
     # @param command [String] the command name to search for (e.g., 'git', 'nmcli')
     # @return [Boolean] true if the command exists and is executable
     def command_available?(command)
-      ENV['PATH'].split(File::PATH_SEPARATOR).any? do |path|
+      ENV.fetch('PATH', '').split(File::PATH_SEPARATOR).any? do |path|
         executable = File.join(path, command)
         File.executable?(executable) && !File.directory?(executable)
       end
