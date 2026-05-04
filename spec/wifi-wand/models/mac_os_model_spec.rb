@@ -1108,10 +1108,12 @@ module WifiWand
           expect(verbose_model).to receive(:run_command_using_args).with(
             ['swift', '-e', 'import CoreWLAN'],
             raise_on_error: false
-          ).and_raise(os_command_error(exitstatus: 127, command: 'swift', text: ''))
+          ).and_raise(WifiWand::CommandNotFoundError.new('swift'))
 
           expect(verbose_model.validate_os_preconditions).to eq(:ok)
-          expect(verbose_model.out_stream.string).to include('Swift command not found (exit code 127)')
+          expect(verbose_model.out_stream.string).to include(
+            'Swift command not found. Install Xcode Command Line Tools.'
+          )
         end
 
         it 'returns :ok and emits the runtime warning when CoreWLAN is unavailable' do
@@ -1119,7 +1121,7 @@ module WifiWand
           expect(verbose_model).to receive(:run_command_using_args).with(
             ['swift', '-e', 'import CoreWLAN'],
             raise_on_error: false
-          ).and_raise(os_command_error(exitstatus: 1, command: 'swift', text: 'missing framework'))
+          ).and_return(command_result(stderr: 'missing framework', exitstatus: 1, command: 'swift'))
 
           expect(verbose_model.validate_os_preconditions).to eq(:ok)
           expect(verbose_model.out_stream.string).to include('CoreWLAN framework not available (exit code 1)')
@@ -1130,7 +1132,7 @@ module WifiWand
           expect(quiet_model).to receive(:run_command_using_args).with(
             ['swift', '-e', 'import CoreWLAN'],
             raise_on_error: false
-          ).and_raise(os_command_error(exitstatus: 127, command: 'swift', text: ''))
+          ).and_raise(WifiWand::CommandNotFoundError.new('swift'))
 
           expect(quiet_model.validate_os_preconditions).to eq(:ok)
           expect(quiet_model.out_stream.string).to eq('')

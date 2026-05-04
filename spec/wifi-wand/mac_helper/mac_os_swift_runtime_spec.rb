@@ -27,24 +27,74 @@ module WifiWand
         end
       end
 
-      it 'returns false for Swift/CoreWLAN probe failures' do
-        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+      it 'returns false for returned Swift/CoreWLAN probe failures and memoizes the result' do
+        expect(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false).once
+          .and_return(command_result(stderr: 'toolchain mismatch', exitstatus: 2, command: 'swift'))
+
+        2.times do
+          expect(runtime.swift_and_corewlan_present?).to be(false)
+        end
+      end
+
+      it 'returns false when the command runner reports Swift is not installed' do
+        expect(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
           raise_on_error: false)
-          .and_raise(os_command_error(exitstatus: 127, command: 'swift', text: ''))
+          .and_raise(WifiWand::CommandNotFoundError.new('swift'))
 
         expect(runtime.swift_and_corewlan_present?).to be(false)
       end
 
-      it 'logs a targeted message when Swift is not installed' do
-        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+      it 'logs a targeted message when the command runner reports Swift is not installed' do
+        expect(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
           raise_on_error: false)
-          .and_raise(os_command_error(exitstatus: 127, command: 'swift', text: ''))
+          .and_raise(WifiWand::CommandNotFoundError.new('swift'))
 
         expect(runtime.swift_and_corewlan_present?).to be(false)
-        expect(out_stream.string).to include('Swift command not found (exit code 127)')
+        expect(out_stream.string).to include('Swift command not found. Install Xcode Command Line Tools.')
       end
 
-      it 'logs a targeted message when CoreWLAN is unavailable' do
+      it 'logs a targeted message for legacy exit-code command-not-found failures' do
+        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false)
+          .and_return(command_result(exitstatus: 127, command: 'swift'))
+
+        expect(runtime.swift_and_corewlan_present?).to be(false)
+        expect(out_stream.string).to include(
+          'Swift command not found (exit code 127). Install Xcode Command Line Tools.'
+        )
+      end
+
+      it 'logs a targeted message when CoreWLAN is unavailable and the probe returns a failure' do
+        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false)
+          .and_return(command_result(stderr: 'missing framework', exitstatus: 1, command: 'swift'))
+
+        expect(runtime.swift_and_corewlan_present?).to be(false)
+        expect(out_stream.string).to include('CoreWLAN framework not available (exit code 1)')
+      end
+
+      it 'logs the command output for returned toolchain probe failures' do
+        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false)
+          .and_return(command_result(stderr: 'toolchain mismatch', exitstatus: 2, command: 'swift'))
+
+        expect(runtime.swift_and_corewlan_present?).to be(false)
+        expect(out_stream.string).to include('Swift/CoreWLAN check failed with exit code 2')
+        expect(out_stream.string).to include('toolchain mismatch')
+      end
+
+      it 'logs the command output for returned unknown probe failures' do
+        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false)
+          .and_return(command_result(stderr: 'unexpected compiler output', exitstatus: 66, command: 'swift'))
+
+        expect(runtime.swift_and_corewlan_present?).to be(false)
+        expect(out_stream.string).to include('Swift/CoreWLAN check failed with exit code 66')
+        expect(out_stream.string).to include('unexpected compiler output')
+      end
+
+      it 'logs a targeted message when a raised command error reports CoreWLAN is unavailable' do
         allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
           raise_on_error: false)
           .and_raise(os_command_error(exitstatus: 1, command: 'swift', text: 'missing framework'))
@@ -53,7 +103,18 @@ module WifiWand
         expect(out_stream.string).to include('CoreWLAN framework not available (exit code 1)')
       end
 
-      it 'logs the command output for other OsCommandError probe failures' do
+      it 'logs a targeted message when a raised command error reports legacy command-not-found status' do
+        allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false)
+          .and_raise(os_command_error(exitstatus: 127, command: 'swift', text: ''))
+
+        expect(runtime.swift_and_corewlan_present?).to be(false)
+        expect(out_stream.string).to include(
+          'Swift command not found (exit code 127). Install Xcode Command Line Tools.'
+        )
+      end
+
+      it 'logs the command output for other raised command probe failures' do
         allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
           raise_on_error: false)
           .and_raise(os_command_error(exitstatus: 2, command: 'swift', text: 'toolchain mismatch'))

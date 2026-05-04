@@ -27,8 +27,12 @@ module WifiWand
       return @swift_and_corewlan_present if defined?(@swift_and_corewlan_present)
 
       @swift_and_corewlan_present = begin
-        run_command_using_args(['swift', '-e', 'import CoreWLAN'], raise_on_error: false)
-        true
+        result = run_command_using_args(['swift', '-e', 'import CoreWLAN'], raise_on_error: false)
+        log_swift_probe_failure(result) if !result.success? && verbose?
+        result.success?
+      rescue WifiWand::CommandNotFoundError
+        log_swift_command_not_found if verbose?
+        false
       rescue WifiWand::CommandExecutor::OsCommandError => e
         log_swift_probe_failure(e) if verbose?
         false
@@ -68,16 +72,28 @@ module WifiWand
       File.absolute_path(File.join(__dir__, 'swift', "#{basename}.swift"))
     end
 
-    private def log_swift_probe_failure(error)
-      case error.exitstatus
+    private def log_swift_probe_failure(failure)
+      case failure.exitstatus
       when 127
-        out_stream.puts "Swift command not found (exit code #{error.exitstatus}). " \
-          'Install Xcode Command Line Tools.'
+        log_swift_command_not_found(exitstatus: failure.exitstatus)
       when 1
-        out_stream.puts "CoreWLAN framework not available (exit code #{error.exitstatus}). Install Xcode."
+        out_stream.puts "CoreWLAN framework not available (exit code #{failure.exitstatus}). Install Xcode."
       else
-        out_stream.puts "Swift/CoreWLAN check failed with exit code #{error.exitstatus}: " \
-          "#{error.text.to_s.strip}"
+        out_stream.puts "Swift/CoreWLAN check failed with exit code #{failure.exitstatus}: " \
+          "#{swift_probe_failure_text(failure)}"
+      end
+    end
+
+    private def log_swift_command_not_found(exitstatus: nil)
+      exit_code_text = exitstatus ? " (exit code #{exitstatus})" : ''
+      out_stream.puts "Swift command not found#{exit_code_text}. Install Xcode Command Line Tools."
+    end
+
+    private def swift_probe_failure_text(failure)
+      if failure.respond_to?(:text)
+        failure.text.to_s.strip
+      else
+        failure.combined_output.to_s.strip
       end
     end
   end

@@ -85,7 +85,7 @@ module WifiWand
 
     module_function def helper_support_status_for_macos_version(version)
       HelperSupportStatus.new(
-        macos_version:   version,
+        macos_version:  version,
         parsed_version: parse_macos_version(version)
       )
     end
