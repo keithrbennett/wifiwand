@@ -53,7 +53,7 @@ module WifiWand
       if progress_mode == :inline
         if inline_progress_printed
           if saw_progress_error && status_data.nil?
-            out_stream.print('\r')
+            out_stream.print("\r")
             out_stream.puts output_support.status_line(nil)
           else
             out_stream.puts

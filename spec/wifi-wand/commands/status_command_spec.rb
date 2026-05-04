@@ -88,6 +88,20 @@ describe WifiWand::StatusCommand do
         expect(out_stream.string).to include("\r#{rendered_status}")
         expect(out_stream.string).to end_with($INPUT_RECORD_SEPARATOR)
       end
+
+      it 'rewrites the progress line with unavailable status when inline status data fails' do
+        allow(mock_model).to receive(:status_line_data) do |progress_callback:|
+          progress_callback.call(nil)
+          nil
+        end
+
+        result = command.call
+
+        expect(result).to be_nil
+        expect(out_stream.string).to start_with("\r")
+        expect(out_stream.string).to include("\r[status unavailable]#{$INPUT_RECORD_SEPARATOR}")
+        expect(out_stream.string).not_to include('\r')
+      end
     end
   end
 end
