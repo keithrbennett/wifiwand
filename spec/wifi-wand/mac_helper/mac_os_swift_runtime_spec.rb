@@ -27,6 +27,33 @@ module WifiWand
         end
       end
 
+      it 'passes an explicit timeout into the Swift/CoreWLAN probe' do
+        expect(command_runner).to receive(:call).with(
+          ['swift', '-e', 'import CoreWLAN'],
+          raise_on_error:  false,
+          timeout_in_secs: 0.25
+        ).and_return(command_result(stdout: ''))
+
+        expect(runtime.swift_and_corewlan_present?(timeout_in_secs: 0.25)).to be(true)
+      end
+
+      it 'does not memoize a bounded Swift/CoreWLAN probe timeout' do
+        expect(command_runner).to receive(:call).with(
+          ['swift', '-e', 'import CoreWLAN'],
+          raise_on_error:  false,
+          timeout_in_secs: 0.25
+        ).and_raise(
+          WifiWand::CommandTimeoutError.new(command: 'swift -e import CoreWLAN', timeout_in_secs: 0.25)
+        )
+        expect(command_runner).to receive(:call).with(
+          ['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false
+        ).and_return(command_result(stdout: ''))
+
+        expect(runtime.swift_and_corewlan_present?(timeout_in_secs: 0.25)).to be(false)
+        expect(runtime.swift_and_corewlan_present?).to be(true)
+      end
+
       it 'returns false for returned Swift/CoreWLAN probe failures and memoizes the result' do
         expect(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
           raise_on_error: false).once

@@ -11,7 +11,7 @@ module WifiWand
       usage:        'Usage: wifi-wand help [command]'
     )
 
-    binds :cli, output: :out_stream
+    binds output: :out_stream
 
     def help_text
       return metadata.usage unless cli

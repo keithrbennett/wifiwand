@@ -166,7 +166,8 @@ module WifiWand
           test_cases.each do |output, expected|
             # Clear any cached value and mock the command
             model.instance_variable_set(:@detect_wifi_service_name, nil)
-            allow(model).to receive(:run_command_using_args).with(%w[networksetup -listallhardwareports])
+            allow(model).to receive(:run_command_using_args)
+              .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
               .and_return(command_result(stdout: output))
             expect(model.detect_wifi_service_name).to eq(expected)
           end
@@ -174,7 +175,8 @@ module WifiWand
 
         it 'falls back to Wi-Fi when no pattern matches' do
           no_wifi_output = "Hardware Port: Ethernet\nDevice: en1"
-          allow(model).to receive(:run_command_using_args).with(%w[networksetup -listallhardwareports])
+          allow(model).to receive(:run_command_using_args)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
             .and_return(command_result(stdout: no_wifi_output))
           allow(model).to receive(:wifi_interface).and_return('en0')
           expect(model.detect_wifi_service_name).to eq('Wi-Fi')
@@ -185,7 +187,8 @@ module WifiWand
           model.instance_variable_set(:@detect_wifi_service_name, nil)
           output = "Hardware Port: SpecialWifi\nDevice: en0\nEthernet Address: aa:bb:cc:dd:ee:ff\n\n" \
             "Hardware Port: Ethernet\nDevice: en1\n"
-          allow(model).to receive(:run_command_using_args).with(%w[networksetup -listallhardwareports])
+          allow(model).to receive(:run_command_using_args)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
             .and_return(command_result(stdout: output))
           allow(model).to receive(:wifi_interface).and_return('en0')
           expect(model.detect_wifi_service_name).to eq('SpecialWifi')
@@ -225,7 +228,8 @@ module WifiWand
         it 'extracts WiFi interface from networksetup output' do
           output = "Hardware Port: Wi-Fi\nDevice: en0\nEthernet Address: aa:bb:cc\n\n" \
             "Hardware Port: Ethernet\nDevice: en1\n"
-          allow(model).to receive(:run_command_using_args).with(%w[networksetup -listallhardwareports])
+          allow(model).to receive(:run_command_using_args)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
             .and_return(command_result(stdout: output))
           # Also exercise dynamic service name path
           allow(model).to receive(:detect_wifi_service_name).and_call_original
@@ -234,7 +238,8 @@ module WifiWand
 
         it 'raises WifiInterfaceError when WiFi service not found' do
           output = "Hardware Port: Ethernet\nDevice: en1\n"
-          allow(model).to receive(:run_command_using_args).with(%w[networksetup -listallhardwareports])
+          allow(model).to receive(:run_command_using_args)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
             .and_return(command_result(stdout: output))
           allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
           expect do
@@ -569,6 +574,136 @@ module WifiWand
         end
       end
 
+      describe '#status_network_identity' do
+        let(:helper_double) { instance_double(WifiWand::MacOsHelperClient) }
+        let(:status_timeout) { be_between(0, 0.5).exclusive }
+
+        before do
+          model.instance_variable_set(:@mac_helper_client, nil)
+          model.wifi_interface = 'en0'
+          allow(WifiWand::MacOsHelperClient).to receive(:new).and_return(helper_double)
+        end
+
+        it 'validates OS preconditions before caching a probed status interface' do
+          model.instance_variable_set(:@wifi_interface, nil)
+          error = WifiWand::CommandNotFoundError.new('swift')
+
+          expect(model).to receive(:validate_os_preconditions)
+            .with(timeout_in_secs: be_between(0, 0.5).exclusive)
+            .and_raise(error)
+          expect(model).not_to receive(:probe_wifi_interface)
+
+          expect { model.status_network_identity(timeout_in_secs: 0.5) }
+            .to raise_error(WifiWand::CommandNotFoundError, /swift/)
+          expect(model.instance_variable_get(:@wifi_interface)).to be_nil
+        end
+
+        it 'returns the helper SSID and passes the status budget into the helper lookup' do
+          expect(model).to receive(:run_command_using_args)
+            .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+          expect(helper_double).to receive(:connected_network_name)
+            .with(timeout_seconds: status_timeout)
+            .and_return(WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: 'HelperSSID'))
+
+          expect(model).not_to receive(:airport_data)
+          expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
+            connected:    true,
+            network_name: 'HelperSSID'
+          )
+        end
+
+        it 'falls back to bounded airport data when the helper has no SSID' do
+          airport_json = JSON.generate(
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                 => 'en0',
+                'spairport_current_network_information' => { '_name' => 'ProfilerNet' },
+              }],
+            }]
+          )
+          expect(model).to receive(:run_command_using_args)
+            .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+          expect(helper_double).to receive(:connected_network_name)
+            .with(timeout_seconds: status_timeout)
+            .and_return(WifiWand::MacOsHelperBundle::HelperQueryResult.new)
+          expect(model).to receive(:run_command_using_args)
+            .with(
+              %w[system_profiler -json SPAirPortDataType],
+              raise_on_error:  true,
+              timeout_in_secs: status_timeout
+            )
+            .and_return(command_result(stdout: airport_json))
+
+          expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
+            connected:    true,
+            network_name: 'ProfilerNet'
+          )
+        end
+
+        it 'uses bounded association fallback when airport data has no SSID' do
+          airport_json = JSON.generate(
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{ '_name' => 'en0' }],
+            }]
+          )
+          expect(model).to receive(:run_command_using_args)
+            .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+          expect(helper_double).to receive(:connected_network_name)
+            .with(timeout_seconds: status_timeout)
+            .and_return(WifiWand::MacOsHelperBundle::HelperQueryResult.new)
+          expect(model).to receive(:run_command_using_args)
+            .with(
+              %w[system_profiler -json SPAirPortDataType],
+              raise_on_error:  true,
+              timeout_in_secs: status_timeout
+            )
+            .and_return(command_result(stdout: airport_json))
+          expect(model).to receive(:run_command_using_args)
+            .with(%w[route -n get default], raise_on_error: false, timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: "interface: en0\n"))
+
+          expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
+            connected:    true,
+            network_name: nil
+          )
+        end
+
+        it 'treats an empty bounded IP address result as disconnected' do
+          airport_json = JSON.generate(
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{ '_name' => 'en0' }],
+            }]
+          )
+          expect(model).to receive(:run_command_using_args)
+            .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+          expect(helper_double).to receive(:connected_network_name)
+            .with(timeout_seconds: status_timeout)
+            .and_return(WifiWand::MacOsHelperBundle::HelperQueryResult.new)
+          expect(model).to receive(:run_command_using_args)
+            .with(
+              %w[system_profiler -json SPAirPortDataType],
+              raise_on_error:  true,
+              timeout_in_secs: status_timeout
+            )
+            .and_return(command_result(stdout: airport_json))
+          expect(model).to receive(:run_command_using_args)
+            .with(%w[route -n get default], raise_on_error: false, timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: "interface: en1\n"))
+          expect(model).to receive(:run_command_using_args)
+            .with(%w[ipconfig getifaddr en0], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: ''))
+
+          expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
+            connected:    false,
+            network_name: nil
+          )
+        end
+      end
+
       describe 'Sonoma SSID redaction: helper succeeds but system_profiler lacks current-network data' do
         let(:helper_double) { instance_double(WifiWand::MacOsHelperClient) }
         let(:airport_data_without_current_network) do
@@ -854,6 +989,20 @@ module WifiWand
             .and_return(command_result(stdout: system_profiler_output))
 
           expect(model.probe_wifi_interface).to eq('en0')
+        end
+
+        it 'passes the remaining probe timeout into the system_profiler fallback' do
+          allow(model).to receive(:detect_wifi_interface_using_networksetup) do
+            sleep(0.01)
+            raise WifiWand::CommandTimeoutError.new(command: 'networksetup', timeout_in_secs: 0.5)
+          end
+          expect(model).to receive(:run_command_using_args).with(
+            %w[system_profiler -json SPNetworkDataType],
+            raise_on_error:  true,
+            timeout_in_secs: be_between(0, 0.5).exclusive
+          ).and_return(command_result(stdout: system_profiler_output))
+
+          expect(model.probe_wifi_interface(timeout_in_secs: 0.5)).to eq('en0')
         end
       end
 
@@ -1793,7 +1942,8 @@ module WifiWand
       describe '#detect_wifi_service_name edge cases' do
         it 'returns Wi-Fi as final fallback when all detection fails' do
           no_wifi_output = "Hardware Port: Ethernet\nDevice: en1"
-          allow(model).to receive(:run_command_using_args).with(%w[networksetup -listallhardwareports])
+          allow(model).to receive(:run_command_using_args)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
             .and_return(command_result(stdout: no_wifi_output))
           allow(model).to receive(:wifi_interface).and_return('en0')
 

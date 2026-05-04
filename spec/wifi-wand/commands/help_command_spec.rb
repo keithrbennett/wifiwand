@@ -29,7 +29,7 @@ describe WifiWand::HelpCommand do
     end.new
   end
 
-  it_behaves_like 'binds command context', bound_attributes: { cli: :cli, output: -> { cli.out_stream } }
+  it_behaves_like 'binds command context', bound_attributes: { output: -> { cli.out_stream } }
 
   describe '#help_text' do
     it 'returns global help text when bound' do

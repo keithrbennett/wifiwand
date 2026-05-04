@@ -8,6 +8,7 @@ RSpec.shared_examples 'binds command context' do |bound_attributes:|
 
       expect(bound_command).to be_a(described_class)
       expect(bound_command.metadata).to eq(command.metadata)
+      expect(bound_command.cli).to eq(cli)
 
       bound_attributes.each do |attribute, expected|
         resolved = expected.is_a?(Proc) ? instance_exec(&expected) : public_send(expected)

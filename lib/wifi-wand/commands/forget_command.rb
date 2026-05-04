@@ -11,13 +11,20 @@ module WifiWand
       usage:        'Usage: wifi-wand forget <name1> [name2 ...]'
     )
 
-    binds :cli, :model, output_support: :output_support
+    binds :model, output_support: :output_support
 
     def call(*options)
-      raise_missing_argument!('<name1>') if options.empty? || options[0].nil?
+      validate_network_names!(options)
 
       removed_networks = model.remove_preferred_networks(*options)
       output_support.handle_output(removed_networks, -> { "Removed networks: #{removed_networks.inspect}" })
+    end
+
+    private def validate_network_names!(options)
+      options.each_with_index do |option, index|
+        raise_missing_argument!("<name#{index + 1}>") if missing_argument?(option)
+      end
+      raise_missing_argument!('<name1>') if options.empty?
     end
   end
 end

@@ -91,7 +91,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
             @execute_result = execute_result
           end
 
-          private def execute(_command) = @execute_result
+          private def execute(_command, **_kwargs) = @execute_result
         end.new(
           execute_result:     raw_result,
           out_stream_proc:    -> { out_stream },
@@ -125,7 +125,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
             @execute_result = execute_result
           end
 
-          private def execute(_command) = @execute_result
+          private def execute(_command, **_kwargs) = @execute_result
         end.new(
           execute_result:     raw_result,
           out_stream_proc:    -> { out_stream },
@@ -179,7 +179,8 @@ RSpec.describe WifiWand::MacOsHelperBundle do
 
       let(:client_class) do
         Class.new(described_class) do
-          attr_reader :handled_errors, :log_messages, :helper_command_invocations
+          attr_reader :handled_errors, :log_messages, :helper_command_invocations, :available_timeouts,
+            :install_timeouts, :helper_command_timeouts
 
           def initialize(available_result:, helper_command_proc:, parse_json_result:, **kwargs)
             super(**kwargs)
@@ -189,15 +190,23 @@ RSpec.describe WifiWand::MacOsHelperBundle do
             @handled_errors = []
             @log_messages = []
             @helper_command_invocations = 0
+            @available_timeouts = []
+            @install_timeouts = []
+            @helper_command_timeouts = []
           end
 
-          private def available? = @available_result
-
-          private def ensure_helper_installed
+          private def available?(timeout_seconds: nil)
+            @available_timeouts << timeout_seconds
+            @available_result
           end
 
-          private def execute_helper_command(command)
+          private def ensure_helper_installed(timeout_seconds: nil)
+            @install_timeouts << timeout_seconds
+          end
+
+          private def execute_helper_command(command, timeout_seconds: nil)
             @helper_command_invocations += 1
+            @helper_command_timeouts << timeout_seconds
             @helper_command_proc.call(command)
           end
 
@@ -253,6 +262,14 @@ RSpec.describe WifiWand::MacOsHelperBundle do
           expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to eq('status' => 'ok', 'payload' => 1)
           expect(result).not_to be_location_services_blocked
+        end
+
+        it 'propagates the remaining bounded lookup budget through preflight and command execution' do
+          client.send(:execute, command, timeout_seconds: 0.5)
+
+          expect(client.available_timeouts.first).to be_between(0, 0.5).exclusive
+          expect(client.install_timeouts.first).to be_between(0, 0.5).exclusive
+          expect(client.helper_command_timeouts.first).to be_between(0, 0.5).exclusive
         end
       end
 
@@ -438,6 +455,15 @@ RSpec.describe WifiWand::MacOsHelperBundle do
           expect(out_stream.string).to include('helper not installed; running installer')
         end
 
+        it 'does not install the helper during a bounded status lookup' do
+          expect(File).to receive(:executable?).with(helper_path).and_return(false)
+          expect(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?)
+            .with(timeout_seconds: 0.1).and_return(false)
+          expect(WifiWand::MacOsHelperBundle).not_to receive(:ensure_helper_installed)
+
+          client.send(:ensure_helper_installed, timeout_seconds: 0.1)
+        end
+
         it 'disables helper retries after an install failure' do
           expect(File).to receive(:executable?).with(helper_path).and_return(false).once
           expect(WifiWand::MacOsHelperBundle).to receive(:helper_installed_and_valid?)
@@ -581,7 +607,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
             @execute_helper_command_calls = 0
           end
 
-          private def execute_helper_command(_command)
+          private def execute_helper_command(_command, **_kwargs)
             @execute_helper_command_calls += 1
             {
               stdout: '{"status":"ok","payload":{"ssid":"OfficeWiFi"}}',

@@ -27,6 +27,14 @@ describe WifiWand::Command do
     expect(bound_command).not_to equal(command)
   end
 
+  it 'always carries the cli object into bound command instances' do
+    command = described_class.new(metadata: metadata)
+
+    bound_command = command.bind(cli)
+
+    expect(bound_command.cli).to eq(cli)
+  end
+
   it 'binds declared same-name attributes from the cli' do
     command_class = Class.new(described_class) do
       binds :model, :interactive_mode

@@ -614,7 +614,7 @@ module WifiWand
           IW_OUTPUT
 
           allow(subject).to receive(:run_command_using_args)
-            .with(%w[iw dev])
+            .with(%w[iw dev], timeout_in_secs: nil)
             .and_return(command_result(stdout: iw_output))
 
           expect(subject.probe_wifi_interface).to eq('wlp3s0')
@@ -630,7 +630,7 @@ module WifiWand
           IW_OUTPUT
 
           allow(subject).to receive(:run_command_using_args)
-            .with(%w[iw dev])
+            .with(%w[iw dev], timeout_in_secs: nil)
             .and_return(command_result(stdout: iw_output))
 
           expect(subject.probe_wifi_interface).to eq('wlp3s0')
@@ -638,7 +638,7 @@ module WifiWand
 
         it 'returns nil when no managed interfaces found' do
           allow(subject).to receive(:run_command_using_args)
-            .with(%w[iw dev])
+            .with(%w[iw dev], timeout_in_secs: nil)
             .and_return(command_result(stdout: "phy#0\n    type managed"))
 
           expect(subject.probe_wifi_interface).to be_nil
@@ -646,7 +646,7 @@ module WifiWand
 
         it 'handles command failures gracefully' do
           allow(subject).to receive(:run_command_using_args)
-            .with(%w[iw dev])
+            .with(%w[iw dev], timeout_in_secs: nil)
             .and_raise(os_command_error(exitstatus: 1, command: 'iw dev', text: 'Command failed'))
 
           expect { subject.probe_wifi_interface }
@@ -973,6 +973,47 @@ module WifiWand
         end
       end
 
+      describe '#status_network_identity' do
+        it 'validates OS preconditions before caching a probed status interface' do
+          error = WifiWand::CommandNotFoundError.new(
+            'nmcli (install: sudo apt install network-manager)'
+          )
+          expect(subject).to receive(:validate_os_preconditions).and_raise(error)
+          expect(subject).not_to receive(:probe_wifi_interface)
+
+          expect { subject.status_network_identity(timeout_in_secs: 0.5) }
+            .to raise_error(WifiWand::CommandNotFoundError, /nmcli.*sudo apt install network-manager/)
+          expect(subject.instance_variable_get(:@wifi_interface)).to be_nil
+        end
+
+        it 'passes the remaining status budget into each OS command' do
+          subject.wifi_interface = 'wlp3s0'
+          status_timeout = be_between(0, 0.5).exclusive
+
+          expect(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli radio wifi], raise_on_error: false, timeout_in_secs: status_timeout)
+            .ordered
+            .and_return(command_result(stdout: 'enabled'))
+          expect(subject).to receive(:run_command_using_args)
+            .with(
+              ['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'],
+              raise_on_error:  false,
+              timeout_in_secs: status_timeout
+            )
+            .ordered
+            .and_return(command_result(stdout: "wlp3s0\nlo"))
+          expect(subject).to receive(:run_command_using_args)
+            .with(%w[iw dev wlp3s0 link], raise_on_error: false, timeout_in_secs: status_timeout)
+            .ordered
+            .and_return(command_result(stdout: "Connected to aa:bb:cc\nSSID: HomeNetwork\n"))
+
+          expect(subject.status_network_identity(timeout_in_secs: 0.5)).to eq(
+            connected:    true,
+            network_name: 'HomeNetwork'
+          )
+        end
+      end
+
       describe '#available_network_names' do
         it 'returns sorted list of available networks by signal strength' do
           nmcli_output = "TestNet1:75\nStrongNet:90\nWeakNet:25\nTestNet2:80"
@@ -1045,7 +1086,7 @@ module WifiWand
       describe '#is_wifi_interface?' do
         it 'returns true for valid wifi interface' do
           allow(subject).to receive(:run_command_using_args)
-            .with(%w[iw dev wlp3s0 info], raise_on_error: false)
+            .with(%w[iw dev wlp3s0 info], raise_on_error: false, timeout_in_secs: nil)
             .and_return(command_result(stdout: 'Interface wlp3s0\n\ttype managed', exitstatus: 0))
 
           expect(subject.is_wifi_interface?('wlp3s0')).to be(true)
@@ -1053,7 +1094,7 @@ module WifiWand
 
         it 'returns false for non-wifi interface' do
           allow(subject).to receive(:run_command_using_args)
-            .with(%w[iw dev eth0 info], raise_on_error: false)
+            .with(%w[iw dev eth0 info], raise_on_error: false, timeout_in_secs: nil)
             .and_return(command_result(stdout: '', exitstatus: 1))
 
           expect(subject.is_wifi_interface?('eth0')).to be(false)
@@ -1978,7 +2019,7 @@ module WifiWand
       describe '#is_wifi_interface?' do
         it 'handles iw dev info command failures' do
           allow(subject).to receive(:run_command_using_args)
-            .with(%w[iw dev wlan0 info], raise_on_error: false)
+            .with(%w[iw dev wlan0 info], raise_on_error: false, timeout_in_secs: nil)
             .and_return(command_result(stdout: '', stderr: 'No such device', exitstatus: 1))
 
           expect(subject.is_wifi_interface?('wlan0')).to be(false)

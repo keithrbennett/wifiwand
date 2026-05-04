@@ -15,7 +15,7 @@ module WifiWand
 
     STATES = %w[wifi_on wifi_off associated disassociated internet_on internet_off].freeze
 
-    binds :cli, :model, :interactive_mode
+    binds :model, :interactive_mode
 
     def help_text
       <<~HELP
@@ -52,7 +52,7 @@ module WifiWand
     end
 
     private def validate_presence!(options)
-      return unless options.empty? || options[0].nil?
+      return unless options.empty? || missing_argument?(options[0])
 
       raise_missing_argument!(
         '<state>',

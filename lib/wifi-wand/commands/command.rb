@@ -80,7 +80,8 @@ module WifiWand
     # Turn a registered command definition into the executable command object
     # for this CLI invocation by copying the declared bound attributes from `cli`.
     def bind(cli)
-      self.class.new(metadata: metadata, **bound_attributes_for(cli))
+      attributes = bound_attributes_for(cli)
+      self.class.new(metadata: metadata, cli: cli, **attributes)
     end
 
     def help_text
@@ -115,10 +116,10 @@ module WifiWand
     end
 
     private def bound_attributes_for(cli)
-      # A `:cli` binding injects the whole CLI object; any other symbol reads the
-      # corresponding method from the CLI and assigns that value to the command.
+      # Read each declared binding source from the CLI and assign that value to
+      # the command. The CLI object itself is passed by #bind for every command.
       self.class.binding_sources.transform_values do |source|
-        source == :cli ? cli : cli.public_send(source)
+        cli.public_send(source)
       end
     end
 
@@ -131,6 +132,10 @@ module WifiWand
       message_parts << cli.help_hint if cli
 
       raise WifiWand::ConfigurationError, message_parts.join("\n")
+    end
+
+    private def missing_argument?(value)
+      value.nil? || value.to_s.empty?
     end
   end
 end

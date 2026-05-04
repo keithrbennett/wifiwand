@@ -7,7 +7,7 @@ describe WifiWand::ShellCommand do
   let(:options) { WifiWand::CommandLineOptions.new(post_processor: nil) }
   let(:cli) { double('cli', options: options) }
 
-  it_behaves_like 'binds command context', bound_attributes: { cli: :cli }
+  it_behaves_like 'binds command context', bound_attributes: {}
 
   describe '#call' do
     it 'runs the existing shell entry path inside interactive mode' do

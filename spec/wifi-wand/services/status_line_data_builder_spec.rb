@@ -11,8 +11,8 @@ describe WifiWand::StatusLineDataBuilder do
   let(:model) do
     double('model',
       wifi_on?:                   true,
-      connected?:                 true,
-      connected_network_name:     'HomeNetwork',
+      status_wifi_on?:            true,
+      status_network_identity:    { connected: true, network_name: 'HomeNetwork' },
       internet_tcp_connectivity?: true,
       dns_working?:               true,
       captive_portal_state:       :free
@@ -127,10 +127,21 @@ describe WifiWand::StatusLineDataBuilder do
       ])
     end
 
+    it 'uses a bounded status wifi lookup before starting workers' do
+      expect(model).not_to receive(:wifi_on?)
+      expect(model).to receive(:status_wifi_on?) do |timeout_in_secs:|
+        expect(timeout_in_secs).to be_between(0, 0.05).exclusive
+        true
+      end
+
+      result = builder.call
+
+      expect(result).to eq(expected_reachable_result)
+    end
+
     it 'returns the wifi-off status without running internet checks' do
-      allow(model).to receive(:wifi_on?).and_return(false)
-      expect(model).not_to receive(:connected_network_name)
-      expect(model).not_to receive(:connected?)
+      allow(model).to receive(:status_wifi_on?).and_return(false)
+      expect(model).not_to receive(:status_network_identity)
       expect(model).not_to receive(:internet_tcp_connectivity?)
 
       result = builder.call
@@ -205,7 +216,7 @@ describe WifiWand::StatusLineDataBuilder do
     it 'returns nil and emits a nil progress update when the initial wifi check fails' do
       out_stream = StringIO.new
       failing_builder = described_class.new(model, verbose: true, out_stream: out_stream)
-      allow(model).to receive(:wifi_on?).and_raise(WifiWand::Error, 'boom')
+      allow(model).to receive(:status_wifi_on?).and_raise(WifiWand::Error, 'boom')
 
       result = failing_builder.call(progress_callback: ->(data) { progress_updates << data })
 
@@ -214,8 +225,8 @@ describe WifiWand::StatusLineDataBuilder do
       expect(out_stream.string).to include('Warning: status_line_data failed: WifiWand::Error: boom')
     end
 
-    it 'reports connected with a nil SSID when connected? is true but the SSID is nil' do
-      allow(model).to receive_messages(connected?: true, connected_network_name: nil)
+    it 'reports connected with a nil SSID when status identity is connected but the SSID is nil' do
+      allow(model).to receive(:status_network_identity).and_return(connected: true, network_name: nil)
 
       result = builder.call
 
@@ -223,22 +234,8 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result[:network_name]).to be_nil
     end
 
-    it 'reports connected with a nil SSID when macOS redacts the SSID lookup' do
-      redaction_error = WifiWand::MacOsRedactionError.new(
-        operation_description: 'current WiFi network queries'
-      )
-      allow(model).to receive(:connected?).and_return(true)
-      allow(model).to receive(:connected_network_name).and_raise(redaction_error)
-
-      result = builder.call
-
-      expect(result[:connected]).to be(true)
-      expect(result[:network_name]).to be_nil
-    end
-
-    it 'reports disconnected when a non-redaction WiFi error is raised during SSID lookup' do
-      allow(model).to receive(:connected?).and_return(true)
-      allow(model).to receive(:connected_network_name).and_raise(WifiWand::Error, 'lookup failed')
+    it 'reports disconnected when status identity raises a WiFi error' do
+      allow(model).to receive(:status_network_identity).and_raise(WifiWand::Error, 'lookup failed')
 
       result = builder.call
 
@@ -246,24 +243,22 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result[:network_name]).to be_nil
     end
 
-    it 'logs macOS redaction remediation in verbose mode without marking the network disconnected' do
+    it 'logs a network identity warning in verbose mode without raising' do
       out_stream = StringIO.new
       verbose_builder = described_class.new(
         model,
         verbose:    true,
         out_stream: out_stream
       )
-      allow(model).to receive(:connected?).and_return(true)
-      allow(model).to receive(:connected_network_name).and_raise(
-        WifiWand::MacOsRedactionError.new(operation_description: 'current WiFi network queries')
-      )
+      allow(model).to receive(:status_network_identity).and_raise(WifiWand::Error, 'lookup failed')
 
       result = verbose_builder.call
 
-      expect(result[:connected]).to be(true)
+      expect(result[:connected]).to be(false)
       expect(result[:network_name]).to be_nil
-      expect(out_stream.string).to include('Warning: network SSID lookup failed: WifiWand::MacOsRedactionError')
-      expect(out_stream.string).to include('wifi-wand-macos-setup')
+      expect(out_stream.string).to include(
+        'Warning: network status lookup failed: WifiWand::Error: lookup failed'
+      )
     end
 
     it 'renders a redacted associated network as a yellow unavailable placeholder' do
@@ -277,10 +272,7 @@ describe WifiWand::StatusLineDataBuilder do
         end
       end.new
       allow(formatter.out_stream).to receive(:tty?).and_return(true)
-      allow(model).to receive(:connected?).and_return(true)
-      allow(model).to receive(:connected_network_name).and_raise(
-        WifiWand::MacOsRedactionError.new(operation_description: 'current WiFi network queries')
-      )
+      allow(model).to receive(:status_network_identity).and_return(connected: true, network_name: nil)
 
       result = builder.call
       rendered_status = formatter.status_line(result)
@@ -291,8 +283,8 @@ describe WifiWand::StatusLineDataBuilder do
       expect(rendered_status).not_to include("\e[36m#{unavailable_label}\e[0m")
     end
 
-    it 'reports disconnected when connected? is false and the SSID is nil' do
-      allow(model).to receive_messages(connected?: false, connected_network_name: nil)
+    it 'reports disconnected when status identity is disconnected and the SSID is nil' do
+      allow(model).to receive(:status_network_identity).and_return(connected: false, network_name: nil)
 
       result = builder.call
 
@@ -314,10 +306,10 @@ describe WifiWand::StatusLineDataBuilder do
         thread
       end
 
-      allow(model).to receive(:connected?) do
+      allow(model).to receive(:status_network_identity) do
         network_started << :started
         network_release.pop
-        true
+        { connected: true, network_name: 'HomeNetwork' }
       end
       allow(model).to receive(:internet_tcp_connectivity?) do
         connectivity_started << :started
@@ -344,9 +336,9 @@ describe WifiWand::StatusLineDataBuilder do
       network_release = Queue.new
       connectivity_finished = Queue.new
 
-      allow(model).to receive(:connected?) do
+      allow(model).to receive(:status_network_identity) do
         network_release.pop
-        true
+        { connected: true, network_name: 'HomeNetwork' }
       end
       allow(model).to receive(:dns_working?) do
         connectivity_finished << :done
@@ -376,9 +368,9 @@ describe WifiWand::StatusLineDataBuilder do
       network_release = Queue.new
       connectivity_failed = Queue.new
 
-      allow(model).to receive(:connected?) do
+      allow(model).to receive(:status_network_identity) do
         network_release.pop
-        true
+        { connected: true, network_name: 'HomeNetwork' }
       end
       allow(model).to receive(:captive_portal_state) do
         connectivity_failed << :failed
@@ -410,7 +402,8 @@ describe WifiWand::StatusLineDataBuilder do
         out_stream:              out_stream,
         expected_network_errors: [StatusLineDataBuilderSpecExpectedError]
       )
-      allow(model).to receive(:connected?).and_raise(StatusLineDataBuilderSpecExpectedError, 'network down')
+      allow(model).to receive(:status_network_identity)
+        .and_raise(StatusLineDataBuilderSpecExpectedError, 'network down')
 
       result = failing_builder.call
 
@@ -427,6 +420,32 @@ describe WifiWand::StatusLineDataBuilder do
       expect(out_stream.string).to include(
         'Warning: network status lookup failed: StatusLineDataBuilderSpecExpectedError: network down'
       )
+    end
+
+    it 'raises when bounded network identity is not implemented' do
+      out_stream = StringIO.new
+      failing_builder = described_class.new(model, verbose: true, out_stream: out_stream)
+      allow(model).to receive(:status_network_identity)
+        .and_raise(WifiWand::MethodNotImplementedError)
+
+      expect do
+        failing_builder.call(progress_callback: ->(data) { progress_updates << data })
+      end.to raise_error(WifiWand::MethodNotImplementedError)
+      expect(progress_updates).to eq([expected_initial_progress])
+      expect(out_stream.string).to be_empty
+    end
+
+    it 'raises when network identity reports a missing dependency' do
+      out_stream = StringIO.new
+      failing_builder = described_class.new(model, verbose: true, out_stream: out_stream)
+      allow(model).to receive(:status_network_identity)
+        .and_raise(WifiWand::CommandNotFoundError.new('iw (install: sudo apt install iw)'))
+
+      expect do
+        failing_builder.call(progress_callback: ->(data) { progress_updates << data })
+      end.to raise_error(WifiWand::CommandNotFoundError, /iw/)
+      expect(progress_updates).to eq([expected_initial_progress])
+      expect(out_stream.string).to be_empty
     end
 
     it 'falls back gracefully when connectivity checks raise expected errors' do
@@ -459,7 +478,7 @@ describe WifiWand::StatusLineDataBuilder do
     it 'returns partial connectivity data when the network worker never publishes a result' do
       network_release = Queue.new
 
-      allow(model).to receive(:connected?) do
+      allow(model).to receive(:status_network_identity) do
         network_release.pop
       end
 
@@ -481,6 +500,62 @@ describe WifiWand::StatusLineDataBuilder do
         result,
       ])
       expect(network_release.size).to eq(0)
+    end
+
+    it 'uses a bounded status network identity lookup before falling back on timeout' do
+      bounded_model = Class.new do
+        attr_reader :network_identity_timeouts
+
+        def initialize
+          @network_identity_active = false
+          @network_identity_timeouts = []
+        end
+
+        def status_wifi_on?(timeout_in_secs:) = true
+
+        define_method(:internet_tcp_connectivity?) do |timeout_in_secs:, return_details:|
+          { success: true, timed_out: false }
+        end
+
+        define_method(:dns_working?) do |timeout_in_secs:, return_details:|
+          { success: true, timed_out: false }
+        end
+
+        def captive_portal_state(timeout_in_secs:) = :free
+
+        def status_network_identity(timeout_in_secs:)
+          @network_identity_timeouts << timeout_in_secs
+          @network_identity_active = true
+          sleep(timeout_in_secs)
+          raise WifiWand::CommandTimeoutError.new(
+            command:         'status network identity',
+            timeout_in_secs: timeout_in_secs
+          )
+        ensure
+          @network_identity_active = false
+        end
+
+        def network_identity_active? = @network_identity_active
+      end.new
+      bounded_builder = described_class.new(
+        bounded_model,
+        out_stream:                                 StringIO.new,
+        network_worker_result_timeout_seconds:      0.02,
+        connectivity_worker_result_timeout_seconds: 0.05,
+        worker_result_poll_interval_seconds:        0.001,
+        worker_cleanup_timeout_seconds:             0.05
+      )
+
+      result = nil
+      Timeout.timeout(1) { result = bounded_builder.call }
+
+      expect(result).to include(
+        wifi_on:      true,
+        connected:    nil,
+        network_name: nil
+      )
+      expect(bounded_model.network_identity_timeouts.first).to be_between(0, 0.02).exclusive
+      expect(bounded_model.network_identity_active?).to be(false)
     end
 
     it 'returns an indeterminate connectivity result when the connectivity worker never publishes a result' do
@@ -521,10 +596,9 @@ describe WifiWand::StatusLineDataBuilder do
       )
       network_release = Queue.new
 
-      allow(model).to receive(:connected?) do
+      allow(model).to receive(:status_network_identity) do
         network_release.pop
       end
-      expect(model).not_to receive(:connected_network_name)
 
       result = nil
       Timeout.timeout(1) do
@@ -563,7 +637,7 @@ describe WifiWand::StatusLineDataBuilder do
       network_started = Queue.new
       connectivity_started = Queue.new
 
-      allow(model).to receive(:connected?) do
+      allow(model).to receive(:status_network_identity) do
         network_started << :started
         network_release.pop
       end
@@ -611,10 +685,10 @@ describe WifiWand::StatusLineDataBuilder do
         thread
       end
 
-      allow(model).to receive(:connected?) do
+      allow(model).to receive(:status_network_identity) do
         network_started << :started
         network_release.pop
-        true
+        { connected: true, network_name: 'HomeNetwork' }
       ensure
         network_terminated << :terminated
       end
@@ -645,16 +719,15 @@ describe WifiWand::StatusLineDataBuilder do
         model,
         out_stream:                                 StringIO.new,
         network_worker_result_timeout_seconds:      0.005,
-        connectivity_worker_result_timeout_seconds: 0.005,
+        connectivity_worker_result_timeout_seconds: 0.05,
         worker_result_poll_interval_seconds:        0.001,
         worker_cleanup_timeout_seconds:             0.05
       )
 
-      allow(model).to receive(:connected?) do
+      allow(model).to receive(:status_network_identity) do
         sleep(0.02)
-        true
+        { connected: true, network_name: 'HomeNetwork' }
       end
-      expect(model).not_to receive(:connected_network_name)
 
       result = nil
       Timeout.timeout(1) { result = slow_builder.call }

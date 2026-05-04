@@ -49,8 +49,11 @@ module WifiWand
       },
     }.freeze
 
-    def fetch_hardware_ports
-      output = run_command_using_args(%w[networksetup -listallhardwareports]).stdout
+    def fetch_hardware_ports(timeout_in_secs: nil)
+      output = run_command_using_args(
+        %w[networksetup -listallhardwareports],
+        timeout_in_secs: timeout_in_secs
+      ).stdout
 
       ports = []
       current = {}
@@ -97,7 +100,9 @@ module WifiWand
     end
 
     # Lazily detected macOS version to avoid OS calls during initialization
-    def macos_version = @macos_version ||= detect_macos_version
+    def macos_version(timeout_in_secs: nil)
+      @macos_version ||= detect_macos_version(timeout_in_secs: timeout_in_secs)
+    end
 
     def initialize(options = {})
       super
@@ -145,8 +150,8 @@ module WifiWand
 
     # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
     # This may not detect WiFi ports with nonstandard names, such as USB WiFi devices.
-    def detect_wifi_interface_using_networksetup
-      ports = fetch_hardware_ports
+    def detect_wifi_interface_using_networksetup(timeout_in_secs: nil)
+      ports = fetch_hardware_ports(timeout_in_secs: timeout_in_secs)
       service_name = detect_wifi_service_name_from_ports(ports)
 
       if service_name && !service_name.empty?
@@ -168,9 +173,10 @@ module WifiWand
     # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
     # Prefer the faster networksetup path and fall back to system_profiler if needed.
     # This may not detect WiFi ports with nonstandard names, such as USB WiFi devices.
-    def probe_wifi_interface
+    def probe_wifi_interface(timeout_in_secs: nil)
+      deadline = status_deadline(timeout_in_secs)
       begin
-        iface = detect_wifi_interface_using_networksetup
+        iface = detect_wifi_interface_using_networksetup(timeout_in_secs: status_timeout_for(deadline))
         return iface if iface && !iface.to_s.empty?
       rescue => _e
         # Fall through to system_profiler fallback
@@ -179,7 +185,7 @@ module WifiWand
       json_text = run_command_using_args(
         %w[system_profiler -json SPNetworkDataType],
         raise_on_error:  true,
-        timeout_in_secs: SYSTEM_PROFILER_TIMEOUT_SECONDS
+        timeout_in_secs: status_timeout_for(deadline) || SYSTEM_PROFILER_TIMEOUT_SECONDS
       ).stdout
       return nil if json_text.nil? || json_text.strip.empty?
 
@@ -314,6 +320,40 @@ module WifiWand
 
         associated_without_ssid?(interface_data)
       end
+    end
+
+    def status_network_identity(timeout_in_secs: nil)
+      deadline = status_deadline(timeout_in_secs)
+      validate_os_preconditions(timeout_in_secs: status_timeout_for(deadline)) unless @wifi_interface
+
+      with_airport_data_cache_scope do
+        return { connected: false, network_name: nil } unless wifi_on_before_deadline?(deadline)
+
+        helper_result = mac_helper_client.connected_network_name(
+          timeout_seconds: status_timeout_for(deadline)
+        )
+        helper_ssid = helper_result.payload
+        if helper_ssid && !placeholder_network_name?(helper_ssid)
+          return { connected: true, network_name: helper_ssid }
+        end
+
+        interface_data = wifi_interface_airport_data(deadline: deadline)
+        connected = interface_associated_in_airport_data?(interface_data) ||
+          status_associated_without_ssid?(deadline)
+        network_name = connected ? status_network_name_from_airport_data(interface_data) : nil
+
+        {
+          connected:    connected,
+          network_name: network_name,
+        }
+      end
+    end
+
+    def status_wifi_on?(timeout_in_secs: nil)
+      deadline = status_deadline(timeout_in_secs)
+      validate_os_preconditions(timeout_in_secs: status_timeout_for(deadline)) unless @wifi_interface
+
+      wifi_on_before_deadline?(deadline)
     end
 
     # Turns WiFi on.
@@ -467,7 +507,7 @@ module WifiWand
       @mac_helper_client ||= WifiWand::MacOsHelperClient.new(
         out_stream_proc:    -> { out_stream },
         verbose_proc:       -> { verbose? },
-        macos_version_proc: -> { macos_version }
+        macos_version_proc: ->(timeout_in_secs: nil) { macos_version(timeout_in_secs: timeout_in_secs) }
       )
     end
 
@@ -550,8 +590,10 @@ module WifiWand
     end
 
     # Detects the current macOS version
-    def detect_macos_version
-      output = run_command_using_args(%w[sw_vers -productVersion]).stdout
+    def detect_macos_version(timeout_in_secs: nil)
+      options = {}
+      options[:timeout_in_secs] = timeout_in_secs if timeout_in_secs
+      output = run_command_using_args(%w[sw_vers -productVersion], **options).stdout
       MacOsHelperBundle.normalize_detected_macos_version(output)
     rescue => e
       if verbose?
@@ -560,11 +602,11 @@ module WifiWand
       nil
     end
 
-    def validate_os_preconditions
+    def validate_os_preconditions(timeout_in_secs: nil)
       # All core commands are built-in. Eagerly warm the direct Swift-source
       # runtime probe here so the runtime owns both the cached result and any
       # targeted verbose diagnostics before connect/disconnect runs.
-      swift_runtime.swift_and_corewlan_present?
+      swift_runtime.swift_and_corewlan_present?(timeout_in_secs: timeout_in_secs)
 
       :ok
     end
@@ -636,12 +678,12 @@ module WifiWand
 
     private def find_wifi_interface_data(interfaces, iface) = interfaces.detect { |h| h['_name'] == iface }
 
-    private def wifi_interface_airport_data
-      data = airport_data
+    private def wifi_interface_airport_data(timeout_in_secs: nil, deadline: nil)
+      data = airport_data(timeout_in_secs: deadline ? status_timeout_for(deadline) : timeout_in_secs)
       airport_interfaces = data.dig('SPAirPortDataType', 0, 'spairport_airport_interfaces')
       return nil unless airport_interfaces
 
-      iface = wifi_interface
+      iface = deadline ? status_wifi_interface(deadline) : wifi_interface
       airport_interfaces.find { |interface| interface['_name'] == iface }
     end
 
@@ -662,6 +704,70 @@ module WifiWand
       !_ip_address.nil?
     rescue WifiWand::CommandExecutor::OsCommandError
       false
+    end
+
+    private def status_associated_without_ssid?(deadline)
+      iface = status_wifi_interface(deadline)
+      return false unless iface
+      return true if status_default_interface(deadline) == iface
+
+      !status_ip_address(deadline).nil?
+    rescue WifiWand::CommandExecutor::OsCommandError
+      false
+    end
+
+    private def status_network_name_from_airport_data(wifi_interface_data)
+      current_network = wifi_interface_data&.fetch('spairport_current_network_information', nil)
+      return nil unless current_network
+
+      network_name = current_network.is_a?(Hash) ? current_network['_name'] : current_network
+      placeholder_network_name?(network_name) ? nil : network_name
+    end
+
+    private def wifi_on_before_deadline?(deadline)
+      iface = status_wifi_interface(deadline)
+      return false unless iface
+
+      output = run_command_using_args(
+        ['networksetup', '-getairportpower', iface],
+        timeout_in_secs: status_timeout_for(deadline)
+      ).stdout
+      output.chomp.match?(/\): On$/)
+    end
+
+    private def status_wifi_interface(deadline)
+      return @wifi_interface if @wifi_interface
+
+      @wifi_interface = probe_wifi_interface(timeout_in_secs: status_timeout_for(deadline))
+    end
+
+    private def status_default_interface(deadline)
+      output = run_command_using_args(
+        %w[route -n get default],
+        raise_on_error:  false,
+        timeout_in_secs: status_timeout_for(deadline)
+      ).stdout
+      return nil if output.empty?
+
+      interface_line = output.split("\n").find { |line| line.include?('interface:') }
+      return nil unless interface_line
+
+      interface_line.split(':', 2).last.strip
+    end
+
+    private def status_ip_address(deadline)
+      iface = status_wifi_interface(deadline)
+      return nil unless iface
+
+      ip_address = run_command_using_args(
+        ['ipconfig', 'getifaddr', iface],
+        timeout_in_secs: status_timeout_for(deadline)
+      ).stdout.chomp
+      ip_address.empty? ? nil : ip_address
+    rescue WifiWand::CommandExecutor::OsCommandError => e
+      raise unless e.exitstatus == 1
+
+      nil
     end
 
     private def network_list_key(wifi_interface_data = nil)
@@ -725,7 +831,7 @@ module WifiWand
       Thread.current[:wifi_wand_airport_data_cache_store] ||= {}
     end
 
-    private def airport_data
+    private def airport_data(timeout_in_secs: nil)
       cache_key = object_id
       cached_data = airport_data_cache_store[cache_key]
       return cached_data if cached_data
@@ -733,7 +839,7 @@ module WifiWand
       json_text = run_command_using_args(
         %w[system_profiler -json SPAirPortDataType],
         raise_on_error:  true,
-        timeout_in_secs: SYSTEM_PROFILER_TIMEOUT_SECONDS
+        timeout_in_secs: timeout_in_secs || SYSTEM_PROFILER_TIMEOUT_SECONDS
       ).stdout
       begin
         airport_data_cache_store[cache_key] = JSON.parse(json_text)

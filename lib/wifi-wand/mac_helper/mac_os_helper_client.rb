@@ -30,8 +30,8 @@ module WifiWand
       @last_error_message = nil
     end
 
-    def connected_network_name
-      result = execute('current-network')
+    def connected_network_name(timeout_seconds: nil)
+      result = execute('current-network', timeout_seconds: timeout_seconds)
       ssid = result.payload&.fetch('ssid', nil)
       MacOsHelperBundle::HelperQueryResult.new(
         payload:                   ssid,
@@ -50,10 +50,10 @@ module WifiWand
       )
     end
 
-    def available?
+    def available?(timeout_seconds: nil)
       return false if helper_disabled?
 
-      version = macos_version
+      version = macos_version(timeout_seconds: timeout_seconds)
       return false unless version
 
       support_status = MacOsHelperBundle.helper_support_status_for_macos_version(version)
@@ -71,14 +71,16 @@ module WifiWand
       @last_error_message.downcase.include?('location services')
     end
 
-    private def execute(command)
+    private def execute(command, timeout_seconds: nil)
       @last_error_message = nil
-      return MacOsHelperBundle::HelperQueryResult.new unless available?
+      deadline = helper_deadline(timeout_seconds)
+      timeout_options = -> { helper_timeout_options(deadline) }
+      return MacOsHelperBundle::HelperQueryResult.new unless available?(**timeout_options.())
 
-      ensure_helper_installed
+      ensure_helper_installed(**timeout_options.())
       return MacOsHelperBundle::HelperQueryResult.new if helper_disabled?
 
-      helper_result = execute_helper_command(command)
+      helper_result = execute_helper_command(command, timeout_seconds: remaining_helper_budget(deadline))
       return MacOsHelperBundle::HelperQueryResult.new unless helper_result
 
       stdout = helper_result[:stdout]
@@ -110,25 +112,32 @@ module WifiWand
       MacOsHelperBundle::HelperQueryResult.new
     end
 
-    private def execute_helper_command(command)
+    private def execute_helper_command(command, timeout_seconds: nil)
       WifiWand::MacOsHelperBundle.run_bounded_helper_command(
         helper_executable_path,
         command,
-        timeout_seconds: WifiWand::MacOsHelperBundle.helper_command_timeout_seconds(command),
+        timeout_seconds: timeout_seconds || WifiWand::MacOsHelperBundle.helper_command_timeout_seconds(command),
         on_timeout:      ->(timed_out_command, timeout_seconds) do
           log_verbose("helper command '#{timed_out_command}' timed out after #{timeout_seconds}s")
         end
       )
     end
 
-    private def ensure_helper_installed
+    private def ensure_helper_installed(timeout_seconds: nil)
       return if helper_disabled?
       return if @helper_install_verified
 
       helper_present = File.executable?(helper_executable_path)
-      helper_valid = WifiWand::MacOsHelperBundle.helper_installed_and_valid?
+      helper_options = {}
+      helper_options[:timeout_seconds] = timeout_seconds if timeout_seconds
+      helper_valid = WifiWand::MacOsHelperBundle.helper_installed_and_valid?(**helper_options)
       if helper_valid
         @helper_install_verified = true
+        return
+      end
+
+      if timeout_seconds
+        log_verbose('helper is unavailable during bounded status lookup')
         return
       end
 
@@ -202,7 +211,32 @@ module WifiWand
       stream.puts("wifiwand helper: #{message}") if stream
     end
 
-    private def macos_version = @macos_version_proc&.call
+    private def helper_deadline(timeout_seconds)
+      monotonic_now + timeout_seconds if timeout_seconds
+    end
+
+    private def remaining_helper_budget(deadline)
+      return nil unless deadline
+
+      remaining = deadline - monotonic_now
+      remaining.positive? ? remaining : 0
+    end
+
+    private def helper_timeout_options(deadline)
+      deadline ? { timeout_seconds: remaining_helper_budget(deadline) } : {}
+    end
+
+    private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+    private def macos_version(timeout_seconds: nil)
+      return unless @macos_version_proc
+
+      if @macos_version_proc.arity.zero?
+        @macos_version_proc.call
+      else
+        @macos_version_proc.call(timeout_in_secs: timeout_seconds)
+      end
+    end
 
     private def out_stream = @out_stream_proc&.call
 

@@ -16,7 +16,7 @@ describe WifiWand::ForgetCommand do
   end
 
   it_behaves_like 'binds command context',
-    bound_attributes: { cli: :cli, model: :mock_model, output_support: :output_support }
+    bound_attributes: { model: :mock_model, output_support: :output_support }
 
   it_behaves_like 'has default command help text',
     usage:       'Usage: wifi-wand forget <name1> [name2 ...]',
@@ -51,6 +51,26 @@ describe WifiWand::ForgetCommand do
 
       expect { command.call(nil) }.to raise_error(WifiWand::ConfigurationError) { |error|
         expect(error.message).to include('Missing <name1> argument.')
+        expect(error.message).to include('Usage: wifi-wand forget <name1> [name2 ...]')
+        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      }
+    end
+
+    it 'raises a usage-oriented error when the first network name is empty' do
+      expect(mock_model).not_to receive(:remove_preferred_networks)
+
+      expect { command.call('') }.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('Missing <name1> argument.')
+        expect(error.message).to include('Usage: wifi-wand forget <name1> [name2 ...]')
+        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      }
+    end
+
+    it 'raises a usage-oriented error when a later network name is empty' do
+      expect(mock_model).not_to receive(:remove_preferred_networks)
+
+      expect { command.call('Network1', '') }.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('Missing <name2> argument.')
         expect(error.message).to include('Usage: wifi-wand forget <name1> [name2 ...]')
         expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
       }

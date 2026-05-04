@@ -458,6 +458,15 @@ describe WifiWand::CommandLineInterface do
           end
         end
 
+        it 'raises ConfigurationError when first argument is empty' do
+          expect(mock_model).not_to receive(:till)
+
+          expect { invoke_command(cli, 'till', '') }
+            .to raise_error(WifiWand::ConfigurationError) do |error|
+            expect(error.message).to include('Missing <state> argument.')
+          end
+        end
+
         it 'raises ConfigurationError when timeout is not numeric' do
           expect { invoke_command(cli, 'till', 'wifi_on', 'invalid') }
             .to raise_error(WifiWand::ConfigurationError) do |error|

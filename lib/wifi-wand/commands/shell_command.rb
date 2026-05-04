@@ -11,8 +11,6 @@ module WifiWand
       usage:        'Usage: wifi-wand shell'
     )
 
-    binds :cli
-
     def call(*args)
       validate_startup_options!(args)
 

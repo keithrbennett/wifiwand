@@ -6,7 +6,7 @@ require_relative '../../../lib/wifi-wand/commands/quit_command'
 describe WifiWand::QuitCommand do
   let(:cli) { double('cli') }
 
-  it_behaves_like 'binds command context', bound_attributes: { cli: :cli }
+  it_behaves_like 'binds command context', bound_attributes: {}
 
   describe '#aliases' do
     it 'includes quit and xit aliases' do

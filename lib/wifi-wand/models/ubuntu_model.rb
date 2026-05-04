@@ -54,9 +54,12 @@ module WifiWand
       :ok
     end
 
-    def probe_wifi_interface
+    def probe_wifi_interface(timeout_in_secs: nil)
       debug_method_entry(__method__)
-      lines = run_command_using_args(%w[iw dev]).stdout.lines.map(&:strip)
+      lines = run_command_using_args(
+        %w[iw dev],
+        timeout_in_secs: timeout_in_secs
+      ).stdout.lines.map(&:strip)
       current_interface = nil
       lines.each do |line|
         if line.start_with?('Interface ')
@@ -68,8 +71,9 @@ module WifiWand
       nil
     end
 
-    def is_wifi_interface?(interface)
-      result = run_command_using_args(['iw', 'dev', interface, 'info'], raise_on_error: false)
+    def is_wifi_interface?(interface, timeout_in_secs: nil)
+      result = run_command_using_args(['iw', 'dev', interface, 'info'],
+        raise_on_error: false, timeout_in_secs: timeout_in_secs)
       result.success?
     end
 
@@ -85,6 +89,25 @@ module WifiWand
         ['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], raise_on_error: false
       ).stdout
       output.split("\n").any? { |line| line.strip == wifi_interface }
+    end
+
+    def status_network_identity(timeout_in_secs: nil)
+      deadline = status_deadline(timeout_in_secs)
+      validate_os_preconditions unless @wifi_interface
+      connected = status_connected?(deadline)
+      network_name = connected ? status_connected_network_name(deadline) : nil
+
+      {
+        connected:    connected,
+        network_name: network_name,
+      }
+    end
+
+    def status_wifi_on?(timeout_in_secs: nil)
+      deadline = status_deadline(timeout_in_secs)
+      validate_os_preconditions unless @wifi_interface
+
+      wifi_on_before_deadline?(deadline)
     end
 
     def connection_ready?(network_name)
@@ -145,6 +168,53 @@ module WifiWand
 
       ssid = ssid_line.strip.delete_prefix('SSID:').strip
       ssid.empty? ? nil : ssid
+    end
+
+    private def status_connected?(deadline)
+      return false unless wifi_on_before_deadline?(deadline)
+
+      interface = status_wifi_interface(deadline)
+      return false unless interface
+
+      output = run_command_using_args(
+        ['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'],
+        raise_on_error:  false,
+        timeout_in_secs: status_timeout_for(deadline)
+      ).stdout
+      output.split("\n").any? { |line| line.strip == interface }
+    end
+
+    private def wifi_on_before_deadline?(deadline)
+      output = run_command_using_args(
+        %w[nmcli radio wifi],
+        raise_on_error:  false,
+        timeout_in_secs: status_timeout_for(deadline)
+      ).stdout
+      output.match?(/enabled/)
+    end
+
+    private def status_connected_network_name(deadline)
+      interface = status_wifi_interface(deadline)
+      return nil unless interface
+
+      output = run_command_using_args(
+        ['iw', 'dev', interface, 'link'],
+        raise_on_error:  false,
+        timeout_in_secs: status_timeout_for(deadline)
+      ).stdout
+      return nil if output.strip.start_with?('Not connected')
+
+      ssid_line = output.split("\n").find { |line| line.strip.start_with?('SSID:') }
+      return nil unless ssid_line
+
+      ssid = ssid_line.strip.delete_prefix('SSID:').strip
+      ssid.empty? ? nil : ssid
+    end
+
+    private def status_wifi_interface(deadline)
+      return @wifi_interface if @wifi_interface
+
+      @wifi_interface = probe_wifi_interface(timeout_in_secs: status_timeout_for(deadline))
     end
 
     def _connect(network_name, password = nil)

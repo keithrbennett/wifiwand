@@ -23,13 +23,21 @@ module WifiWand
       @verbose_proc = verbose_proc
     end
 
-    def swift_and_corewlan_present?
+    def swift_and_corewlan_present?(timeout_in_secs: nil)
       return @swift_and_corewlan_present if defined?(@swift_and_corewlan_present)
 
-      @swift_and_corewlan_present = begin
-        result = run_command_using_args(['swift', '-e', 'import CoreWLAN'], raise_on_error: false)
+      timed_out = false
+      available = begin
+        result = run_command_using_args(
+          ['swift', '-e', 'import CoreWLAN'],
+          **swift_probe_options(timeout_in_secs)
+        )
         log_swift_probe_failure(result) if !result.success? && verbose?
         result.success?
+      rescue WifiWand::CommandTimeoutError => e
+        out_stream.puts "Swift/CoreWLAN check timed out: #{e.message}" if verbose?
+        timed_out = true
+        false
       rescue WifiWand::CommandNotFoundError
         log_swift_command_not_found if verbose?
         false
@@ -40,6 +48,8 @@ module WifiWand
         out_stream.puts "Unexpected error checking Swift/CoreWLAN: #{e.message}" if verbose?
         false
       end
+
+      timed_out ? false : @swift_and_corewlan_present = available
     end
 
     def run_swift_command(basename, *args)
@@ -62,6 +72,12 @@ module WifiWand
 
     private def run_command_using_args(*, **)
       @command_runner.call(*, **)
+    end
+
+    private def swift_probe_options(timeout_in_secs)
+      options = { raise_on_error: false }
+      options[:timeout_in_secs] = timeout_in_secs if timeout_in_secs
+      options
     end
 
     private def out_stream = @out_stream_proc.call

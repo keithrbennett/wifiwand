@@ -216,6 +216,42 @@ module WifiWand
       _connected_network_name
     end
 
+    def status_wifi_on?(timeout_in_secs: nil)
+      if timeout_in_secs
+        raise MethodNotImplementedError,
+          'Subclasses must implement bounded status_wifi_on?(timeout_in_secs:)'
+      end
+
+      wifi_on?
+    end
+
+    def status_network_identity(timeout_in_secs: nil)
+      if timeout_in_secs
+        raise MethodNotImplementedError,
+          'Subclasses must implement bounded status_network_identity(timeout_in_secs:)'
+      end
+
+      connected = connected?
+      network_name = connected ? connected_network_name : nil
+
+      {
+        connected:    connected,
+        network_name: network_name,
+      }
+    end
+
+    private def status_deadline(timeout_in_secs)
+      monotonic_now + timeout_in_secs if timeout_in_secs
+    end
+
+    private def status_timeout_for(deadline)
+      return nil unless deadline
+
+      [deadline - monotonic_now, 0].max
+    end
+
+    private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
     # Returns true when WiFi is on and the interface is associated with an SSID.
     # Returns false when WiFi is off or there is no active SSID association.
     def associated?

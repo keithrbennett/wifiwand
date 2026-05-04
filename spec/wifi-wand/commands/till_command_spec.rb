@@ -15,7 +15,7 @@ describe WifiWand::TillCommand do
   end
 
   it_behaves_like 'binds command context',
-    bound_attributes: { model: :mock_model, interactive_mode: -> { cli.interactive_mode }, cli: :cli }
+    bound_attributes: { model: :mock_model, interactive_mode: -> { cli.interactive_mode } }
 
   describe '#help_text' do
     it 'includes usage and states' do
@@ -68,6 +68,13 @@ describe WifiWand::TillCommand do
 
     it 'raises ConfigurationError when first argument is nil' do
       expect { command.call(nil) }
+        .to raise_error(WifiWand::ConfigurationError, /Missing <state> argument/)
+    end
+
+    it 'raises ConfigurationError when first argument is empty' do
+      expect(mock_model).not_to receive(:till)
+
+      expect { command.call('') }
         .to raise_error(WifiWand::ConfigurationError, /Missing <state> argument/)
     end
 

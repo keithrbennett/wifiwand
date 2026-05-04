@@ -8,17 +8,24 @@ require 'tmpdir'
 
 module WifiWand
   module MacOsHelperInstaller
-    module_function def helper_installed_and_valid?
-      MacOsHelperBundle.helper_bundle_valid?(MacOsHelperBundle.installed_bundle_path) &&
+    module_function def helper_installed_and_valid?(timeout_seconds: nil)
+      validation_options = {}
+      validation_options[:timeout_seconds] = timeout_seconds if timeout_seconds
+      MacOsHelperBundle.helper_bundle_valid?(
+        MacOsHelperBundle.installed_bundle_path,
+        **validation_options
+      ) &&
         MacOsHelperBundle.installed_bundle_current?
     end
 
-    module_function def ensure_helper_installed(out_stream: $stdout)
-      return MacOsHelperBundle.installed_bundle_path if helper_installed_and_valid?
+    module_function def ensure_helper_installed(out_stream: $stdout, timeout_seconds: nil)
+      if helper_installed_and_valid?(timeout_seconds: timeout_seconds)
+        return MacOsHelperBundle.installed_bundle_path
+      end
 
       install_helper_bundle(out_stream: out_stream)
 
-      unless helper_installed_and_valid?
+      unless helper_installed_and_valid?(timeout_seconds: timeout_seconds)
         raise 'Helper installation failed validation after installation.'
       end
 
@@ -58,12 +65,14 @@ module WifiWand
     module_function def install_manifest_path = File.join(MacOsHelperBundle.versioned_install_dir,
       MacOsHelperBundle::MANIFEST_FILENAME)
 
-    module_function def helper_bundle_valid?(bundle_path)
+    module_function def helper_bundle_valid?(bundle_path, timeout_seconds: nil)
       executable_path = File.join(bundle_path, 'Contents', 'MacOS', MacOsHelperBundle::EXECUTABLE_NAME)
       return false unless File.executable?(executable_path)
       return false unless File.exist?(File.join(bundle_path, 'Contents', 'Info.plist'))
 
-      helper_result = run_bounded_helper_command(executable_path, 'help')
+      validation_options = {}
+      validation_options[:timeout_seconds] = timeout_seconds if timeout_seconds
+      helper_result = run_bounded_helper_command(executable_path, 'help', **validation_options)
       return false unless helper_result
       return false unless helper_result[:status].success?
 

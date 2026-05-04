@@ -13,8 +13,6 @@ module WifiWand
 
     EXTRA_ALIASES = %w[x xit].freeze
 
-    binds :cli
-
     def aliases
       super + EXTRA_ALIASES
     end

@@ -111,10 +111,15 @@ module WifiWand
     require_relative 'mac_os_helper_installer'
     require_relative 'mac_os_helper_client'
 
-    module_function def helper_installed_and_valid? = MacOsHelperInstaller.helper_installed_and_valid?
+    module_function def helper_installed_and_valid?(timeout_seconds: nil)
+      MacOsHelperInstaller.helper_installed_and_valid?(**timeout_options(timeout_seconds))
+    end
 
-    module_function def ensure_helper_installed(out_stream: $stdout)
-      MacOsHelperInstaller.ensure_helper_installed(out_stream: out_stream)
+    module_function def ensure_helper_installed(out_stream: $stdout, timeout_seconds: nil)
+      MacOsHelperInstaller.ensure_helper_installed(
+        out_stream: out_stream,
+        **timeout_options(timeout_seconds)
+      )
     end
 
     module_function def install_helper_bundle(out_stream: $stdout, force: false)
@@ -125,8 +130,12 @@ module WifiWand
 
     module_function def install_manifest_path = MacOsHelperInstaller.install_manifest_path
 
-    module_function def helper_bundle_valid?(bundle_path)
-      MacOsHelperInstaller.helper_bundle_valid?(bundle_path)
+    module_function def helper_bundle_valid?(bundle_path, timeout_seconds: nil)
+      MacOsHelperInstaller.helper_bundle_valid?(bundle_path, **timeout_options(timeout_seconds))
+    end
+
+    module_function def timeout_options(timeout_seconds)
+      timeout_seconds ? { timeout_seconds: timeout_seconds } : {}
     end
 
     module_function def helper_help_output?(command_output)

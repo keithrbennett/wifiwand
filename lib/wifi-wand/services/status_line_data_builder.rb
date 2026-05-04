@@ -49,7 +49,8 @@ module WifiWand
 
     def call(progress_callback: nil)
       @cancelled = false
-      partial = initial_data
+      worker_start_time = monotonic_now
+      partial = initial_data(worker_start_time)
 
       progress_callback&.call(partial.dup)
 
@@ -60,7 +61,6 @@ module WifiWand
       end
 
       result_queue = Queue.new
-      worker_start_time = monotonic_now
       network_thread, connectivity_thread = build_status_threads(result_queue, worker_start_time)
       cached_results = {}
 
@@ -72,6 +72,8 @@ module WifiWand
       final_data = partial.dup
       progress_callback&.call(final_data)
       final_data
+    rescue WifiWand::CommandNotFoundError, WifiWand::MethodNotImplementedError
+      raise
     rescue *expected_network_errors, WifiWand::Error => e
       out_stream.puts "Warning: status_line_data failed: #{e.class}: #{e.message}" if verbose?
       progress_callback&.call(nil)
@@ -82,14 +84,16 @@ module WifiWand
 
     private def build_status_threads(result_queue, worker_start_time)
       # Audit note for cleanup risk:
-      # - network_identity may block inside model.connected? or model.connected_network_name.
-      #   On macOS that can reach helper subprocess I/O and system_profiler reads; on Ubuntu it
-      #   can wait on external commands such as iw.
+      # - network_identity may block inside model.status_network_identity. On macOS
+      #   that can reach helper subprocess I/O and system_profiler reads; on Ubuntu
+      #   it can wait on external commands such as iw.
       # - connectivity_data may block inside model.internet_tcp_connectivity?,
       #   model.dns_working?, or model.captive_portal_state. Those probes already run in helper
       #   subprocesses, so this worker mostly waits on bounded pipe reads and helper deadlines.
       [
-        spawn_worker { publish_worker_result(result_queue, :network) { network_identity } },
+        spawn_worker do
+          publish_worker_result(result_queue, :network) { network_identity(worker_start_time) }
+        end,
         spawn_worker do
           publish_worker_result(result_queue, :connectivity) { connectivity_data(worker_start_time) }
         end,
@@ -207,9 +211,11 @@ module WifiWand
 
     def verbose? = runtime_config.verbose
 
-    private def initial_data
+    private def initial_data(worker_start_time)
+      deadline = worker_start_time + worker_result_timeout_seconds_for(:network)
+      wifi_on = model.status_wifi_on?(timeout_in_secs: remaining_worker_budget(deadline))
       {
-        wifi_on:                       model.wifi_on?,
+        wifi_on:                       wifi_on,
         dns_working:                   nil,
         internet_state:                ConnectivityStates::INTERNET_PENDING,
         internet_check_complete:       false,
@@ -232,41 +238,23 @@ module WifiWand
       }
     end
 
-    private def network_identity
+    private def network_identity(worker_start_time)
+      deadline = worker_start_time + worker_result_timeout_seconds_for(:network)
       return cancelled_worker_result(:network) if cancelled?
 
-      connected = connected?
-      return cancelled_worker_result(:network) if cancelled?
-
-      network_name = connected ? network_name_for_connected_state : nil
-
-      {
-        connected:    connected,
-        network_name: network_name,
-      }
+      model.status_network_identity(
+        timeout_in_secs: remaining_worker_budget(deadline)
+      )
+    rescue WifiWand::CommandTimeoutError
+      fallback_worker_result(:network)
+    rescue WifiWand::CommandNotFoundError, WifiWand::MethodNotImplementedError
+      raise
     rescue WifiWand::Error, *expected_network_errors => e
       out_stream.puts "Warning: network status lookup failed: #{e.class}: #{e.message}" if verbose?
       {
         connected:    false,
         network_name: nil,
       }
-    end
-
-    private def network_name_for_connected_state
-      network_name = model.connected_network_name
-
-      if network_name.to_s.empty?
-        nil
-      else
-        network_name
-      end
-    rescue WifiWand::MacOsRedactionError => e
-      out_stream.puts "Warning: network SSID lookup failed: #{e.class}: #{e.message}" if verbose?
-      nil
-    end
-
-    private def connected?
-      model.connected?
     end
 
     private def connectivity_data(worker_start_time)
@@ -289,7 +277,7 @@ module WifiWand
       return fallback_worker_result(:connectivity) if dns_result[:timed_out]
       return data_when_internet_unreachable(dns_working: dns_result[:success]) unless dns_result[:success]
 
-      portal_state = captive_portal_state(timeout_in_secs: remaining_connectivity_budget(deadline))
+      portal_state = captive_portal_state(timeout_in_secs: remaining_worker_budget(deadline))
       return cancelled_worker_result(:connectivity) if cancelled?
 
       {
@@ -314,7 +302,7 @@ module WifiWand
 
     private def tcp_connectivity_result(deadline)
       normalize_probe_result(model.internet_tcp_connectivity?(
-        timeout_in_secs: remaining_connectivity_budget(deadline),
+        timeout_in_secs: remaining_worker_budget(deadline),
         return_details:  true
       ))
     rescue *expected_network_errors, WifiWand::Error
@@ -323,7 +311,7 @@ module WifiWand
 
     private def dns_working_result(deadline)
       normalize_probe_result(model.dns_working?(
-        timeout_in_secs: remaining_connectivity_budget(deadline),
+        timeout_in_secs: remaining_worker_budget(deadline),
         return_details:  true
       ))
     rescue *expected_network_errors, WifiWand::Error
@@ -336,7 +324,7 @@ module WifiWand
       ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
     end
 
-    private def remaining_connectivity_budget(deadline)
+    private def remaining_worker_budget(deadline)
       [deadline - monotonic_now, 0].max
     end
 

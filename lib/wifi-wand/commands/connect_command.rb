@@ -11,10 +11,10 @@ module WifiWand
       usage:        'Usage: wifi-wand connect <network> [password]'
     )
 
-    binds :cli, :model, :interactive_mode, output: :out_stream
+    binds :model, :interactive_mode, output: :out_stream
 
     def call(network = nil, password = nil)
-      raise_missing_argument!('<network>') if network.nil?
+      raise_missing_argument!('<network>') if missing_argument?(network)
 
       model.connect(network, password)
       maybe_print_saved_password_message(network)

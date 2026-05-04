@@ -41,6 +41,15 @@ RSpec.describe WifiWand::BaseModel do
     end
   end
 
+  describe '#status_network_identity' do
+    let(:model) { described_class.new(model_options) }
+
+    it 'raises for bounded status lookup when a subclass has not implemented it' do
+      expect { model.status_network_identity(timeout_in_secs: 0.5) }
+        .to raise_error(WifiWand::MethodNotImplementedError)
+    end
+  end
+
   describe '.inherited' do
     it 'verifies required subclass methods after subclass definition' do
       allow(described_class).to receive(:verify_required_methods_implemented).and_call_original
