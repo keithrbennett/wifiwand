@@ -410,6 +410,31 @@ describe WifiWand::EventLogger do
       )
     end
 
+    it 'does not count macOS SSID redaction as a state fetch failure' do
+      logger = described_class.new(mock_model, out_stream: out_stream)
+      redaction_error = WifiWand::MacOsRedactionError.new(
+        operation_description: 'current WiFi network queries'
+      )
+
+      allow(mock_model).to receive_messages(wifi_on?: true, connected?: true)
+      allow(mock_model).to receive(:connected_network_name).and_raise(redaction_error)
+      allow(mock_model).to receive(:internet_connectivity_state)
+        .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
+
+      2.times do
+        expect(logger.send(:fetch_current_state)).to eq(
+          wifi_on:        true,
+          connected:      true,
+          network_name:   WifiWand::NetworkIdentity::SSID_UNAVAILABLE_LABEL,
+          internet_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE
+        )
+      end
+
+      expect(out_stream.string).not_to include(
+        'WARNING: Status polling is encountering repeated lookup failures.'
+      )
+    end
+
     it 'preserves an indeterminate startup internet state' do
       logger = described_class.new(mock_model, out_stream: out_stream)
 
@@ -476,7 +501,15 @@ describe WifiWand::EventLogger do
     it 'returns the degraded placeholder when connected but the SSID is unavailable' do
       allow(mock_model).to receive(:connected_network_name).and_return(nil)
 
-      expect(logger.send(:current_network_name, true)).to eq('[SSID unavailable]')
+      expect(logger.send(:current_network_name, true)).to eq(WifiWand::NetworkIdentity::SSID_UNAVAILABLE_LABEL)
+    end
+
+    it 'returns the degraded placeholder when macOS redacts the SSID' do
+      allow(mock_model).to receive(:connected_network_name).and_raise(
+        WifiWand::MacOsRedactionError.new(operation_description: 'current WiFi network queries')
+      )
+
+      expect(logger.send(:current_network_name, true)).to eq(WifiWand::NetworkIdentity::SSID_UNAVAILABLE_LABEL)
     end
 
     it 'returns nil when disconnected and the SSID is unavailable' do

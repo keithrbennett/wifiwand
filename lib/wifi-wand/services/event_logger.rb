@@ -3,6 +3,7 @@
 require 'json'
 require 'time'
 require_relative '../connectivity_states'
+require_relative '../network_identity'
 require_relative '../timing_constants'
 require_relative '../runtime_config'
 require_relative 'log_file_manager'
@@ -31,7 +32,7 @@ module WifiWand
   # In other words, `stop` is intended for coordinated shutdown from another
   # thread, while `Interrupt` covers interactive termination from the console.
   class EventLogger
-    SSID_UNAVAILABLE_LABEL = '[SSID unavailable]'
+    SSID_UNAVAILABLE_LABEL = NetworkIdentity::SSID_UNAVAILABLE_LABEL
 
     EVENT_TYPES = {
       wifi_on:      'WiFi ON',
@@ -263,6 +264,8 @@ module WifiWand
       else
         (connected ? SSID_UNAVAILABLE_LABEL : nil)
       end
+    rescue WifiWand::MacOsRedactionError
+      connected ? SSID_UNAVAILABLE_LABEL : nil
     end
 
     private def network_state_label(state)
@@ -292,7 +295,7 @@ module WifiWand
     end
 
     private def named_network?(network_name)
-      !network_name.nil? && network_name != SSID_UNAVAILABLE_LABEL
+      NetworkIdentity.named?(network_name)
     end
 
     private def current_connected_state(wifi_on, fetch_failures)

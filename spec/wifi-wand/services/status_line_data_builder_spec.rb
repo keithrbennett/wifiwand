@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
+require_relative '../../../lib/wifi-wand/command_line_interface/output_formatter'
+require_relative '../../../lib/wifi-wand/network_identity'
 require_relative '../../../lib/wifi-wand/services/status_line_data_builder'
 
 class StatusLineDataBuilderSpecExpectedError < StandardError; end
@@ -212,13 +214,81 @@ describe WifiWand::StatusLineDataBuilder do
       expect(out_stream.string).to include('Warning: status_line_data failed: WifiWand::Error: boom')
     end
 
-    it 'reports connected with SSID unavailable when connected? is true but the SSID is nil' do
+    it 'reports connected with a nil SSID when connected? is true but the SSID is nil' do
       allow(model).to receive_messages(connected?: true, connected_network_name: nil)
 
       result = builder.call
 
       expect(result[:connected]).to be(true)
-      expect(result[:network_name]).to eq('[SSID unavailable]')
+      expect(result[:network_name]).to be_nil
+    end
+
+    it 'reports connected with a nil SSID when macOS redacts the SSID lookup' do
+      redaction_error = WifiWand::MacOsRedactionError.new(
+        operation_description: 'current WiFi network queries'
+      )
+      allow(model).to receive(:connected?).and_return(true)
+      allow(model).to receive(:connected_network_name).and_raise(redaction_error)
+
+      result = builder.call
+
+      expect(result[:connected]).to be(true)
+      expect(result[:network_name]).to be_nil
+    end
+
+    it 'reports disconnected when a non-redaction WiFi error is raised during SSID lookup' do
+      allow(model).to receive(:connected?).and_return(true)
+      allow(model).to receive(:connected_network_name).and_raise(WifiWand::Error, 'lookup failed')
+
+      result = builder.call
+
+      expect(result[:connected]).to be(false)
+      expect(result[:network_name]).to be_nil
+    end
+
+    it 'logs macOS redaction remediation in verbose mode without marking the network disconnected' do
+      out_stream = StringIO.new
+      verbose_builder = described_class.new(
+        model,
+        verbose:    true,
+        out_stream: out_stream
+      )
+      allow(model).to receive(:connected?).and_return(true)
+      allow(model).to receive(:connected_network_name).and_raise(
+        WifiWand::MacOsRedactionError.new(operation_description: 'current WiFi network queries')
+      )
+
+      result = verbose_builder.call
+
+      expect(result[:connected]).to be(true)
+      expect(result[:network_name]).to be_nil
+      expect(out_stream.string).to include('Warning: network SSID lookup failed: WifiWand::MacOsRedactionError')
+      expect(out_stream.string).to include('wifi-wand-macos-setup')
+    end
+
+    it 'renders a redacted associated network as a yellow unavailable placeholder' do
+      formatter = Class.new do
+        include WifiWand::CommandLineInterface::OutputFormatter
+
+        attr_reader :out_stream
+
+        def initialize
+          @out_stream = StringIO.new
+        end
+      end.new
+      allow(formatter.out_stream).to receive(:tty?).and_return(true)
+      allow(model).to receive(:connected?).and_return(true)
+      allow(model).to receive(:connected_network_name).and_raise(
+        WifiWand::MacOsRedactionError.new(operation_description: 'current WiFi network queries')
+      )
+
+      result = builder.call
+      rendered_status = formatter.status_line(result)
+
+      unavailable_label = WifiWand::NetworkIdentity::SSID_UNAVAILABLE_LABEL
+
+      expect(rendered_status).to include("\e[33m#{unavailable_label}\e[0m")
+      expect(rendered_status).not_to include("\e[36m#{unavailable_label}\e[0m")
     end
 
     it 'reports disconnected when connected? is false and the SSID is nil' do

@@ -5,7 +5,6 @@ require_relative '../runtime_config'
 
 module WifiWand
   class StatusLineDataBuilder
-    SSID_UNAVAILABLE_LABEL = '[SSID unavailable]'
     DEFAULT_NETWORK_WORKER_RESULT_TIMEOUT_SECONDS = 2
     DEFAULT_CONNECTIVITY_WORKER_RESULT_TIMEOUT_SECONDS = 2
     DEFAULT_WORKER_RESULT_POLL_INTERVAL_SECONDS = 0.01
@@ -255,9 +254,15 @@ module WifiWand
 
     private def network_name_for_connected_state
       network_name = model.connected_network_name
-      return network_name unless network_name.nil? || network_name.to_s.empty?
 
-      SSID_UNAVAILABLE_LABEL
+      if network_name.to_s.empty?
+        nil
+      else
+        network_name
+      end
+    rescue WifiWand::MacOsRedactionError => e
+      out_stream.puts "Warning: network SSID lookup failed: #{e.class}: #{e.message}" if verbose?
+      nil
     end
 
     private def connected?

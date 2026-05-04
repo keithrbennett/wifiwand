@@ -2,6 +2,7 @@
 
 require 'awesome_print'
 require_relative '../connectivity_states'
+require_relative '../network_identity'
 
 module WifiWand
   class CommandLineInterface
@@ -89,7 +90,7 @@ module WifiWand
           elsif status_data.key?(:connected) && status_data[:connected].nil?
             ['UNKNOWN', :yellow]
           elsif status_data[:connected] == true && (network_name.nil? || network_name.to_s.empty?)
-            ['[SSID unavailable]', :yellow]
+            [NetworkIdentity::SSID_UNAVAILABLE_LABEL, :yellow]
           elsif network_name.nil? || network_name.to_s.empty?
             ['[none]', :yellow]
           else
