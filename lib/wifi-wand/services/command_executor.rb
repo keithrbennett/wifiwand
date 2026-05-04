@@ -7,6 +7,7 @@ require_relative '../runtime_config'
 module WifiWand
   class CommandExecutor
     COMMAND_KILL_WAIT_SECS = 1.0
+    READER_THREAD_JOIN_WAIT_SECS = 0.1
     private attr_reader :runtime_config
 
     def initialize(verbose: false, output: $stdout, runtime_config: nil)
@@ -138,19 +139,18 @@ module WifiWand
           raise(CommandTimeoutError.new(command: command_display, timeout_in_secs: timeout_in_secs))
         end
 
-        # Wait for both threads to finish (i.e., both streams are fully read)
-        # before asking for the exit status. This guarantees all output has been
-        # collected before we return the result.
-        threads.each(&:join)
+        # Give both reader threads a bounded chance to finish (i.e., both
+        # streams are fully read) before asking for the exit status. Forceful
+        # cleanup happens in the ensure block after the streams are closed.
+        wait_for_reader_threads(threads)
 
         # wait_thr.value blocks until the child process exits and returns its
         # Process::Status. Calling it after joining the reader threads means the
         # process should already be done by this point in most cases.
         status = wait_thr.value
       ensure
-        stdout.close if stdout.respond_to?(:close) && (!stdout.respond_to?(:closed?) || !stdout.closed?)
-        stderr.close if stderr.respond_to?(:close) && (!stderr.respond_to?(:closed?) || !stderr.closed?)
-        threads&.each(&:join)
+        close_command_streams(stdout, stderr)
+        cleanup_reader_threads(threads)
       end
     rescue Errno::ENOENT => e
       missing_command = missing_command_name(command_array, e)
@@ -213,6 +213,43 @@ module WifiWand
     private def command_attempt_as_string(command) = "\n\n#{banner_line}\nCommand: #{command}\n"
 
     private def command_result_as_string(output) = "#{output}#{banner_line}\n\n"
+
+    private def wait_for_reader_threads(threads)
+      threads&.each do |thread|
+        next unless thread.alive?
+        next if thread.join(READER_THREAD_JOIN_WAIT_SECS)
+
+        if verbose?
+          output.puts 'Warning: command output reader thread did not finish before cleanup'
+        end
+      end
+    end
+
+    private def close_command_streams(*streams)
+      streams.compact.each do |stream|
+        next unless stream.respond_to?(:close)
+        next if stream.respond_to?(:closed?) && stream.closed?
+
+        stream.close
+      rescue IOError
+        nil
+      end
+    end
+
+    private def cleanup_reader_threads(threads)
+      threads&.each do |thread|
+        next unless thread.alive?
+        next if thread.join(READER_THREAD_JOIN_WAIT_SECS)
+
+        output.puts 'Warning: forcing command output reader thread termination after timeout' if verbose?
+        thread.kill
+        next if thread.join(READER_THREAD_JOIN_WAIT_SECS)
+
+        if verbose?
+          output.puts 'Warning: command output reader thread did not terminate after forceful cleanup'
+        end
+      end
+    end
 
     # Timed commands run in their own process group so timeout cleanup can
     # terminate the full process tree rather than only the immediate child.

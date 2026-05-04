@@ -42,6 +42,41 @@ describe WifiWand::CommandExecutor do
     end
   end
 
+  def inherited_pipe_command(pid_file)
+    [
+      RbConfig.ruby,
+      '-e',
+      <<~RUBY,
+        child_pid = Process.spawn(ARGV[1], '-e', 'sleep 30')
+        File.write(ARGV[0], child_pid.to_s)
+        puts 'parent done'
+      RUBY
+      pid_file.path,
+      RbConfig.ruby,
+    ]
+  end
+
+  def terminate_pid_from_file(pid_file)
+    return if File.empty?(pid_file.path)
+
+    pid = File.read(pid_file.path).to_i
+    return unless process_alive?(pid)
+
+    Process.kill('KILL', pid)
+    wait_for_process_exit(pid)
+  end
+
+  def run_command_in_thread(executor, command, deadline: 1)
+    runner = Thread.new { executor.run_command_using_args(command, raise_on_error: false) }
+    runner.report_on_exception = false
+    joined = runner.join(deadline)
+    raise "Command did not finish within #{deadline} second(s)" unless joined
+
+    runner.value
+  ensure
+    runner&.kill if runner&.alive?
+  end
+
   describe '#run_command_using_args' do
     context 'with verbose mode disabled' do
       let(:executor) { described_class.new(verbose: false) }
@@ -132,6 +167,19 @@ describe WifiWand::CommandExecutor do
         end
       end
 
+      it 'does not hang when a descendant keeps inherited output pipes open' do
+        Tempfile.create('wifiwand-command-inherited-pipes') do |pid_file|
+          pid_file.close
+
+          result = run_command_in_thread(executor, inherited_pipe_command(pid_file))
+
+          expect(result.stdout).to include('parent done')
+          expect(result.exitstatus).to eq(0)
+        ensure
+          terminate_pid_from_file(pid_file)
+        end
+      end
+
       it 'raises CommandNotFoundError when an array command executable is missing' do
         expect do
           executor.run_command_using_args(['nonexistent_command_12345'])
@@ -190,6 +238,41 @@ describe WifiWand::CommandExecutor do
         expect do
           executor.run_command_using_shell('echo "test"')
         end.to output(/Command:.*echo "test".*Duration:.*seconds/m).to_stdout
+      end
+
+      it 'warns when forceful reader cleanup does not finish promptly' do
+        output = StringIO.new
+        verbose_executor = described_class.new(verbose: true, output: output)
+        thread = instance_double(Thread, alive?: true)
+
+        allow(thread).to receive(:join).with(described_class::READER_THREAD_JOIN_WAIT_SECS).and_return(nil)
+        allow(thread).to receive(:kill)
+
+        verbose_executor.send(:cleanup_reader_threads, [thread])
+
+        expect(output.string).to include(
+          'Warning: forcing command output reader thread termination after timeout'
+        )
+        expect(output.string).to include(
+          'Warning: command output reader thread did not terminate after forceful cleanup'
+        )
+      end
+
+      it 'warns when cleanup recovers an inherited-pipe reader' do
+        Tempfile.create('wifiwand-command-inherited-pipes-verbose') do |pid_file|
+          output = StringIO.new
+          verbose_executor = described_class.new(verbose: true, output: output)
+          pid_file.close
+
+          result = run_command_in_thread(verbose_executor, inherited_pipe_command(pid_file))
+
+          expect(result.stdout).to include('parent done')
+          expect(output.string).to include(
+            'Warning: command output reader thread did not finish before cleanup'
+          )
+        ensure
+          terminate_pid_from_file(pid_file)
+        end
       end
     end
   end
