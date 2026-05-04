@@ -107,6 +107,9 @@ module WifiWand
         timestamp = Time.now.utc.iso8601
         log_message("[#{timestamp}] Event logging stopped")
         stop
+      rescue => e
+        log_termination_message(e)
+        raise
       ensure
         cleanup
       end
@@ -331,6 +334,14 @@ module WifiWand
     end
 
     private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+
+    private def log_termination_message(error)
+      timestamp = Time.now.utc.iso8601
+      log_message("[#{timestamp}] Event logging terminated: #{error.class}: #{error.message}")
+    rescue WifiWand::LogWriteError
+      # Preserve the polling failure as the primary exception when the best-effort
+      # termination diagnostic cannot be written.
+    end
 
     private def start_running
       @wait_mutex.synchronize do

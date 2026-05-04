@@ -917,6 +917,51 @@ describe WifiWand::EventLogger do
       expect(out_stream.string).to match(/Event logging stopped/)
     end
 
+    it 'logs escaped polling errors before re-raising them' do
+      logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
+      allow(mock_model).to receive(:wifi_on?).and_raise(RuntimeError, 'unexpected polling failure')
+
+      rescued_error = nil
+      begin
+        logger.run
+      rescue RuntimeError => e
+        rescued_error = e
+      end
+
+      expect(rescued_error).to be_a(RuntimeError)
+      expect(rescued_error.message).to eq('unexpected polling failure')
+      expect(out_stream.string).to match(
+        /#{ISO8601_TIMESTAMP_PATTERN} Event logging terminated: RuntimeError: unexpected polling failure/
+      )
+    end
+
+    it 'preserves escaped polling errors when file-only termination logging fails' do
+      logger = described_class.new(
+        mock_model,
+        out_stream:       nil,
+        interval:         0,
+        log_file_manager: mock_log_file_manager
+      )
+      allow(mock_model).to receive(:wifi_on?).and_raise(RuntimeError, 'unexpected polling failure')
+      write_count = 0
+      allow(mock_log_file_manager).to receive(:write) do
+        write_count += 1
+        if write_count > 1
+          raise WifiWand::LogWriteError, 'Failed to write to log file /tmp/test.log: disk full'
+        end
+      end
+
+      rescued_error = nil
+      begin
+        logger.run
+      rescue RuntimeError => e
+        rescued_error = e
+      end
+
+      expect(rescued_error).to be_a(RuntimeError)
+      expect(rescued_error.message).to eq('unexpected polling failure')
+    end
+
     it 'calls detect_and_emit_events each iteration after initial state' do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
       call_count = 0
