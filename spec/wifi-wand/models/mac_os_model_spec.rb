@@ -577,6 +577,7 @@ module WifiWand
       describe '#status_network_identity' do
         let(:helper_double) { instance_double(WifiWand::MacOsHelperClient) }
         let(:status_timeout) { be_between(0, 0.5).exclusive }
+        let(:swift_runtime) { instance_double(WifiWand::MacOsSwiftRuntime) }
 
         before do
           model.instance_variable_set(:@mac_helper_client, nil)
@@ -584,18 +585,26 @@ module WifiWand
           allow(WifiWand::MacOsHelperClient).to receive(:new).and_return(helper_double)
         end
 
-        it 'validates OS preconditions before caching a probed status interface' do
+        it 'initializes a missing interface without probing the Swift mutation runtime' do
           model.instance_variable_set(:@wifi_interface, nil)
-          error = WifiWand::CommandNotFoundError.new('swift')
+          allow(model).to receive(:swift_runtime).and_return(swift_runtime)
 
-          expect(model).to receive(:validate_os_preconditions)
-            .with(timeout_in_secs: be_between(0, 0.5).exclusive)
-            .and_raise(error)
-          expect(model).not_to receive(:probe_wifi_interface)
+          expect(swift_runtime).not_to receive(:swift_and_corewlan_present?)
+          expect(model).to receive(:probe_wifi_interface)
+            .with(timeout_in_secs: status_timeout)
+            .and_return('en0')
+          expect(model).to receive(:run_command_using_args)
+            .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+          expect(helper_double).to receive(:connected_network_name)
+            .with(timeout_seconds: status_timeout)
+            .and_return(WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: 'HelperSSID'))
 
-          expect { model.status_network_identity(timeout_in_secs: 0.5) }
-            .to raise_error(WifiWand::CommandNotFoundError, /swift/)
-          expect(model.instance_variable_get(:@wifi_interface)).to be_nil
+          expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
+            connected:    true,
+            network_name: 'HelperSSID'
+          )
+          expect(model.instance_variable_get(:@wifi_interface)).to eq('en0')
         end
 
         it 'returns the helper SSID and passes the status budget into the helper lookup' do
@@ -701,6 +710,43 @@ module WifiWand
             connected:    false,
             network_name: nil
           )
+        end
+      end
+
+      describe '#status_wifi_on?' do
+        let(:status_timeout) { be_between(0, 0.5).exclusive }
+        let(:read_path_timeout) { be_between(0.45, 0.5).exclusive }
+        let(:swift_runtime) { instance_double(WifiWand::MacOsSwiftRuntime) }
+
+        it 'initializes a missing interface without probing the Swift mutation runtime' do
+          model.instance_variable_set(:@wifi_interface, nil)
+          allow(model).to receive(:swift_runtime).and_return(swift_runtime)
+
+          expect(swift_runtime).not_to receive(:swift_and_corewlan_present?)
+          expect(model).to receive(:probe_wifi_interface)
+            .with(timeout_in_secs: status_timeout)
+            .and_return('en0')
+          expect(model).to receive(:run_command_using_args)
+            .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+
+          expect(model.status_wifi_on?(timeout_in_secs: 0.5)).to be(true)
+          expect(model.instance_variable_get(:@wifi_interface)).to eq('en0')
+        end
+
+        it 'preserves the bounded status deadline for the airport power lookup' do
+          model.instance_variable_set(:@wifi_interface, nil)
+          allow(model).to receive(:swift_runtime).and_return(swift_runtime)
+
+          expect(swift_runtime).not_to receive(:swift_and_corewlan_present?)
+          expect(model).to receive(:probe_wifi_interface)
+            .with(timeout_in_secs: read_path_timeout)
+            .and_return('en0')
+          expect(model).to receive(:run_command_using_args)
+            .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: read_path_timeout)
+            .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+
+          expect(model.status_wifi_on?(timeout_in_secs: 0.5)).to be(true)
         end
       end
 
@@ -1241,60 +1287,14 @@ module WifiWand
       end
 
       describe '#validate_os_preconditions' do
-        it 'returns :ok and emits no warning when Swift/CoreWLAN is available' do
+        it 'returns :ok without warming the Swift mutation runtime' do
           verbose_model = create_mac_os_test_model(verbose: true, out_stream: StringIO.new)
-          expect(verbose_model).to receive(:run_command_using_args).with(
-            ['swift', '-e', 'import CoreWLAN'],
-            raise_on_error: false
-          ).and_return(command_result(stdout: ''))
+          swift_runtime = instance_double(WifiWand::MacOsSwiftRuntime)
+          allow(verbose_model).to receive(:swift_runtime).and_return(swift_runtime)
 
+          expect(swift_runtime).not_to receive(:swift_and_corewlan_present?)
           expect(verbose_model.validate_os_preconditions).to eq(:ok)
           expect(verbose_model.out_stream.string).to eq('')
-        end
-
-        it 'returns :ok and emits the runtime warning when Swift is missing' do
-          verbose_model = create_mac_os_test_model(verbose: true, out_stream: StringIO.new)
-          expect(verbose_model).to receive(:run_command_using_args).with(
-            ['swift', '-e', 'import CoreWLAN'],
-            raise_on_error: false
-          ).and_raise(WifiWand::CommandNotFoundError.new('swift'))
-
-          expect(verbose_model.validate_os_preconditions).to eq(:ok)
-          expect(verbose_model.out_stream.string).to include(
-            'Swift command not found. Install Xcode Command Line Tools.'
-          )
-        end
-
-        it 'returns :ok and emits the runtime warning when CoreWLAN is unavailable' do
-          verbose_model = create_mac_os_test_model(verbose: true, out_stream: StringIO.new)
-          expect(verbose_model).to receive(:run_command_using_args).with(
-            ['swift', '-e', 'import CoreWLAN'],
-            raise_on_error: false
-          ).and_return(command_result(stderr: 'missing framework', exitstatus: 1, command: 'swift'))
-
-          expect(verbose_model.validate_os_preconditions).to eq(:ok)
-          expect(verbose_model.out_stream.string).to include('CoreWLAN framework not available (exit code 1)')
-        end
-
-        it 'returns :ok and emits no warning when verbose is off' do
-          quiet_model = create_mac_os_test_model(verbose: false, out_stream: StringIO.new)
-          expect(quiet_model).to receive(:run_command_using_args).with(
-            ['swift', '-e', 'import CoreWLAN'],
-            raise_on_error: false
-          ).and_raise(WifiWand::CommandNotFoundError.new('swift'))
-
-          expect(quiet_model.validate_os_preconditions).to eq(:ok)
-          expect(quiet_model.out_stream.string).to eq('')
-        end
-
-        it 'delegates the Swift/CoreWLAN probe to the runtime' do
-          verbose_model = create_mac_os_test_model(verbose: true, out_stream: StringIO.new)
-          expect(verbose_model).to receive(:run_command_using_args).with(
-            ['swift', '-e', 'import CoreWLAN'],
-            raise_on_error: false
-          ).and_return(command_result(stdout: ''))
-
-          expect(verbose_model.validate_os_preconditions).to eq(:ok)
         end
       end
 

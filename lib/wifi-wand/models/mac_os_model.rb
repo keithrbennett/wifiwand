@@ -324,7 +324,6 @@ module WifiWand
 
     def status_network_identity(timeout_in_secs: nil)
       deadline = status_deadline(timeout_in_secs)
-      validate_os_preconditions(timeout_in_secs: status_timeout_for(deadline)) unless @wifi_interface
 
       with_airport_data_cache_scope do
         return { connected: false, network_name: nil } unless wifi_on_before_deadline?(deadline)
@@ -351,7 +350,6 @@ module WifiWand
 
     def status_wifi_on?(timeout_in_secs: nil)
       deadline = status_deadline(timeout_in_secs)
-      validate_os_preconditions(timeout_in_secs: status_timeout_for(deadline)) unless @wifi_interface
 
       wifi_on_before_deadline?(deadline)
     end
@@ -603,11 +601,9 @@ module WifiWand
     end
 
     def validate_os_preconditions(timeout_in_secs: nil)
-      # All core commands are built-in. Eagerly warm the direct Swift-source
-      # runtime probe here so the runtime owns both the cached result and any
-      # targeted verbose diagnostics before connect/disconnect runs.
-      swift_runtime.swift_and_corewlan_present?(timeout_in_secs: timeout_in_secs)
-
+      # All core read/status commands are built into macOS. The Swift/CoreWLAN
+      # source runtime is mutation-specific and is probed lazily by the
+      # connect/disconnect transport.
       :ok
     end
 
