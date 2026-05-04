@@ -54,13 +54,13 @@ module WifiWand
     private def validate_presence!(options)
       return unless options.empty? || options[0].nil?
 
-      raise WifiWand::ConfigurationError, <<~MSG.chomp
-        Missing target status argument.
-        Usage: till <state> [timeout_secs] [interval_secs]
-        States: #{STATES.join(', ')}
-        Examples: 'till wifi_off 20' or 'till internet_on 30 0.5'
-        #{cli.help_hint}
-      MSG
+      raise_missing_argument!(
+        '<state>',
+        details: [
+          "States: #{STATES.join(', ')}",
+          "Examples: 'till wifi_off 20' or 'till internet_on 30 0.5'",
+        ]
+      )
     end
 
     private def parse_timeout(raw_value)

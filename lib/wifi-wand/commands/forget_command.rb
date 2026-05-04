@@ -11,9 +11,11 @@ module WifiWand
       usage:        'Usage: wifi-wand forget <name1> [name2 ...]'
     )
 
-    binds :model, output_support: :output_support
+    binds :cli, :model, output_support: :output_support
 
     def call(*options)
+      raise_missing_argument!('<name1>') if options.empty? || options[0].nil?
+
       removed_networks = model.remove_preferred_networks(*options)
       output_support.handle_output(removed_networks, -> { "Removed networks: #{removed_networks.inspect}" })
     end

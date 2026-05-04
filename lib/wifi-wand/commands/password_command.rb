@@ -11,9 +11,11 @@ module WifiWand
       usage:        'Usage: wifi-wand password <network-name>'
     )
 
-    binds :model, output_support: :output_support
+    binds :cli, :model, output_support: :output_support
 
-    def call(network)
+    def call(network = nil)
+      raise_missing_argument!('<network-name>') if network.nil?
+
       password = model.preferred_network_password(network)
       human_readable_string_producer = -> do
         if password

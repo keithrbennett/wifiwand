@@ -7,11 +7,16 @@ describe WifiWand::PasswordCommand do
   let(:mock_model) { double('Model') }
   let(:output_support) { double('output_support') }
   let(:cli) do
-    double('cli', model: mock_model, output_support: output_support)
+    double(
+      'cli',
+      model:          mock_model,
+      output_support: output_support,
+      help_hint:      "Use 'wifi-wand help' or 'wifi-wand -h' for help."
+    )
   end
 
   it_behaves_like 'binds command context',
-    bound_attributes: { model: :mock_model, output_support: :output_support }
+    bound_attributes: { cli: :cli, model: :mock_model, output_support: :output_support }
 
   it_behaves_like 'has default command help text',
     usage:       'Usage: wifi-wand password <network-name>',
@@ -30,6 +35,16 @@ describe WifiWand::PasswordCommand do
       end
 
       command.call('TestNetwork')
+    end
+
+    it 'raises a usage-oriented error when the network argument is missing' do
+      expect(mock_model).not_to receive(:preferred_network_password)
+
+      expect { command.call }.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('Missing <network-name> argument.')
+        expect(error.message).to include('Usage: wifi-wand password <network-name>')
+        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      }
     end
 
     it 'routes the no-password message through handle_output' do

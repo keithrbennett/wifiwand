@@ -53,12 +53,22 @@ describe WifiWand::TillCommand do
     end
 
     it 'raises ConfigurationError when no arguments are provided' do
-      expect { command.call }.to raise_error(WifiWand::ConfigurationError, /Missing target status argument/)
+      expect(mock_model).not_to receive(:till)
+
+      expect { command.call }.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('Missing <state> argument.')
+        expect(error.message).to include('Usage: wifi-wand till <state> [timeout_secs] [interval_secs]')
+        expect(error.message).to include(
+          'States: wifi_on, wifi_off, associated, disassociated, internet_on, internet_off'
+        )
+        expect(error.message).to include("Examples: 'till wifi_off 20' or 'till internet_on 30 0.5'")
+        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      }
     end
 
     it 'raises ConfigurationError when first argument is nil' do
       expect { command.call(nil) }
-        .to raise_error(WifiWand::ConfigurationError, /Missing target status argument/)
+        .to raise_error(WifiWand::ConfigurationError, /Missing <state> argument/)
     end
 
     it 'raises ConfigurationError when timeout is not numeric' do

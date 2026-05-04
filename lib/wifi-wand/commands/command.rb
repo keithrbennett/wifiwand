@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative '../errors'
+
 module WifiWand
   class CommandMetadata
     attr_reader :short_string, :long_string, :description, :usage
@@ -118,6 +120,17 @@ module WifiWand
       self.class.binding_sources.transform_values do |source|
         source == :cli ? cli : cli.public_send(source)
       end
+    end
+
+    private def raise_missing_argument!(argument_description, details: [])
+      message_parts = [
+        "Missing #{argument_description} argument.",
+        metadata.usage,
+      ]
+      message_parts.concat(Array(details))
+      message_parts << cli.help_hint if cli
+
+      raise WifiWand::ConfigurationError, message_parts.join("\n")
     end
   end
 end
