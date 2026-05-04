@@ -54,7 +54,7 @@ module WifiWand
 
       if progress_mode == :inline
         if inline_progress_printed
-          if saw_progress_error
+          if saw_progress_error || status_data.nil?
             rendered = output_support.status_line(status_data)
             if rendered.to_s.empty?
               out_stream.puts
@@ -77,9 +77,16 @@ module WifiWand
         out_stream.puts output_support.status_line(status_data) if progress_mode == :none
         nil
       else
-        return status_data unless progress_mode == :none
+        if progress_mode == :none
+          if status_data.nil?
+            rendered = output_support.status_line(status_data)
+            out_stream.puts(rendered) unless rendered.to_s.empty?
+          else
+            output_support.handle_output(status_data, -> { output_support.status_line(status_data) })
+          end
+        end
+        raise WifiWand::StatusUnavailableError if status_data.nil?
 
-        output_support.handle_output(status_data, -> { output_support.status_line(status_data) })
         status_data
       end
     end

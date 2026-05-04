@@ -150,6 +150,63 @@ describe WifiWand::CommandLineInterface do
     end
   end
 
+  describe 'status command exit behavior' do
+    it 'returns failure when status data is unavailable in non-interactive mode' do
+      out_stream = StringIO.new
+      err_stream = StringIO.new
+      opts = create_cli_options
+      opts.out_stream = out_stream
+      opts.err_stream = err_stream
+      status_cli = described_class.new(opts, argv: ['status'])
+
+      allow(status_cli.model).to receive(:status_line_data).and_return(nil)
+
+      expect(status_cli.call).to eq(described_class::FAILURE_EXIT_CODE)
+      expect(out_stream.string).to eq("WiFi: [status unavailable]\n")
+      expect(err_stream.string).to include('WiFi status unavailable')
+      expect(err_stream.string).not_to include("Use 'wifi-wand help'")
+    end
+
+    it 'prints unavailable status instead of formatted nil when output formatting is enabled' do
+      out_stream = StringIO.new
+      err_stream = StringIO.new
+      opts = create_cli_options(post_processor: ->(object) { object.to_json })
+      opts.out_stream = out_stream
+      opts.err_stream = err_stream
+      status_cli = described_class.new(opts, argv: ['status'])
+
+      allow(status_cli.model).to receive(:status_line_data).and_return(nil)
+
+      expect(status_cli.call).to eq(described_class::FAILURE_EXIT_CODE)
+      expect(out_stream.string).to eq("WiFi: [status unavailable]\n")
+      expect(out_stream.string).not_to include('null')
+      expect(err_stream.string).to include('WiFi status unavailable')
+      expect(err_stream.string).not_to include("Use 'wifi-wand help'")
+    end
+
+    it 'returns success and renders partial status data when worker results are degraded' do
+      out_stream = StringIO.new
+      opts = create_cli_options
+      opts.out_stream = out_stream
+      status_cli = described_class.new(opts, argv: ['status'])
+      partial_status_data = {
+        wifi_on:                       true,
+        dns_working:                   nil,
+        connected:                     nil,
+        internet_state:                :indeterminate,
+        internet_check_complete:       true,
+        network_name:                  nil,
+        captive_portal_state:          :indeterminate,
+        captive_portal_login_required: :unknown,
+      }
+
+      allow(status_cli.model).to receive(:status_line_data).and_return(partial_status_data)
+
+      expect(status_cli.call).to eq(described_class::SUCCESS_EXIT_CODE)
+      expect(out_stream.string).to match(/WiFi.*ON.*WiFi Network.*UNKNOWN.*DNS.*WAIT.*Internet.*UNKNOWN/)
+    end
+  end
+
   describe 'accessor methods' do
     describe '#verbose?' do
       let(:verbose_options) { create_cli_options(verbose: true) }

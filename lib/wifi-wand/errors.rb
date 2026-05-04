@@ -13,6 +13,8 @@ module WifiWand
     def display_message = nil
 
     def message_for_display = display_message || to_s
+
+    def append_help_hint? = true
   end
 
   # === NETWORK CONNECTION ERRORS ===
@@ -86,6 +88,12 @@ module WifiWand
   end
 
   class WifiOffError < Error; end
+
+  class StatusUnavailableError < Error
+    def initialize = super('WiFi status unavailable: no status data could be collected')
+
+    def append_help_hint? = false
+  end
 
   class WifiEnableError < Error
     def initialize = super('WiFi could not be enabled. Check hardware and permissions')

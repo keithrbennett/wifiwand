@@ -80,6 +80,13 @@ describe WifiWand::StatusCommand do
 ")
         expect(output_support.handled).to be_nil
       end
+
+      it 'prints unavailable status and returns nil when status data is unavailable' do
+        allow(mock_model).to receive(:status_line_data).and_return(nil)
+
+        expect(command.call).to be_nil
+        expect(out_stream.string).to eq("[status unavailable]\n")
+      end
     end
 
     context 'when inline progress is enabled' do
@@ -134,12 +141,36 @@ describe WifiWand::StatusCommand do
         expected_padding = ' ' * (rendered_status.length - '[status unavailable]'.length)
         expected_unavailable_line = "\r[status unavailable]#{expected_padding}#{$INPUT_RECORD_SEPARATOR}"
 
-        result = command.call
+        expect { command.call }.to raise_error(WifiWand::StatusUnavailableError)
 
-        expect(result).to be_nil
         expect(out_stream.string).to start_with(rendered_status)
         expect(out_stream.string).to include(expected_unavailable_line)
         expect(out_stream.string).not_to include('\r')
+      end
+
+      it 'rewrites the progress line with unavailable status when final status data is nil' do
+        allow(mock_model).to receive(:status_line_data).and_return(nil)
+        expected_padding = ' ' * (rendered_status.length - '[status unavailable]'.length)
+        expected_unavailable_line = "\r[status unavailable]#{expected_padding}#{$INPUT_RECORD_SEPARATOR}"
+
+        expect { command.call }.to raise_error(WifiWand::StatusUnavailableError)
+
+        expect(out_stream.string).to start_with(rendered_status)
+        expect(out_stream.string).to include(expected_unavailable_line)
+      end
+
+      context 'when interactive' do
+        let(:interactive_mode) { true }
+
+        it 'rewrites the progress line with unavailable status and returns nil' do
+          allow(mock_model).to receive(:status_line_data).and_return(nil)
+          expected_padding = ' ' * (rendered_status.length - '[status unavailable]'.length)
+          expected_unavailable_line = "\r[status unavailable]#{expected_padding}#{$INPUT_RECORD_SEPARATOR}"
+
+          expect(command.call).to be_nil
+          expect(out_stream.string).to start_with(rendered_status)
+          expect(out_stream.string).to include(expected_unavailable_line)
+        end
       end
 
       context 'when no inline progress text is rendered' do
@@ -159,9 +190,8 @@ describe WifiWand::StatusCommand do
         it 'prints unavailable status without an in-place progress prefix when status data fails' do
           allow(mock_model).to receive(:status_line_data).and_return(nil)
 
-          result = command.call
+          expect { command.call }.to raise_error(WifiWand::StatusUnavailableError)
 
-          expect(result).to be_nil
           expect(out_stream.string).to eq("[status unavailable]\n")
         end
 

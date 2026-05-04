@@ -98,9 +98,13 @@ module WifiWand
         SUCCESS_EXIT_CODE
       rescue WifiWand::Error => e
         @err_stream.puts(error_message_for(e))
-        @err_stream.puts help_hint unless e.message.include?(help_hint)
+        @err_stream.puts help_hint if append_help_hint?(e)
         FAILURE_EXIT_CODE
       end
+    end
+
+    private def append_help_hint?(error)
+      error.append_help_hint? && !error.message.include?(help_hint)
     end
 
     private def error_message_for(error)
