@@ -224,6 +224,8 @@ ne / network_name       - name (SSID) of currently connected WiFi network
 on                        - turns WiFi on
 of / off                - turns WiFi off
 pa / password network-name - password for preferred network name
+pi / public_ip [address|country|both|a|c|b]
+                         - public IP lookup; selectors may use long or short form; both (b) is the default
 pr / pref_nets          - preferred (saved) networks
 q / quit                - exits this program (interactive shell mode only) (same as 'x')
 qr [filespec|'-'] [password]
@@ -615,16 +617,15 @@ Notes:
 
 ### Public IP Information
 
-The information hash will normally include information about the public IP address.
-However, the command that provides this information, `curl -s ipinfo.io`, will sometimes
-return this:
+The `info` command does not include public IP data. Use `wifi-wand public_ip` or `wifi-wand pi`
+when you want the public IP address, country, or both.
 
-`Rate limit exceeded. Subscribe to a paid plan to increase your usage limits` 
+wifi-wand uses `https://api.country.is/` when the country is requested, including the default
+`both` selector, and `https://api.ipify.org` when only the public IP address is requested.
 
-If this happens, the public IP information will be silently omitted from the
-information hash. In this case, the web site 'https://www.iplocation.net/' is
-recommended, and `wifi-wand ro ipl` on the command line or `ro 'ipl'` in the shell will
-open that page in your browser for you.
+If the provider request fails or returns malformed data, the command raises a public IP lookup error.
+In that case, the web site 'https://www.iplocation.net/' is recommended, and `wifi-wand ro ipl` on
+the command line or `ro 'ipl'` in the shell will open that page in your browser for you.
 
 
 ### Password Lookup Oddity

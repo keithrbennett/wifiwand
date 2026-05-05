@@ -101,5 +101,7 @@ RSpec.describe 'public_ip command' do
     expect(command).to be_a(WifiWand::PublicIpCommand)
     expect(command.help_text).to include('Usage: wifi-wand public_ip')
     expect(command.help_text).to include('address (a)')
+    expect(command.help_text).to include('address      - uses https://api.ipify.org')
+    expect(command.help_text).to include('country/both - uses https://api.country.is/')
   end
 end

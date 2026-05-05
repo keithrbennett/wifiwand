@@ -33,6 +33,10 @@ module WifiWand
           address (a) - return only the public IP address
           country (c) - return only the public IP country
           both (b)    - return both address and country
+
+        Providers:
+          address      - uses https://api.ipify.org
+          country/both - uses https://api.country.is/
       HELP
     end
 
