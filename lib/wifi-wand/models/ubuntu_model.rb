@@ -786,13 +786,6 @@ module WifiWand
       profile_name == ssid || (profile_name.start_with?("#{ssid} ") && profile_name.match?(/ \d+\z/))
     end
 
-    # Gets nameservers from /etc/resolv.conf - fallback method
-    public def nameservers_using_resolv_conf
-      File.readlines('/etc/resolv.conf').grep(/^nameserver /).map { |line| line.split.last }
-    rescue Errno::ENOENT
-      nil
-    end
-
     # Gets the security type of the currently connected network.
     # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP",
     #   "None", or nil if not connected/not found
