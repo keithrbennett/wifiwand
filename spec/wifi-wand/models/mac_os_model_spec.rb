@@ -321,6 +321,14 @@ module WifiWand
           expect(model._connected_network_name).to be_nil
         end
 
+        it 'does not fall back to airport data when the helper explicitly reports not connected' do
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(status: :not_connected)
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+
+          expect(model).not_to receive(:airport_data)
+          expect(model._connected_network_name).to be_nil
+        end
+
         it 'falls back to airport data when helper is blocked by Location Services' do
           result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(
             location_services_blocked: true,
@@ -478,6 +486,14 @@ module WifiWand
           expect(model.associated?).to be(false)
         end
 
+        it 'returns false without fallback when the helper explicitly reports not connected' do
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(status: :not_connected)
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+
+          expect(model).not_to receive(:airport_data)
+          expect(model.associated?).to be(false)
+        end
+
         it 'returns false when the helper reports no SSID and airport data has no current network info' do
           result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
@@ -547,6 +563,14 @@ module WifiWand
             _ip_address:       nil
           )
 
+          expect(model.connected?).to be(false)
+        end
+
+        it 'returns false without fallback when the helper explicitly reports not connected' do
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(status: :not_connected)
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+
+          expect(model).not_to receive(:airport_data)
           expect(model.connected?).to be(false)
         end
 
@@ -679,6 +703,21 @@ module WifiWand
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
             connected:    true,
             network_name: 'ProfilerNet'
+          )
+        end
+
+        it 'returns disconnected when the helper explicitly reports not connected' do
+          expect(model).to receive(:run_command_using_args)
+            .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+          expect(helper_double).to receive(:connected_network_name)
+            .with(timeout_seconds: status_timeout)
+            .and_return(WifiWand::MacOsHelperBundle::HelperQueryResult.new(status: :not_connected))
+
+          expect(model).not_to receive(:airport_data)
+          expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
+            connected:    false,
+            network_name: nil
           )
         end
 

@@ -297,6 +297,7 @@ module WifiWand
         # return an unredacted SSID on modern macOS.
         result = mac_helper_client.connected_network_name
         return true if result.payload && !placeholder_network_name?(result.payload)
+        return false if result.not_connected?
 
         interface_associated_in_airport_data?(wifi_interface_airport_data)
       end
@@ -314,6 +315,7 @@ module WifiWand
         # operations that need CoreWLAN plus a stable app identity.
         result = mac_helper_client.connected_network_name
         return true if result.payload && !placeholder_network_name?(result.payload)
+        return false if result.not_connected?
 
         interface_data = wifi_interface_airport_data
         return true if interface_associated_in_airport_data?(interface_data)
@@ -335,6 +337,7 @@ module WifiWand
         if helper_ssid && !placeholder_network_name?(helper_ssid)
           return { connected: true, network_name: helper_ssid }
         end
+        return { connected: false, network_name: nil } if helper_result.not_connected?
 
         interface_data = wifi_interface_airport_data(deadline: deadline)
         connected = interface_associated_in_airport_data?(interface_data) ||
@@ -467,6 +470,7 @@ module WifiWand
         result = mac_helper_client.connected_network_name
         ssid = result.payload
         return ssid if ssid && !placeholder_network_name?(ssid)
+        return nil if result.not_connected?
 
         wifi_interface_data = wifi_interface_airport_data
 

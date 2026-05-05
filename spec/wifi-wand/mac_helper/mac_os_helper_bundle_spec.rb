@@ -102,8 +102,8 @@ RSpec.describe WifiWand::MacOsHelperBundle do
 
       let(:raw_result) { WifiWand::MacOsHelperBundle::HelperQueryResult.new }
 
-      it 'returns a result with the SSID payload' do
-        raw_result.payload = { 'ssid' => 'OfficeWiFi' }
+      it 'parses the new connected response with an SSID payload' do
+        raw_result.payload = { 'status' => 'connected', 'ssid' => 'OfficeWiFi' }
         raw_result.status = :success
         result = client.connected_network_name
         expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
@@ -111,6 +111,15 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         expect(result.status).to eq(:connected)
         expect(result).to be_connected
         expect(result).not_to be_location_services_blocked
+      end
+
+      it 'remains compatible with old helper responses that only include an SSID' do
+        raw_result.payload = { 'ssid' => 'OfficeWiFi' }
+        raw_result.status = :success
+        result = client.connected_network_name
+        expect(result.payload).to eq('OfficeWiFi')
+        expect(result.status).to eq(:connected)
+        expect(result).to be_connected
       end
 
       it 'returns a result with nil payload when the helper does not respond' do
@@ -122,8 +131,8 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         expect(result).not_to be_location_services_blocked
       end
 
-      it 'classifies an explicit nil SSID from a successful helper response as not connected' do
-        raw_result.payload = { 'status' => 'ok', 'ssid' => nil }
+      it 'parses the new not-connected response without relying on nil SSID inference' do
+        raw_result.payload = { 'status' => 'not_connected', 'interface' => 'en0' }
         raw_result.status = :success
         result = client.connected_network_name
         expect(result.payload).to be_nil
@@ -131,13 +140,24 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         expect(result).to be_not_connected
       end
 
-      it 'classifies an omitted optional SSID from a successful helper response as not connected' do
+      it 'keeps old helper nil SSID responses ambiguous instead of treating them as disconnected' do
+        raw_result.payload = { 'status' => 'ok', 'ssid' => nil }
+        raw_result.status = :success
+        result = client.connected_network_name
+        expect(result.payload).to be_nil
+        expect(result.status).to eq(:unknown)
+        expect(result).to be_ambiguous
+        expect(result).not_to be_not_connected
+      end
+
+      it 'keeps old helper omitted SSID responses ambiguous instead of treating them as disconnected' do
         raw_result.payload = { 'status' => 'ok', 'interface' => 'en0' }
         raw_result.status = :success
         result = client.connected_network_name
         expect(result.payload).to be_nil
-        expect(result.status).to eq(:not_connected)
-        expect(result).to be_not_connected
+        expect(result.status).to eq(:unknown)
+        expect(result).to be_ambiguous
+        expect(result).not_to be_not_connected
       end
 
       it 'classifies Location Services errors distinctly' do
@@ -148,6 +168,18 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         expect(result.payload).to be_nil
         expect(result.status).to eq(:location_services_blocked)
         expect(result).to be_location_services_blocked
+      end
+
+      it 'classifies explicit helper permission errors distinctly from not-connected' do
+        raw_result.status = :permission_denied
+        raw_result.location_services_blocked = true
+        raw_result.error_message = 'Location Services denied'
+        result = client.connected_network_name
+        expect(result.payload).to be_nil
+        expect(result.status).to eq(:permission_denied)
+        expect(result).to be_permission_denied
+        expect(result).to be_location_services_blocked
+        expect(result).not_to be_not_connected
       end
 
       it 'keeps helper unavailability ambiguous instead of treating it as disconnected' do
@@ -228,6 +260,11 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         unavailable:               { ambiguous: true },
         timeout:                   { ambiguous: true },
         error:                     { ambiguous: true, error_message: 'helper failed' },
+        permission_denied:         {
+          ambiguous:                 false,
+          error_message:             'Location Services denied',
+          location_services_blocked: true,
+        },
         location_services_blocked: {
           ambiguous:                 false,
           error_message:             'Location Services denied',
@@ -251,6 +288,17 @@ RSpec.describe WifiWand::MacOsHelperBundle do
     describe '#location_services_blocked?' do
       it 'returns true when the last helper error was a denied Location Services permission' do
         client.send(:handle_error, 'Location Services denied')
+        expect(client.location_services_blocked?).to be(true)
+      end
+
+      it 'returns true when an explicit permission status has a nonstandard message' do
+        client.send(:handle_error, 'permission rejected by macOS', helper_status: 'permission_denied')
+        expect(client.location_services_blocked?).to be(true)
+      end
+
+      it 'returns true when an explicit blocked status has a nonstandard message' do
+        client.send(:handle_error, 'system location toggle is off',
+          helper_status: 'location_services_blocked')
         expect(client.location_services_blocked?).to be(true)
       end
 
@@ -279,6 +327,13 @@ RSpec.describe WifiWand::MacOsHelperBundle do
             status:                    :location_services_blocked
           )
 
+          expect(result).to be_location_services_error
+        end
+
+        it 'normalizes permission-denied status into the blocked predicate' do
+          result = described_class.new(status: :permission_denied)
+
+          expect(result).to be_location_services_blocked
           expect(result).to be_location_services_error
         end
 
@@ -393,7 +448,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
             @parse_json_result
           end
 
-          private def handle_error(message)
+          private def handle_error(message, **kwargs)
             @handled_errors << message
             super
           end
@@ -554,6 +609,49 @@ RSpec.describe WifiWand::MacOsHelperBundle do
             expect(result).not_to be_location_services_blocked
             expect(result).not_to be_location_services_error
             expect(result.error_message).to eq('authorization timed out')
+          end
+        end
+
+        context 'with an explicit permission-denied helper status' do
+          let(:helper_command_proc) do
+            ->(_command) do
+              {
+                stdout: '{"status":"permission_denied","error":"Location Services denied"}',
+                stderr: helper_stderr,
+                status: status,
+              }
+            end
+          end
+
+          it 'preserves the permission status instead of treating it as disconnected' do
+            result = execute_command
+            expect(result.payload).to be_nil
+            expect(result.status).to eq(:permission_denied)
+            expect(result).to be_permission_denied
+            expect(result).to be_location_services_blocked
+            expect(result).not_to be_not_connected
+            expect(result.error_message).to eq('Location Services denied')
+          end
+        end
+
+        context 'with an explicit Location Services blocked helper status' do
+          let(:helper_command_proc) do
+            ->(_command) do
+              {
+                stdout: '{"status":"location_services_blocked","error":"Location Services disabled"}',
+                stderr: helper_stderr,
+                status: status,
+              }
+            end
+          end
+
+          it 'preserves the blocked status instead of falling back to message matching' do
+            result = execute_command
+            expect(result.payload).to be_nil
+            expect(result.status).to eq(:location_services_blocked)
+            expect(result).to be_location_services_blocked
+            expect(result).not_to be_not_connected
+            expect(result.error_message).to eq('Location Services disabled')
           end
         end
       end

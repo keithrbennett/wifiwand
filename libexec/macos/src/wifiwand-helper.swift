@@ -95,6 +95,12 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
         locationManager = CLLocationManager()
         locationManager?.delegate = self
 
+        guard CLLocationManager.locationServicesEnabled() else {
+            fputs("wifiwand-helper: Location Services disabled\n", stderr)
+            emitLocationServicesError("Location Services disabled")
+            return
+        }
+
         // Check current authorization status
         let status = CLLocationManager.authorizationStatus()
 
@@ -131,7 +137,7 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
             if command == .requestPermission {
                 showDeniedAlert()
             } else {
-                emitLocationServicesError("Location Services denied")
+                emitPermissionDeniedError("Location Services denied")
             }
         @unknown default:
             fputs("wifiwand-helper: Unknown authorization status\n", stderr)
@@ -160,7 +166,7 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
             fputs("wifiwand-helper: Authorization granted! Executing command.\n", stderr)
             executeCommand()
         } else if status == .denied || status == .restricted {
-            emitLocationServicesError("Location Services denied")
+            emitPermissionDeniedError("Location Services denied")
         }
     }
 
@@ -175,10 +181,18 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
     }
 
     private func emitLocationServicesError(_ message: String) {
+        emitHelperError(status: "location_services_blocked", message)
+    }
+
+    private func emitPermissionDeniedError(_ message: String) {
+        emitHelperError(status: "permission_denied", message)
+    }
+
+    private func emitHelperError(status: String = "error", _ message: String) {
         guard !hasExecuted else { return }
         hasExecuted = true
         authorizationTimeoutWorkItem?.cancel()
-        printJSON(["status": "error", "error": message])
+        printJSON(["status": status, "error": message])
         exit(1)
     }
 
@@ -243,20 +257,17 @@ Click 'Open Settings' to go there now.
         authorizationTimeoutWorkItem?.cancel()
 
         guard let interface = obtainInterfaceWithRetry() else {
-            printJSON(["status": "error", "error": "no Wi-Fi interface" ] )
-            exit(1)
+            emitHelperError("no Wi-Fi interface")
+            return
         }
 
         switch command {
         case .currentNetwork:
-            let result = CurrentNetworkResult(
-                status: "ok",
-                interface: interface.interfaceName,
-                ssid: interface.ssid(),
-                bssid: interface.bssid(),
-                error: nil
-            )
+            let result = currentNetworkResult(for: interface)
             outputEncodable(result)
+            if result.status == "error" {
+                exit(1)
+            }
         case .scanNetworks:
             do {
                 let networks = try interface.scanForNetworks(withSSID: nil)
@@ -286,6 +297,49 @@ Click 'Open Settings' to go there now.
             return
         }
         exit(0)
+    }
+
+    private func currentNetworkResult(for interface: CWInterface) -> CurrentNetworkResult {
+        let ssid = normalizedNetworkIdentity(interface.ssid())
+        let bssid = normalizedNetworkIdentity(interface.bssid())
+
+        if let ssid = ssid {
+            return CurrentNetworkResult(
+                status: "connected",
+                interface: interface.interfaceName,
+                ssid: ssid,
+                bssid: bssid,
+                error: nil
+            )
+        }
+
+        if bssid != nil {
+            return CurrentNetworkResult(
+                status: "error",
+                interface: interface.interfaceName,
+                ssid: nil,
+                bssid: bssid,
+                error: "associated Wi-Fi network SSID unavailable"
+            )
+        }
+
+        return CurrentNetworkResult(
+            status: "not_connected",
+            interface: interface.interfaceName,
+            ssid: nil,
+            bssid: nil,
+            error: nil
+        )
+    }
+
+    private func normalizedNetworkIdentity(_ value: String?) -> String? {
+        guard let value = value else { return nil }
+
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty || trimmed == "<hidden>" || trimmed == "<redacted>" {
+            return nil
+        }
+        return trimmed
     }
 
     private func outputEncodable<T: Encodable>(_ value: T) {
