@@ -35,7 +35,7 @@ module WifiWand
           rendered = output_support.status_line(current_snapshot)
           next if rendered.to_s.empty?
 
-          visible_length = output_support.strip_ansi(rendered).length
+          visible_length = output_support.display_width(rendered)
           padding = [last_visible_length - visible_length, 0].max
           padded_render = padding.zero? ? rendered : "#{rendered}#{' ' * padding}"
 
@@ -59,7 +59,7 @@ module WifiWand
             if rendered.to_s.empty?
               out_stream.puts
             else
-              visible_length = output_support.strip_ansi(rendered).length
+              visible_length = output_support.display_width(rendered)
               padding = [last_visible_length - visible_length, 0].max
 
               out_stream.puts "\r#{rendered}#{' ' * padding}"

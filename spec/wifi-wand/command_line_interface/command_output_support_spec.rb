@@ -51,4 +51,19 @@ describe WifiWand::CommandLineInterface::CommandOutputSupport do
       end.to output("Human readable output\n").to_stdout
     end
   end
+
+  describe '#display_width' do
+    it 'counts ANSI-free ASCII text by character length' do
+      output_support = described_class.new(cli)
+
+      expect(output_support.display_width('WiFi: WAIT')).to eq('WiFi: WAIT'.length)
+    end
+
+    it 'counts status emoji by terminal cell width after stripping ANSI color' do
+      output_support = described_class.new(cli)
+
+      expect(output_support.display_width("\e[33m⏳ WAIT\e[0m")).to eq(7)
+      expect(output_support.display_width('✅ ON')).to eq(5)
+    end
+  end
 end

@@ -945,6 +945,17 @@ module WifiWand
 
           expect(subject.wifi_on?).to be(false)
         end
+
+        it 'raises a command error when nmcli cannot report radio state' do
+          allow(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli radio wifi], raise_on_error: false)
+            .and_return(command_result(
+              stderr: 'aborted', exitstatus: nil, termsig: 6, command: NMCLI_RADIO_CMD
+            ))
+
+          expect { subject.wifi_on? }
+            .to raise_error(WifiWand::CommandExecutor::OsCommandError, /aborted/)
+        end
       end
 
       describe '#connected?' do
@@ -1022,6 +1033,19 @@ module WifiWand
             connected:    true,
             network_name: 'HomeNetwork'
           )
+        end
+
+        it 'does not treat a failed nmcli radio probe as a disconnected state' do
+          subject.wifi_interface = 'wlp3s0'
+
+          expect(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli radio wifi], raise_on_error: false, timeout_in_secs: be_between(0, 0.5).exclusive)
+            .and_return(command_result(
+              stderr: 'aborted', exitstatus: nil, termsig: 6, command: NMCLI_RADIO_CMD
+            ))
+
+          expect { subject.status_network_identity(timeout_in_secs: 0.5) }
+            .to raise_error(WifiWand::CommandExecutor::OsCommandError, /aborted/)
         end
       end
 

@@ -78,8 +78,7 @@ module WifiWand
     end
 
     def wifi_on?
-      output = run_command_using_args(%w[nmcli radio wifi], raise_on_error: false).stdout
-      output.match?(/enabled/)
+      nmcli_wifi_radio_enabled?
     end
 
     def connected?
@@ -185,12 +184,16 @@ module WifiWand
     end
 
     private def wifi_on_before_deadline?(deadline)
-      output = run_command_using_args(
-        %w[nmcli radio wifi],
-        raise_on_error:  false,
-        timeout_in_secs: status_timeout_for(deadline)
-      ).stdout
-      output.match?(/enabled/)
+      nmcli_wifi_radio_enabled?(timeout_in_secs: status_timeout_for(deadline))
+    end
+
+    private def nmcli_wifi_radio_enabled?(timeout_in_secs: nil)
+      command_options = { raise_on_error: false }
+      command_options[:timeout_in_secs] = timeout_in_secs if timeout_in_secs
+      result = run_command_using_args(%w[nmcli radio wifi], **command_options)
+      raise WifiWand::CommandExecutor::OsCommandError.new(result: result) unless result.success?
+
+      result.stdout.match?(/enabled/)
     end
 
     private def status_connected_network_name(deadline)

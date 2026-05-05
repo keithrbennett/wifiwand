@@ -243,6 +243,31 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result[:network_name]).to be_nil
     end
 
+    it 'reports unknown network data when status identity raises a command error' do
+      command_error = WifiWand::CommandExecutor::OsCommandError.new(
+        result: command_result(stderr: 'aborted', exitstatus: nil, termsig: 6, command: 'nmcli radio wifi')
+      )
+      allow(model).to receive(:status_network_identity).and_raise(command_error)
+
+      result = builder.call
+
+      expect(result[:connected]).to be_nil
+      expect(result[:network_name]).to be_nil
+    end
+
+    it 'reports unknown network data when status identity cannot start a command' do
+      allow(model).to receive(:status_network_identity)
+        .and_raise(WifiWand::CommandSpawnError.new(
+          command: 'nmcli radio wifi',
+          reason:  'Resource temporarily unavailable'
+        ))
+
+      result = builder.call
+
+      expect(result[:connected]).to be_nil
+      expect(result[:network_name]).to be_nil
+    end
+
     it 'logs a network identity warning in verbose mode without raising' do
       out_stream = StringIO.new
       verbose_builder = described_class.new(

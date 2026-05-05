@@ -81,6 +81,16 @@ describe WifiWand::CommandExecutor do
   describe '#run_command_using_args' do
     context 'with verbose mode disabled' do
       let(:executor) { described_class.new(verbose: false) }
+      let(:stream_class) do
+        Struct.new(:responses) do
+          def readpartial(_size)
+            response = responses.shift
+            raise response if response.is_a?(Exception)
+
+            response
+          end
+        end
+      end
 
       it 'executes commands successfully' do
         result = executor.run_command_using_args(%w[echo test])
@@ -188,20 +198,11 @@ describe WifiWand::CommandExecutor do
       end
 
       it 'treats stream closure IOError as normal command shutdown' do
-        stream_class = Struct.new(:responses) do
-          def readpartial(_size)
-            response = responses.shift
-            raise response if response.is_a?(Exception)
-
-            response
-          end
-        end
-
         stdin = instance_double(IO, close: nil)
         stdout = stream_class.new(['partial output', IOError.new('stream closed in another thread')])
         stderr = stream_class.new([EOFError.new])
         wait_thr = instance_double(Thread)
-        status = instance_double(Process::Status, exitstatus: 0)
+        status = instance_double(Process::Status, exitstatus: 0, termsig: nil)
 
         allow(wait_thr).to receive_messages(join: wait_thr, value: status)
         allow(Open3).to receive(:popen3).and_yield(stdin, stdout, stderr, wait_thr)
@@ -211,6 +212,54 @@ describe WifiWand::CommandExecutor do
         expect(result.stdout).to eq('partial output')
         expect(result.stderr).to eq('')
         expect(result.exitstatus).to eq(0)
+      end
+
+      it 'represents commands terminated by a signal as unsuccessful results' do
+        stdin = instance_double(IO, close: nil)
+        stdout = stream_class.new([EOFError.new])
+        stderr = stream_class.new(['aborted', EOFError.new])
+        wait_thr = instance_double(Thread)
+        status = instance_double(Process::Status, exitstatus: nil, termsig: 6)
+
+        allow(wait_thr).to receive_messages(join: wait_thr, value: status)
+        allow(Open3).to receive(:popen3).and_yield(stdin, stdout, stderr, wait_thr)
+
+        result = executor.run_command_using_args(%w[nmcli radio wifi], raise_on_error: false)
+
+        expect(result).not_to be_success
+        expect(result.exitstatus).to be_nil
+        expect(result.termsig).to eq(6)
+        expect(result.termination_status).to eq('Signal: SIGABRT (6)')
+      end
+
+      it 'raises command errors with signal details when signaled commands must succeed' do
+        stdin = instance_double(IO, close: nil)
+        stdout = stream_class.new([EOFError.new])
+        stderr = stream_class.new(['aborted', EOFError.new])
+        wait_thr = instance_double(Thread)
+        status = instance_double(Process::Status, exitstatus: nil, termsig: 6)
+
+        allow(wait_thr).to receive_messages(join: wait_thr, value: status)
+        allow(Open3).to receive(:popen3).and_yield(stdin, stdout, stderr, wait_thr)
+
+        captured_error = begin
+          executor.run_command_using_args(%w[nmcli radio wifi])
+        rescue WifiWand::CommandExecutor::OsCommandError => e
+          e
+        end
+
+        expect(captured_error).to be_a(WifiWand::CommandExecutor::OsCommandError)
+        expect(captured_error.message).to match(/aborted/)
+        expect(captured_error.display_message).to include('Signal: SIGABRT (6)')
+      end
+
+      it 'wraps temporary process spawn failures with command context' do
+        allow(Open3).to receive(:popen3)
+          .and_raise(Errno::EAGAIN, 'Resource temporarily unavailable')
+
+        expect do
+          executor.run_command_using_args(%w[nmcli radio wifi])
+        end.to raise_error(WifiWand::CommandSpawnError, /nmcli radio wifi.*Resource temporarily unavailable/)
       end
     end
 

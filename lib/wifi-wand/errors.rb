@@ -159,6 +159,20 @@ module WifiWand
     end
   end
 
+  class CommandSpawnError < Error
+    attr_reader :command, :reason
+
+    def initialize(command:, reason:)
+      @command = command
+      @reason = reason
+      super("Could not start command '#{command}': #{reason}")
+    end
+
+    def append_help_hint? = false
+
+    def to_h = { command: command, reason: reason }
+  end
+
   # === MACOS-SPECIFIC ERRORS ===
   class KeychainAccessDeniedError < Error
     def initialize(network_name)

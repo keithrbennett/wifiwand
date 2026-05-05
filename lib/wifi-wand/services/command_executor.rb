@@ -155,6 +155,8 @@ module WifiWand
     rescue Errno::ENOENT => e
       missing_command = missing_command_name(command_array, e)
       raise CommandNotFoundError, missing_command
+    rescue Errno::EAGAIN, Errno::ENOMEM => e
+      raise CommandSpawnError.new(command: command_display, reason: e.message)
     else
       duration = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
 
@@ -162,12 +164,13 @@ module WifiWand
         stdout:          stdout_chunks.join,
         stderr:          stderr_chunks.join,
         combined_output: combined_chunks.join,
-        exitstatus:      status.exitstatus,
+        exitstatus:      status&.exitstatus,
+        termsig:         process_status_termsig(status),
         command:         command_display,
         duration:        duration
       )
 
-      status_string = "Exit code: #{result.exitstatus} (#{result.success? ? 'success' : 'error'})"
+      status_string = "#{result.termination_status} (#{result.success? ? 'success' : 'error'})"
 
       if verbose?
         output.puts "#{status_string}, Duration: #{format('%.4f', duration)} seconds -- #{Time.now.iso8601}"
@@ -202,6 +205,12 @@ module WifiWand
     private def missing_command_name(command, error)
       error_path_present = error.respond_to?(:path) && error.path && !error.path.empty?
       error_path_present ? error.path : Array(command).first.to_s
+    end
+
+    private def process_status_termsig(status)
+      return nil unless status.respond_to?(:termsig)
+
+      status.termsig
     end
 
     private def banner_line = @banner_line ||= '-' * 79
@@ -286,23 +295,32 @@ module WifiWand
     end
 
     class OsCommandResult
-      attr_reader :stdout, :stderr, :combined_output, :exitstatus, :command, :duration
+      attr_reader :stdout, :stderr, :combined_output, :exitstatus, :termsig, :command, :duration
 
-      def initialize(stdout:, stderr:, combined_output:, exitstatus:, command:, duration:)
+      def initialize(stdout:, stderr:, combined_output:, exitstatus:, command:, duration:, termsig: nil)
         @stdout = stdout || ''
         @stderr = stderr || ''
         @combined_output = combined_output || ''
         @exitstatus = exitstatus
+        @termsig = termsig
         @command = command
         @duration = duration
       end
 
-      def success? = exitstatus.to_i.zero?
+      def success? = termsig.nil? && exitstatus == 0
 
       def to_s = combined_output
 
+      def termination_status
+        if termsig
+          "Signal: #{signal_label(termsig)}"
+        else
+          "Exit code: #{exitstatus || 'unknown'}"
+        end
+      end
+
       def to_h
-        {
+        data = {
           stdout:          stdout,
           stderr:          stderr,
           combined_output: combined_output,
@@ -310,23 +328,34 @@ module WifiWand
           command:         command,
           duration:        duration,
         }
+        data[:termsig] = termsig if termsig
+        data
+      end
+
+      private def signal_label(signal_number)
+        signal_name = Signal.signame(signal_number)
+        signal_name ? "SIG#{signal_name} (#{signal_number})" : signal_number.to_s
+      rescue ArgumentError
+        signal_number.to_s
       end
     end
 
     class OsCommandError < WifiWand::Error
-      attr_reader :exitstatus, :command, :text, :result
+      attr_reader :exitstatus, :termsig, :command, :text, :result
 
-      def initialize(result: nil, exitstatus: nil, command: nil, text: nil)
+      def initialize(result: nil, exitstatus: nil, termsig: nil, command: nil, text: nil)
         @result = result || OsCommandResult.new(
           stdout:          text,
           stderr:          '',
           combined_output: text,
           exitstatus:      exitstatus,
+          termsig:         termsig,
           command:         command,
           duration:        nil
         )
 
         @exitstatus = @result.exitstatus
+        @termsig = @result.termsig
         @command = @result.command
         @text = @result.combined_output
         super(@text)
@@ -336,11 +365,15 @@ module WifiWand
         lines = []
         lines << message unless message.empty?
         lines << "Command failed: #{command}"
-        lines << "Exit code: #{exitstatus}"
+        lines << result.termination_status
         lines.join("\n")
       end
 
-      def to_h = { exitstatus: exitstatus, command: command, text: text }
+      def to_h
+        data = { exitstatus: exitstatus, command: command, text: text }
+        data[:termsig] = termsig if termsig
+        data
+      end
     end
   end
 end

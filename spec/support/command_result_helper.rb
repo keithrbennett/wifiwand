@@ -1,12 +1,13 @@
 # frozen_string_literal: true
 
 module CommandResultHelper
-  def build_command_result(stdout: '', stderr: '', exitstatus: 0, command: nil, duration: 0.0)
+  def build_command_result(stdout: '', stderr: '', exitstatus: 0, termsig: nil, command: nil, duration: 0.0)
     WifiWand::CommandExecutor::OsCommandResult.new(
       stdout:          stdout,
       stderr:          stderr,
       combined_output: [stdout, stderr].join,
       exitstatus:      exitstatus,
+      termsig:         termsig,
       command:         command,
       duration:        duration
     )

@@ -37,6 +37,10 @@ module WifiWand
 
       def strip_ansi(text) = text.to_s.gsub(/\e\[[\d;]*m/, '')
 
+      def display_width(text)
+        strip_ansi(text).scan(/\X/).sum { |grapheme| grapheme_display_width(grapheme) }
+      end
+
       def available_networks_empty_message
         if cli.model.is_a?(WifiWand::MacOsModel)
           <<~MESSAGE.chomp
@@ -52,6 +56,18 @@ module WifiWand
         else
           'No visible networks were found.'
         end
+      end
+
+      private def grapheme_display_width(grapheme)
+        return 0 if grapheme.empty?
+        return 0 if grapheme.match?(/\A[\u0000-\u001F\u007F]\z/)
+        return 2 if wide_grapheme?(grapheme)
+
+        1
+      end
+
+      private def wide_grapheme?(grapheme)
+        grapheme.match?(/\p{Emoji_Presentation}|\p{Extended_Pictographic}/)
       end
     end
   end

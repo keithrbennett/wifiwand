@@ -31,6 +31,10 @@ describe WifiWand::StatusCommand do
       def status_progress_mode = @progress_mode
 
       def strip_ansi(text) = text.to_s
+
+      def display_width(text)
+        strip_ansi(text).scan(/\X/).sum { |grapheme| grapheme == '⏳' ? 2 : grapheme.length }
+      end
     end
   end
   let(:output_support) do
@@ -157,6 +161,22 @@ describe WifiWand::StatusCommand do
 
         expect(out_stream.string).to start_with(rendered_status)
         expect(out_stream.string).to include(expected_unavailable_line)
+      end
+
+      it 'pads unavailable status by display width so emoji progress text is fully erased' do
+        progress_line = 'WiFi: ⏳ WAIT | WiFi Network: WAIT | DNS: ⏳ WAIT | Internet: ⏳ WAIT'
+        allow(output_support).to receive(:status_line) do |data|
+          data.nil? ? '[status unavailable]' : progress_line
+        end
+        allow(mock_model).to receive(:status_line_data).and_return(nil)
+        expected_padding = ' ' * (output_support.display_width(progress_line) -
+          output_support.display_width('[status unavailable]'))
+        expected_unavailable_line = "\r[status unavailable]#{expected_padding}#{$INPUT_RECORD_SEPARATOR}"
+
+        expect { command.call }.to raise_error(WifiWand::StatusUnavailableError)
+
+        expect(out_stream.string).to eq("#{progress_line}#{expected_unavailable_line}")
+        expect(expected_padding.length).to be > (progress_line.length - '[status unavailable]'.length)
       end
 
       context 'when interactive' do

@@ -249,6 +249,9 @@ module WifiWand
       fallback_worker_result(:network)
     rescue WifiWand::CommandNotFoundError, WifiWand::MethodNotImplementedError
       raise
+    rescue WifiWand::CommandExecutor::OsCommandError, WifiWand::CommandSpawnError => e
+      out_stream.puts "Warning: network status lookup failed: #{e.class}: #{e.message}" if verbose?
+      fallback_worker_result(:network)
     rescue WifiWand::Error, *expected_network_errors => e
       out_stream.puts "Warning: network status lookup failed: #{e.class}: #{e.message}" if verbose?
       {
