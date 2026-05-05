@@ -6,40 +6,116 @@ require_relative 'network_connectivity_tester'
 module WifiWand
   module NetworkConnectivityProbeHelper
     def self.parse_argv(argv)
-      mode, *args = argv
+      mode_arg, items_json, timeout_arg = argv
+      mode = parse_mode(mode_arg)
+      items = JSON.parse(items_json, symbolize_names: true)
+      raise ArgumentError, 'probe items must be an array' unless items.is_a?(Array)
 
-      case mode
-      when 'tcp'
-        host, port_arg = args
-        raise ArgumentError, 'host argument is required' if host.to_s.strip.empty?
-        raise ArgumentError, 'port argument is required' if port_arg.to_s.strip.empty?
-
-        { mode: mode.to_sym, target: { host: host, port: Integer(port_arg) } }
-      when 'dns'
-        domain = args.first
-        raise ArgumentError, 'domain argument is required' if domain.to_s.strip.empty?
-
-        { mode: :dns, target: domain }
-      else
-        raise ArgumentError, 'mode must be tcp or dns'
-      end
+      { mode: mode, items: items, timeout: Float(timeout_arg) }
     end
 
     def self.run(argv, output: $stdout, tester: nil)
       probe = parse_argv(argv)
       tester ||= NetworkConnectivityTester.new(verbose: false, output: $stderr)
-      success = run_probe(tester, probe)
-      output.print(JSON.generate(success: success))
+      result = parallel_probe_result(
+        tester,
+        probe[:mode],
+        probe[:items],
+        probe[:timeout]
+      )
+      output.print(JSON.generate(result))
       output.flush
     rescue => e
-      output.print(JSON.generate(success: false, error_class: e.class.to_s, error_message: e.message))
+      output.print(JSON.generate(
+        success:       false,
+        timed_out:     false,
+        error_class:   e.class.to_s,
+        error_message: e.message
+      ))
       output.flush
     end
 
-    def self.run_probe(tester, probe)
-      tester.run_probe(probe[:mode], probe[:target])
+    def self.parallel_probe_result(tester, mode, items, overall_timeout)
+      return batch_result(false, false, []) if items.empty?
+
+      result_queue = Queue.new
+      threads = items.map { |item| start_probe_thread(tester, mode, item, result_queue) }
+      deadline = current_time + overall_timeout
+      pending_results = threads.length
+      probe_results = []
+
+      while pending_results.positive?
+        remaining_time = deadline - current_time
+        return batch_result(false, true, probe_results) if remaining_time <= 0
+
+        result = result_queue.pop(timeout: remaining_time)
+        return batch_result(false, true, probe_results) if result.nil?
+
+        pending_results -= 1
+        probe_results << result
+        return batch_result(true, false, probe_results) if result[:success]
+      end
+
+      batch_result(false, false, probe_results)
+    ensure
+      cleanup_threads(threads || [])
     end
+
+    def self.start_probe_thread(tester, mode, item, result_queue)
+      Thread.new do
+        Thread.current.report_on_exception = false
+        result_queue << probe_result(tester, mode, item)
+      rescue => e
+        result_queue << { target: item, success: false, error_class: e.class.to_s }
+      end
+    end
+    private_class_method :start_probe_thread
+
+    def self.probe_result(tester, mode, item)
+      result = tester.run_probe_result(mode, item)
+      result = { success: result == true } unless result.is_a?(Hash)
+
+      {
+        target:      item,
+        success:     result[:success] == true,
+        error_class: result[:error_class],
+      }
+    end
+    private_class_method :probe_result
+
+    def self.batch_result(success, timed_out, probe_results)
+      { success: success, timed_out: timed_out, probe_results: probe_results }
+    end
+    private_class_method :batch_result
+
+    def self.cleanup_threads(threads)
+      threads.each do |thread|
+        thread.kill if thread.alive?
+        thread.join(0.01)
+      end
+    end
+    private_class_method :cleanup_threads
+
+    def self.parse_mode(mode_arg)
+      case mode_arg
+      when 'tcp'
+        :tcp
+      when 'dns'
+        :dns
+      else
+        raise ArgumentError, 'mode must be tcp or dns'
+      end
+    end
+    private_class_method :parse_mode
+
+    def self.current_time
+      Process.clock_gettime(Process::CLOCK_MONOTONIC)
+    end
+    private_class_method :current_time
   end
 end
 
-WifiWand::NetworkConnectivityProbeHelper.run(ARGV) if $PROGRAM_NAME == __FILE__
+if $PROGRAM_NAME == __FILE__
+  WifiWand::NetworkConnectivityProbeHelper.run(ARGV)
+  exit!(0)
+end

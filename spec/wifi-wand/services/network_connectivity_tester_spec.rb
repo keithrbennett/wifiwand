@@ -10,19 +10,22 @@ describe WifiWand::NetworkConnectivityTester do
 
   let(:ruby_bin) { RbConfig.ruby }
 
-  # These helpers build tiny child-process commands so the specs can exercise the
-  # subprocess orchestration path directly: one reports success, one reports
-  # failure, and one simulates a helper that never returns before the deadline.
   def helper_command(body)
     [ruby_bin, '-rjson', '-e', body]
   end
 
+  def json_payload_command(payload)
+    helper_command("STDOUT.write(#{JSON.generate(payload).inspect})")
+  end
+
   def success_command
-    helper_command('STDOUT.write(JSON.generate(success: true))')
+    helper_command('STDOUT.write(JSON.generate(success: true, timed_out: false))')
   end
 
   def failure_command
-    helper_command('STDOUT.write(JSON.generate(success: false, error_class: "RuntimeError"))')
+    helper_command(
+      'STDOUT.write(JSON.generate(success: false, timed_out: false, error_class: "RuntimeError"))'
+    )
   end
 
   def hanging_command
@@ -35,32 +38,35 @@ describe WifiWand::NetworkConnectivityTester do
     expect(result).to be false
   end
 
-  shared_examples 'subprocess-based cancellation' do
+  shared_examples 'single helper process cancellation' do
     |method_name:, items_method:, success_items:, failing_items:|
     let(:tester) { described_class.new(verbose: false) }
 
-    it 'returns once another helper succeeds and cleans up the hung helper' do
+    it 'returns true when the helper reports that any probe succeeded' do
+      observed_batches = []
       allow(tester).to receive(items_method).and_return(success_items)
-      allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
-        item == success_items.last ? success_command : hanging_command
+      allow(tester).to receive(:connectivity_probe_command) do |items, _helper_mode, _overall_timeout|
+        observed_batches << items
+        success_command
       end
 
       result = nil
       Timeout.timeout(1) { result = tester.public_send(method_name) }
 
       expect(result).to be true
+      expect(observed_batches).to eq([success_items])
     end
 
-    it 'returns false when the overall timeout expires with a hung helper still running' do
+    it 'returns a timed-out result when the helper misses the overall timeout' do
       allow(tester).to receive(items_method).and_return(failing_items)
-      allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
-        item == failing_items.last ? failure_command : hanging_command
-      end
+      allow(tester).to receive(:connectivity_probe_command).and_return(hanging_command)
 
       result = nil
-      Timeout.timeout(1) { result = tester.public_send(method_name, overall_timeout: 0.05) }
+      Timeout.timeout(1) do
+        result = tester.public_send(method_name, overall_timeout: 0.05, return_details: true)
+      end
 
-      expect(result).to be false
+      expect(result).to eq(success: false, timed_out: true)
     end
   end
 
@@ -70,8 +76,7 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { described_class.new(verbose: true, output: output) }
 
       before do
-        mock_socket_connection_failure
-        allow(Timeout).to receive(:timeout).and_raise(Timeout::Error)
+        allow(tester).to receive(:connectivity_probe_command).and_return(failure_command)
       end
 
       it 'outputs formatted endpoint list to stdout' do
@@ -83,9 +88,53 @@ describe WifiWand::NetworkConnectivityTester do
         tester.tcp_connectivity?
         expect(output.string).to match(/1\.1\.1\.1:443.*8\.8\.8\.8:443.*208\.67\.222\.222:443/)
       end
+
+      it 'logs helper-reported probe failures to the configured output' do
+        probe_command = json_payload_command(
+          success:       false,
+          timed_out:     false,
+          probe_results: [
+            {
+              target:      { host: 'failed.test', port: 443 },
+              success:     false,
+              error_class: 'SocketError',
+            },
+          ]
+        )
+        allow(tester).to receive_messages(
+          tcp_test_endpoints:         [{ host: 'failed.test', port: 443 }],
+          connectivity_probe_command: probe_command
+        )
+
+        tester.tcp_connectivity?
+
+        expect(output.string).to include('Failed to connect to failed.test:443: SocketError')
+      end
+
+      it 'logs helper-reported probe successes to the configured output' do
+        probe_command = json_payload_command(
+          success:       true,
+          timed_out:     false,
+          probe_results: [
+            {
+              target:      { host: 'success.test', port: 443 },
+              success:     true,
+              error_class: nil,
+            },
+          ]
+        )
+        allow(tester).to receive_messages(
+          tcp_test_endpoints:         [{ host: 'success.test', port: 443 }],
+          connectivity_probe_command: probe_command
+        )
+
+        tester.tcp_connectivity?
+
+        expect(output.string).to include('Successfully connected to success.test:443')
+      end
     end
 
-    context 'with helper-reported failures' do
+    context 'when TCP probes fail' do
       let(:tester) { described_class.new(verbose: false) }
       let(:endpoints) do
         [
@@ -95,8 +144,10 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       before do
-        allow(tester).to receive_messages(tcp_test_endpoints: endpoints,
-          connectivity_probe_command: failure_command)
+        allow(tester).to receive_messages(
+          tcp_test_endpoints:         endpoints,
+          connectivity_probe_command: failure_command
+        )
       end
 
       it 'returns false when all endpoints fail' do
@@ -104,7 +155,7 @@ describe WifiWand::NetworkConnectivityTester do
       end
     end
 
-    context 'with helper-reported success' do
+    context 'when a TCP probe succeeds' do
       let(:tester) { described_class.new(verbose: false) }
       let(:endpoints) do
         [
@@ -114,10 +165,10 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       before do
-        allow(tester).to receive(:tcp_test_endpoints).and_return(endpoints)
-        allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
-          item == endpoints.last ? success_command : failure_command
-        end
+        allow(tester).to receive_messages(
+          tcp_test_endpoints:         endpoints,
+          connectivity_probe_command: success_command
+        )
       end
 
       it 'returns true when at least one endpoint succeeds' do
@@ -135,10 +186,10 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       before do
-        allow(tester).to receive(:tcp_test_endpoints).and_return(endpoints)
-        allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
-          item[:port] == 443 ? success_command : failure_command
-        end
+        allow(tester).to receive_messages(
+          tcp_test_endpoints:         endpoints,
+          connectivity_probe_command: success_command
+        )
       end
 
       it 'still reports connectivity when an alternate port succeeds' do
@@ -146,7 +197,7 @@ describe WifiWand::NetworkConnectivityTester do
       end
     end
 
-    it_behaves_like 'subprocess-based cancellation',
+    it_behaves_like 'single helper process cancellation',
       method_name:   :tcp_connectivity?,
       items_method:  :tcp_test_endpoints,
       success_items: [
@@ -164,21 +215,69 @@ describe WifiWand::NetworkConnectivityTester do
       let(:output) { StringIO.new }
       let(:tester) { described_class.new(verbose: true, output: output) }
 
-      before { mock_dns_resolution_failure }
+      before do
+        allow(tester).to receive(:connectivity_probe_command).and_return(failure_command)
+      end
 
       it 'outputs domain list to stdout' do
         tester.dns_working?
         expect(output.string).to match(/Testing DNS resolution for domains: .*\.com/)
       end
+
+      it 'logs helper-reported probe failures to the configured output' do
+        probe_command = json_payload_command(
+          success:       false,
+          timed_out:     false,
+          probe_results: [
+            {
+              target:      'failed.test',
+              success:     false,
+              error_class: 'SocketError',
+            },
+          ]
+        )
+        allow(tester).to receive_messages(
+          dns_test_domains:           ['failed.test'],
+          connectivity_probe_command: probe_command
+        )
+
+        tester.dns_working?
+
+        expect(output.string).to include('Failed to resolve failed.test: SocketError')
+      end
+
+      it 'logs helper-reported probe successes to the configured output' do
+        probe_command = json_payload_command(
+          success:       true,
+          timed_out:     false,
+          probe_results: [
+            {
+              target:      'success.test',
+              success:     true,
+              error_class: nil,
+            },
+          ]
+        )
+        allow(tester).to receive_messages(
+          dns_test_domains:           ['success.test'],
+          connectivity_probe_command: probe_command
+        )
+
+        tester.dns_working?
+
+        expect(output.string).to include('Successfully resolved success.test')
+      end
     end
 
-    context 'with helper-reported failures' do
+    context 'when DNS probes fail' do
       let(:tester) { described_class.new(verbose: false) }
       let(:domains) { %w[failed-a.test failed-b.test] }
 
       before do
-        allow(tester).to receive_messages(dns_test_domains: domains,
-          connectivity_probe_command: failure_command)
+        allow(tester).to receive_messages(
+          dns_test_domains:           domains,
+          connectivity_probe_command: failure_command
+        )
       end
 
       it 'returns false when all domains fail to resolve' do
@@ -186,15 +285,15 @@ describe WifiWand::NetworkConnectivityTester do
       end
     end
 
-    context 'with helper-reported success' do
+    context 'when a DNS probe succeeds' do
       let(:tester) { described_class.new(verbose: false) }
       let(:domains) { %w[failed.test success.test] }
 
       before do
-        allow(tester).to receive(:dns_test_domains).and_return(domains)
-        allow(tester).to receive(:connectivity_probe_command) do |item, _helper_mode|
-          item == domains.last ? success_command : failure_command
-        end
+        allow(tester).to receive_messages(
+          dns_test_domains:           domains,
+          connectivity_probe_command: success_command
+        )
       end
 
       it 'returns true when at least one domain resolves' do
@@ -202,72 +301,11 @@ describe WifiWand::NetworkConnectivityTester do
       end
     end
 
-    it_behaves_like 'subprocess-based cancellation',
+    it_behaves_like 'single helper process cancellation',
       method_name:   :dns_working?,
       items_method:  :dns_test_domains,
       success_items: %w[hung.test success.test],
       failing_items: %w[hung.test failed.test]
-  end
-
-  describe 'probe termination' do
-    let(:tester) { described_class.new(verbose: false) }
-
-    describe '#terminate_probe' do
-      let(:reader) { instance_double(IO, closed?: false) }
-      let(:probe) { { pid: 1234, reader: reader } }
-
-      it 'sends TERM, waits for exit, and finalizes the probe' do
-        allow(Process).to receive(:kill)
-        allow(tester).to receive(:wait_for_probe_exit)
-        allow(tester).to receive(:reap_probe)
-        allow(reader).to receive(:close)
-
-        tester.send(:terminate_probe, probe)
-
-        expect(Process).to have_received(:kill).with('TERM', 1234).ordered
-        expect(tester).to have_received(:wait_for_probe_exit).with(1234, grace: 0.05).ordered
-        expect(reader).to have_received(:close)
-        expect(tester).to have_received(:reap_probe).with(1234)
-        expect(probe[:pid]).to be_nil
-      end
-
-      it 'swallows ESRCH races and still finalizes the probe' do
-        allow(Process).to receive(:kill).with('TERM', 1234).and_raise(Errno::ESRCH)
-        allow(tester).to receive(:reap_probe)
-        allow(reader).to receive(:close)
-
-        expect { tester.send(:terminate_probe, probe) }.not_to raise_error
-        expect(reader).to have_received(:close)
-        expect(tester).to have_received(:reap_probe).with(1234)
-        expect(probe[:pid]).to be_nil
-      end
-    end
-
-    describe '#wait_for_probe_exit' do
-      it 'returns after a prompt reap without escalating to KILL' do
-        allow(tester).to receive(:reap_probe).with(1234).and_return(1234)
-        allow(Process).to receive(:kill)
-
-        tester.send(:wait_for_probe_exit, 1234)
-
-        expect(Process).not_to have_received(:kill).with('KILL', 1234)
-      end
-
-      it 'escalates to KILL when the probe misses the grace window' do
-        monotonic_times = [0.0, 0.01, 0.02, 0.03, 0.04, 0.05]
-        allow(Process).to receive(:clock_gettime)
-          .with(Process::CLOCK_MONOTONIC)
-          .and_return(*monotonic_times)
-        allow(tester).to receive(:sleep)
-        allow(tester).to receive(:reap_probe).with(1234).and_return(nil, nil, nil, nil, nil, 1234)
-        allow(Process).to receive(:kill)
-
-        tester.send(:wait_for_probe_exit, 1234)
-
-        expect(Process).to have_received(:kill).with('KILL', 1234)
-        expect(tester).to have_received(:reap_probe).with(1234).exactly(6).times
-      end
-    end
   end
 
   describe '#internet_connectivity_state' do
