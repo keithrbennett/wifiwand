@@ -22,8 +22,10 @@ module WifiWand
         output_support.handle_output(current_nameservers, human_readable_string_producer(current_nameservers))
       when :clear
         model.set_nameservers(:clear)
+        output_support.handle_output([], -> { 'Nameservers cleared.' })
       when :put
-        model.set_nameservers(args)
+        nameservers = model.set_nameservers(args)
+        output_support.handle_output(nameservers, -> { "Nameservers set to: #{nameservers.join(', ')}" })
       end
     end
 

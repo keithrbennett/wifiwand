@@ -354,17 +354,21 @@ describe WifiWand::CommandLineInterface do
       end
 
       context 'when clearing nameservers' do
-        it 'calls set_nameservers with clear' do
+        it 'outputs a cleared confirmation' do
           expect(mock_model).to receive(:set_nameservers).with(:clear)
-          invoke_command(cli, 'nameservers', 'clear')
+
+          expect { invoke_command(cli, 'nameservers', 'clear') }
+            .to output("Nameservers cleared.\n").to_stdout
         end
       end
 
       context 'when setting nameservers' do
-        it 'calls set_nameservers with provided addresses' do
+        it 'outputs a set confirmation' do
           new_servers = ['9.9.9.9', '8.8.4.4']
-          expect(mock_model).to receive(:set_nameservers).with(new_servers)
-          invoke_command(cli, 'nameservers', *new_servers)
+          expect(mock_model).to receive(:set_nameservers).with(new_servers).and_return(new_servers)
+
+          expect { invoke_command(cli, 'nameservers', *new_servers) }
+            .to output("Nameservers set to: 9.9.9.9, 8.8.4.4\n").to_stdout
         end
       end
     end

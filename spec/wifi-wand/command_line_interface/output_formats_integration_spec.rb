@@ -245,6 +245,39 @@ describe 'Output Format Integration Tests' do
           end
         end
 
+        if %i[json pretty_json yaml].include?(format_name)
+          context 'with nameserver mutation data' do
+            subject { WifiWand::CommandLineInterface.new(options) }
+
+            let(:options) { parse_options('-o', format_config[:code], 'na') }
+
+            it 'produces valid output when clearing nameservers' do
+              expect(mock_model).to receive(:set_nameservers).with(:clear)
+
+              output = silence_output do |stdout, _stderr|
+                invoke_command(subject, 'nameservers', 'clear')
+                stdout.string.strip
+              end
+
+              parsed = format_name == :yaml ? YAML.safe_load(output) : JSON.parse(output)
+              expect(parsed).to eq([])
+            end
+
+            it 'produces valid output when setting nameservers' do
+              nameservers = ['9.9.9.9', '8.8.4.4']
+              expect(mock_model).to receive(:set_nameservers).with(nameservers).and_return(nameservers)
+
+              output = silence_output do |stdout, _stderr|
+                invoke_command(subject, 'nameservers', *nameservers)
+                stdout.string.strip
+              end
+
+              parsed = format_name == :yaml ? YAML.safe_load(output) : JSON.parse(output)
+              expect(parsed).to eq(nameservers)
+            end
+          end
+        end
+
         context 'with hash data' do
           subject { WifiWand::CommandLineInterface.new(options) }
 

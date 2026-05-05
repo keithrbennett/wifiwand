@@ -52,14 +52,23 @@ describe WifiWand::NameserversCommand do
 
     it 'clears nameservers when asked' do
       expect(mock_model).to receive(:set_nameservers).with(:clear)
+      expect(output_support).to receive(:handle_output) do |nameservers, producer|
+        expect(nameservers).to eq([])
+        expect(producer.call).to eq('Nameservers cleared.')
+      end
 
       command.call('clear')
     end
 
     it 'sets provided nameservers' do
-      expect(mock_model).to receive(:set_nameservers).with(['9.9.9.9', '8.8.4.4'])
+      new_nameservers = ['9.9.9.9', '8.8.4.4']
+      expect(mock_model).to receive(:set_nameservers).with(new_nameservers).and_return(new_nameservers)
+      expect(output_support).to receive(:handle_output) do |nameservers, producer|
+        expect(nameservers).to eq(new_nameservers)
+        expect(producer.call).to eq('Nameservers set to: 9.9.9.9, 8.8.4.4')
+      end
 
-      command.call('9.9.9.9', '8.8.4.4')
+      command.call(*new_nameservers)
     end
   end
 end
