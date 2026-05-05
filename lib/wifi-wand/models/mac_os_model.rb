@@ -488,7 +488,7 @@ module WifiWand
         # Redaction detection is tied to the compiled helper application path
         # because that runtime surfaces Location Services blocking directly.
         result = mac_helper_client.connected_network_name
-        result.location_services_blocked? || placeholder_network_name?(result.payload)
+        result.location_services_error? || placeholder_network_name?(result.payload)
       end
     rescue WifiWand::Error
       false

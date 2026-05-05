@@ -104,16 +104,86 @@ RSpec.describe WifiWand::MacOsHelperBundle do
 
       it 'returns a result with the SSID payload' do
         raw_result.payload = { 'ssid' => 'OfficeWiFi' }
+        raw_result.status = :success
         result = client.connected_network_name
         expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
         expect(result.payload).to eq('OfficeWiFi')
+        expect(result.status).to eq(:connected)
+        expect(result).to be_connected
         expect(result).not_to be_location_services_blocked
       end
 
       it 'returns a result with nil payload when the helper does not respond' do
         result = client.connected_network_name
         expect(result.payload).to be_nil
+        expect(result.status).to eq(:unknown)
+        expect(result).to be_ambiguous
+        expect(result).not_to be_not_connected
         expect(result).not_to be_location_services_blocked
+      end
+
+      it 'classifies an explicit nil SSID from a successful helper response as not connected' do
+        raw_result.payload = { 'status' => 'ok', 'ssid' => nil }
+        raw_result.status = :success
+        result = client.connected_network_name
+        expect(result.payload).to be_nil
+        expect(result.status).to eq(:not_connected)
+        expect(result).to be_not_connected
+      end
+
+      it 'classifies an omitted optional SSID from a successful helper response as not connected' do
+        raw_result.payload = { 'status' => 'ok', 'interface' => 'en0' }
+        raw_result.status = :success
+        result = client.connected_network_name
+        expect(result.payload).to be_nil
+        expect(result.status).to eq(:not_connected)
+        expect(result).to be_not_connected
+      end
+
+      it 'classifies Location Services errors distinctly' do
+        raw_result.location_services_blocked = true
+        raw_result.error_message = 'Location Services denied'
+        raw_result.status = :location_services_blocked
+        result = client.connected_network_name
+        expect(result.payload).to be_nil
+        expect(result.status).to eq(:location_services_blocked)
+        expect(result).to be_location_services_blocked
+      end
+
+      it 'keeps helper unavailability ambiguous instead of treating it as disconnected' do
+        raw_result.status = :unavailable
+        result = client.connected_network_name
+        expect(result.payload).to be_nil
+        expect(result.status).to eq(:unavailable)
+        expect(result).to be_ambiguous
+        expect(result).not_to be_not_connected
+      end
+
+      it 'keeps malformed helper payloads non-fatal and ambiguous' do
+        raw_result.payload = { 'status' => 'ok' }
+        raw_result.status = :success
+        result = client.connected_network_name
+        expect(result.payload).to be_nil
+        expect(result.status).to eq(:unknown)
+        expect(result).to be_ambiguous
+      end
+
+      it 'classifies a non-object helper payload as an error' do
+        raw_result.payload = []
+        raw_result.status = :success
+        result = client.connected_network_name
+        expect(result.payload).to be_nil
+        expect(result.status).to eq(:error)
+        expect(result).to be_ambiguous
+      end
+
+      it 'preserves placeholder SSID payloads without classifying them as real connections' do
+        raw_result.payload = { 'status' => 'ok', 'ssid' => '<redacted>' }
+        raw_result.status = :success
+        result = client.connected_network_name
+        expect(result.payload).to eq('<redacted>')
+        expect(result.status).to eq(:unknown)
+        expect(result).to be_ambiguous
       end
     end
 
@@ -138,23 +208,60 @@ RSpec.describe WifiWand::MacOsHelperBundle do
 
       it 'returns a result with network data payload' do
         raw_result.payload = { 'networks' => [{ 'ssid' => 'Cafe' }] }
+        raw_result.status = :success
         result = client.scan_networks
         expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
         expect(result.payload).to eq([{ 'ssid' => 'Cafe' }])
+        expect(result.status).to eq(:success)
+        expect(result).not_to be_ambiguous
         expect(result).not_to be_location_services_blocked
       end
 
       it 'returns a result with empty array payload when the helper does not respond' do
         result = client.scan_networks
         expect(result.payload).to eq([])
+        expect(result.status).to eq(:unknown)
         expect(result).not_to be_location_services_blocked
+      end
+
+      {
+        unavailable:               { ambiguous: true },
+        timeout:                   { ambiguous: true },
+        error:                     { ambiguous: true, error_message: 'helper failed' },
+        location_services_blocked: {
+          ambiguous:                 false,
+          error_message:             'Location Services denied',
+          location_services_blocked: true,
+        },
+      }.each do |status, result_attributes|
+        it "passes through #{status} scan result status" do
+          raw_result.status = status
+          raw_result.error_message = result_attributes[:error_message]
+          raw_result.location_services_blocked = result_attributes[:location_services_blocked]
+
+          result = client.scan_networks
+          expect(result.payload).to eq([])
+          expect(result.status).to eq(status)
+          expect(result.ambiguous?).to eq(result_attributes[:ambiguous])
+          expect(result.location_services_blocked?).to eq(!!result_attributes[:location_services_blocked])
+        end
       end
     end
 
     describe '#location_services_blocked?' do
-      it 'returns true when the last helper error came from Location Services' do
-        client.send(:handle_error, 'Location Services authorization timed out')
+      it 'returns true when the last helper error was a denied Location Services permission' do
+        client.send(:handle_error, 'Location Services denied')
         expect(client.location_services_blocked?).to be(true)
+      end
+
+      it 'returns false when the last Location Services error was an authorization timeout' do
+        client.send(:handle_error, 'Location Services authorization timed out')
+        expect(client.location_services_blocked?).to be(false)
+      end
+
+      it 'returns false when the last Location Services error was an unknown authorization state' do
+        client.send(:handle_error, 'Location Services authorization status is unknown')
+        expect(client.location_services_blocked?).to be(false)
       end
 
       it 'returns false when the last helper error was unrelated' do
@@ -163,17 +270,78 @@ RSpec.describe WifiWand::MacOsHelperBundle do
       end
     end
 
+    describe WifiWand::MacOsHelperBundle::HelperQueryResult do
+      describe '#location_services_error?' do
+        it 'returns true for denied Location Services permission blocks' do
+          result = described_class.new(
+            location_services_blocked: true,
+            error_message:             'Location Services denied',
+            status:                    :location_services_blocked
+          )
+
+          expect(result).to be_location_services_error
+        end
+
+        it 'returns true for Location Services authorization timeouts' do
+          result = described_class.new(
+            error_message: 'Location Services authorization timed out',
+            status:        :timeout
+          )
+
+          expect(result).to be_location_services_error
+        end
+
+        it 'returns true for unknown Location Services authorization states' do
+          result = described_class.new(
+            error_message: 'Location Services authorization status is unknown',
+            status:        :unknown
+          )
+
+          expect(result).to be_location_services_error
+        end
+
+        it 'returns true for unclassified Location Services helper errors' do
+          result = described_class.new(
+            error_message: 'Location Services authorization cancelled',
+            status:        :error
+          )
+
+          expect(result).to be_location_services_error
+          expect(result).not_to be_location_services_blocked
+        end
+
+        it 'returns false for generic helper timeouts without Location Services context' do
+          result = described_class.new(status: :timeout)
+
+          expect(result).not_to be_location_services_error
+        end
+
+        it 'returns false for bare authorization timeouts without Location Services context' do
+          result = described_class.new(error_message: 'authorization timed out', status: :timeout)
+
+          expect(result).not_to be_location_services_error
+        end
+
+        it 'returns false for generic helper errors' do
+          result = described_class.new(error_message: 'unexpected failure', status: :error)
+
+          expect(result).not_to be_location_services_error
+        end
+      end
+    end
+
     describe '#execute' do
       subject(:execute_command) { client.send(:execute, command) }
 
       let(:client) do
         client_class.new(
-          available_result:    helper_available,
-          helper_command_proc: helper_command_proc,
-          parse_json_result:   parse_json_result,
-          out_stream_proc:     -> { out_stream },
-          verbose_proc:        -> { verbose_flag },
-          macos_version_proc:  -> { macos_version }
+          available_result:     helper_available,
+          executable_available: executable_available,
+          helper_command_proc:  helper_command_proc,
+          parse_json_result:    parse_json_result,
+          out_stream_proc:      -> { out_stream },
+          verbose_proc:         -> { verbose_flag },
+          macos_version_proc:   -> { macos_version }
         )
       end
 
@@ -182,9 +350,12 @@ RSpec.describe WifiWand::MacOsHelperBundle do
           attr_reader :handled_errors, :log_messages, :helper_command_invocations, :available_timeouts,
             :install_timeouts, :helper_command_timeouts
 
-          def initialize(available_result:, helper_command_proc:, parse_json_result:, **kwargs)
+          def initialize(
+            available_result:, executable_available:, helper_command_proc:, parse_json_result:, **kwargs
+          )
             super(**kwargs)
             @available_result = available_result
+            @executable_available = executable_available
             @helper_command_proc = helper_command_proc
             @parse_json_result = parse_json_result
             @handled_errors = []
@@ -195,13 +366,19 @@ RSpec.describe WifiWand::MacOsHelperBundle do
             @helper_command_timeouts = []
           end
 
-          private def available?(timeout_seconds: nil)
+          private def helper_availability_status(timeout_seconds: nil)
             @available_timeouts << timeout_seconds
-            @available_result
+            return @available_result unless [true, false].include?(@available_result)
+
+            @available_result ? :available : :unavailable
           end
 
           private def ensure_helper_installed(timeout_seconds: nil)
             @install_timeouts << timeout_seconds
+          end
+
+          private def helper_executable_available?
+            @executable_available
           end
 
           private def execute_helper_command(command, timeout_seconds: nil)
@@ -229,6 +406,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
 
       let(:command) { 'scan-networks' }
       let(:helper_available) { true }
+      let(:executable_available) { true }
       let(:parse_json_result) { :__use_super__ }
       let(:helper_command_proc) { ->(_command) { raise 'override in example' } }
 
@@ -240,7 +418,25 @@ RSpec.describe WifiWand::MacOsHelperBundle do
           result = execute_command
           expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to be_nil
+          expect(result.status).to eq(:unavailable)
+          expect(result).to be_ambiguous
+          expect(result).not_to be_not_connected
           expect(result).not_to be_location_services_blocked
+          expect(client.helper_command_invocations).to eq(0)
+        end
+      end
+
+      context 'when helper availability is unknown' do
+        let(:helper_available) { :unknown }
+        let(:helper_command_proc) { ->(_command) { raise 'should not run' } }
+
+        it 'returns an ambiguous result without treating the machine as disconnected' do
+          result = execute_command
+          expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
+          expect(result.payload).to be_nil
+          expect(result.status).to eq(:unknown)
+          expect(result).to be_ambiguous
+          expect(result).not_to be_not_connected
           expect(client.helper_command_invocations).to eq(0)
         end
       end
@@ -261,6 +457,8 @@ RSpec.describe WifiWand::MacOsHelperBundle do
           result = execute_command
           expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to eq('status' => 'ok', 'payload' => 1)
+          expect(result.status).to eq(:success)
+          expect(result).not_to be_ambiguous
           expect(result).not_to be_location_services_blocked
         end
 
@@ -289,7 +487,74 @@ RSpec.describe WifiWand::MacOsHelperBundle do
           result = execute_command
           expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to be_nil
+          expect(result.status).to eq(:error)
           expect(client.log_messages).to include('helper exited with status 64: boom')
+        end
+      end
+
+      context 'when the helper exits non-zero with a JSON error payload' do
+        let(:status) { instance_double(Process::Status, success?: false, exitstatus: 1) }
+        let(:helper_error_message) { 'Location Services denied' }
+        let(:helper_stderr) { 'helper diagnostic' }
+        let(:helper_command_proc) do
+          ->(_command) do
+            {
+              stdout: %({"status":"error","error":"#{helper_error_message}"}),
+              stderr: helper_stderr,
+              status: status,
+            }
+          end
+        end
+
+        it 'classifies the helper error before falling back to the exit status' do
+          result = execute_command
+          expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
+          expect(result.payload).to be_nil
+          expect(result.status).to eq(:location_services_blocked)
+          expect(result).to be_location_services_blocked
+          expect(result.error_message).to eq('Location Services denied')
+          expect(client.handled_errors).to include('Location Services denied')
+          expect(client.log_messages).to include('helper exited with status 1: helper diagnostic')
+        end
+
+        context 'with a Location Services authorization timeout' do
+          let(:helper_error_message) { 'Location Services authorization timed out' }
+
+          it 'classifies the result as a timeout instead of a permission block' do
+            result = execute_command
+            expect(result.payload).to be_nil
+            expect(result.status).to eq(:timeout)
+            expect(result).to be_ambiguous
+            expect(result).not_to be_location_services_blocked
+            expect(result.error_message).to eq('Location Services authorization timed out')
+          end
+        end
+
+        context 'with an unknown Location Services authorization status' do
+          let(:helper_error_message) { 'Location Services authorization status is unknown' }
+
+          it 'classifies the result as unknown instead of a permission block' do
+            result = execute_command
+            expect(result.payload).to be_nil
+            expect(result.status).to eq(:unknown)
+            expect(result).to be_ambiguous
+            expect(result).not_to be_location_services_blocked
+            expect(result.error_message).to eq('Location Services authorization status is unknown')
+          end
+        end
+
+        context 'with a bare authorization timeout' do
+          let(:helper_error_message) { 'authorization timed out' }
+
+          it 'keeps the result generic without Location Services context' do
+            result = execute_command
+            expect(result.payload).to be_nil
+            expect(result.status).to eq(:error)
+            expect(result).to be_ambiguous
+            expect(result).not_to be_location_services_blocked
+            expect(result).not_to be_location_services_error
+            expect(result.error_message).to eq('authorization timed out')
+          end
         end
       end
 
@@ -302,6 +567,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
           result = execute_command
           expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to be_nil
+          expect(result.status).to eq(:error)
         end
       end
 
@@ -321,6 +587,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
           result = execute_command
           expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result).to be_location_services_blocked
+          expect(result.status).to eq(:location_services_blocked)
           expect(result.error_message).to eq('Location Services denied')
           expect(client.handled_errors).to include('Location Services denied')
         end
@@ -333,8 +600,24 @@ RSpec.describe WifiWand::MacOsHelperBundle do
           result = execute_command
           expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to be_nil
+          expect(result.status).to eq(:timeout)
           expect(result).not_to be_location_services_blocked
           expect(result.error_message).to be_nil
+        end
+      end
+
+      context 'when the bounded install check leaves the helper executable missing' do
+        let(:executable_available) { false }
+        let(:helper_command_proc) { ->(_command) { raise 'should not run' } }
+
+        it 'returns unavailable instead of reporting a timeout' do
+          result = execute_command
+          expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
+          expect(result.payload).to be_nil
+          expect(result.status).to eq(:unavailable)
+          expect(result).to be_ambiguous
+          expect(result.error_message).to be_nil
+          expect(client.helper_command_invocations).to eq(0)
         end
       end
 
@@ -345,6 +628,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
           result = execute_command
           expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to be_nil
+          expect(result.status).to eq(:unavailable)
           has_missing_message = client.log_messages.any? do |message|
             message.match?(/helper executable missing:/)
           end
@@ -359,6 +643,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
           result = execute_command
           expect(result).to be_a(WifiWand::MacOsHelperBundle::HelperQueryResult)
           expect(result.payload).to be_nil
+          expect(result.status).to eq(:error)
           expect(client.log_messages).to include("helper command 'scan-networks' failed: boom")
         end
       end
@@ -556,6 +841,16 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         expect(out_stream.string).to include('Location Services denied')
       end
 
+      it 'does not emit a denied-permission warning when authorization times out' do
+        client.send(:handle_error, 'Location Services authorization timed out')
+        expect(out_stream.string).to eq('')
+      end
+
+      it 'does not emit a denied-permission warning when authorization status is unknown' do
+        client.send(:handle_error, 'Location Services authorization status is unknown')
+        expect(out_stream.string).to eq('')
+      end
+
       it 'logs non-location failures' do
         allow(client.instance_variable_get(:@verbose_proc)).to receive(:call).and_return(true)
         client.send(:handle_error, 'unexpected failure')
@@ -633,7 +928,9 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         second_result = client.scan_networks
 
         expect(first_result.payload).to be_nil
+        expect(first_result.status).to eq(:unavailable)
         expect(second_result.payload).to eq([])
+        expect(second_result.status).to eq(:unavailable)
         expect(WifiWand::MacOsHelperBundle).to have_received(:ensure_helper_installed).once
         expect(client.execute_helper_command_calls).to eq(0)
       end

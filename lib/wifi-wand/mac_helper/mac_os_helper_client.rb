@@ -4,13 +4,68 @@ require 'json'
 
 module WifiWand
   module MacOsHelperBundle
+    # Current-network query states. Ambiguous states preserve nil-payload fallback behavior
+    # while allowing future callers to choose a more specific fallback policy.
+    HELPER_QUERY_STATUSES = %i[
+      success
+      connected
+      not_connected
+      location_services_blocked
+      unavailable
+      timeout
+      error
+      unknown
+    ].freeze
+    AMBIGUOUS_HELPER_QUERY_STATUSES = %i[unavailable timeout error unknown].freeze
     HelperQueryResult = Struct.new(
       :payload,
       :location_services_blocked,
       :error_message,
+      :status,
       keyword_init: true
     ) do
+      def initialize(payload: nil, location_services_blocked: nil, error_message: nil, status: nil)
+        result_status = status || default_status(
+          location_services_blocked: location_services_blocked,
+          error_message:             error_message
+        )
+        unless HELPER_QUERY_STATUSES.include?(result_status)
+          raise ArgumentError, "unknown helper query status: #{result_status.inspect}"
+        end
+
+        super(
+          payload:                   payload,
+          location_services_blocked: location_services_blocked,
+          error_message:             error_message,
+          status:                    result_status
+        )
+      end
+
       def location_services_blocked? = !!location_services_blocked
+
+      def connected? = status == :connected
+
+      def not_connected? = status == :not_connected
+
+      def ambiguous? = AMBIGUOUS_HELPER_QUERY_STATUSES.include?(status)
+
+      def location_services_error?
+        return true if location_services_blocked?
+        return false if error_message.to_s.empty?
+
+        status == :location_services_blocked ||
+          error_message.downcase.include?('location services')
+      end
+
+      private def default_status(location_services_blocked:, error_message:)
+        if location_services_blocked
+          :location_services_blocked
+        elsif error_message
+          :error
+        else
+          :unknown
+        end
+      end
     end
   end
 
@@ -32,84 +87,162 @@ module WifiWand
 
     def connected_network_name(timeout_seconds: nil)
       result = execute('current-network', timeout_seconds: timeout_seconds)
-      ssid = result.payload&.fetch('ssid', nil)
+      ssid = result.payload.fetch('ssid', nil) if result.payload.is_a?(Hash)
       MacOsHelperBundle::HelperQueryResult.new(
         payload:                   ssid,
         location_services_blocked: result.location_services_blocked,
-        error_message:             result.error_message
+        error_message:             result.error_message,
+        status:                    connected_network_status(result)
       )
     end
 
     def scan_networks
       result = execute('scan-networks')
-      networks = result.payload&.fetch('networks', []) || []
+      payload = result.payload if result.payload.is_a?(Hash)
+      networks = payload&.fetch('networks', []) || []
       MacOsHelperBundle::HelperQueryResult.new(
         payload:                   networks,
         location_services_blocked: result.location_services_blocked,
-        error_message:             result.error_message
+        error_message:             result.error_message,
+        status:                    scan_network_status(result)
       )
     end
 
     def available?(timeout_seconds: nil)
-      return false if helper_disabled?
+      helper_availability_status(timeout_seconds: timeout_seconds) == :available
+    end
+
+    private def helper_availability_status(timeout_seconds: nil)
+      return :unavailable if helper_disabled?
 
       version = macos_version(timeout_seconds: timeout_seconds)
-      return false unless version
+      return :unknown unless version
 
       support_status = MacOsHelperBundle.helper_support_status_for_macos_version(version)
-      return true if support_status.supported?
+      return :available if support_status.supported?
 
       if support_status.unknown?
         log_verbose("macOS version '#{version}' does not match expected format")
+        return :unknown
       end
-      false
+      :unavailable
     end
 
     def location_services_blocked?
       return false unless @last_error_message
 
-      @last_error_message.downcase.include?('location services')
+      helper_error_status(@last_error_message) == :location_services_blocked
     end
 
     private def execute(command, timeout_seconds: nil)
       @last_error_message = nil
       deadline = helper_deadline(timeout_seconds)
       timeout_options = -> { helper_timeout_options(deadline) }
-      return MacOsHelperBundle::HelperQueryResult.new unless available?(**timeout_options.())
+      availability_status = helper_availability_status(**timeout_options.())
+      unless availability_status == :available
+        return MacOsHelperBundle::HelperQueryResult.new(status: availability_status)
+      end
 
       ensure_helper_installed(**timeout_options.())
-      return MacOsHelperBundle::HelperQueryResult.new if helper_disabled?
+      return MacOsHelperBundle::HelperQueryResult.new(status: :unavailable) if helper_disabled?
+      unless helper_executable_available?
+        return MacOsHelperBundle::HelperQueryResult.new(status: :unavailable)
+      end
 
       helper_result = execute_helper_command(command, timeout_seconds: remaining_helper_budget(deadline))
-      return MacOsHelperBundle::HelperQueryResult.new unless helper_result
+      return MacOsHelperBundle::HelperQueryResult.new(status: :timeout) unless helper_result
 
       stdout = helper_result[:stdout]
       stderr = helper_result[:stderr]
       status = helper_result[:status]
+      payload = parse_json(stdout) unless stdout.to_s.strip.empty?
+      if payload&.fetch('status', nil) == 'error'
+        log_helper_exit_failure(status, stderr) unless status.success?
+        return helper_error_result(payload['error'])
+      end
+
       unless status.success?
-        log_verbose("helper exited with status #{status.exitstatus}: #{stderr.strip}")
-        return MacOsHelperBundle::HelperQueryResult.new
+        log_helper_exit_failure(status, stderr)
+        return MacOsHelperBundle::HelperQueryResult.new(status: :error)
       end
 
-      payload = parse_json(stdout)
-      return MacOsHelperBundle::HelperQueryResult.new unless payload
+      return MacOsHelperBundle::HelperQueryResult.new(status: :error) unless payload
 
-      if payload['status'] == 'error'
-        error_msg = payload['error']
-        handle_error(error_msg)
-        return MacOsHelperBundle::HelperQueryResult.new(
-          location_services_blocked: error_msg&.downcase&.include?('location services'),
-          error_message:             error_msg
-        )
-      end
-
-      MacOsHelperBundle::HelperQueryResult.new(payload: payload)
+      MacOsHelperBundle::HelperQueryResult.new(payload: payload, status: :success)
     rescue Errno::ENOENT => e
       log_verbose("helper executable missing: #{e.message}")
-      MacOsHelperBundle::HelperQueryResult.new
+      MacOsHelperBundle::HelperQueryResult.new(status: :unavailable)
     rescue => e
       log_verbose("helper command '#{command}' failed: #{e.message}")
-      MacOsHelperBundle::HelperQueryResult.new
+      MacOsHelperBundle::HelperQueryResult.new(status: :error)
+    end
+
+    private def connected_network_status(result)
+      return result.status unless result.status == :success
+
+      payload = result.payload
+      return :error unless payload.is_a?(Hash)
+
+      unless payload.key?('ssid')
+        if payload['status'] == 'ok' && payload.key?('interface')
+          return :not_connected
+        else
+          return :unknown
+        end
+      end
+
+      ssid = payload['ssid']
+      return payload['status'] == 'ok' ? :not_connected : :unknown if ssid.nil?
+      return :unknown if helper_placeholder_ssid?(ssid)
+
+      :connected
+    end
+
+    private def scan_network_status(result)
+      return result.status unless result.status == :success
+
+      payload = result.payload
+      return :error unless payload.is_a?(Hash)
+
+      payload.key?('networks') ? :success : :unknown
+    end
+
+    private def helper_error_status(message)
+      normalized_message = message.to_s.downcase
+      if normalized_message.include?('location services') &&
+          normalized_message.include?('authorization timed out')
+        return :timeout
+      end
+
+      if normalized_message.include?('location services') &&
+          normalized_message.include?('authorization status is unknown')
+        return :unknown
+      end
+
+      if normalized_message.match?(/location services (?:denied|restricted)/)
+        return :location_services_blocked
+      end
+
+      :error
+    end
+
+    private def helper_error_result(message)
+      handle_error(message)
+      result_status = helper_error_status(message)
+      MacOsHelperBundle::HelperQueryResult.new(
+        location_services_blocked: result_status == :location_services_blocked,
+        error_message:             message,
+        status:                    result_status
+      )
+    end
+
+    private def log_helper_exit_failure(status, stderr)
+      log_verbose("helper exited with status #{status.exitstatus}: #{stderr.strip}")
+    end
+
+    private def helper_placeholder_ssid?(ssid)
+      value = ssid.to_s.strip
+      value.empty? || %w[<hidden> <redacted>].include?(value.downcase)
     end
 
     private def execute_helper_command(command, timeout_seconds: nil)
@@ -121,6 +254,10 @@ module WifiWand
           log_verbose("helper command '#{timed_out_command}' timed out after #{timeout_seconds}s")
         end
       )
+    end
+
+    private def helper_executable_available?
+      File.executable?(helper_executable_path)
     end
 
     private def ensure_helper_installed(timeout_seconds: nil)
@@ -172,7 +309,7 @@ module WifiWand
       return unless message
 
       @last_error_message = message
-      if message.downcase.include?('location services')
+      if helper_error_status(message) == :location_services_blocked
         emit_location_warning
       else
         log_verbose("helper error: #{message}")

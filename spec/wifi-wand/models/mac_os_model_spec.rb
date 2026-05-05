@@ -395,6 +395,37 @@ module WifiWand
             /Exact WiFi network identity.*wifi-wand-macos-setup.*wifiwand-helper/
           )
         end
+
+        [
+          ['Location Services authorization timed out', :timeout],
+          ['Location Services authorization status is unknown', :unknown],
+        ].each do |helper_error_message, helper_status|
+          it "preserves the exact-identity error for #{helper_status} Location Services helper errors" do
+            result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(
+              payload:                   nil,
+              location_services_blocked: false,
+              error_message:             helper_error_message,
+              status:                    helper_status
+            )
+            allow(helper_double).to receive(:connected_network_name).and_return(result)
+            allow(model).to receive_messages(
+              wifi_on?:       true,
+              connected?:     true,
+              airport_data:   { 'SPAirPortDataType' => [{
+                'spairport_airport_interfaces' => [{
+                  '_name'                                 => 'en0',
+                  'spairport_current_network_information' => { '_name' => nil },
+                }],
+              }] },
+              wifi_interface: 'en0'
+            )
+
+            expect { model.connected_network_name }.to raise_error(
+              WifiWand::MacOsRedactionError,
+              /Exact WiFi network identity.*wifi-wand-macos-setup.*wifiwand-helper/
+            )
+          end
+        end
       end
 
       describe '#associated?' do
