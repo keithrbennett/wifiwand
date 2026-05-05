@@ -138,6 +138,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         expect(result.payload).to be_nil
         expect(result.status).to eq(:not_connected)
         expect(result).to be_not_connected
+        expect(result).not_to be_location_services_blocked
       end
 
       it 'keeps old helper nil SSID responses ambiguous instead of treating them as disconnected' do

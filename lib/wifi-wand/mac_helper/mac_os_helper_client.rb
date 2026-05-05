@@ -194,7 +194,7 @@ module WifiWand
       helper_status = payload['status']
       ssid = payload['ssid']
       return :not_connected if helper_status == 'not_connected' && !real_helper_ssid?(ssid)
-      return :unknown if %w[connected not_connected].include?(helper_status) && !real_helper_ssid?(ssid)
+      return :unknown if helper_status == 'connected' && !real_helper_ssid?(ssid)
       return :unknown unless payload.key?('ssid')
       return :unknown if ssid.nil?
       return :unknown if helper_placeholder_ssid?(ssid)

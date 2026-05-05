@@ -141,7 +141,7 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
             }
         @unknown default:
             fputs("wifiwand-helper: Unknown authorization status\n", stderr)
-            emitLocationServicesError("Location Services authorization status is unknown")
+            emitHelperError("Location Services authorization status is unknown")
         }
     }
 
@@ -174,7 +174,7 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
         authorizationTimeoutWorkItem?.cancel()
         let workItem = DispatchWorkItem { [weak self] in
             guard let self = self, !self.hasExecuted else { return }
-            self.emitLocationServicesError("Location Services authorization timed out")
+            self.emitHelperError("Location Services authorization timed out")
         }
         authorizationTimeoutWorkItem = workItem
         DispatchQueue.main.asyncAfter(deadline: .now() + 10.0, execute: workItem)
@@ -188,8 +188,8 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
         emitHelperError(status: "permission_denied", message)
     }
 
-    private func emitHelperError(status: String = "error", _ message: String) {
-        guard !hasExecuted else { return }
+    private func emitHelperError(status: String = "error", _ message: String, afterExecutionStarted: Bool = false) {
+        guard !hasExecuted || afterExecutionStarted else { return }
         hasExecuted = true
         authorizationTimeoutWorkItem?.cancel()
         printJSON(["status": status, "error": message])
@@ -257,7 +257,7 @@ Click 'Open Settings' to go there now.
         authorizationTimeoutWorkItem?.cancel()
 
         guard let interface = obtainInterfaceWithRetry() else {
-            emitHelperError("no Wi-Fi interface")
+            emitHelperError("no Wi-Fi interface", afterExecutionStarted: true)
             return
         }
 
