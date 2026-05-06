@@ -81,7 +81,7 @@ module WifiWand
       ports
     end
 
-    def find_wifi_port(ports)
+    def wifi_port_from_ports(ports)
       ports.find do |port|
         name = port[:name].to_s
         next false if name.empty?
@@ -90,8 +90,8 @@ module WifiWand
       end
     end
 
-    def detect_wifi_service_name_from_ports(ports)
-      wifi_port = find_wifi_port(ports)
+    def wifi_service_name_from_ports(ports)
+      wifi_port = wifi_port_from_ports(ports)
       return wifi_port[:name] if wifi_port && wifi_port[:name] && !wifi_port[:name].empty?
 
       iface = @wifi_interface
@@ -141,35 +141,15 @@ module WifiWand
       :mac
     end
 
-    # Detects the Wi-Fi service name dynamically (e.g., "Wi-Fi", "AirPort", etc.)
-    def detect_wifi_service_name
-      @detect_wifi_service_name ||= begin
-        ports = fetch_hardware_ports
-        detect_wifi_service_name_from_ports(ports)
-      end
+    # Returns the Wi-Fi service name dynamically (e.g., "Wi-Fi", "AirPort", etc.)
+    def wifi_service_name
+      @wifi_service_name ||= wifi_service_name_from_ports(fetch_hardware_ports)
     end
-
-    # Preferred, clearer name for the Wi‑Fi service query.
-    # Kept alongside detect_wifi_service_name for backward compatibility.
-    def wifi_service_name = detect_wifi_service_name
 
     # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
     # This may not detect WiFi ports with nonstandard names, such as USB WiFi devices.
     def detect_wifi_interface_using_networksetup(timeout_in_secs: nil)
-      ports = fetch_hardware_ports(timeout_in_secs: timeout_in_secs)
-      service_name = detect_wifi_service_name_from_ports(ports)
-
-      if service_name && !service_name.empty?
-        @wifi_service_name = service_name
-      end
-
-      wifi_port = ports.find do |port|
-        port[:name] == service_name && port[:device] && !port[:device].empty?
-      end
-
-      wifi_port ||= find_wifi_port(ports)
-
-      iface = wifi_port && wifi_port[:device]
+      iface = wifi_interface_using_networksetup(timeout_in_secs: timeout_in_secs)
       raise WifiInterfaceError if iface.nil? || iface.empty?
 
       iface
@@ -181,25 +161,13 @@ module WifiWand
     def probe_wifi_interface(timeout_in_secs: nil)
       deadline = status_deadline(timeout_in_secs)
       begin
-        iface = detect_wifi_interface_using_networksetup(timeout_in_secs: status_timeout_for(deadline))
-        return iface if iface && !iface.to_s.empty?
-      rescue => _e
-        # Fall through to system_profiler fallback
+        iface = wifi_interface_using_networksetup(timeout_in_secs: status_timeout_for(deadline))
+        return iface if iface && !iface.empty?
+      rescue WifiWand::Error
+        # Fall through to system_profiler fallback.
       end
 
-      json_text = run_command_using_args(
-        SYSTEM_PROFILER_NETWORK_ARGS,
-        raise_on_error:  true,
-        timeout_in_secs: status_timeout_for(deadline) || SYSTEM_PROFILER_TIMEOUT_SECONDS
-      ).stdout
-      return nil if json_text.nil? || json_text.strip.empty?
-
-      net_data = JSON.parse(json_text)
-      nets = net_data['SPNetworkDataType']
-
-      return nil if nets.nil? || nets.empty?
-
-      detect_wifi_interface_from_profiler_networks(nets)
+      wifi_interface_using_system_profiler(timeout_in_secs: status_timeout_for(deadline))
     end
 
     # Returns the network names sorted in descending order of signal strength.
@@ -571,7 +539,7 @@ module WifiWand
     end
 
     def set_nameservers(nameservers) # rubocop:disable Naming/AccessorMethodName
-      service_name = detect_wifi_service_name
+      service_name = wifi_service_name
 
       if nameservers == :clear
         run_command_using_args(['networksetup', '-setdnsservers', service_name, 'empty'])
@@ -603,7 +571,7 @@ module WifiWand
     end
 
     def nameservers_using_networksetup
-      service_name = detect_wifi_service_name
+      service_name = wifi_service_name
       output = run_command_using_args(['networksetup', '-getdnsservers', service_name]).stdout
       if output == "There aren't any DNS Servers set on #{service_name}.\n"
         output = ''
@@ -647,9 +615,9 @@ module WifiWand
       :ok
     end
 
-    private :detect_wifi_service_name_from_ports,
+    private :wifi_service_name_from_ports,
       :fetch_hardware_ports,
-      :find_wifi_port,
+      :wifi_port_from_ports,
       :helper_available_network_names
 
     private def swift_runtime
@@ -754,6 +722,35 @@ module WifiWand
 
     private def no_connected_network?(network_name)
       network_name.equal?(NO_CONNECTED_NETWORK)
+    end
+
+    private def wifi_interface_using_networksetup(timeout_in_secs: nil)
+      ports = fetch_hardware_ports(timeout_in_secs: timeout_in_secs)
+      service_name = wifi_service_name_from_ports(ports)
+      @wifi_service_name = service_name if service_name && !service_name.empty?
+
+      wifi_port = ports.find do |port|
+        port[:name] == service_name && port[:device] && !port[:device].empty?
+      end
+      wifi_port ||= wifi_port_from_ports(ports)
+
+      iface = wifi_port && wifi_port[:device]
+      iface if iface && !iface.empty?
+    end
+
+    private def wifi_interface_using_system_profiler(timeout_in_secs: nil)
+      json_text = run_command_using_args(
+        SYSTEM_PROFILER_NETWORK_ARGS,
+        raise_on_error:  true,
+        timeout_in_secs: timeout_in_secs || SYSTEM_PROFILER_TIMEOUT_SECONDS
+      ).stdout
+      return nil if json_text.nil? || json_text.strip.empty?
+
+      net_data = JSON.parse(json_text)
+      nets = net_data['SPNetworkDataType']
+      return nil if nets.nil? || nets.empty?
+
+      detect_wifi_interface_from_profiler_networks(nets)
     end
 
     private def detect_wifi_interface_from_profiler_networks(nets)

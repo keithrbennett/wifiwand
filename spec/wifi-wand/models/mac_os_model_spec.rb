@@ -103,11 +103,11 @@ module WifiWand
           end
 
           it 'detects WiFi service name consistently' do
-            first_service = subject.detect_wifi_service_name
+            first_service = subject.wifi_service_name
             expect(first_service).not_to be_nil
 
             2.times do
-              expect(subject.detect_wifi_service_name).to eq(first_service)
+              expect(subject.wifi_service_name).to eq(first_service)
             end
           end
         end
@@ -148,7 +148,7 @@ module WifiWand
         end
       end
 
-      describe '#detect_wifi_service_name' do
+      describe '#wifi_service_name' do
         let(:networksetup_output) do
           "Hardware Port: Ethernet\nDevice: en1\nEthernet Address: aa:bb:cc:dd:ee:ff\n\n" \
             "Hardware Port: Wi-Fi\nDevice: en0\nEthernet Address: ac:bc:32:b9:a9:9d"
@@ -165,11 +165,11 @@ module WifiWand
 
           test_cases.each do |output, expected|
             # Clear any cached value and mock the command
-            model.instance_variable_set(:@detect_wifi_service_name, nil)
+            model.instance_variable_set(:@wifi_service_name, nil)
             allow(model).to receive(:run_command_using_args)
               .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
               .and_return(command_result(stdout: output))
-            expect(model.detect_wifi_service_name).to eq(expected)
+            expect(model.wifi_service_name).to eq(expected)
           end
         end
 
@@ -179,19 +179,19 @@ module WifiWand
             .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
             .and_return(command_result(stdout: no_wifi_output))
           allow(model).to receive(:wifi_interface).and_return('en0')
-          expect(model.detect_wifi_service_name).to eq('Wi-Fi')
+          expect(model.wifi_service_name).to eq('Wi-Fi')
         end
 
         it 'derives service name from previous Hardware Port line for detected interface' do
           # Ensure cache does not interfere
-          model.instance_variable_set(:@detect_wifi_service_name, nil)
+          model.instance_variable_set(:@wifi_service_name, nil)
           output = "Hardware Port: SpecialWifi\nDevice: en0\nEthernet Address: aa:bb:cc:dd:ee:ff\n\n" \
             "Hardware Port: Ethernet\nDevice: en1\n"
           allow(model).to receive(:run_command_using_args)
             .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
             .and_return(command_result(stdout: output))
           allow(model).to receive(:wifi_interface).and_return('en0')
-          expect(model.detect_wifi_service_name).to eq('SpecialWifi')
+          expect(model.wifi_service_name).to eq('SpecialWifi')
         end
       end
 
@@ -231,8 +231,6 @@ module WifiWand
           allow(model).to receive(:run_command_using_args)
             .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
             .and_return(command_result(stdout: output))
-          # Also exercise dynamic service name path
-          allow(model).to receive(:detect_wifi_service_name).and_call_original
           expect(model.detect_wifi_interface_using_networksetup).to eq('en0')
         end
 
@@ -241,10 +239,20 @@ module WifiWand
           allow(model).to receive(:run_command_using_args)
             .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
             .and_return(command_result(stdout: output))
-          allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
           expect do
             model.detect_wifi_interface_using_networksetup
           end.to raise_error(WifiWand::WifiInterfaceError)
+        end
+
+        it 'preserves networksetup command failures for direct callers' do
+          error = os_command_error(exitstatus: 1, command: 'networksetup', text: 'boom')
+          allow(model).to receive(:run_command_using_args)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+            .and_raise(error)
+
+          expect do
+            model.detect_wifi_interface_using_networksetup
+          end.to raise_error(WifiWand::CommandExecutor::OsCommandError, /boom/)
         end
       end
 
@@ -999,8 +1007,8 @@ module WifiWand
 
           test_cases.each do |output, expected|
             allow(model).to receive_messages(
-              detect_wifi_service_name: 'Wi-Fi',
-              run_command_using_args:   command_result(stdout: output)
+              wifi_service_name:      'Wi-Fi',
+              run_command_using_args: command_result(stdout: output)
             )
             expect(model.nameservers_using_networksetup).to eq(expected)
           end
@@ -1038,7 +1046,7 @@ module WifiWand
           ]
 
           test_cases.each do |tc|
-            allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
+            allow(model).to receive(:wifi_service_name).and_return('Wi-Fi')
             if tc[:input] == :clear
               expect(model).to receive(:run_command_using_args)
                 .with(['networksetup', '-setdnsservers', 'Wi-Fi', 'empty'])
@@ -1061,7 +1069,7 @@ module WifiWand
           ]
 
           ipv6_test_cases.each do |tc|
-            allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
+            allow(model).to receive(:wifi_service_name).and_return('Wi-Fi')
             expect(model).to receive(:run_command_using_args).with(['networksetup', '-setdnsservers',
               'Wi-Fi'] + tc[:input])
             expect(model.set_nameservers(tc[:input])).to eq(tc[:input])
@@ -1069,7 +1077,7 @@ module WifiWand
         end
 
         it 'validates IP addresses and raises error for invalid ones' do
-          allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
+          allow(model).to receive(:wifi_service_name).and_return('Wi-Fi')
           invalid_nameservers = ['8.8.8.8', 'invalid.ip', '2001:db8:::1']
           silence_output do
             expect { model.set_nameservers(invalid_nameservers) }
@@ -1080,7 +1088,7 @@ module WifiWand
         end
 
         it 'treats nil nameserver input as invalid' do
-          allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
+          allow(model).to receive(:wifi_service_name).and_return('Wi-Fi')
           invalid_nameservers = ['8.8.8.8', nil]
 
           silence_output do
@@ -1092,7 +1100,7 @@ module WifiWand
         end
 
         it 'treats non-string nameserver input as invalid' do
-          allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
+          allow(model).to receive(:wifi_service_name).and_return('Wi-Fi')
           invalid_nameservers = ['8.8.8.8', 123]
 
           silence_output do
@@ -1195,7 +1203,7 @@ module WifiWand
         before do
           allow_any_instance_of(described_class).to receive(:probe_wifi_interface).and_call_original
           # Force fallback path to system_profiler for deterministic tests
-          allow_any_instance_of(described_class).to receive(:detect_wifi_interface_using_networksetup)
+          allow_any_instance_of(described_class).to receive(:wifi_interface_using_networksetup)
             .and_return(nil)
         end
 
@@ -1233,8 +1241,9 @@ module WifiWand
         end
 
         it 'uses system_profiler fallback without re-entering networksetup after failure' do
-          allow(model).to receive(:detect_wifi_interface_using_networksetup).and_raise(StandardError, 'boom')
-          allow(model).to receive(:detect_wifi_service_name).and_raise('should not be called')
+          allow(model).to receive(:fetch_hardware_ports)
+            .and_raise(os_command_error(exitstatus: 1, command: 'networksetup', text: 'boom'))
+          allow(model).to receive(:wifi_service_name).and_raise('should not be called')
           allow(model).to receive(:run_command_using_args)
             .and_return(command_result(stdout: system_profiler_output))
 
@@ -1242,7 +1251,7 @@ module WifiWand
         end
 
         it 'passes the remaining probe timeout into the system_profiler fallback' do
-          allow(model).to receive(:detect_wifi_interface_using_networksetup) do
+          allow(model).to receive(:fetch_hardware_ports) do
             sleep(0.01)
             raise WifiWand::CommandTimeoutError.new(command: 'networksetup', timeout_in_secs: 0.5)
           end
@@ -2166,7 +2175,7 @@ module WifiWand
         end
       end
 
-      describe '#detect_wifi_service_name edge cases' do
+      describe '#wifi_service_name edge cases' do
         it 'returns Wi-Fi as final fallback when all detection fails' do
           no_wifi_output = "Hardware Port: Ethernet\nDevice: en1"
           allow(model).to receive(:run_command_using_args)
@@ -2174,14 +2183,14 @@ module WifiWand
             .and_return(command_result(stdout: no_wifi_output))
           allow(model).to receive(:wifi_interface).and_return('en0')
 
-          result = model.detect_wifi_service_name
+          result = model.wifi_service_name
           expect(result).to eq('Wi-Fi')
         end
       end
 
       describe '#set_nameservers IP validation edge cases' do
         it 'identifies mixed valid and invalid IP addresses (IPv4 and IPv6)' do
-          allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
+          allow(model).to receive(:wifi_service_name).and_return('Wi-Fi')
           mixed_ips = ['8.8.8.8', 'invalid.ip', '2606:4700:4700::1111', '1.1.1.1', '999.999.999.999']
 
           silence_output do
@@ -2195,7 +2204,7 @@ module WifiWand
         end
 
         it 'treats IPAddr invalid-address errors as invalid input' do
-          allow(model).to receive(:detect_wifi_service_name).and_return('Wi-Fi')
+          allow(model).to receive(:wifi_service_name).and_return('Wi-Fi')
           allow(IPAddr).to receive(:new).with('problematic.ip')
             .and_raise(IPAddr::InvalidAddressError, 'Parse error')
           allow(IPAddr).to receive(:new).with('8.8.8.8').and_call_original
