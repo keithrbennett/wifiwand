@@ -3,11 +3,12 @@
 module WifiWand
   class RuntimeConfig
     attr_reader :verbose
-    attr_accessor :out_stream
+    attr_accessor :out_stream, :err_stream
 
-    def initialize(verbose: false, out_stream: $stdout)
+    def initialize(verbose: false, out_stream: $stdout, err_stream: $stderr)
       @verbose = !!verbose
       @out_stream = out_stream
+      @err_stream = err_stream
     end
 
     def verbose=(value)
@@ -18,6 +19,7 @@ module WifiWand
       {
         verbose:    verbose,
         out_stream: out_stream,
+        err_stream: err_stream,
       }
     end
   end

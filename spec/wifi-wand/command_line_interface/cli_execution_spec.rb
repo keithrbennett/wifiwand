@@ -189,6 +189,86 @@ describe WifiWand::CommandLineInterface do
       expect(err_stream.string).to be_empty
     end
 
+    {
+      'Location Services denial'    => {
+        diagnostic: 'wifiwand helper: Location Services denied. Run `wifi-wand-macos-setup`.',
+        scan:       {
+          'networks'          => [],
+          'scan_status'       => 'location_services_blocked',
+          'scan_source'       => 'fallback',
+          'ssid_data_trusted' => false,
+          'warning'           => 'macOS blocked wifiwand-helper from reading WiFi SSIDs',
+        },
+      },
+      'helper installation failure' => {
+        diagnostic: 'wifiwand helper: failed to install helper (boom). Helper disabled until the next run.',
+        scan:       {
+          'networks'          => ['Cafe'],
+          'scan_status'       => 'ok',
+          'scan_source'       => 'fallback',
+          'ssid_data_trusted' => true,
+          'warning'           => nil,
+        },
+      },
+    }.each do |description, data|
+      it "keeps avail_nets JSON valid when the macOS helper reports #{description}" do
+        out_stream = StringIO.new
+        err_stream = StringIO.new
+        fake_os = double('mac_os')
+        allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(fake_os)
+        allow(fake_os).to receive(:create_model) do |model_options|
+          double('mac_model').tap do |model|
+            allow(model).to receive(:available_network_scan) do
+              model_options.fetch(:err_stream).puts(data.fetch(:diagnostic))
+              data.fetch(:scan)
+            end
+          end
+        end
+        opts = create_cli_options(
+          argv:           ['avail_nets'],
+          out_stream:     out_stream,
+          err_stream:     err_stream,
+          post_processor: ->(object) { JSON.generate(object) }
+        )
+        json_cli = described_class.new(opts)
+
+        expect(json_cli.call).to eq(described_class::SUCCESS_EXIT_CODE)
+        expect(JSON.parse(out_stream.string)).to eq(data.fetch(:scan))
+        expect(out_stream.string).not_to include('wifiwand helper:')
+        expect(err_stream.string).to include(data.fetch(:diagnostic))
+      end
+    end
+
+    it 'keeps helper diagnostics on stderr for normal text avail_nets output' do
+      out_stream = StringIO.new
+      err_stream = StringIO.new
+      diagnostic = 'wifiwand helper: Location Services denied. Run `wifi-wand-macos-setup`.'
+      scan = {
+        'networks'          => [],
+        'scan_status'       => 'location_services_blocked',
+        'scan_source'       => 'fallback',
+        'ssid_data_trusted' => false,
+        'warning'           => 'macOS blocked wifiwand-helper from reading WiFi SSIDs',
+      }
+      fake_os = double('mac_os')
+      allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(fake_os)
+      allow(fake_os).to receive(:create_model) do |model_options|
+        double('mac_model').tap do |model|
+          allow(model).to receive(:available_network_scan) do
+            model_options.fetch(:err_stream).puts(diagnostic)
+            scan
+          end
+        end
+      end
+      opts = create_cli_options(argv: ['avail_nets'], out_stream: out_stream, err_stream: err_stream)
+      text_cli = described_class.new(opts)
+
+      expect(text_cli.call).to eq(described_class::SUCCESS_EXIT_CODE)
+      expect(out_stream.string).not_to include('wifiwand helper:')
+      expect(out_stream.string).to include('Warning: macOS blocked wifiwand-helper')
+      expect(err_stream.string).to include(diagnostic)
+    end
+
     it 'returns failure when avail_nets cannot scan because WiFi is off' do
       allow(mock_model).to receive(:available_network_names)
         .and_raise(WifiWand::WifiOffError.new('WiFi is off, cannot scan for available networks.'))

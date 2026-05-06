@@ -83,8 +83,9 @@ module WifiWand
     # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
     HELPER_READ_BOUNDARY_ERROR = StandardError
 
-    def initialize(out_stream_proc:, verbose_proc:, macos_version_proc:)
+    def initialize(out_stream_proc:, verbose_proc:, macos_version_proc:, err_stream_proc: nil)
       @out_stream_proc = out_stream_proc
+      @err_stream_proc = err_stream_proc
       @verbose_proc = verbose_proc
       @macos_version_proc = macos_version_proc
       @location_warning_emitted = false
@@ -303,7 +304,7 @@ module WifiWand
         log_verbose('helper not installed; running installer')
       end
 
-      WifiWand::MacOsHelperBundle.ensure_helper_installed(out_stream: verbose? ? out_stream : nil)
+      WifiWand::MacOsHelperBundle.ensure_helper_installed(out_stream: verbose? ? err_stream : nil)
       @helper_install_verified = true
     rescue HELPER_READ_BOUNDARY_ERROR => e
       # Installation is best-effort during normal reads. Disable retries for
@@ -341,7 +342,7 @@ module WifiWand
     private def emit_location_warning
       return if @location_warning_emitted
 
-      stream = out_stream || $stdout
+      stream = err_stream || $stderr
       if stream
         stream.puts('wifiwand helper: Location Services denied. ' \
           'Run `wifi-wand-macos-setup` (or `wifi-wand-macos-setup --reinstall`) ' \
@@ -351,7 +352,7 @@ module WifiWand
     end
 
     private def emit_install_failure(detail, reinstall_required: false)
-      stream = out_stream || $stdout
+      stream = err_stream || $stderr
       if stream
         reinstall_hint = if reinstall_required
           ' Run `wifi-wand-macos-setup --reinstall` to reinstall it.'
@@ -366,7 +367,7 @@ module WifiWand
     private def log_verbose(message)
       return unless verbose?
 
-      stream = out_stream || $stdout
+      stream = err_stream || $stderr
       stream.puts("wifiwand helper: #{message}") if stream
     end
 
@@ -398,6 +399,10 @@ module WifiWand
     end
 
     private def out_stream = @out_stream_proc&.call
+
+    private def err_stream
+      @err_stream_proc&.call
+    end
 
     private def verbose? = !!(@verbose_proc && @verbose_proc.call)
   end

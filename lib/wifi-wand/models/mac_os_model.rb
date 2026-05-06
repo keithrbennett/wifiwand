@@ -517,6 +517,7 @@ module WifiWand
     def mac_helper_client
       @mac_helper_client ||= WifiWand::MacOsHelperClient.new(
         out_stream_proc:    -> { out_stream },
+        err_stream_proc:    -> { err_stream },
         verbose_proc:       -> { verbose? },
         macos_version_proc: ->(timeout_in_secs: nil) { macos_version(timeout_in_secs: timeout_in_secs) }
       )

@@ -23,7 +23,7 @@ require_relative '../services/status_line_data_builder'
 
 module WifiWand
   class BaseModel
-    Options = Struct.new(:verbose, :wifi_interface, :out_stream, keyword_init: true)
+    Options = Struct.new(:verbose, :wifi_interface, :out_stream, :err_stream, keyword_init: true)
 
     attr_writer :wifi_interface
     attr_reader :runtime_config
@@ -46,7 +46,8 @@ module WifiWand
       @options = options
       @runtime_config = RuntimeConfig.new(
         verbose:    options.verbose,
-        out_stream: options.out_stream || $stdout
+        out_stream: options.out_stream || $stdout,
+        err_stream: options.err_stream || $stderr
       )
       @command_executor = CommandExecutor.new(runtime_config: @runtime_config)
       @connectivity_tester = NetworkConnectivityTester.new(runtime_config: @runtime_config)
@@ -60,6 +61,8 @@ module WifiWand
     def out_stream=(stream)
       runtime_config.out_stream = stream
     end
+
+    def err_stream = runtime_config.err_stream
 
     def verbose? = runtime_config.verbose
 

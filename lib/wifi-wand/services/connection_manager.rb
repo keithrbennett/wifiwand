@@ -244,7 +244,7 @@ module WifiWand
     end
 
     private def log_verbose(message)
-      runtime_config.out_stream.puts(message) if verbose?
+      runtime_config.err_stream.puts(message) if verbose?
     end
 
     private def redacted_identity_reason_for_connection(network_name, error)

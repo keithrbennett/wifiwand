@@ -321,23 +321,9 @@ describe WifiWand::ConnectionManager do
 
       it 'logs lookup errors in verbose mode before treating verification as unknown' do
         output = StringIO.new
-        runtime_config = WifiWand::RuntimeConfig.new(verbose: true, out_stream: output)
-        manager = described_class.new(mock_model, runtime_config: runtime_config)
-
-        allow(manager).to receive(:wait_for_connection_activation)
-        allow(mock_model).to receive(:connection_ready?).and_return(false, false)
-        allow(mock_model).to receive(:connected_network_name).and_raise(WifiWand::Error, 'lookup failed')
-
-        expect { manager.connect('TestNetwork') }.to raise_error(WifiWand::NetworkConnectionError)
-        expect(output.string).to include(
-          "Connection verification could not read current network for 'TestNetwork': " \
-            'WifiWand::Error: lookup failed'
-        )
-      end
-
-      it 'keeps lookup errors quiet when verbose mode is disabled' do
-        output = StringIO.new
-        runtime_config = WifiWand::RuntimeConfig.new(verbose: false, out_stream: output)
+        error_stringio = StringIO.new
+        runtime_config = WifiWand::RuntimeConfig.new(verbose: true, out_stream: output,
+          err_stream: error_stringio)
         manager = described_class.new(mock_model, runtime_config: runtime_config)
 
         allow(manager).to receive(:wait_for_connection_activation)
@@ -346,6 +332,26 @@ describe WifiWand::ConnectionManager do
 
         expect { manager.connect('TestNetwork') }.to raise_error(WifiWand::NetworkConnectionError)
         expect(output.string).to be_empty
+        expect(error_stringio.string).to include(
+          "Connection verification could not read current network for 'TestNetwork': " \
+            'WifiWand::Error: lookup failed'
+        )
+      end
+
+      it 'keeps lookup errors quiet when verbose mode is disabled' do
+        output = StringIO.new
+        error_stringio = StringIO.new
+        runtime_config = WifiWand::RuntimeConfig.new(verbose: false, out_stream: output,
+          err_stream: error_stringio)
+        manager = described_class.new(mock_model, runtime_config: runtime_config)
+
+        allow(manager).to receive(:wait_for_connection_activation)
+        allow(mock_model).to receive(:connection_ready?).and_return(false, false)
+        allow(mock_model).to receive(:connected_network_name).and_raise(WifiWand::Error, 'lookup failed')
+
+        expect { manager.connect('TestNetwork') }.to raise_error(WifiWand::NetworkConnectionError)
+        expect(output.string).to be_empty
+        expect(error_stringio.string).to be_empty
       end
     end
   end

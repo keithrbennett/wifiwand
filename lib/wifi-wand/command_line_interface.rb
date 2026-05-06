@@ -41,6 +41,7 @@ module WifiWand
         verbose:        options.verbose,
         wifi_interface: options.wifi_interface,
         out_stream:     out_stream,
+        err_stream:     err_stream,
       }
 
       # Skip model initialization when help was explicitly requested in non-interactive mode,

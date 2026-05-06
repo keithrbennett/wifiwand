@@ -9,12 +9,14 @@ RSpec.describe WifiWand::MacOsHelperBundle do
     subject(:client) do
       described_class.new(
         out_stream_proc:    -> { out_stream },
+        err_stream_proc:    -> { err_stream },
         verbose_proc:       -> { verbose_flag },
         macos_version_proc: -> { macos_version }
       )
     end
 
     let(:out_stream) { StringIO.new }
+    let(:err_stream) { out_stream }
     let(:verbose_flag) { false }
     let(:macos_version) { '14.0' }
 
@@ -95,6 +97,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         end.new(
           execute_result:     raw_result,
           out_stream_proc:    -> { out_stream },
+          err_stream_proc:    -> { err_stream },
           verbose_proc:       -> { verbose_flag },
           macos_version_proc: -> { macos_version }
         )
@@ -232,6 +235,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         end.new(
           execute_result:     raw_result,
           out_stream_proc:    -> { out_stream },
+          err_stream_proc:    -> { err_stream },
           verbose_proc:       -> { verbose_flag },
           macos_version_proc: -> { macos_version }
         )
@@ -396,6 +400,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
           helper_command_proc:  helper_command_proc,
           parse_json_result:    parse_json_result,
           out_stream_proc:      -> { out_stream },
+          err_stream_proc:      -> { err_stream },
           verbose_proc:         -> { verbose_flag },
           macos_version_proc:   -> { macos_version }
         )
@@ -940,6 +945,17 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         expect(out_stream.string).to include('Location Services denied')
       end
 
+      context 'with a separate error stream' do
+        let(:err_stream) { StringIO.new }
+
+        it 'keeps Location Services warnings out of the output stream' do
+          client.send(:handle_error, 'Location Services denied by user')
+
+          expect(out_stream.string).to eq('')
+          expect(err_stream.string).to include('Location Services denied')
+        end
+      end
+
       it 'does not emit a denied-permission warning when authorization times out' do
         client.send(:handle_error, 'Location Services authorization timed out')
         expect(out_stream.string).to eq('')
@@ -977,6 +993,17 @@ RSpec.describe WifiWand::MacOsHelperBundle do
         expect(out_stream.string).to include('failed to install helper (boom)')
       end
 
+      context 'with a separate error stream' do
+        let(:err_stream) { StringIO.new }
+
+        it 'keeps install failures out of the output stream' do
+          client.send(:emit_install_failure, 'boom')
+
+          expect(out_stream.string).to eq('')
+          expect(err_stream.string).to include('failed to install helper (boom)')
+        end
+      end
+
       it 'includes reinstall guidance when an existing helper install is corrupt' do
         client.send(:emit_install_failure, 'boom', reinstall_required: true)
         expect(out_stream.string).to include('wifi-wand-macos-setup --reinstall')
@@ -987,6 +1014,7 @@ RSpec.describe WifiWand::MacOsHelperBundle do
       subject(:client) do
         client_class.new(
           out_stream_proc:    -> { out_stream },
+          err_stream_proc:    -> { err_stream },
           verbose_proc:       -> { verbose_flag },
           macos_version_proc: -> { macos_version }
         )
