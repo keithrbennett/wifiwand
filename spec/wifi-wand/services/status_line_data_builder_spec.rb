@@ -21,6 +21,9 @@ describe WifiWand::StatusLineDataBuilder do
 
   let(:progress_updates) { [] }
   let(:builder) do
+    described_class.new(model, verbose: false, out_stream: StringIO.new)
+  end
+  let(:fast_timeout_builder) do
     described_class.new(
       model,
       verbose:                                    false,
@@ -130,7 +133,10 @@ describe WifiWand::StatusLineDataBuilder do
     it 'uses a bounded status wifi lookup before starting workers' do
       expect(model).not_to receive(:wifi_on?)
       expect(model).to receive(:status_wifi_on?) do |timeout_in_secs:|
-        expect(timeout_in_secs).to be_between(0, 0.05).exclusive
+        expect(timeout_in_secs).to be_between(
+          0,
+          described_class::DEFAULT_NETWORK_WORKER_RESULT_TIMEOUT_SECONDS
+        ).exclusive
         true
       end
 
@@ -509,7 +515,7 @@ describe WifiWand::StatusLineDataBuilder do
         )
       end
 
-      result = builder.call(progress_callback: ->(data) { progress_updates << data })
+      result = fast_timeout_builder.call(progress_callback: ->(data) { progress_updates << data })
 
       expect(result).to eq(
         wifi_on:                       true,
@@ -591,7 +597,7 @@ describe WifiWand::StatusLineDataBuilder do
         { success: false, timed_out: true }
       end
 
-      result = builder.call(progress_callback: ->(data) { progress_updates << data })
+      result = fast_timeout_builder.call(progress_callback: ->(data) { progress_updates << data })
 
       expect(result).to eq(
         wifi_on:                       true,
