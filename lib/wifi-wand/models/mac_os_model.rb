@@ -22,6 +22,11 @@ module WifiWand
     SYSTEM_PROFILER_TIMEOUT_SECONDS = 15
     KEYCHAIN_LOOKUP_TIMEOUT_SECONDS = 5
     SUDO_NETWORKSETUP_TIMEOUT_SECONDS = 5
+    AIRPORT_COMMAND =
+      '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
+    SYSTEM_PROFILER_AIRPORT_ARGS = %w[system_profiler -json SPAirPortDataType].freeze
+    SYSTEM_PROFILER_NETWORK_ARGS = %w[system_profiler -json SPNetworkDataType].freeze
+    NO_CONNECTED_NETWORK = Object.new.freeze
 
     # Keychain exit code handlers for password retrieval
     # Exit codes and their meanings:
@@ -183,7 +188,7 @@ module WifiWand
       end
 
       json_text = run_command_using_args(
-        %w[system_profiler -json SPNetworkDataType],
+        SYSTEM_PROFILER_NETWORK_ARGS,
         raise_on_error:  true,
         timeout_in_secs: status_timeout_for(deadline) || SYSTEM_PROFILER_TIMEOUT_SECONDS
       ).stdout
@@ -202,6 +207,9 @@ module WifiWand
       with_airport_data_cache_scope do
         helper_networks = helper_available_network_names
         return helper_networks if helper_networks
+
+        airport_networks = airport_available_network_names
+        return airport_networks if airport_networks
 
         iface = wifi_interface
         data = airport_data
@@ -339,6 +347,10 @@ module WifiWand
         end
         return { connected: false, network_name: nil } if helper_result.not_connected?
 
+        fast_network_name = status_network_name_using_fast_commands(deadline)
+        return { connected: false, network_name: nil } if no_connected_network?(fast_network_name)
+        return { connected: true, network_name: fast_network_name } if fast_network_name
+
         interface_data = wifi_interface_airport_data(deadline: deadline)
         connected = interface_associated_in_airport_data?(interface_data) ||
           status_associated_without_ssid?(deadline)
@@ -449,8 +461,10 @@ module WifiWand
     def connected_network_name
       raise WifiOffError, 'WiFi is off, cannot determine connected network.' unless wifi_on?
 
+      @connected_network_authoritatively_disconnected = false
       network_name = _connected_network_name
       return network_name if network_name
+      return nil if connected_network_authoritatively_disconnected?
 
       if connected? && network_identity_redacted?
         raise MacOsRedactionError.new(
@@ -460,9 +474,18 @@ module WifiWand
       end
 
       nil
+    ensure
+      @connected_network_authoritatively_disconnected = false
     end
 
     def _connected_network_name
+      network_name = connected_network_name_candidate
+      return mark_connected_network_authoritatively_disconnected if no_connected_network?(network_name)
+
+      network_name
+    end
+
+    private def connected_network_name_candidate
       with_airport_data_cache_scope do
         # Current-network reads check the compiled helper application path first
         # because it is the read/query runtime with stable app identity and
@@ -471,6 +494,10 @@ module WifiWand
         ssid = result.payload
         return ssid if ssid && !placeholder_network_name?(ssid)
         return nil if result.not_connected?
+
+        fast_network_name = network_name_using_fast_commands
+        return fast_network_name if no_connected_network?(fast_network_name)
+        return fast_network_name if fast_network_name
 
         wifi_interface_data = wifi_interface_airport_data
 
@@ -485,6 +512,15 @@ module WifiWand
         network_name = current_network['_name']
         placeholder_network_name?(network_name) ? nil : network_name
       end
+    end
+
+    private def mark_connected_network_authoritatively_disconnected
+      @connected_network_authoritatively_disconnected = true
+      nil
+    end
+
+    private def connected_network_authoritatively_disconnected?
+      @connected_network_authoritatively_disconnected
     end
 
     def network_identity_redacted?
@@ -632,6 +668,92 @@ module WifiWand
         out_stream_proc:     -> { out_stream },
         verbose_proc:        -> { verbose? }
       )
+    end
+
+    private def network_name_using_fast_commands(timeout_in_secs: nil)
+      network_name = connected_network_name_using_networksetup(timeout_in_secs: timeout_in_secs)
+      return network_name if network_name
+
+      connected_network_name_using_airport(timeout_in_secs: timeout_in_secs)
+    end
+
+    private def status_network_name_using_fast_commands(deadline)
+      iface = status_wifi_interface(deadline)
+      return nil unless iface
+
+      network_name = connected_network_name_using_networksetup(
+        iface:           iface,
+        timeout_in_secs: status_timeout_for(deadline)
+      )
+      return network_name if network_name
+
+      connected_network_name_using_airport(timeout_in_secs: status_timeout_for(deadline))
+    end
+
+    private def connected_network_name_using_networksetup(iface: wifi_interface, timeout_in_secs: nil)
+      output = run_command_using_args(
+        ['networksetup', '-getairportnetwork', iface],
+        timeout_in_secs: timeout_in_secs
+      ).stdout.strip
+      return nil if output.empty?
+      return NO_CONNECTED_NETWORK if output.match?(/not associated|power is currently off/i)
+
+      match = output.match(/\ACurrent (?:Wi-Fi|AirPort) Network: (.+)\z/)
+      network_name = match && match[1].strip
+      placeholder_network_name?(network_name) ? nil : network_name
+    rescue WifiWand::Error
+      nil
+    end
+
+    private def connected_network_name_using_airport(timeout_in_secs: nil)
+      output = run_command_using_args(
+        [AIRPORT_COMMAND, '-I'],
+        timeout_in_secs: timeout_in_secs
+      ).stdout
+      return nil if output.strip.empty?
+
+      network_name = colon_output_to_hash(output)['SSID']
+      placeholder_network_name?(network_name) ? nil : network_name
+    rescue WifiWand::Error
+      nil
+    end
+
+    private def airport_available_network_names(timeout_in_secs: nil)
+      output = run_command_using_args(
+        [AIRPORT_COMMAND, '-s'],
+        timeout_in_secs: timeout_in_secs
+      ).stdout
+      networks = parse_airport_scan_output(output)
+      networks.empty? ? nil : networks
+    rescue WifiWand::Error
+      nil
+    end
+
+    private def parse_airport_scan_output(output)
+      scanned_networks = output.split("\n").drop(1).filter_map do |line|
+        match = line.match(/\A\s*(.*?)\s+(?:[0-9a-f]{2}:){5}[0-9a-f]{2}\s+(-?\d+)\s+/i)
+        next unless match
+
+        name = match[1].strip
+        next if placeholder_network_name?(name)
+
+        [name, match[2].to_i]
+      end
+
+      scanned_networks.sort_by { |_name, signal| -signal }.map(&:first).uniq
+    end
+
+    private def colon_output_to_hash(output)
+      output.each_line.with_object({}) do |line, hash|
+        key, value = line.split(': ', 2)
+        next unless key && value
+
+        hash[key.strip] = value.strip
+      end
+    end
+
+    private def no_connected_network?(network_name)
+      network_name.equal?(NO_CONNECTED_NETWORK)
     end
 
     private def detect_wifi_interface_from_profiler_networks(nets)
@@ -837,7 +959,7 @@ module WifiWand
       return cached_data if cached_data
 
       json_text = run_command_using_args(
-        %w[system_profiler -json SPAirPortDataType],
+        SYSTEM_PROFILER_AIRPORT_ARGS,
         raise_on_error:  true,
         timeout_in_secs: timeout_in_secs || SYSTEM_PROFILER_TIMEOUT_SECONDS
       ).stdout
