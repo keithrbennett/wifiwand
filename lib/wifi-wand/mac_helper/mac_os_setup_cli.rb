@@ -23,6 +23,8 @@ module WifiWand
       reinstall_helper: 'Reinstall wifiwand-helper (invalid installation detected)',
       grant_permission: 'Grant location permission in System Settings',
     }.freeze
+    # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
+    USER_FACING_SETUP_ERROR = StandardError
     USAGE = 'Usage: wifi-wand-macos-setup [--reinstall | --remove]'
 
     # @param argv       [Array<String>]       command-line arguments (e.g. ARGV)
@@ -62,7 +64,9 @@ module WifiWand
     rescue Interrupt
       @out_stream.puts "\nCancelled."
       1
-    rescue => e
+    rescue USER_FACING_SETUP_ERROR => e
+      # This is the executable boundary: setup failures should become a clear
+      # message and non-zero exit status instead of a Ruby backtrace.
       @out_stream.puts "\n❌ Error: #{e.message}"
       1
     end
@@ -240,7 +244,9 @@ module WifiWand
         'Could not open macOS Location Services settings automatically. ' \
           'Follow the manual instructions above to grant permission.'
       )
-    rescue => e
+    rescue USER_FACING_SETUP_ERROR => e
+      # Keep the manual permission instructions visible even if the best-effort
+      # System Settings opener fails in an unexpected way.
       LocationSettingsOpenError.new(
         'Could not open macOS Location Services settings automatically. ' \
           "Reason: #{e.message}. Follow the manual instructions above to grant permission."

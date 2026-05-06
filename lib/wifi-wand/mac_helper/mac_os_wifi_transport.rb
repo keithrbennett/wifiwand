@@ -25,6 +25,8 @@ module WifiWand
     ].freeze
 
     SUDO_IFCONFIG_TIMEOUT_SECONDS = 5
+    # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
+    UNEXPECTED_SWIFT_ERROR = StandardError
 
     def initialize(swift_runtime:, command_runner:, wifi_interface_proc:, out_stream_proc:, verbose_proc:)
       @swift_runtime = swift_runtime
@@ -47,10 +49,14 @@ module WifiWand
           else
             raise
           end
-        rescue => e
+        rescue WifiWand::CommandTimeoutError, WifiWand::CommandNotFoundError,
+          WifiWand::CommandSpawnError => e
           log_fallback(
             "Swift/CoreWLAN failed: #{e.message}. Trying networksetup fallback..."
           )
+        rescue UNEXPECTED_SWIFT_ERROR => e
+          log_unexpected_swift_error('connect', e)
+          raise
         end
       end
 
@@ -62,10 +68,14 @@ module WifiWand
         begin
           swift_runtime.disconnect
           return
-        rescue => e
+        rescue WifiWand::CommandExecutor::OsCommandError, WifiWand::CommandTimeoutError,
+          WifiWand::CommandNotFoundError, WifiWand::CommandSpawnError => e
           log_fallback(
             "Swift/CoreWLAN disconnect failed: #{e.message}. Falling back to ifconfig..."
           )
+        rescue UNEXPECTED_SWIFT_ERROR => e
+          log_unexpected_swift_error('disconnect', e)
+          raise
         end
       elsif verbose?
         out_stream.puts 'Swift/CoreWLAN not available. Using ifconfig...'
@@ -152,6 +162,12 @@ module WifiWand
 
     private def log_fallback(message)
       out_stream.puts message if verbose?
+    end
+
+    private def log_unexpected_swift_error(operation, error)
+      return unless verbose?
+
+      out_stream.puts "Unexpected Swift/CoreWLAN #{operation} error: #{error.class}: #{error.message}"
     end
 
     private def wifi_interface = @wifi_interface_proc.call

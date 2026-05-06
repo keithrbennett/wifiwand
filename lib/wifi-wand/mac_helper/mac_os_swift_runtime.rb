@@ -16,6 +16,8 @@ module WifiWand
       /tmpErr\s*\(code:\s*82\)/i,
       /couldn(?:\?\?\?|')t be completed.*tmpErr/i,
     ].freeze
+    # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
+    UNEXPECTED_SWIFT_PROBE_ERROR = StandardError
 
     def initialize(command_runner:, out_stream_proc:, verbose_proc:)
       @command_runner = command_runner
@@ -26,7 +28,7 @@ module WifiWand
     def swift_and_corewlan_present?(timeout_in_secs: nil)
       return @swift_and_corewlan_present if defined?(@swift_and_corewlan_present)
 
-      timed_out = false
+      skip_memoize = false
       available = begin
         result = run_command_using_args(
           ['swift', '-e', 'import CoreWLAN'],
@@ -36,7 +38,11 @@ module WifiWand
         result.success?
       rescue WifiWand::CommandTimeoutError => e
         out_stream.puts "Swift/CoreWLAN check timed out: #{e.message}" if verbose?
-        timed_out = true
+        skip_memoize = true
+        false
+      rescue WifiWand::CommandSpawnError => e
+        out_stream.puts "Swift/CoreWLAN check could not start: #{e.message}" if verbose?
+        skip_memoize = true
         false
       rescue WifiWand::CommandNotFoundError
         log_swift_command_not_found if verbose?
@@ -44,12 +50,12 @@ module WifiWand
       rescue WifiWand::CommandExecutor::OsCommandError => e
         log_swift_probe_failure(e) if verbose?
         false
-      rescue => e
-        out_stream.puts "Unexpected error checking Swift/CoreWLAN: #{e.message}" if verbose?
-        false
+      rescue UNEXPECTED_SWIFT_PROBE_ERROR => e
+        out_stream.puts "Unexpected error checking Swift/CoreWLAN: #{e.class}: #{e.message}" if verbose?
+        raise
       end
 
-      timed_out ? false : @swift_and_corewlan_present = available
+      skip_memoize ? false : @swift_and_corewlan_present = available
     end
 
     def run_swift_command(basename, *args)

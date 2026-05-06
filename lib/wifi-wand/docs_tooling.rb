@@ -9,6 +9,8 @@ require 'yaml'
 module WifiWand
   module DocsTooling
     REPO_ROOT = File.expand_path('../..', __dir__)
+    # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
+    WORKSPACE_PREPARATION_ERROR = StandardError
 
     def self.venv_dir
       ENV.fetch('WIFIWAND_DOCS_VENV_DIR', File.join(REPO_ROOT, '.docs-venv'))
@@ -120,7 +122,7 @@ module WifiWand
       write_generated_config
 
       generated_config_path
-    rescue
+    rescue WORKSPACE_PREPARATION_ERROR
       cleanup_mkdocs_workspace!
       raise
     end

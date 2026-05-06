@@ -8,6 +8,9 @@ require 'tmpdir'
 
 module WifiWand
   module MacOsHelperInstaller
+    # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
+    INSTALL_ROLLBACK_ERROR = StandardError
+
     module_function def helper_installed_and_valid?(timeout_seconds: nil)
       validation_options = {}
       validation_options[:timeout_seconds] = timeout_seconds if timeout_seconds
@@ -188,7 +191,7 @@ module WifiWand
 
       begin
         publish_release_symlink(release_bundle_path, publish_token)
-      rescue
+      rescue INSTALL_ROLLBACK_ERROR
         FileUtils.rm_rf(release_bundle_path)
         raise
       end
@@ -212,7 +215,7 @@ module WifiWand
       end
 
       File.rename(symlink_path, MacOsHelperBundle.installed_bundle_path)
-    rescue
+    rescue INSTALL_ROLLBACK_ERROR
       FileUtils.rm_f(symlink_path) if File.symlink?(symlink_path)
       raise
     end
@@ -221,7 +224,7 @@ module WifiWand
       backup_paths = backup_legacy_bundle_metadata(publish_token)
       sync_legacy_bundle_metadata(release_bundle_path, publish_token)
       switch_legacy_bundle_executable(release_bundle_path, publish_token)
-    rescue
+    rescue INSTALL_ROLLBACK_ERROR
       restore_legacy_bundle_metadata(backup_paths, publish_token)
       raise
     ensure
@@ -327,7 +330,7 @@ module WifiWand
       File.symlink(release_executable_path, staged_executable_link_path)
       File.rename(staged_executable_link_path, MacOsHelperBundle.installed_executable_path)
       cleanup_previous_release(previous_release_path)
-    rescue
+    rescue INSTALL_ROLLBACK_ERROR
       staged_link_needs_cleanup =
         defined?(staged_executable_link_path) && File.symlink?(staged_executable_link_path)
       FileUtils.rm_f(staged_executable_link_path) if staged_link_needs_cleanup

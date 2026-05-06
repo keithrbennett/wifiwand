@@ -80,6 +80,9 @@ module WifiWand
   class MacOsHelperClient
     attr_reader :last_error_message
 
+    # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
+    HELPER_READ_BOUNDARY_ERROR = StandardError
+
     def initialize(out_stream_proc:, verbose_proc:, macos_version_proc:)
       @out_stream_proc = out_stream_proc
       @verbose_proc = verbose_proc
@@ -180,7 +183,9 @@ module WifiWand
     rescue Errno::ENOENT => e
       log_verbose("helper executable missing: #{e.message}")
       MacOsHelperBundle::HelperQueryResult.new(status: :unavailable)
-    rescue => e
+    rescue HELPER_READ_BOUNDARY_ERROR => e
+      # Helper queries are optional read paths. Keep callers on the fallback
+      # path while preserving diagnostics in verbose mode.
       log_verbose("helper command '#{command}' failed: #{e.message}")
       MacOsHelperBundle::HelperQueryResult.new(status: :error)
     end
@@ -300,7 +305,9 @@ module WifiWand
 
       WifiWand::MacOsHelperBundle.ensure_helper_installed(out_stream: verbose? ? out_stream : nil)
       @helper_install_verified = true
-    rescue => e
+    rescue HELPER_READ_BOUNDARY_ERROR => e
+      # Installation is best-effort during normal reads. Disable retries for
+      # this process so repeated status checks do not repeatedly mutate files.
       @helper_install_verified = false
       @disabled = true
       emit_install_failure(e.message, reinstall_required: helper_present)

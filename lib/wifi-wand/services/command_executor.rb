@@ -111,11 +111,7 @@ module WifiWand
               combined_chunks << chunk
             end
           end
-        rescue EOFError
-          nil
-        rescue => e
-          raise unless e.is_a?(IOError)
-
+        rescue IOError
           nil
         end
 

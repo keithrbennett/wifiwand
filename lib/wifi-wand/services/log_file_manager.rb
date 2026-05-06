@@ -47,7 +47,7 @@ module WifiWand
 
       @file_handle.puts(message)
       @file_handle.flush
-    rescue => e
+    rescue IOError, SystemCallError => e
       raise WifiWand::LogWriteError, "Failed to write to log file #{@log_file_path}: #{e.message}"
     end
 
@@ -63,7 +63,7 @@ module WifiWand
       log_message("Log file initialized at #{@log_file_path}") if verbose?
     rescue WifiWand::LogFileInitializationError
       raise
-    rescue => e
+    rescue IOError, SystemCallError => e
       raise WifiWand::LogFileInitializationError,
         "Failed to initialize log file #{@log_file_path}: #{e.message}"
     end
@@ -71,7 +71,7 @@ module WifiWand
     private def open_log_file
       FileUtils.mkdir_p(File.dirname(@log_file_path))
       @file_handle = File.open(@log_file_path, 'a')
-    rescue => e
+    rescue IOError, SystemCallError => e
       raise WifiWand::LogFileInitializationError,
         "Cannot open log file #{@log_file_path}: #{e.message}"
     end

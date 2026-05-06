@@ -13,6 +13,8 @@ module WifiWand
     PENDING_NOTARIZATION_STATUS = 'In Progress'
     SIGNING_INSTRUCTIONS_PATH = 'dev/docs/MACOS_CODE_SIGNING_INSTRUCTIONS.md'
     DEFAULT_NOTARYTOOL_PROFILE = 'wifiwand-notarytool'
+    # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
+    RELEASE_COMMAND_BOUNDARY_ERROR = StandardError
 
     # Public signing credentials (visible in all signed binaries - no need to hide)
     APPLE_TEAM_ID = ENV.fetch('WIFIWAND_APPLE_TEAM_ID', '97P9SZU9GG')
@@ -380,7 +382,9 @@ module WifiWand
     module_function def verify_source_attestation!
       WifiWand::MacOsHelperBundle.verify_source_bundle_current!
       puts Messages::SOURCE_ATTESTATION_VALID
-    rescue => e
+    rescue RELEASE_COMMAND_BOUNDARY_ERROR => e
+      # Release tooling is a command boundary: abort with the attestation
+      # diagnostic so maintainers do not continue a potentially stale build.
       abort Messages.source_attestation_invalid(e.message)
     end
 

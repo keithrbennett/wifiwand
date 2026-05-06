@@ -158,7 +158,7 @@ module WifiWand
       )
       writer.close
       { pid: pid, reader: reader, helper_mode: helper_mode, buffer: +'', eof: false }
-    rescue => e
+    rescue SystemCallError, IOError => e
       reader&.close unless reader&.closed?
       writer&.close unless writer&.closed?
       log_helper_start_failure(helper_mode, e)
@@ -194,6 +194,8 @@ module WifiWand
       return failure_probe_result(EOFError) if probe[:eof] && payload_text.empty?
 
       payload = JSON.parse(payload_text, symbolize_names: true)
+      return failure_probe_result(TypeError) unless payload.is_a?(Hash)
+
       {
         success:       payload[:success] == true,
         timed_out:     payload[:timed_out] == true,
@@ -204,7 +206,7 @@ module WifiWand
       return nil unless probe[:eof]
 
       failure_probe_result(JSON::ParserError)
-    rescue => e
+    rescue SystemCallError, IOError => e
       failure_probe_result(e.class)
     end
 
@@ -344,7 +346,7 @@ module WifiWand
           { success: true }
         end
       end
-    rescue => e
+    rescue SocketError, SystemCallError, IOError, Timeout::Error => e
       { success: false, error_class: e.class.to_s }
     end
 
@@ -353,7 +355,7 @@ module WifiWand
         IPSocket.getaddress(domain)
         { success: true }
       end
-    rescue => e
+    rescue SocketError, SystemCallError, Timeout::Error => e
       { success: false, error_class: e.class.to_s }
     end
 

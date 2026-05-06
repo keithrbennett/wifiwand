@@ -5,6 +5,9 @@ require_relative 'network_connectivity_tester'
 
 module WifiWand
   module NetworkConnectivityProbeHelper
+    # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
+    HELPER_PROCESS_BOUNDARY_ERROR = StandardError
+
     def self.parse_argv(argv)
       mode_arg, items_json, timeout_arg = argv
       mode = parse_mode(mode_arg)
@@ -25,7 +28,9 @@ module WifiWand
       )
       output.print(JSON.generate(result))
       output.flush
-    rescue => e
+    rescue HELPER_PROCESS_BOUNDARY_ERROR => e
+      # Subprocess boundary: always return JSON so the parent can treat helper
+      # failures as indeterminate connectivity instead of hanging on bad output.
       output.print(JSON.generate(
         success:       false,
         timed_out:     false,
@@ -65,7 +70,9 @@ module WifiWand
       Thread.new do
         Thread.current.report_on_exception = false
         result_queue << probe_result(tester, mode, item)
-      rescue => e
+      rescue HELPER_PROCESS_BOUNDARY_ERROR => e
+        # Probe worker boundary: one failing endpoint should not hide results
+        # from other endpoints in the same helper process.
         result_queue << { target: item, success: false, error_class: e.class.to_s }
       end
     end

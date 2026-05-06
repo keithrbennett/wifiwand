@@ -601,7 +601,8 @@ module WifiWand
       options[:timeout_in_secs] = timeout_in_secs if timeout_in_secs
       output = run_command_using_args(%w[sw_vers -productVersion], **options).stdout
       MacOsHelperBundle.normalize_detected_macos_version(output)
-    rescue => e
+    rescue WifiWand::CommandExecutor::OsCommandError, WifiWand::CommandTimeoutError,
+      WifiWand::CommandNotFoundError, WifiWand::CommandSpawnError => e
       if verbose?
         out_stream.puts "Could not detect macOS version: #{e.message}."
       end

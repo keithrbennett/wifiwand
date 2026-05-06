@@ -9,6 +9,8 @@ module WifiWand
     DEFAULT_CONNECTIVITY_WORKER_RESULT_TIMEOUT_SECONDS = 2
     DEFAULT_WORKER_RESULT_POLL_INTERVAL_SECONDS = 0.01
     DEFAULT_WORKER_CLEANUP_TIMEOUT_SECONDS = 0.05
+    # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
+    WORKER_BOUNDARY_ERROR = StandardError
 
     attr_reader :model, :expected_network_errors
     private attr_reader :runtime_config
@@ -121,7 +123,9 @@ module WifiWand
 
     private def publish_worker_result(result_queue, worker_name)
       result_queue << [worker_name, :result, yield]
-    rescue => e
+    rescue WORKER_BOUNDARY_ERROR => e
+      # Worker exceptions must cross the Queue boundary so the main status path
+      # can apply the same fallback/error rules synchronously.
       result_queue << [worker_name, :error, e]
     end
 

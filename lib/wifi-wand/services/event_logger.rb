@@ -42,6 +42,8 @@ module WifiWand
       internet_on:  'Internet available',
       internet_off: 'Internet unavailable',
     }.freeze
+    # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
+    POLLING_BOUNDARY_ERROR = StandardError
 
     attr_reader :model, :interval, :log_file_manager
     private attr_reader :runtime_config
@@ -107,7 +109,7 @@ module WifiWand
         timestamp = Time.now.utc.iso8601
         log_message("[#{timestamp}] Event logging stopped")
         stop
-      rescue => e
+      rescue POLLING_BOUNDARY_ERROR => e
         log_termination_message(e)
         raise
       ensure
@@ -469,7 +471,7 @@ module WifiWand
 
       manager.close
       nil
-    rescue => e
+    rescue POLLING_BOUNDARY_ERROR => e
       e
     end
 

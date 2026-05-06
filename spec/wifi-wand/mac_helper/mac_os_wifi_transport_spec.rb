@@ -47,19 +47,18 @@ module WifiWand
         )
       end
 
-      it 'falls back to networksetup for generic Swift connect failures' do
+      it 'logs and re-raises unexpected Swift connect failures' do
         allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(true)
         allow(swift_runtime).to receive(:connect).with('TestNetwork', 'password')
           .and_raise(StandardError.new('swift exploded'))
         expect(swift_runtime).not_to receive(:fallback_connect_error?)
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-setairportnetwork', 'en0', 'TestNetwork', 'password'])
-          .and_return(command_result(stdout: ''))
+        expect(command_runner).not_to receive(:call)
 
-        transport.connect('TestNetwork', 'password')
+        expect { transport.connect('TestNetwork', 'password') }
+          .to raise_error(StandardError, 'swift exploded')
 
         expect(out_stream.string).to include(
-          'Swift/CoreWLAN failed: swift exploded. Trying networksetup fallback...'
+          'Unexpected Swift/CoreWLAN connect error: StandardError: swift exploded'
         )
       end
 
@@ -199,9 +198,10 @@ module WifiWand
         expect(transport.disconnect).to be_nil
       end
 
-      it 'falls back to ifconfig after a Swift disconnect failure' do
+      it 'falls back to ifconfig after an expected Swift disconnect failure' do
         allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(true)
-        allow(swift_runtime).to receive(:disconnect).and_raise(StandardError.new('swift failed'))
+        allow(swift_runtime).to receive(:disconnect)
+          .and_raise(WifiWand::CommandTimeoutError.new(command: 'swift disconnect', timeout_in_secs: 1))
         expect(command_runner).to receive(:call).with(
           %w[sudo ifconfig en0 disassociate],
           raise_on_error:  false,
@@ -212,7 +212,19 @@ module WifiWand
 
         expect(transport.disconnect).to be_nil
         expect(out_stream.string).to include(
-          'Swift/CoreWLAN disconnect failed: swift failed. Falling back to ifconfig...'
+          'Swift/CoreWLAN disconnect failed: Command timed out after 1 seconds: swift disconnect. ' \
+            'Falling back to ifconfig...'
+        )
+      end
+
+      it 'logs and re-raises unexpected Swift disconnect failures' do
+        allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(true)
+        allow(swift_runtime).to receive(:disconnect).and_raise(StandardError.new('swift failed'))
+        expect(command_runner).not_to receive(:call)
+
+        expect { transport.disconnect }.to raise_error(StandardError, 'swift failed')
+        expect(out_stream.string).to include(
+          'Unexpected Swift/CoreWLAN disconnect error: StandardError: swift failed'
         )
       end
 

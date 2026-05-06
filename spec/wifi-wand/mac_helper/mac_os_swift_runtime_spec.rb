@@ -54,6 +54,26 @@ module WifiWand
         expect(runtime.swift_and_corewlan_present?).to be(true)
       end
 
+      it 'returns false and does not memoize when the Swift/CoreWLAN probe cannot start' do
+        expect(command_runner).to receive(:call).with(
+          ['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false
+        ).and_raise(
+          WifiWand::CommandSpawnError.new(
+            command: 'swift -e import CoreWLAN',
+            reason:  'resource temporarily unavailable'
+          )
+        )
+        expect(command_runner).to receive(:call).with(
+          ['swift', '-e', 'import CoreWLAN'],
+          raise_on_error: false
+        ).and_return(command_result(stdout: ''))
+
+        expect(runtime.swift_and_corewlan_present?).to be(false)
+        expect(runtime.swift_and_corewlan_present?).to be(true)
+        expect(out_stream.string).to include('Swift/CoreWLAN check could not start')
+      end
+
       it 'returns false for returned Swift/CoreWLAN probe failures and memoizes the result' do
         expect(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
           raise_on_error: false).once
@@ -151,13 +171,15 @@ module WifiWand
         expect(out_stream.string).to include('toolchain mismatch')
       end
 
-      it 'logs an unexpected-error message for non-command probe failures' do
+      it 'logs and re-raises non-command probe failures' do
         allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
           raise_on_error: false)
           .and_raise(StandardError.new('unexpected'))
 
-        expect(runtime.swift_and_corewlan_present?).to be(false)
-        expect(out_stream.string).to include('Unexpected error checking Swift/CoreWLAN: unexpected')
+        expect { runtime.swift_and_corewlan_present? }.to raise_error(StandardError, 'unexpected')
+        expect(out_stream.string).to include(
+          'Unexpected error checking Swift/CoreWLAN: StandardError: unexpected'
+        )
       end
 
       context 'when verbose logging is disabled' do

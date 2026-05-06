@@ -15,6 +15,8 @@ module WifiWand
   class Main
     SUCCESS_EXIT_CODE = 0
     FAILURE_EXIT_CODE = 1
+    # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
+    CLI_BOUNDARY_ERROR = StandardError
 
     def initialize(out_stream = $stdout, err_stream = $stderr, argv: ARGV, env: ENV, in_stream: $stdin)
       @out_stream = out_stream
@@ -35,7 +37,7 @@ module WifiWand
       options.err_stream = @err_stream
       options.in_stream = @in_stream
       WifiWand::CommandLineInterface.new(options, argv: options.argv).call
-    rescue => e
+    rescue CLI_BOUNDARY_ERROR => e
       # For option parsing errors, we don't have options.verbose yet, so default to false
       verbose = !!options&.verbose
       handle_error(e, verbose)

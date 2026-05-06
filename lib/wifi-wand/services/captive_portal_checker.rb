@@ -142,7 +142,7 @@ module WifiWand
       pid = Process.spawn(*captive_portal_probe_command(endpoint), out: writer, err: File::NULL)
       writer.close
       { pid: pid, reader: reader, endpoint: endpoint, buffer: +'', eof: false }
-    rescue => e
+    rescue SystemCallError, IOError => e
       reader&.close unless reader&.closed?
       writer&.close unless writer&.closed?
       output.puts "Failed to start captive portal helper for #{endpoint[:url]}: #{e.class}" if verbose?
@@ -170,6 +170,7 @@ module WifiWand
       return failure_probe_result(EOFError) if probe[:eof] && payload_text.empty?
 
       payload = JSON.parse(payload_text, symbolize_names: true)
+      return failure_probe_result(TypeError) unless payload.is_a?(Hash)
 
       {
         state:       normalize_probe_state(payload[:state]),
@@ -180,7 +181,7 @@ module WifiWand
       return nil unless probe[:eof]
 
       failure_probe_result(JSON::ParserError)
-    rescue => e
+    rescue SystemCallError, IOError => e
       failure_probe_result(e.class)
     end
 
@@ -257,7 +258,8 @@ module WifiWand
         end
         { state: state, actual_code: actual_code }
       end
-    rescue => e
+    rescue URI::InvalidURIError, Timeout::Error, SocketError, SystemCallError, IOError,
+      Net::HTTPError => e
       { state: ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE, error_class: e.class.to_s }
     end
 

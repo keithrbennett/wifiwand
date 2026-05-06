@@ -49,7 +49,9 @@ module WifiWand
         it 'returns nil when command fails' do
           model = create_mac_os_test_model
           allow(model).to receive(:run_command_using_args).with(%w[sw_vers -productVersion])
-            .and_raise(StandardError.new('Command failed'))
+            .and_raise(
+              os_command_error(exitstatus: 1, command: 'sw_vers -productVersion', text: 'Command failed')
+            )
 
           expect { model.send(:detect_macos_version) }.not_to raise_error
           expect(model.send(:detect_macos_version)).to be_nil
@@ -1367,7 +1369,9 @@ module WifiWand
         it 'handles version detection failure gracefully' do
           failing_model = create_mac_os_test_model
           allow(failing_model).to receive(:run_command_using_args).with(%w[sw_vers -productVersion])
-            .and_raise(StandardError.new('Command failed'))
+            .and_raise(
+              os_command_error(exitstatus: 1, command: 'sw_vers -productVersion', text: 'Command failed')
+            )
 
           silence_output { expect(failing_model.macos_version).to be_nil }
         end
@@ -1446,7 +1450,8 @@ module WifiWand
             wifi_interface:         'en0'
           )
           allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(true)
-          allow(swift_runtime).to receive(:disconnect).and_raise(StandardError, 'swift failure')
+          allow(swift_runtime).to receive(:disconnect)
+            .and_raise(os_command_error(exitstatus: 1, command: 'swift disconnect', text: 'swift failure'))
           allow(model).to receive(:run_command_using_args).with(
             %w[sudo ifconfig en0 disassociate],
             raise_on_error:  false,

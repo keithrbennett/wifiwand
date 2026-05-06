@@ -185,7 +185,7 @@ module WifiWand
         # the next networksetup call to avoid another -3900 collision.
         begin
           return if restore_associated_with_target?(network_name)
-        rescue
+        rescue *EXPECTED_RESTORE_ERRORS
           nil
         end
         retry
@@ -209,7 +209,7 @@ module WifiWand
       loop do
         begin
           return true if restore_associated_with_target?(network_name)
-        rescue
+        rescue *EXPECTED_RESTORE_ERRORS
           nil
         end
         break if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
