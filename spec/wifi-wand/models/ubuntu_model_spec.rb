@@ -20,6 +20,15 @@ module WifiWand
       end
     end
 
+    def saved_wifi_profile(name, ssid: name, type: '802-11-wireless', timestamp: 0)
+      WifiWand::UbuntuModel::SavedWifiProfile.new(
+        name:      name,
+        ssid:      ssid,
+        type:      type,
+        timestamp: timestamp
+      )
+    end
+
 
 
     # Constants for common patterns
@@ -346,90 +355,125 @@ module WifiWand
       describe '#find_best_profile_for_ssid' do
         it 'returns nil when listing connections fails' do
           expect(subject).to receive(:run_command_using_args)
-            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], raise_on_error: false)
+            .with(%w[nmcli -t -f NAME,TYPE,TIMESTAMP connection show], raise_on_error: false)
             .and_raise(os_command_error(exitstatus: 1, command: 'nmcli', text: 'Error'))
           expect(subject.send(:find_best_profile_for_ssid, 'SSID')).to be_nil
         end
 
-        it 'prefers the most recent duplicate profile over an older exact-name profile' do
+        it 'prefers the newest profile whose configured SSID matches' do
           expect(subject).to receive(:run_command_using_args)
-            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], raise_on_error: false)
-            .and_return(command_result(stdout: "MySSID:100\nMySSID 1:300\nMySSID 2:200\nOtherSSID:999"))
+            .with(%w[nmcli -t -f NAME,TYPE,TIMESTAMP connection show], raise_on_error: false)
+            .and_return(command_result(
+              stdout: "MySSID:802-11-wireless:100\n" \
+                "Renamed Profile:802-11-wireless:300\n" \
+                "MySSID 2:802-11-wireless:200\n" \
+                'OtherSSID:802-11-wireless:999'
+            ))
+          expect(subject).to receive(:run_command_using_args)
+            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+              'MySSID'], raise_on_error: false)
+            .and_return(command_result(stdout: '802-11-wireless.ssid:MySSID'))
+          expect(subject).to receive(:run_command_using_args)
+            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+              'Renamed Profile'], raise_on_error: false)
+            .and_return(command_result(stdout: '802-11-wireless.ssid:MySSID'))
+          expect(subject).to receive(:run_command_using_args)
+            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+              'MySSID 2'], raise_on_error: false)
+            .and_return(command_result(stdout: '802-11-wireless.ssid:MySSID'))
+          expect(subject).to receive(:run_command_using_args)
+            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+              'OtherSSID'], raise_on_error: false)
+            .and_return(command_result(stdout: '802-11-wireless.ssid:OtherSSID'))
 
-          expect(subject.send(:find_best_profile_for_ssid, 'MySSID')).to eq('MySSID 1')
+          expect(subject.send(:find_best_profile_for_ssid, 'MySSID')).to eq('Renamed Profile')
         end
       end
 
       describe '#remove_preferred_network' do
         it 'returns an empty array without deleting when network not present' do
-          allow(subject).to receive(:preferred_networks).and_return(%w[A B])
+          allow(subject).to receive(:saved_wifi_profiles).and_return([
+            saved_wifi_profile('Profile A', ssid: 'A'),
+            saved_wifi_profile('Profile B', ssid: 'B'),
+          ])
           expect(subject).not_to receive(:run_command_using_args).with(/nmcli connection delete/)
 
           expect(subject.remove_preferred_network('C')).to eq([])
         end
 
         it 'deletes an existing preferred network and returns the deleted profile name' do
-          allow(subject).to receive(:preferred_networks).and_return(['Home'])
-          expect(subject).to receive(:run_command_using_args).with(%w[nmcli connection delete Home])
+          allow(subject).to receive(:saved_wifi_profiles)
+            .and_return([saved_wifi_profile('Renamed Home', ssid: 'Home')])
+          expect(subject).to receive(:run_command_using_args)
+            .with(['nmcli', 'connection', 'delete', 'Renamed Home'])
 
-          expect(subject.remove_preferred_network('Home')).to eq(['Home'])
+          expect(subject.remove_preferred_network('Home')).to eq(['Renamed Home'])
         end
 
-        it 'deletes duplicate NetworkManager profiles for an SSID without touching unrelated profiles' do
-          allow(subject).to receive(:preferred_networks)
-            .and_return(['MySSID', 'MySSID 1', 'MySSID 2', 'MySSIDGuest'])
+        it 'deletes only profiles whose configured SSID matches' do
+          allow(subject).to receive(:saved_wifi_profiles).and_return([
+            saved_wifi_profile('MySSID', ssid: 'MySSID'),
+            saved_wifi_profile('Renamed Duplicate', ssid: 'MySSID'),
+            saved_wifi_profile('MySSID 2', ssid: 'OtherSSID'),
+            saved_wifi_profile('MySSIDGuest', ssid: 'MySSIDGuest'),
+          ])
           expect(subject).to receive(:run_command_using_args)
             .with(%w[nmcli connection delete MySSID]).ordered
           expect(subject).to receive(:run_command_using_args)
-            .with(['nmcli', 'connection', 'delete', 'MySSID 1']).ordered
-          expect(subject).to receive(:run_command_using_args)
-            .with(['nmcli', 'connection', 'delete', 'MySSID 2']).ordered
+            .with(['nmcli', 'connection', 'delete', 'Renamed Duplicate']).ordered
 
-          expect(subject.remove_preferred_network('MySSID')).to eq(['MySSID', 'MySSID 1', 'MySSID 2'])
+          expect(subject.remove_preferred_network('MySSID')).to eq(['MySSID', 'Renamed Duplicate'])
         end
 
-        it 'treats duplicate NetworkManager profiles as saved for has_preferred_network?' do
-          allow(subject).to receive(:preferred_networks).and_return(['MySSID 1', 'MySSID 2'])
+        it 'treats renamed profiles with matching configured SSIDs as saved' do
+          allow(subject).to receive(:saved_wifi_profiles).and_return([
+            saved_wifi_profile('MySSID 1', ssid: 'MySSID'),
+            saved_wifi_profile('MySSID 2', ssid: 'MySSID'),
+          ])
 
           expect(subject.has_preferred_network?('MySSID')).to be(true)
           expect(subject.has_preferred_network?('OtherSSID')).to be(false)
         end
 
         it 'uses the saved password from the most recent matching profile' do
-          allow(subject).to receive(:preferred_networks).and_return(['MySSID', 'MySSID 1'])
+          allow(subject).to receive(:saved_wifi_profiles).and_return([
+            saved_wifi_profile('MySSID', ssid: 'MySSID', timestamp: 100),
+            saved_wifi_profile('Renamed Fresh Profile', ssid: 'MySSID', timestamp: 300),
+          ])
           expect(subject).to receive(:run_command_using_args)
-            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], raise_on_error: false)
-            .and_return(command_result(stdout: "MySSID:100\nMySSID 1:300"))
-          expect(subject).to receive(:run_command_using_args)
-            .with(['nmcli', '--show-secrets', 'connection', 'show', 'MySSID 1'], raise_on_error: false)
+            .with(['nmcli', '--show-secrets', 'connection', 'show',
+              'Renamed Fresh Profile'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless-security.psk:    fresh-secret'))
 
           expect(subject.preferred_network_password('MySSID')).to eq('fresh-secret')
         end
 
         it 'uses the saved WEP key from the most recent matching profile' do
-          allow(subject).to receive(:preferred_networks).and_return(['MySSID', 'MySSID 1'])
+          allow(subject).to receive(:saved_wifi_profiles).and_return([
+            saved_wifi_profile('MySSID', ssid: 'MySSID', timestamp: 100),
+            saved_wifi_profile('Renamed Fresh Profile', ssid: 'MySSID', timestamp: 300),
+          ])
           expect(subject).to receive(:run_command_using_args)
-            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], raise_on_error: false)
-            .and_return(command_result(stdout: "MySSID:100\nMySSID 1:300"))
-          expect(subject).to receive(:run_command_using_args)
-            .with(['nmcli', '--show-secrets', 'connection', 'show', 'MySSID 1'], raise_on_error: false)
+            .with(['nmcli', '--show-secrets', 'connection', 'show',
+              'Renamed Fresh Profile'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless-security.wep-key0:    fresh-wep-key'))
 
           expect(subject.preferred_network_password('MySSID')).to eq('fresh-wep-key')
         end
 
-        it 'preserves exact duplicate profile name lookups' do
-          allow(subject).to receive(:preferred_networks).and_return(['MySSID', 'MySSID 1'])
-          expect(subject).to receive(:run_command_using_args)
-            .with(['nmcli', '--show-secrets', 'connection', 'show', 'MySSID 1'], raise_on_error: false)
-            .and_return(command_result(stdout: '802-11-wireless-security.psk:    duplicate-secret'))
+        it 'does not treat a duplicate-looking profile name as an SSID match' do
+          allow(subject).to receive(:saved_wifi_profiles).and_return([
+            saved_wifi_profile('MySSID 1', ssid: 'MySSID'),
+          ])
 
-          expect(subject.preferred_network_password('MySSID 1')).to eq('duplicate-secret')
+          expect { subject.preferred_network_password('MySSID 1') }
+            .to raise_error(PreferredNetworkNotFoundError)
         end
 
         it 'does not delete non-Wi-Fi profile even if name matches' do
-          allow(subject).to receive(:preferred_networks).and_return(['MyWifiNetwork'])
+          allow(subject).to receive(:saved_wifi_profiles).and_return([
+            saved_wifi_profile('MyWifiNetwork', ssid: 'MyWifiNetwork'),
+          ])
           expect(subject).not_to receive(:run_command_using_args).with(/nmcli connection delete/)
 
           expect(subject.remove_preferred_network('Wired connection 1')).to eq([])
@@ -442,12 +486,13 @@ module WifiWand
           allow(subject.connection_manager).to receive(:wait_for_connection_activation)
           allow(subject).to receive(:connection_ready?).and_return(false, true)
           allow(subject).to receive(:connected_network_name).and_return(nil, 'MySSID')
-          allow(subject).to receive(:preferred_networks).and_return(['MySSID', 'MySSID 1'])
+          allow(subject).to receive(:saved_wifi_profiles).and_return([
+            saved_wifi_profile('MySSID', ssid: 'MySSID', timestamp: 100),
+            saved_wifi_profile('Renamed Fresh Profile', ssid: 'MySSID', timestamp: 300),
+          ])
           expect(subject).to receive(:run_command_using_args)
-            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], raise_on_error: false)
-            .and_return(command_result(stdout: "MySSID:100\nMySSID 1:300"))
-          expect(subject).to receive(:run_command_using_args)
-            .with(['nmcli', '--show-secrets', 'connection', 'show', 'MySSID 1'], raise_on_error: false)
+            .with(['nmcli', '--show-secrets', 'connection', 'show',
+              'Renamed Fresh Profile'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless-security.psk:    fresh-secret'))
           expect(subject).to receive(:_connect).with('MySSID', 'fresh-secret')
 
@@ -460,12 +505,13 @@ module WifiWand
           allow(subject.connection_manager).to receive(:wait_for_connection_activation)
           allow(subject).to receive(:connection_ready?).and_return(false, true)
           allow(subject).to receive(:connected_network_name).and_return(nil, 'MySSID')
-          allow(subject).to receive(:preferred_networks).and_return(['MySSID', 'MySSID 1'])
+          allow(subject).to receive(:saved_wifi_profiles).and_return([
+            saved_wifi_profile('MySSID', ssid: 'MySSID', timestamp: 100),
+            saved_wifi_profile('Renamed Fresh Profile', ssid: 'MySSID', timestamp: 300),
+          ])
           expect(subject).to receive(:run_command_using_args)
-            .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], raise_on_error: false)
-            .and_return(command_result(stdout: "MySSID:100\nMySSID 1:300"))
-          expect(subject).to receive(:run_command_using_args)
-            .with(['nmcli', '--show-secrets', 'connection', 'show', 'MySSID 1'], raise_on_error: false)
+            .with(['nmcli', '--show-secrets', 'connection', 'show',
+              'Renamed Fresh Profile'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless-security.wep-key0:    fresh-wep-key'))
           expect(subject).to receive(:_connect).with('MySSID', 'fresh-wep-key')
 
@@ -688,35 +734,50 @@ module WifiWand
       end
 
       describe '#preferred_networks' do
-        it 'returns list of saved Wi-Fi network profiles' do
+        it 'returns list of saved Wi-Fi network SSIDs' do
           nmcli_output = <<~OUT.chomp
-            TestNetwork-1:802-11-wireless
-            TestNetwork-2:802-11-wireless
-            Wired connection 1:ethernet
+            Renamed profile 1:802-11-wireless:100
+            TestNetwork-2:802-11-wireless:200
+            Wired connection 1:ethernet:300
           OUT
-          allow(subject).to receive(:run_command_using_args).with(%w[nmcli -t -f NAME,TYPE connection show])
+          allow(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli -t -f NAME,TYPE,TIMESTAMP connection show], raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
+          allow(subject).to receive(:run_command_using_args)
+            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+              'Renamed profile 1'], raise_on_error: false)
+            .and_return(command_result(stdout: '802-11-wireless.ssid:TestNetwork-1'))
+          allow(subject).to receive(:run_command_using_args)
+            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+              'TestNetwork-2'], raise_on_error: false)
+            .and_return(command_result(stdout: '802-11-wireless.ssid:TestNetwork-2'))
 
           result = subject.preferred_networks
           expect(result).to be_an(Array)
           expect(result).to include('TestNetwork-1', 'TestNetwork-2')
+          expect(result).not_to include('Renamed profile 1')
           expect(result).not_to include('Wired connection 1')
         end
 
         it 'returns empty array when no Wi-Fi connections exist' do
-          nmcli_output = "Wired connection 1:ethernet\nVPN profile:vpn"
+          nmcli_output = "Wired connection 1:ethernet:100\nVPN profile:vpn:200"
           allow(subject).to receive(:run_command_using_args)
-            .with(%w[nmcli -t -f NAME,TYPE connection show])
+            .with(%w[nmcli -t -f NAME,TYPE,TIMESTAMP connection show], raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
 
           expect(subject.preferred_networks).to eq([])
         end
 
         it 'filters out empty lines and non-Wi-Fi connections from output' do
-          nmcli_output = "TestNetwork:802-11-wireless\n\n\nWired connection:ethernet\nVPN profile:vpn"
+          nmcli_output =
+            "TestNetwork:802-11-wireless:100\n\n\nWired connection:ethernet:200\nVPN profile:vpn:300"
           allow(subject).to receive(:run_command_using_args)
-            .with(%w[nmcli -t -f NAME,TYPE connection show])
+            .with(%w[nmcli -t -f NAME,TYPE,TIMESTAMP connection show], raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
+          allow(subject).to receive(:run_command_using_args)
+            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+              'TestNetwork'], raise_on_error: false)
+            .and_return(command_result(stdout: '802-11-wireless.ssid:TestNetwork'))
 
           result = subject.preferred_networks
           expect(result).to eq(['TestNetwork'])
@@ -1522,21 +1583,43 @@ module WifiWand
 
         describe '#find_best_profile_for_ssid' do
           it 'finds existing connection profile for SSID' do
-            # NetworkManager names duplicates "SSID", "SSID 1", "SSID 2", etc.
-            connection_output = "MyNetwork:1672574400\nMyNetwork 1:1672660200\nOtherNetwork:1672547800"
+            connection_output = "MyNetwork:802-11-wireless:1672574400\n" \
+              "Renamed MyNetwork:802-11-wireless:1672660200\n" \
+              'OtherNetwork:802-11-wireless:1672547800'
             allow(subject).to receive(:run_command_using_args)
-              .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], raise_on_error: false)
+              .with(%w[nmcli -t -f NAME,TYPE,TIMESTAMP connection show], raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'MyNetwork'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:MyNetwork'))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'Renamed MyNetwork'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:MyNetwork'))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'OtherNetwork'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
 
             result = subject.send(:find_best_profile_for_ssid, 'MyNetwork')
-            expect(result).to eq('MyNetwork 1')  # Most recent profile
+            expect(result).to eq('Renamed MyNetwork')  # Most recent matching profile
           end
 
           it 'returns nil when no profile exists for SSID' do
-            connection_output = "MyNetwork:1672574400\nOtherNetwork:1672547800"
+            connection_output =
+              "MyNetwork:802-11-wireless:1672574400\nOtherNetwork:802-11-wireless:1672547800"
             allow(subject).to receive(:run_command_using_args)
-              .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], raise_on_error: false)
+              .with(%w[nmcli -t -f NAME,TYPE,TIMESTAMP connection show], raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'MyNetwork'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:MyNetwork'))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'OtherNetwork'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
 
             expect(subject.send(:find_best_profile_for_ssid, 'NonExistent')).to be_nil
           end
@@ -1663,30 +1746,61 @@ module WifiWand
         end
 
         describe '#find_best_profile_for_ssid with colon-containing profile name' do
-          it 'correctly parses profile names that contain literal colons' do
-            # nmcli escapes "Corp:Net" as "Corp\:Net" in terse output
-            connection_output = "Corp\\:Net:1672660200\nOtherNetwork:1672574400"
+          it 'correctly parses profile names and SSIDs that contain literal colons' do
+            connection_output =
+              "Corp\\:Profile:802-11-wireless:1672660200\nOtherNetwork:802-11-wireless:1672574400"
             allow(subject).to receive(:run_command_using_args)
-              .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], raise_on_error: false)
+              .with(%w[nmcli -t -f NAME,TYPE,TIMESTAMP connection show], raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'Corp:Profile'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:Corp\\:Net'))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'OtherNetwork'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
 
-            expect(subject.send(:find_best_profile_for_ssid, 'Corp:Net')).to eq('Corp:Net')
+            expect(subject.send(:find_best_profile_for_ssid, 'Corp:Net')).to eq('Corp:Profile')
           end
 
-          it 'does not match a profile whose name merely starts with the SSID (prefix collision)' do
-            connection_output = "Office-Guest:1672660200\nOffice Extra:1672574400"
+          it 'does not match a profile whose name merely starts with the SSID' do
+            connection_output =
+              "Office-Guest:802-11-wireless:1672660200\nOffice Extra:802-11-wireless:1672574400"
             allow(subject).to receive(:run_command_using_args)
-              .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], raise_on_error: false)
+              .with(%w[nmcli -t -f NAME,TYPE,TIMESTAMP connection show], raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'Office-Guest'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:Office-Guest'))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'Office Extra'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:Office Extra'))
 
             expect(subject.send(:find_best_profile_for_ssid, 'Office')).to be_nil
           end
 
-          it 'matches an NM duplicate profile (SSID followed by space and number)' do
-            connection_output = "Office:1672574400\nOffice 1:1672660200\nOffice-Guest:1672547800"
+          it 'matches the newest NM duplicate profile by configured SSID' do
+            connection_output = "Office:802-11-wireless:1672574400\n" \
+              "Office 1:802-11-wireless:1672660200\n" \
+              'Office-Guest:802-11-wireless:1672547800'
             allow(subject).to receive(:run_command_using_args)
-              .with(%w[nmcli -t -f NAME,TIMESTAMP connection show], raise_on_error: false)
+              .with(%w[nmcli -t -f NAME,TYPE,TIMESTAMP connection show], raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'Office'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:Office'))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'Office 1'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:Office'))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'Office-Guest'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:Office-Guest'))
 
             result = subject.send(:find_best_profile_for_ssid, 'Office')
             expect(result).to eq('Office 1')
@@ -2176,7 +2290,8 @@ module WifiWand
         it 'removes a preferred network' do
           connection_name = 'SavedProfile'
 
-          allow(subject).to receive(:preferred_networks).and_return([connection_name])
+          allow(subject).to receive(:saved_wifi_profiles)
+            .and_return([saved_wifi_profile(connection_name, ssid: connection_name)])
           expect(subject).to receive(:run_command_using_args)
             .with(['nmcli', 'connection', 'delete', connection_name])
             .and_return(command_result(stdout: ''))
@@ -2185,7 +2300,7 @@ module WifiWand
         end
 
         it 'handles removal of non-existent network' do
-          allow(subject).to receive(:preferred_networks).and_return([])
+          allow(subject).to receive(:saved_wifi_profiles).and_return([])
 
           expect { subject.remove_preferred_network('non_existent_network_123') }.not_to raise_error
         end

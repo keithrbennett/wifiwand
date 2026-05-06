@@ -20,6 +20,7 @@ module WifiWand
       ipv6.dns
       ipv6.ignore-auto-dns
     ].freeze
+    SavedWifiProfile = Struct.new(:name, :ssid, :type, :timestamp, keyword_init: true)
 
     def initialize(options = {}) = super
 
@@ -401,29 +402,9 @@ module WifiWand
     # @param ssid [String] The SSID to search for.
     # @return [String, nil] The name of the best profile, or nil if none are found.
     private def find_best_profile_for_ssid(ssid)
-      # Get all profiles for the SSID, with their name and timestamp.
-      # The output is a colon-separated string, e.g., "MySSID:1678886400"
       debug_method_entry(__method__, binding, :ssid)
 
-      begin
-        output = run_command_using_args(
-          ['nmcli', '-t', '-f', 'NAME,TIMESTAMP', 'connection', 'show'], raise_on_error: false
-        ).stdout
-      rescue WifiWand::CommandExecutor::OsCommandError
-        # If the command fails for any reason, we can't find profiles.
-        return nil
-      end
-
-      profiles = output.split("\n").map do |line|
-        name, timestamp = nmcli_split(line, 2)
-        # Match exact profile name or NM duplicate suffixes: "MySSID", "MySSID 1", "MySSID 2", etc.
-        if profile_matches_ssid?(name, ssid)
-          { name: name, timestamp: timestamp.to_i }
-        end
-      end.compact
-
-      # Find the profile with the highest (most recent) timestamp.
-      profiles.max_by { |p| p[:timestamp] }&.dig(:name)
+      saved_wifi_profiles_matching_ssid(ssid).max_by(&:timestamp)&.name
     end
 
     public def remove_preferred_network(network_name)
@@ -445,8 +426,7 @@ module WifiWand
     public def preferred_network_password(preferred_network_name, timeout_in_secs: :default)
       debug_method_entry(__method__, binding, :preferred_network_name)
       preferred_network_name = preferred_network_name.to_s
-      if has_preferred_network?(preferred_network_name)
-        resolved_profile_name = resolve_saved_profile_name(preferred_network_name)
+      if (resolved_profile_name = find_best_profile_for_ssid(preferred_network_name))
         _preferred_network_password(resolved_profile_name)
       else
         raise PreferredNetworkNotFoundError, preferred_network_name
@@ -456,13 +436,7 @@ module WifiWand
     public def preferred_networks
       debug_method_entry(__method__)
 
-      output = run_command_using_args(['nmcli', '-t', '-f', 'NAME,TYPE', 'connection', 'show']).stdout
-      connections = output.split("\n")
-        .map { |line| nmcli_split(line, 2) }
-        .select { |_, type| type == '802-11-wireless' }
-        .map { |name, _| name.strip }
-        .reject(&:empty?)
-      connections.sort
+      saved_wifi_profiles.map(&:ssid).reject(&:empty?).uniq.sort
     end
 
     public def _preferred_network_password(preferred_network_name)
@@ -765,30 +739,49 @@ module WifiWand
       parts.map { |p| p.gsub('\\:', ':') }
     end
 
+    private def saved_wifi_profiles
+      output = run_command_using_args(
+        ['nmcli', '-t', '-f', 'NAME,TYPE,TIMESTAMP', 'connection', 'show'], raise_on_error: false
+      ).stdout
+    rescue WifiWand::CommandExecutor::OsCommandError
+      []
+    else
+      output.split("\n").filter_map do |line|
+        name, type, timestamp = nmcli_split(line, 3)
+        next unless type == '802-11-wireless'
+
+        ssid = saved_wifi_profile_ssid(name)
+        next if ssid.nil? || ssid.empty?
+
+        SavedWifiProfile.new(name: name, ssid: ssid, type: type, timestamp: timestamp.to_i)
+      end
+    end
+
+    private def saved_wifi_profile_ssid(profile_name)
+      output = run_command_using_args(
+        ['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show', profile_name],
+        raise_on_error: false
+      ).stdout
+      line = output.split("\n").find { |output_line| !output_line.empty? }
+      return nil unless line
+
+      field_name, ssid = nmcli_split(line, 2)
+      field_name == '802-11-wireless.ssid' ? ssid : nil
+    rescue WifiWand::CommandExecutor::OsCommandError
+      nil
+    end
+
+    private def saved_wifi_profiles_matching_ssid(ssid)
+      ssid = ssid.to_s
+      saved_wifi_profiles.select { |profile| profile.ssid == ssid }
+    end
+
     public def preferred_networks_matching_ssid(ssid)
-      preferred_networks.select { |profile_name| profile_matches_ssid?(profile_name, ssid.to_s) }
+      saved_wifi_profiles_matching_ssid(ssid).map(&:name)
     end
 
     public def resolve_saved_profile_name(network_name)
-      explicit_duplicate_profile =
-        duplicate_profile_name?(network_name) && preferred_networks.include?(network_name)
-
-      explicit_duplicate_profile ? network_name : find_best_profile_for_ssid(network_name) || network_name
-    end
-
-    public def duplicate_profile_name?(network_name)
-      network_name.match?(/\A.+ \d+\z/)
-    end
-
-    # Returns true when a connection profile name corresponds to a given SSID.
-    # NetworkManager names the first profile exactly after the SSID; subsequent
-    # duplicates get a space-separated integer suffix ("SSID 1", "SSID 2", …).
-    #
-    # @param profile_name [String] The connection profile name from nmcli
-    # @param ssid [String] The target SSID
-    # @return [Boolean]
-    public def profile_matches_ssid?(profile_name, ssid)
-      profile_name == ssid || (profile_name.start_with?("#{ssid} ") && profile_name.match?(/ \d+\z/))
+      find_best_profile_for_ssid(network_name) || network_name
     end
 
     # Gets the security type of the currently connected network.

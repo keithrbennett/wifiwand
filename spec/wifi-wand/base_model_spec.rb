@@ -892,7 +892,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#remove_preferred_networks' do
     before do
-      allow(subject).to receive(:preferred_networks).and_return(%w[Network1 Network2 Network3])
+      allow(subject).to receive(:has_preferred_network?) do |network_name|
+        %w[Network1 Network2 Network3].include?(network_name)
+      end
       allow(subject).to receive(:remove_preferred_network)
     end
 
