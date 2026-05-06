@@ -106,6 +106,7 @@ module WifiWand
       @out_stream.puts 'Reinstalling wifiwand-helper...'
       @setup.reinstall_helper
       @out_stream.puts "✓ Helper reinstalled at: #{MacOsHelperBundle.installed_bundle_path}"
+      print_helper_version_directory_notice
       @out_stream.puts
       @out_stream.puts 'Note: macOS may have revoked the location permission after reinstall.'
       @out_stream.puts 'If prompted, re-grant permission in System Settings.'
@@ -180,6 +181,7 @@ module WifiWand
         @out_stream.puts "[#{current_step}/#{total_steps}] Installing wifiwand-helper..."
         @setup.install_helper
         @out_stream.puts "✓ Helper installed at: #{MacOsHelperBundle.installed_bundle_path}"
+        print_helper_version_directory_notice
 
         # macOS sometimes restores a previously-granted permission after install.
         @out_stream.puts
@@ -196,6 +198,7 @@ module WifiWand
         @out_stream.puts "[#{current_step}/#{total_steps}] Reinstalling wifiwand-helper..."
         @setup.reinstall_helper
         @out_stream.puts "✓ Helper reinstalled at: #{MacOsHelperBundle.installed_bundle_path}"
+        print_helper_version_directory_notice
 
         # macOS sometimes preserves authorization across reinstalls.
         @out_stream.puts
@@ -216,6 +219,21 @@ module WifiWand
       sleep 1
       @setup.open_location_settings
       print_permission_instructions
+    end
+
+    private def print_helper_version_directory_notice
+      install_dir_count = MacOsHelperBundle.helper_install_dir_count
+      return unless install_dir_count > MacOsHelperBundle::VERSION_DIRECTORY_NOTICE_THRESHOLD
+
+      @out_stream.puts <<~NOTICE
+
+        Note: WifiWand found #{install_dir_count} helper version directories in:
+          #{MacOsHelperBundle::INSTALL_PARENT}
+
+        Older helper versions are not used by the current wifi-wand install.
+        You may remove old version directories manually if you want to reclaim space.
+        Keep the current version directory: #{MacOsHelperBundle.helper_version}
+      NOTICE
     end
 
     private def print_permission_instructions

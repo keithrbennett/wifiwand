@@ -1337,6 +1337,27 @@ RSpec.describe WifiWand::MacOsHelperBundle do
     end
   end
 
+  describe '.helper_install_dir_count' do
+    let(:install_parent) { Dir.mktmpdir('wifiwand-helper-versions-spec') }
+
+    before do
+      stub_const("#{described_class}::INSTALL_PARENT", install_parent)
+      FileUtils.mkdir_p(File.join(install_parent, '3.0.0'))
+      FileUtils.mkdir_p(File.join(install_parent, '3.0.1'))
+      FileUtils.mkdir_p(File.join(install_parent, '3.0.0.pre.alpha.1'))
+      FileUtils.mkdir_p(File.join(install_parent, 'notes'))
+      File.write(File.join(install_parent, '3.0.2'), 'not a directory')
+    end
+
+    after do
+      FileUtils.rm_rf(install_parent)
+    end
+
+    it 'counts only helper version directories' do
+      expect(described_class.helper_install_dir_count).to eq(3)
+    end
+  end
+
   describe '.run_bounded_helper_command' do
     let(:temp_dir) { Dir.mktmpdir('wifiwand-helper-run-spec') }
     let(:executable_path) { File.join(temp_dir, 'wifiwand-helper-test') }

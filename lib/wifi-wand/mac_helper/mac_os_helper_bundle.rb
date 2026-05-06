@@ -25,6 +25,7 @@ module WifiWand
     HELPER_TERMINATION_WAIT_SECONDS = 0.25
     HELPER_OUTPUT_READER_JOIN_SECONDS = 0.05
     MANIFEST_FILENAME = 'INSTALL_MANIFEST.json'
+    VERSION_DIRECTORY_NOTICE_THRESHOLD = 5
 
     HelperSupportStatus = Struct.new(:macos_version, :parsed_version, keyword_init: true) do
       def known? = !!parsed_version
@@ -48,6 +49,25 @@ module WifiWand
 
     module_function def installed_executable_path = File.join(installed_bundle_path, 'Contents', 'MacOS',
       EXECUTABLE_NAME)
+
+    module_function def helper_install_dir_count
+      return 0 unless Dir.exist?(INSTALL_PARENT)
+
+      Dir.children(INSTALL_PARENT)
+        .select { |entry| File.directory?(File.join(INSTALL_PARENT, entry)) }
+        .select { |entry| helper_install_dir_entry?(entry) }
+        .count
+    end
+
+    module_function def helper_install_dir_entry?(entry)
+      entry_name = entry.to_s
+      return false if entry_name.empty? || entry_name.start_with?('.')
+
+      Gem::Version.new(entry_name)
+      true
+    rescue ArgumentError
+      false
+    end
 
     module_function def helper_info
       {

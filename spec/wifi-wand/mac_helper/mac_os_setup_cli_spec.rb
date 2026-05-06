@@ -5,7 +5,10 @@ require 'stringio'
 require 'wifi-wand/mac_helper/mac_os_setup_cli'
 
 RSpec.describe WifiWand::MacOsSetupCli do
-  before { allow_any_instance_of(described_class).to receive(:sleep) }
+  before do
+    allow_any_instance_of(described_class).to receive(:sleep)
+    allow(WifiWand::MacOsHelperBundle).to receive(:helper_install_dir_count).and_return(0)
+  end
 
   # ---------------------------------------------------------------------------
   # Helpers
@@ -247,6 +250,60 @@ RSpec.describe WifiWand::MacOsSetupCli do
 
     it 'returns exit code 0' do
       expect(build_cli(argv: ['--remove'], setup: setup).run).to eq(0)
+    end
+  end
+
+  # ---------------------------------------------------------------------------
+  # Helper version directory notice
+  # ---------------------------------------------------------------------------
+  describe 'helper version directory notice' do
+    let(:setup)          { instance_double(WifiWand::MacOsHelperSetup) }
+    let(:missing_status) { build_result(installed: false, valid: false) }
+    let(:complete_status) { build_result(authorized: true) }
+
+    before do
+      allow(WifiWand::MacOsHelperBundle).to receive_messages(
+        helper_install_dir_count: 6,
+        helper_version:           '3.0.0',
+        installed_bundle_path:    '/fake/bundle'
+      )
+      allow(setup).to receive(:install_helper)
+      allow(setup).to receive(:reinstall_helper)
+      allow(setup).to receive(:open_location_settings)
+    end
+
+    it 'prints an advisory notice after installing when helper version directories exceed the threshold' do
+      allow(setup).to receive(:check_status).and_return(missing_status, complete_status)
+
+      build_cli(setup: setup).run
+      expect(out_stream.string).to include('WifiWand found 6 helper version directories')
+      expect(out_stream.string).to include(WifiWand::MacOsHelperBundle::INSTALL_PARENT)
+      expect(out_stream.string).to include('Keep the current version directory: 3.0.0')
+    end
+
+    it 'prints an advisory notice after explicit reinstall when directories exceed the threshold' do
+      allow(setup).to receive(:check_status).and_return(complete_status)
+
+      build_cli(argv: ['--reinstall'], setup: setup).run
+      expect(out_stream.string).to include('WifiWand found 6 helper version directories')
+      expect(out_stream.string).to include('Older helper versions are not used')
+    end
+
+    it 'does not print the notice when the directory count is at the threshold' do
+      allow(WifiWand::MacOsHelperBundle)
+        .to receive(:helper_install_dir_count)
+        .and_return(WifiWand::MacOsHelperBundle::VERSION_DIRECTORY_NOTICE_THRESHOLD)
+      allow(setup).to receive(:check_status).and_return(missing_status, complete_status)
+
+      build_cli(setup: setup).run
+      expect(out_stream.string).not_to include('helper version directories')
+    end
+
+    it 'does not print the notice when setup is already complete' do
+      allow(setup).to receive(:check_status).and_return(complete_status)
+
+      build_cli(setup: setup).run
+      expect(out_stream.string).not_to include('helper version directories')
     end
   end
 
