@@ -5,8 +5,8 @@
 * Focus on identifying weaknesses, risks, and areas for improvement.  
 * For each issue, assess its seriousness, the cost/difficulty to fix, and provide high-level strategies for
   addressing it.
-* If you are unable to use the simplecov-mcp MCP server, use `simplecov-mcp` in CLI mode (run `simplecov-mcp
-  -h` for help).
+* Use the cov-loupe MCP server to analyze coverage data. Prefer MCP tools over reading SimpleCov resultsets
+  directly or reasoning from scratch; only fall back to the `cov-loupe` CLI if the MCP server is unavailable.
 
 Write your analysis in a Markdown file whose name is:
 * today's date in YYYY-MM-DD format +
@@ -69,7 +69,7 @@ include:
 ---
 
 ### Test Coverage
-- Using the **simplecov-mcp MCP server**, analyze the test coverage:
+- Using the **cov-loupe MCP server**, analyze the test coverage:
     - Include a summary table of coverage by file/module.
     - Report coverage at a high and general level.
     - Rank risks of lacking coverage in **descending order of magnitude**.
