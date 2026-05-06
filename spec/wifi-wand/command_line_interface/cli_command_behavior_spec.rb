@@ -290,9 +290,9 @@ describe WifiWand::CommandLineInterface do
             .and_raise(WifiWand::Error.new('WiFi is off, cannot scan for available networks.'))
         end
 
-        it 'outputs wifi off message' do
+        it 'propagates the WiFi-off scan error' do
           expect { invoke_command(cli, 'avail_nets') }
-            .to output("WiFi is off, cannot scan for available networks.\n").to_stdout
+            .to raise_error(WifiWand::Error, 'WiFi is off, cannot scan for available networks.')
         end
       end
     end
@@ -322,6 +322,23 @@ describe WifiWand::CommandLineInterface do
         it 'outputs none message' do
           allow(mock_model).to receive(:connected_network_name).and_return(nil)
           expect { invoke_command(cli, 'network_name') }.to output(/Network.*SSID.*name.*none/).to_stdout
+        end
+      end
+
+      context 'when the model cannot determine the current network identity' do
+        it 'propagates WiFi-off errors' do
+          allow(mock_model).to receive(:connected_network_name)
+            .and_raise(WifiWand::WifiOffError.new('WiFi is off'))
+
+          expect { invoke_command(cli, 'network_name') }.to raise_error(WifiWand::WifiOffError, 'WiFi is off')
+        end
+
+        it 'propagates macOS redaction errors' do
+          error = WifiWand::MacOsRedactionError.new(operation_description: 'showing the current SSID')
+          allow(mock_model).to receive(:connected_network_name).and_raise(error)
+
+          expect { invoke_command(cli, 'network_name') }
+            .to raise_error(WifiWand::MacOsRedactionError, /Exact WiFi network identity/)
         end
       end
     end

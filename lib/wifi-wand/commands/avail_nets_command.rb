@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative 'command'
-require_relative '../errors'
 
 module WifiWand
   class AvailNetsCommand < Command
@@ -17,8 +16,6 @@ module WifiWand
     def call
       info = model.available_network_names
       output_support.handle_output(info, human_readable_string_producer(info))
-    rescue WifiWand::Error => e
-      output_support.handle_output(nil, -> { e.message })
     end
 
     private def human_readable_string_producer(info)

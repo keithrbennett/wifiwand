@@ -48,15 +48,12 @@ describe WifiWand::AvailNetsCommand do
       command.call
     end
 
-    it 'routes model errors through handle_output' do
+    it 'propagates model errors for CLI-level error handling' do
       allow(mock_model).to receive(:available_network_names)
         .and_raise(WifiWand::Error.new('WiFi is off, cannot scan for available networks.'))
-      expect(output_support).to receive(:handle_output) do |info, producer|
-        expect(info).to be_nil
-        expect(producer.call).to eq('WiFi is off, cannot scan for available networks.')
-      end
 
-      command.call
+      expect { command.call }
+        .to raise_error(WifiWand::Error, 'WiFi is off, cannot scan for available networks.')
     end
   end
 end

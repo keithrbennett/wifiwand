@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative 'command'
-require_relative '../errors'
 
 module WifiWand
   class NetworkNameCommand < Command
@@ -17,8 +16,6 @@ module WifiWand
     def call
       name = model.connected_network_name
       output_support.handle_output(name, -> { %{Network (SSID) name: "#{name || '[none]'}"} })
-    rescue WifiWand::Error => e
-      output_support.handle_output(nil, -> { e.message })
     end
   end
 end

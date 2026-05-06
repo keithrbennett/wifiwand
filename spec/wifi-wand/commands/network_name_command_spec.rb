@@ -30,14 +30,18 @@ describe WifiWand::NetworkNameCommand do
       command.call
     end
 
-    it 'routes model errors through handle_output' do
-      allow(mock_model).to receive(:connected_network_name).and_raise(WifiWand::Error.new('network error'))
-      expect(output_support).to receive(:handle_output) do |name, producer|
-        expect(name).to be_nil
-        expect(producer.call).to eq('network error')
-      end
+    it 'propagates WiFi-off errors for CLI-level error handling' do
+      allow(mock_model).to receive(:connected_network_name)
+        .and_raise(WifiWand::WifiOffError.new('WiFi is off'))
 
-      command.call
+      expect { command.call }.to raise_error(WifiWand::WifiOffError, 'WiFi is off')
+    end
+
+    it 'propagates exact identity errors for CLI-level error handling' do
+      error = WifiWand::MacOsRedactionError.new(operation_description: 'showing the current SSID')
+      allow(mock_model).to receive(:connected_network_name).and_raise(error)
+
+      expect { command.call }.to raise_error(WifiWand::MacOsRedactionError, /Exact WiFi network identity/)
     end
   end
 end

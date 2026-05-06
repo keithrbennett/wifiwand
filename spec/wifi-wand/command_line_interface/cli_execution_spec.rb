@@ -150,6 +150,55 @@ describe WifiWand::CommandLineInterface do
     end
   end
 
+  describe 'query command exit behavior' do
+    def call_cli_command(command_name)
+      out_stream = StringIO.new
+      err_stream = StringIO.new
+      opts = create_cli_options(argv: [command_name], out_stream: out_stream, err_stream: err_stream)
+      query_cli = described_class.new(opts)
+
+      {
+        status: query_cli.call,
+        stdout: out_stream.string,
+        stderr: err_stream.string,
+      }
+    end
+
+    it 'returns failure when avail_nets cannot scan because WiFi is off' do
+      allow(mock_model).to receive(:available_network_names)
+        .and_raise(WifiWand::WifiOffError.new('WiFi is off, cannot scan for available networks.'))
+
+      result = call_cli_command('avail_nets')
+
+      expect(result[:status]).to eq(described_class::FAILURE_EXIT_CODE)
+      expect(result[:stdout]).to be_empty
+      expect(result[:stderr]).to include('WiFi is off, cannot scan for available networks.')
+    end
+
+    it 'returns failure when network_name cannot query because WiFi is off' do
+      allow(mock_model).to receive(:connected_network_name)
+        .and_raise(WifiWand::WifiOffError.new('WiFi is off'))
+
+      result = call_cli_command('network_name')
+
+      expect(result[:status]).to eq(described_class::FAILURE_EXIT_CODE)
+      expect(result[:stdout]).to be_empty
+      expect(result[:stderr]).to include('WiFi is off')
+    end
+
+    it 'returns failure when macOS redacts the exact network identity' do
+      error = WifiWand::MacOsRedactionError.new(operation_description: 'showing the current SSID')
+      allow(mock_model).to receive(:connected_network_name).and_raise(error)
+
+      result = call_cli_command('network_name')
+
+      expect(result[:status]).to eq(described_class::FAILURE_EXIT_CODE)
+      expect(result[:stdout]).to be_empty
+      expect(result[:stderr]).to include('Exact WiFi network identity is required')
+      expect(result[:stderr]).to include('wifi-wand-macos-setup')
+    end
+  end
+
   describe 'status command exit behavior' do
     it 'returns failure when status data is unavailable in non-interactive mode' do
       out_stream = StringIO.new
