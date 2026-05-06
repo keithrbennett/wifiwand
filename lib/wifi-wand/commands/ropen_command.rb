@@ -33,12 +33,13 @@ module WifiWand
           nil
         end
       else
-        result = resource_manager.open_resources_by_codes(model, *resource_codes)
+        invalid_codes = resource_manager.invalid_resource_codes(*resource_codes)
 
-        unless result[:invalid_codes].empty?
-          err_stream.puts(resource_manager.invalid_codes_error(result[:invalid_codes]))
+        unless invalid_codes.empty?
+          raise WifiWand::ConfigurationError, resource_manager.invalid_codes_error(invalid_codes)
         end
 
+        resource_manager.open_resources_by_codes(model, *resource_codes)
         nil
       end
     end

@@ -69,6 +69,10 @@ describe WifiWand::CommandLineInterface do
           double('resource', code: 'spe', description: 'Speed Test'),
         ]
 
+        allow(mock_resource_manager).to receive(:invalid_resource_codes)
+          .with('ipw', 'spe')
+          .and_return([])
+
         allow(mock_resource_manager).to receive(:open_resources_by_codes)
           .with(mock_model, 'ipw', 'spe')
           .and_return({ opened_resources: opened_resources, invalid_codes: [] })
@@ -76,33 +80,32 @@ describe WifiWand::CommandLineInterface do
         expect { invoke_command(cli, 'ropen', 'ipw', 'spe') }.not_to output.to_stdout
       end
 
-      it 'displays error message for invalid resource codes' do
-        allow(mock_resource_manager).to receive(:open_resources_by_codes)
-          .with(mock_model, 'invalid1', 'invalid2')
-          .and_return({ opened_resources: [], invalid_codes: %w[invalid1 invalid2] })
-
+      it 'raises ConfigurationError for invalid resource codes' do
+        allow(mock_resource_manager).to receive(:invalid_resource_codes)
+          .with('invalid1', 'invalid2')
+          .and_return(%w[invalid1 invalid2])
         allow(mock_resource_manager).to receive(:invalid_codes_error)
           .with(%w[invalid1 invalid2])
           .and_return("Invalid resource codes: 'invalid1', 'invalid2'")
 
         expect do
           invoke_command(cli, 'ropen', 'invalid1', 'invalid2')
-        end.to output("Invalid resource codes: 'invalid1', 'invalid2'\n").to_stderr
+        end.to raise_error(WifiWand::ConfigurationError, "Invalid resource codes: 'invalid1', 'invalid2'")
       end
 
-      it 'handles mixed valid and invalid codes' do
-        opened_resources = [double('resource', code: 'ipw', description: 'What is My IP')]
-
-        allow(mock_resource_manager).to receive(:open_resources_by_codes)
-          .with(mock_model, 'ipw', 'invalid')
-          .and_return({ opened_resources: opened_resources, invalid_codes: ['invalid'] })
-
+      it 'raises ConfigurationError before opening mixed valid and invalid codes' do
+        allow(mock_resource_manager).to receive(:invalid_resource_codes)
+          .with('ipw', 'invalid')
+          .and_return(['invalid'])
         allow(mock_resource_manager).to receive(:invalid_codes_error)
           .with(['invalid'])
           .and_return("Invalid resource code: 'invalid'")
 
-        expect { invoke_command(cli, 'ropen', 'ipw', 'invalid') }
-          .to output("Invalid resource code: 'invalid'\n").to_stderr
+        expect(mock_resource_manager).not_to receive(:open_resources_by_codes)
+
+        expect do
+          invoke_command(cli, 'ropen', 'ipw', 'invalid')
+        end.to raise_error(WifiWand::ConfigurationError, "Invalid resource code: 'invalid'")
       end
     end
   end

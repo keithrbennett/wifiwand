@@ -17,6 +17,10 @@ module WifiWand
 
       def open_resources = @open_resources ||= load_resources
 
+      def invalid_resource_codes(*resource_codes)
+        normalized_resource_codes(resource_codes).reject { |code| open_resources.find_by_code(code) }
+      end
+
       # Opens resources by their abbreviation codes
       # @param model [BaseModel] The model instance that will open the resources
       # @param resource_codes [Array<String,Symbol>] Resource codes to open
@@ -24,21 +28,20 @@ module WifiWand
       # @raise [ArgumentError] if model is nil
       def open_resources_by_codes(model, *resource_codes)
         raise ArgumentError, 'Model cannot be nil' if model.nil?
+
+        resource_codes = normalized_resource_codes(resource_codes)
         return { opened_resources: [], invalid_codes: [] } if resource_codes.empty?
 
-        opened_resources = []
-        invalid_codes = []
+        invalid_codes = invalid_resource_codes(*resource_codes)
+        unless invalid_codes.empty?
+          return { opened_resources: [], invalid_codes: invalid_codes }
+        end
 
-        resource_codes.each do |code|
-          code = code.to_s  # accommodate conversion from other types
+        opened_resources = resource_codes.map do |code|
           resource = open_resources.find_by_code(code)
 
-          if resource
-            model.open_resource(resource.url)
-            opened_resources << resource
-          else
-            invalid_codes << code
-          end
+          model.open_resource(resource.url)
+          resource
         end
 
         { opened_resources: opened_resources, invalid_codes: invalid_codes }
@@ -55,6 +58,10 @@ module WifiWand
         pluralized_codes = invalid_codes.length > 1 ? 'codes' : 'code'
         resource_list_str = open_resources.help_string.gsub(',', "\n")
         "Invalid resource #{pluralized_codes}: #{codes_string}. Valid codes are:\n #{resource_list_str}"
+      end
+
+      private def normalized_resource_codes(resource_codes)
+        resource_codes.map(&:to_s)
       end
 
       private def load_resources

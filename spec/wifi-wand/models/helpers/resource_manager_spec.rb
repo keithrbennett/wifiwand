@@ -62,6 +62,14 @@ describe WifiWand::Helpers::ResourceManager do
     end
   end
 
+  describe '#invalid_resource_codes' do
+    it 'returns codes that do not match a configured resource' do
+      invalid_codes = resource_manager.invalid_resource_codes('test1', :test2, 123, 'missing')
+
+      expect(invalid_codes).to eq(%w[123 missing])
+    end
+  end
+
   describe '#open_resources_by_codes' do
     let(:mock_model) { double('model') }
 
@@ -106,12 +114,11 @@ describe WifiWand::Helpers::ResourceManager do
     end
 
     context 'with mixed valid and invalid codes' do
-      it 'opens valid resources and reports invalid ones' do
+      it 'reports invalid codes without opening any resources' do
         result = resource_manager.open_resources_by_codes(mock_model, 'test1', 'invalid', 'test2')
 
-        expect(mock_model).to have_received(:open_resource).twice
-        expect(result[:opened_resources].size).to eq(2)
-        expect(result[:opened_resources].map(&:code)).to eq(%w[test1 test2])
+        expect(mock_model).not_to have_received(:open_resource)
+        expect(result[:opened_resources]).to be_empty
         expect(result[:invalid_codes]).to eq(['invalid'])
       end
     end
@@ -121,7 +128,8 @@ describe WifiWand::Helpers::ResourceManager do
       result = resource_manager.open_resources_by_codes(mock_model, :test1, 123)
 
       expect(result[:invalid_codes]).to eq(['123']) # 123 converted to '123' and not found
-      expect(result[:opened_resources].size).to eq(1) # :test1 converted to 'test1' and found
+      expect(result[:opened_resources]).to be_empty
+      expect(mock_model).not_to have_received(:open_resource)
     end
   end
 end

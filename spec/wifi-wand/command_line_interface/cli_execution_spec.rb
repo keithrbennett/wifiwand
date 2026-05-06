@@ -199,6 +199,47 @@ describe WifiWand::CommandLineInterface do
     end
   end
 
+  describe 'ropen command exit behavior' do
+    def call_ropen_command(*resource_codes)
+      out_stream = StringIO.new
+      err_stream = StringIO.new
+      opts = create_cli_options(
+        argv:       ['ropen', *resource_codes],
+        out_stream: out_stream,
+        err_stream: err_stream
+      )
+      ropen_cli = described_class.new(opts)
+
+      allow(ropen_cli.model).to receive(:open_resource)
+
+      {
+        cli:    ropen_cli,
+        status: ropen_cli.call,
+        stdout: out_stream.string,
+        stderr: err_stream.string,
+      }
+    end
+
+    it 'returns failure for an invalid resource code' do
+      result = call_ropen_command('bad-code')
+
+      expect(result[:status]).to eq(described_class::FAILURE_EXIT_CODE)
+      expect(result[:stdout]).to be_empty
+      expect(result[:stderr]).to include("Invalid resource code: 'bad-code'")
+      expect(result[:stderr]).to include('Valid codes are:')
+      expect(result[:stderr]).to include("'ipw' (What is My IP)")
+    end
+
+    it 'returns failure and opens nothing when valid and invalid codes are mixed' do
+      result = call_ropen_command('ipw', 'bad-code')
+
+      expect(result[:status]).to eq(described_class::FAILURE_EXIT_CODE)
+      expect(result[:cli].model).not_to have_received(:open_resource)
+      expect(result[:stdout]).to be_empty
+      expect(result[:stderr]).to include("Invalid resource code: 'bad-code'")
+    end
+  end
+
   describe 'status command exit behavior' do
     it 'returns failure when status data is unavailable in non-interactive mode' do
       out_stream = StringIO.new

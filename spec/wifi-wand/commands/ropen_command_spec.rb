@@ -74,21 +74,22 @@ describe WifiWand::RopenCommand do
 
     context 'with resource codes' do
       it 'opens resources and returns nil' do
+        allow(resource_manager).to receive(:invalid_resource_codes).with('ipw', 'spe').and_return([])
         allow(resource_manager).to receive(:open_resources_by_codes).with(mock_model, 'ipw', 'spe')
           .and_return({ opened_resources: [], invalid_codes: [] })
 
         expect(command.call('ipw', 'spe')).to be_nil
       end
 
-      it 'prints invalid code errors to stderr' do
-        allow(resource_manager).to receive(:open_resources_by_codes).with(mock_model, 'bad')
-          .and_return({ opened_resources: [], invalid_codes: ['bad'] })
+      it 'raises ConfigurationError before opening invalid resource codes' do
+        allow(resource_manager).to receive(:invalid_resource_codes).with('bad').and_return(['bad'])
         allow(resource_manager).to receive(:invalid_codes_error).with(['bad'])
           .and_return("Invalid resource code: 'bad'")
 
-        command.call('bad')
+        expect(resource_manager).not_to receive(:open_resources_by_codes)
 
-        expect(err_stream.string).to eq("Invalid resource code: 'bad'\n")
+        expect { command.call('bad') }
+          .to raise_error(WifiWand::ConfigurationError, "Invalid resource code: 'bad'")
       end
     end
   end
