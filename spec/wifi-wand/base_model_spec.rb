@@ -77,11 +77,15 @@ describe 'Common WiFi Model Behavior (All OS)' do
       # All OSes must provide these fields with consistent types
       expect(result).to include(
         'wifi_on', 'internet_tcp_connectivity', 'dns_working', 'captive_portal_state',
-        'internet_connectivity_state', 'interface', 'default_interface', 'network', 'ip_address',
+        'internet_connectivity_state', 'interface', 'default_interface', 'connected', 'network',
+        'ssid_identity_available', 'ssid_identity_status', 'ssid_identity_warning', 'ip_address',
         'mac_address', 'nameservers', 'timestamp'
       )
 
       expect([true, false]).to include(result['wifi_on'])
+      expect([true, false, nil]).to include(result['connected'])
+      expect([true, false]).to include(result['ssid_identity_available'])
+      expect(%w[available unavailable not_connected unknown]).to include(result['ssid_identity_status'])
       expect([true, false]).to include(result['internet_tcp_connectivity'])
       expect([true, false]).to include(result['dns_working'])
       expect(%i[free present indeterminate]).to include(result['captive_portal_state'])

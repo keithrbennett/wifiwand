@@ -29,7 +29,11 @@ The `info` command returns a hash containing:
 
 ### Network Connection Details
 - **WiFi Status**: On or Off
-- **Connected Network**: Current SSID (or nil if not connected)
+- **Association Status**: Whether the WiFi interface appears associated with a network
+- **Connected Network**: Current SSID, or nil when disconnected or SSID identity is unavailable
+- **SSID Identity Available**: Whether the current SSID name is known and usable
+- **SSID Identity Status**: `available`, `unavailable`, `not_connected`, or `unknown`
+- **SSID Identity Warning**: Explanation when macOS privacy redaction prevents exact SSID identity
 - **IP Address**: Local IP address(es)
 - **MAC Address**: WiFi interface MAC address
 

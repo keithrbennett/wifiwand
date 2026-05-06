@@ -172,27 +172,27 @@ module WifiWand
 
     # Returns the network names sorted in descending order of signal strength.
     def _available_network_names
+      _available_network_scan.fetch('networks')
+    end
+
+    def available_network_scan
+      raise WifiOffError, 'WiFi is off, cannot scan for available networks.' unless wifi_on?
+
+      _available_network_scan
+    end
+
+    def _available_network_scan
       with_airport_data_cache_scope do
-        helper_networks = helper_available_network_names
-        return helper_networks if helper_networks
+        helper_result = mac_helper_client.scan_networks
+        helper_networks = helper_available_network_names_from_result(helper_result)
+        return available_network_scan_result(helper_networks, source: 'mac_helper') if helper_networks
 
-        airport_networks = airport_available_network_names
-        return airport_networks if airport_networks
+        fallback_networks = fallback_available_network_names
+        if helper_result.location_services_blocked?
+          return location_services_blocked_available_network_scan(fallback_networks)
+        end
 
-        iface = wifi_interface
-        data = airport_data
-
-        interfaces = find_airport_interfaces(data)
-        return [] unless interfaces
-
-        wifi_data = find_wifi_interface_data(interfaces, iface)
-        return [] unless wifi_data
-
-        inner_key = network_list_key(wifi_data)
-        networks = wifi_data.fetch(inner_key, [])
-        return [] unless networks
-
-        sort_networks_by_signal_strength(networks)
+        available_network_scan_result(fallback_networks, source: 'fallback')
       end
     end
 
@@ -215,6 +215,11 @@ module WifiWand
     # consulted.
     def helper_available_network_names
       result = mac_helper_client.scan_networks
+
+      helper_available_network_names_from_result(result)
+    end
+
+    private def helper_available_network_names_from_result(result)
       return nil if result.location_services_blocked?
 
       networks = result.payload
@@ -696,6 +701,52 @@ module WifiWand
       networks.empty? ? nil : networks
     rescue WifiWand::Error
       nil
+    end
+
+    private def fallback_available_network_names
+      airport_networks = airport_available_network_names
+      return airport_networks if airport_networks
+
+      iface = wifi_interface
+      data = airport_data
+
+      interfaces = find_airport_interfaces(data)
+      return [] unless interfaces
+
+      wifi_data = find_wifi_interface_data(interfaces, iface)
+      return [] unless wifi_data
+
+      inner_key = network_list_key(wifi_data)
+      networks = wifi_data.fetch(inner_key, [])
+      return [] unless networks
+
+      sort_networks_by_signal_strength(networks)
+    end
+
+    private def available_network_scan_result(networks, source:, status: 'ok', trusted: true, warning: nil)
+      {
+        'networks'          => Array(networks),
+        'scan_status'       => status,
+        'scan_source'       => source,
+        'ssid_data_trusted' => trusted,
+        'warning'           => warning,
+      }
+    end
+
+    private def location_services_blocked_available_network_scan(networks)
+      available_network_scan_result(
+        networks,
+        source:  'fallback',
+        status:  'location_services_blocked',
+        trusted: false,
+        warning: location_services_blocked_scan_warning
+      )
+    end
+
+    private def location_services_blocked_scan_warning
+      'macOS blocked wifiwand-helper from reading WiFi SSIDs through Location Services; ' \
+        'fallback scan results may be incomplete or unavailable. Run `wifi-wand-macos-setup`, ' \
+        'grant Location Services to `wifiwand-helper`, and retry.'
     end
 
     private def parse_airport_scan_output(output)

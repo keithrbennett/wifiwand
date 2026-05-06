@@ -38,7 +38,11 @@ RSpec.describe 'docs/INFO_COMMAND.md' do
   let(:documented_info_field_keys) do
     {
       'WiFi Status'                 => 'wifi_on',
+      'Association Status'          => 'connected',
       'Connected Network'           => 'network',
+      'SSID Identity Available'     => 'ssid_identity_available',
+      'SSID Identity Status'        => 'ssid_identity_status',
+      'SSID Identity Warning'       => 'ssid_identity_warning',
       'IP Address'                  => 'ip_address',
       'MAC Address'                 => 'mac_address',
       'TCP Working'                 => 'internet_tcp_connectivity',

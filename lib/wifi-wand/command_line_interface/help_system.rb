@@ -86,7 +86,7 @@ module WifiWand
 
       private def help_commands(resource_help)
         [
-          ['a / avail_nets', 'array of names returned by the OS WiFi scan'],
+          ['a / avail_nets', 'visible networks; machine formats include scan metadata'],
           ['ci', 'Internet connectivity state: reachable, unreachable, or indeterminate'],
           [
             'co / connect network-name',

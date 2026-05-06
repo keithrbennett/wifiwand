@@ -9,6 +9,7 @@ describe WifiWand::NetworkConnectivityTester do
   include TestHelpers
 
   let(:ruby_bin) { RbConfig.ruby }
+  let(:open_probe_writers) { [] }
 
   def helper_command(body)
     [ruby_bin, '-rjson', '-e', body]
@@ -16,6 +17,35 @@ describe WifiWand::NetworkConnectivityTester do
 
   def json_payload_command(payload)
     helper_command("STDOUT.write(#{JSON.generate(payload).inspect})")
+  end
+
+  def completed_connectivity_probe(helper_mode:, payload:)
+    reader, writer = IO.pipe
+    writer.write(JSON.generate(payload))
+    writer.close
+    { pid: nil, reader: reader, helper_mode: helper_mode, buffer: +'', eof: false }
+  rescue
+    reader&.close unless reader&.closed?
+    writer&.close unless writer&.closed?
+    raise
+  end
+
+  def pending_connectivity_probe(helper_mode:)
+    reader, writer = IO.pipe
+    open_probe_writers << writer
+    { pid: nil, reader: reader, helper_mode: helper_mode, buffer: +'', eof: false }
+  rescue
+    reader&.close unless reader&.closed?
+    writer&.close unless writer&.closed?
+    raise
+  end
+
+  def successful_probe_payload
+    { success: true, timed_out: false }
+  end
+
+  def failing_probe_payload
+    { success: false, timed_out: false, error_class: 'RuntimeError' }
   end
 
   def success_command
@@ -38,6 +68,12 @@ describe WifiWand::NetworkConnectivityTester do
     expect(result).to be false
   end
 
+  after do
+    open_probe_writers.each do |writer|
+      writer.close unless writer.closed?
+    end
+  end
+
   shared_examples 'single helper process cancellation' do
     |method_name:, items_method:, success_items:, failing_items:|
     let(:tester) { described_class.new(verbose: false) }
@@ -45,9 +81,9 @@ describe WifiWand::NetworkConnectivityTester do
     it 'returns true when the helper reports that any probe succeeded' do
       observed_batches = []
       allow(tester).to receive(items_method).and_return(success_items)
-      allow(tester).to receive(:connectivity_probe_command) do |items, _helper_mode, _overall_timeout|
+      allow(tester).to receive(:start_connectivity_probe) do |items, helper_mode, _overall_timeout|
         observed_batches << items
-        success_command
+        completed_connectivity_probe(helper_mode: helper_mode, payload: successful_probe_payload)
       end
 
       result = nil
@@ -59,7 +95,9 @@ describe WifiWand::NetworkConnectivityTester do
 
     it 'returns a timed-out result when the helper misses the overall timeout' do
       allow(tester).to receive(items_method).and_return(failing_items)
-      allow(tester).to receive(:connectivity_probe_command).and_return(hanging_command)
+      allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
+        pending_connectivity_probe(helper_mode: helper_mode)
+      end
 
       result = nil
       Timeout.timeout(1) do
@@ -76,7 +114,9 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { described_class.new(verbose: true, output: output) }
 
       before do
-        allow(tester).to receive(:connectivity_probe_command).and_return(failure_command)
+        allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
+          completed_connectivity_probe(helper_mode: helper_mode, payload: failing_probe_payload)
+        end
       end
 
       it 'outputs formatted endpoint list to stdout' do
@@ -90,7 +130,7 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       it 'logs helper-reported probe failures to the configured output' do
-        probe_command = json_payload_command(
+        probe_payload = {
           success:       false,
           timed_out:     false,
           probe_results: [
@@ -99,12 +139,12 @@ describe WifiWand::NetworkConnectivityTester do
               success:     false,
               error_class: 'SocketError',
             },
-          ]
-        )
-        allow(tester).to receive_messages(
-          tcp_test_endpoints:         [{ host: 'failed.test', port: 443 }],
-          connectivity_probe_command: probe_command
-        )
+          ],
+        }
+        allow(tester).to receive(:tcp_test_endpoints).and_return([{ host: 'failed.test', port: 443 }])
+        allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
+          completed_connectivity_probe(helper_mode: helper_mode, payload: probe_payload)
+        end
 
         tester.tcp_connectivity?
 
@@ -112,7 +152,7 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       it 'logs helper-reported probe successes to the configured output' do
-        probe_command = json_payload_command(
+        probe_payload = {
           success:       true,
           timed_out:     false,
           probe_results: [
@@ -121,12 +161,12 @@ describe WifiWand::NetworkConnectivityTester do
               success:     true,
               error_class: nil,
             },
-          ]
-        )
-        allow(tester).to receive_messages(
-          tcp_test_endpoints:         [{ host: 'success.test', port: 443 }],
-          connectivity_probe_command: probe_command
-        )
+          ],
+        }
+        allow(tester).to receive(:tcp_test_endpoints).and_return([{ host: 'success.test', port: 443 }])
+        allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
+          completed_connectivity_probe(helper_mode: helper_mode, payload: probe_payload)
+        end
 
         tester.tcp_connectivity?
 
@@ -144,10 +184,10 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       before do
-        allow(tester).to receive_messages(
-          tcp_test_endpoints:         endpoints,
-          connectivity_probe_command: failure_command
-        )
+        allow(tester).to receive(:tcp_test_endpoints).and_return(endpoints)
+        allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
+          completed_connectivity_probe(helper_mode: helper_mode, payload: failing_probe_payload)
+        end
       end
 
       it 'returns false when all endpoints fail' do
@@ -165,10 +205,10 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       before do
-        allow(tester).to receive_messages(
-          tcp_test_endpoints:         endpoints,
-          connectivity_probe_command: success_command
-        )
+        allow(tester).to receive(:tcp_test_endpoints).and_return(endpoints)
+        allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
+          completed_connectivity_probe(helper_mode: helper_mode, payload: successful_probe_payload)
+        end
       end
 
       it 'returns true when at least one endpoint succeeds' do
@@ -186,10 +226,10 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       before do
-        allow(tester).to receive_messages(
-          tcp_test_endpoints:         endpoints,
-          connectivity_probe_command: success_command
-        )
+        allow(tester).to receive(:tcp_test_endpoints).and_return(endpoints)
+        allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
+          completed_connectivity_probe(helper_mode: helper_mode, payload: successful_probe_payload)
+        end
       end
 
       it 'still reports connectivity when an alternate port succeeds' do
@@ -216,7 +256,9 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { described_class.new(verbose: true, output: output) }
 
       before do
-        allow(tester).to receive(:connectivity_probe_command).and_return(failure_command)
+        allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
+          completed_connectivity_probe(helper_mode: helper_mode, payload: failing_probe_payload)
+        end
       end
 
       it 'outputs domain list to stdout' do
@@ -225,7 +267,7 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       it 'logs helper-reported probe failures to the configured output' do
-        probe_command = json_payload_command(
+        probe_payload = {
           success:       false,
           timed_out:     false,
           probe_results: [
@@ -234,12 +276,12 @@ describe WifiWand::NetworkConnectivityTester do
               success:     false,
               error_class: 'SocketError',
             },
-          ]
-        )
-        allow(tester).to receive_messages(
-          dns_test_domains:           ['failed.test'],
-          connectivity_probe_command: probe_command
-        )
+          ],
+        }
+        allow(tester).to receive(:dns_test_domains).and_return(['failed.test'])
+        allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
+          completed_connectivity_probe(helper_mode: helper_mode, payload: probe_payload)
+        end
 
         tester.dns_working?
 
@@ -247,7 +289,7 @@ describe WifiWand::NetworkConnectivityTester do
       end
 
       it 'logs helper-reported probe successes to the configured output' do
-        probe_command = json_payload_command(
+        probe_payload = {
           success:       true,
           timed_out:     false,
           probe_results: [
@@ -256,12 +298,12 @@ describe WifiWand::NetworkConnectivityTester do
               success:     true,
               error_class: nil,
             },
-          ]
-        )
-        allow(tester).to receive_messages(
-          dns_test_domains:           ['success.test'],
-          connectivity_probe_command: probe_command
-        )
+          ],
+        }
+        allow(tester).to receive(:dns_test_domains).and_return(['success.test'])
+        allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
+          completed_connectivity_probe(helper_mode: helper_mode, payload: probe_payload)
+        end
 
         tester.dns_working?
 
@@ -274,10 +316,10 @@ describe WifiWand::NetworkConnectivityTester do
       let(:domains) { %w[failed-a.test failed-b.test] }
 
       before do
-        allow(tester).to receive_messages(
-          dns_test_domains:           domains,
-          connectivity_probe_command: failure_command
-        )
+        allow(tester).to receive(:dns_test_domains).and_return(domains)
+        allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
+          completed_connectivity_probe(helper_mode: helper_mode, payload: failing_probe_payload)
+        end
       end
 
       it 'returns false when all domains fail to resolve' do
@@ -290,10 +332,10 @@ describe WifiWand::NetworkConnectivityTester do
       let(:domains) { %w[failed.test success.test] }
 
       before do
-        allow(tester).to receive_messages(
-          dns_test_domains:           domains,
-          connectivity_probe_command: success_command
-        )
+        allow(tester).to receive(:dns_test_domains).and_return(domains)
+        allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
+          completed_connectivity_probe(helper_mode: helper_mode, payload: successful_probe_payload)
+        end
       end
 
       it 'returns true when at least one domain resolves' do

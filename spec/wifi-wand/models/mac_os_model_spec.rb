@@ -927,6 +927,34 @@ module WifiWand
         end
       end
 
+      describe '#wifi_info' do
+        it 'distinguishes macOS SSID redaction from disconnection' do
+          redaction_error = WifiWand::MacOsRedactionError.new(
+            operation_description: 'Current WiFi network queries'
+          )
+          allow(model).to receive_messages(
+            wifi_on?:          true,
+            wifi_interface:    'en0',
+            connected?:        true,
+            default_interface: 'en0',
+            ip_address:        '192.168.1.25',
+            mac_address:       'aa:bb:cc:dd:ee:ff',
+            nameservers:       ['8.8.8.8']
+          )
+          allow(model).to receive(:connected_network_name).and_raise(redaction_error)
+
+          info = model.wifi_info
+
+          expect(info).to include(
+            'connected'               => true,
+            'network'                 => nil,
+            'ssid_identity_available' => false,
+            'ssid_identity_status'    => 'unavailable'
+          )
+          expect(info.fetch('ssid_identity_warning')).to include('Location Services')
+        end
+      end
+
       describe '#status_wifi_on?' do
         let(:status_timeout) { be_between(0, 0.5).exclusive }
         let(:read_path_timeout) { be_between(0.45, 0.5).exclusive }
@@ -1716,7 +1744,7 @@ module WifiWand
           expect(result).to eq(['VisibleNetwork'])
         end
 
-        it 'falls back to system_profiler when helper is blocked by Location Services' do
+        it 'marks fallback scan data as degraded when helper is blocked by Location Services' do
           result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(
             payload:                   [],
             location_services_blocked: true,
@@ -1736,7 +1764,42 @@ module WifiWand
             connected_network_name: nil
           )
 
-          expect(model._available_network_names).to eq(['VisibleNetwork'])
+          scan = model._available_network_scan
+
+          expect(scan.fetch('networks')).to eq(['VisibleNetwork'])
+          expect(scan).to include(
+            'networks'          => ['VisibleNetwork'],
+            'scan_status'       => 'location_services_blocked',
+            'scan_source'       => 'fallback',
+            'ssid_data_trusted' => false
+          )
+          expect(scan.fetch('warning')).to include('Location Services')
+        end
+
+        it 'marks empty fallback scan data as degraded when helper is blocked by Location Services' do
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(
+            payload:                   [],
+            location_services_blocked: true,
+            error_message:             'Location Services denied'
+          )
+          allow(helper_double).to receive(:scan_networks).and_return(result)
+          allow(model).to receive_messages(
+            airport_data:           { 'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                     => 'en0',
+                'spairport_airport_local_wireless_networks' => [],
+              }],
+            }] },
+            wifi_interface:         'en0',
+            connected_network_name: nil
+          )
+
+          expect(model._available_network_scan).to include(
+            'networks'          => [],
+            'scan_status'       => 'location_services_blocked',
+            'scan_source'       => 'fallback',
+            'ssid_data_trusted' => false
+          )
         end
 
         it 'falls back to system_profiler when helper scan returns no networks after timing out' do

@@ -13,6 +13,7 @@ require_relative 'helpers/qr_code_generator'
 require_relative '../errors'
 require_relative '../runtime_config'
 require_relative '../connectivity_states'
+require_relative '../network_identity'
 require_relative '../services/command_executor'
 require_relative '../services/network_connectivity_tester'
 require_relative '../services/network_state_manager'
@@ -208,6 +209,12 @@ module WifiWand
       raise WifiOffError, 'WiFi is off, cannot scan for available networks.' unless wifi_on?
 
       _available_network_names
+    end
+
+    def available_network_scan
+      raise WifiOffError, 'WiFi is off, cannot scan for available networks.' unless wifi_on?
+
+      successful_available_network_scan(_available_network_names)
     end
 
     def connected_network_name
@@ -416,6 +423,8 @@ module WifiWand
         captive_portal_state: portal_state
       )
 
+      network_identity = wifi_info_network_identity
+
       {
         'wifi_on'                     => wifi_on?,
         'internet_tcp_connectivity'   => internet_tcp,
@@ -424,11 +433,56 @@ module WifiWand
         'internet_connectivity_state' => connectivity_state,
         'interface'                   => wifi_interface,
         'default_interface'           => begin; default_interface; rescue WifiWand::Error; nil; end,
-        'network'                     => begin; connected_network_name; rescue WifiWand::Error; nil; end,
+        'connected'                   => network_identity.fetch('connected'),
+        'network'                     => network_identity.fetch('network'),
+        'ssid_identity_available'     => network_identity.fetch('ssid_identity_available'),
+        'ssid_identity_status'        => network_identity.fetch('ssid_identity_status'),
+        'ssid_identity_warning'       => network_identity.fetch('ssid_identity_warning'),
         'ip_address'                  => begin; ip_address; rescue WifiWand::Error; nil; end,
         'mac_address'                 => begin; mac_address; rescue WifiWand::Error; nil; end,
         'nameservers'                 => begin; nameservers; rescue WifiWand::Error; []; end,
         'timestamp'                   => Time.now,
+      }
+    end
+
+    private def successful_available_network_scan(networks)
+      {
+        'networks'          => Array(networks),
+        'scan_status'       => 'ok',
+        'scan_source'       => 'os',
+        'ssid_data_trusted' => true,
+        'warning'           => nil,
+      }
+    end
+
+    private def wifi_info_network_identity
+      connected = begin; connected?; rescue WifiWand::Error; nil; end
+      warning = nil
+      network_name = begin
+        connected_network_name
+      rescue WifiWand::MacOsRedactionError => e
+        warning = e.message
+        nil
+      rescue WifiWand::Error
+        nil
+      end
+
+      status = if NetworkIdentity.named?(network_name)
+        'available'
+      elsif connected == true
+        'unavailable'
+      elsif connected == false
+        'not_connected'
+      else
+        'unknown'
+      end
+
+      {
+        'connected'               => connected,
+        'network'                 => network_name,
+        'ssid_identity_available' => status == 'available',
+        'ssid_identity_status'    => status,
+        'ssid_identity_warning'   => warning,
       }
     end
 
