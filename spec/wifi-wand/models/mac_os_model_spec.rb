@@ -1202,9 +1202,6 @@ module WifiWand
         # Restore original method behavior for these specific tests
         before do
           allow_any_instance_of(described_class).to receive(:probe_wifi_interface).and_call_original
-          # Force fallback path to system_profiler for deterministic tests
-          allow_any_instance_of(described_class).to receive(:wifi_interface_using_networksetup)
-            .and_return(nil)
         end
 
         # Provide a valid interface during initialization to avoid init failures in this block
@@ -1220,6 +1217,7 @@ module WifiWand
         end
 
         it 'detects WiFi interface from system_profiler' do
+          allow(model).to receive(:wifi_interface_using_networksetup).and_return(nil)
           expect(model).to receive(:run_command_using_args).with(
             %w[system_profiler -json SPNetworkDataType],
             raise_on_error:  true,
@@ -1230,13 +1228,14 @@ module WifiWand
         end
 
         it 'returns nil when WiFi service not found' do
-          allow(model).to receive(:run_command_using_args)
-            .and_return(command_result(stdout: '{"SPNetworkDataType": []}'))
+          allow(model).to receive_messages(wifi_interface_using_networksetup: nil,
+            run_command_using_args: command_result(stdout: '{"SPNetworkDataType": []}'))
           expect(model.probe_wifi_interface).to be_nil
         end
 
         it 'handles JSON parse errors gracefully' do
-          allow(model).to receive(:run_command_using_args).and_return(command_result(stdout: 'invalid json'))
+          allow(model).to receive_messages(wifi_interface_using_networksetup: nil,
+            run_command_using_args: command_result(stdout: 'invalid json'))
           expect { model.probe_wifi_interface }.to raise_error(JSON::ParserError)
         end
 
