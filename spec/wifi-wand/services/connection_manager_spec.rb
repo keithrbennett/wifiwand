@@ -3,6 +3,8 @@
 require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/services/connection_manager'
 
+require 'stringio'
+
 describe WifiWand::ConnectionManager do
   subject { described_class.new(mock_model, verbose: false) }
 
@@ -315,6 +317,35 @@ describe WifiWand::ConnectionManager do
         allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork', 'TestNetwork')
 
         expect { subject.connect('TestNetwork') }.not_to raise_error
+      end
+
+      it 'logs lookup errors in verbose mode before treating verification as unknown' do
+        output = StringIO.new
+        runtime_config = WifiWand::RuntimeConfig.new(verbose: true, out_stream: output)
+        manager = described_class.new(mock_model, runtime_config: runtime_config)
+
+        allow(manager).to receive(:wait_for_connection_activation)
+        allow(mock_model).to receive(:connection_ready?).and_return(false, false)
+        allow(mock_model).to receive(:connected_network_name).and_raise(WifiWand::Error, 'lookup failed')
+
+        expect { manager.connect('TestNetwork') }.to raise_error(WifiWand::NetworkConnectionError)
+        expect(output.string).to include(
+          "Connection verification could not read current network for 'TestNetwork': " \
+            'WifiWand::Error: lookup failed'
+        )
+      end
+
+      it 'keeps lookup errors quiet when verbose mode is disabled' do
+        output = StringIO.new
+        runtime_config = WifiWand::RuntimeConfig.new(verbose: false, out_stream: output)
+        manager = described_class.new(mock_model, runtime_config: runtime_config)
+
+        allow(manager).to receive(:wait_for_connection_activation)
+        allow(mock_model).to receive(:connection_ready?).and_return(false, false)
+        allow(mock_model).to receive(:connected_network_name).and_raise(WifiWand::Error, 'lookup failed')
+
+        expect { manager.connect('TestNetwork') }.to raise_error(WifiWand::NetworkConnectionError)
+        expect(output.string).to be_empty
       end
     end
   end

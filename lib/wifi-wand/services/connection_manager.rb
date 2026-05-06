@@ -235,8 +235,16 @@ module WifiWand
         network_name: network_name,
         reason:       redacted_identity_reason_for_connection(network_name, e)
       ))
-    rescue WifiWand::Error
+    rescue WifiWand::Error => e
+      log_verbose(
+        "Connection verification could not read current network for '#{network_name}': " \
+          "#{e.class}: #{e.message}"
+      )
       nil
+    end
+
+    private def log_verbose(message)
+      runtime_config.out_stream.puts(message) if verbose?
     end
 
     private def redacted_identity_reason_for_connection(network_name, error)
