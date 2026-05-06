@@ -146,56 +146,39 @@ describe WifiWand::CommandLineInterface do
       context 'when handling file overwrite scenarios' do
         let(:filename) { 'test.png' }
         let(:file_exists_error) { WifiWand::Error.new("File #{filename} already exists") }
+        let(:input_stream) { StringIO.new("y\n") }
+        let(:options) { create_cli_options(in_stream: input_stream) }
 
-        before do
+        it 'passes the CLI input stream to the model so the generator can prompt' do
           allow(mock_model).to receive(:generate_qr_code).with(filename,
-            hash_including(password: nil)).and_raise(file_exists_error)
-          allow($stdin).to receive(:tty?).and_return(true)
-        end
-
-        shared_examples 'user confirms overwrite' do |user_input|
-          it "proceeds with overwrite when user enters '#{user_input.strip}'" do
-            allow(mock_model).to receive(:generate_qr_code).with(filename,
-              hash_including(overwrite: true, password: nil)).and_return(filename)
-            allow($stdin).to receive(:gets).and_return(user_input)
-
-            captured = silence_output do |stdout, _stderr|
-              invoke_command(cli, 'qr', filename)
-              stdout.string
-            end
-            expect(captured).to match(/QR code generated: #{filename}/)
-          end
-        end
-
-        shared_examples 'user declines overwrite' do |user_input|
-          it "returns nil when user enters '#{user_input.strip}'" do
-            allow($stdin).to receive(:gets).and_return(user_input)
-
-            result = silence_output { invoke_command(cli, 'qr', filename) }
-            expect(result).to be_nil
-          end
-        end
-
-        it 'prompts for overwrite confirmation when file exists' do
-          allow(mock_model).to receive(:generate_qr_code).with(filename,
-            hash_including(overwrite: true, password: nil)).and_return(filename)
-          allow($stdin).to receive(:gets).and_return("y\n")
+            hash_including(password: nil, in_stream: input_stream)).and_return(filename)
 
           captured = silence_output do |stdout, _stderr|
             invoke_command(cli, 'qr', filename)
             stdout.string
           end
-          expect(captured).to match(/Output file exists. Overwrite\? \[y\/N\]: /)
+          expect(captured).to match(/QR code generated: #{filename}/)
         end
 
-        it_behaves_like 'user confirms overwrite', "y\n"
-        it_behaves_like 'user confirms overwrite', "yes\n"
-        it_behaves_like 'user declines overwrite', "n\n"
-        it_behaves_like 'user declines overwrite', "\n"
+        it 'does not duplicate generator overwrite prompts' do
+          allow(input_stream).to receive(:tty?).and_return(true)
+          allow(mock_model).to receive(:generate_qr_code).with(filename,
+            hash_including(password: nil, in_stream: input_stream)).and_raise(file_exists_error)
+
+          captured_stdout = nil
+          expect do
+            silence_output do |stdout, _stderr|
+              captured_stdout = stdout
+              invoke_command(cli, 'qr', filename)
+            end
+          end
+            .to raise_error(WifiWand::Error, "File #{filename} already exists")
+          expect(captured_stdout.string).not_to include('Output file exists. Overwrite? [y/N]: ')
+        end
 
         it 're-raises non-overwrite errors' do
           allow(mock_model).to receive(:generate_qr_code).with('other.png',
-            hash_including(password: nil)).and_raise(
+            hash_including(password: nil, in_stream: input_stream)).and_raise(
             WifiWand::Error.new('Network connection failed')
           )
 

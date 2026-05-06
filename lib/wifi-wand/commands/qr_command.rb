@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require_relative 'command'
-require_relative '../errors'
 
 module WifiWand
   class QrCommand < Command
@@ -12,7 +11,7 @@ module WifiWand
       usage:        "Usage: wifi-wand qr [filespec|'-'] [password]"
     )
 
-    binds :model, :interactive_mode, :out_stream, :in_stream, output_support: :output_support
+    binds :model, :interactive_mode, :in_stream, output_support: :output_support
 
     def help_text
       <<~HELP
@@ -33,22 +32,11 @@ module WifiWand
 
       if to_stdout
         result = model.generate_qr_code('-', delivery_mode: (interactive_mode ? :return : :print),
-          password: password)
+          password: password, in_stream: in_stream)
         interactive_mode ? result : nil
       else
-        result = model.generate_qr_code(filespec, password: password)
+        result = model.generate_qr_code(filespec, password: password, in_stream: in_stream)
         output_support.handle_output(result, -> { "QR code generated: #{result}" })
-      end
-    rescue WifiWand::Error => e
-      if e.message.include?('already exists') && in_stream.tty?
-        out_stream.print 'Output file exists. Overwrite? [y/N]: '
-        answer = in_stream.gets&.strip&.downcase
-        if %w[y yes].include?(answer)
-          result = model.generate_qr_code(filespec, overwrite: true, password: password)
-          output_support.handle_output(result, -> { "QR code generated: #{result}" })
-        end
-      else
-        raise
       end
     end
   end
