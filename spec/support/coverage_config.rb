@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'simplecov'
+require 'simplecov-cobertura'
 
 module CoverageConfig
   DEFAULT_RESULTSET_BASENAME = '.resultset.json'
@@ -21,6 +22,7 @@ module CoverageConfig
       # Generate multiple output formats
       formatter SimpleCov::Formatter::MultiFormatter.new([
         SimpleCov::Formatter::HTMLFormatter,
+        SimpleCov::Formatter::CoberturaFormatter,
         SimpleCov::Formatter::SimpleFormatter,
       ])
 

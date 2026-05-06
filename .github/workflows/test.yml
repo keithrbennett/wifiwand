@@ -27,7 +27,7 @@ jobs:
             ruby-version: '3.4'
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - name: Set up Ruby ${{ matrix.ruby-version }}
       uses: ruby/setup-ruby@v1
@@ -41,8 +41,18 @@ jobs:
       run: bundle exec rspec
 
     - name: Upload coverage reports
-      uses: codecov/codecov-action@v3
+      id: codecov
+      uses: codecov/codecov-action@v6
       if: matrix.ruby-version == '3.3' && matrix.os == 'ubuntu-latest'
+      continue-on-error: true
       with:
         files: ./coverage/coverage.xml
-        fail_ci_if_error: false
+        disable_search: true
+        fail_ci_if_error: true
+        # Configure CODECOV_TOKEN for protected-branch uploads; public fork PRs
+        # can still use Codecov's tokenless path when organization settings allow it.
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+    - name: Warn when coverage upload fails
+      if: steps.codecov.outcome == 'failure'
+      run: echo "::warning::Codecov upload failed; tests passed, but coverage publishing needs attention."
