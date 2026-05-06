@@ -2,14 +2,14 @@
 *.log
 *.rbc
 .bundle
-.claude/
+**/.claude/
 .codex
 .codex/
 .config
 .devcontainer/
 .docs-venv/
 .idea/
-.kilo/
+**/.kilo/
 .venv/
 .venv-*/
 .yardoc
@@ -20,6 +20,7 @@ coverage*/
 doc/
 lib/bundler/man
 mac-wifi-error-stack-trace.txt
+node_modules/
 pkg
 rdoc
 rspec-errors.txt
