@@ -430,12 +430,19 @@ RSpec.describe WifiWand::MacOsHelperSetup do
   # MacOsHelperSetup#open_location_settings
   # ---------------------------------------------------------------------------
   describe '#open_location_settings' do
-    it 'opens the macOS Location Services system preferences URL' do
+    it 'opens the macOS Location Services system preferences URL and returns the command result' do
       expect(setup).to receive(:system).with(
         'open',
         'x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices'
-      )
-      setup.open_location_settings
+      ).and_return(true)
+
+      expect(setup.open_location_settings).to be(true)
+    end
+
+    it 'returns false when macOS does not open the settings URL' do
+      allow(setup).to receive(:system).and_return(false)
+
+      expect(setup.open_location_settings).to be(false)
     end
   end
 end

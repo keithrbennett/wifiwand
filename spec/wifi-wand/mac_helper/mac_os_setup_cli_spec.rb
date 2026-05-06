@@ -51,7 +51,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
     allow(setup).to receive(:install_helper)
     allow(setup).to receive(:reinstall_helper)
     allow(setup).to receive(:remove_helper)
-    allow(setup).to receive(:open_location_settings)
+    allow(setup).to receive(:open_location_settings).and_return(true)
     allow(WifiWand::MacOsHelperBundle)
       .to receive_messages(installed_executable_path: '/fake/helper', installed_bundle_path: '/fake/bundle')
   end
@@ -68,7 +68,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
       allow(setup).to receive(:install_helper)
       allow(setup).to receive(:reinstall_helper)
       allow(setup).to receive(:remove_helper)
-      allow(setup).to receive(:open_location_settings)
+      allow(setup).to receive(:open_location_settings).and_return(true)
     end
 
     it 'returns exit code 0' do
@@ -117,7 +117,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
     before do
       allow(setup).to receive(:check_status).and_return(missing_status, build_result(authorized: false))
       allow(setup).to receive(:install_helper)
-      allow(setup).to receive(:open_location_settings)
+      allow(setup).to receive(:open_location_settings).and_return(true)
       allow(WifiWand::MacOsHelperBundle)
         .to receive_messages(installed_executable_path: '/fake/helper', installed_bundle_path: '/fake/bundle')
     end
@@ -269,7 +269,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
       )
       allow(setup).to receive(:install_helper)
       allow(setup).to receive(:reinstall_helper)
-      allow(setup).to receive(:open_location_settings)
+      allow(setup).to receive(:open_location_settings).and_return(true)
     end
 
     it 'prints an advisory notice after installing when helper version directories exceed the threshold' do
@@ -318,7 +318,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
       allow(WifiWand::MacOsHelperBundle)
         .to receive_messages(installed_executable_path: '/fake/helper', installed_bundle_path: '/fake/bundle')
       allow(setup).to receive(:install_helper)
-      allow(setup).to receive(:open_location_settings)
+      allow(setup).to receive(:open_location_settings).and_return(true)
     end
 
     context 'when macOS restores authorization after install' do
@@ -361,11 +361,11 @@ RSpec.describe WifiWand::MacOsSetupCli do
       before do
         allow(setup).to receive(:check_status)
           .and_return(missing_status, still_unauthorized)
-        allow(setup).to receive(:open_location_settings)
+        allow(setup).to receive(:open_location_settings).and_return(true)
       end
 
       it 'opens Location Services' do
-        expect(setup).to receive(:open_location_settings)
+        expect(setup).to receive(:open_location_settings).and_return(true)
         build_cli(setup: setup).run
       end
 
@@ -395,7 +395,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
 
     before do
       allow(setup).to receive(:reinstall_helper)
-      allow(setup).to receive(:open_location_settings)
+      allow(setup).to receive(:open_location_settings).and_return(true)
       allow(WifiWand::MacOsHelperBundle)
         .to receive_messages(installed_executable_path: '/fake/helper', installed_bundle_path: '/fake/bundle')
     end
@@ -444,7 +444,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
       end
 
       it 'opens Location Services' do
-        expect(setup).to receive(:open_location_settings)
+        expect(setup).to receive(:open_location_settings).and_return(true)
         build_cli(setup: setup).run
       end
 
@@ -473,8 +473,10 @@ RSpec.describe WifiWand::MacOsSetupCli do
     let(:needs_permission)    { build_result(authorized: false) }
 
     before do
-      allow(setup).to receive(:check_status).and_return(needs_permission)
-      allow(setup).to receive(:open_location_settings)
+      allow(setup).to receive_messages(
+        check_status:           needs_permission,
+        open_location_settings: true
+      )
       allow(WifiWand::MacOsHelperBundle)
         .to receive(:installed_executable_path).and_return('/fake/helper')
     end
@@ -486,7 +488,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
     end
 
     it 'calls open_location_settings' do
-      expect(setup).to receive(:open_location_settings)
+      expect(setup).to receive(:open_location_settings).and_return(true)
       build_cli(setup: setup).run
     end
 
@@ -503,6 +505,21 @@ RSpec.describe WifiWand::MacOsSetupCli do
     it 'returns exit code 0' do
       expect(build_cli(setup: setup).run).to eq(0)
     end
+
+    it 'returns exit code 1 when Location Services does not open automatically' do
+      allow(setup).to receive(:open_location_settings).and_return(false)
+
+      expect(build_cli(setup: setup).run).to eq(1)
+    end
+
+    it 'keeps manual instructions visible when Location Services does not open automatically' do
+      allow(setup).to receive(:open_location_settings).and_return(false)
+
+      build_cli(setup: setup).run
+      expect(out_stream.string).to include('Manual Setup Instructions')
+      expect(out_stream.string).to include('System Settings did not open automatically')
+      expect(out_stream.string).to include('Could not open macOS Location Services settings automatically')
+    end
   end
 
   # ---------------------------------------------------------------------------
@@ -512,7 +529,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
     let(:setup) { instance_double(WifiWand::MacOsHelperSetup) }
 
     before do
-      allow(setup).to receive(:open_location_settings)
+      allow(setup).to receive(:open_location_settings).and_return(true)
       allow(WifiWand::MacOsHelperBundle)
         .to receive(:installed_executable_path).and_return('/fake/helper')
     end
@@ -562,7 +579,7 @@ RSpec.describe WifiWand::MacOsSetupCli do
       expect(out_stream.string).to include('choose only one of --reinstall or --remove')
     end
 
-    it 'returns exit code 1 when an unexpected error occurs during steps' do
+    it 'returns exit code 1 when the Location Services opener raises an error' do
       allow(setup).to receive(:check_status).and_return(build_result(authorized: false))
       allow(setup).to receive(:open_location_settings).and_raise('unexpected failure')
       allow(WifiWand::MacOsHelperBundle)
@@ -571,13 +588,15 @@ RSpec.describe WifiWand::MacOsSetupCli do
       expect(build_cli(setup: setup).run).to eq(1)
     end
 
-    it 'prints the error message' do
+    it 'prints manual instructions and the opener error message' do
       allow(setup).to receive(:check_status).and_return(build_result(authorized: false))
       allow(setup).to receive(:open_location_settings).and_raise('unexpected failure')
       allow(WifiWand::MacOsHelperBundle)
         .to receive(:installed_executable_path).and_return('/fake/helper')
 
       build_cli(setup: setup).run
+      expect(out_stream.string).to include('Manual Setup Instructions')
+      expect(out_stream.string).to include('System Settings did not open automatically')
       expect(out_stream.string).to include('unexpected failure')
     end
   end

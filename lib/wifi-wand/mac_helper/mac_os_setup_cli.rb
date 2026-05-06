@@ -15,6 +15,8 @@ require_relative 'mac_os_helper_bundle'
 
 module WifiWand
   class MacOsSetupCli
+    class LocationSettingsOpenError < RuntimeError; end
+
     STEP_LABELS = {
       install_helper:   'Install wifiwand-helper',
       reinstall_helper: 'Reinstall wifiwand-helper (invalid installation detected)',
@@ -217,8 +219,23 @@ module WifiWand
       @out_stream.puts "[#{current_step}/#{total_steps}] Setting up location permission..."
       @out_stream.puts 'Opening System Settings → Privacy & Security → Location Services...'
       sleep 1
-      @setup.open_location_settings
-      print_permission_instructions
+      location_settings_error = location_settings_open_error
+      print_permission_instructions(location_settings_opened: location_settings_error.nil?)
+      raise location_settings_error if location_settings_error
+    end
+
+    private def location_settings_open_error
+      return nil if @setup.open_location_settings
+
+      LocationSettingsOpenError.new(
+        'Could not open macOS Location Services settings automatically. ' \
+          'Follow the manual instructions above to grant permission.'
+      )
+    rescue => e
+      LocationSettingsOpenError.new(
+        'Could not open macOS Location Services settings automatically. ' \
+          "Reason: #{e.message}. Follow the manual instructions above to grant permission."
+      )
     end
 
     private def print_helper_version_directory_notice
@@ -236,14 +253,20 @@ module WifiWand
       NOTICE
     end
 
-    private def print_permission_instructions
+    private def print_permission_instructions(location_settings_opened: true)
+      location_settings_intro = if location_settings_opened
+        'System Settings should now be open. Please follow these steps:'
+      else
+        'System Settings did not open automatically. Open it manually and follow these steps:'
+      end
+
       @out_stream.puts <<~INSTRUCTIONS
 
         ╔══════════════════════════════════════════════════════════════════╗
         ║                 Manual Setup Instructions                        ║
         ╚══════════════════════════════════════════════════════════════════╝
 
-        System Settings should now be open. Please follow these steps:
+        #{location_settings_intro}
 
         1. In the Location Services window, scroll down the list
         2. Find 'wifiwand-helper' in the list of apps
