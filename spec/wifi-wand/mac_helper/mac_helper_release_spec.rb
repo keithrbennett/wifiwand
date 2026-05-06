@@ -434,7 +434,40 @@ RSpec.describe WifiWand::MacHelperRelease do
       end
 
       expect(described_class::Operations).not_to have_received(:staple_ticket)
-      expect(FileUtils).not_to have_received(:rm_f)
+      expect(FileUtils).to have_received(:rm_f).with(zip_path)
+    end
+
+    it 'removes the zip when notarization submission aborts' do
+      allow(Open3).to receive(:capture3).with('codesign', '-dv', bundle_path).and_return(
+        ['', developer_id_signature, success_status]
+      )
+      allow(described_class::Operations).to receive(:create_zip).with(bundle_path, zip_path)
+      allow(described_class::Operations).to receive(:submit_for_notarization)
+        .and_raise(SystemExit)
+      allow(described_class::Operations).to receive(:staple_ticket)
+      allow(FileUtils).to receive(:rm_f)
+
+      expect { described_class.notarize_helper }.to raise_error(SystemExit)
+
+      expect(described_class::Operations).not_to have_received(:staple_ticket)
+      expect(FileUtils).to have_received(:rm_f).with(zip_path)
+    end
+
+    it 'removes the zip when stapling fails after accepted notarization' do
+      allow(Open3).to receive(:capture3).with('codesign', '-dv', bundle_path).and_return(
+        ['', developer_id_signature, success_status]
+      )
+      allow(described_class::Operations).to receive(:create_zip).with(bundle_path, zip_path)
+      allow(described_class::Operations).to receive(:submit_for_notarization)
+        .and_return("id: 123\nstatus: Accepted\n")
+      allow(described_class::Operations).to receive(:staple_ticket)
+        .with(bundle_path)
+        .and_raise(RuntimeError, 'stapler crashed')
+      allow(FileUtils).to receive(:rm_f)
+
+      expect { described_class.notarize_helper }.to raise_error(RuntimeError, 'stapler crashed')
+
+      expect(FileUtils).to have_received(:rm_f).with(zip_path)
     end
   end
 

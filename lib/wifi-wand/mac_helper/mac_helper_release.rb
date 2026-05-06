@@ -467,17 +467,20 @@ module WifiWand
         profile_name:  profile_name,
         keychain_path: keychain_path
       )
-      Operations.create_zip(bundle_path, zip_path)
-      puts Messages.zip_created(zip_path)
+      begin
+        Operations.create_zip(bundle_path, zip_path)
+        puts Messages.zip_created(zip_path)
 
-      stdout = Operations.submit_for_notarization(zip_path, profile_name, keychain_path, team_id)
-      unless stdout.include?('status: Accepted')
-        abort 'Notarization was rejected. Check the output above for details.'
+        stdout = Operations.submit_for_notarization(zip_path, profile_name, keychain_path, team_id)
+        unless stdout.include?('status: Accepted')
+          abort 'Notarization was rejected. Check the output above for details.'
+        end
+
+        puts Messages::NOTARIZATION_SUCCESS
+        Operations.staple_ticket(bundle_path)
+      ensure
+        FileUtils.rm_f(zip_path)
       end
-
-      puts Messages::NOTARIZATION_SUCCESS
-      Operations.staple_ticket(bundle_path)
-      FileUtils.rm_f(zip_path)
       puts Messages.helper_ready(bundle_path)
     end
 
