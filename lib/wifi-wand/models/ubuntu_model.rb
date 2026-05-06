@@ -14,6 +14,7 @@ module WifiWand
       802-11-wireless-security.wep-key0
     ].freeze
     PREFERRED_NETWORK_SECRET_PLACEHOLDERS = %w[--].freeze
+    ACTIVE_CONNECTION_PROFILE_PLACEHOLDERS = %w[--].freeze
     DNS_CONNECTION_FIELDS = %w[
       ipv4.dns
       ipv4.ignore-auto-dns
@@ -594,8 +595,8 @@ module WifiWand
       line = output.split("\n").find { |row| nmcli_split(row, 2).first == 'GENERAL.CONNECTION' }
       return nil unless line
 
-      profile = nmcli_split(line, 2).last&.strip
-      profile&.empty? ? nil : profile
+      profile = nmcli_split(line, 2).last
+      normalize_active_connection_profile_name(profile)
     end
 
     # Returns the network interface used for default internet route on Linux
@@ -737,6 +738,17 @@ module WifiWand
     public def nmcli_split(line, limit = nil)
       parts = limit ? line.split(/(?<!\\):/, limit) : line.split(/(?<!\\):/)
       parts.map { |p| p.gsub('\\:', ':') }
+    end
+
+    private def normalize_active_connection_profile_name(profile)
+      normalized_profile = profile&.strip
+      if normalized_profile.nil? ||
+          normalized_profile.empty? ||
+          ACTIVE_CONNECTION_PROFILE_PLACEHOLDERS.include?(normalized_profile)
+        nil
+      else
+        normalized_profile
+      end
     end
 
     private def saved_wifi_profiles

@@ -565,6 +565,21 @@ module WifiWand
             .and_return(['4.4.4.4'])
           expect(subject.nameservers).to eq(['4.4.4.4'])
         end
+
+        it 'does not query a connection profile for the no-connection placeholder' do
+          allow(subject).to receive_messages(
+            wifi_interface:          'wlp3s0',
+            _connected_network_name: nil
+          )
+          allow(subject).to receive(:run_command_using_args)
+            .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show',
+              'wlp3s0'], raise_on_error: false)
+            .and_return(command_result(stdout: 'GENERAL.CONNECTION:--'))
+
+          expect(subject).not_to receive(:nameservers_from_connection)
+          expect(subject).to receive(:nameservers_using_resolv_conf).and_return(['8.8.8.8'])
+          expect(subject.nameservers).to eq(['8.8.8.8'])
+        end
       end
 
       describe '#open_resource' do
@@ -1511,6 +1526,16 @@ module WifiWand
           expect(subject.active_connection_profile_name).to eq('Cafe:Guest')
         end
 
+        it 'returns nil for NetworkManager no-connection placeholder output' do
+          allow(subject).to receive(:wifi_interface).and_return('wlp3s0')
+          nmcli_output = "GENERAL.CONNECTION:--\nGENERAL.DEVICE:wlp3s0"
+          expect(subject).to receive(:run_command_using_args)
+            .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', 'wlp3s0'], raise_on_error: false)
+            .and_return(command_result(stdout: nmcli_output))
+
+          expect(subject.active_connection_profile_name).to be_nil
+        end
+
         it 'returns nil when wifi interface cannot be determined' do
           allow(subject).to receive(:wifi_interface).and_return(nil)
           expect(subject.active_connection_profile_name).to be_nil
@@ -2164,6 +2189,21 @@ module WifiWand
             _connected_network_name:        nil
           )
 
+          expect { subject.set_nameservers(['8.8.8.8']) }
+            .to raise_error(WifiWand::WifiInterfaceError, /No active Wi-Fi connection/)
+        end
+
+        it 'raises the no-active-connection error for the NetworkManager placeholder profile' do
+          allow(subject).to receive_messages(
+            wifi_interface:          'wlp3s0',
+            _connected_network_name: nil
+          )
+          allow(subject).to receive(:run_command_using_args)
+            .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show',
+              'wlp3s0'], raise_on_error: false)
+            .and_return(command_result(stdout: 'GENERAL.CONNECTION:--'))
+
+          expect(subject).not_to receive(:dns_configuration_snapshot)
           expect { subject.set_nameservers(['8.8.8.8']) }
             .to raise_error(WifiWand::WifiInterfaceError, /No active Wi-Fi connection/)
         end
