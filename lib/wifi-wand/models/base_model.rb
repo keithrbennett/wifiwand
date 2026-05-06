@@ -623,7 +623,8 @@ module WifiWand
       @state_manager.restore_network_state(state, fail_silently: fail_silently)
     end
 
-    # Returns true if the last connection attempt used a saved password.
+    # Returns true if the last completed connection used a saved password.
+    # Failed or no-op connect() calls return false.
     def last_connection_used_saved_password?
       debug_method_entry(__method__)
 

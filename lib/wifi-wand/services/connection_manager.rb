@@ -34,9 +34,8 @@ module WifiWand
     # follow with: model.till(:internet_on) or CLI: till internet_on [timeout_secs]
     #
     # Note: The @last_connection_used_saved_password flag is cleared at the start
-    # of each connect attempt and only set to true if a saved password is successfully
-    # used. If the connection fails, this flag may not accurately represent the
-    # most recent connection attempt's state.
+    # of each connect attempt and only set after connection verification succeeds.
+    # Failed or no-op connection attempts leave the flag false.
     def connect(network_name, password = nil, skip_saved_password_lookup: false)
       reset_connection_state
 
@@ -50,16 +49,14 @@ module WifiWand
         skip_saved_password_lookup: skip_saved_password_lookup)
 
       perform_connection(network_name, password)
-      store_saved_password_usage(used_saved_password)
       verify_connection(network_name, password)
+      store_saved_password_usage(used_saved_password)
 
       nil
     end
 
-    # Returns true if the last connection attempt used a saved password.
-    # Note: This flag is reset at the start of each connect() call, so it only
-    # reflects saved password usage if the most recent connect() call completed
-    # successfully. Failed connections may leave this in an inconsistent state.
+    # Returns true if the last completed connection used a saved password.
+    # Failed or no-op connect() calls return false.
     def last_connection_used_saved_password? = !!@last_connection_used_saved_password
 
     private def reset_connection_state = @last_connection_used_saved_password = nil

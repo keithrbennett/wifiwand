@@ -354,6 +354,38 @@ describe WifiWand::ConnectionManager do
       subject.connect('SavedNetwork', 'manual_password')
       expect(subject.last_connection_used_saved_password?).to be false
     end
+
+    it 'does not report saved password usage when verification fails' do
+      allow(mock_model).to receive_messages(
+        has_preferred_network?:     true,
+        preferred_network_password: 'saved_password'
+      )
+      allow(mock_model).to receive(:connection_ready?).and_return(false, false)
+      allow(mock_model).to receive(:connected_network_name).and_return('WrongNetwork')
+
+      expect { subject.connect('SavedNetwork') }
+        .to raise_error(WifiWand::NetworkConnectionError)
+      expect(subject.last_connection_used_saved_password?).to be false
+    end
+
+    it 'clears previous saved password usage when a later connection fails' do
+      allow(mock_model).to receive_messages(
+        has_preferred_network?:     true,
+        preferred_network_password: 'saved_password'
+      )
+      allow(mock_model).to receive(:connection_ready?).and_return(false, true)
+      allow(mock_model).to receive(:connected_network_name).and_return(nil, 'SavedNetwork')
+
+      subject.connect('SavedNetwork')
+      expect(subject.last_connection_used_saved_password?).to be true
+
+      allow(mock_model).to receive(:connection_ready?).and_return(false, false)
+      allow(mock_model).to receive(:connected_network_name).and_return('WrongNetwork')
+
+      expect { subject.connect('SavedNetwork') }
+        .to raise_error(WifiWand::NetworkConnectionError)
+      expect(subject.last_connection_used_saved_password?).to be false
+    end
   end
 
   describe 'resolve_password edge cases' do
