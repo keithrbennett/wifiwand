@@ -48,10 +48,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
 
-  # These tests run on any OS - interface consistency tests
-  # Check current wifi state and create appropriate contexts
-  let(:current_wifi_on) { subject.wifi_on? }
-
   describe '#internet_tcp_connectivity?' do
     it 'returns boolean indicating TCP connectivity' do
       expect([true, false]).to include(subject.internet_tcp_connectivity?)
@@ -544,22 +540,38 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
 
-  # Ordinary context - only runs when wifi is already on
+  # Ordinary context - model-level WiFi-on state without changing the host radio.
   context 'when wifi starts on' do
     before do
-      skip 'Wifi is not currently on' unless current_wifi_on
+      allow(subject).to receive(:wifi_on?).and_return(true)
     end
 
-    it_behaves_like 'interface commands complete without error', true
+    it_behaves_like 'interface commands complete without error'
   end
 
-  # Ordinary context - only runs when wifi starts off
+  # Ordinary context - model-level WiFi-off state without changing the host radio.
   context 'when wifi starts off' do
     before do
-      skip 'Wifi is currently on' if current_wifi_on
+      allow(subject).to receive(:wifi_on?).and_return(false)
+      allow(subject).to receive(:available_network_names).and_call_original
+      allow(subject).to receive(:connected_network_name).and_call_original
+      allow(subject).to receive(:ip_address).and_call_original
     end
 
-    it_behaves_like 'interface commands complete without error', false
+    it_behaves_like 'interface commands complete without error'
+
+    it 'raises WiFi-off errors for radio-dependent queries' do
+      expect { subject.available_network_names }.to raise_error(WifiWand::WifiOffError)
+      expect { subject.connected_network_name }.to raise_error(WifiWand::WifiOffError)
+    end
+
+    it 'reports unavailable connection details without raising' do
+      info = subject.wifi_info
+
+      expect(info['wifi_on']).to be(false)
+      expect(info['network']).to be_nil
+      expect(info['ip_address']).to be_nil
+    end
   end
 
   # Real-environment read-write contexts
