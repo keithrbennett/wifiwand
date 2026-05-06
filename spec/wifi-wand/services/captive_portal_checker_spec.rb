@@ -150,6 +150,29 @@ describe WifiWand::CaptivePortalChecker do
     let(:checker) { described_class.new(verbose: false) }
     let(:endpoint) { { url: 'http://example.com/check', expected_code: 204 } }
 
+    it 'starts a helper process and returns the reader metadata' do
+      reader, writer = IO.pipe
+      allow(IO).to receive(:pipe).and_return([reader, writer])
+      allow(Process).to receive(:spawn).and_return(12_345)
+
+      probe = checker.send(:start_captive_portal_probe, endpoint)
+
+      expect(Process).to have_received(:spawn).with(
+        RbConfig.ruby,
+        end_with('captive_portal_probe_helper.rb'),
+        endpoint[:url],
+        '204',
+        '',
+        out: writer,
+        err: File::NULL
+      )
+      expect(probe).to include(pid: 12_345, reader: reader, endpoint: endpoint, buffer: +'')
+      expect(probe[:eof]).to be(false)
+      expect(writer).to be_closed
+    ensure
+      reader&.close unless reader&.closed?
+    end
+
     it 'returns nil and closes the helper pipe when spawn fails' do
       reader, writer = IO.pipe
       allow(IO).to receive(:pipe).and_return([reader, writer])
@@ -158,6 +181,23 @@ describe WifiWand::CaptivePortalChecker do
       expect(checker.send(:start_captive_portal_probe, endpoint)).to be_nil
       expect(reader).to be_closed
       expect(writer).to be_closed
+    end
+  end
+
+  describe '#probe_endpoint' do
+    let(:checker) { described_class.new(verbose: false) }
+    let(:endpoint) { { url: 'http://example.com/check', expected_code: 204 } }
+
+    it 'returns the endpoint probe metadata used by subprocess helpers' do
+      allow(checker).to receive(:perform_captive_portal_check).and_return(
+        state:       :indeterminate,
+        error_class: 'SocketError'
+      )
+
+      expect(checker.probe_endpoint(endpoint)).to eq(
+        state:       :indeterminate,
+        error_class: 'SocketError'
+      )
     end
   end
 
@@ -298,6 +338,49 @@ describe WifiWand::CaptivePortalChecker do
       json = JSON.generate({ state: 'present', actual_code: 302 })
       result = checker.send(:read_probe_result, probe_with_output(json))
       expect(result[:state]).to eq(:present)
+    end
+  end
+
+  describe '#captive_portal_check_endpoints' do
+    let(:checker) { described_class.new(verbose: false) }
+
+    it 'loads endpoint configuration from the packaged YAML file with symbol keys' do
+      endpoints = checker.send(:captive_portal_check_endpoints)
+
+      expect(endpoints).not_to be_empty
+      expect(endpoints).to all(include(:url, :expected_code))
+      expect(endpoints).to all(satisfy { |endpoint| endpoint.keys.none?(String) })
+    end
+  end
+
+  describe 'verbose result logging' do
+    let(:output) { StringIO.new }
+    let(:checker) { described_class.new(verbose: true, output: output) }
+    let(:endpoint) { { url: 'http://example.com/check', expected_code: 204 } }
+
+    before do
+      allow(checker).to receive(:captive_portal_check_endpoints).and_return([endpoint])
+    end
+
+    it 'logs indeterminate aggregate status when no helper reaches a decision' do
+      allow(checker).to receive(:captive_portal_results).and_return([:indeterminate])
+
+      expect(checker.captive_portal_state).to eq(:indeterminate)
+      expect(output.string).to include('indeterminate')
+    end
+
+    it 'logs helper network errors without treating them as captive portals' do
+      allow(checker).to receive(:start_captive_portal_probe).and_return(
+        completed_probe(
+          endpoint: endpoint,
+          payload:  { state: 'indeterminate', error_class: 'SocketError' }
+        )
+      )
+
+      expect(checker.captive_portal_state).to eq(:indeterminate)
+      expect(output.string).to include(
+        'Captive portal check network error for http://example.com/check: SocketError'
+      )
     end
   end
 

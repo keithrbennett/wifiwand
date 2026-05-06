@@ -792,4 +792,31 @@ describe WifiWand::StatusLineDataBuilder do
       expect(worker_release.size).to eq(0)
     end
   end
+
+  describe 'private worker fallbacks' do
+    it 'raises a clear error for an unknown worker timeout lookup' do
+      expect { builder.send(:worker_result_timeout_seconds_for, :other) }
+        .to raise_error(ArgumentError, 'Unknown worker name: other')
+    end
+
+    it 'returns an empty fallback payload for an unknown worker name' do
+      expect(builder.send(:fallback_worker_result, :other)).to eq({})
+    end
+
+    it 'uses connectivity fallback data when cancellation is observed' do
+      expect(builder.send(:cancelled_worker_result, :connectivity)).to eq(
+        dns_working:                   nil,
+        internet_state:                :indeterminate,
+        internet_check_complete:       true,
+        captive_portal_state:          :indeterminate,
+        captive_portal_login_required: :unknown
+      )
+    end
+
+    it 'treats captive portal lookup failures as indeterminate connectivity' do
+      allow(model).to receive(:captive_portal_state).and_raise(WifiWand::Error, 'portal failed')
+
+      expect(builder.send(:captive_portal_state, timeout_in_secs: 0.01)).to eq(:indeterminate)
+    end
+  end
 end

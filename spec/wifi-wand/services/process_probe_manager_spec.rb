@@ -13,6 +13,17 @@ describe WifiWand::ProcessProbeManager do
   end
   let(:manager) { manager_class.new }
 
+  describe '#helper_result_grace' do
+    it 'raises clearly when the including class does not define helper grace' do
+      manager_without_grace = Class.new do
+        include WifiWand::ProcessProbeManager
+      end.new
+
+      expect { manager_without_grace.helper_result_grace }
+        .to raise_error(NotImplementedError, /must define HELPER_RESULT_GRACE/)
+    end
+  end
+
   describe '#terminate_probe' do
     let(:reader) { instance_double(IO, closed?: false) }
     let(:probe) { { pid: 1234, reader: reader } }
@@ -67,6 +78,17 @@ describe WifiWand::ProcessProbeManager do
 
       expect(Process).to have_received(:kill).with('KILL', 1234)
       expect(manager).to have_received(:reap_probe).with(1234).exactly(6).times
+    end
+
+    it 'swallows ESRCH when the probe exits before forced termination' do
+      monotonic_times = [0.0, 0.05]
+      allow(Process).to receive(:clock_gettime)
+        .with(Process::CLOCK_MONOTONIC)
+        .and_return(*monotonic_times)
+      allow(manager).to receive(:reap_probe).with(1234).and_return(nil)
+      allow(Process).to receive(:kill).with('KILL', 1234).and_raise(Errno::ESRCH)
+
+      expect { manager.wait_for_probe_exit(1234, grace: 0.01) }.not_to raise_error
     end
   end
 end
