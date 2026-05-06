@@ -324,8 +324,8 @@ describe WifiWand::StatusLineDataBuilder do
       connectivity_release = Queue.new
       worker_threads = []
 
-      allow(builder).to receive(:spawn_worker).and_wrap_original do |original, &block|
-        thread = original.call(&block)
+      allow(builder).to receive(:spawn_worker).and_wrap_original do |original, *args, &block|
+        thread = original.call(*args, &block)
         thread.report_on_exception = false
         worker_threads << thread
         thread
@@ -501,10 +501,12 @@ describe WifiWand::StatusLineDataBuilder do
     end
 
     it 'returns partial connectivity data when the network worker never publishes a result' do
-      network_release = Queue.new
-
-      allow(model).to receive(:status_network_identity) do
-        network_release.pop
+      allow(model).to receive(:status_network_identity) do |timeout_in_secs:|
+        sleep(timeout_in_secs)
+        raise WifiWand::CommandTimeoutError.new(
+          command:         'status network identity',
+          timeout_in_secs: timeout_in_secs
+        )
       end
 
       result = builder.call(progress_callback: ->(data) { progress_updates << data })
@@ -524,7 +526,6 @@ describe WifiWand::StatusLineDataBuilder do
         expected_initial_progress.merge(connected: nil, network_name: nil),
         result,
       ])
-      expect(network_release.size).to eq(0)
     end
 
     it 'uses a bounded status network identity lookup before falling back on timeout' do
@@ -584,10 +585,10 @@ describe WifiWand::StatusLineDataBuilder do
     end
 
     it 'returns an indeterminate connectivity result when the connectivity worker never publishes a result' do
-      connectivity_release = Queue.new
-
-      allow(model).to receive(:internet_tcp_connectivity?) do
-        connectivity_release.pop
+      allow(model).to receive(:internet_tcp_connectivity?) do |timeout_in_secs:, return_details:|
+        expect(return_details).to be true
+        sleep(timeout_in_secs)
+        { success: false, timed_out: true }
       end
 
       result = builder.call(progress_callback: ->(data) { progress_updates << data })
@@ -607,7 +608,6 @@ describe WifiWand::StatusLineDataBuilder do
         expected_network_partial_progress,
         result,
       ])
-      expect(connectivity_release.size).to eq(0)
     end
 
     it 'falls back network data independently when the connectivity timeout is longer' do
@@ -619,10 +619,13 @@ describe WifiWand::StatusLineDataBuilder do
         worker_result_poll_interval_seconds:        0.001,
         worker_cleanup_timeout_seconds:             0.05
       )
-      network_release = Queue.new
 
-      allow(model).to receive(:status_network_identity) do
-        network_release.pop
+      allow(model).to receive(:status_network_identity) do |timeout_in_secs:|
+        sleep(timeout_in_secs)
+        raise WifiWand::CommandTimeoutError.new(
+          command:         'status network identity',
+          timeout_in_secs: timeout_in_secs
+        )
       end
 
       result = nil
@@ -645,7 +648,6 @@ describe WifiWand::StatusLineDataBuilder do
         expected_initial_progress.merge(connected: nil, network_name: nil),
         result,
       ])
-      expect(network_release.size).to eq(0)
     end
 
     it 'returns fallback data when both workers stay blocked past their own deadlines' do
@@ -657,18 +659,22 @@ describe WifiWand::StatusLineDataBuilder do
         worker_result_poll_interval_seconds:        0.001,
         worker_cleanup_timeout_seconds:             0.005
       )
-      network_release = Queue.new
-      connectivity_release = Queue.new
       network_started = Queue.new
       connectivity_started = Queue.new
 
-      allow(model).to receive(:status_network_identity) do
+      allow(model).to receive(:status_network_identity) do |timeout_in_secs:|
         network_started << :started
-        network_release.pop
+        sleep(timeout_in_secs)
+        raise WifiWand::CommandTimeoutError.new(
+          command:         'status network identity',
+          timeout_in_secs: timeout_in_secs
+        )
       end
-      allow(model).to receive(:internet_tcp_connectivity?) do
+      allow(model).to receive(:internet_tcp_connectivity?) do |timeout_in_secs:, return_details:|
+        expect(return_details).to be true
         connectivity_started << :started
-        connectivity_release.pop
+        sleep(timeout_in_secs)
+        { success: false, timed_out: true }
       end
 
       result = nil
@@ -693,8 +699,50 @@ describe WifiWand::StatusLineDataBuilder do
       ])
       expect(network_started.pop(timeout: 1)).to eq(:started)
       expect(connectivity_started.pop(timeout: 1)).to eq(:started)
-      expect(network_release.size).to eq(0)
-      expect(connectivity_release.size).to eq(0)
+    end
+
+    it 'tracks an end-to-end worker stuck inside a model call after returning fallback data' do
+      out_stream = StringIO.new
+      stuck_worker_builder = described_class.new(
+        model,
+        verbose:                                    true,
+        out_stream:                                 out_stream,
+        network_worker_result_timeout_seconds:      0.005,
+        connectivity_worker_result_timeout_seconds: 0.05,
+        worker_result_poll_interval_seconds:        0.001,
+        worker_cleanup_timeout_seconds:             0.001
+      )
+      network_release = Queue.new
+      network_terminated = Queue.new
+
+      allow(model).to receive(:status_network_identity) do
+        network_release.pop
+        { connected: true, network_name: 'HomeNetwork' }
+      ensure
+        network_terminated << :terminated
+      end
+
+      result = nil
+      Timeout.timeout(1) { result = stuck_worker_builder.call }
+
+      stragglers = stuck_worker_builder.instance_variable_get(:@straggler_threads)
+      expect(result).to include(
+        wifi_on:      true,
+        connected:    nil,
+        network_name: nil
+      )
+      expect(out_stream.string).to include('Warning: worker thread still running after cancellation request')
+      expect(stragglers.size).to eq(1)
+      straggler = stragglers.first
+      expect(straggler).to be_alive
+
+      network_release << :continue
+      expect(network_terminated.pop(timeout: 1)).to eq(:terminated)
+
+      stuck_worker_builder.send(:reap_straggler_threads)
+
+      expect(straggler).not_to be_alive
+      expect(stuck_worker_builder.instance_variable_get(:@straggler_threads)).to be_empty
     end
 
     it 'cleans up the sibling worker when one worker raises unexpectedly' do
@@ -703,8 +751,8 @@ describe WifiWand::StatusLineDataBuilder do
       network_terminated = Queue.new
       worker_threads = []
 
-      allow(builder).to receive(:spawn_worker).and_wrap_original do |original, &block|
-        thread = original.call(&block)
+      allow(builder).to receive(:spawn_worker).and_wrap_original do |original, *args, &block|
+        thread = original.call(*args, &block)
         thread.report_on_exception = false
         worker_threads << thread
         thread
@@ -766,7 +814,33 @@ describe WifiWand::StatusLineDataBuilder do
       )
     end
 
-    it 'logs and forcefully terminates a worker that misses the cleanup timeout' do
+    it 'waits for a registered bounded worker to exit without forcefully terminating it' do
+      out_stream = StringIO.new
+      verbose_builder = described_class.new(
+        model,
+        verbose:                        true,
+        out_stream:                     out_stream,
+        worker_cleanup_timeout_seconds: 0.001
+      )
+      worker_terminated = Queue.new
+
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 0.05
+      worker = verbose_builder.send(:spawn_worker, :network, deadline) do
+        sleep(0.02)
+      ensure
+        worker_terminated << :terminated
+      end
+      allow(worker).to receive(:kill)
+
+      verbose_builder.send(:cleanup_worker_threads, worker)
+
+      expect(out_stream.string).to be_empty
+      expect(worker).not_to have_received(:kill)
+      expect(worker_terminated.pop(timeout: 1)).to eq(:terminated)
+      expect(worker).not_to be_alive
+    end
+
+    it 'tracks a worker that violates its registered timeout until it exits' do
       out_stream = StringIO.new
       verbose_builder = described_class.new(
         model,
@@ -777,19 +851,43 @@ describe WifiWand::StatusLineDataBuilder do
       worker_release = Queue.new
       worker_terminated = Queue.new
 
-      worker = Thread.new do
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      worker = verbose_builder.send(:spawn_worker, :network, deadline) do
         worker_release.pop
+      ensure
+        worker_terminated << :terminated
+      end
+      allow(worker).to receive(:kill)
+
+      verbose_builder.send(:cleanup_worker_threads, worker)
+
+      expect(out_stream.string).to include('Warning: worker thread still running after cancellation request')
+      expect(worker).to be_alive
+      expect(worker).not_to have_received(:kill)
+      expect(verbose_builder.instance_variable_get(:@straggler_threads)).to include(worker)
+
+      worker_release << :continue
+      expect(worker_terminated.pop(timeout: 1)).to eq(:terminated)
+
+      verbose_builder.send(:reap_straggler_threads)
+
+      expect(worker).not_to be_alive
+      expect(verbose_builder.instance_variable_get(:@straggler_threads)).not_to include(worker)
+    end
+
+    it 'lets cooperative workers observe cancellation and clean up resources' do
+      worker_terminated = Queue.new
+      worker = Thread.new do
+        sleep(0.001) until builder.send(:cancelled?)
       ensure
         worker_terminated << :terminated
       end
       worker.report_on_exception = false
 
-      verbose_builder.send(:cleanup_worker_threads, worker)
+      builder.send(:cleanup_worker_threads, worker)
 
-      expect(out_stream.string).to include('Warning: forcing worker thread termination after timeout')
       expect(worker_terminated.pop(timeout: 1)).to eq(:terminated)
       expect(worker).not_to be_alive
-      expect(worker_release.size).to eq(0)
     end
   end
 

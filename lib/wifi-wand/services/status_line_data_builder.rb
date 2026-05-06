@@ -9,9 +9,6 @@ module WifiWand
     DEFAULT_CONNECTIVITY_WORKER_RESULT_TIMEOUT_SECONDS = 2
     DEFAULT_WORKER_RESULT_POLL_INTERVAL_SECONDS = 0.01
     DEFAULT_WORKER_CLEANUP_TIMEOUT_SECONDS = 0.05
-    # A killed worker still needs a short window to run Ruby-level ensure blocks
-    # that close pipes, sockets, and subprocess handles before this method returns.
-    FINAL_WORKER_JOIN_AFTER_KILL_SECONDS = 0.01
 
     attr_reader :model, :expected_network_errors
     private attr_reader :runtime_config
@@ -42,13 +39,18 @@ module WifiWand
         connectivity_worker_result_timeout_seconds || DEFAULT_CONNECTIVITY_WORKER_RESULT_TIMEOUT_SECONDS
       @worker_result_poll_interval_seconds = worker_result_poll_interval_seconds
       @worker_cleanup_timeout_seconds = worker_cleanup_timeout_seconds
-      @cancelled = false
+      @cancellation_mutex = Mutex.new
+      reset_worker_cancellation!
+      @worker_registry_mutex = Mutex.new
+      @worker_deadlines = {}
+      @straggler_threads = []
     end
 
     def out_stream = runtime_config.out_stream
 
     def call(progress_callback: nil)
-      @cancelled = false
+      reset_worker_cancellation!
+      reap_straggler_threads
       worker_start_time = monotonic_now
       partial = initial_data(worker_start_time)
 
@@ -91,16 +93,31 @@ module WifiWand
       #   model.dns_working?, or model.captive_portal_state. Those probes already run in helper
       #   subprocesses, so this worker mostly waits on bounded pipe reads and helper deadlines.
       [
-        spawn_worker do
+        spawn_worker(:network, worker_start_time + worker_result_timeout_seconds_for(:network)) do
           publish_worker_result(result_queue, :network) { network_identity(worker_start_time) }
         end,
-        spawn_worker do
+        spawn_worker(:connectivity, worker_start_time + worker_result_timeout_seconds_for(:connectivity)) do
           publish_worker_result(result_queue, :connectivity) { connectivity_data(worker_start_time) }
         end,
       ]
     end
 
-    private def spawn_worker(&) = Thread.new(&)
+    private def spawn_worker(worker_name = nil, deadline = nil, &block)
+      ready = Queue.new
+      thread = Thread.new do
+        ready << true
+        Thread.stop
+        begin
+          block.call
+        ensure
+          unregister_worker_thread(Thread.current)
+        end
+      end
+      ready.pop
+      register_worker_thread(thread, worker_name, deadline) if worker_name && deadline
+      thread.run
+      thread
+    end
 
     private def publish_worker_result(result_queue, worker_name)
       result_queue << [worker_name, :result, yield]
@@ -162,17 +179,11 @@ module WifiWand
       threads.compact.each do |thread|
         next unless thread.alive?
 
-        thread.join(@worker_cleanup_timeout_seconds)
+        thread.join(worker_cleanup_join_timeout(thread))
         next unless thread.alive?
 
-        # These workers only do bounded status lookups. If one is still hung after the
-        # result timeout and cleanup grace period, the builder has already fallen back to
-        # partial data and must not leave the thread behind. We use Thread#kill here as a
-        # last-resort teardown and still wait briefly so the thread can unwind its ensure
-        # blocks before returning.
-        out_stream.puts 'Warning: forcing worker thread termination after timeout' if verbose?
-        thread.kill
-        thread.join(FINAL_WORKER_JOIN_AFTER_KILL_SECONDS)
+        out_stream.puts 'Warning: worker thread still running after cancellation request' if verbose?
+        track_straggler_thread(thread)
       end
     end
 
@@ -204,10 +215,55 @@ module WifiWand
     private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
     private def cancel_workers!
-      @cancelled = true
+      @cancellation_mutex.synchronize { @cancelled = true }
     end
 
-    private def cancelled? = @cancelled
+    private def reset_worker_cancellation!
+      @cancellation_mutex.synchronize { @cancelled = false }
+    end
+
+    private def cancelled?
+      @cancellation_mutex.synchronize { @cancelled }
+    end
+
+    private def register_worker_thread(thread, worker_name, deadline)
+      @worker_registry_mutex.synchronize do
+        @worker_deadlines[thread] = {
+          worker_name: worker_name,
+          deadline:    deadline,
+        }
+      end
+    end
+
+    private def unregister_worker_thread(thread)
+      @worker_registry_mutex.synchronize do
+        @worker_deadlines.delete(thread)
+      end
+    end
+
+    private def worker_cleanup_join_timeout(thread)
+      metadata = @worker_registry_mutex.synchronize { @worker_deadlines[thread] }
+      return @worker_cleanup_timeout_seconds unless metadata
+
+      deadline_remaining = metadata[:deadline] - monotonic_now
+      [deadline_remaining, 0].max + @worker_cleanup_timeout_seconds
+    end
+
+    private def track_straggler_thread(thread)
+      @worker_registry_mutex.synchronize do
+        @straggler_threads << thread unless @straggler_threads.include?(thread)
+      end
+    end
+
+    private def reap_straggler_threads
+      stragglers = @worker_registry_mutex.synchronize { @straggler_threads.dup }
+      stragglers.each { |thread| thread.join(@worker_cleanup_timeout_seconds) }
+
+      @worker_registry_mutex.synchronize do
+        @straggler_threads.select!(&:alive?)
+        @worker_deadlines.select! { |thread, _metadata| thread.alive? }
+      end
+    end
 
     def verbose? = runtime_config.verbose
 
