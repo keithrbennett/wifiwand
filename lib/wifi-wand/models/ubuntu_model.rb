@@ -260,14 +260,7 @@ module WifiWand
           # Case 2: Password is provided.
           profile = find_best_profile_for_ssid(network_name)
           if profile
-            # Existing profiles are treated transactionally: prove the new credential first,
-            # then persist it to the saved profile after activation succeeds.
-            if password != _preferred_network_password(profile)
-              activate_and_persist_updated_password(network_name, password, profile)
-              return
-            end
-            # Always bring the connection up.
-            run_command_using_args(['nmcli', 'connection', 'up', profile])
+            activate_existing_profile_with_password(network_name, password, profile)
           else
             # No profile exists, create a new one.
             # Intentionally pass the caller-supplied password through to nmcli.
@@ -361,31 +354,43 @@ module WifiWand
     # Preferred, clearer name for security parameter query
     private def security_parameter(ssid) = get_security_parameter(ssid)
 
-    private def activate_and_persist_updated_password(network_name, password, existing_profile)
-      run_command_using_args(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
+    private def activate_existing_profile_with_password(network_name, password, profile)
+      old_password = _preferred_network_password(profile)
+      security_param = nil
 
-      security_param = get_security_parameter(network_name)
+      if password != old_password
+        security_param = security_parameter_for_existing_profile(network_name, profile)
+        if security_param
+          run_command_using_args(['nmcli', 'connection', 'modify', profile, security_param, password])
+        end
+      end
 
-      return unless security_param
-
-      profile_to_update = persistence_target_profile_for_ssid(network_name, existing_profile)
-      run_command_using_args(['nmcli', 'connection', 'modify', profile_to_update, security_param, password])
+      run_command_using_args(['nmcli', 'connection', 'up', profile])
+    rescue WifiWand::CommandExecutor::OsCommandError => e
+      if security_param && old_password
+        rollback_existing_profile_password(profile, security_param, old_password)
+      end
+      raise e
     end
 
-    private def persistence_target_profile_for_ssid(network_name, existing_profile)
-      active_profile = begin
-        active_connection_profile_name
-      rescue WifiWand::Error
-        nil
+    private def security_parameter_for_existing_profile(network_name, profile)
+      get_security_parameter(network_name) || preferred_network_secret_parameter(profile)
+    end
+
+    private def preferred_network_secret_parameter(profile)
+      output = run_command_using_args(
+        ['nmcli', '--show-secrets', 'connection', 'show', profile], raise_on_error: false
+      ).stdout
+
+      PREFERRED_NETWORK_SECRET_FIELDS.find do |field_name|
+        output.split("\n").any? { |line| line.include?("#{field_name}:") }
       end
+    end
 
-      if active_profile && profile_matches_ssid?(active_profile, network_name)
-        return active_profile
-      end
-
-      return existing_profile if existing_profile && profile_matches_ssid?(existing_profile, network_name)
-
-      find_best_profile_for_ssid(network_name) || existing_profile
+    private def rollback_existing_profile_password(profile, security_param, old_password)
+      run_command_using_args(['nmcli', 'connection', 'modify', profile, security_param, old_password])
+    rescue WifiWand::CommandExecutor::OsCommandError => e
+      out_stream.puts("Password rollback failed for #{profile}: #{e.message}") if verbose?
     end
 
     # Finds the best connection profile for a given SSID.

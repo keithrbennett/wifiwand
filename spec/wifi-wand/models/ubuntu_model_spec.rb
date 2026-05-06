@@ -96,79 +96,101 @@ module WifiWand
           expect { subject._connect('NetA') }.not_to raise_error
         end
 
-        it 'proves a changed password before persisting it to the saved profile' do
+        it 'updates an existing profile before activating it with a changed password' do
           setup_connect_test(profile_name: 'SSID1', old_password: 'oldpass',
             security_param: '802-11-wireless-security.psk')
 
-          expect(subject).to receive(:run_command_using_args)
-            .with(%w[nmcli dev wifi connect SSID1 password newpass])
-            .ordered
-            .and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_command_using_args)
             .with(%w[nmcli connection modify SSID1 802-11-wireless-security.psk newpass])
             .ordered
             .and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli connection up SSID1])
+            .ordered
+            .and_return(command_result(stdout: ''))
+          expect(subject).not_to receive(:run_command_using_args)
+            .with(%w[nmcli dev wifi connect SSID1 password newpass])
           expect { subject._connect('SSID1', 'newpass') }.not_to raise_error
         end
 
-        it 'does not persist a changed password when activation fails for an existing profile' do
+        it 'rolls back an updated profile password when activation fails' do
           setup_connect_test(profile_name: 'SSID1', old_password: 'oldpass',
             security_param: '802-11-wireless-security.psk')
 
           expect(subject).to receive(:run_command_using_args)
-            .with(%w[nmcli dev wifi connect SSID1 password wrongpass])
+            .with(%w[nmcli connection modify SSID1 802-11-wireless-security.psk wrongpass])
+            .ordered
+            .and_return(command_result(stdout: ''))
+          expect(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli connection up SSID1])
+            .ordered
             .and_raise(
               os_command_error(
                 exitstatus: 4,
-                command:    'nmcli dev wifi connect',
+                command:    'nmcli connection up',
                 text:       'Error: Connection activation failed: (53) authentication failed'
               )
             )
+          expect(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli connection modify SSID1 802-11-wireless-security.psk oldpass])
+            .ordered
+            .and_return(command_result(stdout: ''))
           expect(subject).not_to receive(:run_command_using_args)
-            .with(%w[nmcli connection modify SSID1 802-11-wireless-security.psk wrongpass])
+            .with(%w[nmcli dev wifi connect SSID1 password wrongpass])
           expect { subject._connect('SSID1', 'wrongpass') }
             .to raise_error(WifiWand::NetworkAuthenticationError, /SSID1/)
         end
 
-        it 'persists a working password update after a successful activation' do
+        it 'targets the best matching profile for password updates' do
           setup_connect_test(profile_name: 'SSID1', old_password: 'oldpass',
             security_param: '802-11-wireless-security.psk')
+          allow(subject).to receive(:find_best_profile_for_ssid).and_return('SSID1 2')
+          allow(subject).to receive(:_preferred_network_password).with('SSID1 2').and_return('oldpass')
 
           expect(subject).to receive(:run_command_using_args)
-            .with(%w[nmcli dev wifi connect SSID1 password newpass])
+            .with(['nmcli', 'connection', 'modify', 'SSID1 2', '802-11-wireless-security.psk', 'newpass'])
             .ordered
             .and_return(command_result(stdout: ''))
           expect(subject).to receive(:run_command_using_args)
-            .with(%w[nmcli connection modify SSID1 802-11-wireless-security.psk newpass])
+            .with(['nmcli', 'connection', 'up', 'SSID1 2'])
             .ordered
             .and_return(command_result(stdout: ''))
+          expect(subject).not_to receive(:run_command_using_args)
+            .with(%w[nmcli dev wifi connect SSID1 password newpass])
           expect { subject._connect('SSID1', 'newpass') }.not_to raise_error
         end
 
-        it 'persists to the active matching profile when NetworkManager activates a duplicate profile' do
+        it 'activates the existing profile without direct connect when security cannot be determined' do
           setup_connect_test(profile_name: 'SSID1', old_password: 'oldpass',
-            security_param: '802-11-wireless-security.psk')
-          allow(subject).to receive(:find_best_profile_for_ssid).and_return('SSID1', 'SSID1 2')
-          allow(subject).to receive(:active_connection_profile_name).and_return('SSID1 1')
+            security_param: nil)
 
           expect(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli connection up SSID1])
+            .and_return(command_result(stdout: ''))
+          expect(subject).not_to receive(:run_command_using_args)
             .with(%w[nmcli dev wifi connect SSID1 password newpass])
-            .ordered
-            .and_return(command_result(stdout: ''))
-          expect(subject).to receive(:run_command_using_args)
-            .with(['nmcli', 'connection', 'modify', 'SSID1 1', '802-11-wireless-security.psk', 'newpass'])
-            .ordered
-            .and_return(command_result(stdout: ''))
           expect { subject._connect('SSID1', 'newpass') }.not_to raise_error
         end
 
-        it 'falls back to direct connect when security cannot be determined' do
-          setup_connect_test(profile_name: 'SSID2', old_password: 'oldpass', security_param: nil)
+        it 'updates the existing profile using its saved secret type when scan security is unavailable' do
+          setup_connect_test(profile_name: 'LegacyNet', old_password: 'oldpass',
+            security_param: nil)
+          allow(subject).to receive(:get_security_parameter).with('LegacyNet').and_return(nil)
 
           expect(subject).to receive(:run_command_using_args)
-            .with(%w[nmcli dev wifi connect SSID2 password newpass])
+            .with(['nmcli', '--show-secrets', 'connection', 'show', 'LegacyNet'], raise_on_error: false)
+            .and_return(command_result(stdout: '802-11-wireless-security.wep-key0:    oldpass'))
+          expect(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli connection modify LegacyNet 802-11-wireless-security.wep-key0 newpass])
+            .ordered
             .and_return(command_result(stdout: ''))
-          expect { subject._connect('SSID2', 'newpass') }.not_to raise_error
+          expect(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli connection up LegacyNet])
+            .ordered
+            .and_return(command_result(stdout: ''))
+          expect(subject).not_to receive(:run_command_using_args)
+            .with(%w[nmcli dev wifi connect LegacyNet password newpass])
+          expect { subject._connect('LegacyNet', 'newpass') }.not_to raise_error
         end
 
         it 'brings up existing profile when connecting without password' do
