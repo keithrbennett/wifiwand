@@ -272,6 +272,19 @@ describe WifiWand::LogCommand do
       end
     end
 
+    it 'raises error for unexpected positional arguments before building the logger' do
+      command = described_class.new(model: mock_model, output: output, verbose_flag: false)
+
+      expect do
+        command.call('--interval', '2', 'ignored')
+      end.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('Unexpected argument(s): ignored')
+        expect(error.message).to include('Usage: wifi-wand log')
+      }
+      expect(WifiWand::EventLogger).not_to have_received(:new)
+      expect(mock_logger).not_to have_received(:run)
+    end
+
     it 'raises error for unknown option' do
       command = described_class.new(model: mock_model, output: output, verbose_flag: false)
       expect do

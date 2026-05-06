@@ -39,6 +39,7 @@ module WifiWand
 
     def call(*options)
       validate_presence!(options)
+      validate_max_arguments!(options, 3)
       target_status = options[0].to_sym
       timeout_in_secs = parse_timeout(options[1])
       interval_in_secs = parse_interval(options[2])

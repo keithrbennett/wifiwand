@@ -134,6 +134,19 @@ module WifiWand
       raise WifiWand::ConfigurationError, message_parts.join("\n")
     end
 
+    private def validate_max_arguments!(options, maximum)
+      return if options.length <= maximum
+
+      unexpected_arguments = options[maximum..].join(', ')
+      message_parts = [
+        "Unexpected argument(s): #{unexpected_arguments}",
+        metadata.usage,
+      ]
+      message_parts << cli.help_hint if cli
+
+      raise WifiWand::ConfigurationError, message_parts.join("\n")
+    end
+
     private def missing_argument?(value)
       value.nil? || value.to_s.empty?
     end

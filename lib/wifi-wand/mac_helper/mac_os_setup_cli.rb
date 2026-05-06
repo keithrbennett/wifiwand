@@ -10,6 +10,7 @@
 #   exit WifiWand::MacOsSetupCli.new(argv: ARGV).run
 
 require 'optparse'
+require_relative '../errors'
 require_relative 'mac_os_helper_setup'
 require_relative 'mac_os_helper_bundle'
 
@@ -22,6 +23,7 @@ module WifiWand
       reinstall_helper: 'Reinstall wifiwand-helper (invalid installation detected)',
       grant_permission: 'Grant location permission in System Settings',
     }.freeze
+    USAGE = 'Usage: wifi-wand-macos-setup [--reinstall | --remove]'
 
     # @param argv       [Array<String>]       command-line arguments (e.g. ARGV)
     # @param setup      [MacOsHelperSetup]    injectable for testing; built from out_stream if omitted
@@ -67,7 +69,7 @@ module WifiWand
 
     private def parse_options
       OptionParser.new do |opts|
-        opts.banner = 'Usage: wifi-wand-macos-setup [--reinstall | --remove]'
+        opts.banner = USAGE
         opts.on('--reinstall',
           'Force reinstall the helper app and re-run setup') do
           select_action(:reinstall)
@@ -77,6 +79,13 @@ module WifiWand
           select_action(:remove)
         end
       end.parse!(@argv)
+      validate_no_positional_arguments!
+    end
+
+    private def validate_no_positional_arguments!
+      return if @argv.empty?
+
+      raise WifiWand::ConfigurationError, "Unexpected argument(s): #{@argv.join(', ')}\n#{USAGE}"
     end
 
     private def select_action(action)

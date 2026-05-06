@@ -579,6 +579,31 @@ RSpec.describe WifiWand::MacOsSetupCli do
       expect(out_stream.string).to include('choose only one of --reinstall or --remove')
     end
 
+    it 'returns exit code 1 when positional arguments are provided' do
+      expect(setup).not_to receive(:check_status)
+
+      expect(build_cli(argv: ['ignored'], setup: setup).run).to eq(1)
+    end
+
+    it 'prints usage when positional arguments are provided' do
+      build_cli(argv: ['ignored'], setup: setup).run
+
+      expect(out_stream.string).to include('Unexpected argument(s): ignored')
+      expect(out_stream.string).to include('Usage: wifi-wand-macos-setup [--reinstall | --remove]')
+    end
+
+    it 'does not remove the helper when --remove receives a positional argument' do
+      expect(setup).not_to receive(:remove_helper)
+
+      build_cli(argv: %w[--remove ignored], setup: setup).run
+    end
+
+    it 'does not reinstall the helper when --reinstall receives a positional argument' do
+      expect(setup).not_to receive(:reinstall_helper)
+
+      build_cli(argv: %w[--reinstall ignored], setup: setup).run
+    end
+
     it 'returns exit code 1 when the Location Services opener raises an error' do
       allow(setup).to receive(:check_status).and_return(build_result(authorized: false))
       allow(setup).to receive(:open_location_settings).and_raise('unexpected failure')
