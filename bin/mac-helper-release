@@ -130,8 +130,8 @@ module MacHelperCLI
           WIFIWAND_NOTARYTOOL_KEYCHAIN     custom keychain path for that profile (optional)
           WIFIWAND_CODESIGN_IDENTITY       Code signing identity (optional override)
 
-        See docs/dev/MACOS_CODE_SIGNING_INSTRUCTIONS.md for the checklist and
-        docs/dev/MACOS_CODE_SIGNING_CONTEXT.md for the full background.
+        See dev/docs/MACOS_CODE_SIGNING_INSTRUCTIONS.md for the checklist and
+        dev/docs/MACOS_CODE_SIGNING_CONTEXT.md for the full background.
       HELP
     end
 
