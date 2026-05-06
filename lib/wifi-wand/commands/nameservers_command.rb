@@ -4,6 +4,8 @@ require_relative 'command'
 
 module WifiWand
   class NameserversCommand < Command
+    RESERVED_SUBCOMMANDS = %w[get clear].freeze
+
     command_metadata(
       short_string: 'na',
       long_string:  'nameservers',
@@ -30,13 +32,37 @@ module WifiWand
     end
 
     private def subcommand_for(args)
-      if args.empty? || args.first.to_sym == :get
+      first_arg = args.first.to_s
+
+      if args.empty?
         :get
-      elsif args.first.to_sym == :clear
+      elsif first_arg == 'get'
+        validate_no_extra_arguments!(:get, args)
+        :get
+      elsif first_arg == 'clear'
+        validate_no_extra_arguments!(:clear, args)
         :clear
       else
+        validate_no_reserved_subcommand_arguments!(args)
         :put
       end
+    end
+
+    private def validate_no_extra_arguments!(subcommand, args)
+      return if args.length == 1
+
+      extra_args = args[1..].join(', ')
+      raise WifiWand::ConfigurationError,
+        "The nameservers #{subcommand} command does not accept arguments: #{extra_args}\n#{metadata.usage}"
+    end
+
+    private def validate_no_reserved_subcommand_arguments!(args)
+      reserved_argument = args.map(&:to_s).find { |arg| RESERVED_SUBCOMMANDS.include?(arg) }
+      return unless reserved_argument
+
+      raise WifiWand::ConfigurationError,
+        "Invalid nameserver argument '#{reserved_argument}'. " \
+          "'get' and 'clear' are reserved nameservers subcommands.\n#{metadata.usage}"
     end
 
     private def human_readable_string_producer(current_nameservers)

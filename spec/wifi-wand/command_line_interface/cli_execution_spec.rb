@@ -199,6 +199,47 @@ describe WifiWand::CommandLineInterface do
     end
   end
 
+  describe 'nameservers command exit behavior' do
+    def call_nameservers_command(*args)
+      out_stream = StringIO.new
+      err_stream = StringIO.new
+      opts = create_cli_options(
+        argv:       ['nameservers', *args],
+        out_stream: out_stream,
+        err_stream: err_stream
+      )
+      nameservers_cli = described_class.new(opts)
+
+      {
+        cli:    nameservers_cli,
+        status: nameservers_cli.call,
+        stdout: out_stream.string,
+        stderr: err_stream.string,
+      }
+    end
+
+    it 'returns failure when get receives extra arguments' do
+      result = call_nameservers_command('get', '1.1.1.1')
+
+      expect(result[:status]).to eq(described_class::FAILURE_EXIT_CODE)
+      expect(result[:stdout]).to be_empty
+      expect(result[:stderr]).to include('nameservers get command does not accept arguments')
+      expect(result[:stderr]).to include('1.1.1.1')
+      expect(result[:stderr]).to include("Use 'wifi-wand help'")
+      expect(result[:cli].model).not_to have_received(:nameservers)
+    end
+
+    it 'returns failure without clearing DNS when clear receives extra arguments' do
+      result = call_nameservers_command('clear', '1.1.1.1')
+
+      expect(result[:status]).to eq(described_class::FAILURE_EXIT_CODE)
+      expect(result[:stdout]).to be_empty
+      expect(result[:stderr]).to include('nameservers clear command does not accept arguments')
+      expect(result[:stderr]).to include('1.1.1.1')
+      expect(result[:cli].model).not_to have_received(:set_nameservers)
+    end
+  end
+
   describe 'ropen command exit behavior' do
     def call_ropen_command(*resource_codes)
       out_stream = StringIO.new

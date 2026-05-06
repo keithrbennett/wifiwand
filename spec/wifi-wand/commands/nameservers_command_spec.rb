@@ -40,6 +40,14 @@ describe WifiWand::NameserversCommand do
       command.call('get')
     end
 
+    it 'raises ConfigurationError when get receives extra arguments' do
+      expect(mock_model).not_to receive(:nameservers)
+
+      expect do
+        command.call('get', '1.1.1.1')
+      end.to raise_error(WifiWand::ConfigurationError, /nameservers get command does not accept arguments/)
+    end
+
     it 'shows [None] when there are no nameservers' do
       allow(mock_model).to receive(:nameservers).and_return([])
       expect(output_support).to receive(:handle_output) do |nameservers, producer|
@@ -60,6 +68,14 @@ describe WifiWand::NameserversCommand do
       command.call('clear')
     end
 
+    it 'raises ConfigurationError and does not clear nameservers when clear receives extra arguments' do
+      expect(mock_model).not_to receive(:set_nameservers)
+
+      expect do
+        command.call('clear', '1.1.1.1')
+      end.to raise_error(WifiWand::ConfigurationError, /nameservers clear command does not accept arguments/)
+    end
+
     it 'sets provided nameservers' do
       new_nameservers = ['9.9.9.9', '8.8.4.4']
       expect(mock_model).to receive(:set_nameservers).with(new_nameservers).and_return(new_nameservers)
@@ -69,6 +85,14 @@ describe WifiWand::NameserversCommand do
       end
 
       command.call(*new_nameservers)
+    end
+
+    it 'raises ConfigurationError when setting nameservers includes a reserved subcommand word' do
+      expect(mock_model).not_to receive(:set_nameservers)
+
+      expect do
+        command.call('9.9.9.9', 'clear')
+      end.to raise_error(WifiWand::ConfigurationError, /reserved nameservers subcommands/)
     end
   end
 end
