@@ -159,6 +159,37 @@ module WifiWand
         expect(runtime.swift_and_corewlan_present?).to be(false)
         expect(out_stream.string).to include('Unexpected error checking Swift/CoreWLAN: unexpected')
       end
+
+      context 'when verbose logging is disabled' do
+        let(:verbose) { false }
+
+        it 'suppresses returned Swift/CoreWLAN probe failure messages' do
+          allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+            raise_on_error: false)
+            .and_return(command_result(stderr: 'toolchain mismatch', exitstatus: 2, command: 'swift'))
+
+          expect(runtime.swift_and_corewlan_present?).to be(false)
+          expect(out_stream.string).to eq('')
+        end
+
+        it 'suppresses raised Swift/CoreWLAN probe failure messages' do
+          allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+            raise_on_error: false)
+            .and_raise(os_command_error(exitstatus: 2, command: 'swift', text: 'toolchain mismatch'))
+
+          expect(runtime.swift_and_corewlan_present?).to be(false)
+          expect(out_stream.string).to eq('')
+        end
+
+        it 'suppresses timeout probe messages' do
+          allow(command_runner).to receive(:call).with(['swift', '-e', 'import CoreWLAN'],
+            raise_on_error: false)
+            .and_raise(WifiWand::CommandTimeoutError.new(command: 'swift', timeout_in_secs: 5))
+
+          expect(runtime.swift_and_corewlan_present?).to be(false)
+          expect(out_stream.string).to eq('')
+        end
+      end
     end
 
     describe '#run_swift_command' do
@@ -198,10 +229,23 @@ module WifiWand
     end
 
     describe '#fallback_connect_error?' do
-      it 'recognizes recoverable Swift/CoreWLAN connect failures' do
-        error_text = "The operation couldn't be completed. tmpErr (code: 82)"
+      [
+        'Error connecting to network (code: -3900)',
+        'Error connecting to network (code: -3905)',
+        'CoreWLAN generic error',
+        'Possible keychain access or authentication issue',
+        'Network not found',
+        'The operation could not be completed. tmpErr (code: 82)',
+        "The operation couldn't be completed. tmpErr (code: 82)",
+        'The operation couldn???t be completed because tmpErr occurred',
+      ].each do |error_text|
+        it "recognizes recoverable Swift/CoreWLAN connect failure: #{error_text}" do
+          expect(runtime.fallback_connect_error?(error_text)).to be(true)
+        end
+      end
 
-        expect(runtime.fallback_connect_error?(error_text)).to be(true)
+      it 'treats nil error text as non-recoverable' do
+        expect(runtime.fallback_connect_error?(nil)).to be(false)
       end
 
       it 'returns false for non-recoverable connect failures' do

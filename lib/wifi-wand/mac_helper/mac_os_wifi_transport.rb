@@ -18,6 +18,7 @@ module WifiWand
     AUTHENTICATION_FAILURE_PATTERNS = [
       /invalid password/i,
       /incorrect password/i,
+      /password.*incorrect/i,
       /authentication (?:failed|timeout|timed out)/i,
       /802\.1x authentication failed/i,
       /password required/i,

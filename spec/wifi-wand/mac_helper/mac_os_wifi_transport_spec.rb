@@ -113,6 +113,35 @@ module WifiWand
         expect(error.message).to include('Invalid password')
       end
 
+      {
+        'incorrect password'           => 'The password for this network is incorrect.',
+        'authentication timeout'       => 'Authentication timed out while joining.',
+        '802.1x authentication failed' => '802.1x authentication failed.',
+        'password required'            => 'Password required for this network.',
+      }.each do |description, reason|
+        it "raises NetworkAuthenticationError for #{description} output" do
+          allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
+          failure_output = "Failed to join network TestNetwork.\n#{reason}"
+          expect(command_runner).to receive(:call)
+            .with(['networksetup', '-setairportnetwork', 'en0', 'TestNetwork', 'badpass'])
+            .and_return(command_result(stdout: failure_output))
+
+          expect { transport.connect('TestNetwork', 'badpass') }
+            .to raise_error(WifiWand::NetworkAuthenticationError, /#{Regexp.escape(reason)}/)
+        end
+      end
+
+      it 'preserves networksetup output as the reason when no detail line is available' do
+        allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
+        failure_output = 'Failed to join network TestNetwork: invalid password'
+        expect(command_runner).to receive(:call)
+          .with(['networksetup', '-setairportnetwork', 'en0', 'TestNetwork', 'badpass'])
+          .and_return(command_result(stdout: failure_output))
+
+        expect { transport.connect('TestNetwork', 'badpass') }
+          .to raise_error(WifiWand::NetworkAuthenticationError, /#{Regexp.escape(failure_output)}/)
+      end
+
       it 'raises OsCommandError when networksetup output reports a non-auth failure' do
         allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
         failure_output = 'Could not find network TestNetwork.'
@@ -123,6 +152,21 @@ module WifiWand
         expect do
           transport.connect('TestNetwork')
         end.to raise_error(WifiWand::CommandExecutor::OsCommandError, /Could not find network/)
+      end
+
+      {
+        'CoreWLAN numeric failure' => 'Error: -3900',
+        'generic connect failure'  => 'Could not connect to the network.',
+      }.each do |description, failure_output|
+        it "raises OsCommandError when networksetup reports #{description}" do
+          allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
+          expect(command_runner).to receive(:call)
+            .with(['networksetup', '-setairportnetwork', 'en0', 'TestNetwork'])
+            .and_return(command_result(stdout: failure_output))
+
+          expect { transport.connect('TestNetwork') }
+            .to raise_error(WifiWand::CommandExecutor::OsCommandError, /#{Regexp.escape(failure_output)}/)
+        end
       end
 
       context 'when verbose logging is disabled' do
@@ -172,6 +216,21 @@ module WifiWand
         )
       end
 
+      it 'uses plain ifconfig when sudo ifconfig fails' do
+        allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
+        expect(command_runner).to receive(:call).with(
+          %w[sudo ifconfig en0 disassociate],
+          raise_on_error:  false,
+          timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
+        ).and_return(command_result(stderr: 'sudo requires a password', exitstatus: 1,
+          command: 'sudo ifconfig en0 disassociate'))
+        expect(command_runner).to receive(:call).with(%w[ifconfig en0 disassociate],
+          raise_on_error: false)
+          .and_return(command_result(stdout: '', command: 'ifconfig en0 disassociate'))
+
+        expect(transport.disconnect).to be_nil
+      end
+
       it 'raises a disconnect error when both ifconfig fallback attempts fail' do
         allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
         expect(command_runner).to receive(:call).with(
@@ -191,6 +250,23 @@ module WifiWand
           expect(error.reason).to include('sudo authentication failed')
           expect(error.reason).to include('ifconfig en0 disassociate exited with status 1')
           expect(error.reason).to include('permission denied')
+        end
+      end
+
+      it 'raises a disconnect error with command status when ifconfig failures have no output' do
+        allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
+        expect(command_runner).to receive(:call).with(
+          %w[sudo ifconfig en0 disassociate],
+          raise_on_error:  false,
+          timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
+        ).and_return(command_result(exitstatus: 1, command: 'sudo ifconfig en0 disassociate'))
+        expect(command_runner).to receive(:call).with(%w[ifconfig en0 disassociate],
+          raise_on_error: false)
+          .and_return(command_result(exitstatus: 1, command: 'ifconfig en0 disassociate'))
+
+        expect { transport.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
+          expect(error.reason).to include('sudo ifconfig en0 disassociate exited with status 1')
+          expect(error.reason).to include('ifconfig en0 disassociate exited with status 1')
         end
       end
 
