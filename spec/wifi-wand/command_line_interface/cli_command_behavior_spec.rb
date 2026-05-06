@@ -226,6 +226,15 @@ describe WifiWand::CommandLineInterface do
     end
   end
 
+  describe 'url command interactive mode' do
+    it 'returns the project URL without printing it' do
+      result = nil
+
+      expect { result = invoke_command(interactive_cli, 'url') }.not_to output.to_stdout
+      expect(result).to eq(WifiWand::PROJECT_URL)
+    end
+  end
+
   describe 'command delegation' do
     command_test_cases = [
       { command_name: 'wifi_on', model_method: :wifi_on?, return_value: true,

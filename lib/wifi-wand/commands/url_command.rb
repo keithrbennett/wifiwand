@@ -12,6 +12,10 @@ module WifiWand
       usage:        'Usage: wifi-wand url'
     )
 
-    def call = WifiWand::PROJECT_URL
+    binds output_support: :output_support
+
+    def call
+      output_support.handle_output(WifiWand::PROJECT_URL, -> { WifiWand::PROJECT_URL })
+    end
   end
 end

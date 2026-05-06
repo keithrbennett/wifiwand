@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'json'
 require_relative '../../spec_helper'
 require_relative '../../../lib/wifi-wand/command_line_interface'
 
@@ -162,6 +163,30 @@ describe WifiWand::CommandLineInterface do
         stdout: out_stream.string,
         stderr: err_stream.string,
       }
+    end
+
+    it 'prints the project URL through the normal CLI dispatcher' do
+      result = call_cli_command('url')
+
+      expect(result[:status]).to eq(described_class::SUCCESS_EXIT_CODE)
+      expect(result[:stdout]).to eq("#{WifiWand::PROJECT_URL}\n")
+      expect(result[:stderr]).to be_empty
+    end
+
+    it 'prints the project URL as valid JSON through the normal CLI dispatcher' do
+      out_stream = StringIO.new
+      err_stream = StringIO.new
+      opts = create_cli_options(
+        argv:           ['url'],
+        out_stream:     out_stream,
+        err_stream:     err_stream,
+        post_processor: ->(object) { JSON.generate(object) }
+      )
+      url_cli = described_class.new(opts)
+
+      expect(url_cli.call).to eq(described_class::SUCCESS_EXIT_CODE)
+      expect(JSON.parse(out_stream.string)).to eq(WifiWand::PROJECT_URL)
+      expect(err_stream.string).to be_empty
     end
 
     it 'returns failure when avail_nets cannot scan because WiFi is off' do
