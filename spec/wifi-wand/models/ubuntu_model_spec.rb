@@ -1719,8 +1719,26 @@ module WifiWand
         end
       end
 
-      # Regression tests: nmcli terse output with colons in SSIDs/profiles
-      describe 'nmcli colon-safe parsing' do
+      # Regression tests: nmcli terse output escaping in SSIDs/profiles.
+      describe 'nmcli terse parsing' do
+        describe '#nmcli_split' do
+          it 'unescapes literal colons without treating them as field separators' do
+            expect(subject.nmcli_split('Cafe\:Guest:75', 2)).to eq(['Cafe:Guest', '75'])
+          end
+
+          it 'unescapes literal backslashes in field values' do
+            expect(subject.nmcli_split('Lab\\\\Net:82', 2)).to eq(['Lab\\Net', '82'])
+          end
+
+          it 'splits on a field separator after an escaped literal backslash' do
+            expect(subject.nmcli_split('EndsWithSlash\\\\:55', 2)).to eq(['EndsWithSlash\\', '55'])
+          end
+
+          it 'preserves unknown escape sequences literally' do
+            expect(subject.nmcli_split('Unknown\\xEscape:55', 2)).to eq(['Unknown\\xEscape', '55'])
+          end
+        end
+
         describe '#_available_network_names with colon-containing SSIDs' do
           it 'correctly parses an SSID that contains a literal colon' do
             # nmcli escapes the colon in "Cafe:Guest" as "Cafe\\:Guest"
@@ -1734,6 +1752,21 @@ module WifiWand
 
             result = subject.available_network_names
             expect(result).to include('Cafe:Guest', 'RegularNet')
+          end
+        end
+
+        describe '#_available_network_names with backslash-containing SSIDs' do
+          it 'correctly parses an SSID that contains a literal backslash' do
+            nmcli_output = "Lab\\\\Net:75\nRegularNet:90"
+            allow(subject).to receive(:run_command_using_args)
+              .with(%w[nmcli radio wifi], raise_on_error: false)
+              .and_return(command_result(stdout: 'enabled'))
+            allow(subject).to receive(:run_command_using_args)
+              .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
+              .and_return(command_result(stdout: nmcli_output))
+
+            result = subject.available_network_names
+            expect(result).to include('Lab\\Net', 'RegularNet')
           end
         end
 
@@ -1789,6 +1822,24 @@ module WifiWand
             expect(subject.send(:find_best_profile_for_ssid, 'Corp:Net')).to eq('Corp:Profile')
           end
 
+          it 'matches configured SSIDs when the profile and SSID contain literal backslashes' do
+            connection_output =
+              "Lab\\\\Profile:802-11-wireless:1672660200\nOtherNetwork:802-11-wireless:1672574400"
+            allow(subject).to receive(:run_command_using_args)
+              .with(%w[nmcli -t -f NAME,TYPE,TIMESTAMP connection show], raise_on_error: false)
+              .and_return(command_result(stdout: connection_output))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'Lab\\Profile'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:Lab\\\\Net'))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'OtherNetwork'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
+
+            expect(subject.send(:find_best_profile_for_ssid, 'Lab\\Net')).to eq('Lab\\Profile')
+          end
+
           it 'does not match a profile whose name merely starts with the SSID' do
             connection_output =
               "Office-Guest:802-11-wireless:1672660200\nOffice Extra:802-11-wireless:1672574400"
@@ -1829,6 +1880,30 @@ module WifiWand
 
             result = subject.send(:find_best_profile_for_ssid, 'Office')
             expect(result).to eq('Office 1')
+          end
+        end
+
+        describe '#preferred_network_password with backslash-containing values' do
+          it 'uses the saved password from the matching backslash-containing profile and SSID' do
+            connection_output =
+              "Lab\\\\Profile:802-11-wireless:1672660200\nOtherNetwork:802-11-wireless:1672574400"
+            allow(subject).to receive(:run_command_using_args)
+              .with(%w[nmcli -t -f NAME,TYPE,TIMESTAMP connection show], raise_on_error: false)
+              .and_return(command_result(stdout: connection_output))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'Lab\\Profile'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:Lab\\\\Net'))
+            allow(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+                'OtherNetwork'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
+            expect(subject).to receive(:run_command_using_args)
+              .with(['nmcli', '--show-secrets', 'connection', 'show',
+                'Lab\\Profile'], raise_on_error: false)
+              .and_return(command_result(stdout: '802-11-wireless-security.psk:    saved-secret'))
+
+            expect(subject.preferred_network_password('Lab\\Net')).to eq('saved-secret')
           end
         end
 

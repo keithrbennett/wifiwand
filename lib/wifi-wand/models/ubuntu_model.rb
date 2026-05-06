@@ -729,15 +729,37 @@ module WifiWand
     end
 
     # Splits a line of nmcli terse (-t) output on unescaped field separators.
-    # nmcli escapes literal colons in values as \:; this method splits only on
-    # unescaped colons and then unescapes each resulting field.
+    # nmcli escapes literal colons as \: and literal backslashes as \\.
     #
     # @param line [String] A line of nmcli -t terse output
     # @param limit [Integer, nil] Maximum number of parts to produce
     # @return [Array<String>] Unescaped field values
     public def nmcli_split(line, limit = nil)
-      parts = limit ? line.split(/(?<!\\):/, limit) : line.split(/(?<!\\):/)
-      parts.map { |p| p.gsub('\\:', ':') }
+      parts = []
+      field = +''
+      escaped = false
+
+      line.each_char do |char|
+        if escaped
+          unescaped_char = if [':', '\\'].include?(char)
+            char
+          else
+            "\\#{char}"
+          end
+          field << unescaped_char
+          escaped = false
+        elsif char == '\\'
+          escaped = true
+        elsif char == ':' && (limit.nil? || parts.length < limit - 1)
+          parts << field
+          field = +''
+        else
+          field << char
+        end
+      end
+
+      field << '\\' if escaped
+      parts << field
     end
 
     private def normalize_active_connection_profile_name(profile)
