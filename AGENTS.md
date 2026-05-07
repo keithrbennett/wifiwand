@@ -23,13 +23,13 @@ Prefer project-local tools and scripts (for example, `bin/` scripts, `package.js
 instead of ad-hoc one-off commands when building, testing, or running the project.
 
 - Prefer `rg`/`rg --files` for searches; switch only if ripgrep is unavailable.
-- Planning tool: skip for trivial chores; otherwise create a multi-step plan and keep it updated as you work
-  (max one `in_progress` step).
+- Planning tool: when your AI client provides a planning tool, skip it for trivial chores; otherwise create a
+  multi-step plan and keep it updated as you work (max one `in_progress` step).
 - When moving or renaming tracked files, use `git mv` (or `git mv -k`) instead of plain `mv` so history stays
   intact.
-- If `git mv` is blocked by the sandbox or `.git/index.lock` is not writable, stop and leave the tracked file in
-  place. Do not simulate the move with delete-plus-add; ask the user to run the `git mv` command outside the
-  sandbox.
+- If `git mv` is blocked by the sandbox or `.git/index.lock` is not writable, stop and leave the tracked file
+  in place. Do not simulate the move with delete-plus-add; ask the user to run the `git mv` command outside
+  the sandbox.
 
 ## Ruby Guidelines
 - Use the project's Ruby version.
