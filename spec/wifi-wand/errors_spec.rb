@@ -202,6 +202,10 @@ module WifiWand
             allow(model).to receive(:has_preferred_network?).and_return(false)
             allow_any_instance_of(model.class).to receive(:has_preferred_network?).and_return(false)
 
+            # Ubuntu resolves configured SSIDs through NetworkManager profiles instead of
+            # BaseModel#has_preferred_network?, so keep this test from shelling out to nmcli.
+            allow(model).to receive(:saved_wifi_profiles).and_return([]) if model.is_a?(WifiWand::UbuntuModel)
+
             # Ensure our test exercises the real wrapper method, not a global stub
             # Only un-stub on macOS where the global stub is applied
             if defined?($compatible_os_tag) && $compatible_os_tag == :os_mac
