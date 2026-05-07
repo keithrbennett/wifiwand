@@ -26,6 +26,7 @@ module WifiWand
       '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
     SYSTEM_PROFILER_AIRPORT_ARGS = %w[system_profiler -json SPAirPortDataType].freeze
     SYSTEM_PROFILER_NETWORK_ARGS = %w[system_profiler -json SPNetworkDataType].freeze
+    AIRPORT_DATA_CACHE_CONTEXTS_KEY = :wifi_wand_airport_data_cache_contexts
     NO_CONNECTED_NETWORK = Object.new.freeze
 
     # Keychain exit code handlers for password retrieval
@@ -115,6 +116,8 @@ module WifiWand
       @macos_version = nil
       @mac_helper_client = nil
       @swift_runtime = nil
+      @airport_data_cache_mutex = Mutex.new
+      @airport_data_cache_generation = 0
     end
 
     def connection_ready?(network_name)
@@ -348,8 +351,13 @@ module WifiWand
 
       invalidate_airport_data_cache
 
-      iface = wifi_interface
-      run_command_using_args(['networksetup', '-setairportpower', iface, 'on'])
+      begin
+        iface = wifi_interface
+        run_command_using_args(['networksetup', '-setairportpower', iface, 'on'])
+      ensure
+        invalidate_airport_data_cache
+      end
+
       wifi_on? ? nil : raise(WifiEnableError)
     end
 
@@ -359,8 +367,12 @@ module WifiWand
 
       invalidate_airport_data_cache
 
-      iface = wifi_interface
-      run_command_using_args(['networksetup', '-setairportpower', iface, 'off'])
+      begin
+        iface = wifi_interface
+        run_command_using_args(['networksetup', '-setairportpower', iface, 'off'])
+      ensure
+        invalidate_airport_data_cache
+      end
 
       wifi_on? ? raise(WifiDisableError) : nil
     end
@@ -372,6 +384,8 @@ module WifiWand
     def _connect(network_name, password = nil)
       invalidate_airport_data_cache
       mac_os_wifi_transport.connect(network_name, password)
+    ensure
+      invalidate_airport_data_cache
     end
 
     # Password lookups on macOS may block on a user-facing keychain approval
@@ -562,6 +576,8 @@ module WifiWand
     def _disconnect
       invalidate_airport_data_cache
       mac_os_wifi_transport.disconnect
+    ensure
+      invalidate_airport_data_cache
     end
 
     def mac_address
@@ -1019,38 +1035,50 @@ module WifiWand
     end
 
     private def with_airport_data_cache_scope
-      cache_key = object_id
-      outermost_scope = airport_data_cache_depth(cache_key).zero?
-      invalidate_airport_data_cache if outermost_scope
-      airport_data_cache_depths[cache_key] = airport_data_cache_depth(cache_key) + 1
+      context = enter_airport_data_cache_scope
       yield
     ensure
-      next_depth = airport_data_cache_depth(cache_key) - 1
+      exit_airport_data_cache_scope(context) if context
+    end
 
-      if next_depth.positive?
-        airport_data_cache_depths[cache_key] = next_depth
+    private def enter_airport_data_cache_scope
+      context = active_airport_data_cache_context
+
+      if context
+        context[:depth] += 1
       else
-        airport_data_cache_depths.delete(cache_key)
-        invalidate_airport_data_cache
+        context = { depth: 1 }
+        airport_data_cache_contexts[self] = context
       end
+
+      context
     end
 
-    private def airport_data_cache_depth(cache_key)
-      airport_data_cache_depths.fetch(cache_key, 0)
+    private def exit_airport_data_cache_scope(context)
+      context[:depth] -= 1
+      return if context[:depth].positive?
+
+      contexts = current_airport_data_cache_contexts
+      contexts&.delete(self)
+      Thread.current[AIRPORT_DATA_CACHE_CONTEXTS_KEY] = nil if contexts&.empty?
     end
 
-    private def airport_data_cache_depths
-      Thread.current[:wifi_wand_airport_data_cache_depths] ||= {}
+    private def active_airport_data_cache_context
+      current_airport_data_cache_contexts&.fetch(self, nil)
     end
 
-    private def airport_data_cache_store
-      Thread.current[:wifi_wand_airport_data_cache_store] ||= {}
+    private def current_airport_data_cache_contexts
+      Thread.current[AIRPORT_DATA_CACHE_CONTEXTS_KEY]
+    end
+
+    private def airport_data_cache_contexts
+      Thread.current[AIRPORT_DATA_CACHE_CONTEXTS_KEY] ||= {}.compare_by_identity
     end
 
     private def airport_data(timeout_in_secs: nil)
-      cache_key = object_id
-      cached_data = airport_data_cache_store[cache_key]
-      return cached_data if cached_data
+      context = active_airport_data_cache_context
+      generation = airport_data_cache_generation
+      return context[:data] if cached_airport_data_current?(context, generation)
 
       json_text = run_command_using_args(
         SYSTEM_PROFILER_AIRPORT_ARGS,
@@ -1058,14 +1086,41 @@ module WifiWand
         timeout_in_secs: timeout_in_secs || SYSTEM_PROFILER_TIMEOUT_SECONDS
       ).stdout
       begin
-        airport_data_cache_store[cache_key] = JSON.parse(json_text)
+        parsed_data = JSON.parse(json_text)
       rescue JSON::ParserError => e
         raise SystemProfilerError, "Failed to parse system_profiler output: #{e.message}"
       end
+
+      cache_airport_data(context, generation, parsed_data)
+      parsed_data
     end
 
     private def invalidate_airport_data_cache
-      airport_data_cache_store.delete(object_id)
+      @airport_data_cache_mutex.synchronize do
+        @airport_data_cache_generation += 1
+      end
+
+      context = active_airport_data_cache_context
+      return unless context
+
+      context.delete(:data)
+      context.delete(:generation)
+    end
+
+    private def airport_data_cache_generation
+      @airport_data_cache_mutex.synchronize { @airport_data_cache_generation }
+    end
+
+    private def cached_airport_data_current?(context, generation)
+      context&.key?(:data) && context[:generation] == generation
+    end
+
+    private def cache_airport_data(context, generation, parsed_data)
+      return unless context
+      return unless generation == airport_data_cache_generation
+
+      context[:data] = parsed_data
+      context[:generation] = generation
     end
 
     # Gets the security type of the currently connected network.

@@ -1589,13 +1589,46 @@ module WifiWand
         end
       end
 
+      describe '#wifi_on' do
+        it 'clears cached airport data before and after turning WiFi on' do
+          allow(model).to receive(:wifi_on?).and_return(false, true)
+          allow(model).to receive(:wifi_interface).and_return('en0')
+
+          expect(model).to receive(:invalidate_airport_data_cache).ordered
+          expect(model).to receive(:run_command_using_args)
+            .with(['networksetup', '-setairportpower', 'en0', 'on'])
+            .ordered
+            .and_return(command_result(stdout: ''))
+          expect(model).to receive(:invalidate_airport_data_cache).ordered
+
+          expect(model.wifi_on).to be_nil
+        end
+      end
+
+      describe '#wifi_off' do
+        it 'clears cached airport data before and after turning WiFi off' do
+          allow(model).to receive(:wifi_on?).and_return(true, false)
+          allow(model).to receive(:wifi_interface).and_return('en0')
+
+          expect(model).to receive(:invalidate_airport_data_cache).ordered
+          expect(model).to receive(:run_command_using_args)
+            .with(['networksetup', '-setairportpower', 'en0', 'off'])
+            .ordered
+            .and_return(command_result(stdout: ''))
+          expect(model).to receive(:invalidate_airport_data_cache).ordered
+
+          expect(model.wifi_off).to be_nil
+        end
+      end
+
       describe '#_disconnect' do
-        it 'clears cached airport data before delegating disconnect orchestration' do
+        it 'clears cached airport data before and after delegating disconnect orchestration' do
           transport = instance_double(WifiWand::MacOsWifiTransport, disconnect: nil)
           allow(model).to receive(:mac_os_wifi_transport).and_return(transport)
 
           expect(model).to receive(:invalidate_airport_data_cache).ordered
           expect(transport).to receive(:disconnect).ordered
+          expect(model).to receive(:invalidate_airport_data_cache).ordered
 
           expect(model._disconnect).to be_nil
         end
@@ -1934,15 +1967,98 @@ module WifiWand
             expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'second' }] })
           end
         end
+
+        it 'does not memoize parsed system_profiler data outside a cache scope' do
+          first_json_output = '{"SPAirPortDataType": [{"test": "first"}]}'
+          second_json_output = '{"SPAirPortDataType": [{"test": "second"}]}'
+
+          expect(model).to receive(:run_command_using_args).with(
+            %w[system_profiler -json SPAirPortDataType],
+            raise_on_error:  true,
+            timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
+          ).twice.and_return(
+            command_result(stdout: first_json_output),
+            command_result(stdout: second_json_output)
+          )
+
+          expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'first' }] })
+          expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'second' }] })
+        end
+
+        it 'cleans cache context after a cache scope exits' do
+          model.send(:with_airport_data_cache_scope) do
+            expect(model.send(:active_airport_data_cache_context)).not_to be_nil
+          end
+
+          expect(model.send(:active_airport_data_cache_context)).to be_nil
+        end
+
+        it 'keeps scoped airport snapshots isolated by thread' do
+          payloads = {
+            'first'  => JSON.generate('SPAirPortDataType' => [{ 'test' => 'first' }]),
+            'second' => JSON.generate('SPAirPortDataType' => [{ 'test' => 'second' }]),
+          }
+          calls = Queue.new
+
+          allow(model).to receive(:run_command_using_args) do
+            thread_name = Thread.current[:wifi_wand_airport_cache_spec_name]
+            calls << thread_name
+            command_result(stdout: payloads.fetch(thread_name))
+          end
+
+          results = %w[first second].map do |thread_name|
+            Thread.new do
+              Thread.current[:wifi_wand_airport_cache_spec_name] = thread_name
+              model.send(:with_airport_data_cache_scope) do
+                [model.send(:airport_data), model.send(:airport_data)]
+              end
+            end
+          end.map(&:value)
+
+          expect(results).to contain_exactly(
+            [
+              { 'SPAirPortDataType' => [{ 'test' => 'first' }] },
+              { 'SPAirPortDataType' => [{ 'test' => 'first' }] },
+            ],
+            [
+              { 'SPAirPortDataType' => [{ 'test' => 'second' }] },
+              { 'SPAirPortDataType' => [{ 'test' => 'second' }] },
+            ]
+          )
+          expect(calls.size).to eq(2)
+        end
+
+        it 'refreshes an active scoped snapshot after another thread invalidates airport data' do
+          first_json_output = '{"SPAirPortDataType": [{"test": "first"}]}'
+          second_json_output = '{"SPAirPortDataType": [{"test": "second"}]}'
+
+          expect(model).to receive(:run_command_using_args).with(
+            %w[system_profiler -json SPAirPortDataType],
+            raise_on_error:  true,
+            timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
+          ).twice.and_return(
+            command_result(stdout: first_json_output),
+            command_result(stdout: second_json_output)
+          )
+
+          model.send(:with_airport_data_cache_scope) do
+            expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'first' }] })
+
+            Thread.new { model.send(:invalidate_airport_data_cache) }.join
+
+            expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'second' }] })
+          end
+        end
       end
 
       describe '#_connect' do
-        it 'clears cached airport data before delegating connect orchestration' do
+        it 'clears cached airport data before and after delegating connect orchestration' do
           transport = instance_double(WifiWand::MacOsWifiTransport)
           allow(model).to receive(:mac_os_wifi_transport).and_return(transport)
 
           expect(model).to receive(:invalidate_airport_data_cache).ordered
           expect(transport).to receive(:connect).with('TestNetwork', 'password').ordered
+          expect(model).to receive(:invalidate_airport_data_cache).ordered
 
           model._connect('TestNetwork', 'password')
         end
