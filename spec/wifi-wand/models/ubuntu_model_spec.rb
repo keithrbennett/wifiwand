@@ -448,6 +448,19 @@ module WifiWand
           expect(subject.preferred_network_password('MySSID')).to eq('fresh-secret')
         end
 
+        it 'bounds the saved password lookup when a timeout is requested' do
+          allow(subject).to receive(:saved_wifi_profiles).and_return([
+            saved_wifi_profile('MySSID', ssid: 'MySSID', timestamp: 100),
+            saved_wifi_profile('Renamed Fresh Profile', ssid: 'MySSID', timestamp: 300),
+          ])
+          expect(subject).to receive(:run_command_using_args)
+            .with(['nmcli', '--show-secrets', 'connection', 'show',
+              'Renamed Fresh Profile'], raise_on_error: false, timeout_in_secs: 0.25)
+            .and_return(command_result(stdout: '802-11-wireless-security.psk:    fresh-secret'))
+
+          expect(subject.preferred_network_password('MySSID', timeout_in_secs: 0.25)).to eq('fresh-secret')
+        end
+
         it 'uses the saved WEP key from the most recent matching profile' do
           allow(subject).to receive(:saved_wifi_profiles).and_return([
             saved_wifi_profile('MySSID', ssid: 'MySSID', timestamp: 100),
@@ -1658,6 +1671,27 @@ module WifiWand
               .and_return(command_result(stdout: password_output))
 
             result = subject.send(:_preferred_network_password, 'MyProfile')
+            expect(result).to eq('my-secret-password')
+          end
+
+          it 'uses unbounded command execution by default' do
+            password_output = '802-11-wireless-security.psk:    my-secret-password'
+            expect(subject).to receive(:run_command_using_args)
+              .with(%w[nmcli --show-secrets connection show MyProfile], raise_on_error: false)
+              .and_return(command_result(stdout: password_output))
+
+            result = subject.send(:_preferred_network_password, 'MyProfile')
+            expect(result).to eq('my-secret-password')
+          end
+
+          it 'passes a requested timeout to the secrets command' do
+            password_output = '802-11-wireless-security.psk:    my-secret-password'
+            expect(subject).to receive(:run_command_using_args)
+              .with(%w[nmcli --show-secrets connection show MyProfile], raise_on_error: false,
+                timeout_in_secs: 0.25)
+              .and_return(command_result(stdout: password_output))
+
+            result = subject.send(:_preferred_network_password, 'MyProfile', timeout_in_secs: 0.25)
             expect(result).to eq('my-secret-password')
           end
 

@@ -428,7 +428,7 @@ module WifiWand
       debug_method_entry(__method__, binding, :preferred_network_name)
       preferred_network_name = preferred_network_name.to_s
       if (resolved_profile_name = find_best_profile_for_ssid(preferred_network_name))
-        _preferred_network_password(resolved_profile_name)
+        _preferred_network_password(resolved_profile_name, timeout_in_secs: timeout_in_secs)
       else
         raise PreferredNetworkNotFoundError, preferred_network_name
       end
@@ -440,11 +440,13 @@ module WifiWand
       saved_wifi_profiles.map(&:ssid).reject(&:empty?).uniq.sort
     end
 
-    public def _preferred_network_password(preferred_network_name)
+    public def _preferred_network_password(preferred_network_name, timeout_in_secs: :default)
       debug_method_entry(__method__, binding, :preferred_network_name)
 
+      command_options = { raise_on_error: false }
+      command_options[:timeout_in_secs] = timeout_in_secs if timeout_in_secs && timeout_in_secs != :default
       output = run_command_using_args(
-        ['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name], raise_on_error: false
+        ['nmcli', '--show-secrets', 'connection', 'show', preferred_network_name], **command_options
       ).stdout
       extract_preferred_network_secret(output)
     end
