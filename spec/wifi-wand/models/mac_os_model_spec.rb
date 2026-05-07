@@ -375,6 +375,22 @@ module WifiWand
           expect(model.connected_network_name).to be_nil
         end
 
+        %i[unavailable timeout error unknown].each do |helper_status|
+          it "returns nil for authoritative not-connected fallback evidence with helper #{helper_status}" do
+            result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(status: helper_status)
+            allow(helper_double).to receive(:connected_network_name).and_return(result)
+            allow(model).to receive(:network_name_using_fast_commands).and_call_original
+            allow(model).to receive_messages(wifi_interface: 'en0', wifi_on?: true)
+            expect(model).to receive(:run_command_using_args)
+              .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: nil)
+              .and_return(command_result(stdout: "You are not associated with an AirPort network.\n"))
+            expect(model).not_to receive(:airport_data)
+            expect(model).not_to receive(:connected?)
+
+            expect(model.connected_network_name).to be_nil
+          end
+        end
+
         it 'falls back to airport data when helper returns nil' do
           result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
@@ -513,6 +529,60 @@ module WifiWand
               /Exact WiFi network identity.*wifi-wand-macos-setup.*wifiwand-helper/
             )
           end
+        end
+
+        [
+          ['helper unavailable and fallback reports a hidden SSID', :unavailable, '<hidden>'],
+          ['helper timeout and fallback reports a redacted SSID', :timeout, '<redacted>'],
+          ['helper error and fallback reports a blank SSID', :error, ''],
+          ['helper unknown and fallback reports a nil SSID', :unknown, nil],
+        ].each do |description, helper_status, fallback_ssid|
+          it "raises a targeted exact-identity error when #{description}" do
+            result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(status: helper_status)
+            allow(helper_double).to receive(:connected_network_name).and_return(result)
+            allow(model).to receive_messages(
+              wifi_on?:       true,
+              airport_data:   { 'SPAirPortDataType' => [{
+                'spairport_airport_interfaces' => [{
+                  '_name'                                 => 'en0',
+                  'spairport_current_network_information' => {
+                    '_name'                  => fallback_ssid,
+                    'spairport_signal_noise' => '95/10',
+                  },
+                }],
+              }] },
+              wifi_interface: 'en0'
+            )
+
+            expect { model.connected_network_name }.to raise_error(
+              WifiWand::MacOsRedactionError,
+              /Exact WiFi network identity.*wifi-wand-macos-setup.*wifiwand-helper/
+            )
+          end
+        end
+
+        it 'reuses the current airport snapshot when fallback evidence proves redaction' do
+          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(status: :timeout)
+          airport_json = JSON.generate(
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                 => 'en0',
+                'spairport_current_network_information' => {
+                  '_name'                  => nil,
+                  'spairport_signal_noise' => '95/10',
+                },
+              }],
+            }]
+          )
+          allow(helper_double).to receive(:connected_network_name).and_return(result)
+          allow(model).to receive_messages(wifi_on?: true, wifi_interface: 'en0')
+          expect(model).to receive(:run_command_using_args).with(
+            %w[system_profiler -json SPAirPortDataType],
+            raise_on_error:  true,
+            timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
+          ).once.and_return(command_result(stdout: airport_json))
+
+          expect { model.connected_network_name }.to raise_error(WifiWand::MacOsRedactionError)
         end
       end
 

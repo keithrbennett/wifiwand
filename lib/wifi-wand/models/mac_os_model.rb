@@ -435,20 +435,25 @@ module WifiWand
       raise WifiOffError, 'WiFi is off, cannot determine connected network.' unless wifi_on?
 
       @connected_network_authoritatively_disconnected = false
-      network_name = _connected_network_name
-      return network_name if network_name
-      return nil if connected_network_authoritatively_disconnected?
+      @connected_network_fallback_identity_redacted = false
 
-      if connected? && network_identity_redacted?
-        raise MacOsRedactionError.new(
-          operation_description: 'Current WiFi network queries',
-          reason:                network_identity_redaction_reason
-        )
+      with_airport_data_cache_scope do
+        network_name = _connected_network_name
+        return network_name if network_name
+        return nil if connected_network_authoritatively_disconnected?
+
+        if connected? && network_identity_redacted?
+          raise MacOsRedactionError.new(
+            operation_description: 'Current WiFi network queries',
+            reason:                network_identity_redaction_reason
+          )
+        end
+
+        nil
       end
-
-      nil
     ensure
       @connected_network_authoritatively_disconnected = false
+      @connected_network_fallback_identity_redacted = false
     end
 
     def _connected_network_name
@@ -482,8 +487,10 @@ module WifiWand
         return nil unless current_network
 
         # Return the network name (could still be nil)
-        network_name = current_network['_name']
-        placeholder_network_name?(network_name) ? nil : network_name
+        network_name = current_network.is_a?(Hash) ? current_network['_name'] : current_network
+        return mark_connected_network_fallback_identity_redacted if placeholder_network_name?(network_name)
+
+        network_name
       end
     end
 
@@ -497,11 +504,15 @@ module WifiWand
     end
 
     def network_identity_redacted?
+      return true if connected_network_fallback_identity_redacted?
+
       with_airport_data_cache_scope do
         # Redaction detection is tied to the compiled helper application path
         # because that runtime surfaces Location Services blocking directly.
         result = mac_helper_client.connected_network_name
-        result.location_services_error? || placeholder_network_name?(result.payload)
+        result.location_services_error? ||
+          helper_placeholder_network_name?(result.payload) ||
+          fallback_network_identity_missing?
       end
     rescue WifiWand::Error
       false
@@ -512,6 +523,27 @@ module WifiWand
 
       'macOS is redacting WiFi network names until Location Services access is granted ' \
         'to wifiwand-helper, the macOS helper application'
+    end
+
+    private def mark_connected_network_fallback_identity_redacted
+      @connected_network_fallback_identity_redacted = true
+      nil
+    end
+
+    private def connected_network_fallback_identity_redacted?
+      @connected_network_fallback_identity_redacted
+    end
+
+    private def fallback_network_identity_missing?
+      wifi_interface_data = wifi_interface_airport_data
+      current_network = wifi_interface_data&.fetch('spairport_current_network_information', nil)
+      return false if current_network
+
+      associated_without_ssid?(wifi_interface_data)
+    end
+
+    private def helper_placeholder_network_name?(network_name)
+      !network_name.nil? && placeholder_network_name?(network_name)
     end
 
     def mac_helper_client
@@ -673,9 +705,13 @@ module WifiWand
       return nil if output.empty?
       return NO_CONNECTED_NETWORK if output.match?(/not associated|power is currently off/i)
 
-      match = output.match(/\ACurrent (?:Wi-Fi|AirPort) Network: (.+)\z/)
-      network_name = match && match[1].strip
-      placeholder_network_name?(network_name) ? nil : network_name
+      match = output.match(/\ACurrent (?:Wi-Fi|AirPort) Network:\s*(.*)\z/)
+      return nil unless match
+
+      network_name = match[1].strip
+      return mark_connected_network_fallback_identity_redacted if placeholder_network_name?(network_name)
+
+      network_name
     rescue WifiWand::Error
       nil
     end
@@ -687,8 +723,16 @@ module WifiWand
       ).stdout
       return nil if output.strip.empty?
 
-      network_name = colon_output_to_hash(output)['SSID']
-      placeholder_network_name?(network_name) ? nil : network_name
+      airport_info = colon_output_to_hash(output)
+      network_name = airport_info['SSID']
+      if airport_info.key?('SSID')
+        return mark_connected_network_fallback_identity_redacted if placeholder_network_name?(network_name)
+
+        return network_name
+      end
+
+      mark_connected_network_fallback_identity_redacted if airport_info['BSSID']
+      nil
     rescue WifiWand::Error
       nil
     end
@@ -766,10 +810,10 @@ module WifiWand
 
     private def colon_output_to_hash(output)
       output.each_line.with_object({}) do |line, hash|
-        key, value = line.split(': ', 2)
-        next unless key && value
+        key, value = line.split(':', 2)
+        next unless key && !value.nil?
 
-        hash[key.strip] = value.strip
+        hash[key.strip] = value.to_s.strip
       end
     end
 

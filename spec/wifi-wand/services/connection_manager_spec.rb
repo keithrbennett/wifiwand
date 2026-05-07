@@ -309,6 +309,7 @@ describe WifiWand::ConnectionManager do
         expect { subject.connect('TestNetwork') }.to raise_error(WifiWand::NetworkConnectionError) do |error|
           expect(error.message).to include('associated, but macOS is redacting WiFi network names')
           expect(error.message).to include("cannot verify that the active network is 'TestNetwork'")
+          expect(error.message).not_to include('unable to connect to any network')
         end
       end
 
