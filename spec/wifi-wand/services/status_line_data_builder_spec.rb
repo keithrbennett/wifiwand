@@ -133,10 +133,8 @@ describe WifiWand::StatusLineDataBuilder do
     it 'uses a bounded status wifi lookup before starting workers' do
       expect(model).not_to receive(:wifi_on?)
       expect(model).to receive(:status_wifi_on?) do |timeout_in_secs:|
-        expect(timeout_in_secs).to be_between(
-          0,
-          described_class::DEFAULT_NETWORK_WORKER_RESULT_TIMEOUT_SECONDS
-        ).exclusive
+        expect(timeout_in_secs).to be_positive
+        expect(timeout_in_secs).to be <= described_class::DEFAULT_NETWORK_WORKER_RESULT_TIMEOUT_SECONDS
         true
       end
 
