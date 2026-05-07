@@ -20,13 +20,19 @@ module WifiWand
     end
 
     def call(command_name = nil)
-      command = cli.resolve_command(command_name)
+      command = help_command_for(command_name)
 
       if command&.help_text
         output.puts(command.help_text)
       else
         cli.print_help
       end
+    end
+
+    private def help_command_for(command_name)
+      return cli.find_command(command_name) if cli.respond_to?(:find_command)
+
+      cli.resolve_command(command_name)
     end
   end
 end

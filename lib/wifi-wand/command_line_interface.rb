@@ -24,7 +24,7 @@ module WifiWand
     include CommandRegistry
     include ShellInterface
 
-    attr_reader :interactive_mode, :model, :options, :err_stream, :in_stream
+    attr_reader :interactive_mode, :options, :err_stream, :in_stream
 
     SUCCESS_EXIT_CODE = 0
     FAILURE_EXIT_CODE = 1
@@ -37,23 +37,21 @@ module WifiWand
       @err_stream = options.err_stream || $stderr
       @in_stream = options.in_stream || $stdin
 
-      model_options = {
+      @model_options = {
         verbose:        options.verbose,
         wifi_interface: options.wifi_interface,
         out_stream:     out_stream,
         err_stream:     err_stream,
       }
 
-      # Skip model initialization when help was explicitly requested in non-interactive mode,
-      # so that `--help` works even on systems without Wi‑Fi hardware or permissions.
       @interactive_mode = !!options.interactive_mode
-      help_requested = options.help_requested
-      skip_model_init = help_requested && !@interactive_mode
-
-      @model = skip_model_init ? nil : WifiWand.create_model(model_options)
     end
 
     def verbose? = options.verbose
+
+    def model
+      @model ||= WifiWand.create_model(@model_options)
+    end
 
     # Dynamic output stream that respects current $stdout (for test silence_output compatibility)
     def out_stream = @original_out_stream || $stdout

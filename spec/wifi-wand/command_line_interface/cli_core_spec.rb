@@ -7,10 +7,17 @@ describe WifiWand::CommandLineInterface do
   include_context 'for command line interface tests'
 
   describe 'initialization' do
-    it 'raises NoSupportedOSError when no OS is detected' do
+    it 'raises NoSupportedOSError when model access cannot detect an OS' do
       allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(nil)
 
-      expect { described_class.new(options) }.to raise_error(WifiWand::NoSupportedOSError)
+      cli = described_class.new(options)
+      expect { cli.model }.to raise_error(WifiWand::NoSupportedOSError)
+    end
+
+    it 'defers model creation during construction' do
+      expect(WifiWand).not_to receive(:create_model)
+
+      described_class.new(options)
     end
 
     it 'sets interactive mode correctly' do
@@ -25,7 +32,7 @@ describe WifiWand::CommandLineInterface do
       expect(interactive_cli).not_to receive(:run_shell)
     end
 
-    it 'uses WifiWand.create_model to build the model with derived options' do
+    it 'uses WifiWand.create_model to build the model lazily with derived options' do
       expect(WifiWand).to receive(:create_model) do |model_options|
         expect(model_options).to be_a(Hash)
         expect(model_options[:verbose]).to eq(options.verbose)
@@ -48,6 +55,8 @@ describe WifiWand::CommandLineInterface do
         err_stream = StringIO.new
         opts = options.dup
         opts.err_stream = err_stream
+        expect(WifiWand).not_to receive(:create_model)
+
         cli = described_class.new(opts, argv: [])
         expect(cli.validate_command_line).to eq(described_class::FAILURE_EXIT_CODE)
         expect(err_stream.string).to match(/Syntax is:/)

@@ -253,7 +253,7 @@ describe WifiWand::Main do
         err_stream = StringIO.new
         main = described_class.new(out_stream, err_stream, argv: [command_name])
 
-        allow(WifiWand).to receive(:create_model).and_return(double('model'))
+        expect(WifiWand).not_to receive(:create_model)
 
         expect(main.call).to eq(1)
         expect(err_stream.string).to include(missing_message)

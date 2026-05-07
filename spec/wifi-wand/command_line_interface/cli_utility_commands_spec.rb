@@ -69,6 +69,13 @@ describe WifiWand::CommandLineInterface do
 
         invoke_help(cli, 'unknown')
       end
+
+      it 'prints command-specific help without creating a model' do
+        expect(WifiWand).not_to receive(:create_model)
+
+        expect { invoke_help(cli, 'info') }
+          .to output(/Usage: wifi-wand info/).to_stdout
+      end
     end
 
     describe 'status command' do

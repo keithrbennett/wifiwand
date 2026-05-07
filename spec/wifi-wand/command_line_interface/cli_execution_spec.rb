@@ -22,6 +22,19 @@ describe WifiWand::CommandLineInterface do
       expect(cli.call).to eq(described_class::SUCCESS_EXIT_CODE)
     end
 
+    it 'returns syntax guidance for empty argv without creating a model' do
+      err_stream = StringIO.new
+      opts = create_cli_options(argv: [], err_stream: err_stream)
+
+      expect(WifiWand).not_to receive(:create_model)
+
+      empty_cli = described_class.new(opts, argv: [])
+
+      expect(empty_cli.call).to eq(described_class::FAILURE_EXIT_CODE)
+      expect(err_stream.string).to include('Syntax is:')
+      expect(err_stream.string).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+    end
+
     it 'dispatches shell through the registered command path' do
       cli = described_class.new(create_cli_options, argv: ['shell'])
       shell_command = instance_double(WifiWand::ShellCommand)
@@ -37,6 +50,8 @@ describe WifiWand::CommandLineInterface do
       err_stream = StringIO.new
       opts = create_cli_options(post_processor: ->(object) { object.to_json })
       opts.err_stream = err_stream
+      expect(WifiWand).not_to receive(:create_model)
+
       cli = described_class.new(opts, argv: ['shell'])
 
       expect(cli).not_to receive(:run_shell)
@@ -49,6 +64,8 @@ describe WifiWand::CommandLineInterface do
       err_stream = StringIO.new
       opts = create_cli_options
       opts.err_stream = err_stream
+      expect(WifiWand).not_to receive(:create_model)
+
       cli = described_class.new(opts, argv: ['shell', '-o', 'j'])
 
       expect(cli).not_to receive(:run_shell)

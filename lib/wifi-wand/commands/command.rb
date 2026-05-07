@@ -19,6 +19,46 @@ module WifiWand
   end
 
   class Command
+    class LazyModel
+      def initialize(cli)
+        @cli = cli
+      end
+
+      def method_missing(method_name, ...)
+        model.public_send(method_name, ...)
+      end
+
+      def respond_to_missing?(method_name, include_private = false)
+        model_responds = if include_private
+          model.respond_to?(method_name, true)
+        else
+          model.respond_to?(method_name)
+        end
+
+        model_responds || super
+      end
+
+      def ==(other)
+        model == other
+      end
+
+      def eql?(other)
+        model.eql?(other)
+      end
+
+      def hash
+        model.hash
+      end
+
+      def inspect
+        model.inspect
+      end
+
+      private def model
+        @cli.model
+      end
+    end
+
     class << self
       # Standard command classes can declare their names and help text once here
       # instead of repeating the same metadata object construction in `initialize`.
@@ -119,7 +159,7 @@ module WifiWand
       # Read each declared binding source from the CLI and assign that value to
       # the command. The CLI object itself is passed by #bind for every command.
       self.class.binding_sources.transform_values do |source|
-        cli.public_send(source)
+        source == :model ? LazyModel.new(cli) : cli.public_send(source)
       end
     end
 
