@@ -2038,8 +2038,9 @@ module WifiWand
       end
 
       describe '#disconnect' do
-        it 'handles nmcli disconnect failures gracefully' do
-          allow(subject).to receive_messages(wifi_on?: true, associated?: true, wifi_interface: 'wlan0')
+        it 'reports nmcli disconnect failures as disconnection errors' do
+          allow(subject).to receive_messages(wifi_on?: true, wifi_interface: 'wlan0')
+          allow(subject).to receive(:connected_network_name).and_return('CafeWiFi')
           allow(subject).to receive(:run_command_using_args)
             .with(%w[nmcli dev disconnect wlan0])
             .and_raise(
@@ -2050,18 +2051,63 @@ module WifiWand
               )
             )
 
-          expect { subject.disconnect }
-            .to raise_error(WifiWand::CommandExecutor::OsCommandError, /Device disconnect failed/)
+          expect { subject.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
+            expect(error.network_name).to eq('CafeWiFi')
+            expect(error.reason).to include('Device disconnect failed')
+            expect(error.reason).to include('Command failed: nmcli dev disconnect wlan0')
+          end
+        end
+
+        it 'reports verification probe failures as disconnection errors' do
+          allow(subject).to receive_messages(wifi_on?: true, wifi_interface: 'wlan0')
+          allow(subject).to receive(:connected_network_name).and_return('CafeWiFi', nil)
+          allow(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli dev disconnect wlan0])
+            .and_return(command_result(stdout: ''))
+          allow(subject).to receive(:run_command_using_args)
+            .with(['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], raise_on_error: false)
+            .and_return(command_result(
+              stdout:     'NetworkManager unavailable',
+              exitstatus: 1,
+              command:    'nmcli -t -f DEVICE connection show --active'
+            ))
+
+          expect { subject.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
+            expect(error.network_name).to eq('CafeWiFi')
+            expect(error.reason).to include('NetworkManager unavailable')
+            expect(error.reason).to include('nmcli -t -f DEVICE connection show --active')
+          end
+        end
+
+        it 'reports nmcli disconnect timeouts as disconnection errors' do
+          allow(subject).to receive_messages(
+            wifi_on?:               true,
+            connected_network_name: 'CafeWiFi',
+            wifi_interface:         'wlan0'
+          )
+          allow(subject).to receive(:run_command_using_args)
+            .with(%w[nmcli dev disconnect wlan0])
+            .and_raise(WifiWand::CommandTimeoutError.new(
+              command:         'nmcli dev disconnect wlan0',
+              timeout_in_secs: 5
+            ))
+
+          expect { subject.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
+            expect(error.network_name).to eq('CafeWiFi')
+            expect(error.reason).to include('Command timed out after 5 seconds')
+            expect(error.reason).to include('nmcli dev disconnect wlan0')
+          end
         end
 
         it 'is a no-op when already disconnected' do
-          allow(subject).to receive_messages(wifi_on?: true, associated?: false)
+          allow(subject).to receive_messages(wifi_on?: true, connected_network_name: nil, connected?: false)
+          allow(subject).to receive(:disconnect_associated?).and_return(false)
+          allow(subject).to receive(:wait_until_disassociated!)
           allow(subject).to receive(:run_command_using_args)
-          allow(subject).to receive(:till)
 
           expect(subject.disconnect).to be_nil
           expect(subject).not_to have_received(:run_command_using_args)
-          expect(subject).not_to have_received(:till)
+          expect(subject).not_to have_received(:wait_until_disassociated!)
         end
       end
 

@@ -272,16 +272,19 @@ module WifiWand
     end
 
     def disconnect
+      original_network_name = nil
       return nil unless wifi_on?
-      return nil unless associated?
 
       # Capture the SSID before asking the OS to disconnect so timeout handling
       # can still report which network we expected to leave.
-      original_network_name = connected_network_name
+      association_state = disconnect_association_state
+      original_network_name = association_state.fetch(:network_name)
+      return nil unless association_state.fetch(:associated)
+
       _disconnect
       # A disconnect only counts as success once the interface actually reports
       # no active association, mirroring the postcondition checks used elsewhere.
-      till(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
+      wait_until_disassociated!(timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
       # On some systems the SSID can disappear briefly during state churn before
       # the radio re-associates. Require a short stable disassociation window so
       # a transient nil SSID does not count as a successful disconnect.
@@ -293,6 +296,8 @@ module WifiWand
       end
 
       nil
+    rescue *NETWORK_OPERATION_COMMAND_ERRORS => e
+      raise(disconnect_command_failure(original_network_name, e))
     rescue WifiWand::WaitTimeoutError
       # Re-check the SSID after a timeout so callers get the best available
       # diagnostic when the disconnect command ran but the radio stayed associated.
@@ -314,11 +319,11 @@ module WifiWand
     end
 
     def disassociated_stable?
-      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + disconnect_stability_window_in_secs
+      deadline = monotonic_now + disconnect_stability_window_in_secs
 
       loop do
-        return false if associated?
-        return true if Process.clock_gettime(Process::CLOCK_MONOTONIC) >= deadline
+        return false if disconnect_association_state.fetch(:associated)
+        return true if monotonic_now >= deadline
 
         sleep(WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL)
       end
@@ -392,6 +397,13 @@ module WifiWand
       Errno::EHOSTUNREACH,
       Errno::ENETUNREACH,
       Timeout::Error,
+    ].freeze
+
+    NETWORK_OPERATION_COMMAND_ERRORS = [
+      WifiWand::CommandExecutor::OsCommandError,
+      WifiWand::CommandTimeoutError,
+      WifiWand::CommandNotFoundError,
+      WifiWand::CommandSpawnError,
     ].freeze
 
     # Returns comprehensive WiFi information including connectivity details
@@ -487,6 +499,57 @@ module WifiWand
         'ssid_identity_status'    => status,
         'ssid_identity_warning'   => warning,
       }
+    end
+
+    private def disconnect_association_state
+      network_name = connected_network_name
+      return { associated: true, network_name: network_name } unless network_name.nil? || network_name.empty?
+
+      # If the SSID is unavailable but the platform can still report an active
+      # connection, try the disconnect instead of treating the operation as a
+      # no-op. Unlike associated?, connected? does not intentionally collapse
+      # command failures into false for this mutating preflight.
+      {
+        associated:   disconnect_associated?,
+        network_name: nil,
+      }
+    rescue *NETWORK_OPERATION_COMMAND_ERRORS
+      raise
+    rescue WifiWand::Error
+      # If the SSID cannot be read for a non-command reason (for example macOS
+      # redaction), the safest mutating behavior is to attempt the disconnect
+      # and let the command/postcondition path determine the outcome.
+      {
+        associated:   true,
+        network_name: nil,
+      }
+    end
+
+    private def disconnect_associated?
+      connected?
+    end
+
+    private def wait_until_disassociated!(timeout_in_secs:)
+      deadline = monotonic_now + timeout_in_secs
+
+      loop do
+        return nil unless disconnect_association_state.fetch(:associated)
+
+        remaining_time = deadline - monotonic_now
+        raise(WaitTimeoutError.new(action: :disassociated, timeout: timeout_in_secs)) if remaining_time <= 0
+
+        sleep([WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL, remaining_time].min)
+      end
+    end
+
+    private def disconnect_command_failure(network_name, error)
+      NetworkDisconnectionError.new(network_name: network_name, reason: command_error_detail(error))
+    end
+
+    private def command_error_detail(error)
+      detail = error.display_message if error.respond_to?(:display_message)
+      detail = error.message if detail.nil? || detail.empty?
+      detail.to_s
     end
 
     # Toggles WiFi on/off state twice; if on, turns off then on; else, turn on then off.

@@ -234,16 +234,89 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'raises a dedicated error when the interface remains associated' do
       allow(model).to receive_messages(
         wifi_on?:               true,
-        associated?:            true,
         connected_network_name: 'TestNet'
       )
       allow(model).to receive(:_disconnect)
-      allow(model).to receive(:till)
-        .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
+      allow(model).to receive(:wait_until_disassociated!)
         .and_raise(wait_timeout_error(action: :disassociated, timeout: 5))
 
       expect { model.disconnect }
         .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
+    end
+
+    it 'reports wifi status command failures as disconnection errors' do
+      allow(model).to receive(:wifi_on?)
+        .and_raise(os_command_error(
+          exitstatus: 1,
+          command:    'networksetup -getairportpower en0',
+          text:       'permission denied'
+        ))
+      allow(model).to receive(:_disconnect)
+
+      expect { model.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
+        expect(error.network_name).to be_nil
+        expect(error.reason).to include('permission denied')
+        expect(error.reason).to include('networksetup -getairportpower en0')
+      end
+      expect(model).not_to have_received(:_disconnect)
+    end
+
+    it 'attempts disconnect when association cannot be determined before the command' do
+      allow(model).to receive(:wifi_on?).and_return(true)
+      allow(model).to receive(:connected_network_name)
+        .and_raise(WifiWand::MacOsRedactionError.new(
+          operation_description: 'Current WiFi network queries'
+        ))
+      allow(model).to receive(:wait_until_disassociated!)
+      allow(model).to receive(:_disconnect)
+        .and_raise(os_command_error(
+          exitstatus: 1,
+          command:    'disconnect current network',
+          text:       'disconnect failed'
+        ))
+
+      expect { model.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
+        expect(error.network_name).to be_nil
+        expect(error.reason).to include('disconnect failed')
+        expect(error.reason).to include('disconnect current network')
+      end
+      expect(model).to have_received(:_disconnect)
+      expect(model).not_to have_received(:wait_until_disassociated!)
+    end
+
+    it 'reports secondary connection probe command failures as disconnection errors' do
+      allow(model).to receive_messages(wifi_on?: true, connected_network_name: nil)
+      allow(model).to receive(:connected?)
+        .and_raise(os_command_error(
+          exitstatus: 1,
+          command:    'nmcli connection show --active',
+          text:       'NetworkManager unavailable'
+        ))
+      allow(model).to receive(:_disconnect)
+
+      expect { model.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
+        expect(error.network_name).to be_nil
+        expect(error.reason).to include('NetworkManager unavailable')
+        expect(error.reason).to include('nmcli connection show --active')
+      end
+      expect(model).not_to have_received(:_disconnect)
+    end
+
+    it 'reports verification probe command failures as disconnection errors' do
+      allow(model).to receive_messages(wifi_on?: true, connected_network_name: 'TestNet')
+      allow(model).to receive(:_disconnect)
+      allow(model).to receive(:wait_until_disassociated!)
+        .and_raise(os_command_error(
+          exitstatus: 1,
+          command:    'nmcli connection show --active',
+          text:       'probe failed during verification'
+        ))
+
+      expect { model.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
+        expect(error.network_name).to eq('TestNet')
+        expect(error.reason).to include('probe failed during verification')
+        expect(error.reason).to include('nmcli connection show --active')
+      end
     end
 
     it 'raises when disassociation is not stable after the initial wait succeeds' do
@@ -252,25 +325,21 @@ describe 'Common WiFi Model Behavior (All OS)' do
         connected_network_name:              'TestNet',
         disconnect_stability_window_in_secs: 0.1
       )
-      allow(model).to receive(:associated?).and_return(true, false, true)
       allow(model).to receive(:_disconnect)
-      allow(model).to receive(:till)
-        .with(:disassociated, timeout_in_secs: WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT)
-        .and_return(nil)
-      allow(model).to receive(:sleep)
+      allow(model).to receive_messages(wait_until_disassociated!: nil, disassociated_stable?: false)
 
       expect { model.disconnect }
         .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
     end
 
     it 'is a no-op when wifi is already disassociated' do
-      allow(model).to receive_messages(wifi_on?: true, associated?: false)
+      allow(model).to receive_messages(wifi_on?: true, connected_network_name: nil, connected?: false)
+      allow(model).to receive(:wait_until_disassociated!)
       allow(model).to receive(:_disconnect)
-      allow(model).to receive(:till)
 
       expect(model.disconnect).to be_nil
       expect(model).not_to have_received(:_disconnect)
-      expect(model).not_to have_received(:till)
+      expect(model).not_to have_received(:wait_until_disassociated!)
     end
   end
 

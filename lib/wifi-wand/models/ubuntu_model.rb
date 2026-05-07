@@ -92,6 +92,17 @@ module WifiWand
       output.split("\n").any? { |line| line.strip == wifi_interface }
     end
 
+    private def disconnect_associated?
+      return false unless wifi_on?
+
+      result = run_command_using_args(
+        ['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], raise_on_error: false
+      )
+      raise WifiWand::CommandExecutor::OsCommandError.new(result: result) unless result.success?
+
+      result.stdout.split("\n").any? { |line| line.strip == wifi_interface }
+    end
+
     def status_network_identity(timeout_in_secs: nil)
       deadline = status_deadline(timeout_in_secs)
       validate_os_preconditions unless @wifi_interface

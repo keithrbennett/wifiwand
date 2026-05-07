@@ -128,6 +128,12 @@ module WifiWand
         network_name: nil,
         reason:       disconnect_failure_reason(sudo_result, plain_result)
       ))
+    rescue WifiWand::CommandExecutor::OsCommandError, WifiWand::CommandTimeoutError,
+      WifiWand::CommandNotFoundError, WifiWand::CommandSpawnError => e
+      raise(WifiWand::NetworkDisconnectionError.new(
+        network_name: nil,
+        reason:       command_error_detail(e)
+      ))
     end
 
     private def extract_auth_failure_reason(output_text)
@@ -154,6 +160,12 @@ module WifiWand
         details.empty? ? message : "#{message}: #{details}"
       end
       messages.join('; ')
+    end
+
+    private def command_error_detail(error)
+      detail = error.display_message if error.respond_to?(:display_message)
+      detail = error.message if detail.nil? || detail.empty?
+      detail.to_s
     end
 
     private def run_command_using_args(*, **)

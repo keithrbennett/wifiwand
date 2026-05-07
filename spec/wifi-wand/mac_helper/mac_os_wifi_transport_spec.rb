@@ -282,6 +282,46 @@ module WifiWand
         end
       end
 
+      it 'raises a disconnect error when sudo ifconfig times out' do
+        allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
+        expect(command_runner).to receive(:call).with(
+          %w[sudo ifconfig en0 disassociate],
+          raise_on_error:  false,
+          timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
+        ).and_raise(WifiWand::CommandTimeoutError.new(
+          command:         'sudo ifconfig en0 disassociate',
+          timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
+        ))
+
+        expect { transport.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
+          expect(error.network_name).to be_nil
+          expect(error.reason).to include('Command timed out')
+          expect(error.reason).to include('sudo ifconfig en0 disassociate')
+        end
+      end
+
+      it 'raises a disconnect error when plain ifconfig cannot be started' do
+        allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
+        expect(command_runner).to receive(:call).with(
+          %w[sudo ifconfig en0 disassociate],
+          raise_on_error:  false,
+          timeout_in_secs: described_class::SUDO_IFCONFIG_TIMEOUT_SECONDS
+        ).and_return(command_result(stderr: 'sudo requires a password', exitstatus: 1,
+          command: 'sudo ifconfig en0 disassociate'))
+        expect(command_runner).to receive(:call).with(%w[ifconfig en0 disassociate],
+          raise_on_error: false)
+          .and_raise(WifiWand::CommandSpawnError.new(
+            command: 'ifconfig en0 disassociate',
+            reason:  'Resource temporarily unavailable'
+          ))
+
+        expect { transport.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
+          expect(error.network_name).to be_nil
+          expect(error.reason).to include('ifconfig en0 disassociate')
+          expect(error.reason).to include('Resource temporarily unavailable')
+        end
+      end
+
       it 'uses ifconfig when Swift/CoreWLAN is unavailable and logs that fallback' do
         allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
         expect(command_runner).to receive(:call).with(
