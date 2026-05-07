@@ -54,6 +54,15 @@ Optional dependency for QR codes:
 
 ---
 
+### Security Notes
+
+`wifi-wand` is intended for individual users on machines they control. Some workflows can expose WiFi
+passwords to local surfaces such as shell history, process listings, verbose output, terminal scrollback, and
+generated QR code files. See **[Security Notes](docs/SECURITY_NOTES.md)** for the full list of potential
+exposure points and practical precautions.
+
+---
+
 ### 🐧 Note for Ubuntu Users
 
 Ubuntu support requires **NetworkManager** (standard on Ubuntu Desktop). 
@@ -155,6 +164,7 @@ Setup and platform guides:
 
 - **[macOS Quick Start](docs/MACOS_QUICK_START.md)** - One-time setup for macOS Location Services access.
 - **[Ubuntu Setup & Requirements](docs/UBUNTU_SETUP.md)** - NetworkManager and tool requirements for Ubuntu.
+- **[Security Notes](docs/SECURITY_NOTES.md)** - Local WiFi password exposure surfaces and precautions.
 - **[macOS Helper App Details](docs/MACOS_HELPER_APP_DETAILS.md)** - End-user details for the native macOS
   helper application.
 

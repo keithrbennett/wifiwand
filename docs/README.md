@@ -8,6 +8,7 @@ This directory contains end-user and operator documentation for `wifi-wand`.
 - **[macOS Quick Start](MACOS_QUICK_START.md)** - Crucial one-time setup steps for macOS users
   (Sonoma and later).
 - **[Ubuntu Setup & Requirements](UBUNTU_SETUP.md)** - Requirements and configuration for Ubuntu systems.
+- **[Security Notes](SECURITY_NOTES.md)** - Local WiFi password exposure surfaces and precautions.
 
 ## Command-Specific Guides
 

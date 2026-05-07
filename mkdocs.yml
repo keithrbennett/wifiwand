@@ -68,6 +68,7 @@ nav:
       - Docs Index: docs/README.md
       - macOS Quick Start: docs/MACOS_QUICK_START.md
       - Ubuntu Setup: docs/UBUNTU_SETUP.md
+      - Security Notes: docs/SECURITY_NOTES.md
       - Status Command: docs/STATUS_COMMAND.md
       - Info Command: docs/INFO_COMMAND.md
       - Connectivity Checking: docs/CONNECTIVITY_CHECKING.md
