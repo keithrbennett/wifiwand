@@ -134,6 +134,8 @@ describe WifiWand::CommandExecutor do
       end
 
       it 'terminates timed out child processes without leaking them' do
+        stub_const("#{described_class}::COMMAND_KILL_WAIT_SECS", 0.05)
+
         Tempfile.create('wifiwand-command-timeout') do |pid_file|
           pid_file.close
           command = [
@@ -144,7 +146,7 @@ describe WifiWand::CommandExecutor do
             pid_file.path,
           ]
 
-          expect { executor.run_command_using_args(command, raise_on_error: true, timeout_in_secs: 1) }
+          expect { executor.run_command_using_args(command, raise_on_error: true, timeout_in_secs: 0.1) }
             .to raise_error(WifiWand::CommandTimeoutError)
 
           pid = wait_for_file_contents(pid_file.path).to_i
@@ -154,6 +156,8 @@ describe WifiWand::CommandExecutor do
       end
 
       it 'terminates descendant processes created by a timed out command' do
+        stub_const("#{described_class}::COMMAND_KILL_WAIT_SECS", 0.05)
+
         Tempfile.create('wifiwand-command-timeout-descendant') do |pid_file|
           pid_file.close
           command = [
@@ -169,7 +173,7 @@ describe WifiWand::CommandExecutor do
             pid_file.path,
           ]
 
-          expect { executor.run_command_using_args(command, raise_on_error: true, timeout_in_secs: 1) }
+          expect { executor.run_command_using_args(command, raise_on_error: true, timeout_in_secs: 0.1) }
             .to raise_error(WifiWand::CommandTimeoutError)
 
           descendant_pid = wait_for_file_contents(pid_file.path).to_i
