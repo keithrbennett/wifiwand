@@ -6,13 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 2
-# Flags remove_const in specs. Removing constants can be necessary for edge cases, but it mutates global
-# Ruby state and can leak if cleanup is incomplete.
-RSpec/RemoveConst:
-  Exclude:
-    - 'spec/wifi-wand/models/base_model_edge_cases_spec.rb'
-
 # Offense count: 4
 # Flags examples with identical descriptions in the same group, since duplicate names make failures harder
 # to identify in documentation-format output.

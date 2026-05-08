@@ -51,50 +51,56 @@ RSpec.describe WifiWand::BaseModel do
   end
 
   describe '.inherited' do
+    # BaseModel waits until the subclass body has finished before checking
+    # required methods. This protects subclasses from being validated while
+    # their method definitions are still in progress.
     it 'verifies required subclass methods after subclass definition' do
       allow(described_class).to receive(:verify_required_methods_implemented).and_call_original
 
-      klass_name = :TracePointSpecModel
-      Object.send(:remove_const, klass_name) if Object.const_defined?(klass_name)
-
-      begin
-        Object.class_eval <<-RUBY, __FILE__, __LINE__ + 1
-          class TracePointSpecModel < WifiWand::BaseModel
-            def self.os_id
-              :trace_test
-            end
-
-            def connected? = false
-            def validate_os_preconditions = nil
-            def probe_wifi_interface = 'wlan0'
-            def connection_security_type = nil
-            def default_interface = 'wlan0'
-            def is_wifi_interface?(_iface) = true
-            def mac_address = '00:00:00:00:00:00'
-            def nameservers = []
-            def network_hidden? = false
-            def open_resource(_resource) = nil
-            def preferred_networks = []
-            def remove_preferred_network(_name) = nil
-            def set_nameservers(_servers) = nil
-            def wifi_off = nil
-            def wifi_on = nil
-            def wifi_on? = false
-
-            def _available_network_names = []
-            def _connected_network_name = nil
-            def _connect(_network, _password) = nil
-            def _disconnect = nil
-            def _ip_address = nil
-            def _preferred_network_password(_network) = nil
+      # BaseModel verifies subclass implementations from a TracePoint(:end)
+      # callback. Class.new(described_class) does not emit the class-body :end
+      # event this production path depends on, so this example must define a
+      # real class body.
+      #
+      # The class still lives inside an anonymous namespace rather than Object.
+      # That gives the class a constant name for the TracePoint path without
+      # leaking a global test constant or needing remove_const cleanup.
+      namespace = Module.new
+      namespace.module_eval <<-RUBY, __FILE__, __LINE__ + 1
+        class TracePointSpecModel < WifiWand::BaseModel
+          def self.os_id
+            :trace_test
           end
-        RUBY
 
-        subclass = Object.const_get(klass_name)
-        expect(described_class).to have_received(:verify_required_methods_implemented).with(subclass)
-      ensure
-        Object.send(:remove_const, klass_name) if Object.const_defined?(klass_name)
-      end
+          def connected? = false
+          def validate_os_preconditions = nil
+          def probe_wifi_interface = 'wlan0'
+          def connection_security_type = nil
+          def default_interface = 'wlan0'
+          def is_wifi_interface?(_iface) = true
+          def mac_address = '00:00:00:00:00:00'
+          def nameservers = []
+          def network_hidden? = false
+          def open_resource(_resource) = nil
+          def preferred_networks = []
+          def remove_preferred_network(_name) = nil
+          def set_nameservers(_servers) = nil
+          def wifi_off = nil
+          def wifi_on = nil
+          def wifi_on? = false
+
+          def _available_network_names = []
+          def _connected_network_name = nil
+          def _connect(_network, _password) = nil
+          def _disconnect = nil
+          def _ip_address = nil
+          def _preferred_network_password(_network) = nil
+        end
+      RUBY
+
+      subclass = namespace.const_get(:TracePointSpecModel)
+
+      expect(described_class).to have_received(:verify_required_methods_implemented).with(subclass)
     end
   end
 
