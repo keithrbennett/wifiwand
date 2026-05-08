@@ -6,13 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 1
-# Checks that subject declarations appear in the conventional location before examples and helper methods,
-# keeping spec setup easy to scan.
-RSpec/SubjectDeclaration:
-  Exclude:
-    - 'spec/wifi_wand/models/ubuntu_model_spec.rb'
-
 # Offense count: 18
 # Flags global variables, which are shared process-wide and can make code or specs order-dependent. Some
 # support files still use Ruby's process globals for configuration-like behavior.
