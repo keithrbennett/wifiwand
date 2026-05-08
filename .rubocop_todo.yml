@@ -6,12 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 180
-# Flags allow/expect stubs placed on mocks or doubles in ways rubocop-rspec considers redundant or unclear.
-# It is disabled here because the existing suite relies heavily on that style.
-RSpec/StubbedMock:
-  Enabled: false
-
 # Offense count: 1
 # Checks that subject declarations appear in the conventional location before examples and helper methods,
 # keeping spec setup easy to scan.

@@ -30,3 +30,8 @@ RSpec/AnyInstance:
 # constant namespace; enforcing constant-mirrored paths would make browsing worse.
 RSpec/SpecFilePathFormat:
   Enabled: false
+
+# The suite uses receive expectations to document command and integration
+# boundaries; requiring allow-only stubs would weaken useful call assertions.
+RSpec/StubbedMock:
+  Enabled: false
