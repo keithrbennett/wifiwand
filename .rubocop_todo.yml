@@ -6,25 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 847
-# Requires named subjects instead of anonymous subject calls. Named subjects make large specs easier to read,
-# but this todo is broad because much of the existing suite still uses anonymous subject.
-# Configuration parameters: EnforcedStyle, IgnoreSharedExamples.
-# SupportedStyles: always, named_only
-RSpec/NamedSubject:
-  Exclude:
-    - 'spec/wifi-wand/base_model_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/command_registry_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/help_system_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/main_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formats_integration_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/shell_interface_spec.rb'
-    - 'spec/wifi-wand/models/mac_os_model_spec.rb'
-    - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
-    - 'spec/wifi-wand/os/ubuntu_spec.rb'
-    - 'spec/wifi-wand/services/connection_manager_spec.rb'
-
 # Offense count: 2
 # Flags remove_const in specs. Removing constants can be necessary for edge cases, but it mutates global
 # Ruby state and can leak if cleanup is incomplete.

@@ -159,6 +159,11 @@ RSpec/MultipleExpectations:
 RSpec/MultipleMemoizedHelpers:
   Enabled: false
 
+# The existing suite uses anonymous subject heavily; enforcing names would
+# create broad churn without reliably improving readability.
+RSpec/NamedSubject:
+  Enabled: false
+
 RSpec/NestedGroups:
   Enabled: false
 
