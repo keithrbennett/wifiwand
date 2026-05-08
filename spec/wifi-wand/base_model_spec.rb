@@ -5,32 +5,46 @@ require_relative '../../lib/wifi-wand/models/ubuntu_model'
 require_relative '../../lib/wifi-wand/models/mac_os_model'
 
 describe 'Common WiFi Model Behavior (All OS)' do
-  subject { uses_real_env? ? build_real_test_model : build_fake_base_model }
+  # Mock OS calls to prevent real system interaction during ordinary tests
+  # Automatically instantiate the correct model for the current OS
+  subject { create_test_model }
 
-  def queued_response(*values)
-    remaining = values.dup
-
-    ->(_model = nil) do
-      current = remaining.length > 1 ? remaining.shift : remaining.first
-      raise current if current.is_a?(Exception)
-
-      current
+  before do
+    # Mock interface discovery for both OS types
+    allow_any_instance_of(WifiWand::UbuntuModel).to receive(:probe_wifi_interface).and_return('wlp0s20f3')
+    if defined?(WifiWand::MacOsModel)
+      allow_any_instance_of(WifiWand::MacOsModel).to receive(:probe_wifi_interface).and_return('en0')
     end
-  end
 
-  def build_real_test_model(options = {})
-    create_test_model(options)
-  end
+    # Mock all OS-calling methods to prevent real system calls in ordinary tests
+    # Only skip these mocks for examples that intentionally use the real environment.
+    # Use RSpec.current_example to get the current running example
+    unless uses_real_env?
+      # Also mock the underlying NetworkConnectivityTester to prevent real network calls
+      tester = WifiWand::NetworkConnectivityTester
+      allow_any_instance_of(tester).to receive(:tcp_connectivity?).and_return(true)
+      allow_any_instance_of(tester).to receive(:dns_working?).and_return(true)
+      allow_any_instance_of(tester).to receive(:captive_portal_state).and_return(:free)
+      allow(subject.connection_manager).to receive(:wait_for_connection_activation)
 
-  def build_fake_base_model(options = {})
-    model = WifiWandSpecSupport::Fakes::FakeBaseModel.new({ verbose: false }.merge(options))
-    model.command_executor = WifiWandSpecSupport::Fakes::FakeCommandExecutor.new(
-      default_result: command_result(stdout: '')
-    )
-    model.connectivity_tester = WifiWandSpecSupport::Fakes::FakeConnectivityTester.new
-    model.init
-    allow(model.connection_manager).to receive(:sleep)
-    model
+      # Mock low-level OS command execution to prevent real system calls
+      # but allow higher-level methods to be called for testing
+      allow(subject).to receive_messages(
+        wifi_on?:                   true,
+        available_network_names:    %w[TestNetwork1 TestNetwork2],
+        connected_network_name:     'TestNetwork1',
+        ip_address:                 '192.168.1.100',
+        mac_address:                'aa:bb:cc:dd:ee:ff',
+        default_interface:          'wlan0',
+        nameservers:                ['8.8.8.8', '8.8.4.4'],
+        preferred_networks:         %w[TestNetwork1 SavedNetwork1],
+        internet_tcp_connectivity?: true,
+        dns_working?:               true,
+        captive_portal_state:       :free,
+        run_command_using_args:     command_result(stdout: ''),
+        till:                       nil
+      )
+    end
   end
 
 
@@ -54,6 +68,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#wifi_info' do
     it 'returns hash with consistent structure across all OSes' do
+      # Override default mocks for this specific test if needed
+      allow(subject).to receive(:wifi_interface).and_return('wlan0')
+
       result = subject.wifi_info
       expect(result).to be_a(Hash)
 
@@ -84,7 +101,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'returns nil when default_interface lookup fails' do
-      subject.set_response(:default_interface, WifiWand::Error.new('default route unavailable'))
+      allow(subject).to receive(:default_interface).and_raise(WifiWand::Error, 'default route unavailable')
 
       result = subject.wifi_info
 
@@ -93,7 +110,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'returns nil when mac_address lookup fails' do
-      subject.set_response(:mac_address, WifiWand::Error.new('mac lookup unavailable'))
+      allow(subject).to receive(:mac_address).and_raise(WifiWand::Error, 'mac lookup unavailable')
 
       result = subject.wifi_info
 
@@ -102,7 +119,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'returns empty array when nameservers lookup fails' do
-      subject.set_response(:nameservers, WifiWand::Error.new('dns config unavailable'))
+      allow(subject).to receive(:nameservers).and_raise(WifiWand::Error, 'dns config unavailable')
 
       result = subject.wifi_info
 
@@ -200,75 +217,100 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   describe '#disconnect' do
-    subject(:model) { build_fake_base_model }
+    subject(:model) { test_model_class.new }
+
+    let(:test_model_class) do
+      Class.new(WifiWand::BaseModel) do
+        def self.os_id = :mac
+        def _available_network_names = []
+        def _connected_network_name = nil
+        def _connect(_network_name, _password = nil) = nil
+        def _disconnect = nil
+        def _ip_address = nil
+        def _preferred_network_password(_network_name) = nil
+      end
+    end
 
     it 'raises a dedicated error when the interface remains associated' do
-      model.connected_network_name_state = 'TestNet'
-      model.set_response(:wait_until_disassociated!, wait_timeout_error(action: :disassociated, timeout: 5))
+      allow(model).to receive_messages(
+        wifi_on?:               true,
+        connected_network_name: 'TestNet'
+      )
+      allow(model).to receive(:_disconnect)
+      allow(model).to receive(:wait_until_disassociated!)
+        .and_raise(wait_timeout_error(action: :disassociated, timeout: 5))
 
       expect { model.disconnect }
         .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
     end
 
     it 'reports wifi status command failures as disconnection errors' do
-      model.set_response(:wifi_on?, os_command_error(
-        exitstatus: 1,
-        command:    'networksetup -getairportpower en0',
-        text:       'permission denied'
-      ))
+      allow(model).to receive(:wifi_on?)
+        .and_raise(os_command_error(
+          exitstatus: 1,
+          command:    'networksetup -getairportpower en0',
+          text:       'permission denied'
+        ))
+      allow(model).to receive(:_disconnect)
 
       expect { model.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
         expect(error.network_name).to be_nil
         expect(error.reason).to include('permission denied')
         expect(error.reason).to include('networksetup -getairportpower en0')
       end
-      expect(model.disconnect_calls).to be_empty
+      expect(model).not_to have_received(:_disconnect)
     end
 
     it 'attempts disconnect when association cannot be determined before the command' do
-      model.set_response(
-        :connected_network_name,
-        WifiWand::MacOsRedactionError.new(operation_description: 'Current WiFi network queries')
-      )
-      model.set_response(:_disconnect, os_command_error(
-        exitstatus: 1,
-        command:    'disconnect current network',
-        text:       'disconnect failed'
-      ))
+      allow(model).to receive(:wifi_on?).and_return(true)
+      allow(model).to receive(:connected_network_name)
+        .and_raise(WifiWand::MacOsRedactionError.new(
+          operation_description: 'Current WiFi network queries'
+        ))
+      allow(model).to receive(:wait_until_disassociated!)
+      allow(model).to receive(:_disconnect)
+        .and_raise(os_command_error(
+          exitstatus: 1,
+          command:    'disconnect current network',
+          text:       'disconnect failed'
+        ))
 
       expect { model.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
         expect(error.network_name).to be_nil
         expect(error.reason).to include('disconnect failed')
         expect(error.reason).to include('disconnect current network')
       end
-      expect(model.disconnect_calls.length).to eq(1)
-      expect(model.wait_until_disassociated_calls).to be_empty
+      expect(model).to have_received(:_disconnect)
+      expect(model).not_to have_received(:wait_until_disassociated!)
     end
 
     it 'reports secondary connection probe command failures as disconnection errors' do
-      model.connected_network_name_state = nil
-      model.connected_state = false
-      model.set_response(:connected?, os_command_error(
-        exitstatus: 1,
-        command:    'nmcli connection show --active',
-        text:       'NetworkManager unavailable'
-      ))
+      allow(model).to receive_messages(wifi_on?: true, connected_network_name: nil)
+      allow(model).to receive(:connected?)
+        .and_raise(os_command_error(
+          exitstatus: 1,
+          command:    'nmcli connection show --active',
+          text:       'NetworkManager unavailable'
+        ))
+      allow(model).to receive(:_disconnect)
 
       expect { model.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
         expect(error.network_name).to be_nil
         expect(error.reason).to include('NetworkManager unavailable')
         expect(error.reason).to include('nmcli connection show --active')
       end
-      expect(model.disconnect_calls).to be_empty
+      expect(model).not_to have_received(:_disconnect)
     end
 
     it 'reports verification probe command failures as disconnection errors' do
-      model.connected_network_name_state = 'TestNet'
-      model.set_response(:wait_until_disassociated!, os_command_error(
-        exitstatus: 1,
-        command:    'nmcli connection show --active',
-        text:       'probe failed during verification'
-      ))
+      allow(model).to receive_messages(wifi_on?: true, connected_network_name: 'TestNet')
+      allow(model).to receive(:_disconnect)
+      allow(model).to receive(:wait_until_disassociated!)
+        .and_raise(os_command_error(
+          exitstatus: 1,
+          command:    'nmcli connection show --active',
+          text:       'probe failed during verification'
+        ))
 
       expect { model.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
         expect(error.network_name).to eq('TestNet')
@@ -278,21 +320,26 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'raises when disassociation is not stable after the initial wait succeeds' do
-      model.connected_network_name_state = 'TestNet'
-      model.set_response(:disassociated_stable?, false)
-      model.set_response(:disconnect_stability_window_in_secs, 0.1)
+      allow(model).to receive_messages(
+        wifi_on?:                            true,
+        connected_network_name:              'TestNet',
+        disconnect_stability_window_in_secs: 0.1
+      )
+      allow(model).to receive(:_disconnect)
+      allow(model).to receive_messages(wait_until_disassociated!: nil, disassociated_stable?: false)
 
       expect { model.disconnect }
         .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
     end
 
     it 'is a no-op when wifi is already disassociated' do
-      model.connected_network_name_state = nil
-      model.connected_state = false
+      allow(model).to receive_messages(wifi_on?: true, connected_network_name: nil, connected?: false)
+      allow(model).to receive(:wait_until_disassociated!)
+      allow(model).to receive(:_disconnect)
 
       expect(model.disconnect).to be_nil
-      expect(model.disconnect_calls).to be_empty
-      expect(model.wait_until_disassociated_calls).to be_empty
+      expect(model).not_to have_received(:_disconnect)
+      expect(model).not_to have_received(:wait_until_disassociated!)
     end
   end
 
@@ -326,10 +373,12 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#wifi_on' do
     it 'does nothing when wifi is already on' do
-      subject.wifi_on_state = true
+      allow(subject).to receive(:wifi_on?).and_return(true)
+      allow(subject).to receive(:run_command_using_args)
+      allow(subject).to receive(:till) # Mock the status waiter
 
       subject.wifi_on
-      expect(subject.command_executor.run_calls).to be_empty
+      expect(subject).not_to have_received(:run_command_using_args)
     end
 
     # No real-environment test for #wifi_on on macOS.
@@ -341,10 +390,12 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#wifi_off' do
     it 'does nothing when wifi is already off' do
-      subject.wifi_on_state = false
+      allow(subject).to receive(:wifi_on?).and_return(false)
+      allow(subject).to receive(:run_command_using_args)
+      allow(subject).to receive(:till) # Mock the status waiter
 
       subject.wifi_off
-      expect(subject.command_executor.run_calls).to be_empty
+      expect(subject).not_to have_received(:run_command_using_args)
     end
 
     # No real-environment test for #wifi_off on macOS.
@@ -353,27 +404,35 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   describe '#cycle_network' do
+    # Shared setup for mocking wifi operations without system calls
+    before do
+      allow(subject).to receive(:wifi_off)
+      allow(subject).to receive(:wifi_on)
+    end
+
     context 'when wifi starts on' do
       before do
-        subject.wifi_on_state = true
+        allow(subject).to receive(:wifi_on?).and_return(true)
       end
 
       it 'calls wifi_off then wifi_on in sequence' do
         subject.cycle_network
 
-        expect(subject.power_transitions).to eq(%i[wifi_off wifi_on])
+        expect(subject).to have_received(:wifi_off).ordered
+        expect(subject).to have_received(:wifi_on).ordered
       end
     end
 
     context 'when wifi starts off' do
       before do
-        subject.wifi_on_state = false
+        allow(subject).to receive(:wifi_on?).and_return(false)
       end
 
       it 'calls wifi_on then wifi_off in sequence' do
         subject.cycle_network
 
-        expect(subject.power_transitions).to eq(%i[wifi_on wifi_off])
+        expect(subject).to have_received(:wifi_on).ordered
+        expect(subject).to have_received(:wifi_off).ordered
       end
     end
   end
@@ -435,6 +494,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#till' do
     context 'with removed legacy state names' do
+      before do
+        allow(subject).to receive(:till).and_call_original
+      end
+
       it 'raises ArgumentError with migration hint for :conn' do
         expect { subject.till(:conn) }.to raise_error(ArgumentError, /:conn.*was removed/i)
       end
@@ -454,23 +517,24 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     context 'when target is an association state (:associated / :disassociated)' do
       before do
+        allow(subject).to receive(:till).and_call_original
         allow_any_instance_of(WifiWand::StatusWaiter).to receive(:sleep)
       end
 
       it 'returns nil immediately for :associated when already associated' do
-        subject.connected_network_name_state = 'TestNetwork1'
+        allow(subject).to receive(:associated?).and_return(true)
 
         expect(subject.till(:associated)).to be_nil
       end
 
       it 'returns nil immediately for :disassociated when already disassociated' do
-        subject.connected_network_name_state = nil
+        allow(subject).to receive(:associated?).and_return(false)
 
         expect(subject.till(:disassociated)).to be_nil
       end
 
       it 'waits for :associated until association is observed' do
-        subject.set_response(:connected_network_name, queued_response(nil, nil, 'TestNetwork1'))
+        allow(subject).to receive(:associated?).and_return(false, false, true)
 
         expect(
           subject.till(:associated, timeout_in_secs: 1, wait_interval_in_secs: 0)
@@ -478,7 +542,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
 
       it 'waits for :disassociated until association clears' do
-        subject.set_response(:connected_network_name, queued_response('TestNetwork1', 'TestNetwork1', nil))
+        allow(subject).to receive(:associated?).and_return(true, true, false)
 
         expect(
           subject.till(:disassociated, timeout_in_secs: 1, wait_interval_in_secs: 0)
@@ -486,7 +550,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
 
       it 'raises WaitTimeoutError for :associated when association never appears' do
-        subject.connected_network_name_state = nil
+        allow(subject).to receive(:associated?).and_return(false)
         allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
           .and_return(1000.0, 1000.0, 1001.1)
 
@@ -496,7 +560,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
 
       it 'raises WaitTimeoutError for :disassociated when association never clears' do
-        subject.connected_network_name_state = 'TestNetwork1'
+        allow(subject).to receive(:associated?).and_return(true)
         allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
           .and_return(1000.0, 1000.0, 1001.1)
 
@@ -552,7 +616,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   # Ordinary context - model-level WiFi-on state without changing the host radio.
   context 'when wifi starts on' do
     before do
-      subject.wifi_on_state = true
+      allow(subject).to receive(:wifi_on?).and_return(true)
     end
 
     it_behaves_like 'interface commands complete without error'
@@ -561,9 +625,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
   # Ordinary context - model-level WiFi-off state without changing the host radio.
   context 'when wifi starts off' do
     before do
-      subject.wifi_on_state = false
-      subject.connected_state = false
-      subject.connected_network_name_state = nil
+      allow(subject).to receive(:wifi_on?).and_return(false)
+      allow(subject).to receive(:available_network_names).and_call_original
+      allow(subject).to receive(:connected_network_name).and_call_original
+      allow(subject).to receive(:ip_address).and_call_original
     end
 
     it_behaves_like 'interface commands complete without error'
@@ -613,8 +678,12 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'returns :already_connected when already on correct network' do
-      subject.connected_state = true
-      subject.connected_network_name_state = 'TestNetwork'
+      allow(subject).to receive_messages(
+        connection_ready?:      true,
+        wifi_on?:               true,
+        connected?:             true,
+        connected_network_name: 'TestNetwork'
+      )
 
       expect(subject.restore_network_state(valid_state)).to eq(:already_connected)
     end
@@ -625,7 +694,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
       it 'uses the provided wifi interface' do
         options = { wifi_interface: 'wlan1', verbose: false }
         model = subject.class.new(options)
-        model.valid_wifi_interfaces = %w[wlan0 wlan1 en0]
+
+        allow(model).to receive(:validate_os_preconditions)
+        allow(model).to receive(:is_wifi_interface?).with('wlan1').and_return(true)
 
         model.init_wifi_interface
         expect(model.wifi_interface).to eq('wlan1')
@@ -636,7 +707,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
       it 'raises InvalidInterfaceError' do
         options = { wifi_interface: 'invalid0', verbose: false }
         model = subject.class.new(options)
-        model.valid_wifi_interfaces = %w[wlan0 wlan1 en0]
+
+        allow(model).to receive(:validate_os_preconditions)
+        allow(model).to receive(:is_wifi_interface?).with('invalid0').and_return(false)
 
         expect { model.init_wifi_interface }.to raise_error(WifiWand::InvalidInterfaceError)
       end
@@ -688,6 +761,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#public_ip_address error handling' do
     it 'raises PublicIPLookupError when response is not success' do
+      allow(subject).to receive(:public_ip_address).and_call_original
+
       response = instance_double(Net::HTTPResponse, code: '500', message: 'Internal Server Error')
       allow(response).to receive(:is_a?).and_return(false)
 
@@ -766,18 +841,51 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#wifi_info exception handling' do
     before do
-      subject.wifi_on_state = true
-      subject.connected_network_name_state = 'TestNet'
-      subject.connected_state = true
-      subject.ip_address_state = '192.168.1.100'
-      subject.default_interface_state = 'wlan0'
-      subject.mac_address_state = 'aa:bb:cc:dd:ee:ff'
-      subject.nameservers_state = ['8.8.8.8']
+      allow(subject).to receive_messages(
+        wifi_on?:               true,
+        wifi_interface:         'wlan0',
+        default_interface:      'wlan0',
+        connected_network_name: 'TestNet',
+        ip_address:             '192.168.1.100',
+        mac_address:            'aa:bb:cc:dd:ee:ff',
+        nameservers:            ['8.8.8.8']
+      )
+
+      allow(subject).to receive(:internet_connectivity_state).and_call_original
+    end
+
+    shared_context 'for verbose test model setup' do
+      let(:captured_output) { StringIO.new }
+
+      let(:test_model) do
+        model_options = { verbose: true, wifi_interface: nil, out_stream: captured_output }
+        model = subject.class.new(model_options)
+
+        # Mock the necessary methods for wifi_info to work
+        allow(model).to receive(:validate_os_preconditions)
+        allow(model).to receive_messages(
+          probe_wifi_interface:       'wlan0',
+          is_wifi_interface?:         true,
+          wifi_on?:                   true,
+          wifi_interface:             'wlan0',
+          default_interface:          'wlan0',
+          connected_network_name:     'TestNet',
+          ip_address:                 '192.168.1.100',
+          mac_address:                'aa:bb:cc:dd:ee:ff',
+          nameservers:                ['8.8.8.8'],
+          internet_tcp_connectivity?: true,
+          dns_working?:               true
+        )
+        allow(model).to receive(:sleep)  # Don\'t actually sleep
+
+        model.init_wifi_interface
+        model
+      end
     end
 
     it 'handles internet_tcp_connectivity exceptions' do
-      subject.connectivity_tester.tcp_result = SocketError.new('Network error')
-      subject.connectivity_tester.dns_result = true
+      allow(subject).to receive(:internet_tcp_connectivity?).and_raise(SocketError, 'Network error')
+      allow(subject).to receive_messages(dns_working?: true)
 
       result = subject.wifi_info
 
@@ -792,8 +900,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'handles dns_working exceptions' do
-      subject.connectivity_tester.tcp_result = true
-      subject.connectivity_tester.dns_result = SocketError.new('DNS error')
+      allow(subject).to receive(:dns_working?).and_raise(SocketError, 'DNS error')
+      allow(subject).to receive_messages(
+        internet_tcp_connectivity?: true
+      )
 
       result = subject.wifi_info
       expect(result['dns_working']).to be false
@@ -801,62 +911,65 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'does not call captive_portal_state when TCP fails' do
-      subject.connectivity_tester.tcp_result = false
-      subject.connectivity_tester.dns_result = true
-      subject.connectivity_tester.captive_result = -> do
-        raise 'captive_portal_state should not be called when TCP fails'
-      end
+      allow(subject).to receive_messages(
+        internet_tcp_connectivity?: false,
+        dns_working?:               true
+      )
+      expect(subject).not_to receive(:captive_portal_state)
 
       result = subject.wifi_info
       expect(result['captive_portal_state']).to eq(:indeterminate)
     end
 
     it 'does not call captive_portal_state when DNS fails' do
-      subject.connectivity_tester.tcp_result = true
-      subject.connectivity_tester.dns_result = false
-      subject.connectivity_tester.captive_result = -> do
-        raise 'captive_portal_state should not be called when DNS fails'
-      end
+      allow(subject).to receive_messages(
+        internet_tcp_connectivity?: true,
+        dns_working?:               false
+      )
+      expect(subject).not_to receive(:captive_portal_state)
 
       result = subject.wifi_info
       expect(result['captive_portal_state']).to eq(:indeterminate)
     end
 
     it 'does not call captive_portal_state when both TCP and DNS fail' do
-      subject.connectivity_tester.tcp_result = false
-      subject.connectivity_tester.dns_result = false
-      subject.connectivity_tester.captive_result = -> do
-        raise 'captive_portal_state should not be called when TCP and DNS fail'
-      end
+      allow(subject).to receive_messages(
+        internet_tcp_connectivity?: false,
+        dns_working?:               false
+      )
+      expect(subject).not_to receive(:captive_portal_state)
 
       result = subject.wifi_info
       expect(result['captive_portal_state']).to eq(:indeterminate)
     end
 
     it 'calls captive_portal_state when both TCP and DNS succeed' do
-      subject.connectivity_tester.tcp_result = true
-      subject.connectivity_tester.dns_result = true
-      subject.connectivity_tester.captive_result = :free
+      allow(subject).to receive_messages(
+        internet_tcp_connectivity?: true,
+        dns_working?:               true,
+        captive_portal_state:       :free
+      )
+      expect(subject).to receive(:captive_portal_state).and_return(:free)
 
-      expect(subject.wifi_info['captive_portal_state']).to eq(:free)
+      subject.wifi_info
     end
   end
 
   describe '#connected_to?' do
     it 'returns true when connected to specified network' do
-      subject.connected_network_name_state = 'TestNetwork'
+      allow(subject).to receive(:connected_network_name).and_return('TestNetwork')
 
       expect(subject.connected_to?('TestNetwork')).to be true
     end
 
     it 'returns false when connected to different network' do
-      subject.connected_network_name_state = 'OtherNetwork'
+      allow(subject).to receive(:connected_network_name).and_return('OtherNetwork')
 
       expect(subject.connected_to?('TestNetwork')).to be false
     end
 
     it 'returns false when not connected to any network' do
-      subject.connected_network_name_state = nil
+      allow(subject).to receive(:connected_network_name).and_return(nil)
 
       expect(subject.connected_to?('TestNetwork')).to be false
     end
@@ -864,50 +977,58 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#remove_preferred_networks' do
     before do
-      subject.preferred_networks_state = %w[Network1 Network2 Network3]
-      subject.set_response(:remove_preferred_network) { |_model, _network_name| nil }
+      allow(subject).to receive(:has_preferred_network?) do |network_name|
+        %w[Network1 Network2 Network3].include?(network_name)
+      end
+      allow(subject).to receive(:remove_preferred_network)
     end
 
     it 'handles array as first argument' do
       networks_to_remove = %w[Network1 Network2]
       subject.remove_preferred_networks(networks_to_remove)
 
-      expect(subject.removed_preferred_networks).to include('Network1', 'Network2')
+      expect(subject).to have_received(:remove_preferred_network).with('Network1')
+      expect(subject).to have_received(:remove_preferred_network).with('Network2')
     end
 
     it 'handles multiple string arguments' do
       subject.remove_preferred_networks('Network1', 'Network2')
 
-      expect(subject.removed_preferred_networks).to include('Network1', 'Network2')
+      expect(subject).to have_received(:remove_preferred_network).with('Network1')
+      expect(subject).to have_received(:remove_preferred_network).with('Network2')
     end
 
     it 'ignores non-existent networks' do
       subject.remove_preferred_networks('Network1', 'NonExistent')
 
-      expect(subject.removed_preferred_networks).to include('Network1')
-      expect(subject.removed_preferred_networks).not_to include('NonExistent')
+      expect(subject).to have_received(:remove_preferred_network).with('Network1')
+      expect(subject).not_to have_received(:remove_preferred_network).with('NonExistent')
     end
 
     it 'uses has_preferred_network? instead of exact preferred_network string matches' do
-      subject.preferred_networks_state = %w[Network1 AliasForNetwork2]
+      allow(subject).to receive(:has_preferred_network?).with('Network1').and_return(true)
+      allow(subject).to receive(:has_preferred_network?).with('AliasForNetwork2').and_return(true)
+      allow(subject).to receive(:has_preferred_network?).with('NonExistent').and_return(false)
 
       subject.remove_preferred_networks('Network1', 'AliasForNetwork2', 'NonExistent')
 
-      expect(subject.removed_preferred_networks).to include('Network1', 'AliasForNetwork2')
-      expect(subject.removed_preferred_networks).not_to include('NonExistent')
+      expect(subject).to have_received(:remove_preferred_network).with('Network1')
+      expect(subject).to have_received(:remove_preferred_network).with('AliasForNetwork2')
+      expect(subject).not_to have_received(:remove_preferred_network).with('NonExistent')
     end
 
     it 'returns the actual deleted profile names reported by the model' do
-      subject.preferred_networks_state = ['Network1']
-      subject.set_response(:remove_preferred_network) do |_model, network_name|
-        network_name == 'Network1' ? ['Network1', 'Network1 1'] : nil
-      end
+      allow(subject).to receive(:has_preferred_network?).with('Network1').and_return(true)
+      allow(subject).to receive(:has_preferred_network?).with('NonExistent').and_return(false)
+      allow(subject).to receive(:remove_preferred_network).with('Network1')
+        .and_return(['Network1', 'Network1 1'])
 
       expect(subject.remove_preferred_networks('Network1', 'NonExistent')).to eq(['Network1', 'Network1 1'])
     end
 
     it 'falls back to the requested network name when a model returns nil' do
-      subject.preferred_networks_state = ['Network1']
+      allow(subject).to receive(:has_preferred_network?).with('Network1').and_return(true)
+      allow(subject).to receive(:remove_preferred_network).with('Network1').and_return(nil)
 
       expect(subject.remove_preferred_networks('Network1')).to eq(['Network1'])
     end
@@ -1088,7 +1209,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   describe 'private methods' do
     describe '#connected_network_password' do
       it 'returns nil when not connected to any network' do
-        subject.connected_network_name_state = nil
+        allow(subject).to receive(:connected_network_name).and_return(nil)
 
         result = subject.send(:connected_network_password)
         expect(result).to be_nil
@@ -1098,9 +1219,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
         network_name = 'TestNetwork'
         expected_password = 'test_password'
 
-        subject.connected_network_name_state = network_name
-        subject.preferred_networks_state = [network_name]
-        subject.preferred_network_passwords = { network_name => expected_password }
+        allow(subject).to receive(:connected_network_name).and_return(network_name)
+        allow(subject).to receive(:preferred_network_password)
+          .with(network_name)
+          .and_return(expected_password)
 
         result = subject.send(:connected_network_password)
         expect(result).to eq(expected_password)
@@ -1117,14 +1239,19 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     before do
       delete_qr_code_files.call
-      subject.command_executor.command_available_result = true
-      subject.command_executor.run_result = command_result(stdout: '')
-      subject.connected_network_name_state = network_name
-      subject.connected_state = true
-      subject.connection_security_type_state = security_type
-      subject.network_hidden_state = false
-      subject.preferred_networks_state = [network_name]
-      subject.preferred_network_passwords = { network_name => network_password }
+      allow(subject).to receive(:command_available?).with('qrencode').and_return(true)
+
+      # Mock all methods that could make real system calls
+      allow(subject).to receive_messages(
+        connected_network_name:      network_name,
+        connected_network_password:  network_password,
+        connection_security_type:    security_type,
+        network_hidden?:             false,
+        run_command_using_args:      command_result(stdout: ''),
+        preferred_networks:          [network_name],
+        preferred_network_password:  network_password,
+        _preferred_network_password: network_password
+      )
     end
 
     after do
@@ -1137,7 +1264,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         [:mac, 'brew install qrencode'],
       ].each do |os_id, expected_command|
         it "raises error with correct install command for #{os_id}" do
-          subject.command_executor.command_available_result = false
+          allow(subject).to receive(:command_available?).with('qrencode').and_return(false)
           allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: os_id))
 
           expect do
@@ -1149,7 +1276,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
 
       it 'raises error with generic message for unknown OS' do
-        subject.command_executor.command_available_result = false
+        allow(subject).to receive(:command_available?).with('qrencode').and_return(false)
         allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: :unknown))
 
         expect { silence_output { subject.generate_qr_code } }
@@ -1160,7 +1287,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     context 'when validating network connection' do
       it 'raises error when not connected to any network' do
-        subject.connected_network_name_state = nil
+        allow(subject).to receive(:connected_network_name).and_return(nil)
 
         expect { silence_output { subject.generate_qr_code } }
           .to raise_error(WifiWand::Error, /Not connected to any WiFi network/)
@@ -1176,24 +1303,24 @@ describe 'Common WiFi Model Behavior (All OS)' do
         [nil,    'WPA'],
       ].each do |input_security, expected_qr_security|
         it "generates correct QR string for #{input_security || 'open network'}" do
-          subject.connection_security_type_state = input_security
+          allow(subject).to receive(:connection_security_type).and_return(input_security)
           expected_qr_string = "WIFI:T:#{expected_qr_security};S:TestNetwork;P:test_password;H:false;;"
 
           silence_output { subject.generate_qr_code }
 
-          expect(subject.command_executor.run_calls.last[:command])
-            .to(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
+          expect(subject).to have_received(:run_command_using_args)
+            .with(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
         end
       end
 
       it 'defaults to WPA when security type is unknown but password exists' do
-        subject.connection_security_type_state = 'RSN'
+        allow(subject).to receive(:connection_security_type).and_return('RSN')
         expected_qr_string = 'WIFI:T:WPA;S:TestNetwork;P:test_password;H:false;;'
 
         silence_output { subject.generate_qr_code }
 
-        expect(subject.command_executor.run_calls.last[:command])
-          .to(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
+        expect(subject).to have_received(:run_command_using_args)
+          .with(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
       end
     end
 
@@ -1209,22 +1336,24 @@ describe 'Common WiFi Model Behavior (All OS)' do
           'WIFI:T:WPA;S:Regular-Network_Name;P:regularPassword123;H:false;;'],
       ].each do |test_network, test_password, expected_qr_string|
         it "properly escapes special characters in '#{test_network}' / '#{test_password}'" do
-          subject.connected_network_name_state = test_network
-          subject.preferred_networks_state = [test_network]
-          subject.preferred_network_passwords = { test_network => test_password }
+          allow(subject).to receive_messages(
+            connected_network_name: test_network
+          )
+          allow(subject).to receive(:preferred_network_password).with(test_network).and_return(test_password)
 
           silence_output { subject.generate_qr_code }
 
           safe_network_name = test_network.gsub(/[^\w\-_]/, '_')
           expected_filename = "#{safe_network_name}-qr-code.png"
 
-          expect(subject.command_executor.run_calls.last[:command]).to satisfy do |cmd|
-            staged_prefix = "./#{expected_filename.delete_suffix('.png')}-"
-            cmd.first(2) == %w[qrencode -o] &&
-              cmd[2].start_with?(staged_prefix) &&
-              cmd[2].end_with?('.png') &&
-              cmd.last == expected_qr_string
-          end
+          expect(subject).to have_received(:run_command_using_args)
+            .with(satisfy do |cmd|
+              staged_prefix = "./#{expected_filename.delete_suffix('.png')}-"
+              cmd.first(2) == %w[qrencode -o] &&
+                cmd[2].start_with?(staged_prefix) &&
+                cmd[2].end_with?('.png') &&
+                cmd.last == expected_qr_string
+            end)
         end
       end
     end
@@ -1237,9 +1366,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         ['cafe-reseau',         'cafe-reseau-qr-code.png'],
       ].each do |input_name, expected_filename|
         it "generates safe filename for '#{input_name}'" do
-          subject.connected_network_name_state = input_name
-          subject.preferred_networks_state = [input_name]
-          subject.preferred_network_passwords = { input_name => network_password }
+          allow(subject).to receive(:connected_network_name).and_return(input_name)
 
           result = silence_output { subject.generate_qr_code }
 
@@ -1250,25 +1377,22 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     context 'when handling open networks' do
       it 'generates QR code for open network (no password)' do
-        subject.preferred_network_passwords = { 'TestNetwork' => nil }
-        subject.connection_security_type_state = nil
+        allow(subject).to receive(:preferred_network_password).with('TestNetwork').and_return(nil)
+        allow(subject).to receive(:connection_security_type).and_return(nil)
         expected_qr_string = 'WIFI:T:nopass;S:TestNetwork;P:;H:false;;'
 
         result = silence_output { subject.generate_qr_code }
 
-        expect(subject.command_executor.run_calls.last[:command])
-          .to(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
+        expect(subject).to have_received(:run_command_using_args)
+          .with(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
         expect(result).to eq('TestNetwork-qr-code.png')
       end
     end
 
     context 'when handling errors' do
       it 'raises WifiWand::Error when qrencode command fails' do
-        subject.command_executor.run_result = os_command_error(
-          exitstatus: 1,
-          command:    'qrencode',
-          text:       'Command failed'
-        )
+        allow(subject).to receive(:run_command_using_args)
+          .and_raise(os_command_error(exitstatus: 1, command: 'qrencode', text: 'Command failed'))
 
         expect { silence_output { subject.generate_qr_code } }
           .to raise_error(WifiWand::Error, /Failed to generate QR code/)
