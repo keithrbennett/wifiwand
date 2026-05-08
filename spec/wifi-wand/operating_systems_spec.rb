@@ -186,13 +186,13 @@ module WifiWand
       it 'verifies Ubuntu OS detection methods' do
         ubuntu_os = described_class.supported_operating_systems.find { |os| os.is_a?(Ubuntu) }
         expect(ubuntu_os).not_to be_nil
-        expect([true, false]).to include(ubuntu_os.current_os_is_this_os?)
+        expect(ubuntu_os.current_os_is_this_os?).to be(true).or be(false)
       end
 
       it 'verifies macOS detection methods' do
         mac_os = described_class.supported_operating_systems.find { |os| os.is_a?(MacOs) }
         expect(mac_os).not_to be_nil
-        expect([true, false]).to include(mac_os.current_os_is_this_os?)
+        expect(mac_os.current_os_is_this_os?).to be(true).or be(false)
       end
     end
 

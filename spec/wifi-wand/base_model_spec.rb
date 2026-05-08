@@ -46,13 +46,13 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#internet_tcp_connectivity?' do
     it 'returns boolean indicating TCP connectivity' do
-      expect([true, false]).to include(subject.internet_tcp_connectivity?)
+      expect(subject.internet_tcp_connectivity?).to be(true).or be(false)
     end
   end
 
   describe '#dns_working?' do
     it 'returns boolean indicating DNS resolution capability' do
-      expect([true, false]).to include(subject.dns_working?)
+      expect(subject.dns_working?).to be(true).or be(false)
     end
   end
 
@@ -78,14 +78,22 @@ describe 'Common WiFi Model Behavior (All OS)' do
         'mac_address', 'nameservers', 'timestamp'
       )
 
-      expect([true, false]).to include(result['wifi_on'])
-      expect([true, false, nil]).to include(result['connected'])
-      expect([true, false]).to include(result['ssid_identity_available'])
-      expect(%w[available unavailable not_connected unknown]).to include(result['ssid_identity_status'])
-      expect([true, false]).to include(result['internet_tcp_connectivity'])
-      expect([true, false]).to include(result['dns_working'])
-      expect(%i[free present indeterminate]).to include(result['captive_portal_state'])
-      expect(%i[reachable unreachable indeterminate]).to include(result['internet_connectivity_state'])
+      expect(result['wifi_on']).to be(true).or be(false)
+      expect(result['connected']).to satisfy do |value|
+        [true, false, nil].include?(value)
+      end
+      expect(result['ssid_identity_available']).to be(true).or be(false)
+      expect(result['ssid_identity_status']).to satisfy do |value|
+        %w[available unavailable not_connected unknown].include?(value)
+      end
+      expect(result['internet_tcp_connectivity']).to be(true).or be(false)
+      expect(result['dns_working']).to be(true).or be(false)
+      expect(result['captive_portal_state']).to satisfy do |value|
+        %i[free present indeterminate].include?(value)
+      end
+      expect(result['internet_connectivity_state']).to satisfy do |value|
+        %i[reachable unreachable indeterminate].include?(value)
+      end
       expect(result['timestamp']).to be_a(Time)
     end
 
@@ -131,7 +139,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#wifi_on?' do
     it 'returns boolean indicating wifi status' do
-      expect([true, false]).to include(subject.wifi_on?)
+      expect(subject.wifi_on?).to be(true).or be(false)
     end
   end
 
@@ -354,7 +362,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#associated?', :real_env_read_only do
     it 'returns a boolean' do
-      expect([true, false]).to include(subject.associated?)
+      expect(subject.associated?).to be(true).or be(false)
     end
 
     it 'is true when wifi is on and a non-empty network name is present' do
@@ -590,7 +598,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'can check wifi status' do
-      expect([true, false]).to include(subject.wifi_on?)
+      expect(subject.wifi_on?).to be(true).or be(false)
     end
   end
 
@@ -604,7 +612,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(preferred_networks).to be_a(Array)
       expect(preferred_networks).to all(be_a(String))
 
-      expect([true, false]).to include(subject.wifi_on?)
+      expect(subject.wifi_on?).to be(true).or be(false)
     end
   end
 

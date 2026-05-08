@@ -6,15 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 13
-# Ensures expectation arguments are in the usual actual-vs-expected order, so failures report the observed
-# value and expected value clearly.
-# This cop supports safe autocorrection (--autocorrect).
-RSpec/ExpectActual:
-  Exclude:
-    - 'spec/wifi-wand/base_model_spec.rb'
-    - 'spec/wifi-wand/operating_systems_spec.rb'
-
 # Offense count: 2
 # Discourages expect { ... }.to output checks. Output expectations often couple tests to formatting and can
 # be brittle unless the command's output is the behavior under test.
