@@ -6,15 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 8
-# Flags conditional branches that run identical code, since duplicated branch bodies usually mean either
-# dead distinction or a missing behavioral difference.
-# Configuration parameters: IgnoreLiteralBranches, IgnoreConstantBranches, IgnoreDuplicateElseBranch.
-Lint/DuplicateBranch:
-  Exclude:
-    - 'spec/wifi-wand/command_line_interface/output_formats_e2e_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formats_integration_spec.rb'
-
 # Offense count: 15
 # Flags check-then-act file operations such as "exist? then mkdir", which can race if another process
 # changes the filesystem between the check and the action.

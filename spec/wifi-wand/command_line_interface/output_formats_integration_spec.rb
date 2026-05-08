@@ -102,10 +102,7 @@ describe 'Output Format Integration Tests' do
             case format_name
             when :inspect
               expect(output).to eq(test_data.inspect)
-            when :json
-              parsed = JSON.parse(output)
-              expect(parsed).to eq(test_data)
-            when :pretty_json
+            when :json, :pretty_json
               parsed = JSON.parse(output)
               expect(parsed).to eq(test_data)
             when :puts
@@ -133,16 +130,11 @@ describe 'Output Format Integration Tests' do
             end
 
             case format_name
-            when :inspect
+            when :inspect, :puts
               expect(output).to eq('true')
-            when :json
+            when :json, :pretty_json
               parsed = JSON.parse(output)
               expect(parsed).to be(true)
-            when :pretty_json
-              parsed = JSON.parse(output)
-              expect(parsed).to be(true)
-            when :puts
-              expect(output).to eq('true')
             when :yaml
               parsed = YAML.safe_load(output)
               expect(parsed).to be(true)
@@ -158,16 +150,11 @@ describe 'Output Format Integration Tests' do
             end
 
             case format_name
-            when :inspect
+            when :inspect, :puts
               expect(output).to eq('false')
-            when :json
+            when :json, :pretty_json
               parsed = JSON.parse(output)
               expect(parsed).to be(false)
-            when :pretty_json
-              parsed = JSON.parse(output)
-              expect(parsed).to be(false)
-            when :puts
-              expect(output).to eq('false')
             when :yaml
               parsed = YAML.safe_load(output)
               expect(parsed).to be(false)
@@ -227,11 +214,8 @@ describe 'Output Format Integration Tests' do
 
             case format_name
             when :inspect
-              expect(JSON.parse(output)).to eq([])
-            when :json
-              parsed = JSON.parse(output)
-              expect(parsed).to eq([])
-            when :pretty_json
+              expect(output).to eq(test_data.inspect)
+            when :json, :pretty_json
               parsed = JSON.parse(output)
               expect(parsed).to eq([])
             when :puts
@@ -388,10 +372,7 @@ describe 'Output Format Integration Tests' do
             case format_name
             when :inspect
               expect(output).to eq('nil')
-            when :json
-              parsed = JSON.parse(output)
-              expect(parsed).to be_nil
-            when :pretty_json
+            when :json, :pretty_json
               parsed = JSON.parse(output)
               expect(parsed).to be_nil
             when :puts
