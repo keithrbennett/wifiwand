@@ -6,17 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 2
-# Checks predicate-style method names so methods ending in "?" read like true/false questions and do not
-# use confusing prefixes or non-predicate naming.
-# Configuration parameters: Mode, AllowedMethods, AllowedPatterns, AllowBangMethods, WaywardPredicates.
-# AllowedMethods: call
-# WaywardPredicates: infinite?, nonzero?
-Naming/PredicateMethod:
-  Exclude:
-    - 'lib/wifi_wand/mac_helper/mac_helper_release.rb'
-    - 'lib/wifi_wand/mac_helper/mac_os_setup_cli.rb'
-
 # Offense count: 1
 # Enforces the configured style for identifiers that contain numbers, such as x86_64 or ipv6, so naming
 # stays consistent across constants, variables, and method names.

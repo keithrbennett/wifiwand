@@ -52,7 +52,7 @@ module WifiWand
       perform_reinstall if @action == :reinstall
 
       status = @setup.check_status
-      return 0 if already_complete(status)
+      return 0 if already_complete?(status)
 
       print_header
       print_status_table(status)
@@ -129,7 +129,7 @@ module WifiWand
     end
 
     # Print the "all done" message and return true so the caller can exit 0.
-    private def already_complete(status)
+    private def already_complete?(status)
       return false unless status.setup_complete?
 
       @out_stream.puts '✅ WifiWand macOS setup is complete! All requirements are satisfied.'

@@ -188,7 +188,7 @@ RSpec.describe WifiWand::MacHelperRelease do
       allow(described_class::Operations).to receive(:require_macos!)
       allow(described_class::Operations).to receive(:verify_identity_configured)
       allow(described_class::Operations).to receive(:verify_identity_exists)
-      allow(described_class::Operations).to receive(:verify_universal_binary).and_return(true)
+      allow(described_class::Operations).to receive(:verify_universal_binary?).and_return(true)
       allow(described_class).to receive(:verify_source_attestation!)
       allow(helper).to receive_messages(
         source_swift_path:  source_path,
@@ -207,7 +207,7 @@ RSpec.describe WifiWand::MacHelperRelease do
 
     it 'builds the helper, writes the manifest, verifies attestation, and exposes the signing identity' do
       expect(helper).to receive(:build_source_bundle).with(hash_including(:out_stream))
-      expect(described_class::Operations).to receive(:verify_universal_binary).with(destination_path).ordered
+      expect(described_class::Operations).to receive(:verify_universal_binary?).with(destination_path).ordered
       expect(described_class).to receive(:verify_source_attestation!).ordered
 
       expect { described_class.build_signed_helper }
@@ -217,7 +217,7 @@ RSpec.describe WifiWand::MacHelperRelease do
     end
 
     it 'still verifies attestation and prints next steps when the binary is not universal' do
-      allow(described_class::Operations).to receive(:verify_universal_binary).and_return(false)
+      allow(described_class::Operations).to receive(:verify_universal_binary?).and_return(false)
 
       expect(described_class).to receive(:verify_source_attestation!)
 

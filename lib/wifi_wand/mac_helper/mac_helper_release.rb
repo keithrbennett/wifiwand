@@ -215,7 +215,7 @@ module WifiWand
         stdout.strip.split
       end
 
-      def self.verify_universal_binary(binary_path)
+      def self.verify_universal_binary?(binary_path)
         archs = get_binary_architectures(binary_path)
         has_arm64 = archs.include?('arm64')
         has_x86_64 = archs.include?('x86_64')
@@ -403,7 +403,7 @@ module WifiWand
       helper.build_source_bundle(out_stream: $stdout)
 
       puts "\nVerifying binary architectures..."
-      Operations.verify_universal_binary(destination)
+      Operations.verify_universal_binary?(destination)
       verify_source_attestation!
 
       puts Messages::HELPER_BUILT_SUCCESS
