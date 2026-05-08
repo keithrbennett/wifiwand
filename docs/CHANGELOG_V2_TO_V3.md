@@ -20,7 +20,7 @@ For upgrade-impacting API, CLI, and behavior changes, see
   tools.
 - Created Ubuntu-specific test suite with comprehensive coverage of WiFi
   operations.
-- Added OS abstraction layer in `lib/wifi-wand/os/` for clean separation of
+- Added OS abstraction layer in `lib/wifi_wand/os/` for clean separation of
   OS-specific logic.
 
 ### User-Facing Commands and Features

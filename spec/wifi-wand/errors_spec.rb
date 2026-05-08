@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require_relative '../spec_helper'
-require_relative '../../lib/wifi-wand/models/ubuntu_model'
-require_relative '../../lib/wifi-wand/models/mac_os_model'
+require_relative '../../lib/wifi_wand/models/ubuntu_model'
+require_relative '../../lib/wifi_wand/models/mac_os_model'
 
 module WifiWand
   describe 'Error Classes' do

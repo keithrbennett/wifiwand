@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/commands/help_command'
+require_relative '../../../lib/wifi_wand/commands/help_command'
 
 describe WifiWand::HelpCommand do
   let(:output) { StringIO.new }

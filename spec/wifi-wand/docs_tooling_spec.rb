@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../spec_helper'
-require_relative '../../lib/wifi-wand/docs_tooling'
+require_relative '../../lib/wifi_wand/docs_tooling'
 require 'fileutils'
 require 'open3'
 require 'rake'
@@ -257,7 +257,7 @@ RSpec.describe WifiWand::DocsTooling do
       expect(File).to exist(File.join(described_class.generated_docs_dir, 'docs', 'README.md'))
       expect(File).to exist(File.join(described_class.generated_docs_dir, 'dev', 'docs', 'README.md'))
       expect(File).to exist(
-        File.join(described_class.generated_docs_dir, 'lib', 'wifi-wand', 'commands', 'command.rb')
+        File.join(described_class.generated_docs_dir, 'lib', 'wifi_wand', 'commands', 'command.rb')
       )
       expect(File).to exist(File.join(described_class.generated_docs_dir, 'spec', 'spec_helper.rb'))
       command_architecture = File.read(
@@ -267,7 +267,7 @@ RSpec.describe WifiWand::DocsTooling do
       generated_config = YAML.load_file(config_path)
 
       expect(command_architecture).not_to include(described_class::REPO_ROOT)
-      expect(command_architecture).to include('../../lib/wifi-wand/commands/command.rb')
+      expect(command_architecture).to include('../../lib/wifi_wand/commands/command.rb')
       expect(command_architecture).to include('../../spec/wifi-wand/command_line_interface/index.md')
       generated_spec_index = File.join(
         described_class.generated_docs_dir,
@@ -296,10 +296,10 @@ RSpec.describe WifiWand::DocsTooling do
 
       expect(
         described_class.generated_relative_link(
-          '/Users/example/code/wifiwand/primary/lib/wifi-wand/commands/command.rb',
+          '/Users/example/code/wifiwand/primary/lib/wifi_wand/commands/command.rb',
           markdown_path
         )
-      ).to eq('(../../lib/wifi-wand/commands/command.rb)')
+      ).to eq('(../../lib/wifi_wand/commands/command.rb)')
     end
 
     it 'rewrites committed absolute links from a CI checkout path' do
@@ -308,10 +308,10 @@ RSpec.describe WifiWand::DocsTooling do
 
       expect(
         described_class.generated_relative_link(
-          '/home/runner/work/wifiwand/wifiwand/lib/wifi-wand/commands/command.rb',
+          '/home/runner/work/wifiwand/wifiwand/lib/wifi_wand/commands/command.rb',
           markdown_path
         )
-      ).to eq('(../../lib/wifi-wand/commands/command.rb)')
+      ).to eq('(../../lib/wifi_wand/commands/command.rb)')
     end
 
     it 'rewrites committed absolute links from a CI checkout path with a fragment' do

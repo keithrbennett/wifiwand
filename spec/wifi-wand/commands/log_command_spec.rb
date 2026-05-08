@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/commands/log_command'
-require_relative '../../../lib/wifi-wand/timing_constants'
+require_relative '../../../lib/wifi_wand/commands/log_command'
+require_relative '../../../lib/wifi_wand/timing_constants'
 
 describe WifiWand::LogCommand do
   let(:mock_model) do

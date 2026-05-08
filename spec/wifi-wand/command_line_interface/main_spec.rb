@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative('../../spec_helper')
-require_relative('../../../lib/wifi-wand/main')
+require_relative('../../../lib/wifi_wand/main')
 
 describe WifiWand::Main do
   subject { described_class.new(out_stream, err_stream, argv: ARGV) }

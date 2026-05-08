@@ -2,8 +2,8 @@
 
 require 'json'
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/command_line_interface'
-require_relative '../../../lib/wifi-wand/commands/log_command'
+require_relative '../../../lib/wifi_wand/command_line_interface'
+require_relative '../../../lib/wifi_wand/commands/log_command'
 
 describe WifiWand::CommandLineInterface do
   include_context 'for command line interface tests'

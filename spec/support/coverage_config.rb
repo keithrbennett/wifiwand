@@ -14,10 +14,10 @@ module CoverageConfig
       add_filter '/tmp/'
 
       # Group coverage by directory
-      add_group 'Models', 'lib/wifi-wand/models'
-      add_group 'Services', 'lib/wifi-wand/services'
-      add_group 'OS Detection', 'lib/wifi-wand/os'
-      add_group 'Core', 'lib/wifi-wand'
+      add_group 'Models', 'lib/wifi_wand/models'
+      add_group 'Services', 'lib/wifi_wand/services'
+      add_group 'OS Detection', 'lib/wifi_wand/os'
+      add_group 'Core', 'lib/wifi_wand'
 
       # Generate multiple output formats
       formatter SimpleCov::Formatter::MultiFormatter.new([

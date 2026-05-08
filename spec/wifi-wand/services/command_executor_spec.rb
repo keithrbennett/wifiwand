@@ -3,7 +3,7 @@
 require 'rbconfig'
 require 'tempfile'
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/services/command_executor'
+require_relative '../../../lib/wifi_wand/services/command_executor'
 
 describe WifiWand::CommandExecutor do
   def wait_for_file_contents(path, timeout: 2)
@@ -457,7 +457,7 @@ describe WifiWand::CommandExecutor do
 
   describe 'integration with BaseModel' do
     it 'is accessible through BaseModel' do
-      require_relative '../../../lib/wifi-wand/models/base_model'
+      require_relative '../../../lib/wifi_wand/models/base_model'
 
       expect do
         WifiWand::BaseModel.new(verbose: false)

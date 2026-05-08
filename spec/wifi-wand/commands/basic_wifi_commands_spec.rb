@@ -1,10 +1,10 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/commands/on_command'
-require_relative '../../../lib/wifi-wand/commands/off_command'
-require_relative '../../../lib/wifi-wand/commands/cycle_command'
-require_relative '../../../lib/wifi-wand/commands/disconnect_command'
+require_relative '../../../lib/wifi_wand/commands/on_command'
+require_relative '../../../lib/wifi_wand/commands/off_command'
+require_relative '../../../lib/wifi_wand/commands/cycle_command'
+require_relative '../../../lib/wifi_wand/commands/disconnect_command'
 
 RSpec.describe 'basic WiFi commands' do
   [

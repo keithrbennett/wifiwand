@@ -240,7 +240,7 @@ module WifiWand
         abort <<~ERROR
           Error: CODESIGN_IDENTITY is not configured.
 
-          Please update the values in lib/wifi-wand/mac_helper/mac_helper_release.rb:
+          Please update the values in lib/wifi_wand/mac_helper/mac_helper_release.rb:
             APPLE_TEAM_ID = 'TEAM123'
             CODESIGN_IDENTITY = 'Developer ID Application: Your Name (TEAM123)'
 
@@ -286,7 +286,7 @@ module WifiWand
         abort <<~ERROR if team_id == 'YOUR_TEAM_ID_HERE'
           Error: APPLE_TEAM_ID is not configured.
 
-          Please update the value in lib/wifi-wand/mac_helper/mac_helper_release.rb:
+          Please update the value in lib/wifi_wand/mac_helper/mac_helper_release.rb:
             APPLE_TEAM_ID = 'TEAM123'
 
           See #{SIGNING_INSTRUCTIONS_PATH} for detailed instructions.

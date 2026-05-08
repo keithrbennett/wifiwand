@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/commands/shell_command'
+require_relative '../../../lib/wifi_wand/commands/shell_command'
 
 describe WifiWand::ShellCommand do
   let(:options) { WifiWand::CommandLineOptions.new(post_processor: nil) }

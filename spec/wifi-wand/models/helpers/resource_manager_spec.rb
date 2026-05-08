@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../../spec_helper'
-require_relative '../../../../lib/wifi-wand/models/helpers/resource_manager'
+require_relative '../../../../lib/wifi_wand/models/helpers/resource_manager'
 
 describe WifiWand::Helpers::ResourceManager do
   let(:resource_manager) { described_class.new }

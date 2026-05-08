@@ -3,7 +3,7 @@
 require_relative '../../spec_helper'
 require 'rbconfig'
 require 'stringio'
-require_relative '../../../lib/wifi-wand/services/network_connectivity_tester'
+require_relative '../../../lib/wifi_wand/services/network_connectivity_tester'
 
 describe WifiWand::NetworkConnectivityTester do
   include TestHelpers

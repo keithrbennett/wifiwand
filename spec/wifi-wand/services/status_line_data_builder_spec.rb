@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/command_line_interface/output_formatter'
-require_relative '../../../lib/wifi-wand/network_identity'
-require_relative '../../../lib/wifi-wand/services/status_line_data_builder'
+require_relative '../../../lib/wifi_wand/command_line_interface/output_formatter'
+require_relative '../../../lib/wifi_wand/network_identity'
+require_relative '../../../lib/wifi_wand/services/status_line_data_builder'
 
 class StatusLineDataBuilderSpecExpectedError < StandardError; end
 

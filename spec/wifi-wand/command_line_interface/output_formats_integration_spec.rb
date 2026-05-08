@@ -7,7 +7,7 @@
 # PURPOSE:
 # Tests that all configurable output formats (-o i/j/k/p/y) produce valid,
 # parseable output across different data types. These tests validate that
-# the formatters defined in lib/wifi-wand/main.rb work correctly for the
+# the formatters defined in lib/wifi_wand/main.rb work correctly for the
 # variety of data structures returned by CLI commands.
 #
 # WHAT THIS FILE TESTS:
@@ -39,8 +39,8 @@
 # =============================================================================
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/command_line_interface'
-require_relative '../../../lib/wifi-wand/main'
+require_relative '../../../lib/wifi_wand/command_line_interface'
+require_relative '../../../lib/wifi_wand/main'
 require 'json'
 require 'yaml'
 

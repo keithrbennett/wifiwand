@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/commands/nameservers_command'
+require_relative '../../../lib/wifi_wand/commands/nameservers_command'
 
 describe WifiWand::NameserversCommand do
   let(:mock_model) { double('Model') }

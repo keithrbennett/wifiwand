@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../lib/wifi-wand/operating_systems'
-require_relative '../../lib/wifi-wand/models/ubuntu_model'
-require_relative '../../lib/wifi-wand/models/mac_os_model'
+require_relative '../../lib/wifi_wand/operating_systems'
+require_relative '../../lib/wifi_wand/models/ubuntu_model'
+require_relative '../../lib/wifi_wand/models/mac_os_model'
 
 describe 'Common WiFi Model Behavior (All OS)' do
   # Mock OS calls to prevent real system interaction during ordinary tests

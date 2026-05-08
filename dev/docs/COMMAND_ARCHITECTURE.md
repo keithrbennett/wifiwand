@@ -22,7 +22,7 @@ At runtime, the command system has four main layers:
 
 1. `WifiWand::CommandLineInterface`
 2. `WifiWand::CommandLineInterface::CommandRegistry`
-3. `WifiWand::Command` subclasses in `lib/wifi-wand/commands/`
+3. `WifiWand::Command` subclasses in `lib/wifi_wand/commands/`
 4. `WifiWand::CommandLineInterface::CommandOutputSupport`
 
 Very roughly:
@@ -52,7 +52,7 @@ running, `ShellInterface#method_missing` forwards the entered method name and ar
 
 ### `WifiWand::CommandMetadata`
 
-Defined in [lib/wifi-wand/commands/command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/command.rb:4).
+Defined in [lib/wifi_wand/commands/command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/command.rb:4).
 
 This is the small value object that holds:
 
@@ -65,7 +65,7 @@ Its `aliases` method returns the short and long command names used by the regist
 
 ### `WifiWand::Command`
 
-Defined in [lib/wifi-wand/commands/command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/command.rb:18).
+Defined in [lib/wifi_wand/commands/command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/command.rb:18).
 
 This is the base class for concrete command objects. It is intentionally small. Its main jobs are:
 
@@ -81,7 +81,7 @@ own `#call` methods.
 ### `WifiWand::CommandLineInterface::CommandRegistry`
 
 Defined in
-[lib/wifi-wand/command_line_interface/command_registry.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/command_line_interface/command_registry.rb:27).
+[lib/wifi_wand/command_line_interface/command_registry.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/command_line_interface/command_registry.rb:27).
 
 This mixin is responsible for:
 
@@ -97,7 +97,7 @@ highly abstract.
 ### `WifiWand::CommandLineInterface::CommandOutputSupport`
 
 Defined in
-[lib/wifi-wand/command_line_interface/command_output_support.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/command_line_interface/command_output_support.rb:5).
+[lib/wifi_wand/command_line_interface/command_output_support.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/command_line_interface/command_output_support.rb:5).
 
 This object exists because many commands needed only a small output-oriented slice of the CLI, not the full
 `CommandLineInterface`.
@@ -119,7 +119,7 @@ Most commands now use two class-level declarations:
 
 ### `command_metadata(...)`
 
-Example from [info_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/info_command.rb:6):
+Example from [info_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/info_command.rb:6):
 
 ```ruby
 command_metadata(
@@ -135,7 +135,7 @@ style as a fallback so older or special-case commands do not all need to migrate
 
 ### `binds ...`
 
-Example from [status_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/status_command.rb:18):
+Example from [status_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/status_command.rb:18):
 
 ```ruby
 binds :model, :interactive_mode, :out_stream, output_support: :output_support
@@ -204,9 +204,9 @@ For those commands, binding the full CLI object was broader than necessary.
 
 Examples include:
 
-- [info_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/info_command.rb:14)
-- [avail_nets_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/avail_nets_command.rb:15)
-- [status_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/status_command.rb:18)
+- [info_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/info_command.rb:14)
+- [avail_nets_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/avail_nets_command.rb:15)
+- [status_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/status_command.rb:18)
 
 These commands now depend on `output_support` for output-specific behavior and avoid reaching into unrelated
 CLI helpers.
@@ -218,11 +218,11 @@ Not every command should be forced through `CommandOutputSupport`.
 Some commands still legitimately need the full CLI object because their behavior is about the CLI itself, not
 just output:
 
-- [help_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/help_command.rb:14)
+- [help_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/help_command.rb:14)
   needs `help_text`, `resolve_command`, and `print_help`.
-- [quit_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/quit_command.rb:16)
+- [quit_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/quit_command.rb:16)
   needs shell-exit behavior through `cli.quit`.
-- [till_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/till_command.rb:18)
+- [till_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/till_command.rb:18)
   uses `cli.help_hint` in its validation messages.
 
 This is intentional. The current design prefers a clear dependency over a more abstract but harder-to-read
@@ -263,9 +263,9 @@ By default, `Command#help_text` uses metadata:
 
 Commands with richer help can override it. Examples:
 
-- [help_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/help_command.rb:16)
-- [log_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/log_command.rb:21)
-- [till_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/till_command.rb:20)
+- [help_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/help_command.rb:16)
+- [log_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/log_command.rb:21)
+- [till_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/till_command.rb:20)
 
 ## Shell Integration
 
@@ -287,22 +287,22 @@ without separate registration paths.
 
 The usual steps are:
 
-1. Create a new class in `lib/wifi-wand/commands/`.
+1. Create a new class in `lib/wifi_wand/commands/`.
 2. Inherit from `WifiWand::Command`.
 3. Declare `command_metadata(...)`.
 4. Declare `binds ...` for the dependencies the command needs.
 5. Implement `#call`.
 6. Override `#help_text` only if the default metadata-based help is insufficient.
 7. Register the command class in
-   [command_registry.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/command_line_interface/command_registry.rb:27).
+   [command_registry.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/command_line_interface/command_registry.rb:27).
 8. Add a focused command spec under `spec/wifi-wand/commands/`.
 9. Add CLI-level integration coverage only if the command needs special dispatch or shell behavior.
 
 For simple commands, the class should stay very small. Good examples are:
 
-- [info_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/info_command.rb:5)
-- [wifi_on_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/wifi_on_command.rb:5)
-- [password_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi-wand/commands/password_command.rb:5)
+- [info_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/info_command.rb:5)
+- [wifi_on_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/wifi_on_command.rb:5)
+- [password_command.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/commands/password_command.rb:5)
 
 ## Testing Model
 

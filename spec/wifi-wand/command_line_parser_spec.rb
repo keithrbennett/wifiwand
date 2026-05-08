@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative('../spec_helper')
-require_relative('../../lib/wifi-wand/command_line_parser')
+require_relative('../../lib/wifi_wand/command_line_parser')
 
 describe WifiWand::CommandLineParser do
   let(:err_stream) { StringIO.new }

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/os/ubuntu'
+require_relative '../../../lib/wifi_wand/os/ubuntu'
 
 module WifiWand
   describe Ubuntu do

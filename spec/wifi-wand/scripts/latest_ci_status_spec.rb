@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 require 'open3'
-require_relative '../../../lib/wifi-wand/scripts/latest_ci_status'
+require_relative '../../../lib/wifi_wand/scripts/latest_ci_status'
 
 RSpec.describe WifiWand::Scripts::LatestCiStatus do
   subject(:script) { described_class.new }

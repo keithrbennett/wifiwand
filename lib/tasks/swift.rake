@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require 'rbconfig'
-require_relative '../wifi-wand/mac_helper/mac_os_helper_bundle'
-require_relative '../wifi-wand/mac_helper/mac_os_helper_build'
+require_relative '../wifi_wand/mac_helper/mac_os_helper_bundle'
+require_relative '../wifi_wand/mac_helper/mac_os_helper_build'
 
 namespace :swift do
   helper = WifiWand::MacOsHelperBundle

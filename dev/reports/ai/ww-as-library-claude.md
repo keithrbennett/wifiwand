@@ -11,7 +11,7 @@ analysis examines its strengths, weaknesses, and provides recommendations for im
 The primary entry point is simple and clean:
 
 ```ruby
-require 'wifi-wand'
+require 'wifi_wand'
 
 # Create a model for the current OS
 model = WifiWand.create_model
@@ -24,13 +24,13 @@ model = WifiWand.create_model(options)
 ## Strengths
 
 ### 1. Simple Entry Point
-- **Clean API**: `WifiWand.create_model` provides straightforward access (`lib/wifi-wand.rb:13`)
+- **Clean API**: `WifiWand.create_model` provides straightforward access (`lib/wifi_wand.rb:13`)
 - **Auto OS Detection**: Automatically detects and creates appropriate model (macOS/Ubuntu)
 - **Option Support**: Accepts configuration via Hash options
 
 ### 2. Cross-Platform Abstraction
 - **Unified Interface**: Single API across macOS and Ubuntu via `BaseModel`
-  (`lib/wifi-wand/models/base_model.rb:19`)
+  (`lib/wifi_wand/models/base_model.rb:19`)
 - **OS-Specific Implementation**: Proper abstraction with platform-specific models
 - **Extensible Design**: Clear pattern for adding new operating systems
 

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/command_line_interface/command_registry'
+require_relative '../../../lib/wifi_wand/command_line_interface/command_registry'
 
 describe WifiWand::CommandMetadata do
   it 'exposes short, long, and alias names' do

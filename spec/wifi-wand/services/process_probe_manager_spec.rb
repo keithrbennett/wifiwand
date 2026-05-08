@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/services/process_probe_manager'
+require_relative '../../../lib/wifi_wand/services/process_probe_manager'
 
 describe WifiWand::ProcessProbeManager do
   let(:manager_class) do

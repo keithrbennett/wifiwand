@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative('../../spec_helper')
-require_relative('../../../lib/wifi-wand/command_line_interface')
+require_relative('../../../lib/wifi_wand/command_line_interface')
 
 describe WifiWand::CommandLineInterface::OutputFormatter do
   subject { test_class.new(options, mock_model) }

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../wifi-wand/scripts/latest_ci_status'
+require_relative '../wifi_wand/scripts/latest_ci_status'
 
 namespace :ci do
   desc 'Get latest GitHub Actions status for the current branch'

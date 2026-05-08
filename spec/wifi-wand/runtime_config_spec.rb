@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../spec_helper'
-require_relative '../../lib/wifi-wand/runtime_config'
+require_relative '../../lib/wifi_wand/runtime_config'
 
 describe WifiWand::RuntimeConfig do
   describe '#to_h' do

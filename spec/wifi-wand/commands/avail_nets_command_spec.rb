@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/commands/avail_nets_command'
+require_relative '../../../lib/wifi_wand/commands/avail_nets_command'
 
 describe WifiWand::AvailNetsCommand do
   let(:mock_model) { double('Model') }

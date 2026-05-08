@@ -6,16 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 1
-# Checks that file names map cleanly to the constants they define. This keeps require paths and Zeitwerk-like
-# conventions predictable, even though this gem has a historical hyphenated entry file.
-# Configuration parameters: ExpectMatchingDefinition, CheckDefinitionPathHierarchy, CheckDefinitionPathHierarchyRoots, Regex, IgnoreExecutableScripts, AllowedAcronyms.
-# CheckDefinitionPathHierarchyRoots: lib, spec, test, src
-# AllowedAcronyms: CLI, DSL, ACL, API, ASCII, CPU, CSS, DNS, EOF, GUID, HTML, HTTP, HTTPS, ID, IP, JSON, LHS, QPS, RAM, RHS, RPC, SLA, SMTP, SQL, SSH, TCP, TLS, TTL, UDP, UI, UID, UUID, URI, URL, UTF8, VM, XML, XMPP, XSRF, XSS
-Naming/FileName:
-  Exclude:
-    - 'lib/wifi-wand.rb'
-
 # Offense count: 3
 # Flags very short parameter names outside the configured allowlist. Longer names usually make tests and
 # call sites easier to understand without jumping to method bodies.
@@ -33,8 +23,8 @@ Naming/MethodParameterName:
 # WaywardPredicates: infinite?, nonzero?
 Naming/PredicateMethod:
   Exclude:
-    - 'lib/wifi-wand/mac_helper/mac_helper_release.rb'
-    - 'lib/wifi-wand/mac_helper/mac_os_setup_cli.rb'
+    - 'lib/wifi_wand/mac_helper/mac_helper_release.rb'
+    - 'lib/wifi_wand/mac_helper/mac_os_setup_cli.rb'
 
 # Offense count: 1
 # Enforces the configured style for identifiers that contain numbers, such as x86_64 or ipv6, so naming
@@ -44,7 +34,7 @@ Naming/PredicateMethod:
 # AllowedIdentifiers: TLS1_1, TLS1_2, capture3, iso8601, rfc1123_date, rfc822, rfc2822, rfc3339, x86_64
 Naming/VariableNumber:
   Exclude:
-    - 'lib/wifi-wand/mac_helper/mac_helper_release.rb'
+    - 'lib/wifi_wand/mac_helper/mac_helper_release.rb'
 
 # Offense count: 1
 # Discourages before(:all) and after(:all), which share state across examples and can make specs order
@@ -183,7 +173,7 @@ Style/GlobalVars:
 # Configuration parameters: MinBranchesCount.
 Style/HashLikeCase:
   Exclude:
-    - 'lib/wifi-wand/models/helpers/qr_code_generator.rb'
+    - 'lib/wifi_wand/models/helpers/qr_code_generator.rb'
     - 'spec/wifi-wand/command_line_interface/output_formats_integration_spec.rb'
 
 # Offense count: 2
@@ -192,19 +182,19 @@ Style/HashLikeCase:
 # This cop supports unsafe autocorrection (--autocorrect-all).
 Style/IdenticalConditionalBranches:
   Exclude:
-    - 'lib/wifi-wand/models/ubuntu_model.rb'
+    - 'lib/wifi_wand/models/ubuntu_model.rb'
 
 # Offense count: 1
 # Requires respond_to_missing? when method_missing is defined, so reflection and callers using respond_to?
 # see behavior consistent with dynamic dispatch.
 Style/MissingRespondToMissing:
   Exclude:
-    - 'lib/wifi-wand/command_line_interface/shell_interface.rb'
+    - 'lib/wifi_wand/command_line_interface/shell_interface.rb'
 
 # Offense count: 2
 # Flags chaining directly after a multiline block, which can be hard to scan because the receiver of the
 # chained call is visually far from the method name.
 Style/MultilineBlockChain:
   Exclude:
-    - 'lib/wifi-wand/models/ubuntu_model.rb'
+    - 'lib/wifi_wand/models/ubuntu_model.rb'
     - 'spec/wifi-wand/models/mac_os_model_spec.rb'

@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-require_relative '../lib/wifi-wand/docs_tooling'
+require_relative '../lib/wifi_wand/docs_tooling'
 
 WifiWand::DocsTooling.ensure_mkdocs_available!
 mkdocs_config = WifiWand::DocsTooling.prepare_mkdocs_workspace!

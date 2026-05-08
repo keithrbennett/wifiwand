@@ -39,7 +39,7 @@ run_docs_tooling_ruby() {
     WIFIWAND_DOCS_MKDOCS="${WIFIWAND_DOCS_MKDOCS:-}" \
     WIFIWAND_DOCS_PYTHON="${WIFIWAND_DOCS_PYTHON:-}" \
     WIFIWAND_DOCS_VENV_DIR="${WIFIWAND_DOCS_VENV_DIR:-}" \
-    ruby -r "${repo_root}/lib/wifi-wand/docs_tooling" "$@"
+    ruby -r "${repo_root}/lib/wifi_wand/docs_tooling" "$@"
 }
 
 venv_dir="$(

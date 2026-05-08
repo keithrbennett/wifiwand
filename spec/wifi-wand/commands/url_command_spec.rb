@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/commands/url_command'
+require_relative '../../../lib/wifi_wand/commands/url_command'
 
 describe WifiWand::UrlCommand do
   let(:output_support) { double('output_support') }

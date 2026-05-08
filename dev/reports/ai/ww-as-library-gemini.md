@@ -8,8 +8,8 @@ other applications.
 1. **Modular and Well-Structured Core Logic:** The logic is cleanly separated into namespaces like `Services`,
    `OS`, and `Models`. This is a significant strength. A developer could theoretically pick and choose
    necessary components, for example, using just the `NetworkConnectivityTester` or the `ConnectionManager`.
-2. **Clear OS Abstraction:** The separation of `MacOS` and `Ubuntu` logic (in both `lib/wifi-wand/os` and
-   `lib/wifi-wand/models`) is excellent. This makes the core logic adaptable and extensible for other
+2. **Clear OS Abstraction:** The separation of `MacOS` and `Ubuntu` logic (in both `lib/wifi_wand/os` and
+   `lib/wifi_wand/models`) is excellent. This makes the core logic adaptable and extensible for other
    operating systems without requiring major refactoring.
 3. **Comprehensive Test Coverage:** The `spec/` directory is extensive and appears to mirror the `lib/`
    directory structure very well. This indicates a high degree of existing test coverage, which provides a
@@ -39,7 +39,7 @@ isolation. A new test suite should be created to validate the code *from the per
 consumer*.
 
 This new suite would:
-1.  `require 'wifi-wand'` as a library.
+1.  `require 'wifi_wand'` as a library.
 2.  Instantiate the public-facing classes you decide to expose.
 3.  Call methods and assert their *return values*, not their console output.
 4.  Ensure that no unexpected output is printed to STDOUT/STDERR during normal operation.
@@ -53,49 +53,48 @@ how to use it.
 To confirm this analysis and plan a path forward, the following files should be inspected to understand the
 current level of coupling between the core logic and the CLI:
 
-1.  `lib/wifi-wand.rb`: To see what is loaded and exposed by default.
-2. `lib/wifi-wand/main.rb`: To understand how the CLI application is initiated and how it uses the core
+1.  `lib/wifi_wand.rb`: To see what is loaded and exposed by default.
+2. `lib/wifi_wand/main.rb`: To understand how the CLI application is initiated and how it uses the core
    services.
-3. `lib/wifi-wand/services/connection_manager.rb`: To examine a core service and see if it has any direct
+3. `lib/wifi_wand/services/connection_manager.rb`: To examine a core service and see if it has any direct
    dependencies on the CLI (like printing output).
 ---
 
 ## Revised Findings (Post-Analysis)
 
 Historical note: this section originally recommended introducing a facade
-object for library callers. The codebase has since moved in a different
-direction. The public library entry point is now `WifiWand.create_model`,
-which returns a concrete OS-specific model directly.
+object for library callers and decoupling the library entry point from the CLI.
+The codebase has since moved in a different direction on the facade question,
+but the CLI decoupling is complete. The public library entry point is now
+`WifiWand.create_model`, which returns a concrete OS-specific model directly.
 
 My analysis after reading the key files confirms the initial assessment and clarifies the path to refactoring
 `wifi-wand` into a proper library.
 
-* **`lib/wifi-wand/services/connection_manager.rb` is a perfect library component.** It has zero dependencies
+* **`lib/wifi_wand/services/connection_manager.rb` is a perfect library component.** It has zero dependencies
   on the command-line interface. It accepts objects, calls methods on them, and raises specific, catchable
   `WifiWand::Error` exceptions on failure. This is exactly what you want in a library.
 
-* **`lib/wifi-wand/main.rb` is purely for the CLI.** It's responsible for parsing command-line options
+* **`lib/wifi_wand/main.rb` is purely for the CLI.** It's responsible for parsing command-line options
   (`OptionParser`), handling `ARGV`, and printing formatted output and errors to `$stdout`. This file is the
   primary source of the tight coupling.
 
-* **`lib/wifi-wand.rb` is the critical link.** The line `require_relative 'wifi-wand/main'` is the specific
-  instruction that couples the entire library to the CLI application. However, it also contains
-  `WifiWand.create_model`, which is an excellent first step toward a clean public API.
+* **`lib/wifi_wand.rb` is now the library entry point.** It loads the core library components without loading
+  the CLI application, and exposes `WifiWand.create_model` as the public entry point.
 
 ## The Path Forward: Decoupling
 
-The goal is to make it so that `require 'wifi-wand'` provides access to the core logic *without* loading any
+The goal is to make it so that `require 'wifi_wand'` provides access to the core logic *without* loading any
 of the command-line interface code. The CLI code should only be loaded when the `exe/wifi-wand` executable is
 run.
 
-Here is a proposed plan to achieve this:
+This plan has been implemented:
 
-1. **Isolate the CLI Entrypoint:** Modify the main executable `exe/wifi-wand` to explicitly require
-   `wifi-wand/main`. This will make it the sole entry point for the command-line application.
+1. **Isolate the CLI Entrypoint:** The main executable `exe/wifi-wand` explicitly requires `wifi_wand/main`,
+   making it the sole entry point for the command-line application.
 
-2. **Decouple the Library:** In `lib/wifi-wand.rb`, remove the `require_relative 'wifi-wand/main'` line.
-   Instead, it should require the individual components that form the library's core, such as the services,
-   models, and errors.
+2. **Decouple the Library:** `lib/wifi_wand.rb` requires the individual components that form the library's
+   core, such as the services, models, and errors.
 
 3. **Establish a Clear Public API:** The current codebase now does this with
    `WifiWand.create_model` and the concrete model classes rather than with a

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/commands/connect_command'
+require_relative '../../../lib/wifi_wand/commands/connect_command'
 
 describe WifiWand::ConnectCommand do
   let(:mock_model) { double('Model') }

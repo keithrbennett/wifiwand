@@ -126,17 +126,17 @@ bundle exec exe/wifi-wand -v info
 ### Core Architecture
 The codebase follows a layered architecture with OS abstraction:
 
-- **Entry Point**: `lib/wifi-wand/main.rb` - handles command line parsing
-- **CLI Controller**: `lib/wifi-wand/command_line_interface.rb` - orchestrates commands and output
-- **OS Detection**: `lib/wifi-wand/operating_systems.rb` - detects current OS and creates appropriate models
-- **OS Abstractions**: `lib/wifi-wand/os/` - defines OS-specific behavior interfaces
-- **Model Layer**: `lib/wifi-wand/models/` - implements WiFi operations for each OS
-- **Service Layer**: `lib/wifi-wand/services/` - reusable business logic
+- **Entry Point**: `lib/wifi_wand/main.rb` - handles command line parsing
+- **CLI Controller**: `lib/wifi_wand/command_line_interface.rb` - orchestrates commands and output
+- **OS Detection**: `lib/wifi_wand/operating_systems.rb` - detects current OS and creates appropriate models
+- **OS Abstractions**: `lib/wifi_wand/os/` - defines OS-specific behavior interfaces
+- **Model Layer**: `lib/wifi_wand/models/` - implements WiFi operations for each OS
+- **Service Layer**: `lib/wifi_wand/services/` - reusable business logic
 
 ### OS Support Pattern
 New operating systems are added by:
-1. Creating OS detector in `lib/wifi-wand/os/`
-2. Implementing model in `lib/wifi-wand/models/`
+1. Creating OS detector in `lib/wifi_wand/os/`
+2. Implementing model in `lib/wifi_wand/models/`
 3. Registering in `OperatingSystems` class
 
 ### Command Line Interface Architecture
@@ -157,13 +157,13 @@ The CLI uses modular design with mixins:
 
 The macOS model currently uses two distinct Swift/CoreWLAN runtime paths:
 
-- **Compiled helper app path** - `lib/wifi-wand/mac_helper/mac_os_helper_client.rb` talks to the installed
+- **Compiled helper app path** - `lib/wifi_wand/mac_helper/mac_os_helper_client.rb` talks to the installed
   `wifiwand-helper.app` for read/query operations such as current-network lookups and nearby-network scans.
   This path exists because modern macOS read/query behavior increasingly depends on CoreWLAN plus a stable
   app identity for Location Services handling.
-- **Direct Swift source path** - `lib/wifi-wand/mac_helper/mac_os_swift_runtime.rb` runs
-  `lib/wifi-wand/mac_helper/swift/WifiNetworkConnector.swift` and
-  `lib/wifi-wand/mac_helper/swift/WifiNetworkDisconnector.swift` for connect/disconnect operations.
+- **Direct Swift source path** - `lib/wifi_wand/mac_helper/mac_os_swift_runtime.rb` runs
+  `lib/wifi_wand/mac_helper/swift/WifiNetworkConnector.swift` and
+  `lib/wifi_wand/mac_helper/swift/WifiNetworkDisconnector.swift` for connect/disconnect operations.
 
 **Fallback Strategy**:
 - The compiled helper path covers permission-sensitive reads on supported macOS versions.
@@ -197,7 +197,7 @@ The macOS model currently uses two distinct Swift/CoreWLAN runtime paths:
 - Coverage is grouped by component (Models, Services, OS Detection, Core)
 - Branch coverage can be enabled with `COVERAGE_BRANCH=true`
 - Use the **cov-loupe** MCP tool (or CLI) to query coverage data — prefer it over reading `.resultset.json`
-  directly or reasoning from scratch. For example: `cov-loupe summary lib/wifi-wand/models/mac_os_model.rb`
+  directly or reasoning from scratch. For example: `cov-loupe summary lib/wifi_wand/models/mac_os_model.rb`
   or, when available, call the `file_coverage_summary` / `project_coverage` MCP tools.
 
 ### Test Refactoring Guidelines
@@ -356,7 +356,7 @@ This copies hooks from the tracked `hooks/` directory to `.git/hooks/` and makes
 
 ## Response Expectations
 - Be concise and collaborative. Lead with the change/insight; follow with necessary detail.
-- Reference files with inline clickable paths (e.g., `lib/wifi-wand/models/mac_os_model.rb:42`). Avoid ranges
+- Reference files with inline clickable paths (e.g., `lib/wifi_wand/models/mac_os_model.rb:42`). Avoid ranges
   and external URIs.
 - When providing content intended for the user to copy and paste (like commit messages or configuration
   snippets), do not include line numbers or any other decorators that would interfere with direct usage.

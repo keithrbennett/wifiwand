@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../lib/wifi-wand/operating_systems'
+require_relative '../../lib/wifi_wand/operating_systems'
 
 module WifiWand
   describe OperatingSystems do

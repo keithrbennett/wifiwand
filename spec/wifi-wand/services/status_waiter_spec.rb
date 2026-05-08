@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/services/status_waiter'
-require_relative '../../../lib/wifi-wand/timing_constants'
+require_relative '../../../lib/wifi_wand/services/status_waiter'
+require_relative '../../../lib/wifi_wand/timing_constants'
 
 describe WifiWand::StatusWaiter do
   let(:mock_model) do
@@ -222,7 +222,7 @@ describe WifiWand::StatusWaiter do
 
   describe 'integration with BaseModel' do
     it 'is accessible through BaseModel#till (delegates to wait_for)' do
-      require_relative '../../../lib/wifi-wand/models/base_model'
+      require_relative '../../../lib/wifi_wand/models/base_model'
       model = WifiWand::BaseModel.new(verbose: false)
       allow(model).to receive(:wifi_on?).and_return(true)
       expect(model.till(:wifi_on)).to be_nil

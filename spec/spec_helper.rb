@@ -5,7 +5,7 @@ require_relative 'support/coverage_config'
 CoverageConfig.setup
 
 require 'rspec'
-require_relative '../lib/wifi-wand'
+require_relative '../lib/wifi_wand'
 require_relative 'support/network_state_manager'
 require_relative 'support/rspec_configuration'
 require_relative 'support/matchers'
@@ -22,7 +22,7 @@ WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT       = 0.25
 WifiWand::TimingConstants::DNS_RESOLUTION_TIMEOUT       = 0.25
 WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT = 1.0
 WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT    = 0.25
-require_relative '../lib/wifi-wand/mac_helper/mac_os_helper_bundle'
+require_relative '../lib/wifi_wand/mac_helper/mac_os_helper_bundle'
 WifiWand::MacOsHelperBundle::DEFAULT_HELPER_COMMAND_TIMEOUT_SECONDS = 1.0
 WifiWand::MacOsHelperBundle::SCAN_NETWORKS_HELPER_COMMAND_TIMEOUT_SECONDS = 2.0
 WifiWand::MacOsHelperBundle::HELPER_TERMINATION_WAIT_SECONDS = 0.1

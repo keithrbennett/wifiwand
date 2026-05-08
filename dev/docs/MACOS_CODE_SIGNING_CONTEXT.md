@@ -138,7 +138,7 @@ When users install the `wifi-wand` gem, they receive a **pre-signed, pre-notariz
 As the gem maintainer, you perform signing and notarization **before releasing** a new gem version:
 
 ```bash
-# 1. Sign with your Developer ID (uses values from lib/wifi-wand/mac_helper/mac_helper_release.rb)
+# 1. Sign with your Developer ID (uses values from lib/wifi_wand/mac_helper/mac_helper_release.rb)
 bin/mac-helper-release build
 
 # 2. Notarize with Apple (uses the stored keychain profile)
@@ -203,12 +203,12 @@ You should see something like:
 ```
 
 Copy the full identity string (inside the quotes) — you'll paste it into the `CODESIGN_IDENTITY` constant in
-`lib/wifi-wand/mac_helper/mac_helper_release.rb`. The 10-character suffix in parentheses is your Apple Team ID; confirm
+`lib/wifi_wand/mac_helper/mac_helper_release.rb`. The 10-character suffix in parentheses is your Apple Team ID; confirm
 it matches the value shown on developer.apple.com because you'll set `APPLE_TEAM_ID` to that exact string.
 
 ### Step 4: Update Hardcoded Public Values
 
-Edit `lib/wifi-wand/mac_helper/mac_helper_release.rb` and replace the placeholders with your real values:
+Edit `lib/wifi_wand/mac_helper/mac_helper_release.rb` and replace the placeholders with your real values:
 
 ```ruby
 # Public signing credentials (visible in all signed binaries - no need to hide)
@@ -366,7 +366,7 @@ git add libexec/macos/wifiwand-helper.app
 git commit -m "Update signed and notarized macOS helper for version X.Y.Z"
 
 # Update version if needed
-# Edit lib/wifi-wand/version.rb
+# Edit lib/wifi_wand/version.rb
 
 # Build gem
 gem build wifi-wand.gemspec
@@ -387,7 +387,7 @@ All developer tasks are in the `dev:` namespace and are **not included in the di
 ### `dev:build_signed_helper`
 
 **Purpose:** Compile and sign the helper with Developer ID (uses the credentials in
-`lib/wifi-wand/mac_helper/mac_helper_release.rb`)
+`lib/wifi_wand/mac_helper/mac_helper_release.rb`)
 
 **Environment Variables:** None
 
@@ -621,7 +621,7 @@ Error: Could not find code signing identity 'Developer ID Application: ...'
 # List available identities
 security find-identity -v -p codesigning
 
-# Use exact name from output (update CODESIGN_IDENTITY in lib/wifi-wand/mac_helper/mac_helper_release.rb)
+# Use exact name from output (update CODESIGN_IDENTITY in lib/wifi_wand/mac_helper/mac_helper_release.rb)
 bin/mac-helper-release build
 ```
 
@@ -642,7 +642,7 @@ status: Invalid
 3. Check entitlements are applied
 
 ```bash
-# Rebuild with correct signing (after updating CODESIGN_IDENTITY in lib/wifi-wand/mac_helper/mac_helper_release.rb)
+# Rebuild with correct signing (after updating CODESIGN_IDENTITY in lib/wifi_wand/mac_helper/mac_helper_release.rb)
 bin/mac-helper-release build
 
 # Verify before notarizing

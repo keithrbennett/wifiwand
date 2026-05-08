@@ -15,15 +15,15 @@ step (or deeper troubleshooting), jump to `MACOS_CODE_SIGNING_CONTEXT.md`.
 - Xcode Command Line Tools installed (`xcode-select --install`) so `codesign`, `notarytool`, etc. are
   available.
 - Ruby environment that can run `bin/mac-helper-release` (no bundler required for the script itself).
-- Access to `lib/wifi-wand/mac_helper/mac_helper_release.rb` in the repo so you can update the public signing constants.
+- Access to `lib/wifi_wand/mac_helper/mac_helper_release.rb` in the repo so you can update the public signing constants.
 
 ## Signing Assets Summary
 
 | Item | Kind | Where It Lives | How It Is Created / Updated | Secret? | Notes |
 | --- | --- | --- | --- | --- | --- |
 | Developer ID Application certificate | Apple signing identity | macOS keychain | Create via Xcode or Keychain Access | No | Used by `codesign` during helper signing |
-| Apple Team ID | Public team identifier | `lib/wifi-wand/mac_helper/mac_helper_release.rb` | Copy from Apple Developer membership / certificate metadata | No | Embedded in signed artifacts and safe to keep in source |
-| Codesign identity string | Public signing config | `lib/wifi-wand/mac_helper/mac_helper_release.rb` | Copy exact identity from `security find-identity -v -p codesigning` | No | Must match the installed Developer ID certificate |
+| Apple Team ID | Public team identifier | `lib/wifi_wand/mac_helper/mac_helper_release.rb` | Copy from Apple Developer membership / certificate metadata | No | Embedded in signed artifacts and safe to keep in source |
+| Codesign identity string | Public signing config | `lib/wifi_wand/mac_helper/mac_helper_release.rb` | Copy exact identity from `security find-identity -v -p codesigning` | No | Must match the installed Developer ID certificate |
 | Apple app-specific password | Apple credential | Apple account UI, then local entry at setup time | Create at `appleid.apple.com` | Yes | Apple only shows it once |
 | `notarytool` keychain profile | Local notarization credential reference | Login keychain by default | `bin/mac-helper-release store-credentials` or raw `xcrun notarytool store-credentials ...` | Contains secret material indirectly | Runtime commands use the profile name, not the password |
 | `WIFIWAND_NOTARYTOOL_PROFILE` | Local runtime config | Shell env / `.env.release` | Set only if you want a non-default profile name | No | Defaults to `wifiwand-notarytool` |
@@ -46,7 +46,7 @@ step (or deeper troubleshooting), jump to `MACOS_CODE_SIGNING_CONTEXT.md`.
      Copy the exact identity string (e.g., `Developer ID Application: Your Name (TEAM123ABCD)`).
 
 2. **Record the public values in the release helper**
-   - Edit `lib/wifi-wand/mac_helper/mac_helper_release.rb` and replace `APPLE_TEAM_ID` and `CODESIGN_IDENTITY` with the
+   - Edit `lib/wifi_wand/mac_helper/mac_helper_release.rb` and replace `APPLE_TEAM_ID` and `CODESIGN_IDENTITY` with the
      values from the previous step.
    - These values are embedded in every signed binary, so storing them in git is expected.
 
@@ -161,7 +161,7 @@ The notarization commands now use only a keychain profile at runtime. Supported 
 - Password reset and agreement-troubleshooting note:
   `dev/docs/MACOS_NOTARYTOOL_PASSWORD_RESET.md`
 - Script implementation lives in `bin/mac-helper-release` (CLI) and
-  `lib/wifi-wand/mac_helper/mac_helper_release.rb` (core logic).
+  `lib/wifi_wand/mac_helper/mac_helper_release.rb` (core logic).
 - Forget the commands? Run `bin/mac-helper-release help` for a quick reminder.
 
 Keeping this file short makes it easier to execute the release without rereading the entire history every

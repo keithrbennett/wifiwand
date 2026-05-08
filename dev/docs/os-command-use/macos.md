@@ -187,7 +187,7 @@ compiled helper-app read/query path.
 - Helpful Info: Verbose mode prints actionable guidance for exit statuses 127 (Swift missing) and 1 (CoreWLAN
   unavailable).
 
-### `swift lib/wifi-wand/mac_helper/swift/WifiNetworkConnector.swift <network_name> [password]`
+### `swift lib/wifi_wand/mac_helper/swift/WifiNetworkConnector.swift <network_name> [password]`
 - Description: Uses the direct Swift source path to connect via CoreWLAN when
   available.
 - Dynamic Values: `swift_filespec` (absolute path to the script), `network_name`, `password` (optional)
@@ -199,7 +199,7 @@ compiled helper-app read/query path.
   command-line fallbacks. Specific CoreWLAN error codes trigger retries with
   the `networksetup` fallback.
 
-### `swift lib/wifi-wand/mac_helper/swift/WifiNetworkDisconnector.swift`
+### `swift lib/wifi_wand/mac_helper/swift/WifiNetworkDisconnector.swift`
 - Description: Invokes the direct Swift source path to disconnect using
   CoreWLAN.
 - Dynamic Values: `swift_filespec` (absolute path to the script)

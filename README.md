@@ -100,7 +100,7 @@ method names and argument lists, so that they present a unified interface for us
 * command line invocation (e.g. `wifi-wand co my-network my-password` to connect to a network)
 * interactive shell (REPL) sessions where the WiFi-wand methods are effectively DSL commands (`wifi-wand
   shell` to run in interactive mode)
-* other Ruby applications as a gem (library) (`require wifi-wand`)
+* other Ruby applications as a gem (library) (`require 'wifi_wand'`)
 
 ### ⚠️ Important API Semantics: `connected?` Means WiFi Connected
 
@@ -447,7 +447,7 @@ First, add the gem to your Gemfile or install it system-wide. Then, require it
 and create a model:
 
 ```ruby
-require 'wifi-wand'
+require 'wifi_wand'
 
 # Create the current OS model (WifiWand::MacOsModel or WifiWand::UbuntuModel)
 model = WifiWand.create_model
@@ -470,7 +470,7 @@ You can pass options when creating the model, such as `:verbose` to see
 underlying OS commands or `:wifi_interface` to specify a network interface.
 
 ```ruby
-require 'wifi-wand'
+require 'wifi_wand'
 
 model = WifiWand.create_model(
   verbose: true,
@@ -488,14 +488,14 @@ If you know the host OS up front, you can instantiate the concrete class
 directly:
 
 ```ruby
-require 'wifi-wand/models/mac_os_model'
+require 'wifi_wand/models/mac_os_model'
 
 model = WifiWand::MacOsModel.create_model(verbose: true)
 puts model.connected_network_name
 ```
 
 ```ruby
-require 'wifi-wand/models/ubuntu_model'
+require 'wifi_wand/models/ubuntu_model'
 
 model = WifiWand::UbuntuModel.create_model(wifi_interface: 'wlp0s20f3')
 puts model.connected_network_name

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require_relative 'wifi-wand/version'
-require_relative 'wifi-wand/errors'
+require_relative 'wifi_wand/version'
+require_relative 'wifi_wand/errors'
 
 # When additional operating systems are added, we will need to modify this
 # to load only the model appropriate for the environment:
@@ -14,7 +14,7 @@ module WifiWand
   def self.create_model(options = {})
     raise ArgumentError, 'options must be a Hash' unless options.is_a?(Hash)
 
-    require_relative 'wifi-wand/operating_systems'
+    require_relative 'wifi_wand/operating_systems'
     WifiWand::OperatingSystems.create_model_for_current_os(options)
   end
 end

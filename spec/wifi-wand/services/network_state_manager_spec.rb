@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/services/network_state_manager'
+require_relative '../../../lib/wifi_wand/services/network_state_manager'
 
 describe WifiWand::NetworkStateManager do
   let(:mock_model) do

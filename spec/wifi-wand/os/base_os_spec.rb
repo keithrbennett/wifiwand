@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../../lib/wifi-wand/os/base_os'
+require_relative '../../../lib/wifi_wand/os/base_os'
 
 module WifiWand
   describe BaseOs do

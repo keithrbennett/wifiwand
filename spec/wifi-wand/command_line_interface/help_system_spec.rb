@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/command_line_interface/help_system'
-require_relative '../../../lib/wifi-wand/version'
-require_relative '../../../lib/wifi-wand/timing_constants'
+require_relative '../../../lib/wifi_wand/command_line_interface/help_system'
+require_relative '../../../lib/wifi_wand/version'
+require_relative '../../../lib/wifi_wand/timing_constants'
 
 describe WifiWand::CommandLineInterface::HelpSystem do
   subject { test_class.new(model) }

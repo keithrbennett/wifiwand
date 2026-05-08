@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/os/mac_os'
+require_relative '../../../lib/wifi_wand/os/mac_os'
 
 describe WifiWand::MacOs do
   subject(:os) { described_class.new }
@@ -36,7 +36,7 @@ describe WifiWand::MacOs do
 
   describe '#create_model' do
     it 'delegates to MacOsModel.create_model and returns the model' do
-      require_relative '../../../lib/wifi-wand/models/mac_os_model'
+      require_relative '../../../lib/wifi_wand/models/mac_os_model'
       options = { verbose: true, wifi_interface: 'en0' }
       mock_model = instance_double(WifiWand::MacOsModel)
 
@@ -48,7 +48,7 @@ describe WifiWand::MacOs do
     end
 
     it 'passes through empty options' do
-      require_relative '../../../lib/wifi-wand/models/mac_os_model'
+      require_relative '../../../lib/wifi_wand/models/mac_os_model'
       options = {}
       mock_model = instance_double(WifiWand::MacOsModel)
 

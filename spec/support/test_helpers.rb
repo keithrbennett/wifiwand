@@ -3,10 +3,10 @@
 require 'socket'
 require 'stringio'
 require_relative 'network_state_manager'
-require_relative '../../lib/wifi-wand/command_line_options'
-require_relative '../../lib/wifi-wand/operating_systems'
-require_relative '../../lib/wifi-wand/models/ubuntu_model'
-require_relative '../../lib/wifi-wand/models/mac_os_model'
+require_relative '../../lib/wifi_wand/command_line_options'
+require_relative '../../lib/wifi_wand/operating_systems'
+require_relative '../../lib/wifi_wand/models/ubuntu_model'
+require_relative '../../lib/wifi_wand/models/mac_os_model'
 
 module TestHelpers
   def restore_network_state = NetworkStateManager.restore_state

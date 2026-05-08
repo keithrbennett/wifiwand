@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'rake'
-require_relative '../wifi-wand/docs_tooling'
+require_relative '../wifi_wand/docs_tooling'
 
 namespace :docs do
   desc 'Build documentation with mkdocs'

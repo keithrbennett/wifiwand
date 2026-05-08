@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/commands/quit_command'
+require_relative '../../../lib/wifi_wand/commands/quit_command'
 
 describe WifiWand::QuitCommand do
   let(:cli) { double('cli') }

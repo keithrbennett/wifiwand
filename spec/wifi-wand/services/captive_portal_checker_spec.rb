@@ -5,7 +5,7 @@ require 'json'
 require 'rbconfig'
 require 'socket'
 require 'stringio'
-require_relative '../../../lib/wifi-wand/services/captive_portal_checker'
+require_relative '../../../lib/wifi_wand/services/captive_portal_checker'
 
 describe WifiWand::CaptivePortalChecker do
   include TestHelpers

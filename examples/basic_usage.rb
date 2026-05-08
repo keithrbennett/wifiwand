@@ -8,7 +8,7 @@
 # To run this script, make sure you have the gem installed (`gem install wifi-wand`).
 # Then, you can execute it with `ruby examples/basic_usage.rb`.
 
-require 'wifi-wand'
+require 'wifi_wand'
 
 puts 'WifiWand Library - Basic Usage Example'
 puts '---------------------------------------'

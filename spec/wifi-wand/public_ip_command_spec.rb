@@ -2,7 +2,7 @@
 
 require 'json'
 require_relative '../spec_helper'
-require_relative '../../lib/wifi-wand/command_line_interface'
+require_relative '../../lib/wifi_wand/command_line_interface'
 
 RSpec.describe 'public_ip command' do
   include TestHelpers

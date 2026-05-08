@@ -5,7 +5,7 @@ require 'json'
 require 'open3'
 require 'rbconfig'
 require 'socket'
-require_relative '../../../lib/wifi-wand/services/captive_portal_probe_helper'
+require_relative '../../../lib/wifi_wand/services/captive_portal_probe_helper'
 
 describe WifiWand::CaptivePortalProbeHelper do
   include TestHelpers
@@ -119,7 +119,7 @@ describe WifiWand::CaptivePortalProbeHelper do
   # ---------------------------------------------------------------------------
   describe 'real script entry-point (subprocess)' do
     let(:helper_script) do
-      File.expand_path('../../../lib/wifi-wand/services/captive_portal_probe_helper.rb', __dir__)
+      File.expand_path('../../../lib/wifi_wand/services/captive_portal_probe_helper.rb', __dir__)
     end
 
     # Spawns the helper as a child process, captures its stdout, then ensures the

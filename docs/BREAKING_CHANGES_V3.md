@@ -8,6 +8,28 @@ non-breaking additions, see [Version 2.x to 3.0 Code Base Changes](CHANGELOG_V2_
 
 ## Breaking Changes
 
+### Ruby require paths renamed
+
+#### Library require paths now use `wifi_wand`
+
+The Ruby library entry point and sub-require paths now use snake_case file names
+instead of the gem's hyphenated command name.
+
+```ruby
+# Old
+require 'wifi-wand'
+require 'wifi-wand/models/ubuntu_model'
+require 'wifi-wand/models/mac_os_model'
+
+# New
+require 'wifi_wand'
+require 'wifi_wand/models/ubuntu_model'
+require 'wifi_wand/models/mac_os_model'
+```
+
+The gem name and command names are unchanged: install `wifi-wand` and run the
+CLI as `wifi-wand`.
+
 ### macOS helper runtime naming
 
 #### Legacy helper require path removed
@@ -24,16 +46,16 @@ require 'wifi-wand/mac_helper/mac_os_wifi_auth_helper'
 must now require the new primary runtime entry point instead:
 
 ```ruby
-require 'wifi-wand/mac_helper/mac_os_helper_bundle'
+require 'wifi_wand/mac_helper/mac_os_helper_bundle'
 ```
 
 #### Migration
 
 - old require path: `wifi-wand/mac_helper/mac_os_wifi_auth_helper`
-- new require path: `wifi-wand/mac_helper/mac_os_helper_bundle`
+- new require path: `wifi_wand/mac_helper/mac_os_helper_bundle`
 
 The legacy constant name `WifiWand::MacOsWifiAuthHelper` no longer resolves.
-Load `wifi-wand/mac_helper/mac_os_helper_bundle` and use the supported runtime
+Load `wifi_wand/mac_helper/mac_os_helper_bundle` and use the supported runtime
 names directly:
 
 - `WifiWand::MacOsHelperBundle`

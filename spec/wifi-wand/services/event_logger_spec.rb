@@ -3,8 +3,8 @@
 require 'tempfile'
 require 'timeout'
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi-wand/services/event_logger'
-require_relative '../../../lib/wifi-wand/services/log_file_manager'
+require_relative '../../../lib/wifi_wand/services/event_logger'
+require_relative '../../../lib/wifi_wand/services/log_file_manager'
 
 describe WifiWand::EventLogger do
   let(:iso8601_timestamp_pattern) { '\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\]' }

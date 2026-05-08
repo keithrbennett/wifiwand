@@ -3,7 +3,7 @@
 require_relative '../../spec_helper'
 require 'json'
 require 'stringio'
-require_relative '../../../lib/wifi-wand/services/network_connectivity_probe_helper'
+require_relative '../../../lib/wifi_wand/services/network_connectivity_probe_helper'
 
 describe WifiWand::NetworkConnectivityProbeHelper do
   describe '.parse_argv' do

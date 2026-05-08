@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'lib/wifi-wand/version'
+require_relative 'lib/wifi_wand/version'
 
 Gem::Specification.new do |spec|
   packaged_file_patterns = [
@@ -10,15 +10,15 @@ Gem::Specification.new do |spec|
     'docs/**/*.md',
     'exe/*',
     'lib/**/*.rb',
-    'lib/wifi-wand/mac_helper/swift/*.swift',
+    'lib/wifi_wand/mac_helper/swift/*.swift',
     'lib/**/*.yml',
     'libexec/**/*',
   ].freeze
   excluded_packaged_files = [
     %r{\Adocs/(?:ai-reports|dev)/},
     %r{\Alib/tasks/},
-    %r{\Alib/wifi-wand/mac_helper/mac_helper_release\.rb\z},
-    %r{\Alib/wifi-wand/mac_helper/mac_os_helper_build\.rb\z},
+    %r{\Alib/wifi_wand/mac_helper/mac_helper_release\.rb\z},
+    %r{\Alib/wifi_wand/mac_helper/mac_os_helper_build\.rb\z},
     %r{\Alibexec/macos/(?:src/|wifiwand-helper\.entitlements\z|wifiwand-helper\.source-manifest\.json\z)},
     %r{\Adocs/TESTING\.md\z},
   ].freeze
