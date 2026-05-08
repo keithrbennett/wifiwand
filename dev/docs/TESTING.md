@@ -65,7 +65,7 @@ For narrower debugging, combine these with a single spec file:
 
 ```bash
 WIFIWAND_REAL_ENV_TESTS=all WIFIWAND_VERBOSE=true bundle exec rspec \
-  spec/wifi-wand/models/mac_os_model_spec.rb --fail-fast
+  spec/wifi_wand/models/mac_os_model_spec.rb --fail-fast
 ```
 
 ## Targeted Rake Tasks
@@ -76,10 +76,10 @@ Examples:
 
 ```bash
 # Read-only real-host tests for one file
-bundle exec rake 'test:read_only_target[./spec/wifi-wand/models/mac_os_model_spec.rb]'
+bundle exec rake 'test:read_only_target[./spec/wifi_wand/models/mac_os_model_spec.rb]'
 
 # Full real-host tests for one file
-bundle exec rake 'test:real[./spec/wifi-wand/models/mac_os_model_spec.rb]'
+bundle exec rake 'test:real[./spec/wifi_wand/models/mac_os_model_spec.rb]'
 
 # Multiple targets are passed through to RSpec
 bundle exec rake 'test:real[./spec/a_spec.rb ./spec/b_spec.rb]'
@@ -95,8 +95,8 @@ Shell behavior matters here:
 Examples for `zsh`:
 
 ```bash
-bundle exec rake test:real\[./spec/wifi-wand/models/mac_os_model_spec.rb\]
-noglob bundle exec rake test:real[./spec/wifi-wand/models/mac_os_model_spec.rb]
+bundle exec rake test:real\[./spec/wifi_wand/models/mac_os_model_spec.rb\]
+noglob bundle exec rake test:real[./spec/wifi_wand/models/mac_os_model_spec.rb]
 ```
 
 ## CI Guidance

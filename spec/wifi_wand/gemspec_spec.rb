@@ -39,7 +39,7 @@ RSpec.describe 'wifi-wand.gemspec packaging' do
       'libexec/macos/src/wifiwand-helper.swift',
       'libexec/macos/wifiwand-helper.entitlements',
       'libexec/macos/wifiwand-helper.source-manifest.json',
-      'spec/wifi-wand/mac_helper/mac_helper_release_spec.rb'
+      'spec/wifi_wand/mac_helper/mac_helper_release_spec.rb'
     )
     expect(packaged_files.grep(%r{\Abin/})).to be_empty
     expect(packaged_files.grep(%r{\Alib/tasks/})).to be_empty

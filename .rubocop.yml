@@ -25,3 +25,8 @@ Naming/PredicatePrefix:
 RSpec/AnyInstance:
   Exclude:
     - 'spec/support/**/*.rb'
+
+# Specs are organized by component area rather than by the flat WifiWand
+# constant namespace; enforcing constant-mirrored paths would make browsing worse.
+RSpec/SpecFilePathFormat:
+  Enabled: false

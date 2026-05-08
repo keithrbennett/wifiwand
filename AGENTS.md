@@ -79,10 +79,10 @@ WIFIWAND_VERBOSE=true bundle exec rake test:safe   # show underlying OS commands
 COVERAGE_BRANCH=true bundle exec rake test:safe    # enable branch coverage analysis
 
 # Run a specific file directly
-bundle exec rspec spec/wifi-wand/models/ubuntu_model_spec.rb
+bundle exec rspec spec/wifi_wand/models/ubuntu_model_spec.rb
 
 # Run a targeted real-env rake task
-bundle exec rake 'test:real[./spec/wifi-wand/models/mac_os_model_spec.rb]'
+bundle exec rake 'test:real[./spec/wifi_wand/models/mac_os_model_spec.rb]'
 ```
 
 When using bracketed Rake task arguments such as `test:real[spec/foo_spec.rb]`, make the shell rule explicit

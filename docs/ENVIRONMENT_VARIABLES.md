@@ -75,8 +75,8 @@ WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
 If you use the corresponding targeted Rake tasks, quote the full `task[arg]` expression for portability:
 
 ```bash
-bundle exec rake 'test:read_only_target[./spec/wifi-wand/models/mac_os_model_spec.rb]'
-bundle exec rake 'test:real[./spec/wifi-wand/models/mac_os_model_spec.rb]'
+bundle exec rake 'test:read_only_target[./spec/wifi_wand/models/mac_os_model_spec.rb]'
+bundle exec rake 'test:real[./spec/wifi_wand/models/mac_os_model_spec.rb]'
 ```
 
 Why this matters:

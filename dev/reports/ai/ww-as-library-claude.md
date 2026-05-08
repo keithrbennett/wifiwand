@@ -96,7 +96,7 @@ model = WifiWand.create_model(options)
 - **Test Quality**: Well-structured tests with good mocking practices
 
 ### Library API Coverage
-- **Minimal Testing**: Only `WifiWand.create_model` has dedicated tests (`spec/wifi-wand/wifi_wand_spec.rb`)
+- **Minimal Testing**: Only `WifiWand.create_model` has dedicated tests (`spec/wifi_wand/wifi_wand_spec.rb`)
 - **Missing Scenarios**: No integration tests for typical library usage patterns
 - **Error Path Testing**: Limited testing of library-specific error conditions
 

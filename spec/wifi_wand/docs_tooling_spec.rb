@@ -268,11 +268,11 @@ RSpec.describe WifiWand::DocsTooling do
 
       expect(command_architecture).not_to include(described_class::REPO_ROOT)
       expect(command_architecture).to include('../../lib/wifi_wand/commands/command.rb')
-      expect(command_architecture).to include('../../spec/wifi-wand/command_line_interface/index.md')
+      expect(command_architecture).to include('../../spec/wifi_wand/command_line_interface/index.md')
       generated_spec_index = File.join(
         described_class.generated_docs_dir,
         'spec',
-        'wifi-wand',
+        'wifi_wand',
         'command_line_interface',
         'index.md'
       )

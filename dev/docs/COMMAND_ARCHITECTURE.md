@@ -295,7 +295,7 @@ The usual steps are:
 6. Override `#help_text` only if the default metadata-based help is insufficient.
 7. Register the command class in
    [command_registry.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/command_line_interface/command_registry.rb:27).
-8. Add a focused command spec under `spec/wifi-wand/commands/`.
+8. Add a focused command spec under `spec/wifi_wand/commands/`.
 9. Add CLI-level integration coverage only if the command needs special dispatch or shell behavior.
 
 For simple commands, the class should stay very small. Good examples are:
@@ -309,12 +309,12 @@ For simple commands, the class should stay very small. Good examples are:
 The command scheme is covered at several levels:
 
 - base command behavior in
-  [command_registry_spec.rb](/home/kbennett/code/wifiwand/primary/spec/wifi-wand/command_line_interface/command_registry_spec.rb:1)
-- per-command behavior in `spec/wifi-wand/commands/*`
+  [command_registry_spec.rb](/home/kbennett/code/wifiwand/primary/spec/wifi_wand/command_line_interface/command_registry_spec.rb:1)
+- per-command behavior in `spec/wifi_wand/commands/*`
 - CLI integration behavior in the split `cli_*` spec files under
-  [spec/wifi-wand/command_line_interface](/home/kbennett/code/wifiwand/primary/spec/wifi-wand/command_line_interface)
+  [spec/wifi_wand/command_line_interface](/home/kbennett/code/wifiwand/primary/spec/wifi_wand/command_line_interface)
 - output-boundary behavior in
-  [command_output_support_spec.rb](/home/kbennett/code/wifiwand/primary/spec/wifi-wand/command_line_interface/command_output_support_spec.rb:1)
+  [command_output_support_spec.rb](/home/kbennett/code/wifiwand/primary/spec/wifi_wand/command_line_interface/command_output_support_spec.rb:1)
 
 The shared example in
 [spec/support/shared_command_examples.rb](/home/kbennett/code/wifiwand/primary/spec/support/shared_command_examples.rb:1)
