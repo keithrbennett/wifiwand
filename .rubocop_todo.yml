@@ -6,13 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 2
-# Flags nested example groups with the same description. Repeated group labels make spec output ambiguous
-# and usually indicate a missing context distinction.
-RSpec/RepeatedExampleGroupDescription:
-  Exclude:
-    - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
-
 # Offense count: 52
 # Checks whether spec file paths mirror the constants or subjects they describe. It is disabled here because
 # the current spec tree intentionally differs from the default formatter expectations.

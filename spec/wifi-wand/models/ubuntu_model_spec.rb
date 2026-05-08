@@ -603,15 +603,6 @@ module WifiWand
         end
       end
 
-      describe '#default_interface' do
-        it 'returns nil when ip route command fails' do
-          expect(subject).to receive(:run_command_using_args).with(%w[ip route show default],
-            raise_on_error: false)
-            .and_raise(os_command_error(exitstatus: 1, command: 'ip route show default', text: 'failed'))
-          expect(subject.default_interface).to be_nil
-        end
-      end
-
       describe '#nameservers_from_connection' do
         it 'parses DNS servers from nmcli connection output' do
           nmcli_output = <<~OUT
@@ -1028,6 +1019,13 @@ module WifiWand
             .and_return(command_result(stdout: route_output))
 
           expect(subject.default_interface).to eq('wlp3s0')
+        end
+
+        it 'returns nil when ip route command fails' do
+          expect(subject).to receive(:run_command_using_args).with(%w[ip route show default],
+            raise_on_error: false)
+            .and_raise(os_command_error(exitstatus: 1, command: 'ip route show default', text: 'failed'))
+          expect(subject.default_interface).to be_nil
         end
 
         it 'returns nil when no default route exists' do
