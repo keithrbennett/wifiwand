@@ -424,15 +424,30 @@ describe WifiWand::StatusLineDataBuilder do
     end
 
     it 'falls back gracefully when network identity raises an expected error' do
+      failing_model = Class.new do
+        def status_wifi_on?(timeout_in_secs:) = true
+
+        def status_network_identity(timeout_in_secs:)
+          raise StatusLineDataBuilderSpecExpectedError, 'network down'
+        end
+
+        define_method(:internet_tcp_connectivity?) do |timeout_in_secs:, return_details:|
+          { success: true, timed_out: false }
+        end
+
+        define_method(:dns_working?) do |timeout_in_secs:, return_details:|
+          { success: true, timed_out: false }
+        end
+
+        def captive_portal_state(timeout_in_secs:) = :free
+      end.new
       out_stream = StringIO.new
       failing_builder = described_class.new(
-        model,
+        failing_model,
         verbose:                 true,
         out_stream:              out_stream,
         expected_network_errors: [StatusLineDataBuilderSpecExpectedError]
       )
-      allow(model).to receive(:status_network_identity)
-        .and_raise(StatusLineDataBuilderSpecExpectedError, 'network down')
 
       result = failing_builder.call
 
@@ -478,17 +493,29 @@ describe WifiWand::StatusLineDataBuilder do
     end
 
     it 'falls back gracefully when connectivity checks raise expected errors' do
+      failing_model = Class.new do
+        def status_wifi_on?(timeout_in_secs:) = true
+
+        def status_network_identity(timeout_in_secs:)
+          { connected: true, network_name: 'HomeNetwork' }
+        end
+
+        define_method(:internet_tcp_connectivity?) do |timeout_in_secs:, return_details:|
+          raise StatusLineDataBuilderSpecExpectedError, 'tcp down'
+        end
+
+        define_method(:dns_working?) do |timeout_in_secs:, return_details:|
+          raise StatusLineDataBuilderSpecExpectedError, 'dns down'
+        end
+
+        def captive_portal_state(timeout_in_secs:) = :free
+      end.new
       failing_builder = described_class.new(
-        model,
+        failing_model,
         verbose:                 true,
         out_stream:              StringIO.new,
         expected_network_errors: [StatusLineDataBuilderSpecExpectedError]
       )
-      allow(model).to receive(:internet_tcp_connectivity?).and_raise(
-        StatusLineDataBuilderSpecExpectedError,
-        'tcp down'
-      )
-      allow(model).to receive(:dns_working?).and_raise(StatusLineDataBuilderSpecExpectedError, 'dns down')
 
       result = failing_builder.call
 
@@ -655,36 +682,56 @@ describe WifiWand::StatusLineDataBuilder do
     end
 
     it 'returns fallback data when both workers stay blocked past their own deadlines' do
+      network_started = Queue.new
+      connectivity_started = Queue.new
+      blocked_model = Class.new do
+        def initialize(network_started:, connectivity_started:)
+          @network_started = network_started
+          @connectivity_started = connectivity_started
+        end
+
+        def status_wifi_on?(timeout_in_secs:) = true
+
+        def status_network_identity(timeout_in_secs:)
+          @network_started << :started
+          sleep(timeout_in_secs)
+          raise WifiWand::CommandTimeoutError.new(
+            command:         'status network identity',
+            timeout_in_secs: timeout_in_secs
+          )
+        end
+
+        define_method(:internet_tcp_connectivity?) do |timeout_in_secs:, return_details:|
+          @connectivity_started << :started
+          sleep(timeout_in_secs)
+          { success: false, timed_out: true }
+        end
+
+        define_method(:dns_working?) do |timeout_in_secs:, return_details:|
+          { success: true, timed_out: false }
+        end
+
+        def captive_portal_state(timeout_in_secs:) = :free
+      end.new(
+        network_started:      network_started,
+        connectivity_started: connectivity_started
+      )
       overall_bounded_builder = described_class.new(
-        model,
+        blocked_model,
         out_stream:                                 StringIO.new,
         network_worker_result_timeout_seconds:      0.02,
         connectivity_worker_result_timeout_seconds: 0.05,
         worker_result_poll_interval_seconds:        0.001,
         worker_cleanup_timeout_seconds:             0.005
       )
-      network_started = Queue.new
-      connectivity_started = Queue.new
 
-      allow(model).to receive(:status_network_identity) do |timeout_in_secs:|
-        network_started << :started
-        sleep(timeout_in_secs)
-        raise WifiWand::CommandTimeoutError.new(
-          command:         'status network identity',
-          timeout_in_secs: timeout_in_secs
-        )
+      caller_thread = Thread.new do
+        overall_bounded_builder.call(progress_callback: ->(data) { progress_updates << data })
       end
-      allow(model).to receive(:internet_tcp_connectivity?) do |timeout_in_secs:, return_details:|
-        expect(return_details).to be true
-        connectivity_started << :started
-        sleep(timeout_in_secs)
-        { success: false, timed_out: true }
-      end
+      expect(network_started.pop(timeout: 1)).to eq(:started)
+      expect(connectivity_started.pop(timeout: 1)).to eq(:started)
 
-      result = nil
-      Timeout.timeout(1) do
-        result = overall_bounded_builder.call(progress_callback: ->(data) { progress_updates << data })
-      end
+      result = Timeout.timeout(1) { caller_thread.value }
 
       expect(result).to eq(
         wifi_on:                       true,
@@ -701,14 +748,46 @@ describe WifiWand::StatusLineDataBuilder do
         expected_initial_progress.merge(connected: nil, network_name: nil),
         result,
       ])
-      expect(network_started.pop(timeout: 1)).to eq(:started)
-      expect(connectivity_started.pop(timeout: 1)).to eq(:started)
     end
 
     it 'tracks an end-to-end worker stuck inside a model call after returning fallback data' do
       out_stream = StringIO.new
+      network_started = Queue.new
+      network_release = Queue.new
+      network_terminated = Queue.new
+      stuck_model = Class.new do
+        def initialize(network_started:, network_release:, network_terminated:)
+          @network_started = network_started
+          @network_release = network_release
+          @network_terminated = network_terminated
+        end
+
+        def status_wifi_on?(timeout_in_secs:) = true
+
+        def status_network_identity(timeout_in_secs:)
+          @network_started << :started
+          @network_release.pop
+          { connected: true, network_name: 'HomeNetwork' }
+        ensure
+          @network_terminated << :terminated
+        end
+
+        define_method(:internet_tcp_connectivity?) do |timeout_in_secs:, return_details:|
+          { success: true, timed_out: false }
+        end
+
+        define_method(:dns_working?) do |timeout_in_secs:, return_details:|
+          { success: true, timed_out: false }
+        end
+
+        def captive_portal_state(timeout_in_secs:) = :free
+      end.new(
+        network_started:    network_started,
+        network_release:    network_release,
+        network_terminated: network_terminated
+      )
       stuck_worker_builder = described_class.new(
-        model,
+        stuck_model,
         verbose:                                    true,
         out_stream:                                 out_stream,
         network_worker_result_timeout_seconds:      0.005,
@@ -716,18 +795,11 @@ describe WifiWand::StatusLineDataBuilder do
         worker_result_poll_interval_seconds:        0.001,
         worker_cleanup_timeout_seconds:             0.001
       )
-      network_release = Queue.new
-      network_terminated = Queue.new
 
-      allow(model).to receive(:status_network_identity) do
-        network_release.pop
-        { connected: true, network_name: 'HomeNetwork' }
-      ensure
-        network_terminated << :terminated
-      end
+      caller_thread = Thread.new { stuck_worker_builder.call }
+      expect(network_started.pop(timeout: 1)).to eq(:started)
 
-      result = nil
-      Timeout.timeout(1) { result = stuck_worker_builder.call }
+      result = Timeout.timeout(1) { caller_thread.value }
 
       stragglers = stuck_worker_builder.instance_variable_get(:@straggler_threads)
       expect(result).to include(
