@@ -7,16 +7,6 @@
 # versions of RuboCop, may require this file to be generated again.
 
 # Offense count: 1
-# Enforces the configured style for identifiers that contain numbers, such as x86_64 or ipv6, so naming
-# stays consistent across constants, variables, and method names.
-# Configuration parameters: EnforcedStyle, CheckMethodNames, CheckSymbols, AllowedIdentifiers, AllowedPatterns.
-# SupportedStyles: snake_case, normalcase, non_integer
-# AllowedIdentifiers: TLS1_1, TLS1_2, capture3, iso8601, rfc1123_date, rfc822, rfc2822, rfc3339, x86_64
-Naming/VariableNumber:
-  Exclude:
-    - 'lib/wifi_wand/mac_helper/mac_helper_release.rb'
-
-# Offense count: 1
 # Discourages before(:all) and after(:all), which share state across examples and can make specs order
 # dependent or harder to clean up.
 RSpec/BeforeAfterAll:

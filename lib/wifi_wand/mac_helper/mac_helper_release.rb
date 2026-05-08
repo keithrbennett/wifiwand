@@ -218,12 +218,12 @@ module WifiWand
       def self.verify_universal_binary?(binary_path)
         archs = get_binary_architectures(binary_path)
         has_arm64 = archs.include?('arm64')
-        has_x86_64 = archs.include?('x86_64')
+        has_intel_architecture = archs.include?('x86_64')
 
-        unless has_arm64 && has_x86_64
+        unless has_arm64 && has_intel_architecture
           missing = []
           missing << 'arm64' unless has_arm64
-          missing << 'x86_64' unless has_x86_64
+          missing << 'x86_64' unless has_intel_architecture
           puts "⚠ Warning: Binary is missing architectures: #{missing.join(', ')}"
           puts "  Found: #{archs.join(', ')}"
           puts "  This binary will not work on #{missing.include?('arm64') ? 'Apple Silicon' : 'Intel'} Macs."
