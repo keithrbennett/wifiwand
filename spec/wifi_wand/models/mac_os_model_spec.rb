@@ -2506,12 +2506,11 @@ module WifiWand
           mixed_ips = ['8.8.8.8', 'invalid.ip', '2606:4700:4700::1111', '1.1.1.1', '999.999.999.999']
 
           silence_output do
-            expect do
-              model.set_nameservers(mixed_ips)
-            end.to raise_error(WifiWand::InvalidIPAddressError) do |error|
+            invalid_ip_error = raise_error(WifiWand::InvalidIPAddressError) do |error|
               expect(error.invalid_addresses).to include('invalid.ip', '999.999.999.999')
               expect(error.invalid_addresses).not_to include('8.8.8.8', '1.1.1.1', '2606:4700:4700::1111')
             end
+            expect { model.set_nameservers(mixed_ips) }.to invalid_ip_error
           end
         end
 
