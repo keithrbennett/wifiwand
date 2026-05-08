@@ -168,6 +168,9 @@ RSpec/DescribeClass:
 RSpec/MessageSpies:
   Enabled: false
 
+RSpec/SubjectStub:
+  Enabled: false
+
 RSpec/VerifiedDoubles:
   Enabled: false
 

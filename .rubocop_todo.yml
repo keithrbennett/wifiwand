@@ -177,14 +177,6 @@ RSpec/SubjectDeclaration:
   Exclude:
     - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
 
-# Offense count: 117
-RSpec/SubjectStub:
-  Exclude:
-    - 'spec/wifi-wand/base_model_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/shell_interface_spec.rb'
-    - 'spec/wifi-wand/mac_helper/mac_os_helper_setup_spec.rb'
-    - 'spec/wifi-wand/services/connection_manager_spec.rb'
-
 # Offense count: 18
 # Configuration parameters: AllowedVariables.
 Style/GlobalVars:
