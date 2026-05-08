@@ -9,6 +9,7 @@ module WifiWand
     # Mock OS calls to prevent real system interaction during ordinary tests
     before do
       # Mock interface discovery for both OS types
+      # rubocop:disable RSpec/AnyInstance -- file-level bootstrap stubs keep model creation hermetic
       allow_any_instance_of(WifiWand::UbuntuModel).to receive(:probe_wifi_interface).and_return('wlp0s20f3')
       if defined?(WifiWand::MacOsModel)
         allow_any_instance_of(WifiWand::MacOsModel).to receive(:probe_wifi_interface).and_return('en0')
@@ -20,6 +21,7 @@ module WifiWand
       allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:tcp_connectivity?)
         .and_return(true)
       allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?).and_return(true)
+      # rubocop:enable RSpec/AnyInstance
     end
 
     # Test inheritance - ensures all error classes inherit from base Error class
@@ -200,7 +202,6 @@ module WifiWand
           before: -> {
             # Ensure membership check fails regardless of underlying OS/network state
             allow(model).to receive(:has_preferred_network?).and_return(false)
-            allow_any_instance_of(model.class).to receive(:has_preferred_network?).and_return(false)
 
             # Ubuntu resolves configured SSIDs through NetworkManager profiles instead of
             # BaseModel#has_preferred_network?, so keep this test from shelling out to nmcli.
@@ -209,9 +210,7 @@ module WifiWand
             # Ensure our test exercises the real wrapper method, not a global stub
             # Only un-stub on macOS where the global stub is applied
             if defined?($compatible_os_tag) && $compatible_os_tag == :os_mac
-              allow_any_instance_of(WifiWand::MacOsModel)
-                .to receive(:preferred_network_password)
-                .and_call_original
+              allow(model).to receive(:preferred_network_password).and_call_original
             end
           }
         },
@@ -281,11 +280,22 @@ module WifiWand
         end
 
         it 'raises InvalidInterfaceError when specified interface is invalid during initialization' do
-          current_model_class = create_test_model.class
-          allow_any_instance_of(current_model_class).to receive(:is_wifi_interface?)
-            .with('invalid_interface').and_return(false)
-          expect { create_test_model(wifi_interface: 'invalid_interface') }
-            .to raise_error(InvalidInterfaceError)
+          current_os = WifiWand::OperatingSystems.current_os
+          merged_options = merge_verbose_options(wifi_interface: 'invalid_interface')
+
+          case current_os.id
+          when :ubuntu
+            model = WifiWand::UbuntuModel.new(merged_options)
+            allow(model).to receive(:command_available?).and_return(true)
+            allow(model).to receive(:is_wifi_interface?).with('invalid_interface').and_return(false)
+            expect { model.init }.to raise_error(InvalidInterfaceError)
+          when :mac
+            model = WifiWand::MacOsModel.new(merged_options)
+            allow(model).to receive(:is_wifi_interface?).with('invalid_interface').and_return(false)
+            expect { model.init }.to raise_error(InvalidInterfaceError)
+          else
+            skip 'Test not applicable for current OS'
+          end
         end
       end
 

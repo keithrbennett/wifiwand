@@ -52,7 +52,6 @@ describe 'Output Format Integration Tests' do
 
   before do
     allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(mock_os)
-    allow_any_instance_of(WifiWand::CommandLineInterface).to receive(:run_shell)
   end
 
   # Helper method to parse command line arguments and get the real application processor

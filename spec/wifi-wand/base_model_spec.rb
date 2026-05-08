@@ -10,21 +10,17 @@ describe 'Common WiFi Model Behavior (All OS)' do
   subject { create_test_model }
 
   before do
-    # Mock interface discovery for both OS types
-    allow_any_instance_of(WifiWand::UbuntuModel).to receive(:probe_wifi_interface).and_return('wlp0s20f3')
-    if defined?(WifiWand::MacOsModel)
-      allow_any_instance_of(WifiWand::MacOsModel).to receive(:probe_wifi_interface).and_return('en0')
-    end
-
     # Mock all OS-calling methods to prevent real system calls in ordinary tests
     # Only skip these mocks for examples that intentionally use the real environment.
     # Use RSpec.current_example to get the current running example
     unless uses_real_env?
       # Also mock the underlying NetworkConnectivityTester to prevent real network calls
-      tester = WifiWand::NetworkConnectivityTester
-      allow_any_instance_of(tester).to receive(:tcp_connectivity?).and_return(true)
-      allow_any_instance_of(tester).to receive(:dns_working?).and_return(true)
-      allow_any_instance_of(tester).to receive(:captive_portal_state).and_return(:free)
+      tester = subject.connectivity_tester
+      allow(tester).to receive_messages(
+        tcp_connectivity?:    true,
+        dns_working?:         true,
+        captive_portal_state: :free
+      )
       allow(subject.connection_manager).to receive(:wait_for_connection_activation)
 
       # Mock low-level OS command execution to prevent real system calls
@@ -518,7 +514,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     context 'when target is an association state (:associated / :disassociated)' do
       before do
         allow(subject).to receive(:till).and_call_original
-        allow_any_instance_of(WifiWand::StatusWaiter).to receive(:sleep)
+        allow(subject.status_waiter).to receive(:sleep)
       end
 
       it 'returns nil immediately for :associated when already associated' do

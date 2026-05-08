@@ -63,20 +63,6 @@ Naming/VariableNumber:
   Exclude:
     - 'lib/wifi-wand/mac_helper/mac_helper_release.rb'
 
-# Offense count: 36
-RSpec/AnyInstance:
-  Exclude:
-    - 'spec/support/rspec_configuration.rb'
-    - 'spec/support/test_helpers.rb'
-    - 'spec/wifi-wand/base_model_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formats_e2e_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formats_integration_spec.rb'
-    - 'spec/wifi-wand/errors_spec.rb'
-    - 'spec/wifi-wand/mac_helper/mac_os_setup_cli_spec.rb'
-    - 'spec/wifi-wand/models/mac_os_model_spec.rb'
-    - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
-    - 'spec/wifi-wand/operating_systems_spec.rb'
-
 # Offense count: 1
 RSpec/BeforeAfterAll:
   Exclude:

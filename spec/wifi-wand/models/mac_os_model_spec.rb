@@ -10,9 +10,12 @@ module WifiWand
     before do
       unless uses_real_env? || RSpec.current_example&.metadata&.[](:keychain_integration)
         # Avoid macOS Keychain prompts during mocked tests
+        # rubocop:disable RSpec/AnyInstance -- file-level bootstrap stubs keep mocked model setup hermetic
         allow_any_instance_of(described_class).to receive(:preferred_network_password).and_return(nil)
         # Ensure initialization doesn’t fail due to interface detection during mocked tests
-        allow_any_instance_of(described_class).to receive(:probe_wifi_interface).and_return('en0')
+        unless RSpec.current_example&.metadata&.[](:allow_real_probe_wifi_interface)
+          allow_any_instance_of(described_class).to receive(:probe_wifi_interface).and_return('en0')
+        end
 
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:internet_connectivity_state)
           .and_return(:reachable)
@@ -20,6 +23,7 @@ module WifiWand
           .and_return(true)
         allow_any_instance_of(WifiWand::NetworkConnectivityTester).to receive(:dns_working?)
           .and_return(true)
+        # rubocop:enable RSpec/AnyInstance
 
       end
     end
@@ -756,8 +760,14 @@ module WifiWand
         end
 
         it 'returns true when the helper is disabled and the WiFi interface still has an IP address' do
-          model.instance_variable_set(:@mac_helper_client, nil)
           allow(WifiWand::MacOsHelperClient).to receive(:new).and_call_original
+          helper_client = WifiWand::MacOsHelperClient.new(
+            out_stream_proc:    -> { $stdout },
+            err_stream_proc:    -> { $stderr },
+            verbose_proc:       -> { false },
+            macos_version_proc: ->(timeout_in_secs: nil) { '14.0' }
+          )
+          model.instance_variable_set(:@mac_helper_client, helper_client)
           allow(model).to receive_messages(
             airport_data:      { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [{
               '_name' => 'en0',
@@ -770,8 +780,8 @@ module WifiWand
           original_env = ENV['WIFIWAND_DISABLE_MAC_HELPER']
           ENV['WIFIWAND_DISABLE_MAC_HELPER'] = '1'
           begin
-            expect_any_instance_of(WifiWand::MacOsHelperClient)
-              .not_to receive(:ensure_helper_installed)
+            expect(WifiWand::MacOsHelperBundle).not_to receive(:ensure_helper_installed)
+            expect(WifiWand::MacOsHelperBundle).not_to receive(:run_bounded_helper_command)
             expect(model.connected?).to be(true)
           ensure
             ENV['WIFIWAND_DISABLE_MAC_HELPER'] = original_env
@@ -1298,12 +1308,7 @@ module WifiWand
         end
       end
 
-      describe '#probe_wifi_interface' do
-        # Restore original method behavior for these specific tests
-        before do
-          allow_any_instance_of(described_class).to receive(:probe_wifi_interface).and_call_original
-        end
-
+      describe '#probe_wifi_interface', :allow_real_probe_wifi_interface do
         # Provide a valid interface during initialization to avoid init failures in this block
         subject(:model) { create_mac_os_test_model(wifi_interface: 'en0') }
         let(:system_profiler_output) do
@@ -1476,11 +1481,6 @@ module WifiWand
       end
 
       describe '#macos_version (real system)', :real_env_read_only, real_env_os: :os_mac do
-        # For these real-system checks, allow actual OS command execution
-        before do
-          allow_any_instance_of(described_class).to receive(:run_command_using_args).and_call_original
-        end
-
         it 'returns a non-empty semantic version on macOS' do
           real_model = create_mac_os_test_model
           v = real_model.macos_version
@@ -2543,8 +2543,9 @@ module WifiWand
 
       context 'when invalid wifi_interface is provided' do
         it 'raises InvalidInterfaceError' do
-          allow_any_instance_of(WifiWand::MacOsModel).to receive(:is_wifi_interface?).with('invalid0')
-            .and_return(false)
+          model = WifiWand::MacOsModel.new(wifi_interface: 'invalid0')
+          allow(model).to receive(:is_wifi_interface?).with('invalid0').and_return(false)
+          allow(WifiWand::MacOsModel).to receive(:new).and_return(model)
 
           expect { WifiWand::MacOsModel.create_model(wifi_interface: 'invalid0') }
             .to raise_error(WifiWand::InvalidInterfaceError)

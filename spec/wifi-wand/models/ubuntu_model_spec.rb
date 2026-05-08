@@ -11,9 +11,11 @@ module WifiWand
     before do
       unless uses_real_env?
         tester = WifiWand::NetworkConnectivityTester
+        # rubocop:disable RSpec/AnyInstance -- file-level bootstrap stubs keep mocked model setup hermetic
         allow_any_instance_of(tester).to receive(:internet_connectivity_state).and_return(:reachable)
         allow_any_instance_of(tester).to receive(:tcp_connectivity?).and_return(true)
         allow_any_instance_of(tester).to receive(:dns_working?).and_return(true)
+        # rubocop:enable RSpec/AnyInstance
 
         # Mock OS command execution to prevent real WiFi control commands
         allow(subject).to receive_messages(run_command_using_args: command_result(stdout: ''), till: nil)

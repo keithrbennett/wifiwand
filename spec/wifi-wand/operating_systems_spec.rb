@@ -118,17 +118,37 @@ module WifiWand
         end
       end
 
-      it 'creates a model even when no WiFi interface is detectable' do
-        if described_class.current_os
-          # Simulate a host with no detectable WiFi hardware
-          allow_any_instance_of(WifiWand::BaseModel).to receive(:probe_wifi_interface).and_return(nil)
-          allow_any_instance_of(WifiWand::BaseModel).to receive(:validate_os_preconditions).and_return(:ok)
+      it 'delegates model creation to the detected OS object' do
+        model = instance_double(WifiWand::BaseModel)
+        current_os = instance_double(BaseOs, create_model: model)
 
-          model = described_class.create_model_for_current_os
-          expect(model).not_to be_nil
-          expect(model).to respond_to(:wifi_on?)
-          expect(model).to respond_to(:wifi_info)
+        allow(described_class).to receive(:current_os).and_return(current_os)
+
+        expect(described_class.create_model_for_current_os).to equal(model)
+      end
+
+      it 'creates a model without eagerly initializing the wifi interface by default' do
+        current_os = described_class.current_os
+        expect(current_os).not_to be_nil
+
+        model_class = {
+          ubuntu: WifiWand::UbuntuModel,
+          mac:    WifiWand::MacOsModel,
+        }.fetch(current_os.id) do
+          raise "Unexpected current_os.id: #{current_os.id.inspect}"
         end
+
+        model = model_class.new
+        allow(model).to receive(:init).and_call_original
+        allow(model_class).to receive(:new).and_return(model)
+
+        created_model = described_class.create_model_for_current_os
+
+        expect(created_model).to equal(model)
+        expect(created_model).not_to have_received(:init)
+        expect(created_model.instance_variable_get(:@wifi_interface)).to be_nil
+        expect(created_model).to respond_to(:wifi_on?)
+        expect(created_model).to respond_to(:wifi_info)
       end
 
       it 'raises error when no OS is detected' do

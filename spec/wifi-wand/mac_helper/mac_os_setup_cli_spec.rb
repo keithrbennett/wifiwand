@@ -6,7 +6,6 @@ require 'wifi-wand/mac_helper/mac_os_setup_cli'
 
 RSpec.describe WifiWand::MacOsSetupCli do
   before do
-    allow_any_instance_of(described_class).to receive(:sleep)
     allow(WifiWand::MacOsHelperBundle).to receive(:helper_install_dir_count).and_return(0)
   end
 
@@ -37,12 +36,14 @@ RSpec.describe WifiWand::MacOsSetupCli do
   def build_cli(argv: [], setup: nil, support_status: supported_helper_status)
     allow(setup).to receive(:helper_support_status).and_return(support_status) if setup
 
-    described_class.new(
+    cli = described_class.new(
       argv:       argv,
       setup:      setup,
       out_stream: out_stream,
       in_stream:  in_stream
     )
+    allow(cli).to receive(:sleep)
+    cli
   end
 
   # Shared setup mock that stubs the parts every scenario touches.

@@ -21,3 +21,7 @@ Naming/PredicatePrefix:
     - is_a?
     - has_preferred_network?
     - is_wifi_interface?
+
+RSpec/AnyInstance:
+  Exclude:
+    - 'spec/support/**/*.rb'
