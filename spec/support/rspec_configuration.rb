@@ -170,7 +170,7 @@ module RSpecConfiguration
   end
 
   def self.running_on_mac_os?
-    defined?($compatible_os_tag) && $compatible_os_tag == :os_mac
+    OSFiltering.compatible_os_tag == :os_mac
   end
 
   # Configure helper method inclusions

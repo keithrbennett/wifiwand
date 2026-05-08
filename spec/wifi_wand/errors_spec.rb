@@ -209,7 +209,7 @@ module WifiWand
 
             # Ensure our test exercises the real wrapper method, not a global stub
             # Only un-stub on macOS where the global stub is applied
-            if defined?($compatible_os_tag) && $compatible_os_tag == :os_mac
+            if OSFiltering.compatible_os_tag == :os_mac
               allow(model).to receive(:preferred_network_password).and_call_original
             end
           }

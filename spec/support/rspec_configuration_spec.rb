@@ -69,14 +69,14 @@ RSpec.describe RSpecConfiguration do
   let(:hook_config) { RSpecConfigurationSpecDoubles::HookConfigDouble.new }
 
   # Ensure we never leak OS state between examples. The real code relies on the
-  # global $compatible_os_tag that OS filtering sets up; the examples need
+  # OSFiltering-compatible OS tag that setup_os_detection sets up; the examples need
   # stable values to exercise both branches.
   around do |example|
-    original_os_tag = defined?($compatible_os_tag) ? $compatible_os_tag : nil
+    original_os_tag = OSFiltering.compatible_os_tag
 
     example.run
   ensure
-    $compatible_os_tag = original_os_tag
+    OSFiltering.compatible_os_tag = original_os_tag
   end
 
   # Helper to mirror the real configure-preflight hook and immediately execute
@@ -99,7 +99,7 @@ RSpec.describe RSpecConfiguration do
   # real_env_read_write specs. This example fails if the capture hook stops
   # running outside the macOS path, so we get an early warning if it regresses.
   it 'captures network state when real_env_read_write tests run on non-macOS hosts' do
-    $compatible_os_tag = :os_ubuntu
+    OSFiltering.compatible_os_tag = :os_ubuntu
 
     allow(described_class).to receive(:examples_to_run).and_return([
       double('example', metadata: { real_env: true, real_env_read_write: true }),
@@ -110,7 +110,7 @@ RSpec.describe RSpecConfiguration do
   end
 
   it 'captures network state exactly once when macOS real_env examples run' do
-    $compatible_os_tag = :os_mac
+    OSFiltering.compatible_os_tag = :os_mac
 
     allow(described_class).to receive(:examples_to_run).and_return([
       double('example', metadata: { real_env: true, real_env_read_write: true }),
@@ -123,7 +123,7 @@ RSpec.describe RSpecConfiguration do
   end
 
   it 'does not gate mocked or hermetic suites when no real_env tests were requested' do
-    $compatible_os_tag = :os_mac
+    OSFiltering.compatible_os_tag = :os_mac
 
     allow(described_class).to receive(:examples_to_run).and_return([
       double('example', metadata: {}),
@@ -136,7 +136,7 @@ RSpec.describe RSpecConfiguration do
   end
 
   it 'refuses requested macOS real_env runs before the suite starts when WiFi identity is redacted' do
-    $compatible_os_tag = :os_mac
+    OSFiltering.compatible_os_tag = :os_mac
     reason = [
       'macOS is redacting WiFi network names until',
       'Location Services access is granted',
@@ -195,7 +195,7 @@ RSpec.describe RSpecConfiguration do
     # This example covers the generic non-macOS fallback path.
     # macOS has a dedicated redaction/setup error path that is covered below.
     it 'raises when connected but captured state has no network name on non-macOS hosts' do
-      $compatible_os_tag = :os_linux
+      OSFiltering.compatible_os_tag = :os_linux
       allow(mock_model).to receive_messages(connected?: true, connected_network_name: nil)
       allow(NetworkStateManager).to receive(:capture_state)
       allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: nil })
@@ -205,7 +205,7 @@ RSpec.describe RSpecConfiguration do
     end
 
     it 'raises a setup error on macOS when redaction prevents exact-state restoration verification' do
-      $compatible_os_tag = :os_mac
+      OSFiltering.compatible_os_tag = :os_mac
       reason = [
         'macOS is redacting WiFi network names until',
         'Location Services access is granted',
@@ -287,7 +287,7 @@ RSpec.describe RSpecConfiguration do
     let(:hook_block) { hook_config.before_hooks.first.last }
 
     before do
-      $compatible_os_tag = :os_mac
+      OSFiltering.compatible_os_tag = :os_mac
       described_class.configure_test_stubbing(hook_config)
     end
 
