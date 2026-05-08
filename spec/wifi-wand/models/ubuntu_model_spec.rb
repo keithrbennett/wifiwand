@@ -2132,16 +2132,11 @@ module WifiWand
           allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
           expect(subject).not_to receive(:dns_configuration_snapshot)
 
-          # Capture stdout to suppress the "invalid address:" output from IP validation
-          original_stdout = $stdout
-          $stdout = StringIO.new
-          begin
-            expect do
+          expect do
+            silence_output do
               subject.set_nameservers(invalid_nameservers)
-            end.to raise_error(WifiWand::InvalidIPAddressError)
-          ensure
-            $stdout = original_stdout
-          end
+            end
+          end.to raise_error(WifiWand::InvalidIPAddressError)
         end
 
         it 'raises error for invalid IPv6 addresses before reading connection state' do

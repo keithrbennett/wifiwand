@@ -6,13 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 2
-# Discourages expect { ... }.to output checks. Output expectations often couple tests to formatting and can
-# be brittle unless the command's output is the behavior under test.
-RSpec/ExpectOutput:
-  Exclude:
-    - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
-
 # Offense count: 4
 # Flags instance variables in specs because they hide dependencies from each example. let, subject, or local
 # variables usually make setup clearer and more isolated.
