@@ -269,9 +269,9 @@ module WifiWand
       end
 
       begin
+        profile = find_best_profile_for_ssid(network_name)
         if password
           # Case 2: Password is provided.
-          profile = find_best_profile_for_ssid(network_name)
           if profile
             activate_existing_profile_with_password(network_name, password, profile)
           else
@@ -282,16 +282,14 @@ module WifiWand
             # troubleshooting failed joins in verbose mode.
             run_command_using_args(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])
           end
+        elsif profile
+          # Case 3a: No password provided and a profile exists.
+          # Try to bring it up with stored settings.
+          run_command_using_args(['nmcli', 'connection', 'up', profile])
         else
-          # Case 3: No password provided.
-          profile = find_best_profile_for_ssid(network_name)
-          if profile
-            # Profile exists, try to bring it up with stored settings.
-            run_command_using_args(['nmcli', 'connection', 'up', profile])
-          else
-            # No profile exists, try to connect to it as an open network.
-            run_command_using_args(['nmcli', 'dev', 'wifi', 'connect', network_name])
-          end
+          # Case 3b: No password provided and no profile exists.
+          # Try to connect to it as an open network.
+          run_command_using_args(['nmcli', 'dev', 'wifi', 'connect', network_name])
         end
       rescue WifiWand::CommandExecutor::OsCommandError => e
         # The nmcli command failed. Determine the specific failure reason.

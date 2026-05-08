@@ -6,14 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 2
-# Flags if/case branches with identical bodies. Unlike Lint/DuplicateBranch, this style cop focuses on
-# conditional structure that can often be simplified.
-# This cop supports unsafe autocorrection (--autocorrect-all).
-Style/IdenticalConditionalBranches:
-  Exclude:
-    - 'lib/wifi_wand/models/ubuntu_model.rb'
-
 # Offense count: 1
 # Requires respond_to_missing? when method_missing is defined, so reflection and callers using respond_to?
 # see behavior consistent with dynamic dispatch.
