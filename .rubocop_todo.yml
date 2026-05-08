@@ -6,13 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 1
-# Requires respond_to_missing? when method_missing is defined, so reflection and callers using respond_to?
-# see behavior consistent with dynamic dispatch.
-Style/MissingRespondToMissing:
-  Exclude:
-    - 'lib/wifi_wand/command_line_interface/shell_interface.rb'
-
 # Offense count: 2
 # Flags chaining directly after a multiline block, which can be hard to scan because the receiver of the
 # chained call is visually far from the method name.

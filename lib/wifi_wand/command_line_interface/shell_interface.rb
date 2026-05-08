@@ -38,6 +38,10 @@ module WifiWand
         end
       end
 
+      def respond_to_missing?(method_name, include_private = false)
+        !!find_command_action(method_name.to_s) || super
+      end
+
       def quit
         if interactive_mode
           throw(:wifiwand_shell_exit, 0)

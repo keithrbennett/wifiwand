@@ -25,6 +25,10 @@ describe WifiWand::CommandLineInterface::ShellInterface do
         end
       end
 
+      def find_command_action(command)
+        :info if command == 'info'
+      end
+
       def print_help = out_stream.puts 'Mock help text'
 
       # Mock interactive_mode for testing
@@ -69,6 +73,14 @@ describe WifiWand::CommandLineInterface::ShellInterface do
       # The suggestion is part of the error message in the current implementation
       expect { subject.unknown_command }.to raise_error(NoMethodError,
         /If you intended it as an argument to a command, it may be invalid or need quotes./)
+    end
+
+    it 'reports known shell commands through respond_to?' do
+      expect(subject).to respond_to(:info)
+    end
+
+    it 'does not report unknown shell commands through respond_to?' do
+      expect(subject).not_to respond_to(:unknown_command)
     end
   end
 
