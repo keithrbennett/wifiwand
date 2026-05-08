@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe RSpecConfiguration do
+module RSpecConfigurationSpecDoubles
   class BasicSettingsConfigDouble
     attr_reader :derived_metadata_blocks
 
@@ -61,10 +61,12 @@ RSpec.describe RSpecConfiguration do
 
     def after(*args, &block) = @after_hooks << [args, block]
   end
+end
 
-  let(:config_double) { PreflightConfigDouble.new }
-  let(:basic_settings_config) { BasicSettingsConfigDouble.new }
-  let(:hook_config) { HookConfigDouble.new }
+RSpec.describe RSpecConfiguration do
+  let(:config_double) { RSpecConfigurationSpecDoubles::PreflightConfigDouble.new }
+  let(:basic_settings_config) { RSpecConfigurationSpecDoubles::BasicSettingsConfigDouble.new }
+  let(:hook_config) { RSpecConfigurationSpecDoubles::HookConfigDouble.new }
 
   # Ensure we never leak OS state between examples. The real code relies on the
   # global $compatible_os_tag that OS filtering sets up; the examples need

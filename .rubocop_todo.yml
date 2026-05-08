@@ -6,17 +6,9 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 12
-# Configuration parameters: AllowedMethods.
-# AllowedMethods: enums
-Lint/ConstantDefinitionInBlock:
-  Exclude:
-    - 'spec/support/rspec_configuration_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
-    - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
-    - 'spec/wifi-wand/services/event_logger_spec.rb'
-
 # Offense count: 8
+# Flags conditional branches that run identical code, since duplicated branch bodies usually mean either
+# dead distinction or a missing behavioral difference.
 # Configuration parameters: IgnoreLiteralBranches, IgnoreConstantBranches, IgnoreDuplicateElseBranch.
 Lint/DuplicateBranch:
   Exclude:
@@ -24,6 +16,8 @@ Lint/DuplicateBranch:
     - 'spec/wifi-wand/command_line_interface/output_formats_integration_spec.rb'
 
 # Offense count: 15
+# Flags check-then-act file operations such as "exist? then mkdir", which can race if another process
+# changes the filesystem between the check and the action.
 # This cop supports unsafe autocorrection (--autocorrect-all).
 Lint/NonAtomicFileOperation:
   Exclude:
@@ -32,6 +26,8 @@ Lint/NonAtomicFileOperation:
     - 'spec/wifi-wand/services/log_file_manager_spec.rb'
 
 # Offense count: 1
+# Checks that file names map cleanly to the constants they define. This keeps require paths and Zeitwerk-like
+# conventions predictable, even though this gem has a historical hyphenated entry file.
 # Configuration parameters: ExpectMatchingDefinition, CheckDefinitionPathHierarchy, CheckDefinitionPathHierarchyRoots, Regex, IgnoreExecutableScripts, AllowedAcronyms.
 # CheckDefinitionPathHierarchyRoots: lib, spec, test, src
 # AllowedAcronyms: CLI, DSL, ACL, API, ASCII, CPU, CSS, DNS, EOF, GUID, HTML, HTTP, HTTPS, ID, IP, JSON, LHS, QPS, RAM, RHS, RPC, SLA, SMTP, SQL, SSH, TCP, TLS, TTL, UDP, UI, UID, UUID, URI, URL, UTF8, VM, XML, XMPP, XSRF, XSS
@@ -40,6 +36,8 @@ Naming/FileName:
     - 'lib/wifi-wand.rb'
 
 # Offense count: 3
+# Flags very short parameter names outside the configured allowlist. Longer names usually make tests and
+# call sites easier to understand without jumping to method bodies.
 # Configuration parameters: MinNameLength, AllowNamesEndingInNumbers, AllowedNames, ForbiddenNames.
 # AllowedNames: as, at, by, cc, db, id, if, in, io, ip, of, on, os, pp, to
 Naming/MethodParameterName:
@@ -47,6 +45,8 @@ Naming/MethodParameterName:
     - 'spec/wifi-wand/base_model_spec.rb'
 
 # Offense count: 2
+# Checks predicate-style method names so methods ending in "?" read like true/false questions and do not
+# use confusing prefixes or non-predicate naming.
 # Configuration parameters: Mode, AllowedMethods, AllowedPatterns, AllowBangMethods, WaywardPredicates.
 # AllowedMethods: call
 # WaywardPredicates: infinite?, nonzero?
@@ -56,6 +56,8 @@ Naming/PredicateMethod:
     - 'lib/wifi-wand/mac_helper/mac_os_setup_cli.rb'
 
 # Offense count: 1
+# Enforces the configured style for identifiers that contain numbers, such as x86_64 or ipv6, so naming
+# stays consistent across constants, variables, and method names.
 # Configuration parameters: EnforcedStyle, CheckMethodNames, CheckSymbols, AllowedIdentifiers, AllowedPatterns.
 # SupportedStyles: snake_case, normalcase, non_integer
 # AllowedIdentifiers: TLS1_1, TLS1_2, capture3, iso8601, rfc1123_date, rfc822, rfc2822, rfc3339, x86_64
@@ -64,11 +66,15 @@ Naming/VariableNumber:
     - 'lib/wifi-wand/mac_helper/mac_helper_release.rb'
 
 # Offense count: 1
+# Discourages before(:all) and after(:all), which share state across examples and can make specs order
+# dependent or harder to clean up.
 RSpec/BeforeAfterAll:
   Exclude:
     - 'spec/wifi-wand/models/helpers/qr_code_integration_spec.rb'
 
 # Offense count: 6
+# Prefers described_class over repeating the class or module name in examples. That reduces churn when
+# specs are renamed or moved.
 # This cop supports unsafe autocorrection (--autocorrect-all).
 # Configuration parameters: SkipBlocks, EnforcedStyle, OnlyStaticConstants.
 # SupportedStyles: described_class, explicit
@@ -78,6 +84,8 @@ RSpec/DescribedClass:
     - 'spec/wifi-wand/os/base_os_spec.rb'
 
 # Offense count: 13
+# Ensures expectation arguments are in the usual actual-vs-expected order, so failures report the observed
+# value and expected value clearly.
 # This cop supports safe autocorrection (--autocorrect).
 RSpec/ExpectActual:
   Exclude:
@@ -85,38 +93,40 @@ RSpec/ExpectActual:
     - 'spec/wifi-wand/operating_systems_spec.rb'
 
 # Offense count: 2
+# Discourages expect { ... }.to output checks. Output expectations often couple tests to formatting and can
+# be brittle unless the command's output is the behavior under test.
 RSpec/ExpectOutput:
   Exclude:
     - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
 
 # Offense count: 4
+# Flags instance variables in specs because they hide dependencies from each example. let, subject, or local
+# variables usually make setup clearer and more isolated.
 # Configuration parameters: AssignmentOnly.
 RSpec/InstanceVariable:
   Exclude:
     - 'spec/support/rspec_configuration_spec.rb'
 
 # Offense count: 2
+# Flags expectations repeated inside loops. RSpec generally reports clearer failures when each expected case
+# has its own example or uses aggregate failures intentionally.
 # This cop supports safe autocorrection (--autocorrect).
 RSpec/IteratedExpectation:
   Exclude:
     - 'spec/wifi-wand/errors_spec.rb'
     - 'spec/wifi-wand/operating_systems_spec.rb'
 
-# Offense count: 12
-RSpec/LeakyConstantDeclaration:
-  Exclude:
-    - 'spec/support/rspec_configuration_spec.rb'
-    - 'spec/wifi-wand/command_line_interface/output_formatter_spec.rb'
-    - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
-    - 'spec/wifi-wand/services/event_logger_spec.rb'
-
 # Offense count: 2
+# Encourages one top-level describe per spec file, which keeps spec files focused and makes file names map
+# more directly to the unit under test.
 RSpec/MultipleDescribes:
   Exclude:
     - 'spec/wifi-wand/command_line_interface/command_registry_spec.rb'
     - 'spec/wifi-wand/models/helpers/resource_manager_spec.rb'
 
 # Offense count: 847
+# Requires named subjects instead of anonymous subject calls. Named subjects make large specs easier to read,
+# but this todo is broad because much of the existing suite still uses anonymous subject.
 # Configuration parameters: EnforcedStyle, IgnoreSharedExamples.
 # SupportedStyles: always, named_only
 RSpec/NamedSubject:
@@ -134,36 +144,50 @@ RSpec/NamedSubject:
     - 'spec/wifi-wand/services/connection_manager_spec.rb'
 
 # Offense count: 2
+# Flags remove_const in specs. Removing constants can be necessary for edge cases, but it mutates global
+# Ruby state and can leak if cleanup is incomplete.
 RSpec/RemoveConst:
   Exclude:
     - 'spec/wifi-wand/models/base_model_edge_cases_spec.rb'
 
 # Offense count: 4
+# Flags examples with identical descriptions in the same group, since duplicate names make failures harder
+# to identify in documentation-format output.
 RSpec/RepeatedExample:
   Exclude:
     - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
 
 # Offense count: 2
+# Flags nested example groups with the same description. Repeated group labels make spec output ambiguous
+# and usually indicate a missing context distinction.
 RSpec/RepeatedExampleGroupDescription:
   Exclude:
     - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
 
 # Offense count: 52
+# Checks whether spec file paths mirror the constants or subjects they describe. It is disabled here because
+# the current spec tree intentionally differs from the default formatter expectations.
 # Configuration parameters: CustomTransform, IgnoreMethods, IgnoreMetadata, InflectorPath, EnforcedInflector.
 # SupportedInflectors: default, active_support
 RSpec/SpecFilePathFormat:
   Enabled: false
 
 # Offense count: 180
+# Flags allow/expect stubs placed on mocks or doubles in ways rubocop-rspec considers redundant or unclear.
+# It is disabled here because the existing suite relies heavily on that style.
 RSpec/StubbedMock:
   Enabled: false
 
 # Offense count: 1
+# Checks that subject declarations appear in the conventional location before examples and helper methods,
+# keeping spec setup easy to scan.
 RSpec/SubjectDeclaration:
   Exclude:
     - 'spec/wifi-wand/models/ubuntu_model_spec.rb'
 
 # Offense count: 18
+# Flags global variables, which are shared process-wide and can make code or specs order-dependent. Some
+# support files still use Ruby's process globals for configuration-like behavior.
 # Configuration parameters: AllowedVariables.
 Style/GlobalVars:
   Exclude:
@@ -173,6 +197,8 @@ Style/GlobalVars:
     - 'spec/wifi-wand/errors_spec.rb'
 
 # Offense count: 2
+# Suggests replacing case statements that behave like hash lookups with an explicit hash. That can make
+# static mappings simpler and reduce branch-heavy code.
 # Configuration parameters: MinBranchesCount.
 Style/HashLikeCase:
   Exclude:
@@ -180,17 +206,23 @@ Style/HashLikeCase:
     - 'spec/wifi-wand/command_line_interface/output_formats_integration_spec.rb'
 
 # Offense count: 2
+# Flags if/case branches with identical bodies. Unlike Lint/DuplicateBranch, this style cop focuses on
+# conditional structure that can often be simplified.
 # This cop supports unsafe autocorrection (--autocorrect-all).
 Style/IdenticalConditionalBranches:
   Exclude:
     - 'lib/wifi-wand/models/ubuntu_model.rb'
 
 # Offense count: 1
+# Requires respond_to_missing? when method_missing is defined, so reflection and callers using respond_to?
+# see behavior consistent with dynamic dispatch.
 Style/MissingRespondToMissing:
   Exclude:
     - 'lib/wifi-wand/command_line_interface/shell_interface.rb'
 
 # Offense count: 2
+# Flags chaining directly after a multiline block, which can be hard to scan because the receiver of the
+# chained call is visually far from the method name.
 Style/MultilineBlockChain:
   Exclude:
     - 'lib/wifi-wand/models/ubuntu_model.rb'

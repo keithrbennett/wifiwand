@@ -7,7 +7,7 @@ require_relative '../../../lib/wifi-wand/services/event_logger'
 require_relative '../../../lib/wifi-wand/services/log_file_manager'
 
 describe WifiWand::EventLogger do
-  ISO8601_TIMESTAMP_PATTERN = '\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\]'
+  let(:iso8601_timestamp_pattern) { '\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\]' }
 
   let(:mock_model) do
     double('Model',
@@ -788,7 +788,7 @@ describe WifiWand::EventLogger do
         details:   {},
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} WiFi ON/)
+      expect(message).to match(/#{iso8601_timestamp_pattern} WiFi ON/)
     end
 
     it 'formats wifi_off event' do
@@ -798,7 +798,7 @@ describe WifiWand::EventLogger do
         details:   {},
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} WiFi OFF/)
+      expect(message).to match(/#{iso8601_timestamp_pattern} WiFi OFF/)
     end
 
     it 'formats connected event' do
@@ -808,7 +808,7 @@ describe WifiWand::EventLogger do
         details:   { network_name: 'TestNetwork' },
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Connected to TestNetwork/)
+      expect(message).to match(/#{iso8601_timestamp_pattern} Connected to TestNetwork/)
     end
 
     it 'formats disconnected event' do
@@ -818,7 +818,7 @@ describe WifiWand::EventLogger do
         details:   { network_name: 'TestNetwork' },
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Disconnected from TestNetwork/)
+      expect(message).to match(/#{iso8601_timestamp_pattern} Disconnected from TestNetwork/)
     end
 
     it 'formats internet_on event' do
@@ -828,7 +828,7 @@ describe WifiWand::EventLogger do
         details:   {},
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Internet available/)
+      expect(message).to match(/#{iso8601_timestamp_pattern} Internet available/)
     end
 
     it 'formats internet_off event' do
@@ -838,7 +838,7 @@ describe WifiWand::EventLogger do
         details:   {},
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/#{ISO8601_TIMESTAMP_PATTERN} Internet unavailable/)
+      expect(message).to match(/#{iso8601_timestamp_pattern} Internet unavailable/)
     end
 
     it 'formats unknown event type gracefully' do
@@ -931,7 +931,7 @@ describe WifiWand::EventLogger do
       expect(rescued_error).to be_a(RuntimeError)
       expect(rescued_error.message).to eq('unexpected polling failure')
       expect(out_stream.string).to match(
-        /#{ISO8601_TIMESTAMP_PATTERN} Event logging terminated: RuntimeError: unexpected polling failure/
+        /#{iso8601_timestamp_pattern} Event logging terminated: RuntimeError: unexpected polling failure/
       )
     end
 
@@ -1125,7 +1125,7 @@ describe WifiWand::EventLogger do
 
       expect(logger).to receive(:log_message) do |message|
         expect(message).to match(
-          /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi on, connected to TestNetwork, internet available/
+          /#{iso8601_timestamp_pattern} Current state: WiFi on, connected to TestNetwork, internet available/
         )
       end
 
@@ -1137,7 +1137,7 @@ describe WifiWand::EventLogger do
 
       expect(logger).to receive(:log_message) do |message|
         expect(message).to match(
-          /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi off, not connected, internet unavailable/
+          /#{iso8601_timestamp_pattern} Current state: WiFi off, not connected, internet unavailable/
         )
       end
 
@@ -1149,7 +1149,7 @@ describe WifiWand::EventLogger do
 
       expect(logger).to receive(:log_message) do |message|
         expect(message).to match(
-          /#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi on, connected to TestNetwork, internet unknown/
+          /#{iso8601_timestamp_pattern} Current state: WiFi on, connected to TestNetwork, internet unknown/
         )
       end
 
@@ -1159,7 +1159,7 @@ describe WifiWand::EventLogger do
     it 'logs degraded connected state when the SSID is unavailable' do
       state = { wifi_on: true, connected: true, network_name: nil, internet_state: :reachable }
       expected_pattern = Regexp.new(
-        "#{ISO8601_TIMESTAMP_PATTERN} Current state: WiFi on, " \
+        "#{iso8601_timestamp_pattern} Current state: WiFi on, " \
           'connected \(SSID unavailable\), internet available'
       )
 

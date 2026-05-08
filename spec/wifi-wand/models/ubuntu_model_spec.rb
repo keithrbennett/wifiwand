@@ -31,11 +31,9 @@ module WifiWand
       )
     end
 
+    def wifi_interface_regex = /wl[a-z0-9]+/
 
-
-    # Constants for common patterns
-    WIFI_INTERFACE_REGEX = /wl[a-z0-9]+/
-    NMCLI_RADIO_CMD = 'nmcli radio wifi'
+    def nmcli_radio_cmd = 'nmcli radio wifi'
 
     # Mocked tests with proper stubbing
     context 'when running core functionality tests' do
@@ -1063,7 +1061,7 @@ module WifiWand
           allow(subject).to receive(:run_command_using_args)
             .with(%w[nmcli radio wifi], raise_on_error: false)
             .and_return(command_result(
-              stderr: 'aborted', exitstatus: nil, termsig: 6, command: NMCLI_RADIO_CMD
+              stderr: 'aborted', exitstatus: nil, termsig: 6, command: nmcli_radio_cmd
             ))
 
           expect { subject.wifi_on? }
@@ -1154,7 +1152,7 @@ module WifiWand
           expect(subject).to receive(:run_command_using_args)
             .with(%w[nmcli radio wifi], raise_on_error: false, timeout_in_secs: be_between(0, 0.5).exclusive)
             .and_return(command_result(
-              stderr: 'aborted', exitstatus: nil, termsig: 6, command: NMCLI_RADIO_CMD
+              stderr: 'aborted', exitstatus: nil, termsig: 6, command: nmcli_radio_cmd
             ))
 
           expect { subject.status_network_identity(timeout_in_secs: 0.5) }
@@ -2527,7 +2525,7 @@ module WifiWand
       describe 'interface detection' do
         it 'detects WiFi interface correctly' do
           interface = subject.probe_wifi_interface
-          expect(interface).to match(WIFI_INTERFACE_REGEX) if interface
+          expect(interface).to match(wifi_interface_regex) if interface
         end
 
         it 'validates detected interface is actually WiFi' do

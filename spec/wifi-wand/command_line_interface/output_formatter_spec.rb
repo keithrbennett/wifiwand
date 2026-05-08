@@ -4,21 +4,21 @@ require_relative('../../spec_helper')
 require_relative('../../../lib/wifi-wand/command_line_interface')
 
 describe WifiWand::CommandLineInterface::OutputFormatter do
-  # Regex patterns for color code detection
-  ANSI_COLOR_REGEX = /\e\[\d+m/
-  GREEN_TEXT_REGEX = /\e\[32m.*\e\[0m/
-  RED_TEXT_REGEX = /\e\[31m.*\e\[0m/
-  YELLOW_TEXT_REGEX = /\e\[33m.*\e\[0m/
-  CYAN_TEXT_REGEX = /\e\[36m.*\e\[0m/
-  STATUS_LINE_HASH_KEY_MAP = {
-    wifi_on?:                    :wifi_on,
-    dns_working?:                :dns_working,
-    connected_network_name:      :network_name,
-    internet_connectivity_state: :internet_state,
-  }.freeze
-
-  # Create a test class that includes the OutputFormatter module
   subject { test_class.new(options, mock_model) }
+
+  let(:ansi_color_regex) { /\e\[\d+m/ }
+  let(:green_text_regex) { /\e\[32m.*\e\[0m/ }
+  let(:red_text_regex) { /\e\[31m.*\e\[0m/ }
+  let(:yellow_text_regex) { /\e\[33m.*\e\[0m/ }
+  let(:cyan_text_regex) { /\e\[36m.*\e\[0m/ }
+  let(:status_line_hash_key_map) do
+    {
+      wifi_on?:                    :wifi_on,
+      dns_working?:                :dns_working,
+      connected_network_name:      :network_name,
+      internet_connectivity_state: :internet_state,
+    }.freeze
+  end
 
   let(:test_class) do
     Class.new do
@@ -46,7 +46,6 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
   let(:options) { WifiWand::CommandLineOptions.new(post_processor: nil) }
 
-
   # Shared examples for colorization methods
   shared_examples 'colorization method' do |test_cases|
     test_cases[:tests].each do |data|
@@ -57,7 +56,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
         # Verify color codes are present when expected (tty: true + colorizable) and absent otherwise
         expected_has_color = data[:tty] && (data[:has_color] != false)
-        expect(result.match?(ANSI_COLOR_REGEX)).to eq(expected_has_color)
+        expect(result.match?(ansi_color_regex)).to eq(expected_has_color)
       end
     end
   end
@@ -319,26 +318,26 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         expect(result).to match(/Internet.*YES/)
 
         # Verify colorization is present
-        expect(result).to match(GREEN_TEXT_REGEX)      # Green ON
-        expect(result).to match(CYAN_TEXT_REGEX)       # Cyan network name
-        expect(result).to match(GREEN_TEXT_REGEX)     # Green YES statuses
+        expect(result).to match(green_text_regex)      # Green ON
+        expect(result).to match(cyan_text_regex)       # Cyan network name
+        expect(result).to match(green_text_regex)     # Green YES statuses
       end
 
       {
-        'WiFi off'         => [:wifi_on?, false, /WiFi.*OFF/, RED_TEXT_REGEX],
-        'no network'       => [:connected_network_name, nil, /WiFi Network.*none/, YELLOW_TEXT_REGEX],
-        'DNS failure'      => [:dns_working?, false, /DNS.*NO/, RED_TEXT_REGEX],
-        'Internet failure' => [:internet_connectivity_state, :unreachable, /Internet.*NO/, RED_TEXT_REGEX],
-      }.each do |scenario, (mock_method, return_value, expected_pattern, expected_color)|
+        'WiFi off'         => [:wifi_on?, false, /WiFi.*OFF/, :red_text_regex],
+        'no network'       => [:connected_network_name, nil, /WiFi Network.*none/, :yellow_text_regex],
+        'DNS failure'      => [:dns_working?, false, /DNS.*NO/, :red_text_regex],
+        'Internet failure' => [:internet_connectivity_state, :unreachable, /Internet.*NO/, :red_text_regex],
+      }.each do |scenario, (mock_method, return_value, expected_pattern, expected_color_method)|
         it "displays error status when #{scenario}" do
           data = status_data.clone
-          target_key = STATUS_LINE_HASH_KEY_MAP[mock_method]
+          target_key = status_line_hash_key_map[mock_method]
           data[target_key] = return_value
 
           result = subject.status_line(data)
 
           expect(result).to match(expected_pattern)
-          expect(result).to match(expected_color)
+          expect(result).to match(public_send(expected_color_method))
         end
       end
 
@@ -346,7 +345,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         result = subject.status_line(nil)
 
         expect(result).to match(/WiFi.*status unavailable/)
-        expect(result).to match(YELLOW_TEXT_REGEX) # Yellow warning
+        expect(result).to match(yellow_text_regex) # Yellow warning
       end
 
       it 'shows SSID unavailable when connected is true and the SSID is nil' do
@@ -355,7 +354,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         result = subject.status_line(data)
 
         expect(result).to match(/WiFi Network.*SSID unavailable/)
-        expect(result).to match(YELLOW_TEXT_REGEX)
+        expect(result).to match(yellow_text_regex)
       end
 
       it 'shows UNKNOWN when network identity is indeterminate after completion' do
@@ -364,7 +363,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         result = subject.status_line(data)
 
         expect(result).to match(/WiFi Network.*UNKNOWN/)
-        expect(result).to match(YELLOW_TEXT_REGEX)
+        expect(result).to match(yellow_text_regex)
       end
 
       context 'when captive portal is detected' do
@@ -385,7 +384,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
           expect(result).to match(/Captive Portal Login Required/)
           expect(result).to include('⚠️')
-          expect(result).to match(RED_TEXT_REGEX)
+          expect(result).to match(red_text_regex)
         end
 
         it 'shows captive portal warning even when status_data has no captive_portal_login_required key' do
@@ -400,7 +399,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         result = subject.status_line(data)
 
         expect(result).to match(/Internet.*UNKNOWN/)
-        expect(result).to match(YELLOW_TEXT_REGEX)
+        expect(result).to match(yellow_text_regex)
       end
     end
 
@@ -417,7 +416,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         expect(result).to match(/Internet.*YES/)
 
         # Verify no color codes
-        expect(result).not_to match(ANSI_COLOR_REGEX)
+        expect(result).not_to match(ansi_color_regex)
       end
 
       it 'shows error conditions without color codes' do
@@ -428,7 +427,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
         expect(result).to match(/WiFi.*OFF/)
         expect(result).to match(/DNS.*NO/)
-        expect(result).not_to match(ANSI_COLOR_REGEX)
+        expect(result).not_to match(ansi_color_regex)
       end
 
       it 'shows DNS as WAIT when the check has not completed yet' do
@@ -437,14 +436,14 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
         expect(result).to match(/DNS.*WAIT/)
         expect(result).to match(/Internet.*WAIT/)
-        expect(result).not_to match(ANSI_COLOR_REGEX)
+        expect(result).not_to match(ansi_color_regex)
       end
 
       it 'shows fallback status without color codes' do
         result = subject.status_line(nil)
 
         expect(result).to match(/WiFi.*status unavailable/)
-        expect(result).not_to match(ANSI_COLOR_REGEX)
+        expect(result).not_to match(ansi_color_regex)
       end
 
       context 'when captive portal is detected' do
@@ -454,7 +453,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
 
           expect(result).to match(/Captive Portal Login Required/)
           expect(result).to include('⚠️')
-          expect(result).not_to match(ANSI_COLOR_REGEX)
+          expect(result).not_to match(ansi_color_regex)
         end
 
         it 'does not show captive portal warning when not required' do
@@ -468,7 +467,7 @@ describe WifiWand::CommandLineInterface::OutputFormatter do
         result = subject.status_line(data)
 
         expect(result).to match(/Internet.*UNKNOWN/)
-        expect(result).not_to match(ANSI_COLOR_REGEX)
+        expect(result).not_to match(ansi_color_regex)
       end
     end
   end
