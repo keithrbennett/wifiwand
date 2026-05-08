@@ -742,10 +742,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
         # implement required underscore methods to satisfy inherited verification
         def _available_network_names = []
         def _connected_network_name = nil
-        def _connect(_n, _p) = nil
+        def _connect(_network_name, _password) = nil
         def _disconnect = nil
         def _ip_address = nil
-        def _preferred_network_password(_n) = nil
+        def _preferred_network_password(_network_name) = nil
       end
 
       inst = test_class.new
