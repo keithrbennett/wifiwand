@@ -2536,25 +2536,25 @@ module WifiWand
       context 'when valid wifi_interface is provided' do
         it 'uses the provided interface without probing for another interface',
           :real_env_read_only, real_env_os: :os_mac do
-          model = WifiWand::MacOsModel.create_model(wifi_interface: 'en0')
+          model = described_class.create_model(wifi_interface: 'en0')
           expect(model.wifi_interface).to eq('en0')
         end
       end
 
       context 'when invalid wifi_interface is provided' do
         it 'raises InvalidInterfaceError' do
-          model = WifiWand::MacOsModel.new(wifi_interface: 'invalid0')
+          model = described_class.new(wifi_interface: 'invalid0')
           allow(model).to receive(:is_wifi_interface?).with('invalid0').and_return(false)
-          allow(WifiWand::MacOsModel).to receive(:new).and_return(model)
+          allow(described_class).to receive(:new).and_return(model)
 
-          expect { WifiWand::MacOsModel.create_model(wifi_interface: 'invalid0') }
+          expect { described_class.create_model(wifi_interface: 'invalid0') }
             .to raise_error(WifiWand::InvalidInterfaceError)
         end
       end
 
       context 'when no wifi_interface is provided' do
         it 'defers interface discovery until wifi_interface is requested' do
-          model = WifiWand::MacOsModel.create_model
+          model = described_class.create_model
           expect(model.instance_variable_get(:@wifi_interface)).to be_nil
         end
       end

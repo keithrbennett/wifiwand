@@ -13,7 +13,7 @@ module WifiWand
     describe 'inheritance behavior' do
       it 'allows subclass instantiation' do
         # Create a test subclass to verify inheritance works
-        test_subclass = Class.new(BaseOs)
+        test_subclass = Class.new(described_class)
         expect { test_subclass.new(:test_id, 'Test Display Name') }.not_to raise_error
       end
     end
@@ -26,7 +26,7 @@ module WifiWand
       end
 
       it 'raises MethodNotImplementedError for abstract methods' do
-        test_subclass = Class.new(BaseOs)
+        test_subclass = Class.new(described_class)
 
         instance = test_subclass.new(:test_id, 'Test Display Name')
 

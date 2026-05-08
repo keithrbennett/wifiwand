@@ -6,17 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 6
-# Prefers described_class over repeating the class or module name in examples. That reduces churn when
-# specs are renamed or moved.
-# This cop supports unsafe autocorrection (--autocorrect-all).
-# Configuration parameters: SkipBlocks, EnforcedStyle, OnlyStaticConstants.
-# SupportedStyles: described_class, explicit
-RSpec/DescribedClass:
-  Exclude:
-    - 'spec/wifi-wand/models/mac_os_model_spec.rb'
-    - 'spec/wifi-wand/os/base_os_spec.rb'
-
 # Offense count: 13
 # Ensures expectation arguments are in the usual actual-vs-expected order, so failures report the observed
 # value and expected value clearly.
