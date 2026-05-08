@@ -29,6 +29,13 @@ require 'tempfile'
 module WifiWand
   module Helpers
     class QrCodeGenerator
+      QR_FIELD_ESCAPES = {
+        ';'  => '\\;',
+        ','  => '\\,',
+        ':'  => '\\:',
+        '\\' => '\\\\',
+      }.freeze
+
       def generate(model, filespec = nil, overwrite: false, delivery_mode: :print, password: nil,
         in_stream: $stdin)
         ensure_qrencode_available(model)
@@ -139,12 +146,7 @@ module WifiWand
       private def escape_field(value)
         # Prefix a single backslash before ; , : and double for backslash itself
         value.to_s.gsub(/[;,:\\]/) do |char|
-          case char
-          when ';' then '\\;'
-          when ',' then '\\,'
-          when ':' then '\\:'
-          when '\\' then '\\\\'
-          end
+          QR_FIELD_ESCAPES.fetch(char)
         end
       end
 

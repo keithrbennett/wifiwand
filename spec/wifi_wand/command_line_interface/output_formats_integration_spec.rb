@@ -443,13 +443,13 @@ describe 'Output Format Integration Tests' do
       }
     end
 
-    %w[j k y].each do |format_code|
-      format_name = case format_code
-                    when 'j' then 'JSON'
-                    when 'k' then 'Pretty JSON'
-                    when 'y' then 'YAML'
-      end
+    format_names = {
+      'j' => 'JSON',
+      'k' => 'Pretty JSON',
+      'y' => 'YAML',
+    }
 
+    format_names.each do |format_code, format_name|
       it "can round-trip complex data through #{format_name} format" do
         options = parse_options('-o', format_code, 'i')
         cli = WifiWand::CommandLineInterface.new(options)

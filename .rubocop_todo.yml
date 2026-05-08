@@ -7,15 +7,6 @@
 # versions of RuboCop, may require this file to be generated again.
 
 # Offense count: 2
-# Suggests replacing case statements that behave like hash lookups with an explicit hash. That can make
-# static mappings simpler and reduce branch-heavy code.
-# Configuration parameters: MinBranchesCount.
-Style/HashLikeCase:
-  Exclude:
-    - 'lib/wifi_wand/models/helpers/qr_code_generator.rb'
-    - 'spec/wifi_wand/command_line_interface/output_formats_integration_spec.rb'
-
-# Offense count: 2
 # Flags if/case branches with identical bodies. Unlike Lint/DuplicateBranch, this style cop focuses on
 # conditional structure that can often be simplified.
 # This cop supports unsafe autocorrection (--autocorrect-all).
