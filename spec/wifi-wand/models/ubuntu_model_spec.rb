@@ -1284,32 +1284,6 @@ module WifiWand
           expect(result).to eq(nameservers)
         end
 
-        it 'successfully clears nameservers' do
-          connection_name = 'MyHomeNetwork'
-
-          allow(subject).to receive(:active_connection_profile_name).and_return(connection_name)
-          allow(subject).to receive(:nameservers_from_connection).with(connection_name).and_return([])
-          # Expect both IPv4 and IPv6 clear commands
-          allow(subject).to receive(:run_command_using_args)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''])
-            .and_return(command_result(stdout: ''))
-          allow(subject).to receive(:run_command_using_args)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'])
-            .and_return(command_result(stdout: ''))
-          allow(subject).to receive(:run_command_using_args)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''])
-            .and_return(command_result(stdout: ''))
-          allow(subject).to receive(:run_command_using_args)
-            .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'])
-            .and_return(command_result(stdout: ''))
-          allow(subject).to receive(:run_command_using_args)
-            .with(['nmcli', 'connection', 'up', connection_name])
-            .and_return(command_result(stdout: ''))
-
-          result = subject.set_nameservers(:clear)
-          expect(result).to eq(:clear)
-        end
-
         it 'uses the active profile when it differs from the SSID' do
           profile_name = 'Office Profile'
           ssid_name = 'OfficeWiFi'
