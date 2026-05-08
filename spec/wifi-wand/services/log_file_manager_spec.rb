@@ -13,7 +13,7 @@ describe WifiWand::LogFileManager do
   let(:out_stream) { StringIO.new }
 
   after do
-    FileUtils.remove_entry(temp_dir) if Dir.exist?(temp_dir)
+    FileUtils.rm_rf(temp_dir)
   end
 
   describe 'initialization' do

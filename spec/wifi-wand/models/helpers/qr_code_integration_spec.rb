@@ -31,8 +31,8 @@ describe 'QR Code Integration Tests', :requires_external_tools do
 
   after do
     # Clean up test files
-    FileUtils.rm_rf(temp_dir) if Dir.exist?(temp_dir)
-    Dir.glob('*-qr-code.png').each { |f| File.delete(f) }
+    FileUtils.rm_rf(temp_dir)
+    Dir.glob('*-qr-code.png').each { |f| FileUtils.rm_f(f) }
   end
 
   # Helper method to decode QR code and extract content
@@ -216,7 +216,7 @@ describe 'QR Code Integration Tests', :requires_external_tools do
         expect(file_type).to include('PNG image')
 
         # Clean up
-        File.delete(filename) if File.exist?(filename)
+        FileUtils.rm_f(filename)
       end
     end
   end
@@ -278,7 +278,7 @@ describe 'QR Code Integration Tests', :requires_external_tools do
       expect(file_size).to be > 100, "QR code file too small: #{file_size} bytes"
       expect(file_size).to be < 10_000, "QR code file too large: #{file_size} bytes"
 
-      File.delete(filename) if File.exist?(filename)
+      FileUtils.rm_f(filename)
     end
   end
 
@@ -318,7 +318,7 @@ describe 'QR Code Integration Tests', :requires_external_tools do
         expect(decoded_content).to start_with('WIFI:')
         expect(decoded_content).to end_with(';;')
 
-        File.delete(filename) if File.exist?(filename)
+        FileUtils.rm_f(filename)
       end
     end
   end
