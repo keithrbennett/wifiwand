@@ -6,13 +6,6 @@
 # Note that changes in the inspected code, or installation of new
 # versions of RuboCop, may require this file to be generated again.
 
-# Offense count: 1
-# Discourages before(:all) and after(:all), which share state across examples and can make specs order
-# dependent or harder to clean up.
-RSpec/BeforeAfterAll:
-  Exclude:
-    - 'spec/wifi-wand/models/helpers/qr_code_integration_spec.rb'
-
 # Offense count: 6
 # Prefers described_class over repeating the class or module name in examples. That reduces churn when
 # specs are renamed or moved.

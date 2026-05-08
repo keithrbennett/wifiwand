@@ -15,6 +15,8 @@ require 'fileutils'
 # They depend on host-installed tools, so they are excluded from the default
 # CI-safe suite unless external-tool specs are requested explicitly.
 describe 'QR Code Integration Tests', :requires_external_tools do
+  # This is a group-level external tool gate, not shared mutable example setup.
+  # rubocop:disable RSpec/BeforeAfterAll
   before(:all) do
     # Check if required tools are available
     unless system('which qrencode > /dev/null 2>&1')
@@ -25,6 +27,7 @@ describe 'QR Code Integration Tests', :requires_external_tools do
       skip 'zbarimg not available - install with: sudo apt install zbar-tools'
     end
   end
+  # rubocop:enable RSpec/BeforeAfterAll
 
   let(:test_model) { create_test_model }
   let(:temp_dir) { Dir.mktmpdir('qr_test') }
