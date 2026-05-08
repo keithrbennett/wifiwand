@@ -262,6 +262,11 @@ Style/RescueStandardError:
 Style/SingleLineMethods:
   AllowIfMethodIsEmpty: false
 
+# grep/grep_v uses Ruby's === semantics, which is surprising for kind checks.
+# Explicit select/reject predicates are clearer than the terse inverse-grep form.
+Style/SelectByKind:
+  Enabled: false
+
 # Style/Lambda enforces `->` (proc literal) over `lambda`. Style/SymbolProc would
 # then suggest converting `->(x) { x.foo }` back to `lambda(&:foo)`, which
 # re-violates Style/Lambda. The two cops are irreconcilable for this pattern,

@@ -7,15 +7,6 @@
 # versions of RuboCop, may require this file to be generated again.
 
 # Offense count: 2
-# Flags expectations repeated inside loops. RSpec generally reports clearer failures when each expected case
-# has its own example or uses aggregate failures intentionally.
-# This cop supports safe autocorrection (--autocorrect).
-RSpec/IteratedExpectation:
-  Exclude:
-    - 'spec/wifi-wand/errors_spec.rb'
-    - 'spec/wifi-wand/operating_systems_spec.rb'
-
-# Offense count: 2
 # Encourages one top-level describe per spec file, which keeps spec files focused and makes file names map
 # more directly to the unit under test.
 RSpec/MultipleDescribes:

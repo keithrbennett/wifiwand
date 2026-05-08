@@ -21,11 +21,16 @@ module WifiWand
       end
 
       it 'creates OS instances with proper structure' do
-        described_class.supported_operating_systems.each do |os|
-          expect(os).to be_a(BaseOs)
-          expect(os).to respond_to(:current_os_is_this_os?)
-          expect(os).to respond_to(:create_model)
+        operating_systems = described_class.supported_operating_systems
+        non_base_os_instances = operating_systems.reject { |os| os.is_a?(BaseOs) }
+        missing_current_os_detector = operating_systems.reject do |os|
+          os.respond_to?(:current_os_is_this_os?)
         end
+        missing_model_factory = operating_systems.reject { |os| os.respond_to?(:create_model) }
+
+        expect(non_base_os_instances).to be_empty
+        expect(missing_current_os_detector).to be_empty
+        expect(missing_model_factory).to be_empty
       end
     end
 

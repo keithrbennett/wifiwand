@@ -39,11 +39,11 @@ module WifiWand
         # Ensure we're testing a significant number of error classes
         expect(error_classes.size).to be > 15
 
-        error_classes.each do |error_class|
-          expect(error_class).to be < Error
-          expect(error_class).to be < WifiWand::Error,
-            "#{error_class.name} should inherit from WifiWand::Error"
-        end
+        non_error_subclasses = error_classes.reject { |error_class| error_class < Error }
+        non_wifi_wand_error_subclasses = error_classes.reject { |error_class| error_class < WifiWand::Error }
+
+        expect(non_error_subclasses).to be_empty
+        expect(non_wifi_wand_error_subclasses).to be_empty
       end
     end
 
