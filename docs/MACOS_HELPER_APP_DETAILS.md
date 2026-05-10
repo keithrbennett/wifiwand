@@ -50,6 +50,18 @@ older direct Swift-source transport. Consolidating those paths is a future archi
 - When WiFi information would otherwise be redacted
 - Only when you run wifi-wand commands that need network details
 
+### Downloading or Building from Source
+
+The repository includes the signed helper application that ships with the current wifi-wand version. The
+project updates that committed helper only as part of release work, so source checkouts may contain Swift
+helper changes that are not reflected in a new signed helper bundle until the next release is prepared.
+
+If you download the source just to inspect it or build the Ruby gem without changing the macOS helper, you do
+not need an Apple Developer ID. If you change the helper Swift source, entitlements, or bundle metadata and
+want to rebuild a working helper application yourself, you need macOS, Xcode Command Line Tools, and your own
+Apple Developer Program Developer ID Application certificate. Official wifi-wand releases are signed and
+notarized by the project maintainer.
+
 ---
 
 ## Why Does wifi-wand Need a Helper?

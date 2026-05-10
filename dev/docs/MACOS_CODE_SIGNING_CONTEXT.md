@@ -133,6 +133,15 @@ When users install the `wifi-wand` gem, they receive a **pre-signed, pre-notariz
 
 **Users never need to sign or compile anything.**
 
+For people who clone the repository instead of installing the gem, the same rule applies unless they change
+the macOS helper itself. The repository carries the signed helper for the current release, and maintainers
+refresh that committed app only during release work. A source checkout can therefore contain helper source
+changes that are intentionally waiting for the next release before a new signed helper bundle is committed.
+
+Users can build or inspect the Ruby project without an Apple Developer ID when they rely on the committed
+helper bundle. They need a paid Apple Developer Program Developer ID Application certificate only if they want
+to rebuild a working helper app from changed Swift source, entitlements, or bundle metadata.
+
 ### For Distribution (Gem Maintainer)
 
 As the gem maintainer, you perform signing and notarization **before releasing** a new gem version:

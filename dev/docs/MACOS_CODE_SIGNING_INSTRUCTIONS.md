@@ -17,6 +17,30 @@ step (or deeper troubleshooting), jump to `MACOS_CODE_SIGNING_CONTEXT.md`.
 - Ruby environment that can run `bin/mac-helper-release` (no bundler required for the script itself).
 - The official maintainer Developer ID certificate installed in the local macOS keychain.
 
+## Helper Update Policy
+
+The committed `libexec/macos/wifiwand-helper.app` is the signed and notarized helper that ships with the gem.
+We update that helper bundle during release work, not for every intermediate source edit. This keeps the
+checked-in distribution artifact tied to a deliberate gem release and avoids asking users who build from
+source to produce their own signed macOS app.
+
+Run the helper release workflow when either condition is true:
+
+- You are cutting a new wifi-wand gem release.
+- You changed helper Swift source, helper entitlements, or committed helper bundle metadata and that change
+  must ship in the next release.
+
+For source-only development that does not change the helper, use `bin/mac-helper-release verify` or
+`bundle exec rake swift:verify_helper` to confirm the committed bundle still matches its attestation
+manifest. Do not refresh and commit `libexec/macos/wifiwand-helper.app` outside release work unless there is
+an explicit reason to ship a replacement helper.
+
+People who clone the repository can build the Ruby gem without an Apple Developer ID as long as they do not
+rebuild the macOS helper. Rebuilding a working helper app requires macOS, Xcode Command Line Tools, and a
+Developer ID Application certificate. Official releases use the maintainer certificate; local, non-release
+experiments may use `WIFIWAND_APPLE_TEAM_ID` and `WIFIWAND_CODESIGN_IDENTITY` to point at another Developer
+ID identity.
+
 ## Signing Assets Summary
 
 | Item | Kind | Where It Lives | How It Is Created / Updated | Secret? | Notes |
