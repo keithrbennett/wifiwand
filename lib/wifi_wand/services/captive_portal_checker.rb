@@ -102,7 +102,7 @@ module WifiWand
 
           results << result[:state]
           log_probe_result(probe[:endpoint], result)
-          finalize_probe(probe)
+          finalize_probe(probe, grace: terminate_grace)
           probes.delete(probe)
 
           if result[:state] == ConnectivityStates::CAPTIVE_PORTAL_FREE

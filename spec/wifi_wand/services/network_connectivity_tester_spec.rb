@@ -10,6 +10,7 @@ describe WifiWand::NetworkConnectivityTester do
 
   let(:ruby_bin) { RbConfig.ruby }
   let(:open_probe_writers) { [] }
+  let(:spawned_pids) { [] }
 
   def helper_command(body)
     [ruby_bin, '-rjson', '-e', body]
@@ -34,6 +35,31 @@ describe WifiWand::NetworkConnectivityTester do
     reader, writer = IO.pipe
     open_probe_writers << writer
     { pid: nil, reader: reader, helper_mode: helper_mode, buffer: +'', eof: false }
+  rescue
+    reader&.close unless reader&.closed?
+    writer&.close unless writer&.closed?
+    raise
+  end
+
+  def sleeping_connectivity_probe(helper_mode:, payload:, post_write_delay:)
+    reader, writer = IO.pipe
+    child_code = <<~RUBY
+      STDOUT.write(ARGV[0])
+      STDOUT.flush
+      sleep(Float(ARGV[1]))
+    RUBY
+    pid = Process.spawn(
+      ruby_bin,
+      '-e',
+      child_code,
+      JSON.generate(payload),
+      post_write_delay.to_s,
+      out: writer,
+      err: File::NULL
+    )
+    writer.close
+    spawned_pids << pid
+    { pid: pid, reader: reader, helper_mode: helper_mode, buffer: +'', eof: false }
   rescue
     reader&.close unless reader&.closed?
     writer&.close unless writer&.closed?
@@ -71,6 +97,10 @@ describe WifiWand::NetworkConnectivityTester do
   after do
     open_probe_writers.each do |writer|
       writer.close unless writer.closed?
+    end
+
+    spawned_pids.each do |pid|
+      kill_and_reap_process(pid)
     end
   end
 
@@ -213,6 +243,27 @@ describe WifiWand::NetworkConnectivityTester do
 
       it 'returns true when at least one endpoint succeeds' do
         expect(tester.tcp_connectivity?).to be true
+      end
+
+      it 'returns parsed details and reaps a successful helper that keeps running' do
+        helper_pid = nil
+        allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
+          probe = sleeping_connectivity_probe(
+            helper_mode:      helper_mode,
+            payload:          successful_probe_payload,
+            post_write_delay: 5
+          )
+          helper_pid = probe[:pid]
+          probe
+        end
+
+        result = nil
+        Timeout.timeout(1) do
+          result = tester.tcp_connectivity?(overall_timeout: 0.5, return_details: true)
+        end
+
+        expect(result).to eq(success: true, timed_out: false)
+        expect_process_dead(helper_pid)
       end
     end
 

@@ -16,7 +16,7 @@ module WifiWand
     include ProcessProbeManager
 
     UNSET = Object.new.freeze
-    HELPER_RESULT_GRACE = 0
+    HELPER_RESULT_GRACE = 0.05
 
     attr_reader :captive_portal_checker
     private attr_reader :runtime_config

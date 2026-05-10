@@ -25,6 +25,24 @@ module TestHelpers
     WifiWand::WaitTimeoutError.new(action: action, timeout: timeout)
   end
 
+  def expect_process_dead(pid)
+    expect { Process.kill(0, pid) }.to raise_error(Errno::ESRCH)
+  end
+
+  def kill_and_reap_process(pid)
+    return unless pid
+
+    Process.kill('KILL', pid)
+  rescue Errno::ESRCH
+    nil
+  ensure
+    begin
+      Process.wait(pid, Process::WNOHANG) if pid
+    rescue Errno::ECHILD
+      nil
+    end
+  end
+
   # Helper method to create models with verbose configuration
   # Handles missing system commands gracefully for CI environments
   def create_test_model(options = {})

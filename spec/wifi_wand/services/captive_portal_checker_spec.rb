@@ -22,15 +22,7 @@ describe WifiWand::CaptivePortalChecker do
 
     after do
       spawned_pids.each do |pid|
-        Process.kill('KILL', pid)
-      rescue Errno::ESRCH
-        nil
-      ensure
-        begin
-          Process.wait(pid, Process::WNOHANG)
-        rescue Errno::ECHILD
-          nil
-        end
+        kill_and_reap_process(pid)
       end
     end
 
@@ -66,7 +58,7 @@ describe WifiWand::CaptivePortalChecker do
       Timeout.timeout(1) { result = checker.captive_portal_state }
 
       expect(result).to eq(:free)
-      expect { Process.kill(0, spawned_pids.last) }.to raise_error(Errno::ESRCH)
+      expect_process_dead(spawned_pids.last)
     end
 
     it 'returns promptly when a helper writes partial JSON and then stalls' do
@@ -79,7 +71,24 @@ describe WifiWand::CaptivePortalChecker do
       Timeout.timeout(1) { result = checker.captive_portal_state }
 
       expect(result).to eq(:indeterminate)
-      expect { Process.kill(0, spawned_pids.last) }.to raise_error(Errno::ESRCH)
+      expect_process_dead(spawned_pids.last)
+    end
+
+    it 'returns parsed state and reaps a successful helper that keeps running' do
+      allow(checker).to receive_messages(
+        captive_portal_check_endpoints: [endpoints.first],
+        start_captive_portal_probe:     spawn_probe(
+          endpoint:         endpoints.first,
+          payload:          { state: 'free', actual_code: 204 },
+          post_write_delay: 5
+        )
+      )
+
+      result = nil
+      Timeout.timeout(2) { result = checker.captive_portal_state }
+
+      expect(result).to eq(:free)
+      expect_process_dead(spawned_pids.last)
     end
 
     it 'uses zero helper grace when the caller provides a timeout budget' do
@@ -97,6 +106,29 @@ describe WifiWand::CaptivePortalChecker do
 
       expect(result).to eq(:indeterminate)
       expect(observed_graces).to include(0)
+    end
+
+    it 'uses zero successful-finalization grace when the caller provides a timeout budget' do
+      allow(checker).to receive_messages(
+        captive_portal_check_endpoints: [endpoints.first],
+        start_captive_portal_probe:     spawn_probe(
+          endpoint:         endpoints.first,
+          payload:          { state: 'free', actual_code: 204 },
+          post_write_delay: 5
+        )
+      )
+      observed_graces = []
+      allow(checker).to receive(:finalize_probe).and_wrap_original do |original, probe, grace:|
+        observed_graces << grace
+        original.call(probe, grace: grace)
+      end
+
+      result = nil
+      Timeout.timeout(1) { result = checker.captive_portal_state(timeout_in_secs: 0.2) }
+
+      expect(result).to eq(:free)
+      expect(observed_graces).to include(0)
+      expect_process_dead(spawned_pids.last)
     end
 
     context 'with verbose mode' do
