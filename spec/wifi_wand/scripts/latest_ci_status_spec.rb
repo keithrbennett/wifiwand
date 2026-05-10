@@ -28,6 +28,27 @@ RSpec.describe WifiWand::Scripts::LatestCiStatus do
        createdAt: '2026-04-27T12:00:00Z' }].to_json
   end
 
+  describe 'repository parsing' do
+    {
+      'git@github.com:keithrbennett/wifiwand.git'       => 'keithrbennett/wifiwand',
+      'https://github.com/keithrbennett/wifiwand.git'   => 'keithrbennett/wifiwand',
+      'ssh://git@github.com/keithrbennett/wifiwand.git' => 'keithrbennett/wifiwand',
+    }.each do |remote_url, expected_repository|
+      it "accepts #{remote_url}" do
+        expect(script.send(:parse_github_repository, remote_url)).to eq(expected_repository)
+      end
+    end
+
+    it 'rejects non-GitHub remotes' do
+      remote_url = 'ssh://git@example.com/keithrbennett/wifiwand.git'
+
+      expect { script.send(:parse_github_repository, remote_url) }.to raise_error(SystemExit)
+        .and output(
+          a_string_including("Unable to determine GitHub repository from origin remote: #{remote_url}")
+        ).to_stderr
+    end
+  end
+
   it 'prints the latest successful CI run for the current branch' do
     allow(Open3).to receive(:capture3).with('git', 'rev-parse', '--abbrev-ref', 'HEAD').and_return(
       ['main', '', success_status]

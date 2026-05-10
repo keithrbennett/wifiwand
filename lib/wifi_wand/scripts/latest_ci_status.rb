@@ -117,8 +117,16 @@ module WifiWand
       end
 
       private def parse_github_repository(remote_url)
-        matched_repository = remote_url.match(%r{\Agit@github\.com:(.+?)(?:\.git)?\z}) ||
-          remote_url.match(%r{\Ahttps://github\.com/(.+?)(?:\.git)?\z})
+        permitted_regexes = [
+          %r{\Agit@github\.com:(.+?)(?:\.git)?\z},
+          %r{\Ahttps://github\.com/(.+?)(?:\.git)?\z},
+          %r{\Assh://git@github\.com/(.+?)(?:\.git)?\z},
+        ]
+
+        matched_repository = nil
+        permitted_regexes.any? do |permitted_regex|
+          matched_repository = permitted_regex.match(remote_url)
+        end
 
         return matched_repository[1] if matched_repository
 
