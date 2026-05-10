@@ -968,12 +968,18 @@ module WifiWand
     end
 
     private def status_wifi_interface(deadline)
-      return @wifi_interface if @wifi_interface
+      return @wifi_interface if @wifi_interface && !@wifi_interface.empty?
 
-      @wifi_interface = probe_wifi_interface(timeout_in_secs: status_timeout_for(deadline))
+      iface = probe_wifi_interface(timeout_in_secs: status_timeout_for(deadline))
+      return nil if iface.nil? || iface.empty?
+
+      @wifi_interface = iface
     end
 
     private def status_default_interface(deadline)
+      iface = status_wifi_interface(deadline)
+      return nil if iface.nil? || iface.empty?
+
       output = run_command_using_args(
         %w[route -n get default],
         raise_on_error:  false,
@@ -984,12 +990,13 @@ module WifiWand
       interface_line = output.split("\n").find { |line| line.include?('interface:') }
       return nil unless interface_line
 
-      interface_line.split(':', 2).last.strip
+      default_iface = interface_line.split(':', 2).last.strip
+      default_iface.empty? ? nil : default_iface
     end
 
     private def status_ip_address(deadline)
       iface = status_wifi_interface(deadline)
-      return nil unless iface
+      return nil if iface.nil? || iface.empty?
 
       ip_address = run_command_using_args(
         ['ipconfig', 'getifaddr', iface],
