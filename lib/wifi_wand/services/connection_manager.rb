@@ -121,13 +121,23 @@ module WifiWand
       return if password.match?(RAW_PSK_PATTERN)
       return if password.bytesize <= MAX_PASSPHRASE_LENGTH
 
-      reason = if password.length == MAX_PASSWORD_LENGTH
-        'Password must be 1-63 bytes, or exactly 64 hexadecimal characters'
-      else
-        'Password passphrases cannot exceed 63 bytes'
-      end
+      raise InvalidNetworkPasswordError, password_length_error_reason(password)
+    end
 
-      raise InvalidNetworkPasswordError, reason
+    private def password_length_error_reason(password)
+      byte_length = password.bytesize
+      character_length = password.length
+
+      if password.ascii_only?
+        "Password passphrase is #{byte_length} UTF-8 bytes (#{character_length} characters); " \
+          "passphrases must be 1-#{MAX_PASSPHRASE_LENGTH} UTF-8 bytes, or exactly " \
+          "#{MAX_PASSWORD_LENGTH} hexadecimal characters for a raw PSK"
+      else
+        "Password passphrase is #{byte_length} UTF-8 bytes (#{character_length} characters); " \
+          'multi-byte characters count as more than one byte, and passphrases must be ' \
+          "1-#{MAX_PASSPHRASE_LENGTH} UTF-8 bytes or exactly " \
+          "#{MAX_PASSWORD_LENGTH} hexadecimal characters for a raw PSK"
+      end
     end
 
     private def already_connected?(network_name)

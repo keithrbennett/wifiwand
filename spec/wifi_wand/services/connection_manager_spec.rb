@@ -86,7 +86,10 @@ describe WifiWand::ConnectionManager do
     it 'rejects 64-character passwords that are not hexadecimal PSKs' do
       invalid_psk = 'g' * 64
       expect { subject.send(:normalize_inputs, 'ValidNetwork', invalid_psk) }
-        .to raise_error(WifiWand::InvalidNetworkPasswordError, /64 hexadecimal characters/)
+        .to raise_error(
+          WifiWand::InvalidNetworkPasswordError,
+          /Password passphrase is 64 UTF-8 bytes \(64 characters\).*for a raw PSK/
+        )
     end
 
     it 'allows passwords exactly 63 characters long' do
@@ -104,7 +107,8 @@ describe WifiWand::ConnectionManager do
 
       expect { subject.send(:normalize_inputs, 'ValidNetwork', oversized_multibyte_password) }
         .to raise_error(
-          WifiWand::InvalidNetworkPasswordError, /1-63 bytes|63 bytes|64 hexadecimal characters/
+          WifiWand::InvalidNetworkPasswordError,
+          /Password passphrase is 64 UTF-8 bytes \(16 characters\).*multi-byte characters count/
         )
     end
 
