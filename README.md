@@ -28,23 +28,10 @@ export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 export PATH="/usr/local/opt/ruby/bin:$PATH"
 ```
 
-#### Unsupported workaround for Ruby < 3.2
+#### Ruby < 3.2 is unsupported
 
-If you must use an older Ruby version (not supported), you can try modifying `wifi-wand.gemspec` before
-building:
-
-```ruby
-spec.required_ruby_version = ">= 2.7.0"    # change from ">= 3.2.0"
-spec.add_dependency('async', '~> 1.30')    # change from '~> 2.0'
-```
-
-Then build and install:
-```bash
-gem build wifi-wand.gemspec
-gem install wifi-wand-*.gem
-```
-
-Note: This configuration is not tested or supported. Use at your own risk.
+Ruby versions older than 3.2 are unsupported because the tracked source uses modern Ruby syntax and APIs. If
+your system Ruby is too old, install a modern Ruby before installing `wifi-wand`.
 
 Optional dependency for QR codes:
 
