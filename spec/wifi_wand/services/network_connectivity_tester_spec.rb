@@ -401,6 +401,98 @@ describe WifiWand::NetworkConnectivityTester do
       failing_items: %w[hung.test failed.test]
   end
 
+  describe '#start_connectivity_probe' do
+    let(:tester) { described_class.new(verbose: false) }
+    let(:items) { [{ host: 'example.test', port: 443 }] }
+
+    it 'starts a helper process and returns the reader metadata' do
+      reader, writer = IO.pipe
+      allow(IO).to receive(:pipe).and_return([reader, writer])
+      allow(Process).to receive(:spawn).and_return(12_345)
+
+      probe = tester.send(:start_connectivity_probe, items, :tcp, 0.25)
+
+      expect(Process).to have_received(:spawn).with(
+        RbConfig.ruby,
+        end_with('network_connectivity_probe_helper.rb'),
+        'tcp',
+        JSON.generate(items),
+        '0.25',
+        out: writer,
+        err: File::NULL
+      )
+      expect(probe).to include(pid: 12_345, reader: reader, helper_mode: :tcp, buffer: +'')
+      expect(probe[:eof]).to be(false)
+      expect(writer).to be_closed
+    ensure
+      reader&.close unless reader&.closed?
+    end
+
+    it 'returns nil, closes pipes, and logs when spawn fails' do
+      output = StringIO.new
+      tester = described_class.new(verbose: true, output: output)
+      reader, writer = IO.pipe
+      allow(IO).to receive(:pipe).and_return([reader, writer])
+      allow(Process).to receive(:spawn).and_raise(Errno::EAGAIN)
+
+      expect(tester.send(:start_connectivity_probe, items, :tcp, 0.25)).to be_nil
+      expect(reader).to be_closed
+      expect(writer).to be_closed
+      expect(output.string).to include('Failed to start tcp connectivity helper: Errno::EAGAIN')
+    end
+
+    it 'terminates the helper and closes pipes when setup fails after spawn' do
+      reader, writer = IO.pipe
+      original_writer_close = writer.method(:close)
+      writer_close_calls = 0
+
+      allow(IO).to receive(:pipe).and_return([reader, writer])
+      allow(Process).to receive(:spawn).and_return(12_345)
+      allow(Process).to receive(:kill)
+      allow(tester).to receive(:wait_for_probe_exit).and_return(true)
+      allow(writer).to receive(:close) do
+        writer_close_calls += 1
+        raise IOError, 'close failed' if writer_close_calls == 1
+
+        original_writer_close.call
+      end
+
+      expect(tester.send(:start_connectivity_probe, items, :tcp, 0.25)).to be_nil
+      expect(Process).to have_received(:kill).with('TERM', 12_345)
+      expect(tester).to have_received(:wait_for_probe_exit).with(12_345, grace: 0)
+      expect(reader).to be_closed
+      expect(writer).to be_closed
+    end
+
+    it 'still terminates the helper and closes the writer when reader cleanup fails' do
+      reader, writer = IO.pipe
+      original_reader_close = reader.method(:close)
+      original_reader_closed = reader.method(:closed?)
+      original_writer_close = writer.method(:close)
+      writer_close_calls = 0
+
+      allow(IO).to receive(:pipe).and_return([reader, writer])
+      allow(Process).to receive(:spawn).and_return(12_345)
+      allow(Process).to receive(:kill)
+      allow(tester).to receive(:wait_for_probe_exit).and_return(true)
+      allow(reader).to receive(:closed?).and_return(false)
+      allow(reader).to receive(:close).and_raise(IOError, 'reader close failed')
+      allow(writer).to receive(:close) do
+        writer_close_calls += 1
+        raise IOError, 'writer close failed' if writer_close_calls == 1
+
+        original_writer_close.call
+      end
+
+      expect(tester.send(:start_connectivity_probe, items, :tcp, 0.25)).to be_nil
+      expect(Process).to have_received(:kill).with('TERM', 12_345)
+      expect(tester).to have_received(:wait_for_probe_exit).with(12_345, grace: 0)
+      expect(writer).to be_closed
+    ensure
+      original_reader_close.call if original_reader_closed && !original_reader_closed.call
+    end
+  end
+
   describe '#internet_connectivity_state' do
     let(:tester) { described_class.new(verbose: false) }
 

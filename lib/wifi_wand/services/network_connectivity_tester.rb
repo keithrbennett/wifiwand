@@ -150,18 +150,47 @@ module WifiWand
     end
 
     private def start_connectivity_probe(items, helper_mode, overall_timeout)
+      command = connectivity_probe_command(items, helper_mode, overall_timeout)
       reader, writer = IO.pipe
       pid = Process.spawn(
-        *connectivity_probe_command(items, helper_mode, overall_timeout),
+        *command,
         out: writer,
         err: File::NULL
       )
+      probe = { pid: pid, reader: reader, helper_mode: helper_mode, buffer: +'', eof: false }
       writer.close
-      { pid: pid, reader: reader, helper_mode: helper_mode, buffer: +'', eof: false }
+      probe
     rescue SystemCallError, IOError => e
-      reader&.close unless reader&.closed?
-      writer&.close unless writer&.closed?
-      log_helper_start_failure(helper_mode, e)
+      cleanup_failed_connectivity_probe_start(probe, reader, writer, helper_mode, e)
+      nil
+    end
+
+    private def cleanup_failed_connectivity_probe_start(probe, reader, writer, helper_mode, error)
+      cleanup_failed_connectivity_probe_process(probe)
+      close_probe_io(reader)
+      close_probe_io(writer)
+      log_helper_start_failure(helper_mode, error)
+    end
+
+    private def cleanup_failed_connectivity_probe_process(probe)
+      return unless probe
+
+      close_probe_io(probe[:reader])
+      pid = probe[:pid]
+      return unless pid
+
+      Process.kill('TERM', pid)
+      wait_for_probe_exit(pid, grace: 0)
+      probe[:pid] = nil
+    rescue Errno::ESRCH, Errno::ECHILD
+      probe[:pid] = nil
+    rescue SystemCallError
+      nil
+    end
+
+    private def close_probe_io(io)
+      io&.close unless io&.closed?
+    rescue SystemCallError, IOError
       nil
     end
 
