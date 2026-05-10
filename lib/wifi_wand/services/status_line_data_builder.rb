@@ -105,19 +105,32 @@ module WifiWand
     end
 
     private def spawn_worker(worker_name = nil, deadline = nil, &block)
-      ready = Queue.new
+      startup_mutex = Mutex.new
+      startup_condition = ConditionVariable.new
+      worker_ready = false
+      start_allowed = false
+
       thread = Thread.new do
-        ready << true
-        Thread.stop
+        startup_mutex.synchronize do
+          worker_ready = true
+          startup_condition.signal
+          startup_condition.wait(startup_mutex) until start_allowed
+        end
+
         begin
           block.call
         ensure
           unregister_worker_thread(Thread.current)
         end
       end
-      ready.pop
-      register_worker_thread(thread, worker_name, deadline) if worker_name && deadline
-      thread.run
+
+      startup_mutex.synchronize do
+        startup_condition.wait(startup_mutex) until worker_ready
+        register_worker_thread(thread, worker_name, deadline) if worker_name && deadline
+        start_allowed = true
+        startup_condition.signal
+      end
+
       thread
     end
 
