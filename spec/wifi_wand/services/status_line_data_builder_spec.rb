@@ -217,6 +217,25 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result[:captive_portal_login_required]).to eq(:unknown)
     end
 
+    it 'marks DNS as indeterminate when TCP fails and DNS times out' do
+      allow(model).to receive(:internet_tcp_connectivity?).with(
+        timeout_in_secs: kind_of(Numeric),
+        return_details:  true
+      ).and_return(success: false, timed_out: false)
+      allow(model).to receive(:dns_working?).with(
+        timeout_in_secs: kind_of(Numeric),
+        return_details:  true
+      ).and_return(success: false, timed_out: true)
+
+      result = builder.call
+
+      expect(result[:dns_working]).to be_nil
+      expect(result[:internet_state]).to eq(:unreachable)
+      expect(result[:internet_check_complete]).to be true
+      expect(result[:captive_portal_state]).to eq(:indeterminate)
+      expect(result[:captive_portal_login_required]).to eq(:unknown)
+    end
+
     it 'returns nil and emits a nil progress update when the initial wifi check fails' do
       out_stream = StringIO.new
       failing_builder = described_class.new(model, verbose: true, out_stream: out_stream)
