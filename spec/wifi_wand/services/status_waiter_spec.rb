@@ -156,6 +156,64 @@ describe WifiWand::StatusWaiter do
         expect(probe_timeouts).to contain_exactly(be_within(0.01).of(0.05))
       end
 
+      {
+        internet_on:  WifiWand::ConnectivityStates::INTERNET_REACHABLE,
+        internet_off: WifiWand::ConnectivityStates::INTERNET_UNREACHABLE,
+      }.each do |state, satisfied_result|
+        it "caps an indefinite :#{state} probe to the connectivity check budget" do
+          probe_timeouts = []
+          allow(mock_model).to receive(:internet_connectivity_state) do |timeout_in_secs: nil|
+            probe_timeouts << timeout_in_secs
+            satisfied_result
+          end
+
+          expect(waiter).not_to receive(:sleep)
+          expect(waiter.wait_for(state)).to be_nil
+
+          expect(probe_timeouts).to contain_exactly(
+            be_within(0.01).of(WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT)
+          )
+        end
+      end
+
+      it 'caps each long :internet_on probe to the connectivity check budget' do
+        probe_timeouts = []
+        allow(mock_model).to receive(:internet_connectivity_state) do |timeout_in_secs: nil|
+          probe_timeouts << timeout_in_secs
+          :indeterminate
+        end
+        allow(waiter).to receive(:sleep)
+        stub_monotonic_clock(1000.0, 1000.0, 1000.1, 1000.1, 1020.0)
+
+        expect do
+          waiter.wait_for(:internet_on, timeout_in_secs: 20, wait_interval_in_secs: 0)
+        end.to raise_error(WifiWand::WaitTimeoutError)
+
+        expect(probe_timeouts).to contain_exactly(
+          be_within(0.01).of(WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT),
+          be_within(0.01).of(WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT)
+        )
+      end
+
+      it 'caps each long :internet_off probe to the connectivity check budget' do
+        probe_timeouts = []
+        allow(mock_model).to receive(:internet_connectivity_state) do |timeout_in_secs: nil|
+          probe_timeouts << timeout_in_secs
+          :indeterminate
+        end
+        allow(waiter).to receive(:sleep)
+        stub_monotonic_clock(1000.0, 1000.0, 1000.1, 1000.1, 1020.0)
+
+        expect do
+          waiter.wait_for(:internet_off, timeout_in_secs: 20, wait_interval_in_secs: 0)
+        end.to raise_error(WifiWand::WaitTimeoutError)
+
+        expect(probe_timeouts).to contain_exactly(
+          be_within(0.01).of(WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT),
+          be_within(0.01).of(WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT)
+        )
+      end
+
       it 'caps later :internet_on probes to the remaining timeout budget' do
         call_count = 0
         probe_timeouts = []

@@ -101,12 +101,20 @@ module WifiWand
 
     private def predicate_satisfied?(predicate, target_status:, timeout_in_secs:, deadline:,
       expensive_predicate:)
-      return predicate.call unless expensive_predicate && timeout_in_secs
+      return predicate.call unless expensive_predicate
+      return predicate.call(TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT) unless timeout_in_secs
 
       remaining_time = remaining_time_until(deadline)
       raise_timeout_if_deadline_exceeded!(target_status, timeout_in_secs, deadline) if remaining_time <= 0
 
-      predicate.call(remaining_time)
+      predicate.call(expensive_predicate_timeout(remaining_time))
+    end
+
+    private def expensive_predicate_timeout(remaining_time)
+      [
+        remaining_time,
+        TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT,
+      ].min
     end
 
     private def sleep_duration_for(wait_interval_in_secs, deadline)
