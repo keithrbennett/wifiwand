@@ -383,6 +383,42 @@ describe WifiWand::CommandExecutor do
       expect(call_count).to eq(2)
     end
 
+    it 'sleeps between failed attempts' do
+      allow(executor).to receive(:run_command_using_args).and_return(
+        WifiWand::CommandExecutor::OsCommandResult.new(
+          stdout:          'not yet',
+          stderr:          '',
+          combined_output: 'not yet',
+          exitstatus:      0,
+          command:         %w[echo test],
+          duration:        0.0
+        )
+      )
+
+      expect(executor).to receive(:sleep)
+        .with(described_class::TRY_OS_COMMAND_RETRY_SLEEP_SECS)
+        .twice
+
+      executor.try_os_command_until(%w[echo test], ->(_output) { false }, 3)
+    end
+
+    it 'does not sleep after the final failed attempt' do
+      allow(executor).to receive(:run_command_using_args).and_return(
+        WifiWand::CommandExecutor::OsCommandResult.new(
+          stdout:          'not yet',
+          stderr:          '',
+          combined_output: 'not yet',
+          exitstatus:      0,
+          command:         %w[echo test],
+          duration:        0.0
+        )
+      )
+
+      expect(executor).not_to receive(:sleep)
+
+      executor.try_os_command_until(%w[echo test], ->(_output) { false }, 1)
+    end
+
     it 'returns nil when max_tries is reached without success' do
       condition = ->(_output) { false }
       expect(executor.try_os_command_until(%w[echo fail], condition, 2)).to be_nil

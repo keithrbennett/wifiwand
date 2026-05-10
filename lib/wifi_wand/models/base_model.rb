@@ -703,6 +703,7 @@ module WifiWand
     # Tries an OS command until the stop condition is true.
     # @command the command to run in the OS
     # @stop_condition a lambda taking the command's stdout as its sole parameter
+    # Failed attempts are throttled by CommandExecutor to avoid tight process-spawn loops.
     # @return the stdout produced by the command, or nil if max_tries was reached
     def try_os_command_until(command, stop_condition, max_tries = 100)
       debug_method_entry(__method__, binding, %i[command stop_condition max_tries])

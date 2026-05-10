@@ -8,6 +8,7 @@ module WifiWand
   class CommandExecutor
     COMMAND_KILL_WAIT_SECS = 1.0
     READER_THREAD_JOIN_WAIT_SECS = 0.1
+    TRY_OS_COMMAND_RETRY_SLEEP_SECS = 0.001
     private attr_reader :runtime_config
 
     def initialize(verbose: false, output: $stdout, runtime_config: nil)
@@ -48,6 +49,7 @@ module WifiWand
     # Tries an OS command until the stop condition is true.
     # @command the command to run in the OS
     # @stop_condition a lambda taking the command's stdout as its sole parameter
+    # Failed attempts are throttled to avoid tight process-spawn loops for fast commands.
     # @return the stdout produced by the command, or nil if max_tries was reached
     def try_os_command_until(command, stop_condition, max_tries = 100)
       report_attempt_count = ->(attempt_count) do
@@ -61,6 +63,8 @@ module WifiWand
           report_attempt_count.(n + 1)
           return stdout_text
         end
+
+        sleep TRY_OS_COMMAND_RETRY_SLEEP_SECS unless n == max_tries - 1
       end
 
       report_attempt_count.(max_tries)

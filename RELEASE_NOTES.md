@@ -9,6 +9,8 @@
 * Rename the explicit shell command API from `run_repl_command` to `run_command_using_shell`.
 * `run_command_using_shell` accepts only shell command strings for cases that intentionally require shell
   semantics.
+* Add a minimal throttle between failed `try_os_command_until` attempts to avoid tight retry loops for fast
+  commands.
 
 ## v3.0.0-alpha.1
 
