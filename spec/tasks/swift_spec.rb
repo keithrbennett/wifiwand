@@ -78,4 +78,39 @@ RSpec.describe 'swift tasks' do
       Rake::Task['swift:compile_helper'].invoke
     end.to raise_error(SystemExit)
   end
+
+  it 'verifies helper source attestation as a standalone task' do
+    expect(helper).to receive(:verify_source_bundle_current!)
+    expect(helper).not_to receive(:verify_source_bundle_signature!)
+
+    Rake::Task['swift:verify_helper_attestation'].invoke
+  end
+
+  it 'verifies helper code signature as a standalone task on macOS' do
+    allow(RbConfig::CONFIG).to receive(:[]).with('host_os').and_return('darwin')
+
+    expect(helper).not_to receive(:verify_source_bundle_current!)
+    expect(helper).to receive(:verify_source_bundle_signature!)
+
+    Rake::Task['swift:verify_helper_signature'].invoke
+  end
+
+  it 'requires macOS to verify the helper code signature' do
+    allow(RbConfig::CONFIG).to receive(:[]).with('host_os').and_return('linux')
+
+    expect(helper).not_to receive(:verify_source_bundle_signature!)
+
+    expect do
+      Rake::Task['swift:verify_helper_signature'].invoke
+    end.to raise_error(SystemExit)
+  end
+
+  it 'verifies helper attestation and code signature from the aggregate task' do
+    allow(RbConfig::CONFIG).to receive(:[]).with('host_os').and_return('darwin')
+
+    expect(helper).to receive(:verify_source_bundle_current!).ordered
+    expect(helper).to receive(:verify_source_bundle_signature!).ordered
+
+    Rake::Task['swift:verify_helper'].invoke
+  end
 end

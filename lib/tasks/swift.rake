@@ -28,10 +28,23 @@ namespace :swift do
   end
 
   desc 'Verify the committed wifiwand macOS helper bundle matches the current source attestation inputs'
-  task :verify_helper do
+  task :verify_helper_attestation do
     helper.verify_source_bundle_current!
     puts 'Source attestation matches committed helper source, entitlements, and bundle contents.'
   end
+
+  desc 'Verify the committed wifiwand macOS helper bundle code signature'
+  task :verify_helper_signature do
+    unless RbConfig::CONFIG['host_os'] =~ /darwin/i
+      abort 'macOS is required to verify the shipped helper code signature.'
+    end
+
+    helper.verify_source_bundle_signature!
+    puts 'Code signature verifies for committed helper bundle.'
+  end
+
+  desc 'Verify the committed wifiwand macOS helper bundle attestation and code signature'
+  task verify_helper: %i[verify_helper_attestation verify_helper_signature]
 
   desc 'Compile all Swift targets that require compilation (supports optional WIFIWAND_CODESIGN_IDENTITY)'
   task compile: [:compile_helper]

@@ -187,6 +187,47 @@ RSpec.describe WifiWand::MacOsHelperBundle do
     end
   end
 
+  describe '.verify_source_bundle_signature!' do
+    let(:source_bundle_path) { '/tmp/libexec/macos/wifiwand-helper.app' }
+    let(:success_status) { instance_double(Process::Status, success?: true) }
+    let(:failure_status) { instance_double(Process::Status, success?: false) }
+
+    before do
+      allow(described_class).to receive(:source_bundle_path).and_return(source_bundle_path)
+    end
+
+    it 'returns true when codesign verifies the committed helper bundle' do
+      allow(Open3).to receive(:capture3).with(
+        'codesign', '--verify', '--verbose', source_bundle_path
+      ).and_return(['', '', success_status])
+
+      expect(described_class.verify_source_bundle_signature!).to be(true)
+    end
+
+    it 'raises a rebuild hint when codesign reports an invalid signature' do
+      allow(Open3).to receive(:capture3).with(
+        'codesign', '--verify', '--verbose', source_bundle_path
+      ).and_return(['', 'invalid signature', failure_status])
+
+      expect do
+        described_class.verify_source_bundle_signature!
+      end.to raise_error(
+        RuntimeError,
+        /helper bundle signature is invalid.*bin\/mac-helper-release build.*invalid signature/m
+      )
+    end
+
+    it 'raises a codesign requirement hint when codesign is unavailable' do
+      allow(Open3).to receive(:capture3).with(
+        'codesign', '--verify', '--verbose', source_bundle_path
+      ).and_raise(Errno::ENOENT)
+
+      expect do
+        described_class.verify_source_bundle_signature!
+      end.to raise_error(RuntimeError, /codesign is required/)
+    end
+  end
+
   def create_helper_bundle(bundle_path, help_text:)
     executable_path = File.join(bundle_path, 'Contents', 'MacOS', described_class::EXECUTABLE_NAME)
     legacy_code_resources_path = File.join(bundle_path, 'Contents', 'CodeResources')

@@ -42,6 +42,15 @@ module WifiWand
       source_bundle_current? || raise(source_bundle_mismatch_message)
     end
 
+    module_function def verify_source_bundle_signature!
+      stdout, stderr, status = Open3.capture3('codesign', '--verify', '--verbose', source_bundle_path)
+      return true if status.success?
+
+      raise(source_bundle_signature_invalid_message(stdout, stderr))
+    rescue Errno::ENOENT
+      raise 'codesign is required to verify the shipped macOS helper bundle signature.'
+    end
+
     module_function def compile_helper(source, destination, out_stream: $stdout)
       FileUtils.mkdir_p(File.dirname(destination))
 
@@ -164,6 +173,16 @@ module WifiWand
         'Run `bundle exec rake swift:compile_helper` or ' \
         '`bin/mac-helper-release build` to rebuild the signed bundle ' \
         "and refresh #{relative_helper_path(source_bundle_manifest_path)}."
+    end
+
+    module_function def source_bundle_signature_invalid_message(stdout, stderr)
+      output = [stdout, stderr].reject(&:empty?).join("\n\n").strip
+      diagnostic = output.empty? ? 'codesign did not return a diagnostic.' : output
+
+      'Shipped macOS helper bundle signature is invalid ' \
+        "(#{relative_helper_path(source_bundle_path)}). " \
+        "Run `bin/mac-helper-release build` to rebuild and sign the helper bundle.\n\n" \
+        "#{diagnostic}"
     end
   end
 end
