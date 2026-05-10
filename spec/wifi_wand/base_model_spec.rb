@@ -224,15 +224,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
     subject(:model) { test_model_class.new }
 
     let(:test_model_class) do
-      Class.new(WifiWand::BaseModel) do
+      klass = Class.new(WifiWand::BaseModel) do
         def self.os_id = :mac
-        def _available_network_names = []
-        def _connected_network_name = nil
-        def _connect(_network_name, _password = nil) = nil
-        def _disconnect = nil
-        def _ip_address = nil
-        def _preferred_network_password(_network_name) = nil
       end
+
+      define_base_model_required_methods(klass, probe_wifi_interface: 'en0')
     end
 
     it 'raises a dedicated error when the interface remains associated' do
@@ -747,14 +743,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'returns os_id and mac?/ubuntu? reflect os' do
       test_class = Class.new(WifiWand::BaseModel) do
         def self.os_id = :mac
-        # implement required underscore methods to satisfy inherited verification
-        def _available_network_names = []
-        def _connected_network_name = nil
-        def _connect(_network_name, _password) = nil
-        def _disconnect = nil
-        def _ip_address = nil
-        def _preferred_network_password(_network_name) = nil
       end
+      define_base_model_required_methods(test_class, probe_wifi_interface: 'en0')
 
       inst = test_class.new
       expect(inst.os).to eq(:mac)
@@ -830,16 +820,69 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end.to raise_error(NotImplementedError, /must implement.*open_resource/)
     end
 
+    it 'requires connection_security_type and network_hidden? subclass overrides' do
+      incomplete_class = Class.new(WifiWand::BaseModel) do
+        def self.os_id = :test
+      end
+      define_base_model_required_methods(
+        incomplete_class, except: %i[connection_security_type network_hidden?]
+      )
+
+      expect do
+        incomplete_class.verify_required_methods_implemented(incomplete_class)
+      end.to raise_error(NotImplementedError, /connection_security_type.*network_hidden\?/)
+    end
+
+    it 'validates anonymous subclasses during initialization' do
+      incomplete_class = Class.new(WifiWand::BaseModel) do
+        def self.os_id = :test
+      end
+      define_base_model_required_methods(
+        incomplete_class, except: %i[connection_security_type network_hidden?]
+      )
+
+      expect do
+        incomplete_class.new
+      end.to raise_error(
+        NotImplementedError, /Subclass \(anonymous\).*connection_security_type.*network_hidden\?/
+      )
+    end
+
     # NOTE: TracePoint callback testing is unreliable due to test mocking interference.
     # Instead, we test verify_required_methods_implemented directly above.
 
-    it 'calls NotImplementedError for dynamically defined required methods' do
-      # Test the NotImplementedError by calling the method directly on BaseModel
+    it 'raises NotImplementedError for explicit BaseModel abstract methods' do
       base_model_instance = WifiWand::BaseModel.new
 
       expect do
         base_model_instance.default_interface
       end.to raise_error(NotImplementedError, /must implement default_interface/)
+
+      expect do
+        base_model_instance.connection_security_type
+      end.to raise_error(NotImplementedError, /must implement connection_security_type/)
+      expect do
+        base_model_instance.network_hidden?
+      end.to raise_error(NotImplementedError, /must implement network_hidden\?/)
+    end
+
+    it 'verifies concrete model classes implement the full required contract' do
+      [WifiWand::MacOsModel, WifiWand::UbuntuModel].each do |model_class|
+        expect do
+          WifiWand::BaseModel.verify_required_methods_implemented(model_class)
+        end.not_to raise_error
+      end
+    end
+
+    it 'verifies concrete model public override methods are public subclass methods' do
+      [WifiWand::MacOsModel, WifiWand::UbuntuModel].each do |model_class|
+        missing_methods = WifiWand::BaseModel::REQUIRED_OVERRIDE_METHODS.reject do |method_name|
+          model_class.public_method_defined?(method_name) &&
+            model_class.public_instance_method(method_name).owner != WifiWand::BaseModel
+        end
+
+        expect(missing_methods).to eq([])
+      end
     end
   end
 
@@ -1125,35 +1168,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     let(:runtime_model_class) do
-      Class.new(WifiWand::BaseModel) do
+      klass = Class.new(WifiWand::BaseModel) do
         def self.os_id = :test
-
-        def _available_network_names = []
-        def _connected_network_name = nil
-        def _connect(_network_name, _password = nil) = nil
-        def _disconnect = nil
-        def _ip_address = nil
-        def _preferred_network_password(_network_name) = nil
-
-        def connected? = false
-        def connection_security_type = 'NONE'
-        def default_interface = nil
-        def is_wifi_interface?(_interface_name) = true
-        def mac_address = nil
-        def nameservers = []
-        def network_hidden? = false
-        def open_resource(_resource) = nil
-        def probe_wifi_interface = 'wlan0'
-        def preferred_networks = []
-        def remove_preferred_network(_network_name) = nil
-        # rubocop:disable Naming/AccessorMethodName
-        def set_nameservers(_nameservers) = nil
-        # rubocop:enable Naming/AccessorMethodName
-        def validate_os_preconditions = nil
-        def wifi_off = nil
-        def wifi_on = nil
-        def wifi_on? = true
       end
+
+      define_base_model_required_methods(klass)
     end
 
     let(:initial_verbose) { false }

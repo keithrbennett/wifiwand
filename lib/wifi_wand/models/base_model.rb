@@ -42,6 +42,8 @@ module WifiWand
     end
 
     def initialize(options = {})
+      verify_subclass_contract
+
       options = normalize_constructor_options(options)
       @options = options
       @runtime_config = RuntimeConfig.new(
@@ -135,13 +137,6 @@ module WifiWand
       nil
     end
 
-    # Define methods that must be implemented by subclasses in order to be called successfully:
-    def self.define_subclass_required_method(method_name)
-      define_method(method_name) do
-        raise NotImplementedError, "Subclasses must implement #{method_name}"
-      end
-    end
-
     # Methods that subclasses must implement but are called via wrapper methods
     UNDERSCORE_PREFIXED_METHODS = %i[
       _available_network_names
@@ -171,29 +166,43 @@ module WifiWand
       wifi_on?
     ].freeze
 
-    REQUIRED_SUBCLASS_METHODS = (UNDERSCORE_PREFIXED_METHODS + REQUIRED_OVERRIDE_METHODS).freeze
     PUBLIC_IP_TIMEOUT_IN_SECONDS = 2
     COUNTRY_CODE_REGEX = /\A[A-Z]{2}\z/
 
-    def self.subclass_implements_method?(subclass, method_name)
-      subclass.instance_method(method_name).owner != BaseModel
-    rescue NameError
-      false
+    def self.subclass_overrides_method?(subclass, method_name)
+      method = if subclass.method_defined?(method_name) || subclass.private_method_defined?(method_name)
+        subclass.instance_method(method_name)
+      end
+
+      method && method.owner != BaseModel
+    end
+
+    def self.subclass_publicly_overrides_method?(subclass, method_name)
+      method = if subclass.public_method_defined?(method_name)
+        subclass.public_instance_method(method_name)
+      end
+
+      method && method.owner != BaseModel
     end
 
     # Verify that a subclass implements all required methods and overrides
     # BaseModel placeholders for public API methods.
     def self.verify_required_methods_implemented(subclass)
-      missing_methods = REQUIRED_SUBCLASS_METHODS.reject do |method_name|
-        subclass_implements_method?(subclass, method_name)
+      missing_subclass_methods = UNDERSCORE_PREFIXED_METHODS.reject do |method_name|
+        subclass_overrides_method?(subclass, method_name)
       end
+      missing_public_override_methods = REQUIRED_OVERRIDE_METHODS.reject do |method_name|
+        subclass_publicly_overrides_method?(subclass, method_name)
+      end
+      missing_methods = missing_subclass_methods + missing_public_override_methods
 
       unless missing_methods.empty?
-        raise NotImplementedError, "Subclass #{subclass.name} must implement #{missing_methods.inspect}"
+        subclass_name = subclass.name || '(anonymous)'
+        raise NotImplementedError, "Subclass #{subclass_name} must implement #{missing_methods.inspect}"
       end
     end
 
-    # Automatically verify underscore methods when a subclass is inherited
+    # Automatically verify required method overrides when a subclass is inherited
     def self.inherited(subclass)
       super
 
@@ -206,7 +215,46 @@ module WifiWand
       trace.enable
     end
 
-    REQUIRED_OVERRIDE_METHODS.each { |method_name| define_subclass_required_method(method_name) }
+    private def verify_subclass_contract
+      return if instance_of?(BaseModel)
+
+      self.class.verify_required_methods_implemented(self.class)
+    end
+    private def raise_override_not_implemented_error(method_name)
+      raise NotImplementedError, "Subclasses must implement #{method_name}"
+    end
+
+    def connected? = raise_override_not_implemented_error(__method__)
+
+    def connection_security_type = raise_override_not_implemented_error(__method__)
+
+    def default_interface = raise_override_not_implemented_error(__method__)
+
+    def is_wifi_interface?(_interface_name) = raise_override_not_implemented_error(__method__)
+
+    def mac_address = raise_override_not_implemented_error(__method__)
+
+    def nameservers = raise_override_not_implemented_error(__method__)
+
+    def network_hidden? = raise_override_not_implemented_error(__method__)
+
+    def open_resource(_resource) = raise_override_not_implemented_error(__method__)
+
+    def probe_wifi_interface = raise_override_not_implemented_error(__method__)
+
+    def preferred_networks = raise_override_not_implemented_error(__method__)
+
+    def remove_preferred_network(_network_name) = raise_override_not_implemented_error(__method__)
+
+    def set_nameservers(_nameservers) = raise_override_not_implemented_error(__method__) # rubocop:disable Naming/AccessorMethodName
+
+    def validate_os_preconditions = raise_override_not_implemented_error(__method__)
+
+    def wifi_off = raise_override_not_implemented_error(__method__)
+
+    def wifi_on = raise_override_not_implemented_error(__method__)
+
+    def wifi_on? = raise_override_not_implemented_error(__method__)
 
     def available_network_names
       raise WifiOffError, 'WiFi is off, cannot scan for available networks.' unless wifi_on?

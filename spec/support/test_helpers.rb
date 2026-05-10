@@ -9,6 +9,30 @@ require_relative '../../lib/wifi_wand/models/ubuntu_model'
 require_relative '../../lib/wifi_wand/models/mac_os_model'
 
 module TestHelpers
+  BASE_MODEL_REQUIRED_METHOD_DEFINITIONS = {
+    connected?:                  -> { false },
+    connection_security_type:    -> {},
+    default_interface:           -> {},
+    is_wifi_interface?:          ->(_interface_name) { true },
+    mac_address:                 -> {},
+    nameservers:                 -> { [] },
+    network_hidden?:             -> { false },
+    open_resource:               ->(*) {},
+    preferred_networks:          -> { [] },
+    remove_preferred_network:    ->(*) {},
+    set_nameservers:             ->(*) {},
+    validate_os_preconditions:   -> {},
+    wifi_off:                    -> {},
+    wifi_on:                     -> {},
+    wifi_on?:                    -> { true },
+    _available_network_names:    -> { [] },
+    _connected_network_name:     -> {},
+    _connect:                    ->(*) {},
+    _disconnect:                 -> {},
+    _ip_address:                 -> {},
+    _preferred_network_password: ->(*) {},
+  }.freeze
+
   def restore_network_state = NetworkStateManager.restore_state
 
   def network_state = NetworkStateManager.network_state
@@ -23,6 +47,21 @@ module TestHelpers
 
   def wait_timeout_error(action:, timeout:)
     WifiWand::WaitTimeoutError.new(action: action, timeout: timeout)
+  end
+
+  def define_base_model_required_methods(klass, except: [], probe_wifi_interface: 'wlan0')
+    skipped_methods = Array(except)
+    method_definitions = BASE_MODEL_REQUIRED_METHOD_DEFINITIONS.merge(
+      probe_wifi_interface: proc { probe_wifi_interface }
+    )
+
+    klass.class_eval do
+      method_definitions.each do |method_name, implementation|
+        define_method(method_name, &implementation) unless skipped_methods.include?(method_name)
+      end
+    end
+
+    klass
   end
 
   def expect_process_dead(pid)

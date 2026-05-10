@@ -1125,7 +1125,7 @@ module WifiWand
 
     # Gets the security type of the currently connected network.
     # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP", or nil if not connected/not found
-    private def connection_security_type
+    public def connection_security_type
       with_airport_data_cache_scope do
         network_name = _connected_network_name
         return nil unless network_name
@@ -1157,7 +1157,7 @@ module WifiWand
     # Checks if the currently connected network is a hidden network.
     # A hidden network does not broadcast its SSID.
     # @return [Boolean] true if connected to a hidden network, false otherwise
-    private def network_hidden?
+    public def network_hidden?
       with_airport_data_cache_scope do
         network_name = _connected_network_name
         return false unless network_name
@@ -1201,7 +1201,5 @@ module WifiWand
         !network_in_visible_lists
       end
     end
-
-    public :connection_security_type, :network_hidden?
   end
 end

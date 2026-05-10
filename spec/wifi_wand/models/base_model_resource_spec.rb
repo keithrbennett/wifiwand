@@ -5,26 +5,13 @@ require_relative '../../spec_helper'
 describe 'BaseModel Resource Management' do
   let(:mock_resource_manager) { double('resource_manager') }
   let(:model_class) do
-    Class.new(WifiWand::BaseModel) do
+    klass = Class.new(WifiWand::BaseModel) do
       def self.os_id
         :test
       end
-
-      # Mock required methods
-      def open_resource(_url) = nil
-
-      # Stub other required methods to prevent NotImplementedError
-      %i[
-        default_interface probe_wifi_interface is_wifi_interface?
-        mac_address nameservers _preferred_network_password
-        preferred_networks remove_preferred_network set_nameservers
-        validate_os_preconditions wifi_off wifi_on wifi_on?
-        _available_network_names _connected_network_name _connect
-        _disconnect _ip_address
-      ].each do |method_name|
-        define_method(method_name) { nil }
-      end
     end
+
+    define_base_model_required_methods(klass)
   end
 
   let(:model) { model_class.new(verbose: false) }
