@@ -111,6 +111,7 @@ module WifiWand
               combined_chunks << chunk
             end
           end
+        # EOFError subclasses IOError, so this handles normal EOF and forced stream closure.
         rescue IOError
           nil
         end

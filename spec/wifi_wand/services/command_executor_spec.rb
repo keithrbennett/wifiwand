@@ -109,6 +109,28 @@ describe WifiWand::CommandExecutor do
         expect(result.exitstatus).to eq(0)
       end
 
+      it 'treats stdout and stderr EOF as normal command shutdown' do
+        stdin = instance_double(IO, close: nil)
+        stdout = stream_class.new(['partial output', EOFError.new])
+        stderr = stream_class.new(['warning output', EOFError.new])
+        wait_thr = instance_double(Thread)
+        status = instance_double(Process::Status, exitstatus: 0, termsig: nil)
+        result = nil
+
+        allow(wait_thr).to receive_messages(join: wait_thr, value: status)
+        allow(Open3).to receive(:popen3).and_yield(stdin, stdout, stderr, wait_thr)
+
+        expect do
+          result = executor.run_command_using_args(%w[echo test])
+        end.not_to output.to_stderr_from_any_process
+
+        expect(result.stdout).to eq('partial output')
+        expect(result.stderr).to eq('warning output')
+        expect(result.combined_output).to include('partial output')
+        expect(result.combined_output).to include('warning output')
+        expect(result.exitstatus).to eq(0)
+      end
+
       it 'raises OsCommandError on command failure when raise_on_error is true' do
         expect do
           executor.run_command_using_args(['false'])
