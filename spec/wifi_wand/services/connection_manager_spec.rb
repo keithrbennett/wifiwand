@@ -181,6 +181,31 @@ describe WifiWand::ConnectionManager do
       end
     end
 
+    context 'when preflight verification is blocked by macOS SSID redaction' do
+      let(:redaction_reason) do
+        'macOS is redacting WiFi network names until Location Services access is granted'
+      end
+
+      before do
+        allow(mock_model).to receive(:connection_ready?).and_raise(
+          WifiWand::MacOsRedactionError.new(
+            operation_description: 'Current WiFi network queries',
+            reason:                redaction_reason
+          )
+        )
+      end
+
+      it 'fails before attempting a reconnect' do
+        expect(mock_model).not_to receive(:wifi_on)
+        expect(mock_model).not_to receive(:_connect)
+
+        expect { subject.connect('TestNetwork') }.to raise_error(WifiWand::NetworkConnectionError) do |error|
+          expect(error.message).to include('associated, but macOS is redacting WiFi network names')
+          expect(error.message).to include("cannot verify that the active network is 'TestNetwork'")
+        end
+      end
+    end
+
     context 'when associated to target SSID but not fully connected yet' do
       before do
         allow(mock_model).to receive(:connection_ready?).and_return(false, true)
@@ -192,6 +217,46 @@ describe WifiWand::ConnectionManager do
         expect(mock_model).to receive(:_connect).with('TestNetwork', nil).ordered
 
         subject.connect('TestNetwork')
+      end
+    end
+
+    context 'when activation polling is blocked by macOS SSID redaction' do
+      let(:redaction_reason) do
+        'macOS is redacting WiFi network names until Location Services access is granted'
+      end
+
+      let(:redaction_error) do
+        WifiWand::MacOsRedactionError.new(
+          operation_description: 'Current WiFi network queries',
+          reason:                redaction_reason
+        )
+      end
+
+      before do
+        readiness_checks = 0
+        allow(mock_model).to receive(:connection_ready?) do
+          readiness_checks += 1
+          raise redaction_error if readiness_checks > 1
+
+          false
+        end
+        allow(mock_model).to receive(:till).and_raise(
+          WifiWand::WaitTimeoutError.new(
+            action:  :associated,
+            timeout: WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT
+          )
+        )
+      end
+
+      it 'reports the targeted redaction error without waiting for final verification' do
+        expect(mock_model).to receive(:wifi_on).ordered
+        expect(mock_model).to receive(:_connect).with('TestNetwork', nil).ordered
+        expect(mock_model).not_to receive(:connected_network_name)
+
+        expect { subject.connect('TestNetwork') }.to raise_error(WifiWand::NetworkConnectionError) do |error|
+          expect(error.message).to include('associated, but macOS is redacting WiFi network names')
+          expect(error.message).to include("cannot verify that the active network is 'TestNetwork'")
+        end
       end
     end
 

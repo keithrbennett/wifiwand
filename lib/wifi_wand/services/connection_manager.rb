@@ -132,6 +132,8 @@ module WifiWand
 
     private def already_connected?(network_name)
       active_connection_matches?(network_name)
+    rescue MacOsRedactionError => e
+      raise_redacted_identity_connection_error(network_name, e)
     rescue WifiWand::Error
       false
     end
@@ -222,19 +224,13 @@ module WifiWand
     private def active_connection_matches_or_raise!(network_name)
       active_connection_matches?(network_name)
     rescue MacOsRedactionError => e
-      raise(NetworkConnectionError.new(
-        network_name: network_name,
-        reason:       redacted_identity_reason_for_connection(network_name, e)
-      ))
+      raise_redacted_identity_connection_error(network_name, e)
     end
 
     private def connected_network_name_for_verification(network_name)
       model.connected_network_name
     rescue MacOsRedactionError => e
-      raise(NetworkConnectionError.new(
-        network_name: network_name,
-        reason:       redacted_identity_reason_for_connection(network_name, e)
-      ))
+      raise_redacted_identity_connection_error(network_name, e)
     rescue WifiWand::Error => e
       log_verbose(
         "Connection verification could not read current network for '#{network_name}': " \
@@ -245,6 +241,13 @@ module WifiWand
 
     private def log_verbose(message)
       runtime_config.err_stream.puts(message) if verbose?
+    end
+
+    private def raise_redacted_identity_connection_error(network_name, error)
+      raise(NetworkConnectionError.new(
+        network_name: network_name,
+        reason:       redacted_identity_reason_for_connection(network_name, error)
+      ))
     end
 
     private def redacted_identity_reason_for_connection(network_name, error)
@@ -269,6 +272,8 @@ module WifiWand
           # association state so callers only proceed once DNS/IP/profile state
           # has settled enough for subsequent commands to be reliable.
           return if active_connection_matches?(network_name)
+        rescue MacOsRedactionError => e
+          raise_redacted_identity_connection_error(network_name, e)
         rescue WifiWand::Error
           # NetworkManager can transiently report no active connection while
           # activation is still settling; keep polling until timeout.
