@@ -14,7 +14,9 @@ module WifiWand
 
     binds output_support: :output_support
 
-    def call
+    def call(*args)
+      validate_max_arguments!(args, 0)
+
       output_support.handle_output(WifiWand::PROJECT_URL, -> { WifiWand::PROJECT_URL })
     end
   end

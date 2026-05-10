@@ -18,6 +18,8 @@ describe WifiWand::HelpCommand do
 
       def help_text = 'GLOBAL HELP'
 
+      def help_hint = "Use 'wifi-wand help' or 'wifi-wand -h' for help."
+
       def print_help
         @printed_help = true
       end
@@ -77,6 +79,18 @@ describe WifiWand::HelpCommand do
       command.call('unknown')
 
       expect(cli.printed_help).to be(true)
+    end
+
+    it 'raises a usage-oriented error when extra arguments are provided' do
+      expect(cli).not_to receive(:resolve_command)
+      expect(cli).not_to receive(:print_help)
+
+      expect { command.call('log', 'extra') }
+        .to raise_error(WifiWand::ConfigurationError) { |error|
+          expect(error.message).to include('Unexpected argument(s): extra')
+          expect(error.message).to include('Usage: wifi-wand help [command]')
+          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        }
     end
   end
 end

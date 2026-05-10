@@ -79,7 +79,7 @@ module WifiWand
         raise WifiWand::ConfigurationError, "#{e.message}. Use 'wifi-wand help' or 'wifi-wand -h' for help."
       end
 
-      validate_no_positional_arguments!(options)
+      validate_max_arguments!(options, 0)
 
       if help_requested
         output.puts(parser.help)
@@ -91,15 +91,6 @@ module WifiWand
       end
 
       [interval, log_file_path, output_to_stdout, verbose_flag]
-    end
-
-    private def validate_no_positional_arguments!(options)
-      return if options.empty?
-
-      unexpected_arguments = options.join(', ')
-      raise WifiWand::ConfigurationError,
-        "Unexpected argument(s): #{unexpected_arguments}\n#{metadata.usage}\n" \
-          "Use 'wifi-wand help' or 'wifi-wand -h' for help."
     end
 
     private def build_parser(interval_setter:, file_setter:, stdout_setter:, verbose_setter:, help_setter:)

@@ -13,7 +13,10 @@ module WifiWand
 
     binds :model, output_support: :output_support
 
-    def call(network = nil)
+    def call(*args)
+      validate_max_arguments!(args, 1)
+
+      network = args.first
       raise_missing_argument!('<network-name>') if missing_argument?(network)
 
       password = model.preferred_network_password(network)

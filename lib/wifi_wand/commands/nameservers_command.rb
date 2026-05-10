@@ -37,23 +37,15 @@ module WifiWand
       if args.empty?
         :get
       elsif first_arg == 'get'
-        validate_no_extra_arguments!(:get, args)
+        validate_max_arguments!(args, 1)
         :get
       elsif first_arg == 'clear'
-        validate_no_extra_arguments!(:clear, args)
+        validate_max_arguments!(args, 1)
         :clear
       else
         validate_no_reserved_subcommand_arguments!(args)
         :put
       end
-    end
-
-    private def validate_no_extra_arguments!(subcommand, args)
-      return if args.length == 1
-
-      extra_args = args[1..].join(', ')
-      raise WifiWand::ConfigurationError,
-        "The nameservers #{subcommand} command does not accept arguments: #{extra_args}\n#{metadata.usage}"
     end
 
     private def validate_no_reserved_subcommand_arguments!(args)

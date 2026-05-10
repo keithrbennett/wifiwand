@@ -13,7 +13,9 @@ module WifiWand
 
     binds :model, output_support: :output_support
 
-    def call
+    def call(*args)
+      validate_max_arguments!(args, 0)
+
       name = model.connected_network_name
       output_support.handle_output(name, -> { %{Network (SSID) name: "#{name || '[none]'}"} })
     end

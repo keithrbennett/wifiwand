@@ -40,7 +40,10 @@ module WifiWand
       HELP
     end
 
-    def call(selector = 'both')
+    def call(*args)
+      validate_max_arguments!(args, 1)
+
+      selector = args.empty? ? 'both' : args.first
       normalized_selector = normalize_selector(selector)
 
       case normalized_selector

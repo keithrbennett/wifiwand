@@ -4,7 +4,7 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi_wand/commands/quit_command'
 
 describe WifiWand::QuitCommand do
-  let(:cli) { double('cli') }
+  let(:cli) { double('cli', help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.") }
 
   it_behaves_like 'binds command context', bound_attributes: {}
 
@@ -30,6 +30,18 @@ describe WifiWand::QuitCommand do
       expect(cli).to receive(:quit)
 
       command.call
+    end
+
+    it 'raises a usage-oriented error when extra arguments are provided' do
+      command = described_class.new.bind(cli)
+      expect(cli).not_to receive(:quit)
+
+      expect { command.call('extra') }
+        .to raise_error(WifiWand::ConfigurationError) { |error|
+          expect(error.message).to include('Unexpected argument(s): extra')
+          expect(error.message).to include('Usage: wifi-wand quit')
+          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        }
     end
   end
 end

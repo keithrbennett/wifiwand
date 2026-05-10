@@ -10,7 +10,7 @@ describe WifiWand::QrCommand do
   let(:interactive_mode) { false }
   let(:cli) do
     double('cli', model: mock_model, interactive_mode: interactive_mode, in_stream: in_stream,
-      output_support: output_support)
+      output_support: output_support, help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
   end
 
   it_behaves_like 'binds command context',
@@ -79,6 +79,17 @@ describe WifiWand::QrCommand do
         expect { command.call('test.png') }
           .to raise_error(WifiWand::Error, 'File test.png already exists')
       end
+    end
+
+    it 'raises a usage-oriented error when extra arguments are provided' do
+      expect(mock_model).not_to receive(:generate_qr_code)
+
+      expect { command.call('test.png', 'secret', 'extra') }
+        .to raise_error(WifiWand::ConfigurationError) { |error|
+          expect(error.message).to include('Unexpected argument(s): extra')
+          expect(error.message).to include("Usage: wifi-wand qr [filespec|'-'] [password]")
+          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        }
     end
   end
 end

@@ -27,7 +27,9 @@ module WifiWand
       HELP
     end
 
-    def call
+    def call(*args)
+      validate_max_arguments!(args, 0)
+
       cli.quit
     end
   end

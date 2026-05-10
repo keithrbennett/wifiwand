@@ -7,7 +7,8 @@ describe WifiWand::NameserversCommand do
   let(:mock_model) { double('Model') }
   let(:output_support) { double('output_support') }
   let(:cli) do
-    double('cli', model: mock_model, output_support: output_support)
+    double('cli', model: mock_model, output_support: output_support,
+      help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
   end
 
   it_behaves_like 'binds command context',
@@ -45,7 +46,11 @@ describe WifiWand::NameserversCommand do
 
       expect do
         command.call('get', '1.1.1.1')
-      end.to raise_error(WifiWand::ConfigurationError, /nameservers get command does not accept arguments/)
+      end.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('Unexpected argument(s): 1.1.1.1')
+        expect(error.message).to include('Usage: wifi-wand nameservers [get|clear|IP ...]')
+        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      }
     end
 
     it 'shows [None] when there are no nameservers' do
@@ -73,7 +78,11 @@ describe WifiWand::NameserversCommand do
 
       expect do
         command.call('clear', '1.1.1.1')
-      end.to raise_error(WifiWand::ConfigurationError, /nameservers clear command does not accept arguments/)
+      end.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('Unexpected argument(s): 1.1.1.1')
+        expect(error.message).to include('Usage: wifi-wand nameservers [get|clear|IP ...]')
+        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      }
     end
 
     it 'sets provided nameservers' do

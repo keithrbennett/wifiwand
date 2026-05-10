@@ -26,7 +26,10 @@ module WifiWand
       HELP
     end
 
-    def call(filespec = nil, password = nil)
+    def call(*args)
+      validate_max_arguments!(args, 2)
+
+      filespec, password = args
       spec = filespec&.to_s
       to_stdout = (spec == '-')
 

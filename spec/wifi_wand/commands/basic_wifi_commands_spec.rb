@@ -35,7 +35,9 @@ RSpec.describe 'basic WiFi commands' do
   ].each do |command_case|
     describe command_case[:command_class] do
       let(:mock_model) { double('model') }
-      let(:cli) { double('cli', model: mock_model) }
+      let(:cli) do
+        double('cli', model: mock_model, help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      end
 
       it_behaves_like 'binds command context', bound_attributes: { model: :mock_model }
 
@@ -50,6 +52,17 @@ RSpec.describe 'basic WiFi commands' do
           expect(mock_model).to receive(command_case[:model_method])
 
           command.call
+        end
+
+        it 'raises a usage-oriented error when extra arguments are provided' do
+          expect(mock_model).not_to receive(command_case[:model_method])
+
+          expect { command.call('extra') }
+            .to raise_error(WifiWand::ConfigurationError) { |error|
+              expect(error.message).to include('Unexpected argument(s): extra')
+              expect(error.message).to include(command_case[:usage])
+              expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+            }
         end
       end
     end

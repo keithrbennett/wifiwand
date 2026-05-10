@@ -13,7 +13,10 @@ module WifiWand
 
     binds :model, :interactive_mode, output: :out_stream
 
-    def call(network = nil, password = nil)
+    def call(*args)
+      validate_max_arguments!(args, 2)
+
+      network, password = args
       raise_missing_argument!('<network>') if missing_argument?(network)
 
       model.connect(network, password)

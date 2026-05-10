@@ -20,10 +20,9 @@ module WifiWand
     end
 
     private def validate_startup_options!(args)
-      if args.size.positive?
-        raise WifiWand::ConfigurationError,
-          "The shell command does not accept arguments. Received: #{args.inspect}"
-      elsif cli.options.post_processor
+      validate_max_arguments!(args, 0)
+
+      if cli.options.post_processor
         raise WifiWand::ConfigurationError,
           'Output formatting is not supported for the shell command.'
       end

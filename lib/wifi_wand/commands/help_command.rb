@@ -19,7 +19,10 @@ module WifiWand
       cli.help_text
     end
 
-    def call(command_name = nil)
+    def call(*args)
+      validate_max_arguments!(args, 1)
+
+      command_name = args.first
       command = help_command_for(command_name)
 
       if command&.help_text

@@ -5,7 +5,10 @@ require_relative '../../../lib/wifi_wand/commands/url_command'
 
 describe WifiWand::UrlCommand do
   let(:output_support) { double('output_support') }
-  let(:cli) { double('cli', output_support: output_support) }
+  let(:cli) do
+    double('cli', output_support: output_support,
+      help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+  end
 
   it_behaves_like 'binds command context',
     bound_attributes: { output_support: :output_support }
@@ -24,6 +27,17 @@ describe WifiWand::UrlCommand do
       end
 
       command.call
+    end
+
+    it 'raises a usage-oriented error when extra arguments are provided' do
+      expect(output_support).not_to receive(:handle_output)
+
+      expect { command.call('extra') }
+        .to raise_error(WifiWand::ConfigurationError) { |error|
+          expect(error.message).to include('Unexpected argument(s): extra')
+          expect(error.message).to include('Usage: wifi-wand url')
+          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        }
     end
   end
 end

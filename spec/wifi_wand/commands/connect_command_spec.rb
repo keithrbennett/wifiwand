@@ -59,6 +59,17 @@ describe WifiWand::ConnectCommand do
       }
     end
 
+    it 'raises a usage-oriented error when extra arguments are provided' do
+      expect(mock_model).not_to receive(:connect)
+
+      expect { command.call('TestNetwork', 'secret', 'extra') }
+        .to raise_error(WifiWand::ConfigurationError) { |error|
+          expect(error.message).to include('Unexpected argument(s): extra')
+          expect(error.message).to include('Usage: wifi-wand connect <network> [password]')
+          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        }
+    end
+
     it 'shows a saved-password message in non-interactive mode' do
       allow(mock_model).to receive(:last_connection_used_saved_password?).and_return(true)
 

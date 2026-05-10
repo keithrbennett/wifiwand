@@ -42,7 +42,7 @@ describe WifiWand::StatusCommand do
   end
   let(:cli) do
     double('cli', model: mock_model, interactive_mode: interactive_mode, out_stream: out_stream,
-      output_support: output_support)
+      output_support: output_support, help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
   end
   let(:progress_mode) { :none }
   let(:rendered_status) { 'WiFi: ON | Network: "TestNet"' }
@@ -73,6 +73,17 @@ describe WifiWand::StatusCommand do
 
       expect(result).to eq(status_data)
       expect(output_support.handled).to eq([status_data, rendered_status])
+    end
+
+    it 'raises a usage-oriented error when extra arguments are provided' do
+      expect(mock_model).not_to receive(:status_line_data)
+
+      expect { command.call('extra') }
+        .to raise_error(WifiWand::ConfigurationError) { |error|
+          expect(error.message).to include('Unexpected argument(s): extra')
+          expect(error.message).to include('Usage: wifi-wand status')
+          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        }
     end
 
     context 'when interactive and progress is disabled' do

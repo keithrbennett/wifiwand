@@ -7,7 +7,8 @@ describe WifiWand::InfoCommand do
   let(:mock_model) { double('Model') }
   let(:output_support) { double('output_support') }
   let(:cli) do
-    double('cli', model: mock_model, output_support: output_support)
+    double('cli', model: mock_model, output_support: output_support,
+      help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
   end
 
   it_behaves_like 'binds command context',
@@ -31,6 +32,17 @@ describe WifiWand::InfoCommand do
       end
 
       command.call
+    end
+
+    it 'raises a usage-oriented error when extra arguments are provided' do
+      expect(mock_model).not_to receive(:wifi_info)
+
+      expect { command.call('extra') }
+        .to raise_error(WifiWand::ConfigurationError) { |error|
+          expect(error.message).to include('Unexpected argument(s): extra')
+          expect(error.message).to include('Usage: wifi-wand info')
+          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        }
     end
   end
 end

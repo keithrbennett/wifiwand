@@ -71,7 +71,9 @@ describe WifiWand::CommandLineInterface do
       expect(cli).not_to receive(:run_shell)
 
       expect(cli.call).to eq(described_class::FAILURE_EXIT_CODE)
-      expect(err_stream.string).to include('The shell command does not accept arguments.')
+      expect(err_stream.string).to include('Unexpected argument(s): -o, j')
+      expect(err_stream.string).to include('Usage: wifi-wand shell')
+      expect(err_stream.string).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
     end
 
     it 'handles BadCommandError with error message and help hint' do
@@ -345,7 +347,8 @@ describe WifiWand::CommandLineInterface do
 
       expect(result[:status]).to eq(described_class::FAILURE_EXIT_CODE)
       expect(result[:stdout]).to be_empty
-      expect(result[:stderr]).to include('nameservers get command does not accept arguments')
+      expect(result[:stderr]).to include('Unexpected argument(s): 1.1.1.1')
+      expect(result[:stderr]).to include('Usage: wifi-wand nameservers [get|clear|IP ...]')
       expect(result[:stderr]).to include('1.1.1.1')
       expect(result[:stderr]).to include("Use 'wifi-wand help'")
       expect(result[:cli].model).not_to have_received(:nameservers)
@@ -356,7 +359,8 @@ describe WifiWand::CommandLineInterface do
 
       expect(result[:status]).to eq(described_class::FAILURE_EXIT_CODE)
       expect(result[:stdout]).to be_empty
-      expect(result[:stderr]).to include('nameservers clear command does not accept arguments')
+      expect(result[:stderr]).to include('Unexpected argument(s): 1.1.1.1')
+      expect(result[:stderr]).to include('Usage: wifi-wand nameservers [get|clear|IP ...]')
       expect(result[:stderr]).to include('1.1.1.1')
       expect(result[:cli].model).not_to have_received(:set_nameservers)
     end

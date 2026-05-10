@@ -5,7 +5,9 @@ require_relative '../../../lib/wifi_wand/commands/shell_command'
 
 describe WifiWand::ShellCommand do
   let(:options) { WifiWand::CommandLineOptions.new(post_processor: nil) }
-  let(:cli) { double('cli', options: options) }
+  let(:cli) do
+    double('cli', options: options, help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+  end
 
   it_behaves_like 'binds command context', bound_attributes: {}
 
@@ -34,18 +36,18 @@ describe WifiWand::ShellCommand do
       )
     end
 
-    it 'rejects trailing shell startup arguments explicitly' do
+    it 'raises a usage-oriented error when extra arguments are provided' do
       command = described_class.new.bind(cli)
 
       expect(cli).not_to receive(:with_interactive_mode)
       expect(cli).not_to receive(:run_shell)
 
-      expect do
-        command.call('--help')
-      end.to raise_error(
-        WifiWand::ConfigurationError,
-        'The shell command does not accept arguments. Received: ["--help"]'
-      )
+      expect { command.call('--help') }
+        .to raise_error(WifiWand::ConfigurationError) { |error|
+          expect(error.message).to include('Unexpected argument(s): --help')
+          expect(error.message).to include('Usage: wifi-wand shell')
+          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        }
     end
   end
 end

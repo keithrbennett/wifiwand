@@ -84,6 +84,19 @@ RSpec.describe 'public_ip command' do
     )
   end
 
+  it 'raises a usage-oriented error when extra arguments are provided' do
+    expect(mock_model).not_to receive(:public_ip_address)
+    expect(mock_model).not_to receive(:public_ip_country)
+    expect(mock_model).not_to receive(:public_ip_info)
+
+    expect { invoke_command(cli, 'public_ip', 'address', 'extra') }
+      .to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('Unexpected argument(s): extra')
+        expect(error.message).to include('Usage: wifi-wand public_ip [address|country|both|a|c|b]')
+        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      }
+  end
+
   it 'passes selector arguments through process_command_line for the pi alias' do
     alias_cli = WifiWand::CommandLineInterface.new(options, argv: %w[pi a])
     expect(alias_cli.model).to receive(:public_ip_address).and_return('203.0.113.10')

@@ -7,7 +7,8 @@ describe WifiWand::CiCommand do
   let(:mock_model) { double('Model') }
   let(:output_support) { double('output_support') }
   let(:cli) do
-    double('cli', model: mock_model, interactive_mode: interactive_mode, output_support: output_support)
+    double('cli', model: mock_model, interactive_mode: interactive_mode, output_support: output_support,
+      help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
   end
   let(:interactive_mode) { false }
 
@@ -47,6 +48,17 @@ describe WifiWand::CiCommand do
 
         command.call
       end
+    end
+
+    it 'raises a usage-oriented error when extra arguments are provided' do
+      expect(mock_model).not_to receive(:internet_connectivity_state)
+
+      expect { command.call('extra') }
+        .to raise_error(WifiWand::ConfigurationError) { |error|
+          expect(error.message).to include('Unexpected argument(s): extra')
+          expect(error.message).to include('Usage: wifi-wand ci')
+          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        }
     end
   end
 end

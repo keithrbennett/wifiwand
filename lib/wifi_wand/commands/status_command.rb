@@ -17,7 +17,9 @@ module WifiWand
 
     binds :model, :interactive_mode, :out_stream, output_support: :output_support
 
-    def call
+    def call(*args)
+      validate_max_arguments!(args, 0)
+
       progress_mode = output_support.status_progress_mode
       current_snapshot = { wifi_on: nil, internet_state: ConnectivityStates::INTERNET_PENDING }
       last_visible_length = 0

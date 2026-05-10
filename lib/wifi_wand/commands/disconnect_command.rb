@@ -13,7 +13,9 @@ module WifiWand
 
     binds :model
 
-    def call
+    def call(*args)
+      validate_max_arguments!(args, 0)
+
       model.disconnect
     end
   end
