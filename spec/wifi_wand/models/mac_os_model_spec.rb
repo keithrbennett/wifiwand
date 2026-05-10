@@ -2467,6 +2467,30 @@ module WifiWand
           expect(model.network_hidden?).to be false
         end
 
+        it 'uses provided airport data instead of re-querying the connected network name' do
+          airport_data = {
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                           => wifi_interface,
+                'spairport_current_network_information'           => {
+                  '_name' => network_name,
+                },
+                'spairport_airport_other_local_wireless_networks' => [{
+                  '_name'                  => network_name,
+                  'spairport_signal_noise' => '50/10',
+                }],
+              }],
+            }],
+          }
+
+          allow(model).to receive(:airport_data).and_return(airport_data)
+          allow(model).to receive(:connected_network_name).and_raise(
+            WifiWand::MacOsRedactionError.new(operation_description: 'current WiFi network queries')
+          )
+
+          expect(model.network_hidden?).to be false
+        end
+
         it 'returns false when not connected to any network' do
           allow(model).to receive(:_connected_network_name).and_return(nil)
 

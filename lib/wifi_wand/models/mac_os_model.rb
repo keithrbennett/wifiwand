@@ -1189,7 +1189,7 @@ module WifiWand
         # Reuse network_list_key for the primary lookup so this method follows the same
         # associated-network selection rule as connection_security_type, then fall back to
         # checking both lists before concluding that the connected SSID is hidden.
-        preferred_networks = wifi_interface_data[network_list_key] || []
+        preferred_networks = wifi_interface_data[network_list_key(wifi_interface_data)] || []
         fallback_networks = [
           wifi_interface_data['spairport_airport_local_wireless_networks'],
           wifi_interface_data['spairport_airport_other_local_wireless_networks'],
