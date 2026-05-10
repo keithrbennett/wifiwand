@@ -9,6 +9,10 @@ require_relative 'mac_os_helper_artifacts'
 module WifiWand
   module MacOsHelperBundle
     SOURCE_MANIFEST_FILENAME = 'wifiwand-helper.source-manifest.json'
+    CODESIGN_IDENTITY_ENV = 'WIFIWAND_CODESIGN_IDENTITY'
+    APPLE_TEAM_ID_ENV = 'WIFIWAND_APPLE_TEAM_ID'
+    OFFICIAL_APPLE_TEAM_ID = '97P9SZU9GG'
+    OFFICIAL_CODESIGN_IDENTITY = 'Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)'
 
     # Returns the path to the source attestation manifest committed with the helper bundle.
     #
@@ -89,9 +93,7 @@ module WifiWand
       # Get the bundle path from the executable path
       bundle_path = executable_path.split('/Contents/MacOS/').first
 
-      # Use environment variable or default to Keith's Developer ID
-      identity = ENV['WIFIWAND_CODESIGN_IDENTITY'] ||
-        'Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)'
+      identity = configured_codesign_identity
 
       command = [
         'codesign',
@@ -111,6 +113,18 @@ module WifiWand
         raise "Failed to code sign helper bundle (status=#{status.exitstatus}): " \
           "#{stderr.empty? ? stdout : stderr}"
       end
+    end
+
+    module_function def configured_codesign_identity
+      identity = ENV.fetch(CODESIGN_IDENTITY_ENV, '').strip
+      identity = OFFICIAL_CODESIGN_IDENTITY if identity.empty?
+      identity
+    end
+
+    module_function def configured_team_id
+      team_id = ENV.fetch(APPLE_TEAM_ID_ENV, '').strip
+      team_id = OFFICIAL_APPLE_TEAM_ID if team_id.empty?
+      team_id
     end
 
     module_function def build_source_bundle(out_stream: $stdout)

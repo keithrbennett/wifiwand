@@ -9,6 +9,15 @@ RSpec.describe WifiWand::MacOsHelperBundle do
     let(:source_path) { '/tmp/libexec/macos/src/wifiwand-helper.swift' }
     let(:destination_path) { '/tmp/libexec/macos/wifiwand-helper.app/Contents/MacOS/wifiwand-helper' }
     let(:out_stream) { StringIO.new }
+    let(:codesign_identity) { 'Developer ID Application: Example Developer (TEAM123)' }
+
+    around do |example|
+      original_identity = ENV['WIFIWAND_CODESIGN_IDENTITY']
+      ENV['WIFIWAND_CODESIGN_IDENTITY'] = codesign_identity
+      example.run
+    ensure
+      ENV['WIFIWAND_CODESIGN_IDENTITY'] = original_identity
+    end
 
     it 'reports success only after signing finishes' do
       allow(FileUtils).to receive(:mkdir_p)
@@ -19,16 +28,58 @@ RSpec.describe WifiWand::MacOsHelperBundle do
 
       expect(described_class).to receive(:sign_helper_bundle)
         .with(destination_path, out_stream: out_stream) do
-          out_stream.puts "Signing helper bundle with Developer ID 'Developer ID Application: " \
-            "Bennett Business Solutions, Inc. (97P9SZU9GG)'..."
+          out_stream.puts "Signing helper bundle with Developer ID '#{codesign_identity}'..."
         end
 
       described_class.compile_helper(source_path, destination_path, out_stream: out_stream)
 
       expect(out_stream.string).to eq(<<~OUTPUT)
-        Signing helper bundle with Developer ID 'Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)'...
+        Signing helper bundle with Developer ID 'Developer ID Application: Example Developer (TEAM123)'...
         Helper compiled and signed successfully.
       OUTPUT
+    end
+  end
+
+  describe '.configured_codesign_identity' do
+    around do |example|
+      original_identity = ENV['WIFIWAND_CODESIGN_IDENTITY']
+      example.run
+    ensure
+      ENV['WIFIWAND_CODESIGN_IDENTITY'] = original_identity
+    end
+
+    it 'returns an override identity from the environment' do
+      ENV['WIFIWAND_CODESIGN_IDENTITY'] = 'Developer ID Application: Example Developer (TEAM123)'
+
+      expect(described_class.configured_codesign_identity)
+        .to eq('Developer ID Application: Example Developer (TEAM123)')
+    end
+
+    it 'returns the official maintainer identity when the environment is unset' do
+      ENV.delete('WIFIWAND_CODESIGN_IDENTITY')
+
+      expect(described_class.configured_codesign_identity).to eq(described_class::OFFICIAL_CODESIGN_IDENTITY)
+    end
+  end
+
+  describe '.configured_team_id' do
+    around do |example|
+      original_team_id = ENV['WIFIWAND_APPLE_TEAM_ID']
+      example.run
+    ensure
+      ENV['WIFIWAND_APPLE_TEAM_ID'] = original_team_id
+    end
+
+    it 'returns an override Team ID from the environment' do
+      ENV['WIFIWAND_APPLE_TEAM_ID'] = 'TEAM123'
+
+      expect(described_class.configured_team_id).to eq('TEAM123')
+    end
+
+    it 'returns the official maintainer Team ID when the environment is unset' do
+      ENV.delete('WIFIWAND_APPLE_TEAM_ID')
+
+      expect(described_class.configured_team_id).to eq(described_class::OFFICIAL_APPLE_TEAM_ID)
     end
   end
 

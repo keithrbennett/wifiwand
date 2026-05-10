@@ -100,12 +100,16 @@ RSpec.describe 'bin/mac-helper-release' do
       ).and_return('custom-profile')
       allow(ENV).to receive(:[]).and_call_original
       allow(ENV).to receive(:[]).with('WIFIWAND_NOTARYTOOL_KEYCHAIN').and_return('/tmp/custom.keychain-db')
+      allow(WifiWand::MacHelperRelease).to receive_messages(
+        configured_team_id:           'TEAM123',
+        configured_codesign_identity: 'Developer ID Application: Example Developer (TEAM123)'
+      )
 
       expect { cli.run }.to output(
         a_string_including(
           'Public macOS signing and notarization info:',
-          "Team ID: #{WifiWand::MacHelperRelease::APPLE_TEAM_ID}",
-          "Codesign identity: #{WifiWand::MacHelperRelease::CODESIGN_IDENTITY}",
+          'Team ID: TEAM123',
+          'Codesign identity: Developer ID Application: Example Developer (TEAM123)',
           'Notarytool profile: custom-profile',
           'Keychain path: /tmp/custom.keychain-db',
           "Helper bundle path: #{helper.source_bundle_path}",
@@ -126,6 +130,8 @@ RSpec.describe 'bin/mac-helper-release' do
       allow(ENV).to receive(:[]).and_call_original
       allow(ENV).to receive(:[]).with('WIFIWAND_APPLE_DEV_ID').and_return('dev@example.com')
       allow(ENV).to receive(:[]).with('WIFIWAND_NOTARYTOOL_KEYCHAIN').and_return('/tmp/custom.keychain-db')
+      allow(WifiWand::MacHelperRelease).to receive(:configured_team_id).and_return('TEAM123')
+      allow(WifiWand::MacHelperRelease::Operations).to receive(:verify_team_id_configured)
       expect(cli).to receive(:system).with(
         'xcrun',
         'notarytool',
@@ -134,7 +140,7 @@ RSpec.describe 'bin/mac-helper-release' do
         '--apple-id',
         'dev@example.com',
         '--team-id',
-        WifiWand::MacHelperRelease::APPLE_TEAM_ID,
+        'TEAM123',
         '--keychain',
         '/tmp/custom.keychain-db'
       ).and_return(true)
@@ -144,7 +150,7 @@ RSpec.describe 'bin/mac-helper-release' do
           'Storing notarytool credentials in the keychain...',
           'Profile: custom-profile',
           'Apple ID: dev@example.com',
-          "Team ID: #{WifiWand::MacHelperRelease::APPLE_TEAM_ID}",
+          'Team ID: TEAM123',
           'Keychain path: /tmp/custom.keychain-db',
           'notarytool will prompt for the app-specific password.'
         )
@@ -164,6 +170,8 @@ RSpec.describe 'bin/mac-helper-release' do
       allow(ENV).to receive(:[]).with('WIFIWAND_APPLE_DEV_ID').and_return(nil)
       allow(ENV).to receive(:[]).with('WIFIWAND_NOTARYTOOL_KEYCHAIN').and_return('/tmp/custom.keychain-db')
       allow($stdin).to receive(:gets).and_return("prompted@example.com\n")
+      allow(WifiWand::MacHelperRelease).to receive(:configured_team_id).and_return('TEAM123')
+      allow(WifiWand::MacHelperRelease::Operations).to receive(:verify_team_id_configured)
       expect(cli).to receive(:system).with(
         'xcrun',
         'notarytool',
@@ -172,7 +180,7 @@ RSpec.describe 'bin/mac-helper-release' do
         '--apple-id',
         'prompted@example.com',
         '--team-id',
-        WifiWand::MacHelperRelease::APPLE_TEAM_ID,
+        'TEAM123',
         '--keychain',
         '/tmp/custom.keychain-db'
       ).and_return(true)
@@ -193,6 +201,8 @@ RSpec.describe 'bin/mac-helper-release' do
     expect(result[:stderr]).to eq('')
     expect(result[:stdout]).to include('bin/mac-helper-release store-credentials')
     expect(result[:stdout]).to include('WIFIWAND_NOTARYTOOL_PROFILE')
+    expect(result[:stdout]).to include('WIFIWAND_APPLE_TEAM_ID')
+    expect(result[:stdout]).to include('WIFIWAND_CODESIGN_IDENTITY')
     expect(result[:stdout]).to include('bin/mac-helper-release public-info')
     expect(result[:stdout]).to include('bin/mac-helper-release store-credentials')
     expect(result[:stdout]).to include('dev/docs/MACOS_CODE_SIGNING_INSTRUCTIONS.md')

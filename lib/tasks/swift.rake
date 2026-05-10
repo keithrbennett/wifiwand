@@ -8,7 +8,7 @@ namespace :swift do
   helper = WifiWand::MacOsHelperBundle
   helper_binary = helper.source_bundle_executable_path
 
-  desc 'Compile the wifiwand macOS helper bundle executable (requires WIFIWAND_CODESIGN_IDENTITY)'
+  desc 'Compile the wifiwand macOS helper bundle executable (supports optional WIFIWAND_CODESIGN_IDENTITY)'
   task :compile_helper do
     source_bundle_current = begin
       File.exist?(helper_binary) && helper.source_bundle_current?
@@ -33,6 +33,6 @@ namespace :swift do
     puts 'Source attestation matches committed helper source, entitlements, and bundle contents.'
   end
 
-  desc 'Compile all Swift targets that require compilation (requires WIFIWAND_CODESIGN_IDENTITY)'
+  desc 'Compile all Swift targets that require compilation (supports optional WIFIWAND_CODESIGN_IDENTITY)'
   task compile: [:compile_helper]
 end

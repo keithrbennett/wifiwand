@@ -15,15 +15,15 @@ step (or deeper troubleshooting), jump to `MACOS_CODE_SIGNING_CONTEXT.md`.
 - Xcode Command Line Tools installed (`xcode-select --install`) so `codesign`, `notarytool`, etc. are
   available.
 - Ruby environment that can run `bin/mac-helper-release` (no bundler required for the script itself).
-- Access to `lib/wifi_wand/mac_helper/mac_helper_release.rb` in the repo so you can update the public signing constants.
+- The official maintainer Developer ID certificate installed in the local macOS keychain.
 
 ## Signing Assets Summary
 
 | Item | Kind | Where It Lives | How It Is Created / Updated | Secret? | Notes |
 | --- | --- | --- | --- | --- | --- |
 | Developer ID Application certificate | Apple signing identity | macOS keychain | Create via Xcode or Keychain Access | No | Used by `codesign` during helper signing |
-| Apple Team ID | Public team identifier | `lib/wifi_wand/mac_helper/mac_helper_release.rb` | Copy from Apple Developer membership / certificate metadata | No | Embedded in signed artifacts and safe to keep in source |
-| Codesign identity string | Public signing config | `lib/wifi_wand/mac_helper/mac_helper_release.rb` | Copy exact identity from `security find-identity -v -p codesigning` | No | Must match the installed Developer ID certificate |
+| Apple Team ID | Public team identifier | Official release helper default; optional `WIFIWAND_APPLE_TEAM_ID` override | Copy from Apple Developer membership / certificate metadata | No | Required for official signing and notarization commands |
+| Codesign identity string | Public signing config | Official release helper default; optional `WIFIWAND_CODESIGN_IDENTITY` override | Copy exact identity from `security find-identity -v -p codesigning` | No | Must match the official maintainer Developer ID certificate |
 | Apple app-specific password | Apple credential | Apple account UI, then local entry at setup time | Create at `appleid.apple.com` | Yes | Apple only shows it once |
 | `notarytool` keychain profile | Local notarization credential reference | Login keychain by default | `bin/mac-helper-release store-credentials` or raw `xcrun notarytool store-credentials ...` | Contains secret material indirectly | Runtime commands use the profile name, not the password |
 | `WIFIWAND_NOTARYTOOL_PROFILE` | Local runtime config | Shell env / `.env.release` | Set only if you want a non-default profile name | No | Defaults to `wifiwand-notarytool` |
@@ -45,10 +45,12 @@ step (or deeper troubleshooting), jump to `MACOS_CODE_SIGNING_CONTEXT.md`.
      ```
      Copy the exact identity string (e.g., `Developer ID Application: Your Name (TEAM123ABCD)`).
 
-2. **Record the public values in the release helper**
-   - Edit `lib/wifi_wand/mac_helper/mac_helper_release.rb` and replace `APPLE_TEAM_ID` and `CODESIGN_IDENTITY` with the
-     values from the previous step.
-   - These values are embedded in every signed binary, so storing them in git is expected.
+2. **Confirm the official public signing values**
+   - Official wifi-wand release helpers must use the project maintainer's Developer ID.
+   - The release helper source tracks the public Team ID and codesign identity used for official releases.
+   - If the official certificate changes, update those tracked official defaults as part of that release.
+   - For local, non-distribution signing experiments only, override with `WIFIWAND_APPLE_TEAM_ID` and
+     `WIFIWAND_CODESIGN_IDENTITY` instead of changing the official defaults.
 
 3. **Generate the notarization password**
    - Visit https://appleid.apple.com → *Security → App-Specific Passwords* → `+`.
@@ -65,10 +67,10 @@ step (or deeper troubleshooting), jump to `MACOS_CODE_SIGNING_CONTEXT.md`.
      ```
    - Or run the equivalent raw command:
      ```bash
-     xcrun notarytool store-credentials wifiwand-notarytool --apple-id you@example.com --team-id 97P9SZU9GG
+     xcrun notarytool store-credentials wifiwand-notarytool --apple-id you@example.com --team-id TEAM123ABCD
      ```
-   - `bin/mac-helper-release store-credentials` prompts for the Apple ID if needed, and `notarytool` prompts for the
-     app-specific password instead of taking it on the command line.
+   - `bin/mac-helper-release store-credentials` prompts for the Apple ID if needed, and `notarytool` prompts
+     for the app-specific password instead of taking it on the command line.
    - If you use a non-default keychain, unlock it first and set `WIFIWAND_NOTARYTOOL_KEYCHAIN` when running
      `bin/mac-helper-release`.
    - If you want to use a different profile name, set `WIFIWAND_NOTARYTOOL_PROFILE`.
@@ -105,7 +107,7 @@ Follow the same sequence each time you change the helper or cut a gem release.
 
 1. **Update the helper (if needed)**
    - Make Swift/Ruby changes as usual.
-   - Ensure `APPLE_TEAM_ID`/`CODESIGN_IDENTITY` still match the certificate you intend to use.
+   - Ensure the tracked official signing defaults still match the maintainer certificate.
 
 2. **Run the release automation (preferred path)**
    ```bash
@@ -135,7 +137,8 @@ Follow the same sequence each time you change the helper or cut a gem release.
    - For a specific submission, run `bin/mac-helper-release info --submission-id <uuid>` (omit
      `--submission-id` to automatically target the most recent submission). This command wraps `xcrun
      notarytool info`.
-   - Pull the detailed log with `bin/mac-helper-release log --submission-id <uuid>` (same auto-detection applies)
+   - Pull the detailed log with `bin/mac-helper-release log --submission-id <uuid>` (same auto-detection
+     applies)
    - Cancel a stuck submission with `bin/mac-helper-release cancel` (only pending `In Progress`
      submissions can be removed; pass `--submission-id <uuid>` to target a specific one, or use `--order asc
      --pending-only` to cancel oldest pending)
@@ -151,6 +154,11 @@ The notarization commands now use only a keychain profile at runtime. Supported 
 
 - `WIFIWAND_NOTARYTOOL_PROFILE` – override the profile name (default: `wifiwand-notarytool`)
 - `WIFIWAND_NOTARYTOOL_KEYCHAIN` – point `notarytool` at a custom keychain file
+- `WIFIWAND_APPLE_TEAM_ID` – optional Team ID override for local, non-release signing experiments
+- `WIFIWAND_CODESIGN_IDENTITY` – optional codesign identity override for local, non-release signing
+  experiments
+
+Normal maintainer release commands use the tracked official signing defaults and do not require shell exports.
 
 ---
 

@@ -126,9 +126,10 @@ module MacHelperCLI
 
         Environment Variables:
           WIFIWAND_APPLE_DEV_ID           Apple ID email for store-credentials (optional prompt fallback)
+          WIFIWAND_APPLE_TEAM_ID          optional Team ID override for signing and notarization
+          WIFIWAND_CODESIGN_IDENTITY      optional Developer ID Application identity override
           WIFIWAND_NOTARYTOOL_PROFILE      notarytool keychain profile name (default: wifiwand-notarytool)
           WIFIWAND_NOTARYTOOL_KEYCHAIN     custom keychain path for that profile (optional)
-          WIFIWAND_CODESIGN_IDENTITY       Code signing identity (optional override)
 
         See dev/docs/MACOS_CODE_SIGNING_INSTRUCTIONS.md for the checklist and
         dev/docs/MACOS_CODE_SIGNING_CONTEXT.md for the full background.
@@ -237,11 +238,13 @@ module MacHelperCLI
       )
       keychain_path = ENV['WIFIWAND_NOTARYTOOL_KEYCHAIN']
       helper_exec_path = File.join(helper.source_bundle_path, 'Contents', 'MacOS', helper::EXECUTABLE_NAME)
+      team_id = WifiWand::MacHelperRelease.configured_team_id
+      codesign_identity = WifiWand::MacHelperRelease.configured_codesign_identity
 
       puts <<~INFO
         Public macOS signing and notarization info:
-          Team ID: #{WifiWand::MacHelperRelease::APPLE_TEAM_ID}
-          Codesign identity: #{WifiWand::MacHelperRelease::CODESIGN_IDENTITY}
+          Team ID: #{team_id}
+          Codesign identity: #{codesign_identity}
           Notarytool profile: #{profile_name}
           Keychain path: #{keychain_path || '(login keychain default)'}
           Helper bundle path: #{helper.source_bundle_path}
@@ -258,6 +261,8 @@ module MacHelperCLI
         WifiWand::MacHelperRelease::DEFAULT_NOTARYTOOL_PROFILE
       )
       keychain_path = ENV['WIFIWAND_NOTARYTOOL_KEYCHAIN']
+      team_id = WifiWand::MacHelperRelease.configured_team_id
+      WifiWand::MacHelperRelease::Operations.verify_team_id_configured(team_id)
 
       command = [
         'xcrun',
@@ -267,14 +272,14 @@ module MacHelperCLI
         '--apple-id',
         apple_id,
         '--team-id',
-        WifiWand::MacHelperRelease::APPLE_TEAM_ID
+        team_id
       ]
       command += ['--keychain', keychain_path] if keychain_path && !keychain_path.empty?
 
       puts 'Storing notarytool credentials in the keychain...'
       puts "  Profile: #{profile_name}"
       puts "  Apple ID: #{apple_id}"
-      puts "  Team ID: #{WifiWand::MacHelperRelease::APPLE_TEAM_ID}"
+      puts "  Team ID: #{team_id}"
       puts "  Keychain path: #{keychain_path || '(login keychain default)'}"
       puts '  notarytool will prompt for the app-specific password.'
 

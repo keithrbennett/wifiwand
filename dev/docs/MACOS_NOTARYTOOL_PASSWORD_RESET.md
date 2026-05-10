@@ -53,7 +53,7 @@ Equivalent raw `notarytool` command:
 ```bash
 xcrun notarytool store-credentials wifiwand-notarytool \
   --apple-id you@example.com \
-  --team-id 97P9SZU9GG
+  --team-id TEAM123ABCD
 ```
 
 ## Expected Success Path
@@ -78,7 +78,7 @@ Ensure your team has signed the necessary legal agreements and that they are not
 ```
 
 This means the password entry itself was not the main problem. Apple rejected credential validation because
-the developer account for Team ID `97P9SZU9GG` has at least one required agreement that is missing, expired,
+the developer account for the configured Team ID has at least one required agreement that is missing, expired,
 or waiting for acceptance.
 
 ## Fixing the 403 Agreement Error

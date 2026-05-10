@@ -13,13 +13,10 @@ module WifiWand
     PENDING_NOTARIZATION_STATUS = 'In Progress'
     SIGNING_INSTRUCTIONS_PATH = 'dev/docs/MACOS_CODE_SIGNING_INSTRUCTIONS.md'
     DEFAULT_NOTARYTOOL_PROFILE = 'wifiwand-notarytool'
+    APPLE_TEAM_ID_ENV = WifiWand::MacOsHelperBundle::APPLE_TEAM_ID_ENV
+    CODESIGN_IDENTITY_ENV = WifiWand::MacOsHelperBundle::CODESIGN_IDENTITY_ENV
     # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
     RELEASE_COMMAND_BOUNDARY_ERROR = StandardError
-
-    # Public signing credentials (visible in all signed binaries - no need to hide)
-    APPLE_TEAM_ID = ENV.fetch('WIFIWAND_APPLE_TEAM_ID', '97P9SZU9GG')
-    CODESIGN_IDENTITY = ENV.fetch('WIFIWAND_CODESIGN_IDENTITY',
-      'Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)')
 
     # Message templates for output
     module Messages
@@ -235,14 +232,14 @@ module WifiWand
       end
 
       def self.verify_identity_configured(identity)
-        return unless identity.include?('YOUR_TEAM_ID_HERE') || identity.include?('Your Name')
+        return unless identity.to_s.strip.empty?
 
         abort <<~ERROR
-          Error: CODESIGN_IDENTITY is not configured.
+          Error: #{CODESIGN_IDENTITY_ENV} is not configured.
 
-          Please update the values in lib/wifi_wand/mac_helper/mac_helper_release.rb:
-            APPLE_TEAM_ID = 'TEAM123'
-            CODESIGN_IDENTITY = 'Developer ID Application: Your Name (TEAM123)'
+          Set #{CODESIGN_IDENTITY_ENV} to the exact Developer ID Application identity installed in
+          your keychain, for example:
+            export #{CODESIGN_IDENTITY_ENV}="Developer ID Application: Your Name (TEAM123ABCD)"
 
           To find your Developer ID certificate:
             security find-identity -v -p codesigning
@@ -258,7 +255,12 @@ module WifiWand
         abort <<~ERROR.chomp
           Error: Could not find code signing identity '#{identity}'
 
-          Run: security find-identity -v -p codesigning
+          Official helper releases require the maintainer Developer ID certificate in the local keychain.
+
+          To inspect installed identities:
+            security find-identity -v -p codesigning
+
+          Use #{CODESIGN_IDENTITY_ENV} only for local, non-release signing tests.
         ERROR
       end
 
@@ -283,11 +285,13 @@ module WifiWand
       end
 
       def self.verify_team_id_configured(team_id)
-        abort <<~ERROR if team_id == 'YOUR_TEAM_ID_HERE'
-          Error: APPLE_TEAM_ID is not configured.
+        return unless team_id.to_s.strip.empty?
 
-          Please update the value in lib/wifi_wand/mac_helper/mac_helper_release.rb:
-            APPLE_TEAM_ID = 'TEAM123'
+        abort <<~ERROR
+          Error: #{APPLE_TEAM_ID_ENV} is not configured.
+
+          Set #{APPLE_TEAM_ID_ENV} to the Apple Team ID for the Developer ID certificate, for example:
+            export #{APPLE_TEAM_ID_ENV}=TEAM123ABCD
 
           See #{SIGNING_INSTRUCTIONS_PATH} for detailed instructions.
         ERROR
@@ -390,10 +394,9 @@ module WifiWand
 
     module_function def build_signed_helper
       Operations.require_macos!(__method__.to_s)
-      identity = CODESIGN_IDENTITY
+      identity = configured_codesign_identity
       Operations.verify_identity_configured(identity)
       Operations.verify_identity_exists(identity)
-      ENV['WIFIWAND_CODESIGN_IDENTITY'] ||= identity
 
       helper = WifiWand::MacOsHelperBundle
       source = helper.source_swift_path
@@ -677,10 +680,18 @@ module WifiWand
     module_function def fetch_notary_credentials!(command_hint:)
       profile_name = ENV.fetch('WIFIWAND_NOTARYTOOL_PROFILE', DEFAULT_NOTARYTOOL_PROFILE).to_s.strip
       keychain_path = ENV['WIFIWAND_NOTARYTOOL_KEYCHAIN']&.strip
-      team_id = APPLE_TEAM_ID
+      team_id = configured_team_id
       Operations.verify_team_id_configured(team_id)
       Operations.verify_credentials(profile_name, team_id, command_hint: command_hint)
       { profile_name: profile_name, keychain_path: keychain_path, team_id: team_id }
+    end
+
+    module_function def configured_codesign_identity
+      WifiWand::MacOsHelperBundle.configured_codesign_identity
+    end
+
+    module_function def configured_team_id
+      WifiWand::MacOsHelperBundle.configured_team_id
     end
   end
 end

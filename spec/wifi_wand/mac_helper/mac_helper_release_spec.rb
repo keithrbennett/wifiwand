@@ -27,20 +27,26 @@ RSpec.describe WifiWand::MacHelperRelease do
   describe 'signing configuration guidance' do
     it 'points unconfigured codesign identity failures at the maintained instructions' do
       expect_system_exit_with_stderr(
-        /See #{Regexp.escape(signing_instructions_path)} for detailed instructions\./
+        /Set WIFIWAND_CODESIGN_IDENTITY.*See #{Regexp.escape(signing_instructions_path)}/m
       ) do
-        described_class::Operations.verify_identity_configured(
-          'Developer ID Application: Your Name (YOUR_TEAM_ID_HERE)'
-        )
+        described_class::Operations.verify_identity_configured(nil)
       end
     end
 
     it 'points unconfigured team ID failures at the maintained instructions' do
       expect_system_exit_with_stderr(
-        /See #{Regexp.escape(signing_instructions_path)} for detailed instructions\./
+        /Set WIFIWAND_APPLE_TEAM_ID.*See #{Regexp.escape(signing_instructions_path)}/m
       ) do
-        described_class::Operations.verify_team_id_configured('YOUR_TEAM_ID_HERE')
+        described_class::Operations.verify_team_id_configured('')
       end
+    end
+
+    it 'does not tell operators to edit tracked release source' do
+      expect do
+        expect do
+          described_class::Operations.verify_identity_configured(nil)
+        end.to raise_error(SystemExit)
+      end.not_to output(/mac_helper_release\.rb|APPLE_TEAM_ID =|CODESIGN_IDENTITY =/).to_stderr
     end
 
     it 'points missing notarization credentials failures at the maintained instructions' do
@@ -60,15 +66,18 @@ RSpec.describe WifiWand::MacHelperRelease do
     around do |example|
       original_profile = ENV['WIFIWAND_NOTARYTOOL_PROFILE']
       original_keychain = ENV['WIFIWAND_NOTARYTOOL_KEYCHAIN']
+      original_team_id = ENV['WIFIWAND_APPLE_TEAM_ID']
       ENV.delete('WIFIWAND_NOTARYTOOL_PROFILE')
       ENV.delete('WIFIWAND_NOTARYTOOL_KEYCHAIN')
+      ENV['WIFIWAND_APPLE_TEAM_ID'] = 'TEAM123'
       example.run
     ensure
       ENV['WIFIWAND_NOTARYTOOL_PROFILE'] = original_profile
       ENV['WIFIWAND_NOTARYTOOL_KEYCHAIN'] = original_keychain
+      ENV['WIFIWAND_APPLE_TEAM_ID'] = original_team_id
     end
 
-    it 'defaults to the checked-in notarytool profile name' do
+    it 'defaults to the checked-in notarytool profile name and reads an override team ID' do
       allow(described_class::Operations).to receive(:verify_team_id_configured)
       allow(described_class::Operations).to receive(:verify_credentials)
 
@@ -79,8 +88,20 @@ RSpec.describe WifiWand::MacHelperRelease do
       ).to eq(
         profile_name:  described_class::DEFAULT_NOTARYTOOL_PROFILE,
         keychain_path: nil,
-        team_id:       described_class::APPLE_TEAM_ID
+        team_id:       'TEAM123'
       )
+    end
+
+    it 'uses the official maintainer Team ID when the environment is unset' do
+      ENV.delete('WIFIWAND_APPLE_TEAM_ID')
+      allow(described_class::Operations).to receive(:verify_team_id_configured)
+      allow(described_class::Operations).to receive(:verify_credentials)
+
+      expect(
+        described_class.fetch_notary_credentials!(
+          command_hint: 'bin/mac-helper-release notarize'
+        )
+      ).to include(team_id: WifiWand::MacOsHelperBundle::OFFICIAL_APPLE_TEAM_ID)
     end
   end
 
@@ -183,6 +204,7 @@ RSpec.describe WifiWand::MacHelperRelease do
     let(:source_path) { '/tmp/WifiNetworkConnector.swift' }
     let(:bundle_path) { '/tmp/wifiwand-helper.app' }
     let(:destination_path) { "#{bundle_path}/Contents/MacOS/#{helper::EXECUTABLE_NAME}" }
+    let(:official_identity) { WifiWand::MacOsHelperBundle::OFFICIAL_CODESIGN_IDENTITY }
 
     before do
       allow(described_class::Operations).to receive(:require_macos!)
@@ -199,21 +221,32 @@ RSpec.describe WifiWand::MacHelperRelease do
 
     around do |example|
       original_identity = ENV['WIFIWAND_CODESIGN_IDENTITY']
-      ENV.delete('WIFIWAND_CODESIGN_IDENTITY')
+      ENV['WIFIWAND_CODESIGN_IDENTITY'] = 'Developer ID Application: Example Developer (TEAM123)'
       example.run
     ensure
       ENV['WIFIWAND_CODESIGN_IDENTITY'] = original_identity
     end
 
-    it 'builds the helper, writes the manifest, verifies attestation, and exposes the signing identity' do
+    it 'builds the helper, writes the manifest, and verifies attestation with the configured identity' do
       expect(helper).to receive(:build_source_bundle).with(hash_including(:out_stream))
       expect(described_class::Operations).to receive(:verify_universal_binary?).with(destination_path).ordered
       expect(described_class).to receive(:verify_source_attestation!).ordered
 
       expect { described_class.build_signed_helper }
-        .to output(/Building helper for distribution.*Helper built and signed successfully!/m).to_stdout
+        .to output(
+          /Building helper for distribution.*Example Developer.*Helper built and signed successfully!/m
+        ).to_stdout
+    end
 
-      expect(ENV['WIFIWAND_CODESIGN_IDENTITY']).to eq(described_class::CODESIGN_IDENTITY)
+    it 'uses the official maintainer identity when no override is configured' do
+      ENV.delete('WIFIWAND_CODESIGN_IDENTITY')
+
+      expect(described_class::Operations).to receive(:verify_identity_exists).with(official_identity)
+
+      expect { described_class.build_signed_helper }
+        .to output(
+          /Building helper for distribution.*#{Regexp.escape(official_identity)}.*Helper built/m
+        ).to_stdout
     end
 
     it 'still verifies attestation and prints next steps when the binary is not universal' do
@@ -351,7 +384,7 @@ RSpec.describe WifiWand::MacHelperRelease do
     let(:developer_id_signature) do
       <<~OUTPUT
         Executable=#{bundle_path}/Contents/MacOS/wifiwand-helper
-        Authority=Developer ID Application: Bennett Business Solutions, Inc. (97P9SZU9GG)
+        Authority=Developer ID Application: Example Developer (TEAM123)
       OUTPUT
     end
 

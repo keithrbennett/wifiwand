@@ -138,7 +138,7 @@ When users install the `wifi-wand` gem, they receive a **pre-signed, pre-notariz
 As the gem maintainer, you perform signing and notarization **before releasing** a new gem version:
 
 ```bash
-# 1. Sign with your Developer ID (uses values from lib/wifi_wand/mac_helper/mac_helper_release.rb)
+# 1. Sign with the official maintainer Developer ID
 bin/mac-helper-release build
 
 # 2. Notarize with Apple (uses the stored keychain profile)
@@ -202,22 +202,19 @@ You should see something like:
 1) A1B2C3D4E5F6... "Developer ID Application: Your Name (TEAM123)"
 ```
 
-Copy the full identity string (inside the quotes) — you'll paste it into the `CODESIGN_IDENTITY` constant in
-`lib/wifi_wand/mac_helper/mac_helper_release.rb`. The 10-character suffix in parentheses is your Apple Team ID; confirm
-it matches the value shown on developer.apple.com because you'll set `APPLE_TEAM_ID` to that exact string.
+Copy the full identity string inside the quotes. The 10-character suffix in parentheses is your Apple Team
+ID; confirm it matches the value shown on developer.apple.com.
 
-### Step 4: Update Hardcoded Public Values
+### Step 4: Confirm Official Public Values
 
-Edit `lib/wifi_wand/mac_helper/mac_helper_release.rb` and replace the placeholders with your real values:
-
-```ruby
-# Public signing credentials (visible in all signed binaries - no need to hide)
-APPLE_TEAM_ID = 'TEAM123ABCD'
-CODESIGN_IDENTITY = 'Developer ID Application: Your Name (TEAM123ABCD)'
-```
+Official wifi-wand release helpers must be signed with the project maintainer's Developer ID. The public Team
+ID and codesign identity for official releases are tracked in the release helper source. No shell exports are
+needed for the normal maintainer release workflow.
 
 These values are public (visible in all signed binaries via `codesign -dv`), so they don't need to be hidden
-in 1Password. Update them whenever you switch to a different Developer ID certificate.
+in 1Password. If the official certificate changes, update the tracked official defaults as part of that
+release. Alternate identities should only be supplied through `WIFIWAND_APPLE_TEAM_ID` and
+`WIFIWAND_CODESIGN_IDENTITY` for local, non-distribution testing.
 
 For a compact inventory of all signing/notarization assets, where they live, and which ones are secret, see
 the **Signing Assets Summary** table in `dev/docs/MACOS_CODE_SIGNING_INSTRUCTIONS.md`.
@@ -254,7 +251,7 @@ name only.
 #### 1. Store the credentials once
 
 ```bash
-xcrun notarytool store-credentials wifiwand-notarytool --apple-id you@example.com --team-id 97P9SZU9GG
+xcrun notarytool store-credentials wifiwand-notarytool --apple-id you@example.com --team-id TEAM123ABCD
 ```
 
 `notarytool` prompts for the app-specific password interactively, so the secret never appears in argv.
@@ -386,10 +383,10 @@ All developer tasks are in the `dev:` namespace and are **not included in the di
 
 ### `dev:build_signed_helper`
 
-**Purpose:** Compile and sign the helper with Developer ID (uses the credentials in
-`lib/wifi_wand/mac_helper/mac_helper_release.rb`)
+**Purpose:** Compile and sign the helper with the official maintainer Developer ID.
 
-**Environment Variables:** None
+**Environment Variables:**
+- `WIFIWAND_APPLE_TEAM_ID` and `WIFIWAND_CODESIGN_IDENTITY` are optional local-test overrides
 
 **Example:**
 ```bash
@@ -621,7 +618,7 @@ Error: Could not find code signing identity 'Developer ID Application: ...'
 # List available identities
 security find-identity -v -p codesigning
 
-# Use exact name from output (update CODESIGN_IDENTITY in lib/wifi_wand/mac_helper/mac_helper_release.rb)
+# Official releases use the tracked maintainer identity; override only for local tests
 bin/mac-helper-release build
 ```
 
@@ -642,7 +639,7 @@ status: Invalid
 3. Check entitlements are applied
 
 ```bash
-# Rebuild with correct signing (after updating CODESIGN_IDENTITY in lib/wifi_wand/mac_helper/mac_helper_release.rb)
+# Rebuild with the tracked official maintainer identity
 bin/mac-helper-release build
 
 # Verify before notarizing
