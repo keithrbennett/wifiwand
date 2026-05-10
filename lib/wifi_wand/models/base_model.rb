@@ -137,34 +137,30 @@ module WifiWand
       nil
     end
 
-    # Methods that subclasses must implement but are called via wrapper methods
-    UNDERSCORE_PREFIXED_METHODS = %i[
-      _available_network_names
-      _connected_network_name
-      _connect
-      _disconnect
-      _ip_address
-      _preferred_network_password
-    ].freeze
-
-    REQUIRED_OVERRIDE_METHODS = %i[
-      connected?
-      connection_security_type
-      default_interface
-      is_wifi_interface?
-      mac_address
-      nameservers
-      network_hidden?
-      open_resource
-      probe_wifi_interface
-      preferred_networks
-      remove_preferred_network
-      set_nameservers
-      validate_os_preconditions
-      wifi_off
-      wifi_on
-      wifi_on?
-    ].freeze
+    REQUIRED_SUBCLASS_METHODS = {
+      _available_network_names:    :any_visibility,
+      _connected_network_name:     :any_visibility,
+      _connect:                    :any_visibility,
+      _disconnect:                 :any_visibility,
+      _ip_address:                 :any_visibility,
+      _preferred_network_password: :any_visibility,
+      connected?:                  :public,
+      connection_security_type:    :public,
+      default_interface:           :public,
+      is_wifi_interface?:          :public,
+      mac_address:                 :public,
+      nameservers:                 :public,
+      network_hidden?:             :public,
+      open_resource:               :public,
+      probe_wifi_interface:        :public,
+      preferred_networks:          :public,
+      remove_preferred_network:    :public,
+      set_nameservers:             :public,
+      validate_os_preconditions:   :public,
+      wifi_off:                    :public,
+      wifi_on:                     :public,
+      wifi_on?:                    :public,
+    }.freeze
 
     PUBLIC_IP_TIMEOUT_IN_SECONDS = 2
     COUNTRY_CODE_REGEX = /\A[A-Z]{2}\z/
@@ -185,16 +181,22 @@ module WifiWand
       method && method.owner != BaseModel
     end
 
-    # Verify that a subclass implements all required methods and overrides
-    # BaseModel placeholders for public API methods.
-    def self.verify_required_methods_implemented(subclass)
-      missing_subclass_methods = UNDERSCORE_PREFIXED_METHODS.reject do |method_name|
-        subclass_overrides_method?(subclass, method_name)
-      end
-      missing_public_override_methods = REQUIRED_OVERRIDE_METHODS.reject do |method_name|
+    def self.subclass_implements_required_method?(subclass, method_name, required_visibility)
+      case required_visibility
+      when :public
         subclass_publicly_overrides_method?(subclass, method_name)
+      when :any_visibility
+        subclass_overrides_method?(subclass, method_name)
+      else
+        raise ArgumentError, "Unknown required method visibility: #{required_visibility.inspect}"
       end
-      missing_methods = missing_subclass_methods + missing_public_override_methods
+    end
+
+    # Verify that a subclass implements every required method with the required visibility.
+    def self.verify_required_methods_implemented(subclass)
+      missing_methods = REQUIRED_SUBCLASS_METHODS.reject do |method_name, required_visibility|
+        subclass_implements_required_method?(subclass, method_name, required_visibility)
+      end.keys
 
       unless missing_methods.empty?
         subclass_name = subclass.name || '(anonymous)'

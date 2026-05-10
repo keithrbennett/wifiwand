@@ -876,7 +876,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     it 'verifies concrete model public override methods are public subclass methods' do
       [WifiWand::MacOsModel, WifiWand::UbuntuModel].each do |model_class|
-        missing_methods = WifiWand::BaseModel::REQUIRED_OVERRIDE_METHODS.reject do |method_name|
+        public_methods = WifiWand::BaseModel::REQUIRED_SUBCLASS_METHODS
+          .select { |_method_name, required_visibility| required_visibility == :public }
+          .keys
+        missing_methods = public_methods.reject do |method_name|
           model_class.public_method_defined?(method_name) &&
             model_class.public_instance_method(method_name).owner != WifiWand::BaseModel
         end
