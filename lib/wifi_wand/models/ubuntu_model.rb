@@ -15,6 +15,8 @@ module WifiWand
     ].freeze
     PREFERRED_NETWORK_SECRET_PLACEHOLDERS = %w[--].freeze
     ACTIVE_CONNECTION_PROFILE_PLACEHOLDERS = %w[--].freeze
+    SAVED_WIFI_PROFILE_SUMMARY_FIELDS = 'NAME,TYPE,TIMESTAMP'
+    SAVED_WIFI_PROFILE_SSID_FIELD = '802-11-wireless.ssid'
     DNS_CONNECTION_FIELDS = %w[
       ipv4.dns
       ipv4.ignore-auto-dns
@@ -335,6 +337,21 @@ module WifiWand
       end
     end
 
+    public def connect(network_name, password = nil, skip_saved_password_lookup: false)
+      with_saved_wifi_profiles_cache do
+        super
+      end
+    end
+
+    public def remove_preferred_networks(*network_names)
+      network_names = network_names.first if network_names.first.is_a?(Array) && network_names.size == 1
+      network_names = network_names.map(&:to_s).uniq
+
+      with_saved_wifi_profiles_cache do
+        super(*network_names)
+      end
+    end
+
     private def get_security_parameter(ssid)
       debug_method_entry(__method__, binding, :ssid)
 
@@ -423,32 +440,41 @@ module WifiWand
       debug_method_entry(__method__, binding, :network_name)
 
       matching_profiles = preferred_networks_matching_ssid(network_name)
-      return [] if matching_profiles.empty?
-
-      matching_profiles.each do |profile_name|
-        run_command_using_args(['nmcli', 'connection', 'delete', profile_name])
+      if matching_profiles.empty?
+        []
+      else
+        matching_profiles.each do |profile_name|
+          run_command_using_args(['nmcli', 'connection', 'delete', profile_name])
+        end
+        matching_profiles
       end
-      matching_profiles
     end
 
     public def has_preferred_network?(network_name)
-      preferred_networks_matching_ssid(network_name.to_s).any?
+      with_saved_wifi_profiles_cache do
+        preferred_networks_matching_ssid(network_name.to_s).any?
+      end
     end
 
     public def preferred_network_password(preferred_network_name, timeout_in_secs: :default)
       debug_method_entry(__method__, binding, :preferred_network_name)
-      preferred_network_name = preferred_network_name.to_s
-      if (resolved_profile_name = find_best_profile_for_ssid(preferred_network_name))
-        _preferred_network_password(resolved_profile_name, timeout_in_secs: timeout_in_secs)
-      else
-        raise PreferredNetworkNotFoundError, preferred_network_name
+
+      with_saved_wifi_profiles_cache do
+        preferred_network_name = preferred_network_name.to_s
+        if (resolved_profile_name = find_best_profile_for_ssid(preferred_network_name))
+          _preferred_network_password(resolved_profile_name, timeout_in_secs: timeout_in_secs)
+        else
+          raise PreferredNetworkNotFoundError, preferred_network_name
+        end
       end
     end
 
     public def preferred_networks
       debug_method_entry(__method__)
 
-      saved_wifi_profiles.map(&:ssid).reject(&:empty?).uniq.sort
+      with_saved_wifi_profiles_cache do
+        saved_wifi_profiles.map(&:ssid).reject(&:empty?).uniq.sort
+      end
     end
 
     public def _preferred_network_password(preferred_network_name, timeout_in_secs: :default)
@@ -787,35 +813,65 @@ module WifiWand
     end
 
     private def saved_wifi_profiles
+      return saved_wifi_profiles_from_summary_query unless @saved_wifi_profiles_cache_active
+
+      unless @saved_wifi_profiles_cache_loaded
+        @saved_wifi_profiles_cache = saved_wifi_profiles_from_summary_query
+        @saved_wifi_profiles_cache_loaded = true
+      end
+      @saved_wifi_profiles_cache
+    end
+
+    private def saved_wifi_profiles_from_summary_query
       output = run_command_using_args(
-        ['nmcli', '-t', '-f', 'NAME,TYPE,TIMESTAMP', 'connection', 'show'], raise_on_error: false
+        ['nmcli', '-t', '-f', SAVED_WIFI_PROFILE_SUMMARY_FIELDS, 'connection', 'show'], raise_on_error: false
       ).stdout
     rescue WifiWand::CommandExecutor::OsCommandError
       []
     else
       output.split("\n").filter_map do |line|
         name, type, timestamp = nmcli_split(line, 3)
-        next unless type == '802-11-wireless'
-
-        ssid = saved_wifi_profile_ssid(name)
-        next if ssid.nil? || ssid.empty?
-
-        SavedWifiProfile.new(name: name, ssid: ssid, type: type, timestamp: timestamp.to_i)
+        ssid = saved_wifi_profile_ssid(name) if type == '802-11-wireless'
+        saved_wifi_profile_from_fields(name: name, ssid: ssid, type: type, timestamp: timestamp)
       end
+    end
+
+    private def saved_wifi_profile_from_fields(name:, ssid:, type:, timestamp:)
+      return unless type == '802-11-wireless'
+      return if ssid.nil? || ssid.empty?
+
+      SavedWifiProfile.new(name: name, ssid: ssid, type: type, timestamp: timestamp.to_i)
     end
 
     private def saved_wifi_profile_ssid(profile_name)
       output = run_command_using_args(
-        ['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show', profile_name],
+        ['nmcli', '-t', '-f', SAVED_WIFI_PROFILE_SSID_FIELD, 'connection', 'show', profile_name],
         raise_on_error: false
       ).stdout
       line = output.split("\n").find { |output_line| !output_line.empty? }
       return nil unless line
 
       field_name, ssid = nmcli_split(line, 2)
-      field_name == '802-11-wireless.ssid' ? ssid : nil
+      field_name == SAVED_WIFI_PROFILE_SSID_FIELD ? ssid : nil
     rescue WifiWand::CommandExecutor::OsCommandError
       nil
+    end
+
+    private def with_saved_wifi_profiles_cache
+      if @saved_wifi_profiles_cache_active
+        yield
+      else
+        @saved_wifi_profiles_cache_active = true
+        @saved_wifi_profiles_cache = nil
+        @saved_wifi_profiles_cache_loaded = false
+        begin
+          yield
+        ensure
+          @saved_wifi_profiles_cache = nil
+          @saved_wifi_profiles_cache_loaded = false
+          @saved_wifi_profiles_cache_active = false
+        end
+      end
     end
 
     private def saved_wifi_profiles_matching_ssid(ssid)
