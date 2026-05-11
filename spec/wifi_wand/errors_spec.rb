@@ -51,11 +51,12 @@ module WifiWand
     describe 'Unit tests for each error class' do
       let(:keyword_error_args) do
         {
-          NetworkNotFoundError    => %i[network_name available_networks],
-          NetworkConnectionError  => %i[network_name reason],
-          WaitTimeoutError        => %i[action timeout],
-          InvalidNetworkNameError => %i[network_name reason],
-          CommandTimeoutError     => %i[command timeout_in_secs],
+          NetworkNotFoundError           => %i[network_name available_networks],
+          NetworkConnectionError         => %i[network_name reason],
+          WaitTimeoutError               => %i[action timeout],
+          InvalidNetworkNameError        => %i[network_name reason],
+          CommandTimeoutError            => %i[command timeout_in_secs],
+          QrCodePasswordUnavailableError => %i[network_name security_type],
         }
       end
 
@@ -88,6 +89,13 @@ module WifiWand
           'Invalid network password: Password cannot exceed 63 characters'],
         [InvalidInterfaceError,         ['eth0'],
           "'eth0' is not a valid WiFi interface"],
+        [QrCodeSecurityUndeterminedError, ['MyNet'],
+          "Network 'MyNet' security type could not be determined. " \
+            'Pass the optional password argument to generate a QR code because wifi-wand cannot confirm ' \
+            'whether this network is open.'],
+        [QrCodePasswordUnavailableError,  %w[MyNet WPA2],
+          "Network 'MyNet' uses WPA2 security, but no saved password is available. " \
+            'Pass the optional password argument to generate a QR code.'],
         [CommandNotFoundError,          ['iw'],
           'Missing required system command(s): iw'],
         [CommandNotFoundError,          [%w[iw nmcli]],

@@ -42,9 +42,7 @@ module WifiWand
 
         network_name = require_connected_network_name(model)
         security     = model.connection_security_type
-        # If no password is provided, ask the model for the current network password
-        # only when the security type indicates that a password may be needed.
-        password ||= connected_password_for(model, network_name, security)
+        password     = resolved_password_for(model, network_name, security, password)
         is_hidden    = model.network_hidden?
 
         # Normalize filespec for robust API (support symbols as '-' too)
@@ -87,30 +85,43 @@ module WifiWand
         name
       end
 
-      private def connected_password_for(model, network_name, security_type)
-        return nil if open_security_type?(security_type)
-
-        password = model.preferred_network_password(network_name)
-        ensure_password_available!(network_name, password, security_type)
-        password
-      rescue WifiWand::PreferredNetworkNotFoundError
-        raise missing_password_error(network_name, security_type) if secured_security_type?(security_type)
-
-        nil
+      private def resolved_password_for(model, network_name, security_type, explicit_password)
+        if open_security_type?(security_type)
+          nil
+        elsif blank_password?(explicit_password)
+          connected_password_for(model, network_name, security_type)
+        else
+          explicit_password
+        end
       end
 
-      private def ensure_password_available!(network_name, password, security_type)
-        return unless secured_security_type?(security_type)
-        return unless password.to_s.empty?
-
+      private def connected_password_for(model, network_name, security_type)
+        password = model.preferred_network_password(network_name)
+        validate_password_available!(network_name, password, security_type)
+        password
+      rescue WifiWand::PreferredNetworkNotFoundError
         raise missing_password_error(network_name, security_type)
       end
 
+      private def validate_password_available!(network_name, password, security_type)
+        if blank_password?(password)
+          raise missing_password_error(network_name, security_type)
+        end
+      end
+
+      private def blank_password?(password)
+        password.to_s.strip.empty?
+      end
+
       private def missing_password_error(network_name, security_type)
-        WifiWand::Error.new(
-          "Network '#{network_name}' uses #{security_type} security, but no saved password is available. " \
-            'Pass the optional password argument to generate a QR code.'
-        )
+        if secured_security_type?(security_type)
+          WifiWand::QrCodePasswordUnavailableError.new(
+            network_name:  network_name,
+            security_type: security_type
+          )
+        else
+          WifiWand::QrCodeSecurityUndeterminedError.new(network_name)
+        end
       end
 
       private def secured_security_type?(security_type)
@@ -123,7 +134,7 @@ module WifiWand
 
       private def build_wifi_qr_string(network_name, password, security_type, is_hidden: false)
         qr_password = password.to_s
-        qr_security = map_security_for_qr(security_type, !qr_password.empty?)
+        qr_security = map_security_for_qr(security_type)
 
         escaped_ssid     = escape_field(network_name)
         escaped_password = escape_field(qr_password)
@@ -132,14 +143,16 @@ module WifiWand
         "WIFI:T:#{qr_security};S:#{escaped_ssid};P:#{escaped_password};H:#{hidden_flag};;"
       end
 
-      private def map_security_for_qr(security_type, password_present)
-        case security_type
-        when 'WPA', 'WPA2', 'WPA3'
-          'WPA'
+      private def map_security_for_qr(security_type)
+        case security_type.to_s.upcase
         when 'WEP'
           'WEP'
+        when 'NONE', 'OPEN', 'NOPASS'
+          'nopass'
         else
-          password_present ? 'WPA' : 'nopass'
+          # QR format uses WPA for WPA/WPA2/WPA3. Unknown secured networks could be WEP,
+          # but WPA is the safer default for modern networks.
+          'WPA'
         end
       end
 

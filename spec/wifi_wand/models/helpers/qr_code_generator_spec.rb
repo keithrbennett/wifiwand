@@ -78,6 +78,7 @@ describe 'QR Code Generator (unit)' do
   it 'uses provided password without querying system password' do
     provided_password = 'provided123'
 
+    allow(model).to receive(:connection_security_type).and_return(nil)
     expect(model).not_to receive(:preferred_network_password)
 
     expect(model).to receive(:run_command_using_args) do |cmd|
@@ -85,6 +86,7 @@ describe 'QR Code Generator (unit)' do
       expect(cmd).to include('qrencode')
       expect(cmd).to include('-o')
       expect(staged_output_for(cmd)).to match(%r{\./TestNetwork-qr-code-.*\.png\z})
+      expect(cmd.last).to include('T:WPA')
       expect(cmd.last).to include('P:provided123')
       command_result(stdout: '')
     end
@@ -97,6 +99,20 @@ describe 'QR Code Generator (unit)' do
 
     expect(model).to receive(:run_command_using_args) do |cmd|
       expect(cmd).to include('qrencode')
+      expect(cmd.last).to include('P:password123')
+      command_result(stdout: '')
+    end
+
+    silence_output { model.generate_qr_code(nil) }
+  end
+
+  it 'uses WPA fallback when unknown security has a saved password' do
+    allow(model).to receive(:connection_security_type).and_return(nil)
+    allow(model).to receive(:preferred_network_password).with(ssid).and_return(password)
+
+    expect(model).to receive(:run_command_using_args) do |cmd|
+      expect(cmd).to include('qrencode')
+      expect(cmd.last).to include('T:WPA')
       expect(cmd.last).to include('P:password123')
       command_result(stdout: '')
     end
@@ -121,20 +137,72 @@ describe 'QR Code Generator (unit)' do
     expect(model).not_to have_received(:preferred_network_password)
   end
 
-  it 'generates a nopass QR code when unknown security has no saved preferred network' do
+  it 'omits an explicit password from a confirmed open network QR code' do
+    allow(model).to receive(:connection_security_type).and_return('NONE')
+    expect(model).not_to receive(:preferred_network_password)
+
+    expect(model).to receive(:run_command_using_args) do |cmd|
+      expect(cmd).to include('qrencode')
+      expect(cmd.last).to include('T:nopass')
+      expect(cmd.last).to include('P:;')
+      expect(cmd.last).not_to include('ignored-password')
+      command_result(stdout: '')
+    end
+
+    silence_output { model.generate_qr_code(nil, password: 'ignored-password') }
+  end
+
+  it 'raises a targeted error when unknown security has no saved preferred network' do
     allow(model).to receive(:connection_security_type).and_return(nil)
     allow(model).to receive(:preferred_network_password)
       .with(ssid)
       .and_raise(WifiWand::PreferredNetworkNotFoundError.new(ssid))
 
-    expect(model).to receive(:run_command_using_args) do |cmd|
-      expect(cmd).to include('qrencode')
-      expect(cmd.last).to include('T:nopass')
-      expect(cmd.last).to include('P:')
-      command_result(stdout: '')
-    end
+    expect(model).not_to receive(:run_command_using_args)
 
-    silence_output { model.generate_qr_code(nil) }
+    expect do
+      silence_output { model.generate_qr_code(nil) }
+    end.to raise_error(
+      WifiWand::QrCodeSecurityUndeterminedError,
+      /security type could not be determined.*Pass the optional password argument/m
+    )
+  end
+
+  it 'raises a targeted error when unknown security receives an empty explicit password' do
+    allow(model).to receive(:connection_security_type).and_return(nil)
+    allow(model).to receive(:preferred_network_password)
+      .with(ssid)
+      .and_raise(WifiWand::PreferredNetworkNotFoundError.new(ssid))
+
+    expect(model).not_to receive(:run_command_using_args)
+
+    expect do
+      silence_output { model.generate_qr_code(nil, password: '') }
+    end.to raise_error(WifiWand::QrCodeSecurityUndeterminedError)
+  end
+
+  it 'raises a targeted error when unknown security receives a whitespace explicit password' do
+    allow(model).to receive(:connection_security_type).and_return(nil)
+    allow(model).to receive(:preferred_network_password)
+      .with(ssid)
+      .and_raise(WifiWand::PreferredNetworkNotFoundError.new(ssid))
+
+    expect(model).not_to receive(:run_command_using_args)
+
+    expect do
+      silence_output { model.generate_qr_code(nil, password: " \t ") }
+    end.to raise_error(WifiWand::QrCodeSecurityUndeterminedError)
+  end
+
+  it 'raises a targeted error when unknown security has a blank saved password' do
+    allow(model).to receive(:connection_security_type).and_return(nil)
+    allow(model).to receive(:preferred_network_password).with(ssid).and_return(" \t ")
+
+    expect(model).not_to receive(:run_command_using_args)
+
+    expect do
+      silence_output { model.generate_qr_code(nil) }
+    end.to raise_error(WifiWand::QrCodeSecurityUndeterminedError)
   end
 
   it 'raises a targeted error when a secured network has no saved password' do
@@ -144,7 +212,17 @@ describe 'QR Code Generator (unit)' do
 
     expect do
       silence_output { model.generate_qr_code(nil) }
-    end.to raise_error(WifiWand::Error, /Pass the optional password argument/)
+    end.to raise_error(WifiWand::QrCodePasswordUnavailableError, /Pass the optional password argument/)
+  end
+
+  it 'raises a targeted error when a secured network has a whitespace saved password' do
+    allow(model).to receive(:preferred_network_password).with(ssid).and_return(" \t ")
+
+    expect(model).not_to receive(:run_command_using_args)
+
+    expect do
+      silence_output { model.generate_qr_code(nil) }
+    end.to raise_error(WifiWand::QrCodePasswordUnavailableError, /Pass the optional password argument/)
   end
 
   it 'raises a targeted error when a secured network is not in the preferred list' do
@@ -156,7 +234,7 @@ describe 'QR Code Generator (unit)' do
 
     expect do
       silence_output { model.generate_qr_code(nil) }
-    end.to raise_error(WifiWand::Error, /Pass the optional password argument/)
+    end.to raise_error(WifiWand::QrCodePasswordUnavailableError, /Pass the optional password argument/)
   end
 
   it 'surfaces exact-identity errors when the current SSID is redacted' do

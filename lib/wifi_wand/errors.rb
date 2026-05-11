@@ -141,6 +141,32 @@ module WifiWand
     def initialize(interface) = super("'#{interface}' is not a valid WiFi interface")
   end
 
+  class QrCodeSecurityUndeterminedError < Error
+    attr_reader :network_name
+
+    def initialize(network_name)
+      @network_name = network_name
+      super(
+        "Network '#{network_name}' security type could not be determined. " \
+          'Pass the optional password argument to generate a QR code because wifi-wand cannot confirm ' \
+          'whether this network is open.'
+      )
+    end
+  end
+
+  class QrCodePasswordUnavailableError < Error
+    attr_reader :network_name, :security_type
+
+    def initialize(network_name:, security_type:)
+      @network_name = network_name
+      @security_type = security_type
+      super(
+        "Network '#{network_name}' uses #{security_type} security, but no saved password is available. " \
+          'Pass the optional password argument to generate a QR code.'
+      )
+    end
+  end
+
   # === SYSTEM/PERMISSION ERRORS ===
   class CommandNotFoundError < Error
     def initialize(commands)

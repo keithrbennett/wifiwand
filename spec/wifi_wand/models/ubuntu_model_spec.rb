@@ -900,31 +900,37 @@ module WifiWand
 
       describe '#connection_security_type' do
         let(:network_name) { 'TestNetwork' }
-        let(:nmcli_security_output) do
-          "TestNetwork:WPA2\nOtherNetwork:WPA1 WPA2\nOpenNetwork:\nWEPNetwork:WEP"
-        end
 
         before do
           allow(ubuntu_model).to receive(:_connected_network_name).and_return(network_name)
         end
 
         [
-          ['WPA2',                  'TestNetwork:WPA2',      'WPA2'],
-          ['WPA3',                  'TestNetwork:WPA3',      'WPA3'],
-          ['WPA',                   'TestNetwork:WPA',       'WPA'],
-          ['WPA1',                  'TestNetwork:WPA1',      'WPA'],
-          ['WEP',                   'TestNetwork:WEP',       'WEP'],
-          ['Mixed WPA',             'TestNetwork:WPA1 WPA2', 'WPA2'],
-          ['empty security (open)', 'TestNetwork:',          nil],
-          ['unknown security',      'TestNetwork:UNKNOWN',   nil],
+          ['WPA2',                        '*:TestNetwork:WPA2',      'WPA2'],
+          ['WPA3',                        '*:TestNetwork:WPA3',      'WPA3'],
+          ['WPA',                         '*:TestNetwork:WPA',       'WPA'],
+          ['WPA1',                        '*:TestNetwork:WPA1',      'WPA'],
+          ['WEP',                         '*:TestNetwork:WEP',       'WEP'],
+          ['Mixed WPA',                   '*:TestNetwork:WPA1 WPA2', 'WPA2'],
+          ['empty security (open)',       '*:TestNetwork:',          'NONE'],
+          ['placeholder security (open)', '*:TestNetwork:--',        'NONE'],
+          ['unknown security',            '*:TestNetwork:UNKNOWN',   nil],
         ].each do |description, nmcli_line, expected|
           it "returns #{expected || 'nil'} for #{description}" do
             allow(ubuntu_model).to receive(:run_command_using_args)
-              .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], raise_on_error: false)
+              .with(%w[nmcli -t -f IN-USE,SSID,SECURITY dev wifi list], raise_on_error: false)
               .and_return(command_result(stdout: nmcli_line))
 
             expect(ubuntu_model.connection_security_type).to eq(expected)
           end
+        end
+
+        it 'uses the active scan row when duplicate SSIDs advertise different security' do
+          allow(ubuntu_model).to receive(:run_command_using_args)
+            .with(%w[nmcli -t -f IN-USE,SSID,SECURITY dev wifi list], raise_on_error: false)
+            .and_return(command_result(stdout: ":TestNetwork:\n*:TestNetwork:WPA2"))
+
+          expect(ubuntu_model.connection_security_type).to eq('WPA2')
         end
 
         it 'returns nil when not connected to any network' do
@@ -935,15 +941,15 @@ module WifiWand
 
         it 'returns nil when network not found in scan results' do
           allow(ubuntu_model).to receive(:run_command_using_args)
-            .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], raise_on_error: false)
-            .and_return(command_result(stdout: 'OtherNetwork:WPA2'))
+            .with(%w[nmcli -t -f IN-USE,SSID,SECURITY dev wifi list], raise_on_error: false)
+            .and_return(command_result(stdout: '*:OtherNetwork:WPA2'))
 
           expect(ubuntu_model.connection_security_type).to be_nil
         end
 
         it 'returns nil when nmcli command fails' do
           allow(ubuntu_model).to receive(:run_command_using_args)
-            .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], raise_on_error: false)
+            .with(%w[nmcli -t -f IN-USE,SSID,SECURITY dev wifi list], raise_on_error: false)
             .and_raise(os_command_error(exitstatus: 1, command: 'nmcli', text: 'Command failed'))
 
           expect(ubuntu_model.connection_security_type).to be_nil
@@ -1967,9 +1973,9 @@ module WifiWand
         describe '#connection_security_type with colon-containing SSID' do
           it 'returns the correct security type for an SSID with a colon' do
             allow(ubuntu_model).to receive(:_connected_network_name).and_return('Corp:Wifi')
-            nmcli_output = "Corp\\:Wifi:WPA2\nCorpNet:WPA2"
+            nmcli_output = "*:Corp\\:Wifi:WPA2\n:CorpNet:WPA2"
             allow(ubuntu_model).to receive(:run_command_using_args)
-              .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], raise_on_error: false)
+              .with(%w[nmcli -t -f IN-USE,SSID,SECURITY dev wifi list], raise_on_error: false)
               .and_return(command_result(stdout: nmcli_output))
 
             expect(ubuntu_model.connection_security_type).to eq('WPA2')
@@ -1977,9 +1983,9 @@ module WifiWand
 
           it 'does not misidentify a prefix-collision SSID (Office vs Office-Guest)' do
             allow(ubuntu_model).to receive(:_connected_network_name).and_return('Office')
-            nmcli_output = 'Office-Guest:WPA2'
+            nmcli_output = '*:Office-Guest:WPA2'
             allow(ubuntu_model).to receive(:run_command_using_args)
-              .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], raise_on_error: false)
+              .with(%w[nmcli -t -f IN-USE,SSID,SECURITY dev wifi list], raise_on_error: false)
               .and_return(command_result(stdout: nmcli_output))
 
             expect(ubuntu_model.connection_security_type).to be_nil

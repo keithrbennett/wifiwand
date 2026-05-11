@@ -2242,9 +2242,12 @@ module WifiWand
           ['spairport_security_mode_none', 'NONE'],
           ['None', 'NONE'],
           ['OWE', 'NONE'],
+          ['', 'NONE'],
           ['Unknown Security', nil],
         ].each do |security_mode, expected_result|
-          it "returns #{expected_result || 'nil'} for #{security_mode}" do
+          mode_description = security_mode.empty? ? 'blank security mode' : security_mode
+
+          it "returns #{expected_result || 'nil'} for #{mode_description}" do
             airport_data = {
               'SPAirPortDataType' => [{
                 'spairport_airport_interfaces' => [{

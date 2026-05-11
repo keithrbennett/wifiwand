@@ -1131,7 +1131,8 @@ module WifiWand
     end
 
     # Gets the security type of the currently connected network.
-    # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP", or nil if not connected/not found
+    # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP",
+    #   "NONE" for open networks, or nil if not connected/not found
     public def connection_security_type
       with_airport_data_cache_scope do
         network_name = _connected_network_name
@@ -1157,7 +1158,12 @@ module WifiWand
         security_info = network['spairport_security_mode']
         return nil unless security_info
 
-        canonical_security_type_from(security_info)
+        # macOS can report an empty spairport_security_mode field for open networks.
+        if security_info.to_s.strip.empty?
+          'NONE'
+        else
+          canonical_security_type_from(security_info)
+        end
       end
     end
 

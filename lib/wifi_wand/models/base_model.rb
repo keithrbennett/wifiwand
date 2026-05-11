@@ -863,7 +863,7 @@ module WifiWand
     end
 
     # Normalizes a raw security descriptor string from OS tools to
-    # one of: "WPA3", "WPA2", "WPA", "WEP", or nil (unknown/open/enterprise).
+    # one of: "WPA3", "WPA2", "WPA", "WEP", "NONE", or nil (unknown/enterprise).
     # This centralizes regex handling across OS implementations.
     private def canonical_security_type_from(security_text)
       return nil if security_text.nil?

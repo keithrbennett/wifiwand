@@ -123,7 +123,7 @@ describe 'QR Code Integration Tests', :requires_external_tools do
         name:          'Open network (no password)',
         network_name:  'FreeWiFi',
         password:      nil,
-        security_type: nil,
+        security_type: 'NONE',
         expected:      {
           'T' => 'nopass',
           'S' => 'FreeWiFi',
@@ -288,7 +288,7 @@ describe 'QR Code Integration Tests', :requires_external_tools do
   describe 'QR Code Robustness' do
     it 'creates scannable QR codes for various WiFi configurations' do
       configurations = [
-        { ssid: 'Test', password: '', security: nil },           # Open
+        { ssid: 'Test', password: '', security: 'NONE' },       # Open
         { ssid: 'A', password: '1', security: 'WPA2' },         # Minimal
         { ssid: 'Test-Network_123', password: 'P@ssw0rd!', security: 'WPA3' }, # Complex
       ]

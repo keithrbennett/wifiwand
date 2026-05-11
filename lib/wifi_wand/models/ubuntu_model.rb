@@ -833,7 +833,7 @@ module WifiWand
 
     # Gets the security type of the currently connected network.
     # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP",
-    #   "None", or nil if not connected/not found
+    #   "NONE" for open networks, or nil if not connected/not found
     public def connection_security_type
       debug_method_entry(__method__)
 
@@ -842,20 +842,29 @@ module WifiWand
 
       begin
         output = run_command_using_args(
-          ['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], raise_on_error: false
+          ['nmcli', '-t', '-f', 'IN-USE,SSID,SECURITY', 'dev', 'wifi', 'list'], raise_on_error: false
         ).stdout
       rescue WifiWand::CommandExecutor::OsCommandError
         return nil # Can't scan, return nil
       end
 
-      network_line = output.split("\n").find { |line| nmcli_split(line, 2).first == network_name }
+      # Match NetworkManager's active BSS row, not just SSID, because duplicate SSIDs can
+      # advertise different security modes.
+      network_line = output.split("\n").find do |line|
+        in_use, ssid, = nmcli_split(line, 3)
+        in_use == '*' && ssid == network_name
+      end
       return nil unless network_line
 
-      # The output can be like "SSID:WPA2" or "SSID:WPA1 WPA2"
-      security_type = nmcli_split(network_line, 2).last&.strip
+      # The output can be like "*:SSID:WPA2" or "*:SSID:WPA1 WPA2"
+      security_type = nmcli_split(network_line, 3).last&.strip
 
-      # Normalize via shared logic (returns nil for open/enterprise/unknown)
-      canonical_security_type_from(security_type)
+      # nmcli reports open networks with an empty SECURITY field or a "--" placeholder.
+      if security_type.to_s.empty? || security_type == '--'
+        'NONE'
+      else
+        canonical_security_type_from(security_type)
+      end
     end
 
     # Checks if the currently connected network is a hidden network.
