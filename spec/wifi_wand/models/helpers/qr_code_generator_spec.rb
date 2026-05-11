@@ -140,6 +140,30 @@ describe 'QR Code Generator (unit)' do
     end
   end
 
+  it 'raises a targeted error when temp file staging fails after output directory preflight passes' do
+    with_temp_dir do |temp_dir|
+      filename = File.join(temp_dir, 'wifi.png')
+      staging_error = Errno::ENOSPC.new(temp_dir)
+
+      expect(Tempfile).to receive(:create)
+        .with(anything, temp_dir)
+        .and_raise(staging_error)
+      expect(model).not_to receive(:run_command_using_args)
+
+      expect do
+        silence_output { model.generate_qr_code(filename) }
+      end.to raise_error(WifiWand::QrCodeOutputFileError) { |error|
+        expect(error.filename).to eq(filename)
+        expect(error.directory).to eq(temp_dir)
+        expect(error.source).to eq(staging_error)
+        expect(error.message).to include("Failed to write QR code output file '#{filename}'")
+        expect(error.message)
+          .to include("filesystem error while staging output in output directory '#{temp_dir}'")
+        expect(error.message).to include(staging_error.message)
+      }
+    end
+  end
+
   it 'uses provided password without querying system password' do
     provided_password = 'provided123'
 
