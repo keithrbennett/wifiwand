@@ -172,7 +172,7 @@ module WifiWand
       begin
         attempts += 1
         @model.connect(network_name, password)
-      rescue WifiWand::CommandExecutor::OsCommandError => e
+      rescue WifiWand::CommandExecutor::OsCommandError, WifiWand::NetworkConnectionError => e
         raise unless retry_restore_connect?(e, attempts)
 
         if verbose?
@@ -230,15 +230,35 @@ module WifiWand
       false
     end
 
-    # Retries only the known transient macOS restore failures from networksetup.
-    # OsCommandError stores the rendered command, so compare on the executable
-    # name instead of the full command string.
+    # Retries only known transient macOS networksetup restore failures. Raw
+    # OsCommandError values carry the rendered command; normalized domain errors
+    # carry their source.
     private def retry_restore_connect?(error, attempts)
       return false unless @model.mac?
-      return false unless command_executable(error.command) == 'networksetup'
-      return false unless RESTORE_CONNECT_RETRY_PATTERNS.any? { |pattern| pattern.match?(error.text.to_s) }
+      return false unless restore_connect_retry_source?(error)
+
+      error_text = restore_error_text(error)
+      return false unless RESTORE_CONNECT_RETRY_PATTERNS.any? { |pattern| pattern.match?(error_text) }
 
       attempts < RESTORE_CONNECT_MAX_ATTEMPTS
+    end
+
+    private def restore_connect_retry_source?(error)
+      if error.is_a?(WifiWand::CommandExecutor::OsCommandError)
+        command_executable(error.command) == 'networksetup'
+      else
+        error.is_a?(WifiWand::NetworkConnectionError) && error.source == :networksetup
+      end
+    end
+
+    private def restore_error_text(error)
+      if error.respond_to?(:text)
+        error.text.to_s
+      elsif error.respond_to?(:reason)
+        error.reason.to_s
+      else
+        error.message.to_s
+      end
     end
 
     private def command_executable(command)

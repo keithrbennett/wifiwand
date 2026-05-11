@@ -24,6 +24,18 @@ module WifiWand
       /password required/i,
     ].freeze
 
+    SWIFT_CONNECTION_FAILURE_PATTERNS = [
+      /connection timeout/i,
+      /connection attempt timed out/i,
+      /out of range/i,
+      /unreachable/i,
+    ].freeze
+
+    FAILURE_REASON_HEADER_PATTERNS = [
+      /Failed to join network/i,
+      /\AError:\s*Failed to join\b/i,
+    ].freeze
+
     SUDO_IFCONFIG_TIMEOUT_SECONDS = 5
     # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
     UNEXPECTED_SWIFT_ERROR = StandardError
@@ -42,13 +54,7 @@ module WifiWand
           swift_runtime.connect(network_name, password)
           return
         rescue WifiWand::CommandExecutor::OsCommandError => e
-          if swift_runtime.fallback_connect_error?(e.text)
-            log_fallback(
-              "Swift/CoreWLAN failed (#{e.text.strip}). Trying networksetup fallback..."
-            )
-          else
-            raise
-          end
+          handle_swift_connect_command_error(network_name, e)
         rescue WifiWand::CommandTimeoutError, WifiWand::CommandNotFoundError,
           WifiWand::CommandSpawnError => e
           log_fallback(
@@ -90,26 +96,72 @@ module WifiWand
       iface = wifi_interface
       args = ['networksetup', '-setairportnetwork', iface, network_name]
       args << password if password
-      result = run_command_using_args(args)
+      result = run_networksetup_connect_command(network_name, args)
       output_text = result.combined_output
 
       # networksetup returns exit code 0 even on failure, so check output text.
       check_connection_result(network_name, output_text)
     end
 
+    private def run_networksetup_connect_command(network_name, args)
+      run_command_using_args(args)
+    rescue WifiWand::CommandExecutor::OsCommandError => e
+      raise_networksetup_connect_error(network_name, e.text)
+    end
+
     private def check_connection_result(network_name, output_text)
       return unless connection_failed?(output_text)
 
+      raise_networksetup_connect_error(network_name, output_text)
+    end
+
+    private def raise_networksetup_connect_error(network_name, output_text)
       if authentication_failed?(output_text)
-        reason = extract_auth_failure_reason(output_text)
+        reason = extract_failure_reason(output_text)
         raise(WifiWand::NetworkAuthenticationError.new(network_name: network_name, reason: reason))
       end
 
-      raise(WifiWand::CommandExecutor::OsCommandError.new(
-        exitstatus: 1,
-        command:    'networksetup',
-        text:       output_text.strip
+      raise(WifiWand::NetworkConnectionError.new(
+        network_name: network_name,
+        reason:       extract_failure_reason(output_text),
+        source:       :networksetup
       ))
+    end
+
+    private def handle_swift_connect_command_error(network_name, error)
+      classified_error = swift_authentication_domain_error(network_name, error.text)
+      raise classified_error if classified_error
+
+      if swift_runtime.fallback_connect_error?(error.text)
+        log_fallback(
+          "Swift/CoreWLAN failed (#{error.text.to_s.strip}). Trying networksetup fallback..."
+        )
+        return
+      end
+
+      classified_error = swift_connection_domain_error(network_name, error.text)
+      raise classified_error if classified_error
+
+      raise error
+    end
+
+    private def swift_authentication_domain_error(network_name, output_text)
+      return unless authentication_failed?(output_text)
+
+      WifiWand::NetworkAuthenticationError.new(
+        network_name: network_name,
+        reason:       extract_failure_reason(output_text)
+      )
+    end
+
+    private def swift_connection_domain_error(network_name, output_text)
+      return unless swift_connection_failed?(output_text)
+
+      WifiWand::NetworkConnectionError.new(
+        network_name: network_name,
+        reason:       extract_failure_reason(output_text),
+        source:       :swift
+      )
     end
 
     private def disconnect_using_ifconfig
@@ -136,21 +188,29 @@ module WifiWand
       ))
     end
 
-    private def extract_auth_failure_reason(output_text)
+    private def extract_failure_reason(output_text)
       return '' if output_text.nil?
 
       lines = output_text.lines.map(&:strip).reject(&:empty?)
-      filtered = lines.grep_v(/Failed to join network/i)
+      filtered = lines.reject { |line| failure_reason_header?(line) }
       reason = filtered.join(' ')
       reason.empty? ? output_text.strip : reason
     end
 
+    private def failure_reason_header?(line)
+      FAILURE_REASON_HEADER_PATTERNS.any? { |pattern| line.match?(pattern) }
+    end
+
     private def connection_failed?(output_text)
-      CONNECTION_FAILURE_PATTERNS.any? { |pattern| output_text.match?(pattern) }
+      CONNECTION_FAILURE_PATTERNS.any? { |pattern| output_text.to_s.match?(pattern) }
     end
 
     private def authentication_failed?(output_text)
-      AUTHENTICATION_FAILURE_PATTERNS.any? { |pattern| output_text.match?(pattern) }
+      AUTHENTICATION_FAILURE_PATTERNS.any? { |pattern| output_text.to_s.match?(pattern) }
+    end
+
+    private def swift_connection_failed?(output_text)
+      SWIFT_CONNECTION_FAILURE_PATTERNS.any? { |pattern| output_text.to_s.match?(pattern) }
     end
 
     private def disconnect_failure_reason(*results)

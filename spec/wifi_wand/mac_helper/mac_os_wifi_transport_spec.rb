@@ -47,6 +47,24 @@ module WifiWand
         )
       end
 
+      it 'falls back to networksetup for recoverable Swift network-not-found failures' do
+        error_text = 'Error: Network not found'
+
+        allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(true)
+        allow(swift_runtime).to receive(:connect).with('TestNetwork', 'password')
+          .and_raise(os_command_error(exitstatus: 1, command: 'swift', text: error_text))
+        expect(swift_runtime).to receive(:fallback_connect_error?).with(error_text).and_return(true)
+        expect(command_runner).to receive(:call)
+          .with(['networksetup', '-setairportnetwork', 'en0', 'TestNetwork', 'password'])
+          .and_return(command_result(stdout: ''))
+
+        transport.connect('TestNetwork', 'password')
+
+        expect(out_stream.string).to include(
+          "Swift/CoreWLAN failed (#{error_text}). Trying networksetup fallback..."
+        )
+      end
+
       it 'logs and re-raises unexpected Swift connect failures' do
         allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(true)
         allow(swift_runtime).to receive(:connect).with('TestNetwork', 'password')
@@ -76,6 +94,60 @@ module WifiWand
         end.to raise_error(WifiWand::CommandExecutor::OsCommandError, /permission denied/)
       end
 
+      {
+        'invalid password'       => 'Error: Invalid password',
+        'authentication failure' => 'Error: Authentication failed - might require captive portal login',
+      }.each do |description, error_text|
+        it "raises NetworkAuthenticationError for Swift #{description} output" do
+          allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(true)
+          allow(swift_runtime).to receive(:connect).with('TestNetwork', 'password')
+            .and_raise(os_command_error(exitstatus: 1, command: 'swift', text: error_text))
+          expect(swift_runtime).not_to receive(:fallback_connect_error?)
+          expect(command_runner).not_to receive(:call)
+
+          expect { transport.connect('TestNetwork', 'password') }
+            .to raise_error(WifiWand::NetworkAuthenticationError) do |error|
+              expect(error.network_name).to eq('TestNetwork')
+              expect(error.reason).to eq(error_text)
+            end
+        end
+      end
+
+      [
+        ['timeout', 'Error: Connection timeout', 'Error: Connection timeout'],
+        [
+          'timed out',
+          'Error: Connection attempt timed out',
+          'Error: Connection attempt timed out',
+        ],
+        [
+          'out of range',
+          "Failed to join network TestNetwork.\nNetwork moved out of range.",
+          'Network moved out of range.',
+        ],
+        [
+          'Swift join header with detail',
+          "Error: Failed to join TestNetwork.\nNetwork moved out of range.",
+          'Network moved out of range.',
+        ],
+        ['unreachable', 'Error: Network unreachable', 'Error: Network unreachable'],
+      ].each do |description, error_text, expected_reason|
+        it "raises NetworkConnectionError for Swift #{description} output" do
+          allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(true)
+          allow(swift_runtime).to receive(:connect).with('TestNetwork', 'password')
+            .and_raise(os_command_error(exitstatus: 1, command: 'swift', text: error_text))
+          expect(swift_runtime).to receive(:fallback_connect_error?).with(error_text).and_return(false)
+          expect(command_runner).not_to receive(:call)
+
+          expect { transport.connect('TestNetwork', 'password') }
+            .to raise_error(WifiWand::NetworkConnectionError) do |error|
+              expect(error.network_name).to eq('TestNetwork')
+              expect(error.reason).to eq(expected_reason)
+              expect(error.source).to eq(:swift)
+            end
+        end
+      end
+
       it 'uses networksetup directly with a password when Swift/CoreWLAN is unavailable' do
         allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
         expect(command_runner).to receive(:call)
@@ -92,6 +164,26 @@ module WifiWand
           .and_return(command_result(stdout: ''))
 
         transport.connect('TestNetwork')
+      end
+
+      it 'preserves WiFi interface lookup command errors before networksetup connect runs' do
+        interface_error = os_command_error(
+          exitstatus: 1,
+          command:    'networksetup -listallhardwareports',
+          text:       'No WiFi interface found'
+        )
+        failing_transport = described_class.new(
+          swift_runtime:       swift_runtime,
+          command_runner:      command_runner,
+          wifi_interface_proc: -> { raise interface_error },
+          out_stream_proc:     -> { out_stream },
+          verbose_proc:        -> { verbose }
+        )
+        allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
+        expect(command_runner).not_to receive(:call)
+
+        expect { failing_transport.connect('TestNetwork') }
+          .to raise_error(WifiWand::CommandExecutor::OsCommandError, /No WiFi interface found/)
       end
 
       it 'raises NetworkAuthenticationError with reason when password is invalid' do
@@ -130,6 +222,20 @@ module WifiWand
         end
       end
 
+      it 'raises NetworkAuthenticationError when networksetup exits non-zero for an auth failure' do
+        allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
+        failure_output = 'Error: Invalid password'
+        expect(command_runner).to receive(:call)
+          .with(['networksetup', '-setairportnetwork', 'en0', 'TestNetwork', 'badpass'])
+          .and_raise(os_command_error(exitstatus: 1, command: 'networksetup', text: failure_output))
+
+        expect { transport.connect('TestNetwork', 'badpass') }
+          .to raise_error(WifiWand::NetworkAuthenticationError) do |error|
+            expect(error.network_name).to eq('TestNetwork')
+            expect(error.reason).to eq(failure_output)
+          end
+      end
+
       it 'preserves networksetup output as the reason when no detail line is available' do
         allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
         failure_output = 'Failed to join network TestNetwork: invalid password'
@@ -141,31 +247,44 @@ module WifiWand
           .to raise_error(WifiWand::NetworkAuthenticationError, /#{Regexp.escape(failure_output)}/)
       end
 
-      it 'raises OsCommandError when networksetup output reports a non-auth failure' do
-        allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
-        failure_output = 'Could not find network TestNetwork.'
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-setairportnetwork', 'en0', 'TestNetwork'])
-          .and_return(command_result(stdout: failure_output))
-
-        expect do
-          transport.connect('TestNetwork')
-        end.to raise_error(WifiWand::CommandExecutor::OsCommandError, /Could not find network/)
-      end
-
-      {
-        'CoreWLAN numeric failure' => 'Error: -3900',
-        'generic connect failure'  => 'Could not connect to the network.',
-      }.each do |description, failure_output|
-        it "raises OsCommandError when networksetup reports #{description}" do
+      [
+        ['network not found', 'Could not find network TestNetwork.', 'Could not find network TestNetwork.'],
+        ['CoreWLAN numeric failure', 'Error: -3900', 'Error: -3900'],
+        ['generic connect failure', 'Could not connect to the network.', 'Could not connect to the network.'],
+        [
+          'generic header with detail',
+          "Failed to join network TestNetwork.\nNetwork moved out of range.",
+          'Network moved out of range.',
+        ],
+      ].each do |description, failure_output, expected_reason|
+        it "raises NetworkConnectionError when networksetup reports #{description}" do
           allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
           expect(command_runner).to receive(:call)
             .with(['networksetup', '-setairportnetwork', 'en0', 'TestNetwork'])
             .and_return(command_result(stdout: failure_output))
 
           expect { transport.connect('TestNetwork') }
-            .to raise_error(WifiWand::CommandExecutor::OsCommandError, /#{Regexp.escape(failure_output)}/)
+            .to raise_error(WifiWand::NetworkConnectionError) do |error|
+              expect(error.network_name).to eq('TestNetwork')
+              expect(error.reason).to eq(expected_reason)
+              expect(error.source).to eq(:networksetup)
+            end
         end
+      end
+
+      it 'raises NetworkConnectionError when networksetup exits non-zero for a connect failure' do
+        allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
+        failure_output = 'Could not connect to the network.'
+        expect(command_runner).to receive(:call)
+          .with(['networksetup', '-setairportnetwork', 'en0', 'TestNetwork'])
+          .and_raise(os_command_error(exitstatus: 1, command: 'networksetup', text: failure_output))
+
+        expect { transport.connect('TestNetwork') }
+          .to raise_error(WifiWand::NetworkConnectionError) do |error|
+            expect(error.network_name).to eq('TestNetwork')
+            expect(error.reason).to eq(failure_output)
+            expect(error.source).to eq(:networksetup)
+          end
       end
 
       context 'when verbose logging is disabled' do

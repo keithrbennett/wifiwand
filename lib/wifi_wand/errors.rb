@@ -39,11 +39,12 @@ module WifiWand
   end
 
   class NetworkConnectionError < Error
-    attr_reader :network_name, :reason
+    attr_reader :network_name, :reason, :source
 
-    def initialize(network_name:, reason: nil)
+    def initialize(network_name:, reason: nil, source: nil)
       @network_name = network_name
       @reason = reason
+      @source = source
       msg = "Failed to connect to network '#{network_name}'"
       msg += ": #{reason}" if reason
       super(msg)

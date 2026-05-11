@@ -239,6 +239,34 @@ describe WifiWand::NetworkStateManager do
     end
 
     it 'retries transient macOS networksetup restore failures' do
+      transient_error = WifiWand::NetworkConnectionError.new(
+        network_name: 'TestNetwork',
+        reason:       "Error: -3900 The operation couldn't be completed. tmpErr",
+        source:       :networksetup
+      )
+      allow(mock_model).to receive_messages(
+        mac?:                   true,
+        wifi_on?:               true,
+        connected_network_name: 'OtherNetwork'
+      )
+      allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
+      allow(mock_model).to receive(:associated?).and_return(false)
+      allow(state_manager).to receive(:sleep)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
+      connect_attempts = 0
+      allow(mock_model).to receive(:connect).with('TestNetwork', 'testpass') do
+        connect_attempts += 1
+        raise transient_error if connect_attempts == 1
+      end
+
+      state_manager.restore_network_state(valid_state)
+
+      expect(mock_model).to have_received(:connect).twice
+      expect(state_manager).to have_received(:sleep)
+        .with(described_class::RESTORE_CONNECT_RETRY_WAIT_SECONDS)
+    end
+
+    it 'retries legacy transient macOS OsCommandError restore failures' do
       transient_error = os_command_error(
         exitstatus: 1,
         command:    'networksetup -setairportnetwork en0 TestNetwork testpass',
@@ -326,10 +354,10 @@ describe WifiWand::NetworkStateManager do
     end
 
     it 'does not retry non-transient restore command failures' do
-      permanent_error = os_command_error(
-        exitstatus: 1,
-        command:    'networksetup -setairportnetwork en0 TestNetwork testpass',
-        text:       'Failed to join network TestNetwork. invalid parameter'
+      permanent_error = WifiWand::NetworkConnectionError.new(
+        network_name: 'TestNetwork',
+        reason:       'invalid parameter',
+        source:       :networksetup
       )
       allow(mock_model).to receive_messages(
         mac?:                   true,
@@ -343,7 +371,30 @@ describe WifiWand::NetworkStateManager do
 
       expect do
         state_manager.restore_network_state(valid_state)
-      end.to raise_error(WifiWand::CommandExecutor::OsCommandError, /invalid parameter/)
+      end.to raise_error(WifiWand::NetworkConnectionError, /invalid parameter/)
+
+      expect(mock_model).to have_received(:connect).once
+    end
+
+    it 'does not retry Swift-style domain connection failures' do
+      swift_error = WifiWand::NetworkConnectionError.new(
+        network_name: 'TestNetwork',
+        reason:       "Error: -3900 The operation couldn't be completed. tmpErr",
+        source:       :swift
+      )
+      allow(mock_model).to receive_messages(
+        mac?:                   true,
+        connection_ready?:      false,
+        wifi_on?:               true,
+        connected_network_name: 'OtherNetwork'
+      )
+      allow(mock_model).to receive(:connect).with('TestNetwork', 'testpass')
+        .and_raise(swift_error)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
+
+      expect do
+        state_manager.restore_network_state(valid_state)
+      end.to raise_error(WifiWand::NetworkConnectionError, /tmpErr/)
 
       expect(mock_model).to have_received(:connect).once
     end

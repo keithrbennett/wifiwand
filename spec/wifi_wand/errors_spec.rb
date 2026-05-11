@@ -52,7 +52,7 @@ module WifiWand
       let(:keyword_error_args) do
         {
           NetworkNotFoundError           => %i[network_name available_networks],
-          NetworkConnectionError         => %i[network_name reason],
+          NetworkConnectionError         => %i[network_name reason source],
           WaitTimeoutError               => %i[action timeout],
           InvalidNetworkNameError        => %i[network_name reason],
           CommandTimeoutError            => %i[command timeout_in_secs],
