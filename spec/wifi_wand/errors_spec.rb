@@ -3,6 +3,8 @@
 require_relative '../spec_helper'
 require_relative '../../lib/wifi_wand/models/ubuntu_model'
 require_relative '../../lib/wifi_wand/models/mac_os_model'
+require 'fileutils'
+require 'tmpdir'
 
 module WifiWand
   describe 'Error Classes' do
@@ -57,6 +59,8 @@ module WifiWand
           InvalidNetworkNameError        => %i[network_name reason],
           CommandTimeoutError            => %i[command timeout_in_secs],
           QrCodePasswordUnavailableError => %i[network_name security_type],
+          QrCodeGenerationError          => %i[reason],
+          QrCodeOutputFileError          => %i[filename directory],
         }
       end
 
@@ -96,6 +100,12 @@ module WifiWand
         [QrCodePasswordUnavailableError,  %w[MyNet WPA2],
           "Network 'MyNet' uses WPA2 security, but no saved password is available. " \
             'Pass the optional password argument to generate a QR code.'],
+        [QrCodeGenerationError,           ['qrencode exited 1'],
+          'Failed to generate QR code: qrencode exited 1'],
+        [QrCodeOutputFileError,
+          %w[/__wifiwand_missing_qr_dir__/wifi.png /__wifiwand_missing_qr_dir__],
+          "Failed to write QR code output file '/__wifiwand_missing_qr_dir__/wifi.png': " \
+            "output directory '/__wifiwand_missing_qr_dir__' does not exist."],
         [CommandNotFoundError,          ['iw'],
           'Missing required system command(s): iw'],
         [CommandNotFoundError,          [%w[iw nmcli]],
@@ -171,6 +181,18 @@ module WifiWand
       it 'uses a generic message when no status is provided' do
         err = described_class.new
         expect(err.message).to eq('Public IP lookup failed')
+      end
+    end
+
+    describe QrCodeOutputFileError do
+      it 'reports an existing non-directory output path' do
+        output_path = File.join(Dir.tmpdir, 'wifiwand-qr-output-file')
+        File.write(output_path, 'not a directory')
+
+        err = described_class.new(filename: File.join(output_path, 'wifi.png'), directory: output_path)
+        expect(err.message).to include("output path '#{output_path}' is not a directory")
+      ensure
+        FileUtils.rm_f(output_path)
       end
     end
 

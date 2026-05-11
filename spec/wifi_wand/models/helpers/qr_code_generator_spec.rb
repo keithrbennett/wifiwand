@@ -9,6 +9,7 @@
 
 require_relative '../../../spec_helper'
 require 'fileutils'
+require 'tmpdir'
 
 describe 'QR Code Generator (unit)' do
   let(:model) { create_test_model }
@@ -42,6 +43,13 @@ describe 'QR Code Generator (unit)' do
     cmd[cmd.index('-o') + 1]
   end
 
+  def with_temp_dir
+    temp_dir = Dir.mktmpdir('qr_code_generator_test')
+    yield temp_dir
+  ensure
+    FileUtils.rm_rf(temp_dir)
+  end
+
   it "prints ANSI QR to stdout when filespec is '-' and returns '-'" do
     expect(model).to receive(:run_command_using_args) do |cmd|
       expect(cmd).to be_an(Array)
@@ -66,13 +74,70 @@ describe 'QR Code Generator (unit)' do
     expect(result).to eq("[QR-ANSI]\n")
   end
 
-  it 'raises WifiWand::Error when ANSI generation command fails' do
+  it 'raises QrCodeGenerationError when ANSI generation command fails' do
     expect(model).to receive(:run_command_using_args)
       .and_raise(os_command_error(exitstatus: 1, command: 'qrencode', text: 'boom'))
 
     expect do
       silence_output { model.generate_qr_code('-', delivery_mode: :print) }
-    end.to raise_error(WifiWand::Error, /Failed to generate QR code/)
+    end.to raise_error(WifiWand::QrCodeGenerationError, /Failed to generate QR code/)
+  end
+
+  it 'raises a targeted error before invoking qrencode when the output directory is missing' do
+    with_temp_dir do |temp_dir|
+      filename = File.join(temp_dir, 'missing', 'wifi.png')
+
+      expect(model).not_to receive(:run_command_using_args)
+
+      expect do
+        silence_output { model.generate_qr_code(filename) }
+      end.to raise_error(WifiWand::QrCodeOutputFileError) { |error|
+        expect(error.filename).to eq(filename)
+        expect(error.directory).to eq(File.dirname(filename))
+        expect(error.message).to include("Failed to write QR code output file '#{filename}'")
+        expect(error.message).to include("output directory '#{File.dirname(filename)}' does not exist")
+      }
+    end
+  end
+
+  it 'raises a targeted error before invoking qrencode when the output directory is unwritable' do
+    with_temp_dir do |temp_dir|
+      output_dir = File.join(temp_dir, 'blocked')
+      filename = File.join(output_dir, 'wifi.png')
+      Dir.mkdir(output_dir)
+
+      allow(File).to receive(:writable?).and_call_original
+      allow(File).to receive(:writable?).with(output_dir).and_return(false)
+      expect(model).not_to receive(:run_command_using_args)
+
+      expect do
+        silence_output { model.generate_qr_code(filename) }
+      end.to raise_error(WifiWand::QrCodeOutputFileError) { |error|
+        expect(error.filename).to eq(filename)
+        expect(error.directory).to eq(output_dir)
+        expect(error.message).to include("Failed to write QR code output file '#{filename}'")
+        expect(error.message).to include("output directory '#{output_dir}' is not writable")
+      }
+    end
+  end
+
+  it 'raises a targeted error before invoking qrencode when the output path is a file' do
+    with_temp_dir do |temp_dir|
+      output_path = File.join(temp_dir, 'not-a-directory')
+      filename = File.join(output_path, 'wifi.png')
+      File.write(output_path, 'not a directory')
+
+      expect(model).not_to receive(:run_command_using_args)
+
+      expect do
+        silence_output { model.generate_qr_code(filename) }
+      end.to raise_error(WifiWand::QrCodeOutputFileError) { |error|
+        expect(error.filename).to eq(filename)
+        expect(error.directory).to eq(output_path)
+        expect(error.message).to include("Failed to write QR code output file '#{filename}'")
+        expect(error.message).to include("output path '#{output_path}' is not a directory")
+      }
+    end
   end
 
   it 'uses provided password without querying system password' do

@@ -41,6 +41,9 @@ instead of ad-hoc one-off commands when building, testing, or running the projec
 - Avoid early returns for simple Ruby branches when a direct conditional expression is clearer.
 - If two early-return orderings are equally complex, prefer an `if` statement
   instead of structuring the branch around early returns.
+- Do not introduce early returns inside simple value-producing branches. For methods that choose between
+  strings, symbols, booleans, or small result objects, prefer a direct `if` / `elsif` / `else` expression
+  unless an early return clearly isolates an exceptional case or simplifies a complex main path.
 - Prefer early returns when they isolate exceptional cases, invalid input, or meaningfully simplify the main
   path.
 - After editing Ruby, do a quick readability pass on any guard clauses you introduced and rewrite them if

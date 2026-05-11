@@ -189,23 +189,29 @@ module WifiWand
       end
 
       private def run_qrencode_file(model, filename, qr_string)
-        Tempfile.create(tempfile_args_for(filename), tempfile_directory_for(filename)) do |tempfile|
-          staged_filename = tempfile.path
-          tempfile.close
+        validate_qr_output_directory!(filename)
 
-          type_flags = qr_type_flag_for(filename)
-          cmd = ['qrencode'] + type_flags + ['-o', staged_filename, qr_string]
+        begin
+          Tempfile.create(tempfile_args_for(filename), tempfile_directory_for(filename)) do |tempfile|
+            staged_filename = tempfile.path
+            tempfile.close
 
-          begin
+            type_flags = qr_type_flag_for(filename)
+            cmd = ['qrencode'] + type_flags + ['-o', staged_filename, qr_string]
+
             model.run_command_using_args(cmd)
             File.rename(staged_filename, filename)
             model.out_stream.puts "QR code generated: #{filename}" if model.verbose?
-          rescue WifiWand::CommandExecutor::OsCommandError => e
-            raise WifiWand::Error, "Failed to generate QR code: #{e.message}"
-          rescue SystemCallError => e
-            raise WifiWand::Error,
-              "Failed to replace QR code output file '#{filename}': #{e.message}"
           end
+        rescue WifiWand::CommandExecutor::OsCommandError => e
+          raise WifiWand::QrCodeGenerationError.new(reason: e.message, source: e)
+        rescue SystemCallError => e
+          raise WifiWand::QrCodeOutputFileError.new(
+            filename:  filename,
+            directory: tempfile_directory_for(filename),
+            reason:    e.message,
+            source:    e
+          )
         end
       end
 
@@ -221,7 +227,7 @@ module WifiWand
             '-'
           end
         rescue WifiWand::CommandExecutor::OsCommandError => e
-          raise WifiWand::Error, "Failed to generate QR code: #{e.message}"
+          raise WifiWand::QrCodeGenerationError.new(reason: e.message, source: e)
         end
       end
 
@@ -242,6 +248,13 @@ module WifiWand
       private def tempfile_directory_for(filename)
         directory = File.dirname(filename)
         directory.empty? ? '.' : directory
+      end
+
+      private def validate_qr_output_directory!(filename)
+        directory = tempfile_directory_for(filename)
+        return if File.directory?(directory) && File.writable?(directory)
+
+        raise WifiWand::QrCodeOutputFileError.new(filename: filename, directory: directory)
       end
     end
   end

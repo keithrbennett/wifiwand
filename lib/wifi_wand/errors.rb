@@ -168,6 +168,52 @@ module WifiWand
     end
   end
 
+  class QrCodeGenerationError < Error
+    attr_reader :reason, :source
+
+    def initialize(reason:, source: nil)
+      @reason = reason
+      @source = source
+      super("Failed to generate QR code: #{reason}")
+    end
+  end
+
+  class QrCodeOutputFileError < Error
+    attr_reader :filename, :directory, :reason, :source
+
+    def initialize(filename:, directory: nil, reason: nil, source: nil)
+      @filename = filename
+      @directory = normalize_directory(directory || File.dirname(filename))
+      @reason = reason
+      @source = source
+      super(build_message)
+    end
+
+    private def build_message
+      message = "Failed to write QR code output file '#{filename}': #{directory_status_message}"
+      message += " #{reason}" if reason && !reason.empty?
+      message
+    end
+
+    private def directory_status_message
+      if !File.exist?(directory)
+        "output directory '#{directory}' does not exist."
+      elsif File.directory?(directory)
+        if File.writable?(directory)
+          "filesystem error while staging output in output directory '#{directory}'."
+        else
+          "output directory '#{directory}' is not writable."
+        end
+      else
+        "output path '#{directory}' is not a directory."
+      end
+    end
+
+    private def normalize_directory(directory)
+      directory.empty? ? '.' : directory
+    end
+  end
+
   # === SYSTEM/PERMISSION ERRORS ===
   class CommandNotFoundError < Error
     def initialize(commands)
