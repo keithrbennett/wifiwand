@@ -364,7 +364,7 @@ module WifiWand
         it 'returns nil when listing connections fails' do
           expect(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
-            .and_raise(os_command_error(exitstatus: 1, command: 'nmcli', text: 'Error'))
+            .and_return(command_result(stderr: 'Error', exitstatus: 1, command: 'nmcli'))
           expect(ubuntu_model.send(:find_best_profile_for_ssid, 'SSID')).to be_nil
         end
 
@@ -883,6 +883,17 @@ module WifiWand
           allow(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
+
+          expect(ubuntu_model.preferred_networks).to eq([])
+        end
+
+        it 'returns empty array when the saved profile summary query fails' do
+          allow(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .and_return(command_result(stderr: 'network manager unavailable', exitstatus: 10))
+          expect(ubuntu_model).not_to receive(:run_command)
+            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show', anything],
+              raise_on_error: false)
 
           expect(ubuntu_model.preferred_networks).to eq([])
         end

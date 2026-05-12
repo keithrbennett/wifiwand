@@ -823,17 +823,19 @@ module WifiWand
     end
 
     private def saved_wifi_profiles_from_summary_query
-      output = run_command(
+      # raise_on_error is false so nmcli exit failures can be handled explicitly.
+      result = run_command(
         ['nmcli', '-t', '-f', SAVED_WIFI_PROFILE_SUMMARY_FIELDS, 'connection', 'show'], raise_on_error: false
-      ).stdout
-    rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
-      []
-    else
-      output.split("\n").filter_map do |line|
+      )
+      return [] unless result.success?
+
+      result.stdout.split("\n").filter_map do |line|
         name, type, timestamp = nmcli_split(line, 3)
         ssid = saved_wifi_profile_ssid(name) if type == '802-11-wireless'
         saved_wifi_profile_from_fields(name: name, ssid: ssid, type: type, timestamp: timestamp)
       end
+    rescue WifiWand::CommandTimeoutError, WifiWand::CommandNotFoundError, WifiWand::CommandSpawnError
+      []
     end
 
     private def saved_wifi_profile_from_fields(name:, ssid:, type:, timestamp:)
