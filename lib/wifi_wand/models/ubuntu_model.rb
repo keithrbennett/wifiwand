@@ -360,7 +360,7 @@ module WifiWand
         output = run_command_using_args(
           ['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], raise_on_error: false
         ).stdout
-      rescue WifiWand::CommandExecutor::OsCommandError
+      rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
         return nil # Can't scan, so can't determine the type.
       end
 
@@ -627,7 +627,7 @@ module WifiWand
       begin
         output = run_command_using_args(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', interface],
           raise_on_error: false).stdout
-      rescue WifiWand::CommandExecutor::OsCommandError
+      rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
         return nil
       end
 
@@ -650,7 +650,7 @@ module WifiWand
         tokens = output.split("\n").first&.split
         dev_index = tokens&.index('dev')
         dev_index ? tokens[dev_index + 1] : nil
-      rescue WifiWand::CommandExecutor::OsCommandError
+      rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
         nil
       end
     end
@@ -683,7 +683,7 @@ module WifiWand
           # Split only on the first colon so IPv6 addresses (which contain colons) are preserved
           line.split(':', 2).last.strip
         end.reject(&:empty?)
-      rescue WifiWand::CommandExecutor::OsCommandError
+      rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
         # If we can't get connection info, return empty array
         []
       end
@@ -826,7 +826,7 @@ module WifiWand
       output = run_command_using_args(
         ['nmcli', '-t', '-f', SAVED_WIFI_PROFILE_SUMMARY_FIELDS, 'connection', 'show'], raise_on_error: false
       ).stdout
-    rescue WifiWand::CommandExecutor::OsCommandError
+    rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
       []
     else
       output.split("\n").filter_map do |line|
@@ -853,7 +853,7 @@ module WifiWand
 
       field_name, ssid = nmcli_split(line, 2)
       field_name == SAVED_WIFI_PROFILE_SSID_FIELD ? ssid : nil
-    rescue WifiWand::CommandExecutor::OsCommandError
+    rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
       nil
     end
 
@@ -900,7 +900,7 @@ module WifiWand
         output = run_command_using_args(
           ['nmcli', '-t', '-f', 'IN-USE,SSID,SECURITY', 'dev', 'wifi', 'list'], raise_on_error: false
         ).stdout
-      rescue WifiWand::CommandExecutor::OsCommandError
+      rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
         return nil # Can't scan, return nil
       end
 
@@ -949,7 +949,7 @@ module WifiWand
         # Extract the value after the colon
         hidden_value = hidden_line.split(':', 2).last&.strip
         hidden_value == 'yes'
-      rescue WifiWand::CommandExecutor::OsCommandError
+      rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
         # If we can't get the connection info, assume it's not hidden
         false
       end

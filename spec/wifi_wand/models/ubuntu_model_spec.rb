@@ -887,6 +887,26 @@ module WifiWand
           expect(ubuntu_model.preferred_networks).to eq([])
         end
 
+        it 'returns empty array when nmcli cannot be found' do
+          allow(ubuntu_model).to receive(:run_command_using_args)
+            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .and_raise(WifiWand::CommandNotFoundError, 'nmcli')
+
+          expect(ubuntu_model.preferred_networks).to eq([])
+        end
+
+        it 'returns empty array when a saved profile SSID lookup cannot start' do
+          allow(ubuntu_model).to receive(:run_command_using_args)
+            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .and_return(command_result(stdout: 'Saved profile:802-11-wireless:100'))
+          allow(ubuntu_model).to receive(:run_command_using_args)
+            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
+              'Saved profile'], raise_on_error: false)
+            .and_raise(WifiWand::CommandSpawnError.new(command: 'nmcli', reason: 'spawn failed'))
+
+          expect(ubuntu_model.preferred_networks).to eq([])
+        end
+
         it 'filters out empty lines and non-Wi-Fi connections from output' do
           nmcli_output = <<~OUT.chomp
             TestNetwork:802-11-wireless:100
