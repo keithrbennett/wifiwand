@@ -95,7 +95,8 @@ module TestHelpers
       # Mock command availability to prevent missing utility errors in CI
       # Mock WiFi interface detection to prevent hardware detection failures in CI
       # This can be overridden by individual tests that need to test interface detection failures
-      allow(model).to receive_messages(command_available?: true, probe_wifi_interface: 'wlp0s20f3')
+      allow(model.command_executor).to receive(:command_available?).and_return(true)
+      allow(model).to receive(:probe_wifi_interface).and_return('wlp0s20f3')
       model.init
       model
     when :mac
