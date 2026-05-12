@@ -920,7 +920,7 @@ module WifiWand
 
       s = "Entered #{self.class.name.split('::').last}##{method_name}"
       param_names = Array(param_names) # force to array if passed a single symbol
-      if param_names
+      if param_names.any?
         values = param_names.map { |name| caller_binding.local_variable_get(name) }
         s += "(#{values.map(&:to_s).map(&:inspect).join(', ')})"
       end

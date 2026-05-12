@@ -180,6 +180,26 @@ RSpec.describe WifiWand::BaseModel do
     end
   end
 
+  describe '#debug_method_entry' do
+    let(:output) { StringIO.new }
+    let(:model) { described_class.new(verbose: true, out_stream: output) }
+
+    it 'omits parameter parentheses when no parameters are requested' do
+      model.send(:debug_method_entry, :probe_wifi_interface)
+
+      expect(output.string).to eq("Entered BaseModel#probe_wifi_interface\n")
+    end
+
+    it 'includes parameter values when parameters are requested' do
+      network_name = 'CafeNet'
+      password = 'secret'
+
+      model.send(:debug_method_entry, :connect, binding, %i[network_name password])
+
+      expect(output.string).to eq("Entered BaseModel#connect(\"CafeNet\", \"secret\")\n")
+    end
+  end
+
   describe '#status_line_data' do
     let(:model) { described_class.new(model_options) }
 
