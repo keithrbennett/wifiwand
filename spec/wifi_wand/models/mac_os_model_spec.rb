@@ -702,6 +702,36 @@ module WifiWand
         end
       end
 
+      describe '#disconnect_association_state' do
+        context 'when SSID is redacted (Location Services blocked)' do
+          it 'uses connected? so default-route or IP evidence can still trigger disconnect' do
+            redaction_error = WifiWand::MacOsRedactionError.new(
+              operation_description: 'current WiFi network queries'
+            )
+            allow(model).to receive(:connected_network_name).and_raise(redaction_error)
+            allow(model).to receive(:connected?).and_return(true)
+
+            expect(model.send(:disconnect_association_state)).to eq(
+              associated:   true,
+              network_name: nil
+            )
+          end
+
+          it 'treats redacted SSID reads as disassociated when connected? is false' do
+            redaction_error = WifiWand::MacOsRedactionError.new(
+              operation_description: 'current WiFi network queries'
+            )
+            allow(model).to receive(:connected_network_name).and_raise(redaction_error)
+            allow(model).to receive(:connected?).and_return(false)
+
+            expect(model.send(:disconnect_association_state)).to eq(
+              associated:   false,
+              network_name: nil
+            )
+          end
+        end
+      end
+
       describe '#connected?' do
         let(:helper_double) do
           instance_double(WifiWand::MacOsHelperClient)
@@ -1732,7 +1762,11 @@ module WifiWand
         end
 
         it 'is a no-op when already disconnected' do
-          allow(model).to receive_messages(wifi_on?: true, connected_network_name: nil, connected?: false)
+          allow(model).to receive_messages(
+            wifi_on?:               true,
+            connected?:             false,
+            connected_network_name: nil
+          )
           allow(model).to receive(:wait_until_disassociated!)
           allow(model).to receive(:run_command_using_args)
           expect(model).not_to receive(:mac_os_wifi_transport)

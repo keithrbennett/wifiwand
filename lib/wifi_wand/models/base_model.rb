@@ -567,10 +567,15 @@ module WifiWand
       }
     rescue *NETWORK_OPERATION_COMMAND_ERRORS
       raise
+    rescue WifiWand::MacOsRedactionError
+      {
+        associated:   disconnect_associated?,
+        network_name: nil,
+      }
     rescue WifiWand::Error
-      # If the SSID cannot be read for a non-command reason (for example macOS
-      # redaction), the safest mutating behavior is to attempt the disconnect
-      # and let the command/postcondition path determine the outcome.
+      # If the SSID cannot be read for a non-command reason, the safest
+      # mutating behavior is to attempt the disconnect and let the
+      # command/postcondition path determine the outcome.
       {
         associated:   true,
         network_name: nil,

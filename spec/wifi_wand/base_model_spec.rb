@@ -264,9 +264,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'attempts disconnect when association cannot be determined before the command' do
       allow(model).to receive(:wifi_on?).and_return(true)
       allow(model).to receive(:connected_network_name)
-        .and_raise(WifiWand::MacOsRedactionError.new(
-          operation_description: 'Current WiFi network queries'
-        ))
+        .and_raise(WifiWand::Error, 'association unavailable')
       allow(model).to receive(:wait_until_disassociated!)
       allow(model).to receive(:_disconnect)
         .and_raise(os_command_error(
