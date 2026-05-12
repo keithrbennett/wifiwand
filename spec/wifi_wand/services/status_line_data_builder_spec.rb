@@ -143,7 +143,7 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result).to eq(expected_reachable_result)
     end
 
-    it 'returns the wifi-off status without running internet checks' do
+    it 'returns consistent wifi-off status without running internet checks' do
       allow(model).to receive(:status_wifi_on?).and_return(false)
       expect(model).not_to receive(:status_network_identity)
       expect(model).not_to receive(:internet_tcp_connectivity?)
@@ -158,7 +158,7 @@ describe WifiWand::StatusLineDataBuilder do
         internet_check_complete:       true,
         network_name:                  nil,
         captive_portal_state:          :indeterminate,
-        captive_portal_login_required: :no
+        captive_portal_login_required: :unknown
       )
     end
 

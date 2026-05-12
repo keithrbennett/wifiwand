@@ -107,7 +107,7 @@ See **[Version 3 Breaking Changes](docs/BREAKING_CHANGES_V3.md)** for the
 canonical migration guide. Highlights include:
 
 - `connected_to_internet?` replaced by `internet_connectivity_state`
-- `till` wait-state names changed (`on`/`off`/`conn`/`disc` removed)
+- legacy `till` wait-state aliases `on`/`off`/`conn`/`disc` replaced by explicit wait-state names
 - `-s` / `--shell` replaced by the `shell` command
 - partial CLI abbreviations removed; use exact short or long command names
 - `WifiWand::Main#parse_command_line` removed from the public API

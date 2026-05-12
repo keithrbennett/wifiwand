@@ -307,7 +307,9 @@ module WifiWand
         internet_state:                ConnectivityStates::INTERNET_UNREACHABLE,
         internet_check_complete:       true,
         captive_portal_state:          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
-        captive_portal_login_required: :no,
+        # WiFi-off means no portal can redirect, but no portal check ran, so
+        # keep this aligned with the indeterminate portal state.
+        captive_portal_login_required: :unknown,
       }
     end
 

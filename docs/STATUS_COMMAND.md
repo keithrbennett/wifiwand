@@ -130,8 +130,8 @@ less likely to change over time.
 | Value       | Meaning                                                        |
 |-------------|----------------------------------------------------------------|
 | `"yes"`     | Captive portal confidently detected; login required            |
-| `"no"`      | No captive portal (or WiFi is off / no TCP+DNS connectivity)   |
-| `"unknown"` | In-progress / unknown (only during streaming progress updates) |
+| `"no"`      | No captive portal detected after a completed portal check       |
+| `"unknown"` | Portal status is pending, unavailable, or was not checked       |
 
 ### JSON example
 
