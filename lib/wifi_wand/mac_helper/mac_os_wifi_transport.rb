@@ -104,7 +104,7 @@ module WifiWand
     end
 
     private def run_networksetup_connect_command(network_name, args)
-      run_command_using_args(args)
+      run_command(args)
     rescue WifiWand::CommandExecutor::OsCommandError => e
       raise_networksetup_connect_error(network_name, e.text)
     end
@@ -166,14 +166,14 @@ module WifiWand
 
     private def disconnect_using_ifconfig
       iface = wifi_interface
-      sudo_result = run_command_using_args(
+      sudo_result = run_command(
         ['sudo', 'ifconfig', iface, 'disassociate'],
         raise_on_error:  false,
         timeout_in_secs: SUDO_IFCONFIG_TIMEOUT_SECONDS
       )
       return nil if sudo_result.success?
 
-      plain_result = run_command_using_args(['ifconfig', iface, 'disassociate'], raise_on_error: false)
+      plain_result = run_command(['ifconfig', iface, 'disassociate'], raise_on_error: false)
       return nil if plain_result.success?
 
       raise(WifiWand::NetworkDisconnectionError.new(
@@ -228,7 +228,7 @@ module WifiWand
       detail.to_s
     end
 
-    private def run_command_using_args(*, **)
+    private def run_command(*, **)
       @command_runner.call(*, **)
     end
 

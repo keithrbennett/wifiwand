@@ -18,7 +18,7 @@ module WifiWand
         # rubocop:enable RSpec/AnyInstance
 
         # Mock OS command execution to prevent real WiFi control commands
-        allow(ubuntu_model).to receive_messages(run_command_using_args: command_result(stdout: ''), till: nil)
+        allow(ubuntu_model).to receive_messages(run_command: command_result(stdout: ''), till: nil)
       end
     end
 
@@ -60,7 +60,7 @@ module WifiWand
       describe '#wifi_on and #wifi_off failure paths' do
         it 'raises WifiEnableError when WiFi remains disabled after enable attempt' do
           allow(ubuntu_model).to receive(:wifi_on?).and_return(false, false)
-          allow(ubuntu_model).to receive(:run_command_using_args).with(%w[nmcli radio wifi on])
+          allow(ubuntu_model).to receive(:run_command).with(%w[nmcli radio wifi on])
             .and_return(command_result(stdout: ''))
           timeout = WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT
           allow(ubuntu_model).to receive(:till).with(:wifi_on, timeout_in_secs: timeout).and_return(nil)
@@ -70,7 +70,7 @@ module WifiWand
 
         it 'raises WifiDisableError when WiFi remains enabled after disable attempt' do
           allow(ubuntu_model).to receive(:wifi_on?).and_return(true, true)
-          allow(ubuntu_model).to receive(:run_command_using_args).with(%w[nmcli radio wifi off])
+          allow(ubuntu_model).to receive(:run_command).with(%w[nmcli radio wifi off])
             .and_return(command_result(stdout: ''))
           timeout = WifiWand::TimingConstants::STATUS_WAIT_TIMEOUT_SHORT
           allow(ubuntu_model).to receive(:till).with(:wifi_off, timeout_in_secs: timeout).and_return(nil)
@@ -100,7 +100,7 @@ module WifiWand
         it 'returns immediately when already connected to target network' do
           allow(ubuntu_model).to receive(:connected?).and_return(true)
           setup_connect_test(connected_network: 'NetA')
-          expect(ubuntu_model).not_to receive(:run_command_using_args)
+          expect(ubuntu_model).not_to receive(:run_command)
           expect { ubuntu_model._connect('NetA') }.not_to raise_error
         end
 
@@ -108,7 +108,7 @@ module WifiWand
           allow(ubuntu_model).to receive(:connected?).and_return(false)
           setup_connect_test(connected_network: 'NetA', profile_name: 'NetA')
 
-          expect(ubuntu_model).to receive(:run_command_using_args).with(%w[nmcli connection up NetA])
+          expect(ubuntu_model).to receive(:run_command).with(%w[nmcli connection up NetA])
             .and_return(command_result(stdout: ''))
           expect { ubuntu_model._connect('NetA') }.not_to raise_error
         end
@@ -117,15 +117,15 @@ module WifiWand
           setup_connect_test(profile_name: 'SSID1', old_password: 'oldpass',
             security_param: '802-11-wireless-security.psk')
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli connection modify SSID1 802-11-wireless-security.psk newpass])
             .ordered
             .and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli connection up SSID1])
             .ordered
             .and_return(command_result(stdout: ''))
-          expect(ubuntu_model).not_to receive(:run_command_using_args)
+          expect(ubuntu_model).not_to receive(:run_command)
             .with(%w[nmcli dev wifi connect SSID1 password newpass])
           expect { ubuntu_model._connect('SSID1', 'newpass') }.not_to raise_error
         end
@@ -134,11 +134,11 @@ module WifiWand
           setup_connect_test(profile_name: 'SSID1', old_password: 'oldpass',
             security_param: '802-11-wireless-security.psk')
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli connection modify SSID1 802-11-wireless-security.psk wrongpass])
             .ordered
             .and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli connection up SSID1])
             .ordered
             .and_raise(
@@ -148,11 +148,11 @@ module WifiWand
                 text:       'Error: Connection activation failed: (53) authentication failed'
               )
             )
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli connection modify SSID1 802-11-wireless-security.psk oldpass])
             .ordered
             .and_return(command_result(stdout: ''))
-          expect(ubuntu_model).not_to receive(:run_command_using_args)
+          expect(ubuntu_model).not_to receive(:run_command)
             .with(%w[nmcli dev wifi connect SSID1 password wrongpass])
           expect { ubuntu_model._connect('SSID1', 'wrongpass') }
             .to raise_error(WifiWand::NetworkAuthenticationError, /SSID1/)
@@ -164,15 +164,15 @@ module WifiWand
           allow(ubuntu_model).to receive(:find_best_profile_for_ssid).and_return('SSID1 2')
           allow(ubuntu_model).to receive(:_preferred_network_password).with('SSID1 2').and_return('oldpass')
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', 'SSID1 2', '802-11-wireless-security.psk', 'newpass'])
             .ordered
             .and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'up', 'SSID1 2'])
             .ordered
             .and_return(command_result(stdout: ''))
-          expect(ubuntu_model).not_to receive(:run_command_using_args)
+          expect(ubuntu_model).not_to receive(:run_command)
             .with(%w[nmcli dev wifi connect SSID1 password newpass])
           expect { ubuntu_model._connect('SSID1', 'newpass') }.not_to raise_error
         end
@@ -181,10 +181,10 @@ module WifiWand
           setup_connect_test(profile_name: 'SSID1', old_password: 'oldpass',
             security_param: nil)
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli connection up SSID1])
             .and_return(command_result(stdout: ''))
-          expect(ubuntu_model).not_to receive(:run_command_using_args)
+          expect(ubuntu_model).not_to receive(:run_command)
             .with(%w[nmcli dev wifi connect SSID1 password newpass])
           expect { ubuntu_model._connect('SSID1', 'newpass') }.not_to raise_error
         end
@@ -194,18 +194,18 @@ module WifiWand
             security_param: nil)
           allow(ubuntu_model).to receive(:get_security_parameter).with('LegacyNet').and_return(nil)
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '--show-secrets', 'connection', 'show', 'LegacyNet'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless-security.wep-key0:    oldpass'))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli connection modify LegacyNet 802-11-wireless-security.wep-key0 newpass])
             .ordered
             .and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli connection up LegacyNet])
             .ordered
             .and_return(command_result(stdout: ''))
-          expect(ubuntu_model).not_to receive(:run_command_using_args)
+          expect(ubuntu_model).not_to receive(:run_command)
             .with(%w[nmcli dev wifi connect LegacyNet password newpass])
           expect { ubuntu_model._connect('LegacyNet', 'newpass') }.not_to raise_error
         end
@@ -213,7 +213,7 @@ module WifiWand
         it 'brings up existing profile when connecting without password' do
           setup_connect_test(profile_name: 'SSID3')
 
-          expect(ubuntu_model).to receive(:run_command_using_args).with(%w[nmcli connection up SSID3])
+          expect(ubuntu_model).to receive(:run_command).with(%w[nmcli connection up SSID3])
             .and_return(command_result(stdout: ''))
           expect { ubuntu_model._connect('SSID3') }.not_to raise_error
         end
@@ -221,7 +221,7 @@ module WifiWand
         it 'raises NetworkNotFoundError when network not in range' do
           setup_connect_test
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli dev wifi connect SSID4 password pw])
             .and_raise(
               os_command_error(
@@ -238,7 +238,7 @@ module WifiWand
         it 'raises NetworkAuthenticationError when password is wrong (secrets required)' do
           setup_connect_test
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli dev wifi connect SecureNet password wrongpass])
             .and_raise(
               os_command_error(
@@ -255,7 +255,7 @@ module WifiWand
         it 'raises NetworkAuthenticationError when authentication fails' do
           setup_connect_test
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli dev wifi connect SecureNet password badpass])
             .and_raise(
               os_command_error(
@@ -272,7 +272,7 @@ module WifiWand
         it 'raises NetworkAuthenticationError for error code 7 (secrets issue)' do
           setup_connect_test
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli dev wifi connect SecureNet password invalid])
             .and_raise(
               os_command_error(
@@ -290,7 +290,7 @@ module WifiWand
           setup_connect_test
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlan0')
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli dev wifi connect SSID5])
             .and_raise(
               os_command_error(
@@ -306,7 +306,7 @@ module WifiWand
         it 'raises NetworkConnectionError for generic activation failures (out of range)' do
           setup_connect_test
 
-          expect(ubuntu_model).to receive(:run_command_using_args).with(%w[nmcli dev wifi connect WeakSignal])
+          expect(ubuntu_model).to receive(:run_command).with(%w[nmcli dev wifi connect WeakSignal])
             .and_raise(
               os_command_error(
                 exitstatus: 4,
@@ -322,7 +322,7 @@ module WifiWand
         it 're-raises unknown errors from nmcli' do
           setup_connect_test
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli dev wifi connect SSID6 password pw])
             .and_raise(
               os_command_error(
@@ -339,21 +339,21 @@ module WifiWand
 
       describe '#get_security_parameter and #security_parameter' do
         it 'returns nil when nmcli scan fails' do
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], raise_on_error: false)
             .and_raise(os_command_error(exitstatus: 1, command: 'nmcli', text: 'scan failed'))
           expect(ubuntu_model.send(:get_security_parameter, 'Any')).to be_nil
         end
 
         it 'returns nil for unsupported/enterprise/open security types' do
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], raise_on_error: false)
             .and_return(command_result(stdout: 'CorpNet:802.1X'))
           expect(ubuntu_model.send(:get_security_parameter, 'CorpNet')).to be_nil
         end
 
         it 'delegates via #security_parameter and returns PSK param for WPA2' do
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], raise_on_error: false)
             .and_return(command_result(stdout: 'HomeNet:WPA2'))
           expect(ubuntu_model.send(:security_parameter, 'HomeNet')).to eq('802-11-wireless-security.psk')
@@ -362,14 +362,14 @@ module WifiWand
 
       describe '#find_best_profile_for_ssid' do
         it 'returns nil when listing connections fails' do
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .and_raise(os_command_error(exitstatus: 1, command: 'nmcli', text: 'Error'))
           expect(ubuntu_model.send(:find_best_profile_for_ssid, 'SSID')).to be_nil
         end
 
         it 'prefers the newest profile whose configured SSID matches' do
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .and_return(command_result(
               stdout: "MySSID:802-11-wireless:100\n" \
@@ -377,19 +377,19 @@ module WifiWand
                 "MySSID 2:802-11-wireless:200\n" \
                 'OtherSSID:802-11-wireless:999'
             ))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
               'MySSID'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless.ssid:MySSID'))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
               'Renamed Profile'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless.ssid:MySSID'))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
               'MySSID 2'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless.ssid:MySSID'))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
               'OtherSSID'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless.ssid:OtherSSID'))
@@ -400,23 +400,23 @@ module WifiWand
 
       describe 'saved profile cache' do
         it 'reuses profile discovery across one saved-password connect operation' do
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .once
             .and_return(command_result(
               stdout: "MySSID:802-11-wireless:100\nOtherSSID:802-11-wireless:200"
             ))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show', 'MySSID'],
               raise_on_error: false)
             .once
             .and_return(command_result(stdout: '802-11-wireless.ssid:MySSID'))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show', 'OtherSSID'],
               raise_on_error: false)
             .once
             .and_return(command_result(stdout: '802-11-wireless.ssid:OtherSSID'))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli connection up MySSID])
             .and_return(command_result(stdout: ''))
 
@@ -439,27 +439,27 @@ module WifiWand
         end
 
         it 'reuses profile discovery across one multi-network removal operation' do
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .once
             .and_return(command_result(
               stdout: "Home Profile:802-11-wireless:100\nOffice Profile:802-11-wireless:200"
             ))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
               'Home Profile'], raise_on_error: false)
             .once
             .and_return(command_result(stdout: '802-11-wireless.ssid:Home'))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
               'Office Profile'], raise_on_error: false)
             .once
             .and_return(command_result(stdout: '802-11-wireless.ssid:Office'))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'delete', 'Home Profile'])
             .ordered
             .and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'delete', 'Office Profile'])
             .ordered
             .and_return(command_result(stdout: ''))
@@ -469,16 +469,16 @@ module WifiWand
         end
 
         it 'deduplicates requested names before deleting saved profiles' do
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .once
             .and_return(command_result(stdout: 'Home Profile:802-11-wireless:100'))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
               'Home Profile'], raise_on_error: false)
             .once
             .and_return(command_result(stdout: '802-11-wireless.ssid:Home'))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'delete', 'Home Profile'])
             .once
             .and_return(command_result(stdout: ''))
@@ -493,7 +493,7 @@ module WifiWand
             saved_wifi_profile('Profile A', ssid: 'A'),
             saved_wifi_profile('Profile B', ssid: 'B'),
           ])
-          expect(ubuntu_model).not_to receive(:run_command_using_args).with(/nmcli connection delete/)
+          expect(ubuntu_model).not_to receive(:run_command).with(/nmcli connection delete/)
 
           expect(ubuntu_model.remove_preferred_network('C')).to eq([])
         end
@@ -501,7 +501,7 @@ module WifiWand
         it 'deletes an existing preferred network and returns the deleted profile name' do
           allow(ubuntu_model).to receive(:saved_wifi_profiles)
             .and_return([saved_wifi_profile('Renamed Home', ssid: 'Home')])
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'delete', 'Renamed Home'])
 
           expect(ubuntu_model.remove_preferred_network('Home')).to eq(['Renamed Home'])
@@ -514,9 +514,9 @@ module WifiWand
             saved_wifi_profile('MySSID 2', ssid: 'OtherSSID'),
             saved_wifi_profile('MySSIDGuest', ssid: 'MySSIDGuest'),
           ])
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli connection delete MySSID]).ordered
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'delete', 'Renamed Duplicate']).ordered
 
           expect(ubuntu_model.remove_preferred_network('MySSID')).to eq(['MySSID', 'Renamed Duplicate'])
@@ -537,7 +537,7 @@ module WifiWand
             saved_wifi_profile('MySSID', ssid: 'MySSID', timestamp: 100),
             saved_wifi_profile('Renamed Fresh Profile', ssid: 'MySSID', timestamp: 300),
           ])
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '--show-secrets', 'connection', 'show',
               'Renamed Fresh Profile'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless-security.psk:    fresh-secret'))
@@ -550,7 +550,7 @@ module WifiWand
             saved_wifi_profile('MySSID', ssid: 'MySSID', timestamp: 100),
             saved_wifi_profile('Renamed Fresh Profile', ssid: 'MySSID', timestamp: 300),
           ])
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '--show-secrets', 'connection', 'show',
               'Renamed Fresh Profile'], raise_on_error: false, timeout_in_secs: 0.25)
             .and_return(command_result(stdout: '802-11-wireless-security.psk:    fresh-secret'))
@@ -565,7 +565,7 @@ module WifiWand
             saved_wifi_profile('MySSID', ssid: 'MySSID', timestamp: 100),
             saved_wifi_profile('Renamed Fresh Profile', ssid: 'MySSID', timestamp: 300),
           ])
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '--show-secrets', 'connection', 'show',
               'Renamed Fresh Profile'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless-security.wep-key0:    fresh-wep-key'))
@@ -586,7 +586,7 @@ module WifiWand
           allow(ubuntu_model).to receive(:saved_wifi_profiles).and_return([
             saved_wifi_profile('MyWifiNetwork', ssid: 'MyWifiNetwork'),
           ])
-          expect(ubuntu_model).not_to receive(:run_command_using_args).with(/nmcli connection delete/)
+          expect(ubuntu_model).not_to receive(:run_command).with(/nmcli connection delete/)
 
           expect(ubuntu_model.remove_preferred_network('Wired connection 1')).to eq([])
         end
@@ -602,7 +602,7 @@ module WifiWand
             saved_wifi_profile('MySSID', ssid: 'MySSID', timestamp: 100),
             saved_wifi_profile('Renamed Fresh Profile', ssid: 'MySSID', timestamp: 300),
           ])
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '--show-secrets', 'connection', 'show',
               'Renamed Fresh Profile'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless-security.psk:    fresh-secret'))
@@ -621,7 +621,7 @@ module WifiWand
             saved_wifi_profile('MySSID', ssid: 'MySSID', timestamp: 100),
             saved_wifi_profile('Renamed Fresh Profile', ssid: 'MySSID', timestamp: 300),
           ])
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '--show-secrets', 'connection', 'show',
               'Renamed Fresh Profile'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless-security.wep-key0:    fresh-wep-key'))
@@ -635,7 +635,7 @@ module WifiWand
       describe '#_disconnect' do
         it 'returns nil when disconnect succeeds' do
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlan0')
-          expect(ubuntu_model).to receive(:run_command_using_args).with(%w[nmcli dev disconnect wlan0])
+          expect(ubuntu_model).to receive(:run_command).with(%w[nmcli dev disconnect wlan0])
             .and_return(command_result(stdout: ''))
           expect(ubuntu_model.send(:_disconnect)).to be_nil
         end
@@ -683,7 +683,7 @@ module WifiWand
             wifi_interface:          'wlp3s0',
             _connected_network_name: nil
           )
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show',
               'wlp3s0'], raise_on_error: false)
             .and_return(command_result(stdout: 'GENERAL.CONNECTION:--'))
@@ -696,7 +696,7 @@ module WifiWand
 
       describe '#open_resource' do
         it 'invokes xdg-open on the given URL' do
-          expect(ubuntu_model).to receive(:run_command_using_args).with(['xdg-open', 'https://example.com'])
+          expect(ubuntu_model).to receive(:run_command).with(['xdg-open', 'https://example.com'])
             .and_return(command_result(stdout: ''))
           ubuntu_model.open_resource('https://example.com')
         end
@@ -710,14 +710,14 @@ module WifiWand
             IP4.DNS[2]:                      9.9.9.9
             some.other:                      value
           OUT
-          expect(ubuntu_model).to receive(:run_command_using_args).with(%w[nmcli connection show ConnX],
+          expect(ubuntu_model).to receive(:run_command).with(%w[nmcli connection show ConnX],
             raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
           expect(ubuntu_model.send(:nameservers_from_connection, 'ConnX')).to eq(['1.1.1.1', '9.9.9.9'])
         end
 
         it 'returns empty array when nmcli connection show fails' do
-          expect(ubuntu_model).to receive(:run_command_using_args).with(%w[nmcli connection show ConnY],
+          expect(ubuntu_model).to receive(:run_command).with(%w[nmcli connection show ConnY],
             raise_on_error: false)
             .and_raise(os_command_error(exitstatus: 1, command: 'nmcli connection show', text: 'failed'))
           expect(ubuntu_model.send(:nameservers_from_connection, 'ConnY')).to eq([])
@@ -730,7 +730,7 @@ module WifiWand
             IP6.DNS[2]:                      2606:4700:4700::1001
             some.other:                      value
           OUT
-          expect(ubuntu_model).to receive(:run_command_using_args).with(%w[nmcli connection show ConnZ],
+          expect(ubuntu_model).to receive(:run_command).with(%w[nmcli connection show ConnZ],
             raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
           expect(ubuntu_model.send(:nameservers_from_connection, 'ConnZ'))
@@ -745,7 +745,7 @@ module WifiWand
             ipv6.dns[1]:                     2606:4700:4700::1111
             IP6.DNS[2]:                      2001:4860:4860::8888
           OUT
-          expect(ubuntu_model).to receive(:run_command_using_args).with(%w[nmcli connection show ConnM],
+          expect(ubuntu_model).to receive(:run_command).with(%w[nmcli connection show ConnM],
             raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
           result = ubuntu_model.send(:nameservers_from_connection, 'ConnM')
@@ -811,7 +811,7 @@ module WifiWand
                 type managed
           IW_OUTPUT
 
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[iw dev], timeout_in_secs: nil)
             .and_return(command_result(stdout: iw_output))
 
@@ -827,7 +827,7 @@ module WifiWand
                 type managed
           IW_OUTPUT
 
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[iw dev], timeout_in_secs: nil)
             .and_return(command_result(stdout: iw_output))
 
@@ -835,7 +835,7 @@ module WifiWand
         end
 
         it 'returns nil when no managed interfaces found' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[iw dev], timeout_in_secs: nil)
             .and_return(command_result(stdout: "phy#0\n    type managed"))
 
@@ -843,7 +843,7 @@ module WifiWand
         end
 
         it 'handles command failures gracefully' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[iw dev], timeout_in_secs: nil)
             .and_raise(os_command_error(exitstatus: 1, command: 'iw dev', text: 'Command failed'))
 
@@ -859,14 +859,14 @@ module WifiWand
             TestNetwork-2:802-11-wireless:200
             Wired connection 1:ethernet:300
           OUT
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
               'Renamed profile 1'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless.ssid:TestNetwork-1'))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
               'TestNetwork-2'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless.ssid:TestNetwork-2'))
@@ -880,7 +880,7 @@ module WifiWand
 
         it 'returns empty array when no Wi-Fi connections exist' do
           nmcli_output = "Wired connection 1:ethernet:100\nVPN profile:vpn:200"
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
 
@@ -888,7 +888,7 @@ module WifiWand
         end
 
         it 'returns empty array when nmcli cannot be found' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .and_raise(WifiWand::CommandNotFoundError, 'nmcli')
 
@@ -896,10 +896,10 @@ module WifiWand
         end
 
         it 'returns empty array when a saved profile SSID lookup cannot start' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .and_return(command_result(stdout: 'Saved profile:802-11-wireless:100'))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
               'Saved profile'], raise_on_error: false)
             .and_raise(WifiWand::CommandSpawnError.new(command: 'nmcli', reason: 'spawn failed'))
@@ -915,10 +915,10 @@ module WifiWand
             Wired connection:ethernet:200
             VPN profile:vpn:300
           OUT
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
               'TestNetwork'], raise_on_error: false)
             .and_return(command_result(stdout: '802-11-wireless.ssid:TestNetwork'))
@@ -959,7 +959,7 @@ module WifiWand
           wifi_interface = 'wlp3s0'
 
           allow(ubuntu_model).to receive(:wifi_interface).and_return(wifi_interface)
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['ip', '-4', 'addr', 'show', wifi_interface], raise_on_error: false)
             .and_return(command_result(stdout: ip_output))
 
@@ -968,7 +968,7 @@ module WifiWand
 
         it 'returns nil when no IP address assigned' do
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['ip', '-4', 'addr', 'show', 'wlp3s0'], raise_on_error: false)
             .and_return(command_result(stdout: ''))
 
@@ -982,7 +982,7 @@ module WifiWand
             inet 10.0.0.50/24 brd 10.0.0.255 scope global secondary
           OUT
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['ip', '-4', 'addr', 'show', 'wlp3s0'], raise_on_error: false)
             .and_return(command_result(stdout: ip_output))
 
@@ -999,7 +999,7 @@ module WifiWand
           wifi_interface = 'wlp3s0'
 
           allow(ubuntu_model).to receive(:wifi_interface).and_return(wifi_interface)
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['ip', 'link', 'show', wifi_interface], raise_on_error: false)
             .and_return(command_result(stdout: mac_output))
 
@@ -1008,7 +1008,7 @@ module WifiWand
 
         it 'returns nil when no MAC address found' do
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[ip link show wlp3s0], raise_on_error: false)
             .and_return(command_result(stdout: ''))
 
@@ -1035,7 +1035,7 @@ module WifiWand
           ['unknown security',            '*:TestNetwork:UNKNOWN',   nil],
         ].each do |description, nmcli_line, expected|
           it "returns #{expected || 'nil'} for #{description}" do
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli -t -f IN-USE,SSID,SECURITY dev wifi list], raise_on_error: false)
               .and_return(command_result(stdout: nmcli_line))
 
@@ -1044,7 +1044,7 @@ module WifiWand
         end
 
         it 'uses the active scan row when duplicate SSIDs advertise different security' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli -t -f IN-USE,SSID,SECURITY dev wifi list], raise_on_error: false)
             .and_return(command_result(stdout: ":TestNetwork:\n*:TestNetwork:WPA2"))
 
@@ -1058,7 +1058,7 @@ module WifiWand
         end
 
         it 'returns nil when network not found in scan results' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli -t -f IN-USE,SSID,SECURITY dev wifi list], raise_on_error: false)
             .and_return(command_result(stdout: '*:OtherNetwork:WPA2'))
 
@@ -1066,7 +1066,7 @@ module WifiWand
         end
 
         it 'returns nil when nmcli command fails' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli -t -f IN-USE,SSID,SECURITY dev wifi list], raise_on_error: false)
             .and_raise(os_command_error(exitstatus: 1, command: 'nmcli', text: 'Command failed'))
 
@@ -1087,7 +1087,7 @@ module WifiWand
 
         it 'returns true when connection profile has hidden=yes' do
           hidden_output = "802-11-wireless.hidden:yes\n"
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show',
               profile_name], raise_on_error: false)
             .and_return(command_result(stdout: hidden_output))
@@ -1097,7 +1097,7 @@ module WifiWand
 
         it 'returns false when connection profile has hidden=no' do
           visible_output = "802-11-wireless.hidden:no\n"
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show',
               profile_name], raise_on_error: false)
             .and_return(command_result(stdout: visible_output))
@@ -1113,7 +1113,7 @@ module WifiWand
 
         it 'returns false when hidden line is not found in output' do
           other_output = "802-11-wireless.ssid:TestNetwork\n"
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show',
               profile_name], raise_on_error: false)
             .and_return(command_result(stdout: other_output))
@@ -1122,7 +1122,7 @@ module WifiWand
         end
 
         it 'returns false when nmcli command fails' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show',
               profile_name], raise_on_error: false)
             .and_raise(os_command_error(exitstatus: 1, command: 'nmcli', text: 'Command failed'))
@@ -1133,7 +1133,7 @@ module WifiWand
         it 'uses network name when active connection profile is nil' do
           allow(ubuntu_model).to receive(:active_connection_profile_name).and_return(nil)
           hidden_output = "802-11-wireless.hidden:yes\n"
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', '802-11-wireless.hidden', 'connection', 'show',
               network_name], raise_on_error: false)
             .and_return(command_result(stdout: hidden_output))
@@ -1145,7 +1145,7 @@ module WifiWand
       describe '#default_interface' do
         it 'returns interface from default route' do
           route_output = 'default via 192.168.1.1 dev wlp3s0 proto dhcp metric 600'
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[ip route show default], raise_on_error: false)
             .and_return(command_result(stdout: route_output))
 
@@ -1153,14 +1153,14 @@ module WifiWand
         end
 
         it 'returns nil when ip route command fails' do
-          expect(ubuntu_model).to receive(:run_command_using_args).with(%w[ip route show default],
+          expect(ubuntu_model).to receive(:run_command).with(%w[ip route show default],
             raise_on_error: false)
             .and_raise(os_command_error(exitstatus: 1, command: 'ip route show default', text: 'failed'))
           expect(ubuntu_model.default_interface).to be_nil
         end
 
         it 'returns nil when no default route exists' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[ip route show default], raise_on_error: false)
             .and_return(command_result(stdout: ''))
 
@@ -1171,7 +1171,7 @@ module WifiWand
       # Happy path testing for core functionality
       describe '#wifi_on?' do
         it 'correctly detects wifi enabled state' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli radio wifi], raise_on_error: false)
             .and_return(command_result(stdout: 'enabled'))
 
@@ -1179,7 +1179,7 @@ module WifiWand
         end
 
         it 'correctly detects wifi disabled state' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli radio wifi], raise_on_error: false)
             .and_return(command_result(stdout: 'disabled'))
 
@@ -1187,7 +1187,7 @@ module WifiWand
         end
 
         it 'raises a command error when nmcli cannot report radio state' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli radio wifi], raise_on_error: false)
             .and_return(command_result(
               stderr: 'aborted', exitstatus: nil, termsig: 6, command: nmcli_radio_cmd
@@ -1200,11 +1200,11 @@ module WifiWand
 
       describe '#connected?' do
         it 'returns false immediately when wifi is off without querying active connections' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli radio wifi], raise_on_error: false)
             .and_return(command_result(stdout: 'disabled'))
 
-          expect(ubuntu_model).not_to receive(:run_command_using_args)
+          expect(ubuntu_model).not_to receive(:run_command)
             .with(['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], raise_on_error: false)
 
           expect(ubuntu_model.connected?).to be(false)
@@ -1212,10 +1212,10 @@ module WifiWand
 
         it 'returns false when wifi is on and the wifi interface is not in the active connection list' do
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli radio wifi], raise_on_error: false)
             .and_return(command_result(stdout: 'enabled'))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], raise_on_error: false)
             .and_return(command_result(stdout: 'lo'))
 
@@ -1224,10 +1224,10 @@ module WifiWand
 
         it 'returns true when wifi is on and the wifi interface has an active connection' do
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli radio wifi], raise_on_error: false)
             .and_return(command_result(stdout: 'enabled'))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], raise_on_error: false)
             .and_return(command_result(stdout: "wlp3s0\nlo"))
 
@@ -1252,11 +1252,11 @@ module WifiWand
           ubuntu_model.wifi_interface = 'wlp3s0'
           status_timeout = be_between(0, 0.5).exclusive
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli radio wifi], raise_on_error: false, timeout_in_secs: status_timeout)
             .ordered
             .and_return(command_result(stdout: 'enabled'))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(
               ['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'],
               raise_on_error:  false,
@@ -1264,7 +1264,7 @@ module WifiWand
             )
             .ordered
             .and_return(command_result(stdout: "wlp3s0\nlo"))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[iw dev wlp3s0 link], raise_on_error: false, timeout_in_secs: status_timeout)
             .ordered
             .and_return(command_result(stdout: "Connected to aa:bb:cc\nSSID: HomeNetwork\n"))
@@ -1278,7 +1278,7 @@ module WifiWand
         it 'does not treat a failed nmcli radio probe as a disconnected state' do
           ubuntu_model.wifi_interface = 'wlp3s0'
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli radio wifi], raise_on_error: false, timeout_in_secs: be_between(0, 0.5).exclusive)
             .and_return(command_result(
               stderr: 'aborted', exitstatus: nil, termsig: 6, command: nmcli_radio_cmd
@@ -1293,10 +1293,10 @@ module WifiWand
         it 'returns sorted list of available networks by signal strength' do
           nmcli_output = "TestNet1:75\nStrongNet:90\nWeakNet:25\nTestNet2:80"
           # Mock wifi_on? check that happens in BaseModel#available_network_names
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli radio wifi], raise_on_error: false)
             .and_return(command_result(stdout: 'enabled'))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
             .and_return(command_result(stdout: nmcli_output))
 
@@ -1306,10 +1306,10 @@ module WifiWand
 
         it 'does not filter out the connected SSID when the Ubuntu scan includes it' do
           nmcli_output = "CurrentNet:95\nOtherNet:80\nWeakNet:25"
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli radio wifi], raise_on_error: false)
             .and_return(command_result(stdout: 'enabled'))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
             .and_return(command_result(stdout: nmcli_output))
           allow(ubuntu_model).to receive(:_connected_network_name).and_return('CurrentNet')
@@ -1319,10 +1319,10 @@ module WifiWand
 
         it 'does not inject the connected SSID when the Ubuntu scan omits it' do
           nmcli_output = "OtherNet:90\nWeakNet:25"
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli radio wifi], raise_on_error: false)
             .and_return(command_result(stdout: 'enabled'))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
             .and_return(command_result(stdout: nmcli_output))
           allow(ubuntu_model).to receive(:_connected_network_name).and_return('CurrentNet')
@@ -1332,10 +1332,10 @@ module WifiWand
 
         it 'removes duplicate network names' do
           nmcli_output = "TestNet:75\nTestNet:80\nOtherNet:90"
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli radio wifi], raise_on_error: false)
             .and_return(command_result(stdout: 'enabled'))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
             .and_return(command_result(stdout: nmcli_output))
 
@@ -1346,10 +1346,10 @@ module WifiWand
         it 'filters out empty SSIDs' do
           # NOTE: empty SSIDs show up as lines starting with ':' (colon)
           nmcli_output = "TestNet:75\n:80\nOtherNet:90\n:60"
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli radio wifi], raise_on_error: false)
             .and_return(command_result(stdout: 'enabled'))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
             .and_return(command_result(stdout: nmcli_output))
 
@@ -1360,7 +1360,7 @@ module WifiWand
 
       describe '#is_wifi_interface?' do
         it 'returns true for valid wifi interface' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[iw dev wlp3s0 info], raise_on_error: false, timeout_in_secs: nil)
             .and_return(command_result(stdout: 'Interface wlp3s0\n\ttype managed', exitstatus: 0))
 
@@ -1368,7 +1368,7 @@ module WifiWand
         end
 
         it 'returns false for non-wifi interface' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[iw dev eth0 info], raise_on_error: false, timeout_in_secs: nil)
             .and_return(command_result(stdout: '', exitstatus: 1))
 
@@ -1399,13 +1399,13 @@ module WifiWand
             .and_return(nameservers)
 
           # Mock the connection-based DNS commands
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', nameservers.join(' ')])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'up', connection_name])
             .and_return(command_result(stdout: ''))
 
@@ -1425,13 +1425,13 @@ module WifiWand
           allow(ubuntu_model).to receive(:nameservers_from_connection).with(profile_name)
             .and_return(nameservers)
 
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', profile_name, 'ipv4.dns', nameservers.join(' ')])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', profile_name, 'ipv4.ignore-auto-dns', 'yes'])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'up', profile_name])
             .and_return(command_result(stdout: ''))
 
@@ -1448,14 +1448,14 @@ module WifiWand
             .and_return(ipv6_nameservers)
 
           # Expect IPv6 DNS commands
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns',
               ipv6_nameservers.join(' ')])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'up', connection_name])
             .and_return(command_result(stdout: ''))
 
@@ -1472,20 +1472,20 @@ module WifiWand
             .and_return(mixed_nameservers)
 
           # Expect both IPv4 and IPv6 DNS commands
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8 1.1.1.1'])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns',
               '2606:4700:4700::1111'])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'up', connection_name])
             .and_return(command_result(stdout: ''))
 
@@ -1499,19 +1499,19 @@ module WifiWand
 
           allow(ubuntu_model).to receive(:active_connection_profile_name).and_return(connection_name)
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8 1.1.1.1'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'up', connection_name])
             .ordered.and_return(command_result(stdout: ''))
 
@@ -1525,20 +1525,20 @@ module WifiWand
 
           allow(ubuntu_model).to receive(:active_connection_profile_name).and_return(connection_name)
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns',
               '2606:4700:4700::1111 2606:4700:4700::1001'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'up', connection_name])
             .ordered.and_return(command_result(stdout: ''))
 
@@ -1552,20 +1552,20 @@ module WifiWand
 
           allow(ubuntu_model).to receive(:active_connection_profile_name).and_return(connection_name)
 
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns',
               '2606:4700:4700::1111'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'up', connection_name])
             .ordered.and_return(command_result(stdout: ''))
 
@@ -1580,19 +1580,19 @@ module WifiWand
           allow(ubuntu_model).to receive(:nameservers_from_connection).with(connection_name).and_return([])
 
           # Expect both IPv4 and IPv6 clear commands
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'no'])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'up', connection_name])
             .and_return(command_result(stdout: ''))
 
@@ -1605,7 +1605,7 @@ module WifiWand
         it 'returns name of currently connected network' do
           iw_output = "Connected to aa:bb:cc:dd:ee:ff (on wlp3s0)\n\tSSID: MyHomeNetwork\n\tfreq: 2462 MHz"
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[iw dev wlp3s0 link], raise_on_error: false)
             .and_return(command_result(stdout: iw_output))
 
@@ -1614,7 +1614,7 @@ module WifiWand
 
         it 'returns nil when not connected to any network' do
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[iw dev wlp3s0 link], raise_on_error: false)
             .and_return(command_result(stdout: 'Not connected.'))
 
@@ -1626,7 +1626,7 @@ module WifiWand
         it 'parses the active profile from nmcli dev show output' do
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
           nmcli_output = "GENERAL.CONNECTION:Office Profile\nGENERAL.DEVICE:wlp3s0"
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', 'wlp3s0'], raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
 
@@ -1636,7 +1636,7 @@ module WifiWand
         it 'unescapes literal colons in the active profile name' do
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
           nmcli_output = "GENERAL.CONNECTION:Cafe\\:Guest\nGENERAL.DEVICE:wlp3s0"
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', 'wlp3s0'], raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
 
@@ -1646,7 +1646,7 @@ module WifiWand
         it 'returns nil for NetworkManager no-connection placeholder output' do
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
           nmcli_output = "GENERAL.CONNECTION:--\nGENERAL.DEVICE:wlp3s0"
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', 'wlp3s0'], raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
 
@@ -1660,7 +1660,7 @@ module WifiWand
 
         it 'returns nil when nmcli lookup fails' do
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', 'wlp3s0'], raise_on_error: false)
             .and_raise(os_command_error(exitstatus: 10, command: 'nmcli', text: 'failed'))
 
@@ -1695,7 +1695,7 @@ module WifiWand
         describe '#get_security_parameter' do
           it 'detects WPA2 security and returns correct parameter' do
             wifi_list_output = 'MyNetwork:WPA2'
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], raise_on_error: false)
               .and_return(command_result(stdout: wifi_list_output))
 
@@ -1705,7 +1705,7 @@ module WifiWand
 
           it 'detects WEP security and returns correct parameter' do
             wifi_list_output = 'MyNetwork:WEP'
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], raise_on_error: false)
               .and_return(command_result(stdout: wifi_list_output))
 
@@ -1715,7 +1715,7 @@ module WifiWand
 
           it 'returns nil when network not found in scan' do
             wifi_list_output = 'OtherNetwork:WPA2'
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], raise_on_error: false)
               .and_return(command_result(stdout: wifi_list_output))
 
@@ -1728,18 +1728,18 @@ module WifiWand
             connection_output = "MyNetwork:802-11-wireless:1672574400\n" \
               "Renamed MyNetwork:802-11-wireless:1672660200\n" \
               'OtherNetwork:802-11-wireless:1672547800'
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'MyNetwork'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:MyNetwork'))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'Renamed MyNetwork'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:MyNetwork'))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'OtherNetwork'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
@@ -1751,14 +1751,14 @@ module WifiWand
           it 'returns nil when no profile exists for SSID' do
             connection_output =
               "MyNetwork:802-11-wireless:1672574400\nOtherNetwork:802-11-wireless:1672547800"
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'MyNetwork'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:MyNetwork'))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'OtherNetwork'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
@@ -1770,7 +1770,7 @@ module WifiWand
         describe '#_preferred_network_password' do
           it 'retrieves stored PSK password for connection profile' do
             password_output = '802-11-wireless-security.psk:    my-secret-password'
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli --show-secrets connection show MyProfile], raise_on_error: false)
               .and_return(command_result(stdout: password_output))
 
@@ -1780,7 +1780,7 @@ module WifiWand
 
           it 'uses unbounded command execution by default' do
             password_output = '802-11-wireless-security.psk:    my-secret-password'
-            expect(ubuntu_model).to receive(:run_command_using_args)
+            expect(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli --show-secrets connection show MyProfile], raise_on_error: false)
               .and_return(command_result(stdout: password_output))
 
@@ -1790,7 +1790,7 @@ module WifiWand
 
           it 'passes a requested timeout to the secrets command' do
             password_output = '802-11-wireless-security.psk:    my-secret-password'
-            expect(ubuntu_model).to receive(:run_command_using_args)
+            expect(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli --show-secrets connection show MyProfile], raise_on_error: false,
                 timeout_in_secs: 0.25)
               .and_return(command_result(stdout: password_output))
@@ -1801,7 +1801,7 @@ module WifiWand
 
           it 'retrieves stored WEP password for connection profile' do
             password_output = '802-11-wireless-security.wep-key0:    legacy-wep-key'
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli --show-secrets connection show MyProfile], raise_on_error: false)
               .and_return(command_result(stdout: password_output))
 
@@ -1814,7 +1814,7 @@ module WifiWand
               802-11-wireless-security.wep-key0:      --
               802-11-wireless-security.psk:           weplaychess
             OUTPUT
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli --show-secrets connection show MyProfile], raise_on_error: false)
               .and_return(command_result(stdout: password_output))
 
@@ -1827,7 +1827,7 @@ module WifiWand
               connection.id: MyProfile
               802-11-wireless-security.key-mgmt: none
             OUTPUT
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli --show-secrets connection show MyProfile], raise_on_error: false)
               .and_return(command_result(stdout: password_output))
 
@@ -1881,10 +1881,10 @@ module WifiWand
           it 'correctly parses an SSID that contains a literal colon' do
             # nmcli escapes the colon in "Cafe:Guest" as "Cafe\\:Guest"
             nmcli_output = "Cafe\\:Guest:75\nRegularNet:90"
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli radio wifi], raise_on_error: false)
               .and_return(command_result(stdout: 'enabled'))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
               .and_return(command_result(stdout: nmcli_output))
 
@@ -1896,10 +1896,10 @@ module WifiWand
         describe '#_available_network_names with backslash-containing SSIDs' do
           it 'correctly parses an SSID that contains a literal backslash' do
             nmcli_output = "Lab\\\\Net:75\nRegularNet:90"
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli radio wifi], raise_on_error: false)
               .and_return(command_result(stdout: 'enabled'))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
               .and_return(command_result(stdout: nmcli_output))
 
@@ -1912,7 +1912,7 @@ module WifiWand
           it 'returns the full SSID including its embedded colon' do
             iw_output = "Connected to aa:bb:cc:dd:ee:ff (on wlp3s0)\n\tSSID: Corp:Wifi\n\tfreq: 5180 MHz"
             allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[iw dev wlp3s0 link], raise_on_error: false)
               .and_return(command_result(stdout: iw_output))
 
@@ -1924,7 +1924,7 @@ module WifiWand
           it 'matches the exact SSID and returns the correct security parameter' do
             # "Corp:Wifi" is escaped as "Corp\:Wifi" in nmcli terse output
             nmcli_output = "Corp\\:Wifi:WPA2\nCorpNet:WPA2"
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], raise_on_error: false)
               .and_return(command_result(stdout: nmcli_output))
 
@@ -1935,7 +1935,7 @@ module WifiWand
 
           it 'does not match a prefix-collision SSID (Office vs Office-Guest)' do
             nmcli_output = "Office-Guest:WPA2\nOtherNet:WPA2"
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli -t -f SSID,SECURITY dev wifi list], raise_on_error: false)
               .and_return(command_result(stdout: nmcli_output))
 
@@ -1947,14 +1947,14 @@ module WifiWand
           it 'correctly parses profile names and SSIDs that contain literal colons' do
             connection_output =
               "Corp\\:Profile:802-11-wireless:1672660200\nOtherNetwork:802-11-wireless:1672574400"
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'Corp:Profile'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:Corp\\:Net'))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'OtherNetwork'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
@@ -1965,14 +1965,14 @@ module WifiWand
           it 'matches configured SSIDs when the profile and SSID contain literal backslashes' do
             connection_output =
               "Lab\\\\Profile:802-11-wireless:1672660200\nOtherNetwork:802-11-wireless:1672574400"
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'Lab\\Profile'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:Lab\\\\Net'))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'OtherNetwork'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
@@ -1983,14 +1983,14 @@ module WifiWand
           it 'does not match a profile whose name merely starts with the SSID' do
             connection_output =
               "Office-Guest:802-11-wireless:1672660200\nOffice Extra:802-11-wireless:1672574400"
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'Office-Guest'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:Office-Guest'))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'Office Extra'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:Office Extra'))
@@ -2002,18 +2002,18 @@ module WifiWand
             connection_output = "Office:802-11-wireless:1672574400\n" \
               "Office 1:802-11-wireless:1672660200\n" \
               'Office-Guest:802-11-wireless:1672547800'
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'Office'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:Office'))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'Office 1'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:Office'))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'Office-Guest'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:Office-Guest'))
@@ -2027,18 +2027,18 @@ module WifiWand
           it 'uses the saved password from the matching backslash-containing profile and SSID' do
             connection_output =
               "Lab\\\\Profile:802-11-wireless:1672660200\nOtherNetwork:802-11-wireless:1672574400"
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'Lab\\Profile'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:Lab\\\\Net'))
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
                 'OtherNetwork'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
-            expect(ubuntu_model).to receive(:run_command_using_args)
+            expect(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '--show-secrets', 'connection', 'show',
                 'Lab\\Profile'], raise_on_error: false)
               .and_return(command_result(stdout: '802-11-wireless-security.psk:    saved-secret'))
@@ -2050,7 +2050,7 @@ module WifiWand
         describe '#nameservers with colon-containing active profile name' do
           it 'uses the unescaped profile name for connection lookup' do
             allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
-            expect(ubuntu_model).to receive(:run_command_using_args)
+            expect(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show',
                 'wlp3s0'], raise_on_error: false)
               .and_return(command_result(stdout: 'GENERAL.CONNECTION:Cafe\\:Guest'))
@@ -2064,23 +2064,23 @@ module WifiWand
         describe '#set_nameservers with colon-containing active profile name' do
           it 'passes the unescaped profile name back to nmcli' do
             allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
-            expect(ubuntu_model).to receive(:run_command_using_args)
+            expect(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show',
                 'wlp3s0'], raise_on_error: false)
               .and_return(command_result(stdout: 'GENERAL.CONNECTION:Cafe\\:Guest'))
-            expect(ubuntu_model).to receive(:run_command_using_args)
+            expect(ubuntu_model).to receive(:run_command)
               .with(['nmcli', 'connection', 'modify', 'Cafe:Guest', 'ipv4.dns', '1.1.1.1'])
               .ordered.and_return(command_result(stdout: ''))
-            expect(ubuntu_model).to receive(:run_command_using_args)
+            expect(ubuntu_model).to receive(:run_command)
               .with(['nmcli', 'connection', 'modify', 'Cafe:Guest', 'ipv4.ignore-auto-dns', 'yes'])
               .ordered.and_return(command_result(stdout: ''))
-            expect(ubuntu_model).to receive(:run_command_using_args)
+            expect(ubuntu_model).to receive(:run_command)
               .with(['nmcli', 'connection', 'modify', 'Cafe:Guest', 'ipv6.dns', ''])
               .ordered.and_return(command_result(stdout: ''))
-            expect(ubuntu_model).to receive(:run_command_using_args)
+            expect(ubuntu_model).to receive(:run_command)
               .with(['nmcli', 'connection', 'modify', 'Cafe:Guest', 'ipv6.ignore-auto-dns', 'no'])
               .ordered.and_return(command_result(stdout: ''))
-            expect(ubuntu_model).to receive(:run_command_using_args)
+            expect(ubuntu_model).to receive(:run_command)
               .with(['nmcli', 'connection', 'up', 'Cafe:Guest'])
               .ordered.and_return(command_result(stdout: ''))
 
@@ -2092,7 +2092,7 @@ module WifiWand
           it 'returns the correct security type for an SSID with a colon' do
             allow(ubuntu_model).to receive(:_connected_network_name).and_return('Corp:Wifi')
             nmcli_output = "*:Corp\\:Wifi:WPA2\n:CorpNet:WPA2"
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli -t -f IN-USE,SSID,SECURITY dev wifi list], raise_on_error: false)
               .and_return(command_result(stdout: nmcli_output))
 
@@ -2102,7 +2102,7 @@ module WifiWand
           it 'does not misidentify a prefix-collision SSID (Office vs Office-Guest)' do
             allow(ubuntu_model).to receive(:_connected_network_name).and_return('Office')
             nmcli_output = '*:Office-Guest:WPA2'
-            allow(ubuntu_model).to receive(:run_command_using_args)
+            allow(ubuntu_model).to receive(:run_command)
               .with(%w[nmcli -t -f IN-USE,SSID,SECURITY dev wifi list], raise_on_error: false)
               .and_return(command_result(stdout: nmcli_output))
 
@@ -2116,9 +2116,9 @@ module WifiWand
       describe '#wifi_on' do
         it 'raises WifiEnableError when command succeeds but wifi remains off' do
           # Mock specific command calls to avoid real system calls
-          allow(ubuntu_model).to receive(:run_command_using_args).with(/nmcli radio wifi on/, anything)
+          allow(ubuntu_model).to receive(:run_command).with(/nmcli radio wifi on/, anything)
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args).with(/nmcli radio wifi$/, anything)
+          allow(ubuntu_model).to receive(:run_command).with(/nmcli radio wifi$/, anything)
             .and_return(command_result(stdout: 'disabled'))
 
           # Mock till to raise WaitTimeoutError; wifi_on converts it to WifiEnableError.
@@ -2131,9 +2131,9 @@ module WifiWand
       describe '#wifi_off' do
         it 'raises WifiDisableError when command succeeds but wifi remains on' do
           # Mock specific command calls to avoid real system calls
-          allow(ubuntu_model).to receive(:run_command_using_args).with(%w[nmcli radio wifi off], anything)
+          allow(ubuntu_model).to receive(:run_command).with(%w[nmcli radio wifi off], anything)
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args).with(%w[nmcli radio wifi], anything)
+          allow(ubuntu_model).to receive(:run_command).with(%w[nmcli radio wifi], anything)
             .and_return(command_result(stdout: 'enabled'))
 
           # Mock till to raise WaitTimeoutError; wifi_off converts it to WifiDisableError.
@@ -2147,7 +2147,7 @@ module WifiWand
         it 'reports nmcli disconnect failures as disconnection errors' do
           allow(ubuntu_model).to receive_messages(wifi_on?: true, wifi_interface: 'wlan0')
           allow(ubuntu_model).to receive(:connected_network_name).and_return('CafeWiFi')
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli dev disconnect wlan0])
             .and_raise(
               os_command_error(
@@ -2167,10 +2167,10 @@ module WifiWand
         it 'reports verification probe failures as disconnection errors' do
           allow(ubuntu_model).to receive_messages(wifi_on?: true, wifi_interface: 'wlan0')
           allow(ubuntu_model).to receive(:connected_network_name).and_return('CafeWiFi', nil)
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli dev disconnect wlan0])
             .and_return(command_result(stdout: ''))
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', 'DEVICE', 'connection', 'show', '--active'], raise_on_error: false)
             .and_return(command_result(
               stdout:     'NetworkManager unavailable',
@@ -2191,7 +2191,7 @@ module WifiWand
             connected_network_name: 'CafeWiFi',
             wifi_interface:         'wlan0'
           )
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli dev disconnect wlan0])
             .and_raise(WifiWand::CommandTimeoutError.new(
               command:         'nmcli dev disconnect wlan0',
@@ -2213,10 +2213,10 @@ module WifiWand
           )
           allow(ubuntu_model).to receive(:disconnect_associated?).and_return(false)
           allow(ubuntu_model).to receive(:wait_until_disassociated!)
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
 
           expect(ubuntu_model.disconnect).to be_nil
-          expect(ubuntu_model).not_to have_received(:run_command_using_args)
+          expect(ubuntu_model).not_to have_received(:run_command)
           expect(ubuntu_model).not_to have_received(:wait_until_disassociated!)
         end
       end
@@ -2292,10 +2292,10 @@ module WifiWand
           connection_name = 'MyHomeNetwork'
 
           allow(ubuntu_model).to receive(:active_connection_profile_name).and_return(connection_name)
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
             .ordered.and_raise(
               os_command_error(
@@ -2304,19 +2304,19 @@ module WifiWand
                 text:       'Connection modify failed'
               )
             )
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '192.168.1.1 8.8.8.8'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', '2606:4700:4700::1111'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'up', connection_name])
             .ordered.and_return(command_result(stdout: ''))
 
@@ -2328,7 +2328,7 @@ module WifiWand
           connection_name = 'MyHomeNetwork'
 
           allow(ubuntu_model).to receive(:active_connection_profile_name).and_return(connection_name)
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', ''])
             .and_raise(
               os_command_error(
@@ -2363,19 +2363,19 @@ module WifiWand
           nameservers = ['8.8.8.8']
 
           allow(ubuntu_model).to receive(:active_connection_profile_name).and_return(connection_name)
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'up', connection_name])
             .ordered.and_raise(
               os_command_error(
@@ -2384,19 +2384,19 @@ module WifiWand
                 text:       'Activation failed'
               )
             )
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '192.168.1.1 8.8.8.8'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', '2606:4700:4700::1111'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'yes'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'up', connection_name])
             .ordered.and_return(command_result(stdout: ''))
 
@@ -2408,19 +2408,19 @@ module WifiWand
           connection_name = 'MyHomeNetwork'
 
           allow(ubuntu_model).to receive(:active_connection_profile_name).and_return(connection_name)
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '8.8.8.8'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.ignore-auto-dns', 'yes'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.dns', ''])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv6.ignore-auto-dns', 'no'])
             .ordered.and_return(command_result(stdout: ''))
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'up', connection_name])
             .ordered.and_raise(
               os_command_error(
@@ -2429,7 +2429,7 @@ module WifiWand
                 text:       'Activation failed'
               )
             )
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'modify', connection_name, 'ipv4.dns', '192.168.1.1 8.8.8.8'])
             .ordered.and_raise(
               os_command_error(
@@ -2458,7 +2458,7 @@ module WifiWand
             wifi_interface:          'wlp3s0',
             _connected_network_name: nil
           )
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show',
               'wlp3s0'], raise_on_error: false)
             .and_return(command_result(stdout: 'GENERAL.CONNECTION:--'))
@@ -2474,7 +2474,7 @@ module WifiWand
           # Mock wifi_on? to return true so available_network_names calls _available_network_names
           allow(ubuntu_model).to receive(:wifi_on?).and_return(true)
           # Mock the specific command to fail
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli -t -f SSID,SIGNAL dev wifi list])
             .and_raise(os_command_error(
               exitstatus: 1,
@@ -2489,7 +2489,7 @@ module WifiWand
 
       describe '#is_wifi_interface?' do
         it 'handles iw dev info command failures' do
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[iw dev wlan0 info], raise_on_error: false, timeout_in_secs: nil)
             .and_return(command_result(stdout: '', stderr: 'No such device', exitstatus: 1))
 
@@ -2504,7 +2504,7 @@ module WifiWand
             _connected_network_name:    nil,
             find_best_profile_for_ssid: nil
           )
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli dev wifi connect non_existent_network_123])
             .and_raise(
               os_command_error(
@@ -2528,7 +2528,7 @@ module WifiWand
             find_best_profile_for_ssid: nil
           )
           # Mock the actual connection attempt that will be made
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli dev wifi connect TestNetwork password test_password])
             .and_raise(
               os_command_error(
@@ -2551,7 +2551,7 @@ module WifiWand
             _connected_network_name:    nil,
             find_best_profile_for_ssid: nil
           )
-          allow(ubuntu_model).to receive(:run_command_using_args)
+          allow(ubuntu_model).to receive(:run_command)
             .with(/nmcli dev wifi connect.*password/)
             .and_return(command_result(stdout: ''))  # Simulate successful connection
 
@@ -2598,7 +2598,7 @@ module WifiWand
 
           allow(ubuntu_model).to receive(:saved_wifi_profiles)
             .and_return([saved_wifi_profile(connection_name, ssid: connection_name)])
-          expect(ubuntu_model).to receive(:run_command_using_args)
+          expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'delete', connection_name])
             .and_return(command_result(stdout: ''))
 

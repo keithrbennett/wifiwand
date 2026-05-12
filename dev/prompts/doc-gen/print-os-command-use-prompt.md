@@ -43,9 +43,9 @@ Create or modify a markdown file with the information I will describe below.
 
 More:
 
-* Array commands should pass through the `BaseModel#run_command_using_args`
-  method. Shell-interpreted strings should use
-  `BaseModel#run_command_using_shell`.
+* Array commands should pass through the `BaseModel#run_command`
+  method. The model API intentionally does not expose shell-interpreted command
+  strings.
 * You probably only need to look at the lib/**/*.rb files for calls to that method (not spec).
 * If the file already exists, note and follow the existing format.
   As much as possible, we don't want to have git diffs that are not relevant to the content.

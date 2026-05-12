@@ -3,12 +3,13 @@
 * Breaking change: remove the `verbose` and `verbose_mode` reader aliases from
   the public library and CLI-facing objects.
 * Use `verbose?` to read the flag and `verbose=` to update it.
-* Rename the structured command API from `run_os_command` to `run_command_using_args`.
-* `run_command_using_args` is the default library API and accepts only argument arrays, enforcing
+* Rename the structured command API from `run_os_command` to `run_command`.
+* `run_command` is the default library API and accepts only argument arrays, enforcing
   structured non-shell command execution in library code.
-* Rename the explicit shell command API from `run_repl_command` to `run_command_using_shell`.
-* `run_command_using_shell` accepts only shell command strings for cases that intentionally require shell
-  semantics.
+* Remove the model-level shell command API; shell-string execution remains isolated in `CommandExecutor` for
+  tests and intentional low-level executor use.
+* Promote `command_available?` to the public model API so helper objects can check optional command
+  dependencies without reaching into the command executor.
 * Add a minimal throttle between failed `try_os_command_until` attempts to avoid tight retry loops for fast
   commands.
 

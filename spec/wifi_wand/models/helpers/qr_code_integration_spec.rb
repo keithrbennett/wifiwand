@@ -184,8 +184,8 @@ describe 'QR Code Integration Tests', :requires_external_tools do
           _preferred_network_password: test_case[:password]
         )
 
-        # Don't mock run_command_using_args - let it create real QR code files
-        allow(test_model).to receive(:run_command_using_args) do |cmd|
+        # Don't mock run_command - let it create real QR code files
+        allow(test_model).to receive(:run_command) do |cmd|
           system(*cmd) if cmd.is_a?(Array) && cmd[0] == 'qrencode'
           command_result(stdout: '')
         end
@@ -239,7 +239,7 @@ describe 'QR Code Integration Tests', :requires_external_tools do
       )
 
       # Mock qrencode to fail
-      allow(test_model).to receive(:run_command_using_args) do |cmd|
+      allow(test_model).to receive(:run_command) do |cmd|
         if cmd.is_a?(Array) && cmd[0] == 'qrencode'
           raise os_command_error(exitstatus: 1, command: cmd.join(' '), text:
             'Simulated qrencode failure')
@@ -267,7 +267,7 @@ describe 'QR Code Integration Tests', :requires_external_tools do
         _preferred_network_password: 'password123'
       )
 
-      allow(test_model).to receive(:run_command_using_args) do |cmd|
+      allow(test_model).to receive(:run_command) do |cmd|
         system(*cmd) if cmd.is_a?(Array) && cmd[0] == 'qrencode'
         command_result(stdout: '')
       end
@@ -306,7 +306,7 @@ describe 'QR Code Integration Tests', :requires_external_tools do
           _preferred_network_password: config[:password]
         )
 
-        allow(test_model).to receive(:run_command_using_args) do |cmd|
+        allow(test_model).to receive(:run_command) do |cmd|
           system(*cmd) if cmd.is_a?(Array) && cmd[0] == 'qrencode'
           command_result(stdout: '')
         end

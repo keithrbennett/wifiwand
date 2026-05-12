@@ -248,7 +248,7 @@ module WifiWand
           method: :wifi_on, args: [], error: WifiEnableError,
           before: -> {
             allow(model).to receive_messages(
-              run_command_using_args: command_result(stdout: ''), wifi_on?: false
+              run_command: command_result(stdout: ''), wifi_on?: false
             )
             allow(model).to receive(:till).and_raise(wait_timeout_error(action: :wifi_on, timeout: 5))
           }
@@ -257,7 +257,7 @@ module WifiWand
           method: :wifi_off, args: [], error: WifiDisableError,
           before: -> {
             allow(model).to receive_messages(
-              run_command_using_args: command_result(stdout: ''), wifi_on?: true
+              run_command: command_result(stdout: ''), wifi_on?: true
             )
             allow(model).to receive(:till).and_raise(wait_timeout_error(action: :wifi_off, timeout: 5))
           }
@@ -343,8 +343,8 @@ module WifiWand
 
         keychain_error_test_cases.each do |test_case|
           it "raises #{test_case[:error]} for exit code #{test_case[:exit_code]}" do
-            # This mock intercepts calls to `run_command_using_args` to simulate `security` command failures.
-            allow(mac_model).to receive(:run_command_using_args) do |*args, **_kwargs|
+            # This mock intercepts calls to `run_command` to simulate `security` command failures.
+            allow(mac_model).to receive(:run_command) do |*args, **_kwargs|
               command = args.first
 
               # For any command other than `security`, return a default success-like string to prevent

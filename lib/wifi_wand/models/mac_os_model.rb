@@ -58,7 +58,7 @@ module WifiWand
     }.freeze
 
     def fetch_hardware_ports(timeout_in_secs: nil)
-      output = run_command_using_args(
+      output = run_command(
         %w[networksetup -listallhardwareports],
         timeout_in_secs: timeout_in_secs
       ).stdout
@@ -249,7 +249,7 @@ module WifiWand
     # Returns data pertaining to "preferred" networks, many/most of which will probably not be available.
     def preferred_networks
       iface = wifi_interface
-      lines = run_command_using_args(
+      lines = run_command(
         ['networksetup', '-listpreferredwirelessnetworks', iface]
       ).stdout.split("\n")
       # Produces something like this, unsorted, and with leading tabs:
@@ -265,7 +265,7 @@ module WifiWand
 
     # Returns whether or not the specified interface is a WiFi interface.
     def is_wifi_interface?(interface)
-      run_command_using_args(['networksetup', '-listpreferredwirelessnetworks', interface])
+      run_command(['networksetup', '-listpreferredwirelessnetworks', interface])
       true  # If command succeeds, it's a WiFi interface
     rescue WifiWand::CommandExecutor::OsCommandError => e
       # Exit code 10 means not a WiFi interface
@@ -278,7 +278,7 @@ module WifiWand
 
     def wifi_on?
       iface = wifi_interface
-      output = run_command_using_args(['networksetup', '-getairportpower', iface]).stdout
+      output = run_command(['networksetup', '-getairportpower', iface]).stdout
       output.chomp.match?(/\): On$/)
     end
 
@@ -363,7 +363,7 @@ module WifiWand
 
       begin
         iface = wifi_interface
-        run_command_using_args(['networksetup', '-setairportpower', iface, 'on'])
+        run_command(['networksetup', '-setairportpower', iface, 'on'])
       ensure
         invalidate_airport_data_cache
       end
@@ -379,7 +379,7 @@ module WifiWand
 
       begin
         iface = wifi_interface
-        run_command_using_args(['networksetup', '-setairportpower', iface, 'off'])
+        run_command(['networksetup', '-setairportpower', iface, 'off'])
       ensure
         invalidate_airport_data_cache
       end
@@ -412,7 +412,7 @@ module WifiWand
     #   else
     #     raise an error
     def _preferred_network_password(preferred_network_name, timeout_in_secs: KEYCHAIN_LOOKUP_TIMEOUT_SECONDS)
-      run_command_using_args(
+      run_command(
         [
           'security',
           'find-generic-password',
@@ -433,7 +433,7 @@ module WifiWand
 
     def _ip_address
       iface = wifi_interface
-      run_command_using_args(['ipconfig', 'getifaddr', iface]).stdout.chomp
+      run_command(['ipconfig', 'getifaddr', iface]).stdout.chomp
     rescue WifiWand::CommandExecutor::OsCommandError => e
       if e.exitstatus == 1
         nil
@@ -445,7 +445,7 @@ module WifiWand
     def remove_preferred_network(network_name)
       network_name = network_name.to_s
       iface = wifi_interface
-      run_command_using_args(
+      run_command(
         ['sudo', 'networksetup', '-removepreferredwirelessnetwork', iface, network_name],
         raise_on_error:  true,
         timeout_in_secs: SUDO_NETWORKSETUP_TIMEOUT_SECONDS
@@ -592,7 +592,7 @@ module WifiWand
 
     def mac_address
       iface = wifi_interface
-      output = run_command_using_args(['ifconfig', iface]).stdout
+      output = run_command(['ifconfig', iface]).stdout
       ether_line = output.split("\n").find { |line| line.include?('ether') }
       return nil unless ether_line
 
@@ -606,7 +606,7 @@ module WifiWand
       service_name = wifi_service_name
 
       if nameservers == :clear
-        run_command_using_args(['networksetup', '-setdnsservers', service_name, 'empty'])
+        run_command(['networksetup', '-setdnsservers', service_name, 'empty'])
       else
         # Validate IP addresses (accept both IPv4 and IPv6)
         bad_addresses = nameservers.reject do |ns|
@@ -620,23 +620,23 @@ module WifiWand
           raise InvalidIPAddressError, bad_addresses
         end
 
-        run_command_using_args(['networksetup', '-setdnsservers', service_name] + nameservers)
+        run_command(['networksetup', '-setdnsservers', service_name] + nameservers)
       end
 
       nameservers
     end
 
-    def open_resource(resource_url) = run_command_using_args(['open', resource_url])
+    def open_resource(resource_url) = run_command(['open', resource_url])
 
     def nameservers_using_scutil
-      output = run_command_using_args(%w[scutil --dns]).stdout
+      output = run_command(%w[scutil --dns]).stdout
       nameserver_lines = output.split("\n").grep(/^\s*nameserver\[/).uniq
       nameserver_lines.map { |line| line.split(' : ').last.strip }
     end
 
     def nameservers_using_networksetup
       service_name = wifi_service_name
-      output = run_command_using_args(['networksetup', '-getdnsservers', service_name]).stdout
+      output = run_command(['networksetup', '-getdnsservers', service_name]).stdout
       if output == "There aren't any DNS Servers set on #{service_name}.\n"
         output = ''
       end
@@ -647,7 +647,7 @@ module WifiWand
 
     # Returns the network interface used for default internet route on macOS
     def default_interface
-      output = run_command_using_args(%w[route -n get default], raise_on_error: false).stdout
+      output = run_command(%w[route -n get default], raise_on_error: false).stdout
       return nil if output.empty?
 
       # Find line containing 'interface:' and extract value
@@ -663,7 +663,7 @@ module WifiWand
     def detect_macos_version(timeout_in_secs: nil)
       options = {}
       options[:timeout_in_secs] = timeout_in_secs if timeout_in_secs
-      output = run_command_using_args(%w[sw_vers -productVersion], **options).stdout
+      output = run_command(%w[sw_vers -productVersion], **options).stdout
       MacOsHelperBundle.normalize_detected_macos_version(output)
     rescue WifiWand::CommandExecutor::OsCommandError, WifiWand::CommandTimeoutError,
       WifiWand::CommandNotFoundError, WifiWand::CommandSpawnError => e
@@ -687,7 +687,7 @@ module WifiWand
 
     private def swift_runtime
       @swift_runtime ||= WifiWand::MacOsSwiftRuntime.new(
-        command_runner:  ->(*args, **kwargs) { run_command_using_args(*args, **kwargs) },
+        command_runner:  ->(*args, **kwargs) { run_command(*args, **kwargs) },
         out_stream_proc: -> { out_stream },
         verbose_proc:    -> { verbose? }
       )
@@ -696,7 +696,7 @@ module WifiWand
     private def mac_os_wifi_transport
       @mac_os_wifi_transport ||= WifiWand::MacOsWifiTransport.new(
         swift_runtime:       swift_runtime,
-        command_runner:      ->(*args, **kwargs) { run_command_using_args(*args, **kwargs) },
+        command_runner:      ->(*args, **kwargs) { run_command(*args, **kwargs) },
         wifi_interface_proc: -> { wifi_interface },
         out_stream_proc:     -> { out_stream },
         verbose_proc:        -> { verbose? }
@@ -724,7 +724,7 @@ module WifiWand
     end
 
     private def connected_network_name_using_networksetup(iface: wifi_interface, timeout_in_secs: nil)
-      output = run_command_using_args(
+      output = run_command(
         ['networksetup', '-getairportnetwork', iface],
         timeout_in_secs: timeout_in_secs
       ).stdout.strip
@@ -743,7 +743,7 @@ module WifiWand
     end
 
     private def connected_network_name_using_airport(timeout_in_secs: nil)
-      output = run_command_using_args(
+      output = run_command(
         [AIRPORT_COMMAND, '-I'],
         timeout_in_secs: timeout_in_secs
       ).stdout
@@ -764,7 +764,7 @@ module WifiWand
     end
 
     private def airport_available_network_names(timeout_in_secs: nil)
-      output = run_command_using_args(
+      output = run_command(
         [AIRPORT_COMMAND, '-s'],
         timeout_in_secs: timeout_in_secs
       ).stdout
@@ -862,7 +862,7 @@ module WifiWand
     end
 
     private def wifi_interface_using_system_profiler(timeout_in_secs: nil)
-      json_text = run_command_using_args(
+      json_text = run_command(
         SYSTEM_PROFILER_NETWORK_ARGS,
         raise_on_error:  true,
         timeout_in_secs: timeout_in_secs || SYSTEM_PROFILER_TIMEOUT_SECONDS
@@ -970,7 +970,7 @@ module WifiWand
       iface = status_wifi_interface(deadline)
       return false unless iface
 
-      output = run_command_using_args(
+      output = run_command(
         ['networksetup', '-getairportpower', iface],
         timeout_in_secs: status_timeout_for(deadline)
       ).stdout
@@ -990,7 +990,7 @@ module WifiWand
       iface = status_wifi_interface(deadline)
       return nil if iface.nil? || iface.empty?
 
-      output = run_command_using_args(
+      output = run_command(
         %w[route -n get default],
         raise_on_error:  false,
         timeout_in_secs: status_timeout_for(deadline)
@@ -1008,7 +1008,7 @@ module WifiWand
       iface = status_wifi_interface(deadline)
       return nil if iface.nil? || iface.empty?
 
-      ip_address = run_command_using_args(
+      ip_address = run_command(
         ['ipconfig', 'getifaddr', iface],
         timeout_in_secs: status_timeout_for(deadline)
       ).stdout.chomp
@@ -1097,7 +1097,7 @@ module WifiWand
       generation = airport_data_cache_generation
       return context[:data] if cached_airport_data_current?(context, generation)
 
-      json_text = run_command_using_args(
+      json_text = run_command(
         SYSTEM_PROFILER_AIRPORT_ARGS,
         raise_on_error:  true,
         timeout_in_secs: timeout_in_secs || SYSTEM_PROFILER_TIMEOUT_SECONDS

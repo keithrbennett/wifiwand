@@ -65,9 +65,11 @@ For upgrade-impacting API, CLI, and behavior changes, see
   model behavior.
 - All OS commands are now executed using `Open3` with argument arrays,
   eliminating shell interpolation and command injection vulnerabilities.
-- Renamed the direct command execution APIs to `run_command_using_args` and
-  `run_command_using_shell` so structured execution and shell execution are
-  distinguished explicitly for library consumers.
+- Renamed the direct model command execution API to `run_command`,
+  keeping model/library command execution on argument arrays instead of shell
+  strings.
+- Promoted `command_available?` to the public model API for checking optional
+  command dependencies from model helper objects.
 - Added native-thread concurrency for status and connectivity reporting where
   overlapping OS and network checks improve latency.
 - Extracted captive-portal detection into `CaptivePortalChecker`.

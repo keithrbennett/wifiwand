@@ -7,7 +7,7 @@ This document outlines the shell commands used by `wifi-wand` on the Ubuntu oper
 Notes:
 - Ubuntu support relies on NetworkManager; `nmcli connection ...` operates on saved profiles that may differ
   from visible SSIDs (e.g., `"MySSID 1"`).
-- Array-based invocations run through `BaseModel#run_command_using_args`, which centralizes logging, timeouts,
+- Array-based invocations run through `BaseModel#run_command`, which centralizes logging, timeouts,
   and non-raising retries when requested.
 
 ## `iw`

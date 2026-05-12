@@ -51,7 +51,7 @@ describe 'QR Code Generator (unit)' do
   end
 
   it "prints ANSI QR to stdout when filespec is '-' and returns '-'" do
-    expect(model).to receive(:run_command_using_args) do |cmd|
+    expect(model).to receive(:run_command) do |cmd|
       expect(cmd).to be_an(Array)
       expect(cmd[0..2]).to eq(%w[qrencode -t ANSI])
       command_result(stdout: "[QR-ANSI]\n")
@@ -63,7 +63,7 @@ describe 'QR Code Generator (unit)' do
   end
 
   it 'returns ANSI QR string without printing when delivery_mode is :return' do
-    expect(model).to receive(:run_command_using_args) do |cmd|
+    expect(model).to receive(:run_command) do |cmd|
       expect(cmd).to be_an(Array)
       expect(cmd[0..2]).to eq(%w[qrencode -t ANSI])
       command_result(stdout: "[QR-ANSI]\n")
@@ -75,7 +75,7 @@ describe 'QR Code Generator (unit)' do
   end
 
   it 'raises QrCodeGenerationError when ANSI generation command fails' do
-    expect(model).to receive(:run_command_using_args)
+    expect(model).to receive(:run_command)
       .and_raise(os_command_error(exitstatus: 1, command: 'qrencode', text: 'boom'))
 
     expect do
@@ -87,7 +87,7 @@ describe 'QR Code Generator (unit)' do
     with_temp_dir do |temp_dir|
       filename = File.join(temp_dir, 'missing', 'wifi.png')
 
-      expect(model).not_to receive(:run_command_using_args)
+      expect(model).not_to receive(:run_command)
 
       expect do
         silence_output { model.generate_qr_code(filename) }
@@ -108,7 +108,7 @@ describe 'QR Code Generator (unit)' do
 
       allow(File).to receive(:writable?).and_call_original
       allow(File).to receive(:writable?).with(output_dir).and_return(false)
-      expect(model).not_to receive(:run_command_using_args)
+      expect(model).not_to receive(:run_command)
 
       expect do
         silence_output { model.generate_qr_code(filename) }
@@ -127,7 +127,7 @@ describe 'QR Code Generator (unit)' do
       filename = File.join(output_path, 'wifi.png')
       File.write(output_path, 'not a directory')
 
-      expect(model).not_to receive(:run_command_using_args)
+      expect(model).not_to receive(:run_command)
 
       expect do
         silence_output { model.generate_qr_code(filename) }
@@ -148,7 +148,7 @@ describe 'QR Code Generator (unit)' do
       expect(Tempfile).to receive(:create)
         .with(anything, temp_dir)
         .and_raise(staging_error)
-      expect(model).not_to receive(:run_command_using_args)
+      expect(model).not_to receive(:run_command)
 
       expect do
         silence_output { model.generate_qr_code(filename) }
@@ -170,7 +170,7 @@ describe 'QR Code Generator (unit)' do
     allow(model).to receive(:connection_security_type).and_return(nil)
     expect(model).not_to receive(:preferred_network_password)
 
-    expect(model).to receive(:run_command_using_args) do |cmd|
+    expect(model).to receive(:run_command) do |cmd|
       expect(cmd).to be_an(Array)
       expect(cmd).to include('qrencode')
       expect(cmd).to include('-o')
@@ -186,7 +186,7 @@ describe 'QR Code Generator (unit)' do
   it 'looks up the connected network password through the model API when no password is provided' do
     expect(model).to receive(:preferred_network_password).with(ssid).and_return(password)
 
-    expect(model).to receive(:run_command_using_args) do |cmd|
+    expect(model).to receive(:run_command) do |cmd|
       expect(cmd).to include('qrencode')
       expect(cmd.last).to include('P:password123')
       command_result(stdout: '')
@@ -199,7 +199,7 @@ describe 'QR Code Generator (unit)' do
     allow(model).to receive(:connection_security_type).and_return(nil)
     allow(model).to receive(:preferred_network_password).with(ssid).and_return(password)
 
-    expect(model).to receive(:run_command_using_args) do |cmd|
+    expect(model).to receive(:run_command) do |cmd|
       expect(cmd).to include('qrencode')
       expect(cmd.last).to include('T:WPA')
       expect(cmd.last).to include('P:password123')
@@ -215,7 +215,7 @@ describe 'QR Code Generator (unit)' do
       .with(ssid)
       .and_raise(WifiWand::PreferredNetworkNotFoundError.new(ssid))
 
-    expect(model).to receive(:run_command_using_args) do |cmd|
+    expect(model).to receive(:run_command) do |cmd|
       expect(cmd).to include('qrencode')
       expect(cmd.last).to include('T:nopass')
       expect(cmd.last).to include('P:')
@@ -230,7 +230,7 @@ describe 'QR Code Generator (unit)' do
     allow(model).to receive(:connection_security_type).and_return('NONE')
     expect(model).not_to receive(:preferred_network_password)
 
-    expect(model).to receive(:run_command_using_args) do |cmd|
+    expect(model).to receive(:run_command) do |cmd|
       expect(cmd).to include('qrencode')
       expect(cmd.last).to include('T:nopass')
       expect(cmd.last).to include('P:;')
@@ -247,7 +247,7 @@ describe 'QR Code Generator (unit)' do
       .with(ssid)
       .and_raise(WifiWand::PreferredNetworkNotFoundError.new(ssid))
 
-    expect(model).not_to receive(:run_command_using_args)
+    expect(model).not_to receive(:run_command)
 
     expect do
       silence_output { model.generate_qr_code(nil) }
@@ -263,7 +263,7 @@ describe 'QR Code Generator (unit)' do
       .with(ssid)
       .and_raise(WifiWand::PreferredNetworkNotFoundError.new(ssid))
 
-    expect(model).not_to receive(:run_command_using_args)
+    expect(model).not_to receive(:run_command)
 
     expect do
       silence_output { model.generate_qr_code(nil, password: '') }
@@ -276,7 +276,7 @@ describe 'QR Code Generator (unit)' do
       .with(ssid)
       .and_raise(WifiWand::PreferredNetworkNotFoundError.new(ssid))
 
-    expect(model).not_to receive(:run_command_using_args)
+    expect(model).not_to receive(:run_command)
 
     expect do
       silence_output { model.generate_qr_code(nil, password: " \t ") }
@@ -287,7 +287,7 @@ describe 'QR Code Generator (unit)' do
     allow(model).to receive(:connection_security_type).and_return(nil)
     allow(model).to receive(:preferred_network_password).with(ssid).and_return(" \t ")
 
-    expect(model).not_to receive(:run_command_using_args)
+    expect(model).not_to receive(:run_command)
 
     expect do
       silence_output { model.generate_qr_code(nil) }
@@ -297,7 +297,7 @@ describe 'QR Code Generator (unit)' do
   it 'raises a targeted error when a secured network has no saved password' do
     allow(model).to receive(:preferred_network_password).with(ssid).and_return(nil)
 
-    expect(model).not_to receive(:run_command_using_args)
+    expect(model).not_to receive(:run_command)
 
     expect do
       silence_output { model.generate_qr_code(nil) }
@@ -307,7 +307,7 @@ describe 'QR Code Generator (unit)' do
   it 'raises a targeted error when a secured network has a whitespace saved password' do
     allow(model).to receive(:preferred_network_password).with(ssid).and_return(" \t ")
 
-    expect(model).not_to receive(:run_command_using_args)
+    expect(model).not_to receive(:run_command)
 
     expect do
       silence_output { model.generate_qr_code(nil) }
@@ -319,7 +319,7 @@ describe 'QR Code Generator (unit)' do
       .with(ssid)
       .and_raise(WifiWand::PreferredNetworkNotFoundError.new(ssid))
 
-    expect(model).not_to receive(:run_command_using_args)
+    expect(model).not_to receive(:run_command)
 
     expect do
       silence_output { model.generate_qr_code(nil) }
@@ -341,7 +341,7 @@ describe 'QR Code Generator (unit)' do
     { filespec: 'out.eps', type: 'EPS' },
   ].each do |tc|
     it "uses -t #{tc[:type]} flag when filespec ends with #{File.extname(tc[:filespec])}" do
-      expect(model).to receive(:run_command_using_args) do |cmd|
+      expect(model).to receive(:run_command) do |cmd|
         expect(cmd).to be_an(Array)
         expect(cmd).to include('qrencode')
         expect(cmd).to include('-t')
@@ -359,7 +359,7 @@ describe 'QR Code Generator (unit)' do
   it 'generates QR code with H:false for visible (broadcast) networks' do
     allow(model).to receive(:network_hidden?).and_return(false)
 
-    expect(model).to receive(:run_command_using_args) do |cmd|
+    expect(model).to receive(:run_command) do |cmd|
       expect(cmd).to be_an(Array)
       expect(cmd).to include('qrencode')
       expect(cmd.last).to include('H:false')
@@ -372,7 +372,7 @@ describe 'QR Code Generator (unit)' do
   it 'generates QR code with H:true for hidden networks' do
     allow(model).to receive(:network_hidden?).and_return(true)
 
-    expect(model).to receive(:run_command_using_args) do |cmd|
+    expect(model).to receive(:run_command) do |cmd|
       expect(cmd).to be_an(Array)
       expect(cmd).to include('qrencode')
       expect(cmd.last).to include('H:true')
@@ -385,7 +385,7 @@ describe 'QR Code Generator (unit)' do
   it 'generates ANSI QR with H:true for hidden networks' do
     allow(model).to receive(:network_hidden?).and_return(true)
 
-    expect(model).to receive(:run_command_using_args) do |cmd|
+    expect(model).to receive(:run_command) do |cmd|
       expect(cmd).to be_an(Array)
       expect(cmd[0..2]).to eq(%w[qrencode -t ANSI])
       expect(cmd.last).to include('H:true')

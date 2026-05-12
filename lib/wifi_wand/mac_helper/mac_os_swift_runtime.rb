@@ -30,7 +30,7 @@ module WifiWand
 
       skip_memoize = false
       available = begin
-        result = run_command_using_args(
+        result = run_command(
           ['swift', '-e', 'import CoreWLAN'],
           **swift_probe_options(timeout_in_secs)
         )
@@ -59,7 +59,7 @@ module WifiWand
     end
 
     def run_swift_command(basename, *args)
-      run_command_using_args(['swift', swift_filespec_for(basename)] + args)
+      run_command(['swift', swift_filespec_for(basename)] + args)
     end
 
     def connect(network_name, password = nil)
@@ -76,7 +76,7 @@ module WifiWand
       SWIFT_CONNECT_FALLBACK_PATTERNS.any? { |pattern| pattern.match?(error_text.to_s) }
     end
 
-    private def run_command_using_args(*, **)
+    private def run_command(*, **)
       @command_runner.call(*, **)
     end
 
