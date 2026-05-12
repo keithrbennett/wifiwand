@@ -347,7 +347,8 @@ This copies hooks from the tracked `hooks/` directory to `.git/hooks/` and makes
    bundle exec rspec
    ```
 2. **Do Not Commit:** Never execute `git commit` directly. Instead, stage changes with `git add` and propose a
-   clear, concise commit message for the user to use.
+   clear commit message for the user to use. Include a concise subject plus an explanatory body that gives
+   enough context for a future reader to understand the problem, the solution, and why the change matters.
 3. **Selective Staging:** Never assume that all uncommitted files are intended to be committed. Do not use
    `git add .` or similar catch-all commands. Explicitly stage only the files relevant to the current task.
 4. **Use `--no-pager`:** When running git commands that may produce long output (e.g., `git diff`, `git log`),
@@ -364,6 +365,8 @@ This copies hooks from the tracked `hooks/` directory to `.git/hooks/` and makes
 - When providing content intended for the user to copy and paste (like commit messages or configuration
   snippets), do not include line numbers or any other decorators that would interfere with direct usage.
 - When proposing commit messages, keep the subject concise and hard-wrap all body lines at 72 characters.
+  Include both a summary of what changed and a short explanation of the problem and solution. The body should
+  be informative enough for a reader to understand the change without being super-detailed.
 - When providing shell commands for the user to run, render them flush-left with no leading spaces, bullets,
   or other prefixes so they can be copied and pasted directly. Keep OS command lines (for example, `git add`)
   at 79 characters or fewer per line; when a command would run longer, continue it onto the next line with a

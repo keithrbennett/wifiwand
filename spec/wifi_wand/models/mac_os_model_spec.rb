@@ -154,6 +154,22 @@ module WifiWand
         end
       end
 
+      describe '#status_line_data' do
+        let(:progress_callback) { ->(_data) {} }
+
+        it 'uses the full connectivity worker timeout for macOS status checks' do
+          expect(WifiWand::StatusLineDataBuilder).to receive(:call).with(
+            model,
+            progress_callback:                          progress_callback,
+            runtime_config:                             model.runtime_config,
+            expected_network_errors:                    described_class::EXPECTED_NETWORK_ERRORS,
+            connectivity_worker_result_timeout_seconds: WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
+          ).and_return({})
+
+          model.status_line_data(progress_callback: progress_callback)
+        end
+      end
+
       describe '#wifi_service_name' do
         let(:networksetup_output) do
           "Hardware Port: Ethernet\nDevice: en1\nEthernet Address: aa:bb:cc:dd:ee:ff\n\n" \

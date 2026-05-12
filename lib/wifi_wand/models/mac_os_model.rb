@@ -5,9 +5,11 @@ require 'shellwords'
 
 require_relative 'base_model'
 require_relative '../errors'
+require_relative '../timing_constants'
 require_relative '../mac_helper/mac_os_swift_runtime'
 require_relative '../mac_helper/mac_os_wifi_transport'
 require_relative '../mac_helper/mac_os_helper_bundle'
+require_relative '../services/status_line_data_builder'
 
 
 module WifiWand
@@ -129,7 +131,15 @@ module WifiWand
     end
 
     def status_line_data(progress_callback: nil)
-      with_airport_data_cache_scope { super }
+      with_airport_data_cache_scope do
+        StatusLineDataBuilder.call(
+          self,
+          progress_callback:                          progress_callback,
+          runtime_config:                             runtime_config,
+          expected_network_errors:                    EXPECTED_NETWORK_ERRORS,
+          connectivity_worker_result_timeout_seconds: TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
+        )
+      end
     end
 
     def generate_qr_code(filespec = nil, overwrite: false, delivery_mode: :print, password: nil,
