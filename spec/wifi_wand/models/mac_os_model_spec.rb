@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require 'timeout'
 require_relative '../../spec_helper'
 require_relative '../../../lib/wifi_wand/models/mac_os_model'
 
@@ -493,6 +494,65 @@ module WifiWand
 
           expect(model.connected_network_name).to eq('ProfilerNetA')
           expect(model.connected_network_name).to eq('ProfilerNetB')
+        end
+
+        it 'isolates connected-network diagnostic flags across concurrent callers' do
+          redacted_thread_entered_connected = Queue.new
+          release_redacted_thread = Queue.new
+          redacted_result = Queue.new
+          disconnected_result = Queue.new
+          redacted_thread = nil
+          disconnected_thread = nil
+
+          model.define_singleton_method(:wifi_on?) { true }
+          model.define_singleton_method(:_connected_network_name) do
+            case Thread.current[:connected_network_name_test_mode]
+            when :redacted
+              send(:mark_connected_network_fallback_identity_redacted)
+            when :disconnected
+              send(:mark_connected_network_authoritatively_disconnected)
+            else
+              raise 'unexpected connected-network test mode'
+            end
+          end
+          model.define_singleton_method(:connected?) do
+            raise 'authoritative disconnect should return before connected?' unless
+              Thread.current[:connected_network_name_test_mode] == :redacted
+
+            redacted_thread_entered_connected << true
+            release_redacted_thread.pop
+            true
+          end
+          model.define_singleton_method(:network_identity_redacted?) do
+            send(:connected_network_fallback_identity_redacted?)
+          end
+
+          begin
+            redacted_thread = Thread.new do
+              Thread.current[:connected_network_name_test_mode] = :redacted
+              redacted_result << model.connected_network_name
+            rescue => e
+              redacted_result << e
+            end
+
+            Timeout.timeout(2) { redacted_thread_entered_connected.pop }
+
+            disconnected_thread = Thread.new do
+              Thread.current[:connected_network_name_test_mode] = :disconnected
+              disconnected_result << model.connected_network_name
+            rescue => e
+              disconnected_result << e
+            end
+
+            expect(Timeout.timeout(2) { disconnected_result.pop }).to be_nil
+
+            release_redacted_thread << true
+
+            expect(Timeout.timeout(2) { redacted_result.pop }).to be_a(WifiWand::MacOsRedactionError)
+          ensure
+            release_redacted_thread << true if redacted_thread&.alive?
+            [redacted_thread, disconnected_thread].compact.each(&:join)
+          end
         end
 
         it 'raises a targeted exact-identity error when macOS redacts the current SSID' do

@@ -29,6 +29,7 @@ module WifiWand
     SYSTEM_PROFILER_AIRPORT_ARGS = %w[system_profiler -json SPAirPortDataType].freeze
     SYSTEM_PROFILER_NETWORK_ARGS = %w[system_profiler -json SPNetworkDataType].freeze
     AIRPORT_DATA_CACHE_CONTEXTS_KEY = :wifi_wand_airport_data_cache_contexts
+    CONNECTED_NETWORK_FLAG_CONTEXTS_KEY = :wifi_wand_connected_network_flag_contexts
     NO_CONNECTED_NETWORK = Object.new.freeze
 
     # Keychain exit code handlers for password retrieval
@@ -458,26 +459,22 @@ module WifiWand
     def connected_network_name
       raise WifiOffError, 'WiFi is off, cannot determine connected network.' unless wifi_on?
 
-      @connected_network_authoritatively_disconnected = false
-      @connected_network_fallback_identity_redacted = false
+      with_connected_network_flag_scope do
+        with_airport_data_cache_scope do
+          network_name = _connected_network_name
+          return network_name if network_name
+          return nil if connected_network_authoritatively_disconnected?
 
-      with_airport_data_cache_scope do
-        network_name = _connected_network_name
-        return network_name if network_name
-        return nil if connected_network_authoritatively_disconnected?
+          if connected? && network_identity_redacted?
+            raise MacOsRedactionError.new(
+              operation_description: 'Current WiFi network queries',
+              reason:                network_identity_redaction_reason
+            )
+          end
 
-        if connected? && network_identity_redacted?
-          raise MacOsRedactionError.new(
-            operation_description: 'Current WiFi network queries',
-            reason:                network_identity_redaction_reason
-          )
+          nil
         end
-
-        nil
       end
-    ensure
-      @connected_network_authoritatively_disconnected = false
-      @connected_network_fallback_identity_redacted = false
     end
 
     def _connected_network_name
@@ -519,12 +516,13 @@ module WifiWand
     end
 
     private def mark_connected_network_authoritatively_disconnected
-      @connected_network_authoritatively_disconnected = true
+      active_connected_network_flag_context&.[]=(:authoritatively_disconnected, true)
       nil
     end
 
     private def connected_network_authoritatively_disconnected?
-      @connected_network_authoritatively_disconnected
+      context = active_connected_network_flag_context
+      context ? context.fetch(:authoritatively_disconnected) : false
     end
 
     def network_identity_redacted?
@@ -550,12 +548,13 @@ module WifiWand
     end
 
     private def mark_connected_network_fallback_identity_redacted
-      @connected_network_fallback_identity_redacted = true
+      active_connected_network_flag_context&.[]=(:fallback_identity_redacted, true)
       nil
     end
 
     private def connected_network_fallback_identity_redacted?
-      @connected_network_fallback_identity_redacted
+      context = active_connected_network_flag_context
+      context ? context.fetch(:fallback_identity_redacted) : false
     end
 
     private def fallback_network_identity_missing?
@@ -1049,6 +1048,46 @@ module WifiWand
     private def placeholder_network_name?(name)
       value = name.to_s.strip
       value.empty? || %w[<hidden> <redacted>].include?(value.downcase)
+    end
+
+    private def with_connected_network_flag_scope
+      contexts = connected_network_flag_contexts
+      had_previous_context = contexts.key?(self)
+      previous_context = contexts[self] if had_previous_context
+
+      contexts[self] = new_connected_network_flag_context
+      yield
+    ensure
+      restore_connected_network_flag_context(contexts, had_previous_context, previous_context)
+    end
+
+    private def new_connected_network_flag_context
+      {
+        authoritatively_disconnected: false,
+        fallback_identity_redacted:   false,
+      }
+    end
+
+    private def restore_connected_network_flag_context(contexts, had_previous_context, previous_context)
+      if had_previous_context
+        contexts[self] = previous_context
+      else
+        contexts.delete(self)
+      end
+
+      Thread.current[CONNECTED_NETWORK_FLAG_CONTEXTS_KEY] = nil if contexts.empty?
+    end
+
+    private def active_connected_network_flag_context
+      current_connected_network_flag_contexts&.fetch(self, nil)
+    end
+
+    private def current_connected_network_flag_contexts
+      Thread.current[CONNECTED_NETWORK_FLAG_CONTEXTS_KEY]
+    end
+
+    private def connected_network_flag_contexts
+      Thread.current[CONNECTED_NETWORK_FLAG_CONTEXTS_KEY] ||= {}.compare_by_identity
     end
 
     private def with_airport_data_cache_scope
