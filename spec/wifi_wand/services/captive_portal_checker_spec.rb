@@ -12,7 +12,7 @@ describe WifiWand::CaptivePortalChecker do
 
   describe '#captive_portal_state' do
     let(:checker) { described_class.new(verbose: false) }
-    let(:spawned_pids) { [] }
+    let(:open_probe_writers) { [] }
     let(:endpoints) do
       [
         { url: 'http://first.example.com/check', expected_code: 204 },
@@ -21,8 +21,8 @@ describe WifiWand::CaptivePortalChecker do
     end
 
     after do
-      spawned_pids.each do |pid|
-        kill_and_reap_process(pid)
+      open_probe_writers.each do |writer|
+        writer.close unless writer.closed?
       end
     end
 
@@ -49,38 +49,45 @@ describe WifiWand::CaptivePortalChecker do
     end
 
     it 'returns promptly after a helper reports :free and terminates slower helpers' do
+      pending_probe = open_probe(endpoint: endpoints.last).merge(pid: 12_345)
+      terminated_probes = []
       allow(checker).to receive(:start_captive_portal_probe).and_return(
         completed_probe(endpoint: endpoints.first, payload: { state: 'free', actual_code: 204 }),
-        spawn_probe(endpoint: endpoints.last, delay: 5)
+        pending_probe
       )
+      allow(checker).to receive(:terminate_probe) do |probe, grace:|
+        terminated_probes << [probe, grace]
+        probe[:reader]&.close unless probe[:reader]&.closed?
+        probe[:pid] = nil
+      end
 
       result = nil
       Timeout.timeout(1) { result = checker.captive_portal_state }
 
       expect(result).to eq(:free)
-      expect_process_dead(spawned_pids.last)
+      expect(terminated_probes).to include([pending_probe, checker.helper_result_grace])
+      expect(pending_probe[:reader]).to be_closed
+      expect(pending_probe[:pid]).to be_nil
     end
 
     it 'returns promptly when a helper writes partial JSON and then stalls' do
       stub_const('WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT', 0.1)
       allow(checker).to receive(:start_captive_portal_probe).and_return(
-        spawn_probe(endpoint: endpoints.first, raw_output: '{"state":"free"', post_write_delay: 5)
+        open_probe(endpoint: endpoints.first, raw_output: '{"state":"free"')
       )
 
       result = nil
       Timeout.timeout(1) { result = checker.captive_portal_state }
 
       expect(result).to eq(:indeterminate)
-      expect_process_dead(spawned_pids.last)
     end
 
-    it 'returns parsed state and reaps a successful helper that keeps running' do
+    it 'returns parsed state before a successful helper closes stdout' do
       allow(checker).to receive_messages(
         captive_portal_check_endpoints: [endpoints.first],
-        start_captive_portal_probe:     spawn_probe(
-          endpoint:         endpoints.first,
-          payload:          { state: 'free', actual_code: 204 },
-          post_write_delay: 5
+        start_captive_portal_probe:     open_probe(
+          endpoint: endpoints.first,
+          payload:  { state: 'free', actual_code: 204 }
         )
       )
 
@@ -88,12 +95,12 @@ describe WifiWand::CaptivePortalChecker do
       Timeout.timeout(2) { result = checker.captive_portal_state }
 
       expect(result).to eq(:free)
-      expect_process_dead(spawned_pids.last)
     end
 
     it 'uses zero helper grace when the caller provides a timeout budget' do
-      allow(checker).to receive(:start_captive_portal_probe).and_return(
-        spawn_probe(endpoint: endpoints.first, delay: 5)
+      allow(checker).to receive_messages(
+        start_captive_portal_probe: open_probe(endpoint: endpoints.first),
+        ready_probe_readers:        []
       )
       observed_graces = []
       allow(checker).to receive(:terminate_probes).and_wrap_original do |original, probes, grace:|
@@ -111,10 +118,9 @@ describe WifiWand::CaptivePortalChecker do
     it 'uses zero successful-finalization grace when the caller provides a timeout budget' do
       allow(checker).to receive_messages(
         captive_portal_check_endpoints: [endpoints.first],
-        start_captive_portal_probe:     spawn_probe(
-          endpoint:         endpoints.first,
-          payload:          { state: 'free', actual_code: 204 },
-          post_write_delay: 5
+        start_captive_portal_probe:     completed_probe(
+          endpoint: endpoints.first,
+          payload:  { state: 'free', actual_code: 204 }
         )
       )
       observed_graces = []
@@ -128,7 +134,6 @@ describe WifiWand::CaptivePortalChecker do
 
       expect(result).to eq(:free)
       expect(observed_graces).to include(0)
-      expect_process_dead(spawned_pids.last)
     end
 
     context 'with verbose mode' do
@@ -448,35 +453,13 @@ describe WifiWand::CaptivePortalChecker do
     end
   end
 
-  def spawn_probe(endpoint:, payload: nil, raw_output: nil, delay: 0, post_write_delay: 0)
+  def open_probe(endpoint:, payload: nil, raw_output: nil)
     reader, writer = IO.pipe
-    child_code = <<~RUBY
-      sleep(Float(ARGV[0]))
-      payload = ARGV[1]
-      post_write_delay = Float(ARGV[2])
-
-      unless payload.empty?
-        print(payload)
-        $stdout.flush
-      end
-
-      sleep(post_write_delay) if post_write_delay.positive?
-    RUBY
-
     output = raw_output || (payload ? JSON.generate(payload) : '')
-    pid = Process.spawn(
-      RbConfig.ruby,
-      '-e',
-      child_code,
-      delay.to_s,
-      output,
-      post_write_delay.to_s,
-      out: writer,
-      err: File::NULL
-    )
-    writer.close
-    spawned_pids << pid
-    { pid: pid, reader: reader, endpoint: endpoint, buffer: +'', eof: false }
+    writer.write(output) unless output.empty?
+    writer.flush
+    open_probe_writers << writer
+    { pid: nil, reader: reader, endpoint: endpoint, buffer: +'', eof: false }
   rescue
     reader&.close unless reader&.closed?
     writer&.close unless writer&.closed?
