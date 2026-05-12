@@ -809,6 +809,12 @@ module WifiWand
       @connection_manager.last_connection_used_saved_password?
     end
 
+    # Returns whether an operating system command is available on PATH.
+    #
+    # Helper objects that coordinate model behavior use this as part of the
+    # model API instead of reaching into the command executor directly.
+    def command_available?(command) = @command_executor.command_available?(command)
+
     # Generates a QR code for the currently connected WiFi network
     # @return [String] The filename of the generated QR code PNG file
     # @raise [WifiWand::Error] If not connected to a network or qrencode is not available
@@ -900,8 +906,6 @@ module WifiWand
 
       preferred_network_password(network_name)
     end
-
-    private def command_available?(command) = @command_executor.command_available?(command)
 
     # Emits a verbose method-entry trace for debugging.
     #

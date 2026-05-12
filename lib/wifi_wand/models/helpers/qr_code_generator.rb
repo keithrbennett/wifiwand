@@ -59,7 +59,7 @@ module WifiWand
       end
 
       private def ensure_qrencode_available(model)
-        available = model.send(:command_available?, 'qrencode')
+        available = model.command_available?('qrencode')
         return if available
 
         install_command = case WifiWand::OperatingSystems.current_os&.id

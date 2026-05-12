@@ -43,6 +43,18 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
+  describe '#command_available?' do
+    it 'is public so model helpers can check optional dependencies without send' do
+      command_executor = instance_double(WifiWand::CommandExecutor)
+      subject.command_executor = command_executor
+
+      expect(command_executor).to receive(:command_available?).with('qrencode').and_return(true)
+
+      expect(subject.public_methods).to include(:command_available?)
+      expect(subject.private_methods).not_to include(:command_available?)
+      expect(subject.command_available?('qrencode')).to be(true)
+    end
+  end
 
   describe '#internet_tcp_connectivity?' do
     it 'returns boolean indicating TCP connectivity' do
