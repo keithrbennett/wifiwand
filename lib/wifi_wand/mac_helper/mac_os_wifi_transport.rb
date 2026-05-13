@@ -2,12 +2,15 @@
 
 require_relative '../errors'
 require_relative '../services/command_executor'
+require_relative '../string_predicates'
 
 module WifiWand
   # Orchestrates the direct Swift-source runtime path for macOS
   # connect/disconnect mutations. Query/read operations that need a stable app
   # identity stay on the compiled helper path via MacOsHelperClient.
   class MacOsWifiTransport
+    include StringPredicates
+
     CONNECTION_FAILURE_PATTERNS = [
       /Failed to join network/i,
       /Error:\s*-3900/,
@@ -224,7 +227,7 @@ module WifiWand
 
     private def command_error_detail(error)
       detail = error.display_message if error.respond_to?(:display_message)
-      detail = error.message if detail.nil? || detail.empty?
+      detail = error.message if string_nil_or_empty?(detail)
       detail.to_s
     end
 

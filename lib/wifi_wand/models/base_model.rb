@@ -14,6 +14,7 @@ require_relative '../errors'
 require_relative '../runtime_config'
 require_relative '../connectivity_states'
 require_relative '../network_identity'
+require_relative '../string_predicates'
 require_relative '../services/command_executor'
 require_relative '../services/network_connectivity_tester'
 require_relative '../services/network_state_manager'
@@ -23,6 +24,8 @@ require_relative '../services/status_line_data_builder'
 
 module WifiWand
   class BaseModel
+    include StringPredicates
+
     Options = Struct.new(:verbose, :wifi_interface, :out_stream, :err_stream, keyword_init: true)
 
     attr_writer :wifi_interface
@@ -101,7 +104,7 @@ module WifiWand
       end
 
       # Validate that WiFi interface is a valid string
-      if @wifi_interface.nil? || @wifi_interface.empty?
+      if string_nil_or_empty?(@wifi_interface)
         raise WifiInterfaceError
       end
 
@@ -550,7 +553,9 @@ module WifiWand
 
     private def disconnect_association_state
       network_name = connected_network_name
-      return { associated: true, network_name: network_name } unless network_name.nil? || network_name.empty?
+      unless string_nil_or_empty?(network_name)
+        return { associated: true, network_name: network_name }
+      end
 
       # If the SSID is unavailable but the platform can still report an active
       # connection, try the disconnect instead of treating the operation as a
@@ -600,7 +605,7 @@ module WifiWand
 
     private def command_error_detail(error)
       detail = error.display_message if error.respond_to?(:display_message)
-      detail = error.message if detail.nil? || detail.empty?
+      detail = error.message if string_nil_or_empty?(detail)
       detail.to_s
     end
 

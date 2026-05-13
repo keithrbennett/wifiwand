@@ -164,7 +164,7 @@ module WifiWand
     # This may not detect WiFi ports with nonstandard names, such as USB WiFi devices.
     def detect_wifi_interface_using_networksetup(timeout_in_secs: nil)
       iface = wifi_interface_using_networksetup(timeout_in_secs: timeout_in_secs)
-      raise WifiInterfaceError if iface.nil? || iface.empty?
+      raise WifiInterfaceError if string_nil_or_empty?(iface)
 
       iface
     end
@@ -746,7 +746,7 @@ module WifiWand
         [AIRPORT_COMMAND, '-I'],
         timeout_in_secs: timeout_in_secs
       ).stdout
-      return nil if output.strip.empty?
+      return nil if string_nil_or_blank?(output)
 
       airport_info = colon_output_to_hash(output)
       network_name = airport_info['SSID']
@@ -866,7 +866,7 @@ module WifiWand
         raise_on_error:  true,
         timeout_in_secs: timeout_in_secs || SYSTEM_PROFILER_TIMEOUT_SECONDS
       ).stdout
-      return nil if json_text.nil? || json_text.strip.empty?
+      return nil if string_nil_or_blank?(json_text)
 
       net_data = JSON.parse(json_text)
       nets = net_data['SPNetworkDataType']
@@ -980,14 +980,14 @@ module WifiWand
       return @wifi_interface if @wifi_interface && !@wifi_interface.empty?
 
       iface = probe_wifi_interface(timeout_in_secs: status_timeout_for(deadline))
-      return nil if iface.nil? || iface.empty?
+      return nil if string_nil_or_empty?(iface)
 
       @wifi_interface = iface
     end
 
     private def status_default_interface(deadline)
       iface = status_wifi_interface(deadline)
-      return nil if iface.nil? || iface.empty?
+      return nil if string_nil_or_empty?(iface)
 
       output = run_command(
         %w[route -n get default],
@@ -1005,7 +1005,7 @@ module WifiWand
 
     private def status_ip_address(deadline)
       iface = status_wifi_interface(deadline)
-      return nil if iface.nil? || iface.empty?
+      return nil if string_nil_or_empty?(iface)
 
       ip_address = run_command(
         ['ipconfig', 'getifaddr', iface],

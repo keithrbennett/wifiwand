@@ -2,6 +2,7 @@
 
 require_relative 'wifi_wand/version'
 require_relative 'wifi_wand/errors'
+require_relative 'wifi_wand/string_predicates'
 
 # When additional operating systems are added, we will need to modify this
 # to load only the model appropriate for the environment:

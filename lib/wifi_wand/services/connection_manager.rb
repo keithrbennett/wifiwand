@@ -2,9 +2,12 @@
 
 require_relative '../errors'
 require_relative '../runtime_config'
+require_relative '../string_predicates'
 
 module WifiWand
   class ConnectionManager
+    include StringPredicates
+
     MAX_NETWORK_NAME_BYTES = 32
     # Exactly 64 hexadecimal characters is treated as a raw PSK.
     MAX_PASSWORD_LENGTH = 64
@@ -104,7 +107,7 @@ module WifiWand
     end
 
     private def validate_network_name(network_name)
-      if network_name.nil? || network_name.empty?
+      if string_nil_or_empty?(network_name)
         raise(InvalidNetworkNameError.new(network_name: network_name || ''))
       end
 
@@ -117,7 +120,7 @@ module WifiWand
     end
 
     private def validate_password(password)
-      return if password.nil? || password.empty?
+      return if string_nil_or_empty?(password)
       return if password.match?(RAW_PSK_PATTERN)
       return if password.bytesize <= MAX_PASSPHRASE_LENGTH
 
@@ -190,7 +193,7 @@ module WifiWand
       if preferred_network_exists
         begin
           saved_password = model.preferred_network_password(network_name)
-          unless saved_password.nil? || saved_password.empty?
+          unless string_nil_or_empty?(saved_password)
             return [saved_password, true]
           end
         rescue WifiWand::Error

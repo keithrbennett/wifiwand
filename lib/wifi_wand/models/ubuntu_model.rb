@@ -505,7 +505,7 @@ module WifiWand
     end
 
     private def preferred_network_secret_value?(secret)
-      return false if secret.nil? || secret.empty?
+      return false if string_nil_or_empty?(secret)
 
       !PREFERRED_NETWORK_SECRET_PLACEHOLDERS.include?(secret)
     end
@@ -840,7 +840,7 @@ module WifiWand
 
     private def saved_wifi_profile_from_fields(name:, ssid:, type:, timestamp:)
       return unless type == '802-11-wireless'
-      return if ssid.nil? || ssid.empty?
+      return if string_nil_or_empty?(ssid)
 
       SavedWifiProfile.new(name: name, ssid: ssid, type: type, timestamp: timestamp.to_i)
     end

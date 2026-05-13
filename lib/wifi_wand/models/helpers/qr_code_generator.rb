@@ -26,9 +26,13 @@
 
 require 'tempfile'
 
+require_relative '../../string_predicates'
+
 module WifiWand
   module Helpers
     class QrCodeGenerator
+      include StringPredicates
+
       QR_FIELD_ESCAPES = {
         ';'  => '\\;',
         ','  => '\\,',
@@ -110,7 +114,7 @@ module WifiWand
       end
 
       private def blank_password?(password)
-        password.nil? || password == ''
+        string_nil_or_empty?(password)
       end
 
       private def missing_password_error(network_name, security_type)

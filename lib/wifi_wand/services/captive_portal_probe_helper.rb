@@ -2,6 +2,7 @@
 
 require 'json'
 require_relative 'captive_portal_checker'
+require_relative '../string_predicates'
 
 module WifiWand
   # Encapsulates the argument-parsing and probe-execution logic for the captive
@@ -10,6 +11,8 @@ module WifiWand
   # spawning a subprocess, while the thin CLI entry-point at the bottom of this
   # file preserves the existing runtime contract.
   module CaptivePortalProbeHelper
+    extend StringPredicates
+
     # Parses command-line arguments into an endpoint hash.
     #
     # @param argv [Array<String>] positional args: url, expected_code, optional expected_body
@@ -18,16 +21,16 @@ module WifiWand
     def self.parse_argv(argv)
       url, expected_code_arg, expected_body = argv
 
-      url_missing = url.nil? || url.strip.empty?
-      raise ArgumentError, 'url argument is required' if url_missing
+      raise ArgumentError, 'url argument is required' if string_nil_or_blank?(url)
 
-      expected_code_arg_missing = expected_code_arg.nil? || expected_code_arg.strip.empty?
-      raise ArgumentError, 'expected_code argument is required' if expected_code_arg_missing
+      if string_nil_or_blank?(expected_code_arg)
+        raise ArgumentError, 'expected_code argument is required'
+      end
 
       {
         url:           url,
         expected_code: Integer(expected_code_arg),
-        expected_body: expected_body.to_s.strip.empty? ? nil : expected_body,
+        expected_body: string_nil_or_blank?(expected_body) ? nil : expected_body,
       }
     end
 

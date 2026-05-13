@@ -8,9 +8,12 @@ require 'yaml'
 
 require_relative 'command_line_options'
 require_relative 'errors'
+require_relative 'string_predicates'
 
 module WifiWand
   class CommandLineParser
+    include StringPredicates
+
     FORMATTERS = {
       'i' => ->(object) { object.inspect },
       'j' => ->(object) { object.to_json },
@@ -89,7 +92,7 @@ module WifiWand
 
     private def prepend_env_options(args)
       raw_options = @env['WIFIWAND_OPTS']
-      return if raw_options.nil? || raw_options.strip.empty?
+      return if string_nil_or_blank?(raw_options)
 
       env_args = Shellwords.shellsplit(raw_options)
       return if env_args.empty?

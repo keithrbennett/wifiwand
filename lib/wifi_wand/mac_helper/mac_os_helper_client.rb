@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require_relative '../string_predicates'
 
 module WifiWand
   module MacOsHelperBundle
@@ -78,6 +79,8 @@ module WifiWand
   # read/query operations such as current-network lookups and network scans.
   # Connect/disconnect mutations still run through MacOsSwiftRuntime.
   class MacOsHelperClient
+    include StringPredicates
+
     attr_reader :last_error_message
 
     # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
@@ -166,7 +169,7 @@ module WifiWand
       stdout = helper_result[:stdout]
       stderr = helper_result[:stderr]
       status = helper_result[:status]
-      payload = parse_json(stdout) unless stdout.to_s.strip.empty?
+      payload = parse_json(stdout) unless string_nil_or_blank?(stdout)
       payload_status = payload&.fetch('status', nil)
       if helper_error_payload_status?(payload_status)
         log_helper_exit_failure(status, stderr) unless status.success?
