@@ -286,6 +286,7 @@ module WifiWand
         ubuntu_model = create_ubuntu_test_model
         allow(ubuntu_model).to receive(:command_available?).with('iw').and_return(false)
         allow(ubuntu_model).to receive(:command_available?).with('nmcli').and_return(false)
+        allow(ubuntu_model).to receive(:command_available?).with('ip').and_return(false)
         expect { ubuntu_model.validate_os_preconditions }.to raise_error(CommandNotFoundError)
       end
 

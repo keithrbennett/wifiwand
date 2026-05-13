@@ -12,10 +12,10 @@ It relies on the industry-standard **NetworkManager** suite.
 
 - **NetworkManager** (`nmcli`): Required for managing connections, status, WiFi radio state, and DNS settings.
 - **iw**: Required for WiFi interface detection and wireless capability checks.
+- **iproute2** (`ip`): Required for IP address, MAC address, and routing information.
 
-The following tools are used for specific features but are not required for every command:
+The following tools are used for specific features and are optional:
 
-- **iproute2** (`ip`): Used for IP address, MAC address, and routing information.
 - **qrencode** (Optional): Required only for the `qr` command to generate Wi-Fi QR codes.
 - **xdg-open** (Optional): Required only for the `ropen` command to open URLs in a browser. Pre-installed on
   most desktop environments.

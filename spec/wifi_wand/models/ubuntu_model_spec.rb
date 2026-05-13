@@ -759,6 +759,7 @@ module WifiWand
           allow(ubuntu_model).to receive(:command_available?).with('iw')
             .and_return(command_result(stdout: true))
           allow(ubuntu_model).to receive(:command_available?).with('nmcli').and_return(true)
+          allow(ubuntu_model).to receive(:command_available?).with('ip').and_return(true)
 
           expect(ubuntu_model.validate_os_preconditions).to eq(:ok)
         end
@@ -777,6 +778,7 @@ module WifiWand
         it 'raises CommandNotFoundError when iw is missing' do
           allow(ubuntu_model).to receive(:command_available?).with('iw').and_return(false)
           allow(ubuntu_model).to receive(:command_available?).with('nmcli').and_return(true)
+          allow(ubuntu_model).to receive(:command_available?).with('ip').and_return(true)
 
           expect { ubuntu_model.validate_os_preconditions }
             .to raise_error(WifiWand::CommandNotFoundError, /iw.*install.*sudo apt install iw/)
@@ -785,18 +787,56 @@ module WifiWand
         it 'raises CommandNotFoundError when nmcli is missing' do
           allow(ubuntu_model).to receive(:command_available?).with('iw').and_return(true)
           allow(ubuntu_model).to receive(:command_available?).with('nmcli').and_return(false)
+          allow(ubuntu_model).to receive(:command_available?).with('ip').and_return(true)
 
           expect { ubuntu_model.validate_os_preconditions }
             .to raise_error(WifiWand::CommandNotFoundError,
               /nmcli.*install.*sudo apt install network-manager/)
         end
 
-        it 'raises CommandNotFoundError when both commands are missing' do
+        it 'raises CommandNotFoundError when ip is missing' do
+          allow(ubuntu_model).to receive(:command_available?).with('iw').and_return(true)
+          allow(ubuntu_model).to receive(:command_available?).with('nmcli').and_return(true)
+          allow(ubuntu_model).to receive(:command_available?).with('ip').and_return(false)
+
+          expect { ubuntu_model.validate_os_preconditions }
+            .to raise_error(WifiWand::CommandNotFoundError, /ip.*install.*sudo apt install iproute2/)
+        end
+
+        it 'raises CommandNotFoundError when iw and nmcli are missing' do
           allow(ubuntu_model).to receive(:command_available?).with('iw').and_return(false)
           allow(ubuntu_model).to receive(:command_available?).with('nmcli').and_return(false)
+          allow(ubuntu_model).to receive(:command_available?).with('ip').and_return(true)
 
           expect { ubuntu_model.validate_os_preconditions }
             .to raise_error(WifiWand::CommandNotFoundError, /iw.*nmcli/)
+        end
+
+        it 'raises CommandNotFoundError when iw and ip are missing' do
+          allow(ubuntu_model).to receive(:command_available?).with('iw').and_return(false)
+          allow(ubuntu_model).to receive(:command_available?).with('nmcli').and_return(true)
+          allow(ubuntu_model).to receive(:command_available?).with('ip').and_return(false)
+
+          expect { ubuntu_model.validate_os_preconditions }
+            .to raise_error(WifiWand::CommandNotFoundError, /iw.*ip/)
+        end
+
+        it 'raises CommandNotFoundError when nmcli and ip are missing' do
+          allow(ubuntu_model).to receive(:command_available?).with('iw').and_return(true)
+          allow(ubuntu_model).to receive(:command_available?).with('nmcli').and_return(false)
+          allow(ubuntu_model).to receive(:command_available?).with('ip').and_return(false)
+
+          expect { ubuntu_model.validate_os_preconditions }
+            .to raise_error(WifiWand::CommandNotFoundError, /nmcli.*ip/)
+        end
+
+        it 'raises CommandNotFoundError when iw, nmcli, and ip are missing' do
+          allow(ubuntu_model).to receive(:command_available?).with('iw').and_return(false)
+          allow(ubuntu_model).to receive(:command_available?).with('nmcli').and_return(false)
+          allow(ubuntu_model).to receive(:command_available?).with('ip').and_return(false)
+
+          expect { ubuntu_model.validate_os_preconditions }
+            .to raise_error(WifiWand::CommandNotFoundError, /iw.*nmcli.*ip/)
         end
       end
 

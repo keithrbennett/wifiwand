@@ -49,7 +49,7 @@ module WifiWand
       unless command_available?('nmcli')
         missing_commands << 'nmcli (install: sudo apt install network-manager)'
       end
-
+      missing_commands << 'ip (install: sudo apt install iproute2)' unless command_available?('ip')
 
       unless missing_commands.empty?
         raise CommandNotFoundError, missing_commands

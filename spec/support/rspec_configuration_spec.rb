@@ -195,6 +195,19 @@ RSpec.describe RSpecConfiguration do
         .to output(/Captured network state for restoration: WiFi on and disassociated/).to_stderr
     end
 
+    it 'captures a WiFi-off state for restoration' do
+      allow(NetworkStateManager).to receive(:capture_state)
+      allow(NetworkStateManager).to receive(:network_state).and_return({
+        wifi_enabled:     false,
+        associated:       false,
+        network_name:     nil,
+        network_password: nil,
+      })
+
+      expect { described_class.handle_network_state_capture(true) }
+        .to output(/Captured network state for restoration: WiFi off/).to_stderr
+    end
+
     # This example covers the generic non-macOS fallback path.
     # macOS has a dedicated redaction/setup error path that is covered below.
     it 'raises when an associated captured state has no network name on non-macOS hosts' do
