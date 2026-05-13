@@ -4,11 +4,26 @@ require 'simplecov'
 require 'simplecov-cobertura'
 
 module CoverageConfig
+  PROJECT_ROOT = File.expand_path('../..', __dir__)
   DEFAULT_RESULTSET_BASENAME = '.resultset.json'
   REAL_ENV_RESULTSET_TEMPLATE = '.resultset.%<os>s.json'
+  TRACKED_RUNTIME_GLOBS = [
+    'lib/**/*.rb',
+    'exe/*',
+  ].freeze
+  EXCLUDED_RUNTIME_GLOBS = [
+    'lib/wifi_wand/mac_helper/mac_helper_release.rb',
+    'lib/wifi_wand/mac_helper/mac_os_helper_build.rb',
+  ].freeze
 
   def self.setup
+    configure_resultset_path!
+    SimpleCov.command_name("rspec-#{coverage_label}")
+
     SimpleCov.start do
+      CoverageConfig.simplecov_tracked_patterns.each { |pattern| track_files pattern }
+      CoverageConfig.excluded_runtime_files.each { |file| add_filter file }
+
       add_filter '/spec/'
       add_filter '/vendor/'
       add_filter '/tmp/'
@@ -29,9 +44,23 @@ module CoverageConfig
       # Only track coverage when running the full test suite
       enable_coverage :branch if ENV['COVERAGE_BRANCH'] == 'true'
     end
+  end
 
-    configure_resultset_path!
-    SimpleCov.command_name("rspec-#{coverage_label}")
+  def self.tracked_runtime_globs = TRACKED_RUNTIME_GLOBS
+
+  def self.excluded_runtime_globs = EXCLUDED_RUNTIME_GLOBS
+
+  def self.excluded_runtime_files = relative_files_matching(excluded_runtime_globs)
+
+  def self.simplecov_tracked_patterns
+    tracked_runtime_files.reject { |file| file.start_with?('exe/') } + ['exe/*']
+  end
+
+  def self.tracked_runtime_files
+    included_files = relative_files_matching(tracked_runtime_globs)
+    excluded_files = excluded_runtime_files
+
+    included_files.reject { |file| excluded_files.include?(file) }
   end
 
   def self.coverage_label = real_env_run? ? 'real_env' : 'default'
@@ -70,5 +99,13 @@ module CoverageConfig
 
     result_merger.send(:define_method, :resultset_path) { path }
     result_merger.send(:define_method, :resultset_writelock) { lock_path }
+  end
+
+  def self.relative_files_matching(globs)
+    matched_files = globs.flat_map do |glob|
+      Dir.glob(File.join(PROJECT_ROOT, glob)).select { |path| File.file?(path) }
+    end
+
+    matched_files.sort.map { |path| path.delete_prefix("#{PROJECT_ROOT}/") }
   end
 end

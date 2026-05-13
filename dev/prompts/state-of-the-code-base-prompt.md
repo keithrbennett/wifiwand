@@ -71,6 +71,8 @@ include:
 ### Test Coverage
 - Using the **cov-loupe MCP server**, analyze the test coverage:
     - Include a summary table of coverage by file/module.
+    - Use the intended runtime file set for whole-codebase coverage claims, and report files missing from the
+      SimpleCov resultset.
     - Report coverage at a high and general level.
     - Rank risks of lacking coverage in **descending order of magnitude**.
 - Highlight untested critical paths and potential consequences.

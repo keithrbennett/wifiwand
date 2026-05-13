@@ -3,15 +3,16 @@
 ## Coverage artifacts can be stale or partial
 
 1) Do not report coverage reliability as a code issue just because SimpleCov output only reflects files
-   touched by the last run, some files are missing from the current resultset, or `cov-loupe` reports stale
-   entries.
+   touched by the last run or `cov-loupe` reports stale entries for an old or filtered resultset.
 
 This repository keeps separate coverage resultsets for default and real-environment runs, and coverage data is
 only trustworthy for the exact test scope that generated it. If someone wants to rely on coverage data for
-prioritization or planning, it is the developer's responsibility to run a fresh full test suite first.
+prioritization or planning, it is the developer's responsibility to run a fresh full test suite first and then
+check tracked runtime files with cov-loupe.
 
 Raise this again only if docs or tooling start treating partial coverage as whole-repo authoritative, or if CI
-depends on stale coverage as if it were complete.
+depends on stale coverage as if it were complete. It is also valid to raise concrete gaps where a fresh
+whole-codebase coverage review omits or misclassifies tracked runtime files.
 
 ## Verbose output can include plaintext WiFi passwords
 

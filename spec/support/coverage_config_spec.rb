@@ -11,6 +11,65 @@ RSpec.describe CoverageConfig do
     ENV['WIFIWAND_REAL_ENV_TESTS'] = original_real_env_tests
   end
 
+  describe '.tracked_runtime_globs' do
+    it 'defines the broad packaged Ruby runtime surface' do
+      expect(described_class.tracked_runtime_globs).to eq([
+        'lib/**/*.rb',
+        'exe/*',
+      ])
+    end
+  end
+
+  describe '.excluded_runtime_globs' do
+    it 'defines maintainer-only files excluded from packaged runtime coverage' do
+      expect(described_class.excluded_runtime_globs).to eq([
+        'lib/wifi_wand/mac_helper/mac_helper_release.rb',
+        'lib/wifi_wand/mac_helper/mac_os_helper_build.rb',
+      ])
+    end
+  end
+
+  describe '.excluded_runtime_files' do
+    it 'expands maintainer-only files excluded from packaged runtime coverage' do
+      expect(described_class.excluded_runtime_files).to include(
+        'lib/wifi_wand/mac_helper/mac_helper_release.rb',
+        'lib/wifi_wand/mac_helper/mac_os_helper_build.rb'
+      )
+    end
+  end
+
+  describe '.tracked_runtime_files' do
+    it 'includes packaged runtime files' do
+      expect(described_class.tracked_runtime_files).to include(
+        'lib/wifi_wand.rb',
+        'lib/wifi_wand/main.rb',
+        'exe/wifi-wand',
+        'exe/wifi-wand-macos-setup'
+      )
+    end
+
+    it 'excludes maintainer-only files that are not packaged runtime' do
+      expect(described_class.tracked_runtime_files).not_to include(
+        'lib/wifi_wand/mac_helper/mac_helper_release.rb',
+        'lib/wifi_wand/mac_helper/mac_os_helper_build.rb'
+      )
+    end
+  end
+
+  describe '.simplecov_tracked_patterns' do
+    it 'tracks Ruby files exactly and extensionless executables by glob' do
+      expect(described_class.simplecov_tracked_patterns).to include(
+        'lib/wifi_wand.rb',
+        'lib/wifi_wand/main.rb',
+        'exe/*'
+      )
+      expect(described_class.simplecov_tracked_patterns).not_to include(
+        'exe/wifi-wand',
+        'exe/wifi-wand-macos-setup'
+      )
+    end
+  end
+
   describe '.real_env_run?' do
     it 'returns false for ordinary runs' do
       ENV.delete('WIFIWAND_REAL_ENV_TESTS')

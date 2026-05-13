@@ -27,6 +27,8 @@ as columns:
 - For test coverage that includes OS-specific tests for the native OS, use the current resultset produced by
   the test run. The default run writes `coverage/.resultset.json`; real-environment runs write
   `coverage/.resultset.<os>.json`.
+- For whole-codebase coverage claims, call `project_coverage` with the intended runtime file set and report
+  files that are missing from the SimpleCov resultset. Do not rely only on the aggregate SimpleCov percentage.
 
 
 **DO NOT MAKE ANY CODE CHANGES. REVIEW ONLY.**

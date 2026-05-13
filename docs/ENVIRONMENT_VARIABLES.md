@@ -140,7 +140,7 @@ was unfiltered or current.
 - A filtered or partial run still writes one of the filenames above.
 - A resultset becomes stale after relevant source files change.
 - For whole-codebase coverage analysis, developers should first run a fresh unfiltered suite, then inspect the
-  resulting file.
+  resulting file and verify tracked runtime files with cov-loupe.
 
 ## CI/CD Guidelines
 

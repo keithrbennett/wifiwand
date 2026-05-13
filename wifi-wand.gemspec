@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'lib/wifi_wand/version'
+version_source = File.read(File.expand_path('lib/wifi_wand/version.rb', __dir__))
+version_match = version_source.match(/\bVERSION\s*=\s*['"]([^'"]+)['"]/)
+raise 'Could not read wifi-wand version from lib/wifi_wand/version.rb' unless version_match
 
 Gem::Specification.new do |spec|
   packaged_file_patterns = [
@@ -24,7 +26,7 @@ Gem::Specification.new do |spec|
   ].freeze
 
   spec.name          = 'wifi-wand'
-  spec.version       = WifiWand::VERSION
+  spec.version       = version_match[1]
   spec.authors       = ['Keith Bennett']
   spec.email         = ['keithrbennett@gmail.com']
   spec.description   = 'A command line interface for managing WiFi on Mac and Ubuntu systems.'

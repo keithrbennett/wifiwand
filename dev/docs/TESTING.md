@@ -262,6 +262,12 @@ Practical rule:
 
 - For codebase-wide review or planning, first run a fresh unfiltered suite such as `bundle exec rspec` or
   `bundle exec rake test:safe`, then inspect the newly generated resultset.
+- Treat the overall SimpleCov percentage as incomplete unless the review also checks tracked runtime files.
+  SimpleCov starts from `lib/**/*.rb` and `exe/*`, then excludes maintainer-only files that are also excluded
+  by the gemspec. Use cov-loupe when deciding whether packaged runtime files are covered, uncovered, or
+  missing from the resultset.
+- `bin/*` contains maintainer tooling that is not shipped as gem executables, so it is not part of normal
+  runtime coverage accounting.
 - For targeted local work, it is fine to rely on targeted coverage artifacts, but only for the code exercised
   by that run.
 
