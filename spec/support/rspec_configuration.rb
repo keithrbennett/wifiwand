@@ -97,15 +97,10 @@ module RSpecConfiguration
     return unless real_env_read_write_tests_will_run
 
     NetworkStateManager.start_session
-
-    unless NetworkStateManager.model.connected?
-      raise 'Real-environment read-write tests require an active network connection. ' \
-        'Please connect to a WiFi network before running the read-write suite.'
-    end
-
     NetworkStateManager.capture_state
+    network_state = NetworkStateManager.network_state
 
-    unless NetworkStateManager.network_state[:network_name]
+    if state_requires_restorable_identity?(network_state)
       if running_on_mac_os?
         identity_error = real_env_wifi_identity_error(NetworkStateManager.model)
         raise real_env_wifi_identity_setup_error(identity_error) if identity_error
@@ -115,14 +110,14 @@ module RSpecConfiguration
         'Connected state was detected but network name could not be determined.'
     end
 
-    network_state = NetworkStateManager.network_state
-
-    warn "\nCaptured network state for restoration: #{network_state[:network_name]}"
-    if network_state[:network_password]
-      warn 'Captured saved network password for restoration.'
-    else
-      warn 'Warning: No network password was captured during preflight. ' \
-        'Restore may trigger additional macOS authentication prompts or fail to reconnect.'
+    warn "\nCaptured network state for restoration: #{network_state_description(network_state)}"
+    if WifiWand::NetworkStateManager.state_associated?(network_state)
+      if network_state[:network_password]
+        warn 'Captured saved network password for restoration.'
+      else
+        warn 'Warning: No network password was captured during preflight. ' \
+          'Restore may trigger additional macOS authentication prompts or fail to reconnect.'
+      end
     end
     warn ''
   end
@@ -206,22 +201,18 @@ module RSpecConfiguration
 
   def self.attempt_final_network_restoration
     network_state = NetworkStateManager.network_state
-    return unless network_state && network_state[:network_name]
+    return unless network_state
     return if previous_restore_failed?
 
     RSpec.configuration.reporter.message("\n#{'=' * 60}")
     begin
       NetworkStateManager.restore_state(fail_silently: false)
       RSpec.configuration.reporter.message(
-        "✅ Successfully restored network connection: #{network_state[:network_name]}"
+        "✅ Successfully restored network state: #{network_state_description(network_state)}"
       )
     rescue WifiWand::Error => e
       safe_message = safe_utf8(e.message)
-      safe_network_name = safe_utf8(network_state[:network_name])
-      RSpec.configuration.reporter.message(<<~ERROR_MESSAGE)
-        ⚠️  Could not restore network connection: #{safe_message}
-        You may need to manually reconnect to: #{safe_network_name}
-      ERROR_MESSAGE
+      RSpec.configuration.reporter.message(restore_failure_message(network_state, safe_message))
       raise
     end
     RSpec.configuration.reporter.message("#{'=' * 60}\n\n")
@@ -247,6 +238,39 @@ module RSpecConfiguration
 
   def self.real_env_wifi_identity_unverifiable?(model)
     !real_env_wifi_identity_error(model).nil?
+  end
+
+  def self.state_requires_restorable_identity?(network_state)
+    WifiWand::NetworkStateManager.state_associated?(network_state) &&
+      !WifiWand::NetworkStateManager.restorable_network_name?(network_state[:network_name])
+  end
+
+  def self.network_state_description(network_state)
+    if network_state[:wifi_enabled] == false
+      'WiFi off'
+    elsif WifiWand::NetworkStateManager.state_associated?(network_state) &&
+        WifiWand::NetworkStateManager.restorable_network_name?(network_state[:network_name])
+      network_state[:network_name]
+    elsif WifiWand::NetworkStateManager.state_associated?(network_state)
+      'associated WiFi network with unavailable SSID'
+    else
+      'WiFi on and disassociated'
+    end
+  end
+
+  def self.restore_failure_message(network_state, safe_message)
+    if WifiWand::NetworkStateManager.restorable_network_name?(network_state[:network_name])
+      safe_network_name = safe_utf8(network_state[:network_name])
+      <<~ERROR_MESSAGE
+        ⚠️  Could not restore network state: #{safe_message}
+        You may need to manually reconnect to: #{safe_network_name}
+      ERROR_MESSAGE
+    else
+      <<~ERROR_MESSAGE
+        ⚠️  Could not restore network state: #{safe_message}
+        You may need to manually restore the original WiFi state.
+      ERROR_MESSAGE
+    end
   end
 
   def self.real_env_wifi_identity_error(model)

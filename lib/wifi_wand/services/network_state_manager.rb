@@ -35,15 +35,28 @@ module WifiWand
       )
     end
 
+    def self.state_associated?(state)
+      return state[:associated] if state.key?(:associated)
+
+      restorable_network_name?(state[:network_name])
+    end
+
+    def self.restorable_network_name?(network_name)
+      network_name && !network_name.empty?
+    end
+
     # Network State Management for Testing
     # These methods help capture and restore network state during disruptive tests
 
     def capture_network_state
+      identity_error = nil
       network_name = begin
         @model.connected_network_name
-      rescue WifiWand::Error
+      rescue WifiWand::Error => e
+        identity_error = e
         nil
       end
+      associated = captured_association_state(network_name, identity_error)
 
       # Always attempt to capture password for consistent restoration
       # If we're capturing network state, we should have the password available
@@ -59,6 +72,7 @@ module WifiWand
 
       {
         wifi_enabled:     @model.wifi_on?,
+        associated:       associated,
         network_name:     network_name,
         network_password: network_password,
         interface:        @model.wifi_interface,
@@ -84,44 +98,96 @@ module WifiWand
           return # If WiFi should be off, we're done
         end
 
-        # Restore network connection if one existed
-        if state[:network_name] && state[:wifi_enabled]
-          # If we are already connected to the original network, no need to proceed
-          begin
-            if @model.wifi_on? == state[:wifi_enabled] &&
-                @model.connection_ready?(state[:network_name])
-              return :already_connected
-            end
-          rescue WifiWand::Error => e
-            if verbose?
-              output.puts "Warning: Unable to query current network (#{e.message}), " \
-                'proceeding with connection attempt'
-            end
-          end
-
-          password_to_use = state[:network_password]
-          password_to_use = nil if password_to_use.respond_to?(:empty?) && password_to_use.empty?
-          password_to_use ||= fallback_password_for(state[:network_name])
-
-          begin
-            connect_for_restore(state[:network_name], password_to_use)
-            wait_for_connection_restoration(state[:network_name])
-          rescue WifiWand::WaitTimeoutError => e
-            reason = restore_timeout_reason(state[:network_name])
-            error = WifiWand::NetworkConnectionError.new(network_name: state[:network_name], reason: reason)
-            error.set_backtrace(e.backtrace)
-            raise error
-          end
+        if originally_associated?(state)
+          restore_associated_network_state(state)
+        else
+          restore_disassociated_network_state
         end
       rescue *EXPECTED_RESTORE_ERRORS => e
         raise unless fail_silently
 
         output.puts "Warning: Could not restore network state (#{e.class}): #{e.message}"
-        if state[:network_name]
+        if restorable_network_name?(state[:network_name])
           output.puts "You may need to manually reconnect to: #{state[:network_name]}"
+        else
+          output.puts 'You may need to manually restore the original WiFi state.'
         end
         nil
       end
+    end
+
+    private def captured_association_state(network_name, identity_error)
+      return true if restorable_network_name?(network_name)
+      return true if identity_error.is_a?(WifiWand::MacOsRedactionError)
+
+      captured_association_state_without_restorable_identity
+    end
+
+    private def captured_association_state_without_restorable_identity
+      return false unless @model.wifi_on?
+
+      @model.connected?
+    rescue WifiWand::Error
+      true
+    end
+
+    private def originally_associated?(state)
+      self.class.state_associated?(state)
+    end
+
+    private def restore_associated_network_state(state)
+      network_name = state[:network_name]
+      return restore_associated_network_by_name(state, network_name) if restorable_network_name?(network_name)
+
+      raise_unavailable_restore_identity_error
+    end
+
+    private def restorable_network_name?(network_name)
+      self.class.restorable_network_name?(network_name)
+    end
+
+    private def restore_associated_network_by_name(state, network_name)
+      # If we are already connected to the original network, no need to proceed.
+      begin
+        if @model.wifi_on? == state[:wifi_enabled] && @model.connection_ready?(network_name)
+          return :already_connected
+        end
+      rescue WifiWand::Error => e
+        if verbose?
+          output.puts "Warning: Unable to query current network (#{e.message}), " \
+            'proceeding with connection attempt'
+        end
+      end
+
+      password_to_use = state[:network_password]
+      password_to_use = nil if password_to_use.respond_to?(:empty?) && password_to_use.empty?
+      password_to_use ||= fallback_password_for(network_name)
+
+      begin
+        connect_for_restore(network_name, password_to_use)
+        wait_for_connection_restoration(network_name)
+      rescue WifiWand::WaitTimeoutError => e
+        reason = restore_timeout_reason(network_name)
+        error = WifiWand::NetworkConnectionError.new(network_name: network_name, reason: reason)
+        error.set_backtrace(e.backtrace)
+        raise error
+      end
+    end
+
+    private def restore_disassociated_network_state
+      @model.disconnect
+    end
+
+    private def raise_unavailable_restore_identity_error
+      if @model.mac?
+        raise WifiWand::MacOsRedactionError.new(
+          operation_description: 'network state restoration'
+        )
+      end
+
+      raise WifiWand::Error,
+        'Cannot restore network association because the original WiFi state was associated, ' \
+          'but its SSID was unavailable.'
     end
 
     private def connected_network_password

@@ -182,23 +182,28 @@ RSpec.describe RSpecConfiguration do
       described_class.handle_network_state_capture(false)
     end
 
-    it 'raises when not connected to a network' do
-      allow(mock_model).to receive(:connected?).and_return(false)
+    it 'captures a WiFi-on disassociated state for restoration' do
+      allow(NetworkStateManager).to receive(:capture_state)
+      allow(NetworkStateManager).to receive(:network_state).and_return({
+        wifi_enabled:     true,
+        associated:       false,
+        network_name:     nil,
+        network_password: nil,
+      })
 
       expect { described_class.handle_network_state_capture(true) }
-        .to raise_error(
-          RuntimeError,
-          /Real-environment read-write tests require an active network connection/
-        )
+        .to output(/Captured network state for restoration: WiFi on and disassociated/).to_stderr
     end
 
     # This example covers the generic non-macOS fallback path.
     # macOS has a dedicated redaction/setup error path that is covered below.
-    it 'raises when connected but captured state has no network name on non-macOS hosts' do
+    it 'raises when an associated captured state has no network name on non-macOS hosts' do
       OSFiltering.compatible_os_tag = :os_linux
-      allow(mock_model).to receive_messages(connected?: true, connected_network_name: nil)
       allow(NetworkStateManager).to receive(:capture_state)
-      allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: nil })
+      allow(NetworkStateManager).to receive(:network_state).and_return({
+        associated:   true,
+        network_name: nil,
+      })
 
       expect { described_class.handle_network_state_capture(true) }
         .to raise_error(RuntimeError, /Real-environment read-write tests require a restorable network state/)
@@ -226,16 +231,19 @@ RSpec.describe RSpecConfiguration do
         )
       )
       allow(NetworkStateManager).to receive(:capture_state)
-      allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: nil })
+      allow(NetworkStateManager).to receive(:network_state).and_return({
+        associated:   true,
+        network_name: nil,
+      })
 
       expect { described_class.handle_network_state_capture(true) }
         .to raise_error(RuntimeError, expected_error)
     end
 
     it 'succeeds when connected and network name is captured' do
-      allow(mock_model).to receive(:connected?).and_return(true)
       allow(NetworkStateManager).to receive(:capture_state)
       allow(NetworkStateManager).to receive(:network_state).and_return({
+        associated:       true,
         network_name:     'MyNetwork',
         network_password: 'secret',
       })
@@ -245,9 +253,9 @@ RSpec.describe RSpecConfiguration do
     end
 
     it 'warns when connected state is captured without a password' do
-      allow(mock_model).to receive(:connected?).and_return(true)
       allow(NetworkStateManager).to receive(:capture_state)
       allow(NetworkStateManager).to receive(:network_state).and_return({
+        associated:       true,
         network_name:     'MyNetwork',
         network_password: nil,
       })
@@ -342,7 +350,10 @@ RSpec.describe RSpecConfiguration do
   describe '.attempt_final_network_restoration' do
     before do
       described_class.clear_restore_failure!
-      allow(NetworkStateManager).to receive(:network_state).and_return({ network_name: 'MyNetwork' })
+      allow(NetworkStateManager).to receive(:network_state).and_return({
+        associated:   true,
+        network_name: 'MyNetwork',
+      })
     end
 
     it 'skips final restoration after a prior restore failure' do
@@ -360,7 +371,7 @@ RSpec.describe RSpecConfiguration do
 
       expect(RSpec.configuration.reporter).to receive(:message).with(
         a_string_matching(
-          /Could not restore network connection: Failed to connect to network 'MyNetwork': timed out/
+          /Could not restore network state: Failed to connect to network 'MyNetwork': timed out/
         )
       )
 
@@ -376,6 +387,56 @@ RSpec.describe RSpecConfiguration do
       expect do
         described_class.attempt_final_network_restoration
       end.to raise_error(NoMethodError, 'unexpected bug')
+    end
+
+    it 'attempts final restoration for a captured disassociated state' do
+      allow(NetworkStateManager).to receive(:network_state).and_return({
+        wifi_enabled: true,
+        associated:   false,
+        network_name: nil,
+      })
+      allow(NetworkStateManager).to receive(:restore_state).with(fail_silently: false)
+      allow(RSpec.configuration.reporter).to receive(:message)
+
+      expect(RSpec.configuration.reporter).to receive(:message).with(
+        /Successfully restored network state: WiFi on and disassociated/
+      )
+
+      described_class.attempt_final_network_restoration
+    end
+
+    it 'attempts final restoration for a captured WiFi-off state' do
+      allow(NetworkStateManager).to receive(:network_state).and_return({
+        wifi_enabled: false,
+        associated:   false,
+        network_name: nil,
+      })
+      allow(NetworkStateManager).to receive(:restore_state).with(fail_silently: false)
+      allow(RSpec.configuration.reporter).to receive(:message)
+
+      expect(RSpec.configuration.reporter).to receive(:message).with(
+        /Successfully restored network state: WiFi off/
+      )
+
+      described_class.attempt_final_network_restoration
+    end
+
+    it 'attempts final restoration for an associated state with unavailable SSID' do
+      allow(NetworkStateManager).to receive(:network_state).and_return({
+        associated:   true,
+        network_name: nil,
+      })
+      error = WifiWand::Error.new('Cannot restore network association')
+      allow(NetworkStateManager).to receive(:restore_state).with(fail_silently: false).and_raise(error)
+      allow(RSpec.configuration.reporter).to receive(:message)
+
+      expect(RSpec.configuration.reporter).to receive(:message).with(
+        /You may need to manually restore the original WiFi state/
+      )
+
+      expect do
+        described_class.attempt_final_network_restoration
+      end.to raise_error(WifiWand::Error, /Cannot restore network association/)
     end
   end
 

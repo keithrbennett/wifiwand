@@ -11,13 +11,14 @@ describe WifiWand::NetworkStateManager do
       connection_security_type:   'WPA2',
       wifi_on?:                   true,
       mac?:                       false,
-      associated?:                false,
+      associated?:                true,
       connected_network_name:     'TestNetwork',
       wifi_interface:             'wlan0',
       preferred_network_password: 'testpass',
       wifi_on:                    nil,
       wifi_off:                   nil,
       connect:                    nil,
+      disconnect:                 nil,
       till:                       nil
     )
   end
@@ -30,15 +31,83 @@ describe WifiWand::NetworkStateManager do
 
       expect(state_manager.capture_network_state).to include(
         wifi_enabled:     true,
+        associated:       true,
         network_name:     'TestNetwork',
         network_password: 'testpass',
         interface:        'wlan0'
       )
     end
 
-    it 'handles nil connected network name' do
-      allow(mock_model).to receive(:connected_network_name).and_return(nil)
+    it 'captures a disassociated WiFi-on state separately from the missing network name' do
+      allow(mock_model).to receive_messages(connected_network_name: nil, connected?: false)
+      expect(mock_model).not_to receive(:associated?)
+
       state = state_manager.capture_network_state
+
+      expect(state[:associated]).to be(false)
+      expect(state[:network_name]).to be_nil
+      expect(state[:network_password]).to be_nil
+    end
+
+    it 'captures unavailable SSID identity when connected state is active without a network name' do
+      allow(mock_model).to receive_messages(connected_network_name: nil, connected?: true)
+
+      expect(mock_model).not_to receive(:associated?)
+
+      state = state_manager.capture_network_state
+
+      expect(state[:associated]).to be(true)
+      expect(state[:network_name]).to be_nil
+      expect(state[:network_password]).to be_nil
+    end
+
+    it 'captures unavailable SSID identity when nameless connected checks fail while WiFi is on' do
+      allow(mock_model).to receive(:connected_network_name).and_return(nil)
+      allow(mock_model).to receive(:connected?).and_raise(WifiWand::Error.new('connection state unavailable'))
+      expect(mock_model).not_to receive(:associated?)
+
+      state = state_manager.capture_network_state
+
+      expect(state[:associated]).to be(true)
+      expect(state[:network_name]).to be_nil
+      expect(state[:network_password]).to be_nil
+    end
+
+    it 'treats macOS redaction as an associated state with unavailable identity' do
+      allow(mock_model).to receive(:connected_network_name).and_raise(
+        WifiWand::MacOsRedactionError.new(operation_description: 'Current WiFi network queries')
+      )
+
+      expect(mock_model).not_to receive(:associated?)
+
+      state = state_manager.capture_network_state
+
+      expect(state[:associated]).to be(true)
+      expect(state[:network_name]).to be_nil
+    end
+
+    it 'uses connected state when SSID lookup fails without redaction' do
+      allow(mock_model).to receive(:connected_network_name).and_raise(WifiWand::Error.new('SSID unavailable'))
+      allow(mock_model).to receive(:connected?).and_return(true)
+
+      expect(mock_model).not_to receive(:associated?)
+
+      state = state_manager.capture_network_state
+
+      expect(state[:associated]).to be(true)
+      expect(state[:network_name]).to be_nil
+      expect(state[:network_password]).to be_nil
+    end
+
+    it 'captures unavailable SSID identity when SSID and connected checks fail while WiFi is on' do
+      allow(mock_model).to receive(:connected_network_name).and_raise(WifiWand::Error.new('SSID unavailable'))
+      allow(mock_model).to receive(:connected?).and_raise(WifiWand::Error.new('connection state unavailable'))
+
+      expect(mock_model).not_to receive(:associated?)
+
+      state = state_manager.capture_network_state
+
+      expect(state[:associated]).to be(true)
       expect(state[:network_name]).to be_nil
       expect(state[:network_password]).to be_nil
     end
@@ -70,6 +139,7 @@ describe WifiWand::NetworkStateManager do
     let(:valid_state) do
       {
         wifi_enabled:     true,
+        associated:       true,
         network_name:     'TestNetwork',
         network_password: 'testpass',
         interface:        'wlan0',
@@ -163,6 +233,76 @@ describe WifiWand::NetworkStateManager do
           /Warning: Could not restore network state \(SocketError\): lookup failed/
         )
         expect(output.string).to match(/You may need to manually reconnect to: TestNetwork/)
+      end
+
+      it 'uses manual-state guidance for blank network names' do
+        output = StringIO.new
+        manager = described_class.new(mock_model, verbose: false, output: output)
+        state_identity_unavailable = valid_state.merge(network_name: '', network_password: nil)
+        allow(mock_model).to receive_messages(mac?: false, wifi_on?: true)
+
+        manager.restore_network_state(state_identity_unavailable, fail_silently: true)
+
+        expect(output.string).not_to match(/You may need to manually reconnect to:/)
+        expect(output.string).to match(/You may need to manually restore the original WiFi state\./)
+      end
+
+      it 'swallows disassociated restore failures with manual-state guidance' do
+        output = StringIO.new
+        manager = described_class.new(mock_model, verbose: false, output: output)
+        state_no_network = valid_state.merge(associated: false, network_name: nil, network_password: nil)
+        allow(mock_model).to receive(:disconnect).and_raise(
+          WifiWand::NetworkDisconnectionError.new(network_name: nil, reason: 'interface remained associated')
+        )
+
+        manager.restore_network_state(state_no_network, fail_silently: true)
+
+        expect(output.string).to match(
+          /Warning: Could not restore network state \(WifiWand::NetworkDisconnectionError\): /
+        )
+        expect(output.string).not_to match(/You may need to manually reconnect to:/)
+        expect(output.string).to match(/You may need to manually restore the original WiFi state\./)
+      end
+
+      it 'swallows macOS associated-without-SSID restore failures with manual-state guidance' do
+        output = StringIO.new
+        manager = described_class.new(mock_model, verbose: false, output: output)
+        state_identity_unavailable = valid_state.merge(
+          associated:       true,
+          network_name:     nil,
+          network_password: nil
+        )
+        allow(mock_model).to receive_messages(mac?: true, wifi_on?: true)
+
+        manager.restore_network_state(state_identity_unavailable, fail_silently: true)
+
+        expect(output.string).to match(
+          /Warning: Could not restore network state \(WifiWand::MacOsRedactionError\): /
+        )
+        expect(output.string).not_to match(/You may need to manually reconnect to:/)
+        expect(output.string).to match(/You may need to manually restore the original WiFi state\./)
+      end
+
+      it 'swallows non-macOS associated-without-SSID restore failures with manual-state guidance' do
+        output = StringIO.new
+        manager = described_class.new(mock_model, verbose: false, output: output)
+        state_identity_unavailable = valid_state.merge(
+          associated:       true,
+          network_name:     nil,
+          network_password: nil
+        )
+        allow(mock_model).to receive_messages(mac?: false, wifi_on?: true)
+
+        manager.restore_network_state(state_identity_unavailable, fail_silently: true)
+
+        expect(output.string).to match(
+          /Warning: Could not restore network state \(WifiWand::Error\): /
+        )
+        expect(output.string).to match(
+          /Cannot restore network association because the original WiFi state was associated/
+        )
+        expect(output.string).not_to match(/You may need to manually reconnect to:/)
+        expect(output.string).to match(/You may need to manually restore the original WiFi state\./)
       end
 
       it 'propagates unexpected exceptions even when fail_silently is true' do
@@ -486,6 +626,7 @@ describe WifiWand::NetworkStateManager do
     it 'skips network connection when WiFi should be disabled' do
       wifi_disabled_state = {
         wifi_enabled:     false,
+        associated:       true,
         network_name:     'TestNetwork',
         network_password: 'testpass',
         interface:        'wlan0',
@@ -499,13 +640,118 @@ describe WifiWand::NetworkStateManager do
       state_manager.restore_network_state(wifi_disabled_state)
     end
 
-    it 'skips network connection when no network name in state' do
-      state_no_network = valid_state.merge(network_name: nil)
+    it 'disconnects when the original WiFi-on state was disassociated' do
+      state_no_network = valid_state.merge(associated: false, network_name: nil, network_password: nil)
       allow(mock_model).to receive(:wifi_on?).and_return(true)
 
       expect(mock_model).not_to receive(:connect)
+      expect(mock_model).to receive(:disconnect)
 
       state_manager.restore_network_state(state_no_network)
+    end
+
+    it 'delegates disassociated restoration to disconnect even when associated? is false' do
+      state_no_network = valid_state.merge(associated: false, network_name: nil, network_password: nil)
+      allow(mock_model).to receive_messages(wifi_on?: true, associated?: false)
+
+      expect(mock_model).not_to receive(:connect)
+      expect(mock_model).to receive(:disconnect)
+
+      state_manager.restore_network_state(state_no_network)
+    end
+
+    it 'restores a legacy associated state by network name when associated is absent' do
+      legacy_state = valid_state.dup
+      legacy_state.delete(:associated)
+      allow(mock_model).to receive_messages(
+        connection_ready?:      false,
+        connected_network_name: 'OtherNetwork',
+        wifi_on?:               true
+      )
+      allow(state_manager).to receive(:sleep)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
+      allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
+
+      expect(mock_model).to receive(:connect).with('TestNetwork', 'testpass')
+      expect(mock_model).not_to receive(:disconnect)
+
+      state_manager.restore_network_state(legacy_state)
+    end
+
+    it 'treats a legacy nil-network state as disassociated when associated is absent' do
+      legacy_state = valid_state.merge(network_name: nil, network_password: nil)
+      legacy_state.delete(:associated)
+      allow(mock_model).to receive(:wifi_on?).and_return(true)
+
+      expect(mock_model).not_to receive(:connect)
+      expect(mock_model).to receive(:disconnect)
+
+      state_manager.restore_network_state(legacy_state)
+    end
+
+    it 'treats a legacy blank-network state as disassociated when associated is absent' do
+      legacy_state = valid_state.merge(network_name: '', network_password: nil)
+      legacy_state.delete(:associated)
+      allow(mock_model).to receive(:wifi_on?).and_return(true)
+
+      expect(mock_model).not_to receive(:connect)
+      expect(mock_model).to receive(:disconnect)
+
+      state_manager.restore_network_state(legacy_state)
+    end
+
+    it 'raises on macOS when the original state was associated but SSID identity is unavailable' do
+      state_identity_unavailable = valid_state.merge(
+        associated:       true,
+        network_name:     nil,
+        network_password: nil
+      )
+      allow(mock_model).to receive_messages(mac?: true, wifi_on?: true)
+
+      expect(mock_model).not_to receive(:connect)
+      expect(mock_model).not_to receive(:disconnect)
+
+      expect do
+        state_manager.restore_network_state(state_identity_unavailable)
+      end.to raise_error(WifiWand::MacOsRedactionError, /Exact WiFi network identity is required/)
+    end
+
+    it 'raises instead of reconnecting when an associated state has a blank network name' do
+      state_identity_unavailable = valid_state.merge(
+        associated:       true,
+        network_name:     '',
+        network_password: nil
+      )
+      allow(mock_model).to receive_messages(mac?: false, wifi_on?: true)
+
+      expect(mock_model).not_to receive(:connect)
+      expect(mock_model).not_to receive(:disconnect)
+
+      expect do
+        state_manager.restore_network_state(state_identity_unavailable)
+      end.to raise_error(
+        WifiWand::Error,
+        /original WiFi state was associated, but its SSID was unavailable/
+      )
+    end
+
+    it 'raises on non-macOS when the original state was associated but SSID identity is unavailable' do
+      state_identity_unavailable = valid_state.merge(
+        associated:       true,
+        network_name:     nil,
+        network_password: nil
+      )
+      allow(mock_model).to receive_messages(mac?: false, wifi_on?: true)
+
+      expect(mock_model).not_to receive(:connect)
+      expect(mock_model).not_to receive(:disconnect)
+
+      expect do
+        state_manager.restore_network_state(state_identity_unavailable)
+      end.to raise_error(
+        WifiWand::Error,
+        /original WiFi state was associated, but its SSID was unavailable/
+      )
     end
 
     it 'handles WaitTimeoutError and queries current network name' do
@@ -634,6 +880,7 @@ describe WifiWand::NetworkStateManager do
 
       valid_state = {
         wifi_enabled:     true,
+        associated:       true,
         network_name:     'TestNetwork',
         network_password: 'testpass',
         interface:        'wlan0',
