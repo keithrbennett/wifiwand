@@ -763,6 +763,18 @@ module WifiWand
           expect(ubuntu_model.send(:nameservers_from_connection, 'ConnX')).to eq(['1.1.1.1', '9.9.9.9'])
         end
 
+        it 'deduplicates DNS servers repeated in configured and runtime nmcli fields' do
+          nmcli_output = <<~OUT
+            connection.id:                   ConnDup
+            ipv4.dns[1]:                     1.1.1.1
+            IP4.DNS[1]:                      1.1.1.1
+          OUT
+          expect(ubuntu_model).to receive(:run_command).with(%w[nmcli connection show ConnDup],
+            raise_on_error: false)
+            .and_return(command_result(stdout: nmcli_output))
+          expect(ubuntu_model.send(:nameservers_from_connection, 'ConnDup')).to eq(['1.1.1.1'])
+        end
+
         it 'returns empty array when nmcli connection show fails' do
           expect(ubuntu_model).to receive(:run_command).with(%w[nmcli connection show ConnY],
             raise_on_error: false)

@@ -685,7 +685,7 @@ module WifiWand
         dns_lines.map do |line|
           # Split only on the first colon so IPv6 addresses (which contain colons) are preserved
           line.split(':', 2).last.strip
-        end.reject(&:empty?)
+        end.reject(&:empty?).uniq
       rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
         # If we can't get connection info, return empty array
         []
