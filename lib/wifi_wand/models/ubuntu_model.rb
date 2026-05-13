@@ -420,7 +420,10 @@ module WifiWand
     private def rollback_existing_profile_password(profile, security_param, old_password)
       run_command(['nmcli', 'connection', 'modify', profile, security_param, old_password])
     rescue WifiWand::CommandExecutor::OsCommandError => e
-      out_stream.puts("Password rollback failed for #{profile}: #{e.message}") if verbose?
+      err_stream.puts(
+        "Warning: password rollback failed for '#{profile}': #{e.message}. " \
+          'You may need to re-enter the password for this network.'
+      )
     end
 
     # Finds the best connection profile for a given SSID.

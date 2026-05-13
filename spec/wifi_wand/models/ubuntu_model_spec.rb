@@ -158,6 +158,53 @@ module WifiWand
             .to raise_error(WifiWand::NetworkAuthenticationError, /SSID1/)
         end
 
+        context 'with non-verbose error output' do
+          subject(:ubuntu_model) do
+            create_ubuntu_test_model(verbose: false, err_stream: err_stream)
+          end
+
+          let(:err_stream) { StringIO.new }
+
+          it 'warns when rollback of an updated profile password fails' do
+            setup_connect_test(profile_name: 'SSID1', old_password: 'oldpass',
+              security_param: '802-11-wireless-security.psk')
+
+            expect(ubuntu_model).to receive(:run_command)
+              .with(%w[nmcli connection modify SSID1 802-11-wireless-security.psk wrongpass])
+              .ordered
+              .and_return(command_result(stdout: ''))
+            expect(ubuntu_model).to receive(:run_command)
+              .with(%w[nmcli connection up SSID1])
+              .ordered
+              .and_raise(
+                os_command_error(
+                  exitstatus: 4,
+                  command:    'nmcli connection up',
+                  text:       'Error: Connection activation failed: (53) authentication failed'
+                )
+              )
+            expect(ubuntu_model).to receive(:run_command)
+              .with(%w[nmcli connection modify SSID1 802-11-wireless-security.psk oldpass])
+              .ordered
+              .and_raise(
+                os_command_error(
+                  exitstatus: 4,
+                  command:    'nmcli connection modify',
+                  text:       'rollback modify failed'
+                )
+              )
+
+            expect { ubuntu_model._connect('SSID1', 'wrongpass') }
+              .to raise_error(WifiWand::NetworkAuthenticationError, /SSID1/)
+            expect(err_stream.string).to include(
+              "Warning: password rollback failed for 'SSID1':"
+            )
+            expect(err_stream.string).to include(
+              'You may need to re-enter the password for this network.'
+            )
+          end
+        end
+
         it 'targets the best matching profile for password updates' do
           setup_connect_test(profile_name: 'SSID1', old_password: 'oldpass',
             security_param: '802-11-wireless-security.psk')
