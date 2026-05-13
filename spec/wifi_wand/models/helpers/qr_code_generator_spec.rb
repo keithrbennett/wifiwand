@@ -183,6 +183,26 @@ describe 'QR Code Generator (unit)' do
     silence_output { model.generate_qr_code(nil, password: provided_password) }
   end
 
+  [
+    ['leading spaces with unknown security', '  provided123', nil],
+    ['trailing spaces with unknown security', 'provided123  ', nil],
+    ['an all-space WPA-length passphrase with unknown security', '        ', nil],
+    ['an all-space WPA-length passphrase with known security', '        ', 'WPA2'],
+  ].each do |description, provided_password, explicit_security|
+    it "preserves #{description} in an explicit password" do
+      allow(model).to receive(:connection_security_type).and_return(explicit_security)
+      expect(model).not_to receive(:preferred_network_password)
+
+      expect(model).to receive(:run_command) do |cmd|
+        expect(cmd).to include('qrencode')
+        expect(cmd.last).to eq("WIFI:T:WPA;S:TestNetwork;P:#{provided_password};H:false;;")
+        command_result(stdout: '')
+      end
+
+      silence_output { model.generate_qr_code(nil, password: provided_password) }
+    end
+  end
+
   it 'looks up the connected network password through the model API when no password is provided' do
     expect(model).to receive(:preferred_network_password).with(ssid).and_return(password)
 
@@ -270,22 +290,24 @@ describe 'QR Code Generator (unit)' do
     end.to raise_error(WifiWand::QrCodeSecurityUndeterminedError)
   end
 
-  it 'raises a targeted error when unknown security receives a whitespace explicit password' do
+  it 'uses WPA fallback when unknown security receives a whitespace explicit password' do
+    provided_password = " \t "
+
     allow(model).to receive(:connection_security_type).and_return(nil)
-    allow(model).to receive(:preferred_network_password)
-      .with(ssid)
-      .and_raise(WifiWand::PreferredNetworkNotFoundError.new(ssid))
+    expect(model).not_to receive(:preferred_network_password)
 
-    expect(model).not_to receive(:run_command)
+    expect(model).to receive(:run_command) do |cmd|
+      expect(cmd).to include('qrencode')
+      expect(cmd.last).to eq("WIFI:T:WPA;S:TestNetwork;P:#{provided_password};H:false;;")
+      command_result(stdout: '')
+    end
 
-    expect do
-      silence_output { model.generate_qr_code(nil, password: " \t ") }
-    end.to raise_error(WifiWand::QrCodeSecurityUndeterminedError)
+    silence_output { model.generate_qr_code(nil, password: provided_password) }
   end
 
   it 'raises a targeted error when unknown security has a blank saved password' do
     allow(model).to receive(:connection_security_type).and_return(nil)
-    allow(model).to receive(:preferred_network_password).with(ssid).and_return(" \t ")
+    allow(model).to receive(:preferred_network_password).with(ssid).and_return('')
 
     expect(model).not_to receive(:run_command)
 
@@ -304,14 +326,22 @@ describe 'QR Code Generator (unit)' do
     end.to raise_error(WifiWand::QrCodePasswordUnavailableError, /Pass the optional password argument/)
   end
 
-  it 'raises a targeted error when a secured network has a whitespace saved password' do
-    allow(model).to receive(:preferred_network_password).with(ssid).and_return(" \t ")
+  [
+    ['mixed whitespace with known security', "  saved \t password  ", 'WPA2'],
+    ['an all-space WPA-length passphrase with unknown security', '        ', nil],
+  ].each do |description, saved_password, saved_security|
+    it "preserves #{description} in a saved password" do
+      allow(model).to receive(:connection_security_type).and_return(saved_security)
+      allow(model).to receive(:preferred_network_password).with(ssid).and_return(saved_password)
 
-    expect(model).not_to receive(:run_command)
+      expect(model).to receive(:run_command) do |cmd|
+        expect(cmd).to include('qrencode')
+        expect(cmd.last).to eq("WIFI:T:WPA;S:TestNetwork;P:#{saved_password};H:false;;")
+        command_result(stdout: '')
+      end
 
-    expect do
       silence_output { model.generate_qr_code(nil) }
-    end.to raise_error(WifiWand::QrCodePasswordUnavailableError, /Pass the optional password argument/)
+    end
   end
 
   it 'raises a targeted error when a secured network is not in the preferred list' do

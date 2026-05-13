@@ -110,7 +110,7 @@ module WifiWand
       end
 
       private def blank_password?(password)
-        password.to_s.strip.empty?
+        password.nil? || password == ''
       end
 
       private def missing_password_error(network_name, security_type)
