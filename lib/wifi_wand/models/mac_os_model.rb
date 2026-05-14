@@ -26,6 +26,7 @@ module WifiWand
 
     SYSTEM_PROFILER_TIMEOUT_SECONDS = MacOsAirportDataProvider::SYSTEM_PROFILER_TIMEOUT_SECONDS
     KEYCHAIN_LOOKUP_TIMEOUT_SECONDS = MacOsKeychainPasswordReader::DEFAULT_LOOKUP_TIMEOUT_SECONDS
+    SUDO_AUTH_CHECK_TIMEOUT_SECONDS = 1
     SUDO_NETWORKSETUP_TIMEOUT_SECONDS = 5
     AIRPORT_COMMAND =
       '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
@@ -402,12 +403,42 @@ module WifiWand
     def remove_preferred_network(network_name)
       network_name = network_name.to_s
       iface = wifi_interface
+      ensure_sudo_authenticated_for_preferred_network_removal!
       run_command(
         ['sudo', 'networksetup', '-removepreferredwirelessnetwork', iface, network_name],
         raise_on_error:  true,
         timeout_in_secs: SUDO_NETWORKSETUP_TIMEOUT_SECONDS
       )
       [network_name]
+    end
+
+    private def ensure_sudo_authenticated_for_preferred_network_removal!
+      return if sudo_authentication_cached?
+
+      unless interactive_sudo_authentication_available?
+        message = 'Administrator authentication is required to remove a saved WiFi network. ' \
+          'Run `sudo -v` in a terminal, then retry.'
+        raise SudoAuthenticationError, message
+      end
+
+      err_stream.puts 'Administrator authentication is required to remove a saved WiFi network.'
+      return if system('sudo', '-v')
+
+      raise SudoAuthenticationError, 'Administrator authentication failed or was cancelled.'
+    end
+
+    private def sudo_authentication_cached?
+      run_command(
+        %w[sudo -n true],
+        raise_on_error:  false,
+        timeout_in_secs: SUDO_AUTH_CHECK_TIMEOUT_SECONDS
+      ).success?
+    rescue WifiWand::CommandTimeoutError
+      false
+    end
+
+    private def interactive_sudo_authentication_available?
+      $stdin.respond_to?(:tty?) && $stdin.tty? && $stderr.respond_to?(:tty?) && $stderr.tty?
     end
 
     # Returns the network currently connected to, or nil if none.

@@ -232,6 +232,12 @@ module WifiWand
     end
   end
 
+  class SudoAuthenticationError < Error
+    def initialize(message = nil)
+      super(message || 'Administrator authentication is required. Run `sudo -v` in a terminal, then retry.')
+    end
+  end
+
   class CommandSpawnError < Error
     attr_reader :command, :reason
 
