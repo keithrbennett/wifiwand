@@ -69,10 +69,12 @@ module WifiWand
         subject { create_mac_os_test_model }
 
         describe '#_connect' do
-          it 'raises error for non-existent network' do
-            # Swift command exits with status 1 and "Error: Network not found" message
+          it 'raises connection error for non-existent network' do
             expect { subject._connect('non_existent_network_123') }
-              .to raise_error(WifiWand::CommandExecutor::OsCommandError)
+              .to raise_error(WifiWand::NetworkConnectionError) do |error|
+                expect(error.network_name).to eq('non_existent_network_123')
+                expect(error.source).to eq(:swift).or eq(:networksetup)
+              end
           end
         end
       end
