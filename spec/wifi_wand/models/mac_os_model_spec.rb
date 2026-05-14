@@ -128,10 +128,20 @@ module WifiWand
     # Mocked tests for core functionality
     context 'when testing core functionality' do
       subject(:model) { create_mac_os_test_model }
+      let(:identity_reader) { model.send(:network_identity_reader) }
       let(:success_result) do
         WifiWand::CommandExecutor::OsCommandResult.new(
           stdout: '', stderr: '', combined_output: '', exitstatus: 0, command: '', duration: 0.1
         )
+      end
+
+      def stub_fast_network_identity_missing(timeout_in_secs: nil)
+        allow(model).to receive(:run_command)
+          .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: timeout_in_secs)
+          .and_return(command_result(stdout: ''))
+        allow(model).to receive(:run_command)
+          .with([described_class::AIRPORT_COMMAND, '-I'], timeout_in_secs: timeout_in_secs)
+          .and_return(command_result(stdout: ''))
       end
 
       describe '#os_id' do
@@ -272,7 +282,6 @@ module WifiWand
         before do
           model.instance_variable_set(:@mac_helper_client, nil)
           allow(WifiWand::MacOsHelperClient).to receive(:new).and_return(helper_double)
-          allow(model).to receive(:network_name_using_fast_commands).and_return(nil)
         end
 
         it 'returns the helper-provided SSID when available' do
@@ -285,7 +294,6 @@ module WifiWand
         it 'uses networksetup for the connected SSID before reading airport data' do
           result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
-          allow(model).to receive(:network_name_using_fast_commands).and_call_original
           allow(model).to receive(:wifi_interface).and_return('en0')
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: nil)
@@ -298,7 +306,6 @@ module WifiWand
         it 'uses airport -I when networksetup has no usable SSID' do
           result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
-          allow(model).to receive(:network_name_using_fast_commands).and_call_original
           allow(model).to receive(:wifi_interface).and_return('en0')
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: nil)
@@ -314,7 +321,6 @@ module WifiWand
         it 'does not read airport data when networksetup reports no association' do
           result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
-          allow(model).to receive(:network_name_using_fast_commands).and_call_original
           allow(model).to receive(:wifi_interface).and_return('en0')
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: nil)
@@ -327,7 +333,6 @@ module WifiWand
         it 'does not read airport data when networksetup reports WiFi power is off' do
           result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
-          allow(model).to receive(:network_name_using_fast_commands).and_call_original
           allow(model).to receive(:wifi_interface).and_return('en0')
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: nil)
@@ -340,13 +345,12 @@ module WifiWand
         it 'does not run redaction fallback work when networksetup reports no association' do
           result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
-          allow(model).to receive(:network_name_using_fast_commands).and_call_original
           allow(model).to receive_messages(wifi_interface: 'en0', wifi_on?: true)
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: nil)
             .and_return(command_result(stdout: "You are not associated with an AirPort network.\n"))
           expect(model).not_to receive(:airport_data)
-          expect(model).not_to receive(:connected?)
+          expect(identity_reader).not_to receive(:connected?)
 
           expect(model.connected_network_name).to be_nil
         end
@@ -355,13 +359,12 @@ module WifiWand
           it "returns nil for authoritative not-connected fallback evidence with helper #{helper_status}" do
             result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(status: helper_status)
             allow(helper_double).to receive(:connected_network_name).and_return(result)
-            allow(model).to receive(:network_name_using_fast_commands).and_call_original
             allow(model).to receive_messages(wifi_interface: 'en0', wifi_on?: true)
             expect(model).to receive(:run_command)
               .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: nil)
               .and_return(command_result(stdout: "You are not associated with an AirPort network.\n"))
             expect(model).not_to receive(:airport_data)
-            expect(model).not_to receive(:connected?)
+            expect(identity_reader).not_to receive(:connected?)
 
             expect(model.connected_network_name).to be_nil
           end
@@ -376,6 +379,7 @@ module WifiWand
               'spairport_current_network_information' => { '_name' => 'ProfilerNet' },
             }],
           }] }, wifi_interface: 'en0')
+          stub_fast_network_identity_missing
 
           expect(model._connected_network_name).to eq('ProfilerNet')
         end
@@ -389,6 +393,7 @@ module WifiWand
               'spairport_current_network_information' => nil,
             }],
           }] }, wifi_interface: 'en0')
+          stub_fast_network_identity_missing
 
           expect(model._connected_network_name).to be_nil
         end
@@ -413,6 +418,7 @@ module WifiWand
               'spairport_current_network_information' => { '_name' => 'ProfilerNet' },
             }],
           }] }, wifi_interface: 'en0')
+          stub_fast_network_identity_missing
 
           expect(model._connected_network_name).to eq('ProfilerNet')
         end
@@ -438,6 +444,7 @@ module WifiWand
 
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(wifi_interface: 'en0', wifi_on?: true)
+          stub_fast_network_identity_missing
           expect(model).to receive(:run_command).with(
             %w[system_profiler -json SPAirPortDataType],
             raise_on_error:  true,
@@ -459,8 +466,9 @@ module WifiWand
           redacted_thread = nil
           disconnected_thread = nil
 
-          model.define_singleton_method(:wifi_on?) { true }
-          model.define_singleton_method(:_connected_network_name) do
+          reader = identity_reader
+          reader.define_singleton_method(:wifi_on?) { true }
+          reader.define_singleton_method(:connected_network_name_raw) do
             case Thread.current[:connected_network_name_test_mode]
             when :redacted
               send(:mark_connected_network_fallback_identity_redacted)
@@ -470,7 +478,7 @@ module WifiWand
               raise 'unexpected connected-network test mode'
             end
           end
-          model.define_singleton_method(:connected?) do
+          reader.define_singleton_method(:connected?) do
             raise 'authoritative disconnect should return before connected?' unless
               Thread.current[:connected_network_name_test_mode] == :redacted
 
@@ -478,7 +486,7 @@ module WifiWand
             release_redacted_thread.pop
             true
           end
-          model.define_singleton_method(:network_identity_redacted?) do
+          reader.define_singleton_method(:network_identity_redacted?) do
             send(:connected_network_fallback_identity_redacted?)
           end
 
@@ -519,7 +527,6 @@ module WifiWand
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(
             wifi_on?:       true,
-            connected?:     true,
             airport_data:   { 'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
@@ -528,6 +535,7 @@ module WifiWand
             }] },
             wifi_interface: 'en0'
           )
+          stub_fast_network_identity_missing
 
           expect { model.connected_network_name }.to raise_error(
             WifiWand::MacOsRedactionError,
@@ -544,7 +552,6 @@ module WifiWand
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(
             wifi_on?:       true,
-            connected?:     true,
             airport_data:   { 'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
@@ -553,6 +560,7 @@ module WifiWand
             }] },
             wifi_interface: 'en0'
           )
+          stub_fast_network_identity_missing
 
           expect { model.connection_ready?('TestNetwork') }.to raise_error(
             WifiWand::MacOsRedactionError,
@@ -574,7 +582,6 @@ module WifiWand
             allow(helper_double).to receive(:connected_network_name).and_return(result)
             allow(model).to receive_messages(
               wifi_on?:       true,
-              connected?:     true,
               airport_data:   { 'SPAirPortDataType' => [{
                 'spairport_airport_interfaces' => [{
                   '_name'                                 => 'en0',
@@ -583,6 +590,7 @@ module WifiWand
               }] },
               wifi_interface: 'en0'
             )
+            stub_fast_network_identity_missing
 
             expect { model.connected_network_name }.to raise_error(
               WifiWand::MacOsRedactionError,
@@ -613,6 +621,7 @@ module WifiWand
               }] },
               wifi_interface: 'en0'
             )
+            stub_fast_network_identity_missing
 
             expect { model.connected_network_name }.to raise_error(
               WifiWand::MacOsRedactionError,
@@ -636,6 +645,7 @@ module WifiWand
           )
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(wifi_on?: true, wifi_interface: 'en0')
+          stub_fast_network_identity_missing
           expect(model).to receive(:run_command).with(
             %w[system_profiler -json SPAirPortDataType],
             raise_on_error:  true,
@@ -884,7 +894,6 @@ module WifiWand
           model.instance_variable_set(:@mac_helper_client, nil)
           model.wifi_interface = 'en0'
           allow(WifiWand::MacOsHelperClient).to receive(:new).and_return(helper_double)
-          allow(model).to receive(:status_network_name_using_fast_commands).and_return(nil)
         end
 
         it 'returns disconnected when status interface detection returns nil' do
@@ -947,7 +956,6 @@ module WifiWand
           expect(helper_double).to receive(:connected_network_name)
             .with(timeout_seconds: status_timeout)
             .and_return(WifiWand::MacOsHelperBundle::HelperQueryResult.new)
-          allow(model).to receive(:status_network_name_using_fast_commands).and_call_original
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
             .and_return(command_result(stdout: "Current Wi-Fi Network: Cafe: West\n"))
@@ -966,7 +974,6 @@ module WifiWand
           expect(helper_double).to receive(:connected_network_name)
             .with(timeout_seconds: status_timeout)
             .and_return(WifiWand::MacOsHelperBundle::HelperQueryResult.new)
-          allow(model).to receive(:status_network_name_using_fast_commands).and_call_original
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
             .and_return(command_result(stdout: "You are not associated with an AirPort network.\n"))
@@ -985,7 +992,6 @@ module WifiWand
           expect(helper_double).to receive(:connected_network_name)
             .with(timeout_seconds: status_timeout)
             .and_return(WifiWand::MacOsHelperBundle::HelperQueryResult.new)
-          allow(model).to receive(:status_network_name_using_fast_commands).and_call_original
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
             .and_wrap_original do |_method|
@@ -1018,6 +1024,12 @@ module WifiWand
           expect(helper_double).to receive(:connected_network_name)
             .with(timeout_seconds: status_timeout)
             .and_return(WifiWand::MacOsHelperBundle::HelperQueryResult.new)
+          expect(model).to receive(:run_command)
+            .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: ''))
+          expect(model).to receive(:run_command)
+            .with([described_class::AIRPORT_COMMAND, '-I'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: ''))
           expect(model).to receive(:run_command)
             .with(
               %w[system_profiler -json SPAirPortDataType],
@@ -1060,6 +1072,12 @@ module WifiWand
             .with(timeout_seconds: status_timeout)
             .and_return(WifiWand::MacOsHelperBundle::HelperQueryResult.new)
           expect(model).to receive(:run_command)
+            .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: ''))
+          expect(model).to receive(:run_command)
+            .with([described_class::AIRPORT_COMMAND, '-I'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: ''))
+          expect(model).to receive(:run_command)
             .with(
               %w[system_profiler -json SPAirPortDataType],
               raise_on_error:  true,
@@ -1088,6 +1106,12 @@ module WifiWand
           expect(helper_double).to receive(:connected_network_name)
             .with(timeout_seconds: status_timeout)
             .and_return(WifiWand::MacOsHelperBundle::HelperQueryResult.new)
+          expect(model).to receive(:run_command)
+            .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: ''))
+          expect(model).to receive(:run_command)
+            .with([described_class::AIRPORT_COMMAND, '-I'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: ''))
           expect(model).to receive(:run_command)
             .with(
               %w[system_profiler -json SPAirPortDataType],
@@ -2108,10 +2132,8 @@ module WifiWand
           helper_result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: nil)
 
           allow(model).to receive(:_connected_network_name).and_call_original
-          allow(model).to receive_messages(
-            mac_helper_client:                helper_double,
-            network_name_using_fast_commands: nil
-          )
+          allow(model).to receive(:mac_helper_client).and_return(helper_double)
+          stub_fast_network_identity_missing
           allow(helper_double).to receive(:connected_network_name).and_return(helper_result)
 
           expect(model).to receive(:run_command).with(
@@ -2152,10 +2174,8 @@ module WifiWand
           )
 
           allow(model).to receive(:_connected_network_name).and_call_original
-          allow(model).to receive_messages(
-            mac_helper_client:                helper_double,
-            network_name_using_fast_commands: nil
-          )
+          allow(model).to receive(:mac_helper_client).and_return(helper_double)
+          stub_fast_network_identity_missing
           allow(helper_double).to receive(:connected_network_name).and_return(helper_result)
 
           expect(model).to receive(:run_command).with(
