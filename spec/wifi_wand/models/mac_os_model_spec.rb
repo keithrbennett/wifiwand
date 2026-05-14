@@ -83,23 +83,6 @@ module WifiWand
         :real_env_read_only, real_env_os: :os_mac do
         subject { create_mac_os_test_model }
 
-        describe '#set_nameservers' do
-          it 'validates IP address format before setting' do
-            invalid_scenarios = [
-              ['invalid.ip.address'],
-              ['999.999.999.999'],
-              ['not.an.ip', '8.8.8.8'],
-              ['192.168.1.1', 'bad.ip'],
-            ]
-
-            invalid_scenarios.each do |invalid_nameservers|
-              expect { subject.set_nameservers(invalid_nameservers) }
-                .to raise_error(WifiWand::InvalidIPAddressError),
-                  "Should reject invalid nameservers: #{invalid_nameservers}"
-            end
-          end
-        end
-
         describe 'interface detection consistency' do
           it 'consistently detects same WiFi interface across calls' do
             first_interface = subject.wifi_interface
@@ -278,36 +261,6 @@ module WifiWand
           expect do
             model.detect_wifi_interface_using_networksetup
           end.to raise_error(WifiWand::CommandExecutor::OsCommandError, /boom/)
-        end
-      end
-
-
-
-      describe '#_ip_address' do
-        it 'handles different ipconfig responses' do
-          test_cases = [
-            ["192.168.1.100\n", '192.168.1.100'],  # Valid IP
-            ['10.0.0.5', '10.0.0.5'],              # No newline
-            [os_command_error(exitstatus: 1, command: 'ipconfig', text: ''), nil], # Interface down
-          ]
-
-          test_cases.each do |response, expected|
-            if response.is_a?(Exception)
-              allow(model).to receive(:run_command).and_raise(response)
-            else
-              allow(model).to receive(:run_command).and_return(command_result(stdout: response))
-            end
-
-            expect(model._ip_address).to eq(expected)
-          end
-        end
-
-        it 're-raises unexpected ipconfig errors' do
-          allow(model).to receive(:wifi_interface).and_return('en0')
-          allow(model).to receive(:run_command).and_raise(
-            os_command_error(exitstatus: 2, command: 'ipconfig', text: 'boom')
-          )
-          expect { model._ip_address }.to raise_error(WifiWand::CommandExecutor::OsCommandError)
         end
       end
 
@@ -1294,155 +1247,6 @@ module WifiWand
         end
       end
 
-      describe '#nameservers_using_networksetup' do
-        it 'parses networksetup DNS output correctly' do
-          test_cases = [
-            ["8.8.8.8\n1.1.1.1\n", ['8.8.8.8', '1.1.1.1']],
-            ["There aren't any DNS Servers set on Wi-Fi.\n", []],
-            ['192.168.1.1', ['192.168.1.1']],
-          ]
-
-          test_cases.each do |output, expected|
-            allow(model).to receive_messages(
-              wifi_service_name: 'Wi-Fi',
-              run_command:       command_result(stdout: output)
-            )
-            expect(model.nameservers_using_networksetup).to eq(expected)
-          end
-        end
-      end
-
-      describe '#nameservers_using_scutil' do
-        it 'extracts unique nameservers from scutil output' do
-          scutil_output = <<~OUTPUT
-            resolver #1
-              domain   : local
-              options  : mdns
-              timeout  : 5
-              nameserver[0] : 8.8.8.8
-              nameserver[1] : 1.1.1.1
-              flags    : Request A records
-            resolver #2
-              nameserver[0] : 8.8.8.8
-              nameserver[1] : 9.9.9.9
-          OUTPUT
-
-          allow(model).to receive(:run_command).with(%w[scutil --dns])
-            .and_return(command_result(stdout: scutil_output))
-          result = model.nameservers_using_scutil
-          expect(result).to contain_exactly('8.8.8.8', '1.1.1.1', '9.9.9.9')
-        end
-      end
-
-      describe '#set_nameservers' do
-        it 'handles different nameserver configurations' do
-          test_cases = [
-            { input: ['8.8.8.8', '1.1.1.1'], expected_args: ['8.8.8.8', '1.1.1.1'] },
-            { input: ['192.168.1.1'], expected_args: ['192.168.1.1'] },
-            { input: :clear, expected_args: ['empty'] },
-          ]
-
-          test_cases.each do |tc|
-            allow(model).to receive(:wifi_service_name).and_return('Wi-Fi')
-            if tc[:input] == :clear
-              expect(model).to receive(:run_command)
-                .with(['networksetup', '-setdnsservers', 'Wi-Fi', 'empty'])
-            else
-              expect(model).to receive(:run_command).with(['networksetup', '-setdnsservers',
-                'Wi-Fi'] + tc[:input])
-            end
-            expect(model.set_nameservers(tc[:input])).to eq(tc[:input])
-          end
-        end
-
-        it 'accepts IPv6 DNS addresses' do
-          ipv6_test_cases = [
-            { input:         ['2606:4700:4700::1111', '2606:4700:4700::1001'],
-              expected_args: ['2606:4700:4700::1111', '2606:4700:4700::1001'] },
-            { input:         ['2001:4860:4860::8888'],
-              expected_args: ['2001:4860:4860::8888'] },
-            { input:         ['8.8.8.8', '2606:4700:4700::1111'],
-              expected_args: ['8.8.8.8', '2606:4700:4700::1111'] },
-          ]
-
-          ipv6_test_cases.each do |tc|
-            allow(model).to receive(:wifi_service_name).and_return('Wi-Fi')
-            expect(model).to receive(:run_command).with(['networksetup', '-setdnsservers',
-              'Wi-Fi'] + tc[:input])
-            expect(model.set_nameservers(tc[:input])).to eq(tc[:input])
-          end
-        end
-
-        it 'validates IP addresses and raises error for invalid ones' do
-          allow(model).to receive(:wifi_service_name).and_return('Wi-Fi')
-          invalid_nameservers = ['8.8.8.8', 'invalid.ip', '2001:db8:::1']
-          silence_output do
-            expect { model.set_nameservers(invalid_nameservers) }
-              .to raise_error(WifiWand::InvalidIPAddressError) do |error|
-                expect(error.invalid_addresses).to contain_exactly('invalid.ip', '2001:db8:::1')
-              end
-          end
-        end
-
-        it 'treats nil nameserver input as invalid' do
-          allow(model).to receive(:wifi_service_name).and_return('Wi-Fi')
-          invalid_nameservers = ['8.8.8.8', nil]
-
-          silence_output do
-            expect { model.set_nameservers(invalid_nameservers) }
-              .to raise_error(WifiWand::InvalidIPAddressError) do |error|
-                expect(error.invalid_addresses).to eq([nil])
-              end
-          end
-        end
-
-        it 'treats non-string nameserver input as invalid' do
-          allow(model).to receive(:wifi_service_name).and_return('Wi-Fi')
-          invalid_nameservers = ['8.8.8.8', 123]
-
-          silence_output do
-            expect { model.set_nameservers(invalid_nameservers) }
-              .to raise_error(WifiWand::InvalidIPAddressError) do |error|
-                expect(error.invalid_addresses).to eq([123])
-              end
-          end
-        end
-      end
-
-      describe '#default_interface' do
-        it 'extracts default interface from route output' do
-          test_cases = [
-            ["   interface: en0\n", 'en0'],
-            ['   interface: wlan0', 'wlan0'],
-            ['', nil],
-            [os_command_error(exitstatus: 1, command: 'route', text: ''), nil],
-          ]
-
-          test_cases.each do |response, expected|
-            if response.is_a?(Exception)
-              allow(model).to receive(:run_command).with(%w[route -n get default],
-                raise_on_error: false).and_raise(response)
-            else
-              allow(model).to receive(:run_command).with(%w[route -n get default],
-                raise_on_error: false).and_return(command_result(stdout: response))
-            end
-
-            expect(model.default_interface).to eq(expected)
-          end
-        end
-      end
-
-      describe '#mac_address' do
-        it 'extracts MAC address from ifconfig output' do
-          ifconfig_output = "en0: flags=8863<UP,BROADCAST,SMART,RUNNING,SIMPLEX,MULTICAST> mtu 1500\n" \
-            "\tether ac:bc:32:b9:a9:9d\n"
-          allow(model).to receive(:wifi_interface).and_return('en0')
-          allow(model).to receive(:run_command).with(%w[ifconfig en0])
-            .and_return(command_result(stdout: ifconfig_output))
-          expect(model.mac_address).to eq('ac:bc:32:b9:a9:9d')
-        end
-      end
-
       describe '#remove_preferred_network' do
         it 'constructs a correctly escaped removal command for various network names' do
           allow(model).to receive(:wifi_interface).and_return('en0')
@@ -1473,24 +1277,6 @@ module WifiWand
               timeout_in_secs: described_class::SUDO_NETWORKSETUP_TIMEOUT_SECONDS
             )
             expect(model.remove_preferred_network(network_name)).to eq([network_name])
-          end
-        end
-      end
-
-      describe '#open_resource' do
-        it 'constructs open commands properly' do
-          test_cases = [
-            'http://example.com',
-            'file:///path with spaces/file.txt',
-            '/Applications/Safari.app',
-          ]
-
-          test_cases.each do |resource|
-            expect(model).to receive(:run_command) do |cmd_array|
-              expect(cmd_array[0]).to eq('open')
-              expect(cmd_array[1]).to eq(resource)
-            end
-            model.open_resource(resource)
           end
         end
       end
@@ -1556,99 +1342,35 @@ module WifiWand
         end
       end
 
-      describe '#_preferred_network_password' do
-        it 'handles different keychain scenarios' do
-          test_cases = [
-            [os_command_error(exitstatus: 44, command: 'security', text: ''), nil], # Not found
-            [
-              os_command_error(exitstatus: 45, command: 'security', text: ''),
-              WifiWand::KeychainAccessDeniedError,
-            ],
-            [
-              os_command_error(exitstatus: 128, command: 'security', text: ''),
-              WifiWand::KeychainAccessCancelledError,
-            ],
-            [
-              os_command_error(exitstatus: 51, command: 'security', text: ''),
-              WifiWand::KeychainNonInteractiveError,
-            ],
-            [os_command_error(exitstatus: 25, command: 'security', text: ''), WifiWand::KeychainError],
-            [os_command_error(exitstatus: 1, command: 'security', text: 'could not be found'), nil],
-            [
-              os_command_error(exitstatus: 1, command: 'security', text: 'other error'),
-              WifiWand::KeychainError,
-            ],
-            %w[mypassword123 mypassword123],
-          ]
-
-          test_cases.each do |response, expected|
-            if response.is_a?(Exception)
-              allow(model).to receive(:run_command).and_raise(response)
-            else
-              allow(model).to receive(:run_command).and_return(command_result(stdout: response))
-            end
-
-            if expected.is_a?(Class) && expected < Exception
-              expect { model._preferred_network_password('TestNetwork') }.to raise_error(expected)
-            else
-              expect(model._preferred_network_password('TestNetwork')).to eq(expected)
-            end
-          end
-        end
-
-        it 'raises detailed KeychainError for unknown exit codes' do
-          error = os_command_error(exitstatus: 99, command: 'security', text: 'strange failure')
-          allow(model).to receive(:run_command).and_raise(error)
-          expect { model._preferred_network_password('TestNet') }.to raise_error(WifiWand::KeychainError)
-        end
-      end
-
-      # Runs early to surface any auth prompts before the long suite.
-      describe 'preferred_network_password command integration', :keychain_integration do
-        it 'defaults to an unlimited keychain lookup and handles not-found' do
+      describe '#preferred_network_password' do
+        it 'returns nil when the preferred network has no saved password' do
           model = create_mac_os_test_model
           ssid = 'TestNet'
+          keychain_password_reader = instance_double(WifiWand::MacOsKeychainPasswordReader)
 
-          # Ensure the network is considered preferred so wrapper calls the private method
-          allow(model).to receive(:preferred_networks).and_return([ssid])
-
-          expected_cmd = ['security', 'find-generic-password', '-D', 'AirPort network password', '-a', ssid,
-            '-w']
-          # Expect exact command, but avoid real execution by raising "not found" (exit 44)
-          call_sequence = []
-          allow(model).to receive(:run_command) do |command, *args, **kwargs|
-            call_sequence << [command, args, kwargs]
-            if command == expected_cmd
-              expect(args).to eq([])
-              expect(kwargs).to eq(raise_on_error: true, timeout_in_secs: nil)
-              raise os_command_error(exitstatus: 44, command: 'security', text: '')
-            else
-              command_result(stdout: 'Wi-Fi Power (en0): On')
-            end
-          end
+          allow(model).to receive_messages(
+            preferred_networks:       [ssid],
+            keychain_password_reader: keychain_password_reader
+          )
+          allow(keychain_password_reader).to receive(:password_for)
+            .with(ssid, timeout_in_secs: nil)
+            .and_return(nil)
 
           expect(model.preferred_network_password(ssid)).to be_nil
-          expect(call_sequence.map(&:first)).to include(expected_cmd)
         end
 
-        it 'allows callers to request an explicit keychain lookup timeout' do
+        it 'passes explicit keychain lookup timeouts through the facade' do
           model = create_mac_os_test_model
           ssid = 'TestNet'
+          keychain_password_reader = instance_double(WifiWand::MacOsKeychainPasswordReader)
 
-          allow(model).to receive(:preferred_networks).and_return([ssid])
-
-          expected_cmd = ['security', 'find-generic-password', '-D', 'AirPort network password', '-a', ssid,
-            '-w']
-          allow(model).to receive(:run_command) do |command, *args, **kwargs|
-            if command == expected_cmd
-              expect(args).to eq([])
-              expect(kwargs).to eq(raise_on_error: true,
-                timeout_in_secs: described_class::KEYCHAIN_LOOKUP_TIMEOUT_SECONDS)
-              raise os_command_error(exitstatus: 44, command: 'security', text: '')
-            else
-              command_result(stdout: 'Wi-Fi Power (en0): On')
-            end
-          end
+          allow(model).to receive_messages(
+            preferred_networks:       [ssid],
+            keychain_password_reader: keychain_password_reader
+          )
+          allow(keychain_password_reader).to receive(:password_for)
+            .with(ssid, timeout_in_secs: described_class::KEYCHAIN_LOOKUP_TIMEOUT_SECONDS)
+            .and_return(nil)
 
           expect(model.preferred_network_password(ssid,
             timeout_in_secs: described_class::KEYCHAIN_LOOKUP_TIMEOUT_SECONDS)).to be_nil
@@ -2175,132 +1897,6 @@ module WifiWand
         end
       end
 
-      describe '#airport_data (private)' do
-        it 'parses system_profiler JSON output' do
-          json_output = '{"SPAirPortDataType": [{"test": "data"}]}'
-          allow(model).to receive(:run_command).with(
-            %w[system_profiler -json SPAirPortDataType],
-            raise_on_error:  true,
-            timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
-          ).and_return(command_result(stdout: json_output))
-
-          result = model.send(:airport_data)
-          expect(result).to eq({ 'SPAirPortDataType' => [{ 'test' => 'data' }] })
-        end
-
-        it 'raises error for invalid JSON' do
-          allow(model).to receive(:run_command).and_return(command_result(stdout: 'invalid json'))
-
-          expect { model.send(:airport_data) }.to raise_error(/Failed to parse system_profiler output/)
-        end
-
-        it 'memoizes parsed system_profiler data only within a cache scope' do
-          first_json_output = '{"SPAirPortDataType": [{"test": "first"}]}'
-          second_json_output = '{"SPAirPortDataType": [{"test": "second"}]}'
-
-          expect(model).to receive(:run_command).with(
-            %w[system_profiler -json SPAirPortDataType],
-            raise_on_error:  true,
-            timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
-          ).twice.and_return(
-            command_result(stdout: first_json_output),
-            command_result(stdout: second_json_output)
-          )
-
-          model.send(:with_airport_data_cache_scope) do
-            2.times do
-              expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'first' }] })
-            end
-          end
-
-          model.send(:with_airport_data_cache_scope) do
-            expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'second' }] })
-          end
-        end
-
-        it 'does not memoize parsed system_profiler data outside a cache scope' do
-          first_json_output = '{"SPAirPortDataType": [{"test": "first"}]}'
-          second_json_output = '{"SPAirPortDataType": [{"test": "second"}]}'
-
-          expect(model).to receive(:run_command).with(
-            %w[system_profiler -json SPAirPortDataType],
-            raise_on_error:  true,
-            timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
-          ).twice.and_return(
-            command_result(stdout: first_json_output),
-            command_result(stdout: second_json_output)
-          )
-
-          expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'first' }] })
-          expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'second' }] })
-        end
-
-        it 'cleans cache context after a cache scope exits' do
-          model.send(:with_airport_data_cache_scope) do
-            expect(model.send(:active_airport_data_cache_context)).not_to be_nil
-          end
-
-          expect(model.send(:active_airport_data_cache_context)).to be_nil
-        end
-
-        it 'keeps scoped airport snapshots isolated by thread' do
-          payloads = {
-            'first'  => JSON.generate('SPAirPortDataType' => [{ 'test' => 'first' }]),
-            'second' => JSON.generate('SPAirPortDataType' => [{ 'test' => 'second' }]),
-          }
-          calls = Queue.new
-
-          allow(model).to receive(:run_command) do
-            thread_name = Thread.current[:wifi_wand_airport_cache_spec_name]
-            calls << thread_name
-            command_result(stdout: payloads.fetch(thread_name))
-          end
-
-          results = %w[first second].map do |thread_name|
-            Thread.new do
-              Thread.current[:wifi_wand_airport_cache_spec_name] = thread_name
-              model.send(:with_airport_data_cache_scope) do
-                [model.send(:airport_data), model.send(:airport_data)]
-              end
-            end
-          end.map(&:value)
-
-          expect(results).to contain_exactly(
-            [
-              { 'SPAirPortDataType' => [{ 'test' => 'first' }] },
-              { 'SPAirPortDataType' => [{ 'test' => 'first' }] },
-            ],
-            [
-              { 'SPAirPortDataType' => [{ 'test' => 'second' }] },
-              { 'SPAirPortDataType' => [{ 'test' => 'second' }] },
-            ]
-          )
-          expect(calls.size).to eq(2)
-        end
-
-        it 'refreshes an active scoped snapshot after another thread invalidates airport data' do
-          first_json_output = '{"SPAirPortDataType": [{"test": "first"}]}'
-          second_json_output = '{"SPAirPortDataType": [{"test": "second"}]}'
-
-          expect(model).to receive(:run_command).with(
-            %w[system_profiler -json SPAirPortDataType],
-            raise_on_error:  true,
-            timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
-          ).twice.and_return(
-            command_result(stdout: first_json_output),
-            command_result(stdout: second_json_output)
-          )
-
-          model.send(:with_airport_data_cache_scope) do
-            expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'first' }] })
-
-            Thread.new { model.send(:invalidate_airport_data_cache) }.join
-
-            expect(model.send(:airport_data)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'second' }] })
-          end
-        end
-      end
-
       describe '#_connect' do
         it 'clears cached airport data before and after delegating connect orchestration' do
           transport = instance_double(WifiWand::MacOsWifiTransport)
@@ -2715,36 +2311,6 @@ module WifiWand
 
           result = model.wifi_service_name
           expect(result).to eq('Wi-Fi')
-        end
-      end
-
-      describe '#set_nameservers IP validation edge cases' do
-        it 'identifies mixed valid and invalid IP addresses (IPv4 and IPv6)' do
-          allow(model).to receive(:wifi_service_name).and_return('Wi-Fi')
-          mixed_ips = ['8.8.8.8', 'invalid.ip', '2606:4700:4700::1111', '1.1.1.1', '999.999.999.999']
-
-          silence_output do
-            invalid_ip_error = raise_error(WifiWand::InvalidIPAddressError) do |error|
-              expect(error.invalid_addresses).to include('invalid.ip', '999.999.999.999')
-              expect(error.invalid_addresses).not_to include('8.8.8.8', '1.1.1.1', '2606:4700:4700::1111')
-            end
-            expect { model.set_nameservers(mixed_ips) }.to invalid_ip_error
-          end
-        end
-
-        it 'treats IPAddr invalid-address errors as invalid input' do
-          allow(model).to receive(:wifi_service_name).and_return('Wi-Fi')
-          allow(IPAddr).to receive(:new).with('problematic.ip')
-            .and_raise(IPAddr::InvalidAddressError, 'Parse error')
-          allow(IPAddr).to receive(:new).with('8.8.8.8').and_call_original
-
-          problematic_ips = ['8.8.8.8', 'problematic.ip']
-          silence_output do
-            expect { model.set_nameservers(problematic_ips) }
-              .to raise_error(WifiWand::InvalidIPAddressError) do |error|
-                expect(error.invalid_addresses).to eq(['problematic.ip'])
-              end
-          end
         end
       end
     end

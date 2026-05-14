@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'ipaddr'
 require 'shellwords'
 
 require_relative 'base_model'
@@ -10,6 +9,10 @@ require_relative '../mac_helper/mac_os_swift_runtime'
 require_relative '../mac_helper/mac_os_wifi_transport'
 require_relative '../mac_helper/mac_os_helper_bundle'
 require_relative '../services/status_line_data_builder'
+require_relative 'mac_os/airport_data_provider'
+require_relative 'mac_os/dns_manager'
+require_relative 'mac_os/keychain_password_reader'
+require_relative 'mac_os/system_network_info'
 
 
 module WifiWand
@@ -21,42 +24,14 @@ module WifiWand
       /WLAN/i,
     ].freeze
 
-    SYSTEM_PROFILER_TIMEOUT_SECONDS = 15
-    KEYCHAIN_LOOKUP_TIMEOUT_SECONDS = 5
+    SYSTEM_PROFILER_TIMEOUT_SECONDS = MacOsAirportDataProvider::SYSTEM_PROFILER_TIMEOUT_SECONDS
+    KEYCHAIN_LOOKUP_TIMEOUT_SECONDS = MacOsKeychainPasswordReader::DEFAULT_LOOKUP_TIMEOUT_SECONDS
     SUDO_NETWORKSETUP_TIMEOUT_SECONDS = 5
     AIRPORT_COMMAND =
       '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
-    SYSTEM_PROFILER_AIRPORT_ARGS = %w[system_profiler -json SPAirPortDataType].freeze
     SYSTEM_PROFILER_NETWORK_ARGS = %w[system_profiler -json SPNetworkDataType].freeze
-    AIRPORT_DATA_CACHE_CONTEXTS_KEY = :wifi_wand_airport_data_cache_contexts
     CONNECTED_NETWORK_FLAG_CONTEXTS_KEY = :wifi_wand_connected_network_flag_contexts
     NO_CONNECTED_NETWORK = Object.new.freeze
-
-    # Keychain exit code handlers for password retrieval
-    # Exit codes and their meanings:
-    # 44  - Item not found in keychain
-    # 45  - User denied access to keychain
-    # 128 - User cancelled keychain access dialog
-    # 51  - Keychain access attempted in non-interactive mode
-    # 25  - Invalid keychain search parameters
-    # 1   - General error (could be "not found" or other issues)
-    KEYCHAIN_EXIT_CODE_HANDLERS = {
-      44  => ->(network_name, _error) {}, # Item not found - no password stored
-      45  => ->(network_name, _error) { raise KeychainAccessDeniedError, network_name },
-      128 => ->(network_name, _error) { raise KeychainAccessCancelledError, network_name },
-      51  => ->(network_name, _error) { raise KeychainNonInteractiveError, network_name },
-      25  => ->(network_name, _error) {
-        raise KeychainError, "Invalid keychain search parameters for network '#{network_name}'"
-      },
-      1   => ->(network_name, error) {
-        if error.text.include?('could not be found')
-          nil
-        else
-          raise KeychainError,
-            "Keychain error accessing password for network '#{network_name}': #{error.text.strip}"
-        end
-      },
-    }.freeze
 
     def fetch_hardware_ports(timeout_in_secs: nil)
       output = run_command(
@@ -119,8 +94,10 @@ module WifiWand
       @macos_version = nil
       @mac_helper_client = nil
       @swift_runtime = nil
-      @airport_data_cache_mutex = Mutex.new
-      @airport_data_cache_generation = 0
+      @airport_data_provider = nil
+      @dns_manager = nil
+      @keychain_password_reader = nil
+      @system_network_info = nil
     end
 
     def connection_ready?(network_name)
@@ -413,34 +390,13 @@ module WifiWand
     #   else
     #     raise an error
     def _preferred_network_password(preferred_network_name, timeout_in_secs: KEYCHAIN_LOOKUP_TIMEOUT_SECONDS)
-      run_command(
-        [
-          'security',
-          'find-generic-password',
-          '-D',
-          'AirPort network password',
-          '-a',
-          preferred_network_name,
-          '-w',
-        ],
-        raise_on_error:  true,
-        timeout_in_secs: timeout_in_secs
-      ).stdout.chomp
-    rescue WifiWand::CommandExecutor::OsCommandError => e
-      handle_keychain_error(preferred_network_name, e)
+      keychain_password_reader.password_for(preferred_network_name, timeout_in_secs: timeout_in_secs)
     end
 
     # Returns the IP address assigned to the WiFi interface, or nil if none.
 
     def _ip_address
-      iface = wifi_interface
-      run_command(['ipconfig', 'getifaddr', iface]).stdout.chomp
-    rescue WifiWand::CommandExecutor::OsCommandError => e
-      if e.exitstatus == 1
-        nil
-      else
-        raise
-      end
+      system_network_info.ip_address
     end
 
     def remove_preferred_network(network_name)
@@ -590,72 +546,28 @@ module WifiWand
     end
 
     def mac_address
-      iface = wifi_interface
-      output = run_command(['ifconfig', iface]).stdout
-      ether_line = output.split("\n").find { |line| line.include?('ether') }
-      return nil unless ether_line
-
-      # Extract MAC address (second field after 'ether')
-      tokens = ether_line.split
-      ether_index = tokens.index('ether')
-      ether_index ? tokens[ether_index + 1] : nil
+      system_network_info.mac_address
     end
 
     def set_nameservers(nameservers) # rubocop:disable Naming/AccessorMethodName
-      service_name = wifi_service_name
-
-      if nameservers == :clear
-        run_command(['networksetup', '-setdnsservers', service_name, 'empty'])
-      else
-        # Validate IP addresses (accept both IPv4 and IPv6)
-        bad_addresses = nameservers.reject do |ns|
-          IPAddr.new(ns)  # Valid if IPAddr can parse it (IPv4 or IPv6)
-          true
-        rescue IPAddr::InvalidAddressError, IPAddr::AddressFamilyError
-          false
-        end
-
-        unless bad_addresses.empty?
-          raise InvalidIPAddressError, bad_addresses
-        end
-
-        run_command(['networksetup', '-setdnsservers', service_name] + nameservers)
-      end
-
-      nameservers
+      dns_manager.set_nameservers(nameservers)
     end
 
-    def open_resource(resource_url) = run_command(['open', resource_url])
+    def open_resource(resource_url) = system_network_info.open_resource(resource_url)
 
     def nameservers_using_scutil
-      output = run_command(%w[scutil --dns]).stdout
-      nameserver_lines = output.split("\n").grep(/^\s*nameserver\[/).uniq
-      nameserver_lines.map { |line| line.split(' : ').last.strip }
+      dns_manager.nameservers_using_scutil
     end
 
     def nameservers_using_networksetup
-      service_name = wifi_service_name
-      output = run_command(['networksetup', '-getdnsservers', service_name]).stdout
-      if output == "There aren't any DNS Servers set on #{service_name}.\n"
-        output = ''
-      end
-      output.split("\n")
+      dns_manager.nameservers_using_networksetup
     end
 
     def nameservers = nameservers_using_scutil
 
     # Returns the network interface used for default internet route on macOS
     def default_interface
-      output = run_command(%w[route -n get default], raise_on_error: false).stdout
-      return nil if output.empty?
-
-      # Find line containing 'interface:' and extract value
-      interface_line = output.split("\n").find { |line| line.include?('interface:') }
-      return nil unless interface_line
-
-      interface_line.split.last
-    rescue WifiWand::CommandExecutor::OsCommandError
-      nil
+      system_network_info.default_interface
     end
 
     # Detects the current macOS version
@@ -699,6 +611,33 @@ module WifiWand
         wifi_interface_proc: -> { wifi_interface },
         out_stream_proc:     -> { out_stream },
         verbose_proc:        -> { verbose? }
+      )
+    end
+
+    private def airport_data_provider
+      @airport_data_provider ||= WifiWand::MacOsAirportDataProvider.new(
+        owner:          self,
+        command_runner: ->(*args, **kwargs) { run_command(*args, **kwargs) }
+      )
+    end
+
+    private def dns_manager
+      @dns_manager ||= WifiWand::MacOsDnsManager.new(
+        command_runner:    ->(*args, **kwargs) { run_command(*args, **kwargs) },
+        service_name_proc: -> { wifi_service_name }
+      )
+    end
+
+    private def keychain_password_reader
+      @keychain_password_reader ||= WifiWand::MacOsKeychainPasswordReader.new(
+        command_runner: ->(*args, **kwargs) { run_command(*args, **kwargs) }
+      )
+    end
+
+    private def system_network_info
+      @system_network_info ||= WifiWand::MacOsSystemNetworkInfo.new(
+        command_runner:      ->(*args, **kwargs) { run_command(*args, **kwargs) },
+        wifi_interface_proc: -> { wifi_interface }
       )
     end
 
@@ -896,20 +835,6 @@ module WifiWand
       wifi ? wifi['interface'] : nil
     end
 
-    private def handle_keychain_error(network_name, error)
-      handler = KEYCHAIN_EXIT_CODE_HANDLERS[error.exitstatus]
-
-      if handler
-        handler.call(network_name, error)
-      else
-        # Unknown error - provide detailed information for debugging
-        error_msg = "Unknown keychain error (exit code #{error.exitstatus}) " \
-          "accessing password for network '#{network_name}'"
-        error_msg += ": #{error.text.strip}" unless error.text.empty?
-        raise KeychainError, error_msg
-      end
-    end
-
     # Helper methods for _available_network_names
     private def find_airport_interfaces(data)
       data['SPAirPortDataType']
@@ -989,33 +914,14 @@ module WifiWand
       iface = status_wifi_interface(deadline)
       return nil if string_nil_or_empty?(iface)
 
-      output = run_command(
-        %w[route -n get default],
-        raise_on_error:  false,
-        timeout_in_secs: status_timeout_for(deadline)
-      ).stdout
-      return nil if output.empty?
-
-      interface_line = output.split("\n").find { |line| line.include?('interface:') }
-      return nil unless interface_line
-
-      default_iface = interface_line.split(':', 2).last.strip
-      default_iface.empty? ? nil : default_iface
+      system_network_info.default_interface(timeout_in_secs: status_timeout_for(deadline))
     end
 
     private def status_ip_address(deadline)
       iface = status_wifi_interface(deadline)
       return nil if string_nil_or_empty?(iface)
 
-      ip_address = run_command(
-        ['ipconfig', 'getifaddr', iface],
-        timeout_in_secs: status_timeout_for(deadline)
-      ).stdout.chomp
-      ip_address.empty? ? nil : ip_address
-    rescue WifiWand::CommandExecutor::OsCommandError => e
-      raise unless e.exitstatus == 1
-
-      nil
+      system_network_info.ip_address(iface: iface, timeout_in_secs: status_timeout_for(deadline))
     end
 
     private def network_list_key(wifi_interface_data = nil)
@@ -1090,93 +996,16 @@ module WifiWand
       Thread.current[CONNECTED_NETWORK_FLAG_CONTEXTS_KEY] ||= {}.compare_by_identity
     end
 
-    private def with_airport_data_cache_scope
-      context = enter_airport_data_cache_scope
-      yield
-    ensure
-      exit_airport_data_cache_scope(context) if context
-    end
-
-    private def enter_airport_data_cache_scope
-      context = active_airport_data_cache_context
-
-      if context
-        context[:depth] += 1
-      else
-        context = { depth: 1 }
-        airport_data_cache_contexts[self] = context
-      end
-
-      context
-    end
-
-    private def exit_airport_data_cache_scope(context)
-      context[:depth] -= 1
-      return if context[:depth].positive?
-
-      contexts = current_airport_data_cache_contexts
-      contexts&.delete(self)
-      Thread.current[AIRPORT_DATA_CACHE_CONTEXTS_KEY] = nil if contexts&.empty?
-    end
-
-    private def active_airport_data_cache_context
-      current_airport_data_cache_contexts&.fetch(self, nil)
-    end
-
-    private def current_airport_data_cache_contexts
-      Thread.current[AIRPORT_DATA_CACHE_CONTEXTS_KEY]
-    end
-
-    private def airport_data_cache_contexts
-      Thread.current[AIRPORT_DATA_CACHE_CONTEXTS_KEY] ||= {}.compare_by_identity
+    private def with_airport_data_cache_scope(&)
+      airport_data_provider.with_cache_scope(&)
     end
 
     private def airport_data(timeout_in_secs: nil)
-      context = active_airport_data_cache_context
-      generation = airport_data_cache_generation
-      return context[:data] if cached_airport_data_current?(context, generation)
-
-      json_text = run_command(
-        SYSTEM_PROFILER_AIRPORT_ARGS,
-        raise_on_error:  true,
-        timeout_in_secs: timeout_in_secs || SYSTEM_PROFILER_TIMEOUT_SECONDS
-      ).stdout
-      begin
-        parsed_data = JSON.parse(json_text)
-      rescue JSON::ParserError => e
-        raise SystemProfilerError, "Failed to parse system_profiler output: #{e.message}"
-      end
-
-      cache_airport_data(context, generation, parsed_data)
-      parsed_data
+      airport_data_provider.data(timeout_in_secs: timeout_in_secs)
     end
 
     private def invalidate_airport_data_cache
-      @airport_data_cache_mutex.synchronize do
-        @airport_data_cache_generation += 1
-      end
-
-      context = active_airport_data_cache_context
-      return unless context
-
-      context.delete(:data)
-      context.delete(:generation)
-    end
-
-    private def airport_data_cache_generation
-      @airport_data_cache_mutex.synchronize { @airport_data_cache_generation }
-    end
-
-    private def cached_airport_data_current?(context, generation)
-      context&.key?(:data) && context[:generation] == generation
-    end
-
-    private def cache_airport_data(context, generation, parsed_data)
-      return unless context
-      return unless generation == airport_data_cache_generation
-
-      context[:data] = parsed_data
-      context[:generation] = generation
+      airport_data_provider.invalidate_cache
     end
 
     # Gets the security type of the currently connected network.
