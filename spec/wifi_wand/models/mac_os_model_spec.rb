@@ -2034,8 +2034,7 @@ module WifiWand
         end
 
         before do
-          # wifi_on? is called by connected_network_name, which is called by network_list_key.
-          # Stub it so the tests don't attempt a real OS command.
+          # Stub wifi_on? so connected-network reads do not attempt a real OS command.
           allow(model).to receive_messages(
             _connected_network_name: network_name,
             wifi_interface:          wifi_interface,
@@ -2045,7 +2044,7 @@ module WifiWand
 
         # When connected, system_profiler moves the current SSID to
         # 'spairport_airport_other_local_wireless_networks'. The tests below mirror
-        # that layout so they match what network_list_key selects at runtime.
+        # that layout so they match the navigator's associated-network list selection.
         [
           ['WPA2', 'WPA2'],
           ['WPA3', 'WPA3'],
