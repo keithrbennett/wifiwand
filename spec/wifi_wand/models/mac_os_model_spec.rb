@@ -1312,6 +1312,59 @@ module WifiWand
           )
         end
 
+        it 'raises a clear error when interactive sudo authentication fails' do
+          err_stream = StringIO.new
+          model = create_mac_os_test_model(err_stream: err_stream)
+          allow(model).to receive_messages(
+            wifi_interface:                             'en0',
+            interactive_sudo_authentication_available?: true
+          )
+          allow(model).to receive(:run_command).with(
+            sudo_check_command,
+            raise_on_error:  false,
+            timeout_in_secs: described_class::SUDO_AUTH_CHECK_TIMEOUT_SECONDS
+          ).and_return(command_result(exitstatus: 1, stderr: 'sudo: a password is required'))
+          expect(model).to receive(:system).with('sudo', '-v').and_return(false)
+          expect(model).not_to receive(:run_command).with(
+            %w[sudo networksetup -removepreferredwirelessnetwork en0 CafeNet],
+            any_args
+          )
+
+          expect { model.remove_preferred_network('CafeNet') }
+            .to raise_error(WifiWand::SudoAuthenticationError, /failed or was cancelled/)
+          expect(err_stream.string).to include(
+            'Administrator authentication is required to remove a saved WiFi network.'
+          )
+        end
+
+        it 'treats a sudo cache-check timeout as missing authentication' do
+          err_stream = StringIO.new
+          model = create_mac_os_test_model(err_stream: err_stream)
+          allow(model).to receive_messages(
+            wifi_interface:                             'en0',
+            interactive_sudo_authentication_available?: true
+          )
+          allow(model).to receive(:run_command).with(
+            sudo_check_command,
+            raise_on_error:  false,
+            timeout_in_secs: described_class::SUDO_AUTH_CHECK_TIMEOUT_SECONDS
+          ).and_raise(WifiWand::CommandTimeoutError.new(
+            command:         sudo_check_command.join(' '),
+            timeout_in_secs: described_class::SUDO_AUTH_CHECK_TIMEOUT_SECONDS
+          ))
+          allow(model).to receive(:run_command).with(
+            %w[sudo networksetup -removepreferredwirelessnetwork en0 CafeNet],
+            raise_on_error:  true,
+            timeout_in_secs: described_class::SUDO_NETWORKSETUP_TIMEOUT_SECONDS
+          ).and_return(success_result)
+          expect(model).to receive(:system).with('sudo', '-v').and_return(true)
+
+          expect(model.remove_preferred_network('CafeNet')).to eq(['CafeNet'])
+          expect(err_stream.string).to include(
+            'Administrator authentication is required to remove a saved WiFi network.'
+          )
+        end
+
         it 'fails clearly instead of prompting when sudo authentication is unavailable non-interactively' do
           allow(model).to receive_messages(
             wifi_interface:                             'en0',

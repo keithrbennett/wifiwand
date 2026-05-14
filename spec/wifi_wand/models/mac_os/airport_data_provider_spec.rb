@@ -34,6 +34,26 @@ module WifiWand
         expect { provider.data }.to raise_error(/Failed to parse system_profiler output/)
       end
 
+      it 'passes an explicit timeout to system_profiler' do
+        json_output = '{"SPAirPortDataType": [{"test": "data"}]}'
+
+        expect(command_runner).to receive(:call).with(
+          described_class::SYSTEM_PROFILER_AIRPORT_ARGS,
+          raise_on_error:  true,
+          timeout_in_secs: 2.5
+        ).and_return(command_result(stdout: json_output))
+
+        expect(provider.data(timeout_in_secs: 2.5)).to eq({ 'SPAirPortDataType' => [{ 'test' => 'data' }] })
+      end
+
+      it 'allows command execution errors to report unavailable profiler data' do
+        error = WifiWand::CommandNotFoundError.new('system_profiler')
+
+        allow(command_runner).to receive(:call).and_raise(error)
+
+        expect { provider.data }.to raise_error(error)
+      end
+
       it 'memoizes parsed system_profiler data only within a cache scope' do
         first_json_output = '{"SPAirPortDataType": [{"test": "first"}]}'
         second_json_output = '{"SPAirPortDataType": [{"test": "second"}]}'
@@ -77,6 +97,47 @@ module WifiWand
     end
 
     describe '#with_cache_scope' do
+      it 'reuses one scoped snapshot across nested cache scopes' do
+        json_output = '{"SPAirPortDataType": [{"test": "nested"}]}'
+
+        expect(command_runner).to receive(:call).once.and_return(command_result(stdout: json_output))
+
+        provider.with_cache_scope do
+          expect(provider.data).to eq({ 'SPAirPortDataType' => [{ 'test' => 'nested' }] })
+
+          provider.with_cache_scope do
+            expect(provider.data).to eq({ 'SPAirPortDataType' => [{ 'test' => 'nested' }] })
+          end
+
+          expect(provider.active_cache_context).not_to be_nil
+        end
+
+        expect(provider.active_cache_context).to be_nil
+      end
+
+      it 'keeps scoped airport snapshots isolated by owner identity' do
+        other_provider = described_class.new(
+          owner:          Object.new,
+          command_runner: command_runner
+        )
+        first_json_output = '{"SPAirPortDataType": [{"test": "first-owner"}]}'
+        second_json_output = '{"SPAirPortDataType": [{"test": "second-owner"}]}'
+
+        expect(command_runner).to receive(:call).twice.and_return(
+          command_result(stdout: first_json_output),
+          command_result(stdout: second_json_output)
+        )
+
+        provider.with_cache_scope do
+          other_provider.with_cache_scope do
+            expect(provider.data).to eq({ 'SPAirPortDataType' => [{ 'test' => 'first-owner' }] })
+            expect(other_provider.data).to eq({ 'SPAirPortDataType' => [{ 'test' => 'second-owner' }] })
+            expect(provider.data).to eq({ 'SPAirPortDataType' => [{ 'test' => 'first-owner' }] })
+            expect(other_provider.data).to eq({ 'SPAirPortDataType' => [{ 'test' => 'second-owner' }] })
+          end
+        end
+      end
+
       it 'cleans cache context after a cache scope exits' do
         provider.with_cache_scope do
           expect(provider.active_cache_context).not_to be_nil
