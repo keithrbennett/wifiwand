@@ -103,10 +103,13 @@ module TestHelpers
       # Mac models don't have the same command validation issues, but need interface detection stubbing
       # Stub interface detection methods to prevent real network calls during model creation
       allow_any_instance_of(WifiWand::MacOsModel).to receive(:probe_wifi_interface).and_return('en0')
-      allow_any_instance_of(WifiWand::MacOsModel).to receive(:fetch_hardware_ports).and_return([
-        { name: 'Wi-Fi', device: 'en0', ethernet_address: '34:b1:eb:f3:b8:1c' },
-        { name: 'Ethernet', device: 'en1', ethernet_address: 'aa:bb:cc:dd:ee:ff' },
-      ])
+      interface_detector = instance_double(
+        WifiWand::MacOsInterfaceDetector,
+        is_wifi_interface?: true,
+        wifi_service_name:  'Wi-Fi'
+      )
+      allow_any_instance_of(WifiWand::MacOsModel).to receive(:interface_detector)
+        .and_return(interface_detector)
       unless uses_real_env?
         empty_result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
         helper_client = instance_double(

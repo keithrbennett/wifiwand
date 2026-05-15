@@ -201,15 +201,15 @@ module WifiWand
         end
 
         it 'derives service name from previous Hardware Port line for detected interface' do
-          # Ensure cache does not interfere
+          model.instance_variable_set(:@wifi_interface, 'en0')
           model.instance_variable_set(:@wifi_service_name, nil)
-          output = "Hardware Port: SpecialWifi\nDevice: en0\nEthernet Address: aa:bb:cc:dd:ee:ff\n\n" \
+          output = "Hardware Port: USB Adapter\nDevice: en0\nEthernet Address: aa:bb:cc:dd:ee:ff\n\n" \
             "Hardware Port: Ethernet\nDevice: en1\n"
           allow(model).to receive(:run_command)
             .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
             .and_return(command_result(stdout: output))
-          allow(model).to receive(:wifi_interface).and_return('en0')
-          expect(model.wifi_service_name).to eq('SpecialWifi')
+
+          expect(model.wifi_service_name).to eq('USB Adapter')
         end
       end
 
@@ -250,6 +250,18 @@ module WifiWand
             .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
             .and_return(command_result(stdout: output))
           expect(model.detect_wifi_interface_using_networksetup).to eq('en0')
+        end
+
+        it 'caches the learned interface and service name from networksetup detection' do
+          output = "Hardware Port: AirPort\nDevice: en1\nEthernet Address: aa:bb:cc\n\n" \
+            "Hardware Port: Ethernet\nDevice: en0\n"
+          allow(model).to receive(:run_command)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+            .and_return(command_result(stdout: output))
+
+          expect(model.detect_wifi_interface_using_networksetup).to eq('en1')
+          expect(model.instance_variable_get(:@wifi_interface)).to eq('en1')
+          expect(model.wifi_service_name).to eq('AirPort')
         end
 
         it 'raises WifiInterfaceError when WiFi service not found' do
@@ -1411,8 +1423,11 @@ module WifiWand
       end
 
       describe '#probe_wifi_interface', :allow_real_probe_wifi_interface do
-        # Provide a valid interface during initialization to avoid init failures in this block
-        subject(:model) { create_mac_os_test_model(wifi_interface: 'en0') }
+        subject(:model) { create_mac_os_test_model }
+
+        let(:no_wifi_networksetup_output) do
+          "Hardware Port: Ethernet\nDevice: en1\nEthernet Address: aa:bb:cc:dd:ee:ff\n"
+        end
         let(:system_profiler_output) do
           {
             'SPNetworkDataType' => [
@@ -1424,7 +1439,9 @@ module WifiWand
         end
 
         it 'detects WiFi interface from system_profiler' do
-          allow(model).to receive(:wifi_interface_using_networksetup).and_return(nil)
+          allow(model).to receive(:run_command)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+            .and_return(command_result(stdout: no_wifi_networksetup_output))
           expect(model).to receive(:run_command).with(
             %w[system_profiler -json SPNetworkDataType],
             raise_on_error:  true,
@@ -1434,30 +1451,70 @@ module WifiWand
           expect(model.probe_wifi_interface).to eq('en0')
         end
 
+        it 'caches the learned interface and service name from networksetup detection' do
+          output = "Hardware Port: Wi-Fi\nDevice: en0\nEthernet Address: aa:bb:cc:dd:ee:ff\n"
+          allow(model).to receive(:run_command)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+            .and_return(command_result(stdout: output))
+          expect(model).not_to receive(:run_command).with(
+            %w[system_profiler -json SPNetworkDataType],
+            any_args
+          )
+
+          expect(model.probe_wifi_interface).to eq('en0')
+          expect(model.instance_variable_get(:@wifi_interface)).to eq('en0')
+          expect(model.wifi_service_name).to eq('Wi-Fi')
+        end
+
         it 'returns nil when WiFi service not found' do
-          allow(model).to receive_messages(wifi_interface_using_networksetup: nil,
-            run_command: command_result(stdout: '{"SPNetworkDataType": []}'))
+          allow(model).to receive(:run_command)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+            .and_return(command_result(stdout: no_wifi_networksetup_output))
+          allow(model).to receive(:run_command)
+            .with(
+              %w[system_profiler -json SPNetworkDataType],
+              raise_on_error:  true,
+              timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
+            )
+            .and_return(command_result(stdout: '{"SPNetworkDataType": []}'))
+
           expect(model.probe_wifi_interface).to be_nil
         end
 
         it 'handles JSON parse errors gracefully' do
-          allow(model).to receive_messages(wifi_interface_using_networksetup: nil,
-            run_command: command_result(stdout: 'invalid json'))
+          allow(model).to receive(:run_command)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+            .and_return(command_result(stdout: no_wifi_networksetup_output))
+          allow(model).to receive(:run_command)
+            .with(
+              %w[system_profiler -json SPNetworkDataType],
+              raise_on_error:  true,
+              timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
+            )
+            .and_return(command_result(stdout: 'invalid json'))
+
           expect { model.probe_wifi_interface }.to raise_error(JSON::ParserError)
         end
 
         it 'uses system_profiler fallback without re-entering networksetup after failure' do
-          allow(model).to receive(:fetch_hardware_ports)
-            .and_raise(os_command_error(exitstatus: 1, command: 'networksetup', text: 'boom'))
-          allow(model).to receive(:wifi_service_name).and_raise('should not be called')
           allow(model).to receive(:run_command)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+            .and_raise(os_command_error(exitstatus: 1, command: 'networksetup', text: 'boom'))
+          expect(model).not_to receive(:wifi_service_name)
+          allow(model).to receive(:run_command)
+            .with(
+              %w[system_profiler -json SPNetworkDataType],
+              raise_on_error:  true,
+              timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
+            )
             .and_return(command_result(stdout: system_profiler_output))
 
           expect(model.probe_wifi_interface).to eq('en0')
         end
 
         it 'passes the remaining probe timeout into the system_profiler fallback' do
-          allow(model).to receive(:fetch_hardware_ports) do
+          allow(model).to receive(:run_command)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: be_between(0, 0.5).inclusive) do
             sleep(0.01)
             raise WifiWand::CommandTimeoutError.new(command: 'networksetup', timeout_in_secs: 0.5)
           end

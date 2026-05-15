@@ -12,6 +12,7 @@ require_relative '../services/status_line_data_builder'
 require_relative 'mac_os/airport_data_navigator'
 require_relative 'mac_os/airport_data_provider'
 require_relative 'mac_os/dns_manager'
+require_relative 'mac_os/interface_detector'
 require_relative 'mac_os/keychain_password_reader'
 require_relative 'mac_os/network_identity_reader'
 require_relative 'mac_os/system_network_info'
@@ -19,70 +20,12 @@ require_relative 'mac_os/system_network_info'
 
 module WifiWand
   class MacOsModel < BaseModel
-    WIFI_PORT_PATTERNS = [
-      /Wi[-\s]?Fi/i,
-      /Air[-\s]?Port/i,
-      /Wireless/i,
-      /WLAN/i,
-    ].freeze
-
     SYSTEM_PROFILER_TIMEOUT_SECONDS = MacOsAirportDataProvider::SYSTEM_PROFILER_TIMEOUT_SECONDS
     KEYCHAIN_LOOKUP_TIMEOUT_SECONDS = MacOsKeychainPasswordReader::DEFAULT_LOOKUP_TIMEOUT_SECONDS
     SUDO_AUTH_CHECK_TIMEOUT_SECONDS = 1
     SUDO_NETWORKSETUP_TIMEOUT_SECONDS = 5
     AIRPORT_COMMAND =
       '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
-    SYSTEM_PROFILER_NETWORK_ARGS = %w[system_profiler -json SPNetworkDataType].freeze
-
-    def fetch_hardware_ports(timeout_in_secs: nil)
-      output = run_command(
-        %w[networksetup -listallhardwareports],
-        timeout_in_secs: timeout_in_secs
-      ).stdout
-
-      ports = []
-      current = {}
-
-      output.each_line do |line|
-        stripped = line.strip
-        next if stripped.empty?
-
-        if (match = stripped.match(/^Hardware Port:\s*(.+)$/))
-          ports << current if current[:device]
-          current = { name: match[1] }
-        elsif (match = stripped.match(/^Device:\s*(.+)$/))
-          current[:device] = match[1]
-        elsif (match = stripped.match(/^Ethernet Address:\s*(.+)$/))
-          current[:ethernet_address] = match[1]
-        end
-      end
-
-      ports << current if current[:device]
-      ports
-    end
-
-    def wifi_port_from_ports(ports)
-      ports.find do |port|
-        name = port[:name].to_s
-        next false if name.empty?
-
-        WIFI_PORT_PATTERNS.any? { |pattern| pattern.match?(name) }
-      end
-    end
-
-    def wifi_service_name_from_ports(ports)
-      wifi_port = wifi_port_from_ports(ports)
-      return wifi_port[:name] if wifi_port && wifi_port[:name] && !wifi_port[:name].empty?
-
-      iface = @wifi_interface
-      if iface && !iface.empty?
-        match = ports.find { |port| port[:device] == iface && port[:name] && !port[:name].empty? }
-        return match[:name] if match
-      end
-
-      # Fall back to the common default even if not present in the output
-      'Wi-Fi'
-    end
 
     # Lazily detected macOS version to avoid OS calls during initialization
     def macos_version(timeout_in_secs: nil)
@@ -97,6 +40,7 @@ module WifiWand
       @swift_runtime = nil
       @airport_data_provider = nil
       @dns_manager = nil
+      @interface_detector = nil
       @keychain_password_reader = nil
       @network_identity_reader = nil
       @system_network_info = nil
@@ -136,31 +80,33 @@ module WifiWand
 
     # Returns the Wi-Fi service name dynamically (e.g., "Wi-Fi", "AirPort", etc.)
     def wifi_service_name
-      @wifi_service_name ||= wifi_service_name_from_ports(fetch_hardware_ports)
+      @wifi_service_name ||= interface_detector.wifi_service_name(known_interface: @wifi_interface)
     end
 
     # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
     # This may not detect WiFi ports with nonstandard names, such as USB WiFi devices.
     def detect_wifi_interface_using_networksetup(timeout_in_secs: nil)
-      iface = wifi_interface_using_networksetup(timeout_in_secs: timeout_in_secs)
-      raise WifiInterfaceError if string_nil_or_empty?(iface)
+      result = interface_detector.detect_using_networksetup(
+        timeout_in_secs: timeout_in_secs,
+        known_interface: @wifi_interface
+      )
+      update_wifi_detection_state(result)
 
-      iface
+      result.interface
     end
 
     # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
     # Prefer the faster networksetup path and fall back to system_profiler if needed.
     # This may not detect WiFi ports with nonstandard names, such as USB WiFi devices.
     def probe_wifi_interface(timeout_in_secs: nil)
-      deadline = status_deadline(timeout_in_secs)
-      begin
-        iface = wifi_interface_using_networksetup(timeout_in_secs: status_timeout_for(deadline))
-        return iface if iface && !iface.empty?
-      rescue WifiWand::Error
-        # Fall through to system_profiler fallback.
-      end
+      result = interface_detector.probe(
+        timeout_in_secs:    timeout_in_secs,
+        known_interface:    @wifi_interface,
+        known_service_name: @wifi_service_name
+      )
+      update_wifi_detection_state(result)
 
-      wifi_interface_using_system_profiler(timeout_in_secs: status_timeout_for(deadline))
+      result.interface
     end
 
     # Returns the network names sorted in descending order of signal strength.
@@ -245,15 +191,7 @@ module WifiWand
 
     # Returns whether or not the specified interface is a WiFi interface.
     def is_wifi_interface?(interface)
-      run_command(['networksetup', '-listpreferredwirelessnetworks', interface])
-      true  # If command succeeds, it's a WiFi interface
-    rescue WifiWand::CommandExecutor::OsCommandError => e
-      # Exit code 10 means not a WiFi interface
-      if e.exitstatus == 10
-        false
-      else
-        raise
-      end
+      interface_detector.is_wifi_interface?(interface)
     end
 
     def wifi_on?
@@ -469,10 +407,7 @@ module WifiWand
       :ok
     end
 
-    private :wifi_service_name_from_ports,
-      :fetch_hardware_ports,
-      :wifi_port_from_ports,
-      :helper_available_network_names
+    private :helper_available_network_names
 
     private def swift_runtime
       @swift_runtime ||= WifiWand::MacOsSwiftRuntime.new(
@@ -503,6 +438,12 @@ module WifiWand
       @dns_manager ||= WifiWand::MacOsDnsManager.new(
         command_runner:    ->(*args, **kwargs) { run_command(*args, **kwargs) },
         service_name_proc: -> { wifi_service_name }
+      )
+    end
+
+    private def interface_detector
+      @interface_detector ||= WifiWand::MacOsInterfaceDetector.new(
+        command_runner: ->(*args, **kwargs) { run_command(*args, **kwargs) }
       )
     end
 
@@ -598,54 +539,9 @@ module WifiWand
       scanned_networks.sort_by { |_name, signal| -signal }.map(&:first).uniq
     end
 
-    private def wifi_interface_using_networksetup(timeout_in_secs: nil)
-      ports = fetch_hardware_ports(timeout_in_secs: timeout_in_secs)
-      service_name = wifi_service_name_from_ports(ports)
-      @wifi_service_name = service_name if service_name && !service_name.empty?
-
-      wifi_port = ports.find do |port|
-        port[:name] == service_name && port[:device] && !port[:device].empty?
-      end
-      wifi_port ||= wifi_port_from_ports(ports)
-
-      iface = wifi_port && wifi_port[:device]
-      iface if iface && !iface.empty?
-    end
-
-    private def wifi_interface_using_system_profiler(timeout_in_secs: nil)
-      json_text = run_command(
-        SYSTEM_PROFILER_NETWORK_ARGS,
-        raise_on_error:  true,
-        timeout_in_secs: timeout_in_secs || SYSTEM_PROFILER_TIMEOUT_SECONDS
-      ).stdout
-      return nil if string_nil_or_blank?(json_text)
-
-      net_data = JSON.parse(json_text)
-      nets = net_data['SPNetworkDataType']
-      return nil if nets.nil? || nets.empty?
-
-      detect_wifi_interface_from_profiler_networks(nets)
-    end
-
-    private def detect_wifi_interface_from_profiler_networks(nets)
-      # Reuse the service name learned from the fast path when it is available.
-      preferred_service_name = @wifi_service_name
-      wifi = if preferred_service_name && !preferred_service_name.empty?
-        nets.find { |net| net['_name'] == preferred_service_name }
-      end
-
-      # Fall back to an already-known interface if initialization or earlier calls set it.
-      wifi ||= if @wifi_interface && !@wifi_interface.empty?
-        nets.find { |net| net['interface'] == @wifi_interface }
-      end
-
-      # As a last profiler-only heuristic, match common Wi-Fi service names directly.
-      wifi ||= nets.find do |net|
-        name = net['_name'].to_s
-        WIFI_PORT_PATTERNS.any? { |pattern| pattern.match?(name) }
-      end
-
-      wifi ? wifi['interface'] : nil
+    private def update_wifi_detection_state(result)
+      @wifi_interface = result.interface if result.interface && !result.interface.empty?
+      @wifi_service_name = result.service_name if result.service_name && !result.service_name.empty?
     end
 
     private def status_wifi_interface(deadline)
