@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../../spec_helper'
-require_relative '../../../../lib/wifi_wand/platforms/mac/helper/mac_os_helper_bundle'
+require_relative '../../../../lib/wifi_wand/platforms/mac/helper/bundle'
 require_relative '../../../../lib/wifi_wand/platforms/mac/network_identity_reader'
 
 module WifiWand

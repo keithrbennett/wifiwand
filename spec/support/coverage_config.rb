@@ -12,8 +12,8 @@ module CoverageConfig
     'exe/*',
   ].freeze
   EXCLUDED_RUNTIME_GLOBS = [
-    'lib/wifi_wand/platforms/mac/helper/mac_helper_release.rb',
-    'lib/wifi_wand/platforms/mac/helper/mac_os_helper_build.rb',
+    'lib/wifi_wand/platforms/mac/helper/release.rb',
+    'lib/wifi_wand/platforms/mac/helper/build.rb',
   ].freeze
 
   def self.setup

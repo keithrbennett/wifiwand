@@ -46,16 +46,16 @@ require 'wifi-wand/mac_helper/mac_os_wifi_auth_helper'
 must now require the new primary runtime entry point instead:
 
 ```ruby
-require 'wifi_wand/platforms/mac/helper/mac_os_helper_bundle'
+require 'wifi_wand/platforms/mac/helper/bundle'
 ```
 
 #### Migration
 
 - old require path: `wifi-wand/mac_helper/mac_os_wifi_auth_helper`
-- new require path: `wifi_wand/platforms/mac/helper/mac_os_helper_bundle`
+- new require path: `wifi_wand/platforms/mac/helper/bundle`
 
 The legacy constant name `WifiWand::MacOsWifiAuthHelper` no longer resolves.
-Load `wifi_wand/platforms/mac/helper/mac_os_helper_bundle` and use the supported
+Load `wifi_wand/platforms/mac/helper/bundle` and use the supported
 runtime names directly:
 
 - `WifiWand::Platforms::Mac::Helper::Bundle`

@@ -5,8 +5,8 @@ require 'open3'
 require 'json'
 require 'rbconfig'
 require 'shellwords'
-require_relative 'mac_os_helper_bundle'
-require_relative 'mac_os_helper_build'
+require_relative 'bundle'
+require_relative 'build'
 
 module WifiWand
   module Platforms

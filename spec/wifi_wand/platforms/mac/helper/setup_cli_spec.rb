@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 require 'stringio'
-require 'wifi_wand/platforms/mac/helper/mac_os_setup_cli'
+require 'wifi_wand/platforms/mac/helper/setup_cli'
 
 RSpec.describe WifiWand::Platforms::Mac::Helper::SetupCli do
   before do

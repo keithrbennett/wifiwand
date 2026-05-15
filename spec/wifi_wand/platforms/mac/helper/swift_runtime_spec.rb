@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../../../spec_helper'
-require_relative '../../../../../lib/wifi_wand/platforms/mac/helper/mac_os_swift_runtime'
+require_relative '../../../../../lib/wifi_wand/platforms/mac/helper/swift_runtime'
 
 module WifiWand
   describe Platforms::Mac::Helper::SwiftRuntime do

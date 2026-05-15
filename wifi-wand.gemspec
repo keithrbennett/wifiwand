@@ -19,8 +19,8 @@ Gem::Specification.new do |spec|
   excluded_packaged_files = [
     %r{\Adocs/(?:ai-reports|dev)/},
     %r{\Alib/tasks/},
-    %r{\Alib/wifi_wand/platforms/mac/helper/mac_helper_release\.rb\z},
-    %r{\Alib/wifi_wand/platforms/mac/helper/mac_os_helper_build\.rb\z},
+    %r{\Alib/wifi_wand/platforms/mac/helper/release\.rb\z},
+    %r{\Alib/wifi_wand/platforms/mac/helper/build\.rb\z},
     %r{\Alibexec/macos/(?:src/|wifiwand-helper\.entitlements\z|wifiwand-helper\.source-manifest\.json\z)},
     %r{\Adocs/TESTING\.md\z},
   ].freeze

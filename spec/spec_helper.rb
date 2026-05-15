@@ -22,7 +22,7 @@ WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT       = 0.25
 WifiWand::TimingConstants::DNS_RESOLUTION_TIMEOUT       = 0.25
 WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT = 1.0
 WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT    = 0.25
-require_relative '../lib/wifi_wand/platforms/mac/helper/mac_os_helper_bundle'
+require_relative '../lib/wifi_wand/platforms/mac/helper/bundle'
 WifiWand::Platforms::Mac::Helper::Bundle::DEFAULT_HELPER_COMMAND_TIMEOUT_SECONDS = 1.0
 WifiWand::Platforms::Mac::Helper::Bundle::SCAN_NETWORKS_HELPER_COMMAND_TIMEOUT_SECONDS = 2.0
 WifiWand::Platforms::Mac::Helper::Bundle::HELPER_TERMINATION_WAIT_SECONDS = 0.1

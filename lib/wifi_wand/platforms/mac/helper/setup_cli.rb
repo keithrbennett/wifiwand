@@ -11,8 +11,8 @@
 
 require 'optparse'
 require_relative '../../../errors'
-require_relative 'mac_os_helper_setup'
-require_relative 'mac_os_helper_bundle'
+require_relative 'setup'
+require_relative 'bundle'
 
 module WifiWand
   module Platforms

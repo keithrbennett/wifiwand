@@ -11,7 +11,7 @@
 
 require 'open3'
 require 'rubygems/version'
-require_relative 'mac_os_helper_artifacts'
+require_relative 'artifacts'
 
 module WifiWand
   module Platforms
@@ -132,8 +132,8 @@ module WifiWand
             normalized_version.empty? ? nil : normalized_version
           end
 
-          require_relative 'mac_os_helper_installer'
-          require_relative 'mac_os_helper_client'
+          require_relative 'installer'
+          require_relative 'client'
 
           module_function def helper_installed_and_valid?(timeout_seconds: nil)
             Installer.helper_installed_and_valid?(**timeout_options(timeout_seconds))

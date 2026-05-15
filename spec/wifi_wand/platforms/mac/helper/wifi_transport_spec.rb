@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../../../spec_helper'
-require_relative '../../../../../lib/wifi_wand/platforms/mac/helper/mac_os_wifi_transport'
+require_relative '../../../../../lib/wifi_wand/platforms/mac/helper/wifi_transport'
 
 module WifiWand
   describe Platforms::Mac::Helper::WifiTransport do

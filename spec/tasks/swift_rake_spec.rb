@@ -3,7 +3,7 @@
 require 'rake'
 require 'tmpdir'
 require_relative '../spec_helper'
-require_relative '../../lib/wifi_wand/platforms/mac/helper/mac_os_helper_build'
+require_relative '../../lib/wifi_wand/platforms/mac/helper/build'
 
 RSpec.describe 'swift:compile_helper task' do
   let(:helper) { WifiWand::Platforms::Mac::Helper::Bundle }

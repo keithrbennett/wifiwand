@@ -2,7 +2,7 @@
 
 require 'rbconfig'
 require 'open3'
-require_relative '../wifi_wand/platforms/mac/helper/mac_os_helper_bundle'
+require_relative '../wifi_wand/platforms/mac/helper/bundle'
 
 def ensure_os_is_mac
   unless RbConfig::CONFIG['host_os'] =~ /darwin/i

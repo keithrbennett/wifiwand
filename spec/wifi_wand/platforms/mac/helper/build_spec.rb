@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 require 'tmpdir'
-require_relative '../../../../../lib/wifi_wand/platforms/mac/helper/mac_os_helper_build'
+require_relative '../../../../../lib/wifi_wand/platforms/mac/helper/build'
 
 RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
   describe '.source_bundle_manifest_path' do

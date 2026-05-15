@@ -159,11 +159,11 @@ The CLI uses modular design with mixins:
 
 The macOS model currently uses two distinct Swift/CoreWLAN runtime paths:
 
-- **Compiled helper app path** - `lib/wifi_wand/platforms/mac/helper/mac_os_helper_client.rb` talks to the
+- **Compiled helper app path** - `lib/wifi_wand/platforms/mac/helper/client.rb` talks to the
   installed `wifiwand-helper.app` for read/query operations such as current-network lookups and nearby scans.
   This path exists because modern macOS read/query behavior increasingly depends on CoreWLAN plus a stable
   app identity for Location Services handling.
-- **Direct Swift source path** - `lib/wifi_wand/platforms/mac/helper/mac_os_swift_runtime.rb` runs
+- **Direct Swift source path** - `lib/wifi_wand/platforms/mac/helper/swift_runtime.rb` runs
   `lib/wifi_wand/platforms/mac/helper/swift/WifiNetworkConnector.swift` and
   `lib/wifi_wand/platforms/mac/helper/swift/WifiNetworkDisconnector.swift` for connect/disconnect operations.
 

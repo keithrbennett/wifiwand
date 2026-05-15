@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../../../spec_helper'
-require_relative '../../../../../lib/wifi_wand/platforms/mac/helper/mac_helper_release'
+require_relative '../../../../../lib/wifi_wand/platforms/mac/helper/release'
 
 RSpec.describe WifiWand::Platforms::Mac::Helper::Release do
   let(:creds) do
@@ -46,7 +46,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Release do
         expect do
           described_class::Operations.verify_identity_configured(nil)
         end.to raise_error(SystemExit)
-      end.not_to output(/mac_helper_release\.rb|APPLE_TEAM_ID =|CODESIGN_IDENTITY =/).to_stderr
+      end.not_to output(/release\.rb|APPLE_TEAM_ID =|CODESIGN_IDENTITY =/).to_stderr
     end
 
     it 'points missing notarization credentials failures at the maintained instructions' do

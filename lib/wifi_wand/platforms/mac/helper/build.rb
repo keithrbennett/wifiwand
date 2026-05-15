@@ -4,7 +4,7 @@ require 'digest'
 require 'fileutils'
 require 'json'
 require 'open3'
-require_relative 'mac_os_helper_artifacts'
+require_relative 'artifacts'
 
 module WifiWand
   module Platforms

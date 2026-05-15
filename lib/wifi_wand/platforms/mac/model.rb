@@ -5,9 +5,9 @@ require 'shellwords'
 require_relative '../../models/base_model'
 require_relative '../../errors'
 require_relative '../../timing_constants'
-require_relative 'helper/mac_os_swift_runtime'
-require_relative 'helper/mac_os_wifi_transport'
-require_relative 'helper/mac_os_helper_bundle'
+require_relative 'helper/swift_runtime'
+require_relative 'helper/wifi_transport'
+require_relative 'helper/bundle'
 require_relative '../../services/status_line_data_builder'
 require_relative 'airport_data_navigator'
 require_relative 'airport_data_provider'
@@ -40,7 +40,7 @@ module WifiWand
           super
           # Defer macOS version detection until first needed to minimize incidental OS calls
           @macos_version = nil
-          @mac_helper_client = nil
+          @helper_client = nil
           @swift_runtime = nil
           @airport_data_provider = nil
           @dns_manager = nil
@@ -212,7 +212,7 @@ module WifiWand
         # known ways.
         def _connect(network_name, password = nil)
           invalidate_airport_data_cache
-          mac_os_wifi_transport.connect(network_name, password)
+          wifi_transport.connect(network_name, password)
         ensure
           invalidate_airport_data_cache
         end
@@ -300,8 +300,8 @@ module WifiWand
           network_identity_reader.network_identity_redaction_reason
         end
 
-        def mac_helper_client
-          @mac_helper_client ||= WifiWand::Platforms::Mac::Helper::Client.new(
+        def helper_client
+          @helper_client ||= WifiWand::Platforms::Mac::Helper::Client.new(
             out_stream_proc:    -> { out_stream },
             err_stream_proc:    -> { err_stream },
             verbose_proc:       -> { verbose? },
@@ -315,7 +315,7 @@ module WifiWand
         # fails.
         def _disconnect
           invalidate_airport_data_cache
-          mac_os_wifi_transport.disconnect
+          wifi_transport.disconnect
         ensure
           invalidate_airport_data_cache
         end
@@ -374,8 +374,8 @@ module WifiWand
           )
         end
 
-        private def mac_os_wifi_transport
-          @mac_os_wifi_transport ||= WifiWand::Platforms::Mac::Helper::WifiTransport.new(
+        private def wifi_transport
+          @wifi_transport ||= WifiWand::Platforms::Mac::Helper::WifiTransport.new(
             swift_runtime:       swift_runtime,
             command_runner:      ->(*args, **kwargs) { run_command(*args, **kwargs) },
             wifi_interface_proc: -> { wifi_interface },
@@ -412,7 +412,7 @@ module WifiWand
 
         private def network_identity_reader
           @network_identity_reader ||= WifiWand::Platforms::Mac::NetworkIdentityReader.new(
-            helper_client_proc:            -> { mac_helper_client },
+            helper_client_proc:            -> { helper_client },
             command_runner:                ->(*args, **kwargs) { run_command(*args, **kwargs) },
             airport_data_proc:             ->(**kwargs) { airport_data(**kwargs) },
             airport_data_cache_scope_proc: ->(&block) { with_airport_data_cache_scope(&block) },
@@ -426,7 +426,7 @@ module WifiWand
 
         private def status_queries
           @status_queries ||= WifiWand::Platforms::Mac::StatusQueries.new(
-            helper_client_proc:            -> { mac_helper_client },
+            helper_client_proc:            -> { helper_client },
             command_runner:                ->(*args, **kwargs) { run_command(*args, **kwargs) },
             airport_data_proc:             ->(**kwargs) { airport_data(**kwargs) },
             airport_data_cache_scope_proc: ->(&block) { with_airport_data_cache_scope(&block) },
@@ -442,7 +442,7 @@ module WifiWand
 
         private def network_scanner
           @network_scanner ||= WifiWand::Platforms::Mac::NetworkScanner.new(
-            helper_client_proc:            -> { mac_helper_client },
+            helper_client_proc:            -> { helper_client },
             command_runner:                ->(*args, **kwargs) { run_command(*args, **kwargs) },
             airport_data_proc:             -> { airport_data },
             airport_data_cache_scope_proc: ->(&block) { with_airport_data_cache_scope(&block) },

@@ -306,7 +306,7 @@ end
 lib_path = Pathname.new(MacHelperCLI::REPO_ROOT).join('lib')
 $LOAD_PATH.unshift(lib_path.to_s) unless $LOAD_PATH.include?(lib_path.to_s)
 
-require 'wifi_wand/platforms/mac/helper/mac_helper_release'
+require 'wifi_wand/platforms/mac/helper/release'
 
 # Run the CLI
 MacHelperCLI::CLI.new(ARGV.dup).run if $PROGRAM_NAME == __FILE__

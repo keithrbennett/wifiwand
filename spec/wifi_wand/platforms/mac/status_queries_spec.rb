@@ -3,7 +3,7 @@
 require 'open3'
 
 require_relative '../../../spec_helper'
-require_relative '../../../../lib/wifi_wand/platforms/mac/helper/mac_os_helper_bundle'
+require_relative '../../../../lib/wifi_wand/platforms/mac/helper/bundle'
 require_relative '../../../../lib/wifi_wand/platforms/mac/status_queries'
 
 module WifiWand

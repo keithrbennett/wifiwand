@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 require 'tmpdir'
-require_relative '../../../../../lib/wifi_wand/platforms/mac/helper/mac_os_helper_artifacts'
+require_relative '../../../../../lib/wifi_wand/platforms/mac/helper/artifacts'
 
 RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
   describe '.build_task_prerequisites' do

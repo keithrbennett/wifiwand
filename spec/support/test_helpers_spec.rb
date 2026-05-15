@@ -18,7 +18,7 @@ RSpec.describe TestHelpers do
   it 'stubs the macOS helper client for ordinary tests' do
     model = create_test_model
 
-    expect(model.send(:mac_helper_client)).to be_a(RSpec::Mocks::InstanceVerifyingDouble)
+    expect(model.send(:helper_client)).to be_a(RSpec::Mocks::InstanceVerifyingDouble)
   end
 
   it 'uses the real macOS helper client when the example is real_env' do
@@ -26,6 +26,6 @@ RSpec.describe TestHelpers do
 
     model = create_test_model
 
-    expect(model.send(:mac_helper_client)).to be_a(WifiWand::Platforms::Mac::Helper::Client)
+    expect(model.send(:helper_client)).to be_a(WifiWand::Platforms::Mac::Helper::Client)
   end
 end

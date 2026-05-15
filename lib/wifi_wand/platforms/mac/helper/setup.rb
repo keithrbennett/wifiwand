@@ -18,7 +18,7 @@
 
 require 'fileutils'
 require 'json'
-require_relative 'mac_os_helper_bundle'
+require_relative 'bundle'
 
 module WifiWand
   module Platforms

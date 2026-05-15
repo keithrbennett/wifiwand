@@ -294,7 +294,7 @@ module WifiWand
         end
 
         before do
-          model.instance_variable_set(:@mac_helper_client, nil)
+          model.instance_variable_set(:@helper_client, nil)
           allow(WifiWand::Platforms::Mac::Helper::Client).to receive(:new).and_return(helper_double)
         end
 
@@ -676,7 +676,7 @@ module WifiWand
         end
 
         before do
-          model.instance_variable_set(:@mac_helper_client, nil)
+          model.instance_variable_set(:@helper_client, nil)
           allow(WifiWand::Platforms::Mac::Helper::Client).to receive(:new).and_return(helper_double)
           allow(model).to receive_messages(wifi_on?: true, wifi_interface: 'en0')
         end
@@ -777,7 +777,7 @@ module WifiWand
         end
 
         before do
-          model.instance_variable_set(:@mac_helper_client, nil)
+          model.instance_variable_set(:@helper_client, nil)
           allow(WifiWand::Platforms::Mac::Helper::Client).to receive(:new).and_return(helper_double)
           allow(model).to receive(:wifi_on?).and_return(true)
         end
@@ -877,7 +877,7 @@ module WifiWand
             verbose_proc:       -> { false },
             macos_version_proc: ->(timeout_in_secs: nil) { '14.0' }
           )
-          model.instance_variable_set(:@mac_helper_client, helper_client)
+          model.instance_variable_set(:@helper_client, helper_client)
           allow(model).to receive_messages(
             airport_data:      { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [{
               '_name' => 'en0',
@@ -905,7 +905,7 @@ module WifiWand
         let(:swift_runtime) { instance_double(WifiWand::Platforms::Mac::Helper::SwiftRuntime) }
 
         before do
-          model.instance_variable_set(:@mac_helper_client, nil)
+          model.instance_variable_set(:@helper_client, nil)
           model.wifi_interface = 'en0'
           allow(WifiWand::Platforms::Mac::Helper::Client).to receive(:new).and_return(helper_double)
         end
@@ -1251,7 +1251,7 @@ module WifiWand
         end
 
         before do
-          model.instance_variable_set(:@mac_helper_client, nil)
+          model.instance_variable_set(:@helper_client, nil)
           allow(WifiWand::Platforms::Mac::Helper::Client).to receive(:new).and_return(helper_double)
           allow(model).to receive_messages(
             wifi_on?:       true,
@@ -1612,7 +1612,7 @@ module WifiWand
           allow(model).to receive_messages(
             wifi_on?:               true,
             connected_network_name: 'TestNet',
-            mac_os_wifi_transport:  transport
+            wifi_transport:         transport
           )
           allow(model).to receive(:wait_until_disassociated!)
           allow(transport).to receive(:disconnect)
@@ -1635,7 +1635,7 @@ module WifiWand
           allow(model).to receive_messages(
             wifi_on?:               true,
             connected_network_name: 'TestNet',
-            mac_os_wifi_transport:  transport
+            wifi_transport:         transport
           )
           allow(model).to receive(:wait_until_disassociated!)
           allow(transport).to receive(:disconnect)
@@ -1657,7 +1657,7 @@ module WifiWand
           allow(model).to receive_messages(
             wifi_on?:               true,
             connected_network_name: 'TestNet',
-            mac_os_wifi_transport:  transport
+            wifi_transport:         transport
           )
           allow(model).to receive(:wait_until_disassociated!)
           allow(transport).to receive(:disconnect)
@@ -1733,7 +1733,7 @@ module WifiWand
           )
           allow(model).to receive(:wait_until_disassociated!)
           allow(model).to receive(:run_command)
-          expect(model).not_to receive(:mac_os_wifi_transport)
+          expect(model).not_to receive(:wifi_transport)
 
           expect(model.disconnect).to be_nil
           expect(model).not_to have_received(:run_command)
@@ -1776,7 +1776,7 @@ module WifiWand
       describe '#_disconnect' do
         it 'clears cached airport data before and after delegating disconnect orchestration' do
           transport = instance_double(WifiWand::Platforms::Mac::Helper::WifiTransport, disconnect: nil)
-          allow(model).to receive(:mac_os_wifi_transport).and_return(transport)
+          allow(model).to receive(:wifi_transport).and_return(transport)
 
           expect(model).to receive(:invalidate_airport_data_cache).ordered
           expect(transport).to receive(:disconnect).ordered
@@ -1867,7 +1867,7 @@ module WifiWand
       describe '#_connect' do
         it 'clears cached airport data before and after delegating connect orchestration' do
           transport = instance_double(WifiWand::Platforms::Mac::Helper::WifiTransport)
-          allow(model).to receive(:mac_os_wifi_transport).and_return(transport)
+          allow(model).to receive(:wifi_transport).and_return(transport)
 
           expect(model).to receive(:invalidate_airport_data_cache).ordered
           expect(transport).to receive(:connect).with('TestNetwork', 'password').ordered
@@ -1970,7 +1970,7 @@ module WifiWand
           helper_result = helper_query_result.new(payload: nil)
 
           allow(model).to receive(:_connected_network_name).and_call_original
-          allow(model).to receive(:mac_helper_client).and_return(helper_double)
+          allow(model).to receive(:helper_client).and_return(helper_double)
           stub_fast_network_identity_missing
           allow(helper_double).to receive(:connected_network_name).and_return(helper_result)
 
@@ -2012,7 +2012,7 @@ module WifiWand
           )
 
           allow(model).to receive(:_connected_network_name).and_call_original
-          allow(model).to receive(:mac_helper_client).and_return(helper_double)
+          allow(model).to receive(:helper_client).and_return(helper_double)
           stub_fast_network_identity_missing
           allow(helper_double).to receive(:connected_network_name).and_return(helper_result)
 
