@@ -1,15 +1,16 @@
 # frozen_string_literal: true
 
 require_relative 'airport_data_navigator'
+require_relative 'connected_network_flag_context'
 require_relative '../../errors'
 require_relative '../../string_predicates'
 require_relative '../../services/command_executor'
 
 module WifiWand
   class MacOsNetworkIdentityReader
+    include MacOsConnectedNetworkFlagContext
     include StringPredicates
 
-    FLAG_CONTEXTS_KEY = :wifi_wand_mac_os_network_identity_flag_contexts
     NO_CONNECTED_NETWORK = Object.new.freeze
 
     def initialize(
@@ -113,7 +114,7 @@ module WifiWand
     def connected_network_name
       raise WifiOffError, 'WiFi is off, cannot determine connected network.' unless wifi_on?
 
-      with_flag_scope do
+      with_connected_network_flag_scope do
         with_airport_data_cache_scope do
           network_name = connected_network_name_raw
           return network_name if network_name
@@ -371,66 +372,6 @@ module WifiWand
 
         hash[key.strip] = value.to_s.strip
       end
-    end
-
-    private def mark_connected_network_authoritatively_disconnected
-      active_flag_context&.[]=(:authoritatively_disconnected, true)
-      nil
-    end
-
-    private def connected_network_authoritatively_disconnected?
-      context = active_flag_context
-      context ? context.fetch(:authoritatively_disconnected) : false
-    end
-
-    private def mark_connected_network_fallback_identity_redacted
-      active_flag_context&.[]=(:fallback_identity_redacted, true)
-      nil
-    end
-
-    private def connected_network_fallback_identity_redacted?
-      context = active_flag_context
-      context ? context.fetch(:fallback_identity_redacted) : false
-    end
-
-    private def with_flag_scope
-      contexts = flag_contexts
-      had_previous_context = contexts.key?(self)
-      previous_context = contexts[self] if had_previous_context
-
-      contexts[self] = new_flag_context
-      yield
-    ensure
-      restore_flag_context(contexts, had_previous_context, previous_context)
-    end
-
-    private def new_flag_context
-      {
-        authoritatively_disconnected: false,
-        fallback_identity_redacted:   false,
-      }
-    end
-
-    private def restore_flag_context(contexts, had_previous_context, previous_context)
-      if had_previous_context
-        contexts[self] = previous_context
-      else
-        contexts.delete(self)
-      end
-
-      Thread.current[FLAG_CONTEXTS_KEY] = nil if contexts.empty?
-    end
-
-    private def active_flag_context
-      current_flag_contexts&.fetch(self, nil)
-    end
-
-    private def current_flag_contexts
-      Thread.current[FLAG_CONTEXTS_KEY]
-    end
-
-    private def flag_contexts
-      Thread.current[FLAG_CONTEXTS_KEY] ||= {}.compare_by_identity
     end
   end
 end
