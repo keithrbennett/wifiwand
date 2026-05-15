@@ -14,15 +14,8 @@ module WifiWand
         airport_data_cache_scope_proc: ->(&block) { block.call },
         wifi_on_proc:                  -> { wifi_on },
         wifi_interface_proc:           -> { wifi_interface },
-        status_wifi_interface_proc:    ->(_deadline) { status_wifi_interface },
         default_interface_proc:        -> { default_interface },
         ip_address_proc:               -> { ip_address },
-        status_default_interface_proc: ->(_deadline) { status_default_interface },
-        status_ip_address_proc:        ->(_deadline) { status_ip_address },
-        status_deadline_proc:          ->(timeout_in_secs) {
-          timeout_in_secs ? monotonic_now + timeout_in_secs : nil
-        },
-        status_timeout_proc:           ->(deadline) { deadline ? [deadline - monotonic_now, 0].max : nil },
         airport_command:               airport_command
       )
     end
@@ -34,11 +27,8 @@ module WifiWand
     let(:airport_data) { airport_payload(current_network_name: 'ProfilerNet') }
     let(:wifi_on) { true }
     let(:wifi_interface) { 'en0' }
-    let(:status_wifi_interface) { wifi_interface }
     let(:default_interface) { nil }
     let(:ip_address) { nil }
-    let(:status_default_interface) { nil }
-    let(:status_ip_address) { nil }
 
     def helper_result(**kwargs)
       WifiWand::MacOsHelperBundle::HelperQueryResult.new(**kwargs)
@@ -59,10 +49,6 @@ module WifiWand
           }],
         }],
       }
-    end
-
-    def monotonic_now
-      Process.clock_gettime(Process::CLOCK_MONOTONIC)
     end
 
     describe '#connected_network_name_raw' do
@@ -214,66 +200,6 @@ module WifiWand
         allow(reader).to receive(:associated_without_ssid?).and_return(true)
 
         expect(reader.connected?).to be(true)
-      end
-    end
-
-    describe '#status_network_identity' do
-      it 'passes the bounded status budget through helper and fast command fallbacks' do
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-getairportpower', wifi_interface], timeout_in_secs: be_between(0, 0.5))
-          .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
-        expect(helper_client).to receive(:connected_network_name)
-          .with(timeout_seconds: be_between(0, 0.5))
-          .and_return(helper_result)
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-getairportnetwork', wifi_interface], timeout_in_secs: be_between(0, 0.5))
-          .and_return(command_result(stdout: "Current Wi-Fi Network: StatusNet\n"))
-
-        expect(reader.status_network_identity(timeout_in_secs: 0.5)).to eq(
-          connected:    true,
-          network_name: 'StatusNet'
-        )
-      end
-
-      it 'returns connected with a nil SSID when association evidence exists without identity' do
-        no_current_network = airport_payload(current_network_name: :missing)
-        bounded_airport_data = ->(_timeout_in_secs) { no_current_network }
-        identity_reader = described_class.new(
-          helper_client_proc:            -> { helper_client },
-          command_runner:                command_runner,
-          airport_data_proc:             ->(timeout_in_secs: nil) {
-            bounded_airport_data.call(timeout_in_secs)
-          },
-          airport_data_cache_scope_proc: ->(&block) { block.call },
-          wifi_on_proc:                  -> { true },
-          wifi_interface_proc:           -> { wifi_interface },
-          status_wifi_interface_proc:    ->(_deadline) { wifi_interface },
-          default_interface_proc:        -> {},
-          ip_address_proc:               -> {},
-          status_default_interface_proc: ->(_deadline) { wifi_interface },
-          status_ip_address_proc:        ->(_deadline) {},
-          status_deadline_proc:          ->(timeout_in_secs) { monotonic_now + timeout_in_secs },
-          status_timeout_proc:           ->(deadline) { [deadline - monotonic_now, 0].max },
-          airport_command:               airport_command
-        )
-
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-getairportpower', wifi_interface], timeout_in_secs: be_between(0, 0.5))
-          .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
-        expect(helper_client).to receive(:connected_network_name)
-          .with(timeout_seconds: be_between(0, 0.5))
-          .and_return(helper_result)
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-getairportnetwork', wifi_interface], timeout_in_secs: be_between(0, 0.5))
-          .and_return(command_result(stdout: ''))
-        expect(command_runner).to receive(:call)
-          .with([airport_command, '-I'], timeout_in_secs: be_between(0, 0.5))
-          .and_return(command_result(stdout: ''))
-
-        expect(identity_reader.status_network_identity(timeout_in_secs: 0.5)).to eq(
-          connected:    true,
-          network_name: nil
-        )
       end
     end
   end

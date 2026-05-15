@@ -1056,6 +1056,36 @@ module WifiWand
           )
         end
 
+        it 'preserves bounded airport data timeouts for status fallback handling' do
+          timeout_error = WifiWand::CommandTimeoutError.new(
+            command:         'system_profiler',
+            timeout_in_secs: 0.1
+          )
+
+          expect(model).to receive(:run_command)
+            .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+          expect(helper_double).to receive(:connected_network_name)
+            .with(timeout_seconds: status_timeout)
+            .and_return(WifiWand::MacOsHelperBundle::HelperQueryResult.new)
+          expect(model).to receive(:run_command)
+            .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: ''))
+          expect(model).to receive(:run_command)
+            .with([described_class::AIRPORT_COMMAND, '-I'], timeout_in_secs: status_timeout)
+            .and_return(command_result(stdout: ''))
+          expect(model).to receive(:run_command)
+            .with(
+              %w[system_profiler -json SPAirPortDataType],
+              raise_on_error:  true,
+              timeout_in_secs: status_timeout
+            )
+            .and_raise(timeout_error)
+
+          expect { model.status_network_identity(timeout_in_secs: 0.5) }
+            .to raise_error(WifiWand::CommandTimeoutError)
+        end
+
         it 'returns disconnected when the helper explicitly reports not connected' do
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
@@ -1142,44 +1172,6 @@ module WifiWand
             connected:    false,
             network_name: nil
           )
-        end
-
-        describe 'bounded interface helpers' do
-          let(:deadline) { model.send(:status_deadline, 0.5) }
-
-          it 'does not cache a blank status interface probe result' do
-            model.instance_variable_set(:@wifi_interface, nil)
-            allow(model).to receive(:probe_wifi_interface).and_return('')
-
-            expect(model.send(:status_wifi_interface, deadline)).to be_nil
-            expect(model.instance_variable_get(:@wifi_interface)).to be_nil
-          end
-
-          it 'skips default route lookup when status interface detection fails' do
-            model.instance_variable_set(:@wifi_interface, nil)
-            allow(model).to receive(:probe_wifi_interface).and_return(nil)
-
-            expect(model).not_to receive(:run_command)
-
-            expect(model.send(:status_default_interface, deadline)).to be_nil
-          end
-
-          it 'skips IP address lookup when status interface detection is blank' do
-            model.instance_variable_set(:@wifi_interface, nil)
-            allow(model).to receive(:probe_wifi_interface).and_return('')
-
-            expect(model).not_to receive(:run_command)
-
-            expect(model.send(:status_ip_address, deadline)).to be_nil
-          end
-
-          it 'returns nil for a blank default route interface value' do
-            expect(model).to receive(:run_command)
-              .with(%w[route -n get default], raise_on_error: false, timeout_in_secs: status_timeout)
-              .and_return(command_result(stdout: "interface: \n"))
-
-            expect(model.send(:status_default_interface, deadline)).to be_nil
-          end
         end
       end
 

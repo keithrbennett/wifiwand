@@ -16,6 +16,7 @@ require_relative 'mac_os/interface_detector'
 require_relative 'mac_os/keychain_password_reader'
 require_relative 'mac_os/network_scanner'
 require_relative 'mac_os/network_identity_reader'
+require_relative 'mac_os/status_queries'
 require_relative 'mac_os/system_network_info'
 
 
@@ -45,6 +46,7 @@ module WifiWand
       @keychain_password_reader = nil
       @network_identity_reader = nil
       @network_scanner = nil
+      @status_queries = nil
       @system_network_info = nil
     end
 
@@ -163,11 +165,11 @@ module WifiWand
     end
 
     def status_network_identity(timeout_in_secs: nil)
-      network_identity_reader.status_network_identity(timeout_in_secs: timeout_in_secs)
+      status_queries.status_network_identity(timeout_in_secs: timeout_in_secs)
     end
 
     def status_wifi_on?(timeout_in_secs: nil)
-      network_identity_reader.status_wifi_on?(timeout_in_secs: timeout_in_secs)
+      status_queries.status_wifi_on?(timeout_in_secs: timeout_in_secs)
     end
 
     # Turns WiFi on.
@@ -413,11 +415,22 @@ module WifiWand
         airport_data_cache_scope_proc: ->(&block) { with_airport_data_cache_scope(&block) },
         wifi_on_proc:                  -> { wifi_on? },
         wifi_interface_proc:           -> { wifi_interface },
-        status_wifi_interface_proc:    ->(deadline) { status_wifi_interface(deadline) },
         default_interface_proc:        -> { default_interface },
         ip_address_proc:               -> { _ip_address },
-        status_default_interface_proc: ->(deadline) { status_default_interface(deadline) },
-        status_ip_address_proc:        ->(deadline) { status_ip_address(deadline) },
+        airport_command:               AIRPORT_COMMAND
+      )
+    end
+
+    private def status_queries
+      @status_queries ||= WifiWand::MacOsStatusQueries.new(
+        helper_client_proc:            -> { mac_helper_client },
+        command_runner:                ->(*args, **kwargs) { run_command(*args, **kwargs) },
+        airport_data_proc:             ->(**kwargs) { airport_data(**kwargs) },
+        airport_data_cache_scope_proc: ->(&block) { with_airport_data_cache_scope(&block) },
+        cached_wifi_interface_proc:    -> { @wifi_interface },
+        cache_wifi_interface_proc:     ->(iface) { @wifi_interface = iface },
+        probe_wifi_interface_proc:     ->(**kwargs) { probe_wifi_interface(**kwargs) },
+        system_network_info_proc:      -> { system_network_info },
         status_deadline_proc:          ->(timeout_in_secs) { status_deadline(timeout_in_secs) },
         status_timeout_proc:           ->(deadline) { status_timeout_for(deadline) },
         airport_command:               AIRPORT_COMMAND
@@ -445,29 +458,6 @@ module WifiWand
     private def update_wifi_detection_state(result)
       @wifi_interface = result.interface if result.interface && !result.interface.empty?
       @wifi_service_name = result.service_name if result.service_name && !result.service_name.empty?
-    end
-
-    private def status_wifi_interface(deadline)
-      return @wifi_interface if @wifi_interface && !@wifi_interface.empty?
-
-      iface = probe_wifi_interface(timeout_in_secs: status_timeout_for(deadline))
-      return nil if string_nil_or_empty?(iface)
-
-      @wifi_interface = iface
-    end
-
-    private def status_default_interface(deadline)
-      iface = status_wifi_interface(deadline)
-      return nil if string_nil_or_empty?(iface)
-
-      system_network_info.default_interface(timeout_in_secs: status_timeout_for(deadline))
-    end
-
-    private def status_ip_address(deadline)
-      iface = status_wifi_interface(deadline)
-      return nil if string_nil_or_empty?(iface)
-
-      system_network_info.ip_address(iface: iface, timeout_in_secs: status_timeout_for(deadline))
     end
 
     private def with_airport_data_cache_scope(&)
