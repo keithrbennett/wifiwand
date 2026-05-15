@@ -1828,258 +1828,45 @@ module WifiWand
       end
 
       describe '#_available_network_names' do
-        let(:default_scan_result) do
-          WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: [])
-        end
-        let(:default_connected_result) do
-          WifiWand::MacOsHelperBundle::HelperQueryResult.new
-        end
-        let(:helper_double) do
-          instance_double(WifiWand::MacOsHelperClient)
-        end
-        let(:mock_airport_data) do
-          {
-            'SPAirPortDataType' => [{
-              'spairport_airport_interfaces' => [{
-                '_name'                                     => 'en0',
-                'spairport_airport_local_wireless_networks' => [
-                  { '_name' => 'StrongNetwork', 'spairport_signal_noise' => '85/10' },
-                  { '_name' => 'WeakNetwork', 'spairport_signal_noise' => '45/10' },
-                  { '_name' => 'MediumNetwork', 'spairport_signal_noise' => '65/10' },
-                ],
-              }],
-            }],
-          }
-        end
+        let(:network_scanner) { instance_double(WifiWand::MacOsNetworkScanner) }
 
         before do
-          model.instance_variable_set(:@mac_helper_client, nil)
-          allow(WifiWand::MacOsHelperClient).to receive(:new).and_return(helper_double)
-          allow(helper_double).to receive_messages(
-            scan_networks:          default_scan_result,
-            connected_network_name: default_connected_result
-          )
-          allow(model).to receive_messages(mac_helper_client: helper_double, wifi_interface: 'en0')
-          allow(model).to receive(:airport_available_network_names).and_return(nil)
+          model.instance_variable_set(:@network_scanner, network_scanner)
         end
 
-        it 'uses airport scans before falling back to system_profiler' do
-          scan_output = <<~OUTPUT
-            SSID BSSID             RSSI CHANNEL HT CC SECURITY
-            Cafe WiFi 11:22:33:44:55:66 -45  6       Y  US WPA2(PSK/AES/AES)
-            Weak Net 22:33:44:55:66:77 -80  1       Y  US WPA2(PSK/AES/AES)
-            Cafe WiFi 33:44:55:66:77:88 -50  6       Y  US WPA2(PSK/AES/AES)
-          OUTPUT
-          allow(model).to receive(:airport_available_network_names).and_call_original
-          expect(model).to receive(:run_command)
-            .with([described_class::AIRPORT_COMMAND, '-s'], timeout_in_secs: nil)
-            .and_return(command_result(stdout: scan_output))
-          expect(model).not_to receive(:airport_data)
+        it 'delegates to the network scanner' do
+          expect(network_scanner).to receive(:available_network_names).and_return(['Cafe WiFi'])
 
-          expect(model._available_network_names).to eq(['Cafe WiFi', 'Weak Net'])
+          expect(model._available_network_names).to eq(['Cafe WiFi'])
+        end
+      end
+
+      describe '#available_network_scan' do
+        let(:network_scanner) { instance_double(WifiWand::MacOsNetworkScanner) }
+
+        before do
+          model.instance_variable_set(:@network_scanner, network_scanner)
         end
 
-        it 'returns networks sorted by signal strength descending' do
-          allow(model).to receive_messages(
-            airport_data:           mock_airport_data,
-            wifi_interface:         'en0',
-            connected_network_name: nil
-          )
+        it 'keeps the public WiFi power guard before delegating' do
+          allow(model).to receive(:wifi_on?).and_return(false)
 
-          result = model._available_network_names
-          expect(result).to eq(%w[StrongNetwork MediumNetwork WeakNetwork])
+          expect(network_scanner).not_to receive(:scan)
+          expect { model.available_network_scan }.to raise_error(WifiWand::WifiOffError)
         end
 
-        it 'uses different data key when connected to network' do
-          connected_data = JSON.parse(mock_airport_data.to_json)
-          interfaces = connected_data['SPAirPortDataType'][0]['spairport_airport_interfaces'][0]
-          interfaces['spairport_airport_other_local_wireless_networks'] =
-            [{ '_name' => 'OtherNetwork', 'spairport_signal_noise' => '75/10' }]
-          interfaces['spairport_current_network_information'] = { '_name' => 'CurrentNetwork' }
-
-          allow(model).to receive_messages(
-            airport_data:           connected_data,
-            wifi_interface:         'en0',
-            connected_network_name: 'CurrentNetwork'
-          )
-
-          result = model._available_network_names
-          expect(result).to eq(['OtherNetwork'])
-        end
-
-        it 'does not filter out the connected SSID when the macOS scan includes it' do
-          connected_data = JSON.parse(mock_airport_data.to_json)
-          interfaces = connected_data['SPAirPortDataType'][0]['spairport_airport_interfaces'][0]
-          interfaces['spairport_airport_other_local_wireless_networks'] = [
-            { '_name' => 'CurrentNetwork', 'spairport_signal_noise' => '92/10' },
-            { '_name' => 'OtherNetwork', 'spairport_signal_noise' => '75/10' },
-          ]
-          interfaces['spairport_current_network_information'] = { '_name' => 'CurrentNetwork' }
-
-          allow(model).to receive_messages(
-            airport_data:           connected_data,
-            wifi_interface:         'en0',
-            connected_network_name: 'CurrentNetwork'
-          )
-
-          expect(model._available_network_names).to eq(%w[CurrentNetwork OtherNetwork])
-        end
-
-        it 'does not inject the connected SSID when the macOS scan omits it' do
-          connected_data = JSON.parse(mock_airport_data.to_json)
-          interfaces = connected_data['SPAirPortDataType'][0]['spairport_airport_interfaces'][0]
-          interfaces['spairport_airport_other_local_wireless_networks'] = [
-            { '_name' => 'OtherNetwork', 'spairport_signal_noise' => '75/10' },
-            { '_name' => 'GuestNetwork', 'spairport_signal_noise' => '55/10' },
-          ]
-          interfaces['spairport_current_network_information'] = { '_name' => 'CurrentNetwork' }
-
-          allow(model).to receive_messages(
-            airport_data:           connected_data,
-            wifi_interface:         'en0',
-            connected_network_name: 'CurrentNetwork'
-          )
-
-          expect(model._available_network_names).to eq(%w[OtherNetwork GuestNetwork])
-        end
-
-        it 'removes duplicate network names' do
-          duplicate_data = {
-            'SPAirPortDataType' => [{
-              'spairport_airport_interfaces' => [{
-                '_name'                                     => 'en0',
-                'spairport_airport_local_wireless_networks' => [
-                  { '_name' => 'DupeNetwork', 'spairport_signal_noise' => '85/10' },
-                  { '_name' => 'DupeNetwork', 'spairport_signal_noise' => '45/10' },
-                  { '_name' => 'UniqueNetwork', 'spairport_signal_noise' => '65/10' },
-                ],
-              }],
-            }],
+        it 'delegates to the network scanner when WiFi is on' do
+          scan = {
+            'networks'          => ['Cafe WiFi'],
+            'scan_status'       => 'ok',
+            'scan_source'       => 'mac_helper',
+            'ssid_data_trusted' => true,
+            'warning'           => nil,
           }
+          allow(model).to receive(:wifi_on?).and_return(true)
+          expect(network_scanner).to receive(:scan).and_return(scan)
 
-          allow(model).to receive_messages(
-            airport_data:           duplicate_data,
-            wifi_interface:         'en0',
-            connected_network_name: nil
-          )
-
-          result = model._available_network_names
-          expect(result).to eq(%w[DupeNetwork UniqueNetwork])
-        end
-
-        it 'filters placeholder network names from helper results' do
-          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(
-            payload: [
-              { 'ssid' => '<hidden>' },
-              { 'ssid' => '<redacted>' },
-              { 'ssid' => 'VisibleNetwork' },
-            ]
-          )
-          allow(helper_double).to receive(:scan_networks).and_return(result)
-
-          result = model._available_network_names
-          expect(result).to eq(['VisibleNetwork'])
-        end
-
-        it 'filters placeholder network names from system_profiler fallback results' do
-          placeholder_data = {
-            'SPAirPortDataType' => [{
-              'spairport_airport_interfaces' => [{
-                '_name'                                     => 'en0',
-                'spairport_airport_local_wireless_networks' => [
-                  { '_name' => '<redacted>', 'spairport_signal_noise' => '95/10' },
-                  { '_name' => '<hidden>', 'spairport_signal_noise' => '85/10' },
-                  { '_name' => 'VisibleNetwork', 'spairport_signal_noise' => '75/10' },
-                ],
-              }],
-            }],
-          }
-
-          allow(model).to receive_messages(
-            airport_data:           placeholder_data,
-            wifi_interface:         'en0',
-            connected_network_name: nil
-          )
-
-          result = model._available_network_names
-          expect(result).to eq(['VisibleNetwork'])
-        end
-
-        it 'marks fallback scan data as degraded when helper is blocked by Location Services' do
-          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(
-            payload:                   [],
-            location_services_blocked: true,
-            error_message:             'Location Services denied'
-          )
-          allow(helper_double).to receive(:scan_networks).and_return(result)
-          allow(model).to receive_messages(
-            airport_data:           { 'SPAirPortDataType' => [{
-              'spairport_airport_interfaces' => [{
-                '_name'                                     => 'en0',
-                'spairport_airport_local_wireless_networks' => [
-                  { '_name' => 'VisibleNetwork', 'spairport_signal_noise' => '75/10' },
-                ],
-              }],
-            }] },
-            wifi_interface:         'en0',
-            connected_network_name: nil
-          )
-
-          scan = model._available_network_scan
-
-          expect(scan.fetch('networks')).to eq(['VisibleNetwork'])
-          expect(scan).to include(
-            'networks'          => ['VisibleNetwork'],
-            'scan_status'       => 'location_services_blocked',
-            'scan_source'       => 'fallback',
-            'ssid_data_trusted' => false
-          )
-          expect(scan.fetch('warning')).to include('Location Services')
-        end
-
-        it 'marks empty fallback scan data as degraded when helper is blocked by Location Services' do
-          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(
-            payload:                   [],
-            location_services_blocked: true,
-            error_message:             'Location Services denied'
-          )
-          allow(helper_double).to receive(:scan_networks).and_return(result)
-          allow(model).to receive_messages(
-            airport_data:           { 'SPAirPortDataType' => [{
-              'spairport_airport_interfaces' => [{
-                '_name'                                     => 'en0',
-                'spairport_airport_local_wireless_networks' => [],
-              }],
-            }] },
-            wifi_interface:         'en0',
-            connected_network_name: nil
-          )
-
-          expect(model._available_network_scan).to include(
-            'networks'          => [],
-            'scan_status'       => 'location_services_blocked',
-            'scan_source'       => 'fallback',
-            'ssid_data_trusted' => false
-          )
-        end
-
-        it 'falls back to system_profiler when helper scan returns no networks after timing out' do
-          result = WifiWand::MacOsHelperBundle::HelperQueryResult.new(payload: [])
-          allow(helper_double).to receive(:scan_networks).and_return(result)
-          allow(model).to receive_messages(
-            airport_data:           { 'SPAirPortDataType' => [{
-              'spairport_airport_interfaces' => [{
-                '_name'                                     => 'en0',
-                'spairport_airport_local_wireless_networks' => [
-                  { '_name' => 'VisibleNetwork', 'spairport_signal_noise' => '75/10' },
-                ],
-              }],
-            }] },
-            wifi_interface:         'en0',
-            connected_network_name: nil
-          )
-
-          expect(model._available_network_names).to eq(['VisibleNetwork'])
+          expect(model.available_network_scan).to eq(scan)
         end
       end
 

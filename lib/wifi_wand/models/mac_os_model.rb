@@ -14,6 +14,7 @@ require_relative 'mac_os/airport_data_provider'
 require_relative 'mac_os/dns_manager'
 require_relative 'mac_os/interface_detector'
 require_relative 'mac_os/keychain_password_reader'
+require_relative 'mac_os/network_scanner'
 require_relative 'mac_os/network_identity_reader'
 require_relative 'mac_os/system_network_info'
 
@@ -43,6 +44,7 @@ module WifiWand
       @interface_detector = nil
       @keychain_password_reader = nil
       @network_identity_reader = nil
+      @network_scanner = nil
       @system_network_info = nil
     end
 
@@ -111,7 +113,7 @@ module WifiWand
 
     # Returns the network names sorted in descending order of signal strength.
     def _available_network_names
-      _available_network_scan.fetch('networks')
+      network_scanner.available_network_names
     end
 
     def available_network_scan
@@ -121,55 +123,7 @@ module WifiWand
     end
 
     def _available_network_scan
-      with_airport_data_cache_scope do
-        helper_result = mac_helper_client.scan_networks
-        helper_networks = helper_available_network_names_from_result(helper_result)
-        return available_network_scan_result(helper_networks, source: 'mac_helper') if helper_networks
-
-        fallback_networks = fallback_available_network_names
-        if helper_result.location_services_blocked?
-          return location_services_blocked_available_network_scan(fallback_networks)
-        end
-
-        available_network_scan_result(fallback_networks, source: 'fallback')
-      end
-    end
-
-    # Queries available WiFi network names via the compiled macOS helper application.
-    # macOS currently uses two Swift runtime paths:
-    # - compiled helper application bundle for read/query operations that may
-    #   need a stable app identity and Location Services handling
-    # - direct Swift source execution for connect/disconnect mutations
-    # Consolidating those paths is a future architecture task.
-    #
-    # Returns:
-    #   - Array<String> of unique SSID names when the helper application returns usable data
-    #   - nil when the helper application is unavailable, Location Services
-    #     blocks the helper application, returns no networks, or all SSIDs are filtered placeholders
-    #     (signals the caller to try fallback sources)
-    #
-    # Placeholder SSIDs such as "<hidden>" and "<redacted>" are excluded from
-    # the result. All interpretation of the helper application response uses the
-    # explicit HelperQueryResult returned by scan_networks—no hidden client state is
-    # consulted.
-    def helper_available_network_names
-      result = mac_helper_client.scan_networks
-
-      helper_available_network_names_from_result(result)
-    end
-
-    private def helper_available_network_names_from_result(result)
-      return nil if result.location_services_blocked?
-
-      networks = result.payload
-      return nil unless networks&.any?
-
-      names = networks
-        .map { |network| network['ssid'].to_s }
-        .reject { |ssid| placeholder_network_name?(ssid) }
-        .uniq
-
-      names.empty? ? nil : names
+      network_scanner.scan
     end
 
     # Returns data pertaining to "preferred" networks, many/most of which will probably not be available.
@@ -407,8 +361,6 @@ module WifiWand
       :ok
     end
 
-    private :helper_available_network_names
-
     private def swift_runtime
       @swift_runtime ||= WifiWand::MacOsSwiftRuntime.new(
         command_runner:  ->(*args, **kwargs) { run_command(*args, **kwargs) },
@@ -472,71 +424,22 @@ module WifiWand
       )
     end
 
+    private def network_scanner
+      @network_scanner ||= WifiWand::MacOsNetworkScanner.new(
+        helper_client_proc:            -> { mac_helper_client },
+        command_runner:                ->(*args, **kwargs) { run_command(*args, **kwargs) },
+        airport_data_proc:             -> { airport_data },
+        airport_data_cache_scope_proc: ->(&block) { with_airport_data_cache_scope(&block) },
+        wifi_interface_proc:           -> { wifi_interface },
+        airport_command:               AIRPORT_COMMAND
+      )
+    end
+
     private def system_network_info
       @system_network_info ||= WifiWand::MacOsSystemNetworkInfo.new(
         command_runner:      ->(*args, **kwargs) { run_command(*args, **kwargs) },
         wifi_interface_proc: -> { wifi_interface }
       )
-    end
-
-    private def airport_available_network_names(timeout_in_secs: nil)
-      output = run_command(
-        [AIRPORT_COMMAND, '-s'],
-        timeout_in_secs: timeout_in_secs
-      ).stdout
-      networks = parse_airport_scan_output(output)
-      networks.empty? ? nil : networks
-    rescue WifiWand::Error
-      nil
-    end
-
-    private def fallback_available_network_names
-      airport_networks = airport_available_network_names
-      return airport_networks if airport_networks
-
-      iface = wifi_interface
-      data = airport_data
-      airport_data_navigator(data).visible_network_names(iface)
-    end
-
-    private def available_network_scan_result(networks, source:, status: 'ok', trusted: true, warning: nil)
-      {
-        'networks'          => Array(networks),
-        'scan_status'       => status,
-        'scan_source'       => source,
-        'ssid_data_trusted' => trusted,
-        'warning'           => warning,
-      }
-    end
-
-    private def location_services_blocked_available_network_scan(networks)
-      available_network_scan_result(
-        networks,
-        source:  'fallback',
-        status:  'location_services_blocked',
-        trusted: false,
-        warning: location_services_blocked_scan_warning
-      )
-    end
-
-    private def location_services_blocked_scan_warning
-      'macOS blocked wifiwand-helper from reading WiFi SSIDs through Location Services; ' \
-        'fallback scan results may be incomplete or unavailable. Run `wifi-wand-macos-setup`, ' \
-        'grant Location Services to `wifiwand-helper`, and retry.'
-    end
-
-    private def parse_airport_scan_output(output)
-      scanned_networks = output.split("\n").drop(1).filter_map do |line|
-        match = line.match(/\A\s*(.*?)\s+(?:[0-9a-f]{2}:){5}[0-9a-f]{2}\s+(-?\d+)\s+/i)
-        next unless match
-
-        name = match[1].strip
-        next if placeholder_network_name?(name)
-
-        [name, match[2].to_i]
-      end
-
-      scanned_networks.sort_by { |_name, signal| -signal }.map(&:first).uniq
     end
 
     private def update_wifi_detection_state(result)
@@ -565,10 +468,6 @@ module WifiWand
       return nil if string_nil_or_empty?(iface)
 
       system_network_info.ip_address(iface: iface, timeout_in_secs: status_timeout_for(deadline))
-    end
-
-    private def placeholder_network_name?(name)
-      MacOsAirportDataNavigator.placeholder_network_name?(name)
     end
 
     private def with_airport_data_cache_scope(&)
