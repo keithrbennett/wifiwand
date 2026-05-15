@@ -1,0 +1,107 @@
+# frozen_string_literal: true
+
+require_relative '../../spec_helper'
+require_relative '../../../lib/wifi_wand/commands/nameservers'
+
+describe WifiWand::Commands::Nameservers do
+  let(:mock_model) { double('Model') }
+  let(:output_support) { double('output_support') }
+  let(:cli) do
+    double('cli', model: mock_model, output_support: output_support,
+      help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+  end
+
+  it_behaves_like 'binds command context',
+    bound_attributes: { model: :mock_model, output_support: :output_support }
+
+  it_behaves_like 'has default command help text',
+    usage:       'Usage: wifi-wand nameservers [get|clear|IP ...]',
+    description: 'show, clear, or set DNS nameservers'
+
+  describe '#call' do
+    subject(:command) { described_class.new.bind(cli) }
+
+    it 'routes current nameservers through handle_output when no args are provided' do
+      allow(mock_model).to receive(:nameservers).and_return(['8.8.8.8', '1.1.1.1'])
+      expect(output_support).to receive(:handle_output) do |nameservers, producer|
+        expect(nameservers).to eq(['8.8.8.8', '1.1.1.1'])
+        expect(producer.call).to eq('Nameservers: 8.8.8.8, 1.1.1.1')
+      end
+
+      command.call
+    end
+
+    it 'routes current nameservers through handle_output for explicit get' do
+      allow(mock_model).to receive(:nameservers).and_return(['8.8.8.8'])
+      expect(output_support).to receive(:handle_output) do |nameservers, producer|
+        expect(nameservers).to eq(['8.8.8.8'])
+        expect(producer.call).to eq('Nameservers: 8.8.8.8')
+      end
+
+      command.call('get')
+    end
+
+    it 'raises ConfigurationError when get receives extra arguments' do
+      expect(mock_model).not_to receive(:nameservers)
+
+      expect do
+        command.call('get', '1.1.1.1')
+      end.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('Unexpected argument(s): 1.1.1.1')
+        expect(error.message).to include('Usage: wifi-wand nameservers [get|clear|IP ...]')
+        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      }
+    end
+
+    it 'shows [None] when there are no nameservers' do
+      allow(mock_model).to receive(:nameservers).and_return([])
+      expect(output_support).to receive(:handle_output) do |nameservers, producer|
+        expect(nameservers).to eq([])
+        expect(producer.call).to eq('Nameservers: [None]')
+      end
+
+      command.call
+    end
+
+    it 'clears nameservers when asked' do
+      expect(mock_model).to receive(:set_nameservers).with(:clear)
+      expect(output_support).to receive(:handle_output) do |nameservers, producer|
+        expect(nameservers).to eq([])
+        expect(producer.call).to eq('Nameservers cleared.')
+      end
+
+      command.call('clear')
+    end
+
+    it 'raises ConfigurationError and does not clear nameservers when clear receives extra arguments' do
+      expect(mock_model).not_to receive(:set_nameservers)
+
+      expect do
+        command.call('clear', '1.1.1.1')
+      end.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('Unexpected argument(s): 1.1.1.1')
+        expect(error.message).to include('Usage: wifi-wand nameservers [get|clear|IP ...]')
+        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      }
+    end
+
+    it 'sets provided nameservers' do
+      new_nameservers = ['9.9.9.9', '8.8.4.4']
+      expect(mock_model).to receive(:set_nameservers).with(new_nameservers).and_return(new_nameservers)
+      expect(output_support).to receive(:handle_output) do |nameservers, producer|
+        expect(nameservers).to eq(new_nameservers)
+        expect(producer.call).to eq('Nameservers set to: 9.9.9.9, 8.8.4.4')
+      end
+
+      command.call(*new_nameservers)
+    end
+
+    it 'raises ConfigurationError when setting nameservers includes a reserved subcommand word' do
+      expect(mock_model).not_to receive(:set_nameservers)
+
+      expect do
+        command.call('9.9.9.9', 'clear')
+      end.to raise_error(WifiWand::ConfigurationError, /reserved nameservers subcommands/)
+    end
+  end
+end

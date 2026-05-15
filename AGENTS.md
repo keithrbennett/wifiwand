@@ -144,11 +144,10 @@ New operating systems are added by:
 
 ### Command Line Interface Architecture
 The CLI uses modular design with mixins:
-- `HelpSystem` - handles help text and documentation
-- `OutputFormatter` - formats output (JSON, YAML, pretty print)
-- `ErrorHandling` - manages error messages and recovery
-- `CommandRegistry` - maps command aliases to methods
-- `ShellInterface` - interactive shell using Pry
+- `WifiWand::Commands::HelpSystem` - handles help text and documentation
+- `WifiWand::Commands::OutputFormatter` - formats output (JSON, YAML, pretty print)
+- `WifiWand::Commands::Registry` - maps command aliases to command objects
+- `WifiWand::Commands::ShellInterface` - interactive shell using Pry
 
 ### Key Models
 - **BaseModel** - common interface for all OS implementations

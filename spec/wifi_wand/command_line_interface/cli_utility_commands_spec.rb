@@ -3,7 +3,7 @@
 require 'json'
 require_relative '../../spec_helper'
 require_relative '../../../lib/wifi_wand/command_line_interface'
-require_relative '../../../lib/wifi_wand/commands/log_command'
+require_relative '../../../lib/wifi_wand/commands/log'
 
 describe WifiWand::CommandLineInterface do
   include_context 'for command line interface tests'
@@ -11,7 +11,7 @@ describe WifiWand::CommandLineInterface do
   describe 'utility commands' do
     describe 'help command' do
       it 'calls print_help method when no command is provided' do
-        help_command = WifiWand::HelpCommand.new.bind(cli)
+        help_command = WifiWand::Commands::Help.new.bind(cli)
         allow(cli).to receive(:resolve_command).with('help').and_return(help_command)
         allow(cli).to receive(:resolve_command).with(nil).and_return(nil)
         expect(cli).to receive(:print_help)
@@ -20,27 +20,28 @@ describe WifiWand::CommandLineInterface do
       end
 
       {
-        'log'          => WifiWand::LogCommand,
-        'avail_nets'   => WifiWand::AvailNetsCommand,
-        'ci'           => WifiWand::CiCommand,
-        'connect'      => WifiWand::ConnectCommand,
-        'cycle'        => WifiWand::CycleCommand,
-        'disconnect'   => WifiWand::DisconnectCommand,
-        'info'         => WifiWand::InfoCommand,
-        'forget'       => WifiWand::ForgetCommand,
-        'nameservers'  => WifiWand::NameserversCommand,
-        'network_name' => WifiWand::NetworkNameCommand,
-        'off'          => WifiWand::OffCommand,
-        'on'           => WifiWand::OnCommand,
-        'password'     => WifiWand::PasswordCommand,
-        'pref_nets'    => WifiWand::PrefNetsCommand,
-        'url'          => WifiWand::UrlCommand,
-        'wifi_on'      => WifiWand::WifiOnCommand,
-        'qr'           => WifiWand::QrCommand,
-        'quit'         => WifiWand::QuitCommand,
-        'shell'        => WifiWand::ShellCommand,
-        'status'       => WifiWand::StatusCommand,
-        'till'         => WifiWand::TillCommand,
+        'log'          => WifiWand::Commands::Log,
+        'avail_nets'   => WifiWand::Commands::AvailNets,
+        'ci'           => WifiWand::Commands::Ci,
+        'connect'      => WifiWand::Commands::Connect,
+        'cycle'        => WifiWand::Commands::Cycle,
+        'disconnect'   => WifiWand::Commands::Disconnect,
+        'info'         => WifiWand::Commands::Info,
+        'forget'       => WifiWand::Commands::Forget,
+        'nameservers'  => WifiWand::Commands::Nameservers,
+        'network_name' => WifiWand::Commands::NetworkName,
+        'off'          => WifiWand::Commands::Off,
+        'on'           => WifiWand::Commands::On,
+        'password'     => WifiWand::Commands::Password,
+        'pref_nets'    => WifiWand::Commands::PrefNets,
+        'public_ip'    => WifiWand::Commands::PublicIp,
+        'url'          => WifiWand::Commands::Url,
+        'wifi_on'      => WifiWand::Commands::WifiOn,
+        'qr'           => WifiWand::Commands::Qr,
+        'quit'         => WifiWand::Commands::Quit,
+        'shell'        => WifiWand::Commands::Shell,
+        'status'       => WifiWand::Commands::Status,
+        'till'         => WifiWand::Commands::Till,
       }.each do |command_name, command_class|
         it "prints command-specific help for #{command_name}" do
           command = command_class.new.bind(cli)
@@ -57,7 +58,7 @@ describe WifiWand::CommandLineInterface do
           available_resources_help: 'Available resources help text'
         )
         allow(WifiWand::Helpers::ResourceManager).to receive(:new).and_return(resource_manager)
-        ropen_command = WifiWand::RopenCommand.new.bind(cli)
+        ropen_command = WifiWand::Commands::Ropen.new.bind(cli)
         allow(cli).to receive(:resolve_command).with('ropen').and_return(ropen_command)
 
         expect { invoke_help(cli, 'ropen') }.to output(/Usage: wifi-wand ropen/).to_stdout
@@ -168,15 +169,15 @@ describe WifiWand::CommandLineInterface do
     end
 
     describe 'log command' do
-      it 'delegates to LogCommand with no arguments' do
-        mock_log_command = instance_double(WifiWand::LogCommand)
+      it 'delegates to the log command object with no arguments' do
+        mock_log_command = instance_double(WifiWand::Commands::Log)
         expect(cli).to receive(:resolve_command).with('log').and_return(mock_log_command)
         expect(mock_log_command).to receive(:call)
         invoke_command(cli, 'log')
       end
 
-      it 'delegates to LogCommand with arguments' do
-        mock_log_command = instance_double(WifiWand::LogCommand)
+      it 'delegates to the log command object with arguments' do
+        mock_log_command = instance_double(WifiWand::Commands::Log)
         expect(cli).to receive(:resolve_command).with('log').and_return(mock_log_command)
         expect(mock_log_command).to receive(:call).with('--interval', '2', '--file')
         invoke_command(cli, 'log', '--interval', '2', '--file')
@@ -185,21 +186,21 @@ describe WifiWand::CommandLineInterface do
       it 'respects verbose flag from initialization' do
         verbose_opts = create_cli_options(verbose: true)
         verbose_cli = described_class.new(verbose_opts)
-        mock_log_command = instance_double(WifiWand::LogCommand)
+        mock_log_command = instance_double(WifiWand::Commands::Log)
         expect(verbose_cli).to receive(:resolve_command).with('log').and_return(mock_log_command)
         expect(mock_log_command).to receive(:call)
         invoke_command(verbose_cli, 'log')
       end
 
       it 'prints log command help without starting the logger' do
-        mock_log_command = instance_double(WifiWand::LogCommand)
+        mock_log_command = instance_double(WifiWand::Commands::Log)
         expect(cli).to receive(:resolve_command).with('log').and_return(mock_log_command)
         expect(mock_log_command).to receive(:call).with('--help')
         invoke_command(cli, 'log', '--help')
       end
 
-      it 'passes output stream to LogCommand (file-only logic handled in execute)' do
-        mock_log_command = instance_double(WifiWand::LogCommand)
+      it 'passes output stream to the log command object (file-only logic handled in execute)' do
+        mock_log_command = instance_double(WifiWand::Commands::Log)
         expect(cli).to receive(:resolve_command).with('log').and_return(mock_log_command)
         expect(mock_log_command).to receive(:call).with('--file')
         invoke_command(cli, 'log', '--file')

@@ -31,7 +31,8 @@ Use [../../docs/README.md](../../docs/README.md) for end-user and operator docum
 ## General Information
 
 - **[Command Architecture](COMMAND_ARCHITECTURE.md)** - Detailed explanation of the current command scheme,
-  including command binding, registry dispatch, shell integration, and the `CommandOutputSupport` boundary.
+  including command binding, registry dispatch, shell integration, and the `WifiWand::Commands::OutputSupport`
+  boundary.
 - **[`public_ip` Command Architecture](PUBLIC_IP_COMMAND_DESIGN.md)** - Design notes for the dedicated
   external-IP command and its separation from `info`.
 - **[`connected?` vs `internet_connectivity_state`](CONNECTED_VS_INTERNET_CONNECTIVITY.md)** - Analysis of

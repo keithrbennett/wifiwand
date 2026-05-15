@@ -11,18 +11,18 @@ require_relative 'timing_constants'
 require_relative 'connectivity_states'
 
 # Include extracted modules
-require_relative 'command_line_interface/help_system'
-require_relative 'command_line_interface/output_formatter'
-require_relative 'command_line_interface/command_registry'
-require_relative 'command_line_interface/command_output_support'
-require_relative 'command_line_interface/shell_interface'
+require_relative 'commands/help_system'
+require_relative 'commands/output_formatter'
+require_relative 'commands/registry'
+require_relative 'commands/output_support'
+require_relative 'commands/shell_interface'
 
 module WifiWand
   class CommandLineInterface
-    include HelpSystem
-    include OutputFormatter
-    include CommandRegistry
-    include ShellInterface
+    include Commands::HelpSystem
+    include Commands::OutputFormatter
+    include Commands::Registry
+    include Commands::ShellInterface
 
     attr_reader :interactive_mode, :options, :err_stream, :in_stream
 
@@ -56,7 +56,7 @@ module WifiWand
     # Dynamic output stream that respects current $stdout (for test silence_output compatibility)
     def out_stream = @original_out_stream || $stdout
 
-    def output_support = @output_support ||= CommandOutputSupport.new(self)
+    def output_support = @output_support ||= Commands::OutputSupport.new(self)
 
     # Asserts that a command has been passed on the command line.
     def validate_command_line(argv = @argv)

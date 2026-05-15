@@ -1,0 +1,25 @@
+# frozen_string_literal: true
+
+require_relative 'base'
+
+module WifiWand
+  module Commands
+    class Info < Base
+      command_metadata(
+        short_string: 'i',
+        long_string:  'info',
+        description:  'a hash of detailed networking information',
+        usage:        'Usage: wifi-wand info'
+      )
+
+      binds :model, output_support: :output_support
+
+      def call(*args)
+        validate_max_arguments!(args, 0)
+
+        info = model.wifi_info
+        output_support.handle_output(info, -> { output_support.format_object(info) })
+      end
+    end
+  end
+end

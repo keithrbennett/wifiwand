@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi_wand/command_line_interface/output_formatter'
+require_relative '../../../lib/wifi_wand/commands/output_formatter'
 require_relative '../../../lib/wifi_wand/network_identity'
 require_relative '../../../lib/wifi_wand/services/status_line_data_builder'
 
@@ -311,7 +311,7 @@ describe WifiWand::StatusLineDataBuilder do
 
     it 'renders a redacted associated network as a yellow unavailable placeholder' do
       formatter = Class.new do
-        include WifiWand::CommandLineInterface::OutputFormatter
+        include WifiWand::Commands::OutputFormatter
 
         attr_reader :out_stream
 

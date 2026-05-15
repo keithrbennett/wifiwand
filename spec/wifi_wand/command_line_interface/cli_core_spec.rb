@@ -70,7 +70,7 @@ describe WifiWand::CommandLineInterface do
   end
 
   describe 'command registry and routing' do
-    describe 'CommandRegistry module' do
+    describe 'command registry module' do
       it 'defines expected commands' do
         commands = cli.commands
         expect(commands).to be_an(Array)
@@ -104,7 +104,7 @@ describe WifiWand::CommandLineInterface do
       it 'executes valid commands' do
         output_support = double('output_support')
         allow(cli).to receive(:output_support).and_return(output_support)
-        info_command = WifiWand::InfoCommand.new.bind(cli)
+        info_command = WifiWand::Commands::Info.new.bind(cli)
         allow(cli).to receive(:resolve_command).with('info').and_return(info_command)
         allow(mock_model).to receive(:wifi_info).and_return('info_result')
         allow(output_support).to receive(:format_object).with('info_result').and_return('info_result')
@@ -143,7 +143,7 @@ describe WifiWand::CommandLineInterface do
         output_support = double('output_support')
         cli = described_class.new(options, argv: ['info'])
         allow(cli).to receive(:output_support).and_return(output_support)
-        info_command = WifiWand::InfoCommand.new.bind(cli)
+        info_command = WifiWand::Commands::Info.new.bind(cli)
         allow(cli).to receive(:resolve_command).with('info').and_return(info_command)
         allow(cli.model).to receive(:wifi_info).and_return('info result')
         allow(output_support).to receive(:format_object).with('info result').and_return('info result')
@@ -187,7 +187,7 @@ describe WifiWand::CommandLineInterface do
         output_support = double('output_support')
         cli = described_class.new(options, argv: ['info'])
         allow(cli).to receive(:output_support).and_return(output_support)
-        info_command = WifiWand::InfoCommand.new.bind(cli)
+        info_command = WifiWand::Commands::Info.new.bind(cli)
         allow(cli).to receive(:resolve_command).with('info').and_return(info_command)
         allow(cli.model).to receive(:wifi_info).and_return('info_output')
         allow(output_support).to receive(:format_object).with('info_output').and_return('info_output')

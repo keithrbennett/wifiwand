@@ -58,7 +58,8 @@ For upgrade-impacting API, CLI, and behavior changes, see
 ### Architecture Improvements
 
 - Large classes and files were broken into smaller, more cohesive components
-  such as `HelpSystem`, `OutputFormatter`, and `ErrorHandling`.
+  such as `WifiWand::Commands::HelpSystem`,
+  `WifiWand::Commands::OutputFormatter`, and command-specific classes.
 - The system automatically detects the OS and loads the appropriate model.
 - Extracted hardcoded data into YAML configuration files.
 - Added a direct model API for library use, with OS detection separated from

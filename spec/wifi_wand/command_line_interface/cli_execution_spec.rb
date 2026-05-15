@@ -37,7 +37,7 @@ describe WifiWand::CommandLineInterface do
 
     it 'dispatches shell through the registered command path' do
       cli = described_class.new(create_cli_options, argv: ['shell'])
-      shell_command = instance_double(WifiWand::ShellCommand)
+      shell_command = instance_double(WifiWand::Commands::Shell)
 
       expect(cli).to receive(:validate_command_line).and_return(described_class::SUCCESS_EXIT_CODE)
       expect(cli).to receive(:resolve_command).with('shell').and_return(shell_command)

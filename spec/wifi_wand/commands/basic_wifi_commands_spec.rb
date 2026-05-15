@@ -1,33 +1,33 @@
 # frozen_string_literal: true
 
 require_relative '../../spec_helper'
-require_relative '../../../lib/wifi_wand/commands/on_command'
-require_relative '../../../lib/wifi_wand/commands/off_command'
-require_relative '../../../lib/wifi_wand/commands/cycle_command'
-require_relative '../../../lib/wifi_wand/commands/disconnect_command'
+require_relative '../../../lib/wifi_wand/commands/on'
+require_relative '../../../lib/wifi_wand/commands/off'
+require_relative '../../../lib/wifi_wand/commands/cycle'
+require_relative '../../../lib/wifi_wand/commands/disconnect'
 
 RSpec.describe 'basic WiFi commands' do
   [
     {
-      command_class: WifiWand::OnCommand,
+      command_class: WifiWand::Commands::On,
       model_method:  :wifi_on,
       usage:         'Usage: wifi-wand on',
       description:   'turn WiFi on',
     },
     {
-      command_class: WifiWand::OffCommand,
+      command_class: WifiWand::Commands::Off,
       model_method:  :wifi_off,
       usage:         'Usage: wifi-wand off',
       description:   'turn WiFi off',
     },
     {
-      command_class: WifiWand::CycleCommand,
+      command_class: WifiWand::Commands::Cycle,
       model_method:  :cycle_network,
       usage:         'Usage: wifi-wand cycle',
       description:   'cycle WiFi off and back on',
     },
     {
-      command_class: WifiWand::DisconnectCommand,
+      command_class: WifiWand::Commands::Disconnect,
       model_method:  :disconnect,
       usage:         'Usage: wifi-wand disconnect',
       description:   'disconnect from the current WiFi network without turning WiFi off',
