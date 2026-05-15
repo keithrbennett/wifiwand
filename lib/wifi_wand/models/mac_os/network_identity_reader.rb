@@ -2,10 +2,13 @@
 
 require_relative 'airport_data_navigator'
 require_relative '../../errors'
+require_relative '../../string_predicates'
 require_relative '../../services/command_executor'
 
 module WifiWand
   class MacOsNetworkIdentityReader
+    include StringPredicates
+
     FLAG_CONTEXTS_KEY = :wifi_wand_mac_os_network_identity_flag_contexts
     NO_CONNECTED_NETWORK = Object.new.freeze
 
@@ -368,10 +371,6 @@ module WifiWand
 
         hash[key.strip] = value.to_s.strip
       end
-    end
-
-    private def string_nil_or_blank?(string)
-      string.nil? || string.strip.empty?
     end
 
     private def mark_connected_network_authoritatively_disconnected
