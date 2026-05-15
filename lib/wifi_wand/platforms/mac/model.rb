@@ -9,8 +9,8 @@ require_relative 'helper/swift_runtime'
 require_relative 'helper/wifi_transport'
 require_relative 'helper/bundle'
 require_relative '../../services/status_line_data_builder'
-require_relative 'airport_data_navigator'
 require_relative 'airport_data_provider'
+require_relative 'current_network_details'
 require_relative 'dns_manager'
 require_relative 'interface_detector'
 require_relative 'keychain_password_reader'
@@ -48,6 +48,7 @@ module WifiWand
           @keychain_password_reader = nil
           @network_identity_reader = nil
           @network_scanner = nil
+          @current_network_details = nil
           @status_queries = nil
           @system_network_info = nil
         end
@@ -451,6 +452,16 @@ module WifiWand
           )
         end
 
+        private def current_network_details
+          @current_network_details ||= WifiWand::Platforms::Mac::CurrentNetworkDetails.new(
+            airport_data_proc:             -> { airport_data },
+            airport_data_cache_scope_proc: ->(&block) { with_airport_data_cache_scope(&block) },
+            connected_network_name_proc:   -> { _connected_network_name },
+            wifi_interface_proc:           -> { wifi_interface },
+            security_normalizer_proc:      ->(security_text) { canonical_security_type_from(security_text) }
+          )
+        end
+
         private def system_network_info
           @system_network_info ||= WifiWand::Platforms::Mac::SystemNetworkInfo.new(
             command_runner:      ->(*args, **kwargs) { run_command(*args, **kwargs) },
@@ -471,10 +482,6 @@ module WifiWand
           airport_data_provider.data(timeout_in_secs: timeout_in_secs)
         end
 
-        private def airport_data_navigator(data)
-          AirportDataNavigator.new(data)
-        end
-
         private def invalidate_airport_data_cache
           airport_data_provider.invalidate_cache
         end
@@ -483,39 +490,14 @@ module WifiWand
         # @return [String, nil] The security type: "WPA", "WPA2", "WPA3", "WEP",
         #   "NONE" for open networks, or nil if not connected/not found
         public def connection_security_type
-          with_airport_data_cache_scope do
-            network_name = _connected_network_name
-            return nil unless network_name
-
-            data = airport_data
-            iface = wifi_interface
-            security_info = airport_data_navigator(data).network_security(iface, network_name)
-            return nil unless security_info
-
-            # macOS can report an empty spairport_security_mode field for open networks.
-            if security_info.to_s.strip.empty?
-              'NONE'
-            else
-              canonical_security_type_from(security_info)
-            end
-          end
+          current_network_details.connection_security_type
         end
 
         # Checks if the currently connected network is a hidden network.
         # A hidden network does not broadcast its SSID.
         # @return [Boolean] true if connected to a hidden network, false otherwise
         public def network_hidden?
-          with_airport_data_cache_scope do
-            network_name = _connected_network_name
-            return false unless network_name
-
-            # Query the connection profile to check if it's marked as hidden
-            # On macOS, we can check this via networksetup or by examining if the network
-            # appears in the broadcast network list from system_profiler
-            data = airport_data
-            iface = wifi_interface
-            airport_data_navigator(data).network_hidden?(iface, network_name)
-          end
+          current_network_details.network_hidden?
         end
       end
     end
