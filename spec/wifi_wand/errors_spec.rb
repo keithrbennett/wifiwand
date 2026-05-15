@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
 require_relative '../spec_helper'
-require_relative '../../lib/wifi_wand/models/ubuntu_model'
-require_relative '../../lib/wifi_wand/models/mac_os_model'
+require_relative '../../lib/wifi_wand/platforms/ubuntu/model'
+require_relative '../../lib/wifi_wand/platforms/mac/model'
 require 'fileutils'
 require 'tmpdir'
 
@@ -12,9 +12,11 @@ module WifiWand
     before do
       # Mock interface discovery for both OS types
       # rubocop:disable RSpec/AnyInstance -- file-level bootstrap stubs keep model creation hermetic
-      allow_any_instance_of(WifiWand::UbuntuModel).to receive(:probe_wifi_interface).and_return('wlp0s20f3')
-      if defined?(WifiWand::MacOsModel)
-        allow_any_instance_of(WifiWand::MacOsModel).to receive(:probe_wifi_interface).and_return('en0')
+      allow_any_instance_of(WifiWand::Platforms::Ubuntu::Model)
+        .to receive(:probe_wifi_interface).and_return('wlp0s20f3')
+      if defined?(WifiWand::Platforms::Mac::Model)
+        allow_any_instance_of(WifiWand::Platforms::Mac::Model)
+          .to receive(:probe_wifi_interface).and_return('en0')
       end
 
       # Mock NetworkConnectivityTester to prevent real network calls
@@ -144,7 +146,7 @@ module WifiWand
         end
       end
 
-      it 'BaseOs errors provide meaningful messages' do
+      it 'Platforms::Selection::Base errors provide meaningful messages' do
         non_subclass_error = NonSubclassInstantiationError.new
         expect(non_subclass_error.to_s).to include('can only be instantiated by subclasses')
 
@@ -235,7 +237,7 @@ module WifiWand
 
             # Ubuntu resolves configured SSIDs through NetworkManager profiles instead of
             # BaseModel#has_preferred_network?, so keep this test from shelling out to nmcli.
-            allow(model).to receive(:saved_wifi_profiles).and_return([]) if model.is_a?(WifiWand::UbuntuModel)
+            allow(model).to receive(:saved_wifi_profiles).and_return([]) if model.is_a?(WifiWand::Platforms::Ubuntu::Model)
 
             # Ensure our test exercises the real wrapper method, not a global stub
             # Only un-stub on macOS where the global stub is applied
@@ -281,7 +283,7 @@ module WifiWand
         end
       end
 
-      it 'raises CommandNotFoundError from UbuntuModel#validate_os_preconditions ' \
+      it 'raises CommandNotFoundError from Platforms::Ubuntu::Model#validate_os_preconditions ' \
         'when required commands are missing' do
         ubuntu_model = create_ubuntu_test_model
         allow(ubuntu_model).to receive(:command_available?).with('iw').and_return(false)
@@ -293,16 +295,16 @@ module WifiWand
       # These tests are harder to make table-driven due to their complexity
       describe 'Complex initialization errors' do
         it 'raises WifiInterfaceError when no wifi interface detected during initialization' do
-          current_os = WifiWand::OperatingSystems.current_os
+          current_os = WifiWand::Platforms::Selector.current_os
           merged_options = merge_verbose_options({})
 
           case current_os.id
           when :ubuntu
-            model = WifiWand::UbuntuModel.new(merged_options)
+            model = WifiWand::Platforms::Ubuntu::Model.new(merged_options)
             allow(model).to receive_messages(command_available?: true, probe_wifi_interface: nil)
             expect { model.init }.to raise_error(WifiInterfaceError)
           when :mac
-            model = WifiWand::MacOsModel.new(merged_options)
+            model = WifiWand::Platforms::Mac::Model.new(merged_options)
             allow(model).to receive(:probe_wifi_interface).and_return(nil)
             expect { model.init }.to raise_error(WifiInterfaceError)
           else
@@ -311,17 +313,17 @@ module WifiWand
         end
 
         it 'raises InvalidInterfaceError when specified interface is invalid during initialization' do
-          current_os = WifiWand::OperatingSystems.current_os
+          current_os = WifiWand::Platforms::Selector.current_os
           merged_options = merge_verbose_options(wifi_interface: 'invalid_interface')
 
           case current_os.id
           when :ubuntu
-            model = WifiWand::UbuntuModel.new(merged_options)
+            model = WifiWand::Platforms::Ubuntu::Model.new(merged_options)
             allow(model).to receive(:command_available?).and_return(true)
             allow(model).to receive(:is_wifi_interface?).with('invalid_interface').and_return(false)
             expect { model.init }.to raise_error(InvalidInterfaceError)
           when :mac
-            model = WifiWand::MacOsModel.new(merged_options)
+            model = WifiWand::Platforms::Mac::Model.new(merged_options)
             allow(model).to receive(:is_wifi_interface?).with('invalid_interface').and_return(false)
             expect { model.init }.to raise_error(InvalidInterfaceError)
           else

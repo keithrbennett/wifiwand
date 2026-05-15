@@ -42,7 +42,7 @@ module NetworkStateManager
 
   def self.build_model
     options = { verbose: ENV['WIFIWAND_VERBOSE'] == 'true' }
-    WifiWand::OperatingSystems.create_model_for_current_os(options)
+    WifiWand::Platforms::Selector.create_model_for_current_os(options)
   end
 
   def self.capture_state

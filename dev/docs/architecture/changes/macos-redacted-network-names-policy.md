@@ -37,9 +37,9 @@ This note defines how `wifi-wand` should behave when that gap exists.
 
 The following parts of the codebase matter here:
 
-- [lib/wifi_wand/models/mac_os_model.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/models/mac_os_model.rb)
-- [lib/wifi_wand/services/connection_manager.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/services/connection_manager.rb)
-- [lib/wifi_wand/services/network_state_manager.rb](/home/kbennett/code/wifiwand/primary/lib/wifi_wand/services/network_state_manager.rb)
+- [lib/wifi_wand/platforms/mac/model.rb](../../../../lib/wifi_wand/platforms/mac/model.rb)
+- [lib/wifi_wand/services/connection_manager.rb](../../../../lib/wifi_wand/services/connection_manager.rb)
+- [lib/wifi_wand/services/network_state_manager.rb](../../../../lib/wifi_wand/services/network_state_manager.rb)
 
 Important distinctions:
 

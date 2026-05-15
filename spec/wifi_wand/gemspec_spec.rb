@@ -16,12 +16,12 @@ RSpec.describe 'wifi-wand.gemspec packaging' do
       'docs/BREAKING_CHANGES_V3.md',
       'exe/wifi-wand',
       'exe/wifi-wand-macos-setup',
-      'lib/wifi_wand/mac_helper/mac_os_helper_bundle.rb',
-      'lib/wifi_wand/mac_helper/mac_os_helper_client.rb',
-      'lib/wifi_wand/mac_helper/mac_os_helper_installer.rb',
-      'lib/wifi_wand/mac_helper/mac_os_helper_artifacts.rb',
-      'lib/wifi_wand/mac_helper/swift/WifiNetworkConnector.swift',
-      'lib/wifi_wand/mac_helper/swift/WifiNetworkDisconnector.swift',
+      'lib/wifi_wand/platforms/mac/helper/mac_os_helper_bundle.rb',
+      'lib/wifi_wand/platforms/mac/helper/mac_os_helper_client.rb',
+      'lib/wifi_wand/platforms/mac/helper/mac_os_helper_installer.rb',
+      'lib/wifi_wand/platforms/mac/helper/mac_os_helper_artifacts.rb',
+      'lib/wifi_wand/platforms/mac/helper/swift/WifiNetworkConnector.swift',
+      'lib/wifi_wand/platforms/mac/helper/swift/WifiNetworkDisconnector.swift',
       'libexec/macos/wifiwand-helper.app/Contents/Info.plist',
       'libexec/macos/wifiwand-helper.app/Contents/MacOS/wifiwand-helper',
       'libexec/macos/wifiwand-helper.app/Contents/_CodeSignature/CodeResources'
@@ -34,12 +34,12 @@ RSpec.describe 'wifi-wand.gemspec packaging' do
       'bin/op-wrap',
       'bin/setup-hooks',
       'docs/TESTING.md',
-      'lib/wifi_wand/mac_helper/mac_helper_release.rb',
-      'lib/wifi_wand/mac_helper/mac_os_helper_build.rb',
+      'lib/wifi_wand/platforms/mac/helper/mac_helper_release.rb',
+      'lib/wifi_wand/platforms/mac/helper/mac_os_helper_build.rb',
       'libexec/macos/src/wifiwand-helper.swift',
       'libexec/macos/wifiwand-helper.entitlements',
       'libexec/macos/wifiwand-helper.source-manifest.json',
-      'spec/wifi_wand/mac_helper/mac_helper_release_spec.rb'
+      'spec/wifi_wand/platforms/mac/helper/mac_helper_release_spec.rb'
     )
     expect(packaged_files.grep(%r{\Abin/})).to be_empty
     expect(packaged_files.grep(%r{\Alib/tasks/})).to be_empty

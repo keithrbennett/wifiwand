@@ -41,7 +41,7 @@ module WifiWand
     end
 
     def self.current_os_matches_this_model?
-      WifiWand::OperatingSystems.current_os&.id == os_id
+      WifiWand::Platforms::Selector.current_os&.id == os_id
     end
 
     def initialize(options = {})

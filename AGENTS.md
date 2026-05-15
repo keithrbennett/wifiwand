@@ -82,10 +82,10 @@ WIFIWAND_VERBOSE=true bundle exec rake test:safe   # show underlying OS commands
 COVERAGE_BRANCH=true bundle exec rake test:safe    # enable branch coverage analysis
 
 # Run a specific file directly
-bundle exec rspec spec/wifi_wand/models/ubuntu_model_spec.rb
+bundle exec rspec spec/wifi_wand/platforms/ubuntu/model_spec.rb
 
 # Run a targeted real-env rake task
-bundle exec rake 'test:real[./spec/wifi_wand/models/mac_os_model_spec.rb]'
+bundle exec rake 'test:real[./spec/wifi_wand/platforms/mac/model_spec.rb]'
 ```
 
 When using bracketed Rake task arguments such as `test:real[spec/foo_spec.rb]`, make the shell rule explicit
@@ -131,16 +131,16 @@ The codebase follows a layered architecture with OS abstraction:
 
 - **Entry Point**: `lib/wifi_wand/main.rb` - handles command line parsing
 - **CLI Controller**: `lib/wifi_wand/command_line_interface.rb` - orchestrates commands and output
-- **OS Detection**: `lib/wifi_wand/operating_systems.rb` - detects current OS and creates appropriate models
-- **OS Abstractions**: `lib/wifi_wand/os/` - defines OS-specific behavior interfaces
-- **Model Layer**: `lib/wifi_wand/models/` - implements WiFi operations for each OS
+- **Platform Selector**: `lib/wifi_wand/platforms/selector.rb` - detects current OS and creates models
+- **Platform Selection**: `lib/wifi_wand/platforms/selection/` - defines selectable OS support entries
+- **Platform Implementations**: `lib/wifi_wand/platforms/` - groups OS-specific WiFi implementations
 - **Service Layer**: `lib/wifi_wand/services/` - reusable business logic
 
 ### OS Support Pattern
 New operating systems are added by:
-1. Creating OS detector in `lib/wifi_wand/os/`
-2. Implementing model in `lib/wifi_wand/models/`
-3. Registering in `OperatingSystems` class
+1. Creating a platform selection entry in `lib/wifi_wand/platforms/selection/`
+2. Implementing the platform model under `lib/wifi_wand/platforms/<platform>/`
+3. Registering the selection entry in `WifiWand::Platforms::Selector`
 
 ### Command Line Interface Architecture
 The CLI uses modular design with mixins:
@@ -152,21 +152,21 @@ The CLI uses modular design with mixins:
 
 ### Key Models
 - **BaseModel** - common interface for all OS implementations
-- **MacOsModel** - macOS-specific WiFi operations using `networksetup`, `system_profiler`, and optional
-  Swift/CoreWLAN wrappers
-- **UbuntuModel** - Ubuntu-specific operations using `nmcli`, `iw`, `ip`
+- **WifiWand::Platforms::Mac::Model** - macOS-specific WiFi operations using `networksetup`,
+  `system_profiler`, and optional Swift/CoreWLAN wrappers
+- **WifiWand::Platforms::Ubuntu::Model** - Ubuntu-specific operations using `nmcli`, `iw`, `ip`
 
 ### macOS Swift Runtime Paths
 
 The macOS model currently uses two distinct Swift/CoreWLAN runtime paths:
 
-- **Compiled helper app path** - `lib/wifi_wand/mac_helper/mac_os_helper_client.rb` talks to the installed
-  `wifiwand-helper.app` for read/query operations such as current-network lookups and nearby-network scans.
+- **Compiled helper app path** - `lib/wifi_wand/platforms/mac/helper/mac_os_helper_client.rb` talks to the
+  installed `wifiwand-helper.app` for read/query operations such as current-network lookups and nearby scans.
   This path exists because modern macOS read/query behavior increasingly depends on CoreWLAN plus a stable
   app identity for Location Services handling.
-- **Direct Swift source path** - `lib/wifi_wand/mac_helper/mac_os_swift_runtime.rb` runs
-  `lib/wifi_wand/mac_helper/swift/WifiNetworkConnector.swift` and
-  `lib/wifi_wand/mac_helper/swift/WifiNetworkDisconnector.swift` for connect/disconnect operations.
+- **Direct Swift source path** - `lib/wifi_wand/platforms/mac/helper/mac_os_swift_runtime.rb` runs
+  `lib/wifi_wand/platforms/mac/helper/swift/WifiNetworkConnector.swift` and
+  `lib/wifi_wand/platforms/mac/helper/swift/WifiNetworkDisconnector.swift` for connect/disconnect operations.
 
 **Fallback Strategy**:
 - The compiled helper path covers permission-sensitive reads on supported macOS versions.
@@ -197,10 +197,10 @@ The macOS model currently uses two distinct Swift/CoreWLAN runtime paths:
 ### Test Coverage
 - SimpleCov generates coverage reports automatically when running tests
 - HTML reports are saved to `coverage/index.html`
-- Coverage is grouped by component (Models, Services, OS Detection, Core)
+- Coverage is grouped by component (Shared Models, Platforms, Services, Core)
 - Branch coverage can be enabled with `COVERAGE_BRANCH=true`
 - Use the **cov-loupe** MCP tool (or CLI) to query coverage data — prefer it over reading `.resultset.json`
-  directly or reasoning from scratch. For example: `cov-loupe summary lib/wifi_wand/models/mac_os_model.rb`
+  directly or reasoning from scratch. For example: `cov-loupe summary lib/wifi_wand/platforms/mac/model.rb`
   or, when available, call the `file_coverage_summary` / `project_coverage` MCP tools.
 
 ### Test Refactoring Guidelines
@@ -360,7 +360,7 @@ This copies hooks from the tracked `hooks/` directory to `.git/hooks/` and makes
 
 ## Response Expectations
 - Be concise and collaborative. Lead with the change/insight; follow with necessary detail.
-- Reference files with inline clickable paths (e.g., `lib/wifi_wand/models/mac_os_model.rb:42`). Avoid ranges
+- Reference files with inline clickable paths (e.g., `lib/wifi_wand/platforms/mac/model.rb:42`). Avoid ranges
   and external URIs.
 - When providing content intended for the user to copy and paste (like commit messages or configuration
   snippets), do not include line numbers or any other decorators that would interfere with direct usage.

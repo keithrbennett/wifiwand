@@ -67,7 +67,8 @@ Observed uses include:
 - connection readiness and `ip_address` guards in `BaseModel`
 - network identity in `StatusLineDataBuilder`
 - connection-change logging in `EventLogger`
-- OS-specific connection logic in `MacOsModel` and `UbuntuModel`
+- OS-specific connection logic in `WifiWand::Platforms::Mac::Model` and
+  `WifiWand::Platforms::Ubuntu::Model`
 
 It is a model-level method, so library consumers call it directly on the
 returned model object, for example `WifiWand.create_model.connected?`.

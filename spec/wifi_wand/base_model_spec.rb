@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative '../../lib/wifi_wand/operating_systems'
-require_relative '../../lib/wifi_wand/models/ubuntu_model'
-require_relative '../../lib/wifi_wand/models/mac_os_model'
+require_relative '../../lib/wifi_wand/platforms/selector'
+require_relative '../../lib/wifi_wand/platforms/ubuntu/model'
+require_relative '../../lib/wifi_wand/platforms/mac/model'
 
 describe 'Common WiFi Model Behavior (All OS)' do
   # Mock OS calls to prevent real system interaction during ordinary tests
@@ -877,7 +877,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'verifies concrete model classes implement the full required contract' do
-      [WifiWand::MacOsModel, WifiWand::UbuntuModel].each do |model_class|
+      [WifiWand::Platforms::Mac::Model, WifiWand::Platforms::Ubuntu::Model].each do |model_class|
         expect do
           WifiWand::BaseModel.verify_required_methods_implemented(model_class)
         end.not_to raise_error
@@ -885,7 +885,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     it 'verifies concrete model public override methods are public subclass methods' do
-      [WifiWand::MacOsModel, WifiWand::UbuntuModel].each do |model_class|
+      [WifiWand::Platforms::Mac::Model, WifiWand::Platforms::Ubuntu::Model].each do |model_class|
         public_methods = WifiWand::BaseModel::REQUIRED_SUBCLASS_METHODS
           .select { |_method_name, required_visibility| required_visibility == :public }
           .keys
@@ -1301,7 +1301,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       ].each do |os_id, expected_command|
         it "raises error with correct install command for #{os_id}" do
           allow(subject).to receive(:command_available?).with('qrencode').and_return(false)
-          allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: os_id))
+          allow(WifiWand::Platforms::Selector).to receive(:current_os).and_return(double('os', id: os_id))
 
           expect do
             silence_output do
@@ -1313,7 +1313,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       it 'raises error with generic message for unknown OS' do
         allow(subject).to receive(:command_available?).with('qrencode').and_return(false)
-        allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(double('os', id: :unknown))
+        allow(WifiWand::Platforms::Selector).to receive(:current_os).and_return(double('os', id: :unknown))
 
         expect { silence_output { subject.generate_qr_code } }
           .to raise_error(WifiWand::Error,

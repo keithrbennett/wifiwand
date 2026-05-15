@@ -12,8 +12,8 @@ module CoverageConfig
     'exe/*',
   ].freeze
   EXCLUDED_RUNTIME_GLOBS = [
-    'lib/wifi_wand/mac_helper/mac_helper_release.rb',
-    'lib/wifi_wand/mac_helper/mac_os_helper_build.rb',
+    'lib/wifi_wand/platforms/mac/helper/mac_helper_release.rb',
+    'lib/wifi_wand/platforms/mac/helper/mac_os_helper_build.rb',
   ].freeze
 
   def self.setup
@@ -29,9 +29,9 @@ module CoverageConfig
       add_filter '/tmp/'
 
       # Group coverage by directory
-      add_group 'Models', 'lib/wifi_wand/models'
+      add_group 'Shared Models', 'lib/wifi_wand/models'
+      add_group 'Platforms', 'lib/wifi_wand/platforms'
       add_group 'Services', 'lib/wifi_wand/services'
-      add_group 'OS Detection', 'lib/wifi_wand/os'
       add_group 'Core', 'lib/wifi_wand'
 
       # Generate multiple output formats

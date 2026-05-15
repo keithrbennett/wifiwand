@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative '../../lib/wifi_wand/operating_systems'
+require_relative '../../lib/wifi_wand/platforms/selector'
 
 module OSFiltering
   class << self
@@ -8,7 +8,7 @@ module OSFiltering
   end
 
   def self.setup_os_detection(_config)
-    current_os = WifiWand::OperatingSystems.current_os
+    current_os = WifiWand::Platforms::Selector.current_os
     self.compatible_os_tag = :"os_#{current_os.id}"
   rescue => e
     RSpec.configuration.reporter.message(

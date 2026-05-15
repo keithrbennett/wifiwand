@@ -12,7 +12,7 @@ RSpec.describe TestHelpers do
   let(:mac_os) { double('mac_os', id: :mac) }
 
   before do
-    allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(mac_os)
+    allow(WifiWand::Platforms::Selector).to receive(:current_os).and_return(mac_os)
   end
 
   it 'stubs the macOS helper client for ordinary tests' do
@@ -26,6 +26,6 @@ RSpec.describe TestHelpers do
 
     model = create_test_model
 
-    expect(model.send(:mac_helper_client)).to be_a(WifiWand::MacOsHelperClient)
+    expect(model.send(:mac_helper_client)).to be_a(WifiWand::Platforms::Mac::Helper::Client)
   end
 end

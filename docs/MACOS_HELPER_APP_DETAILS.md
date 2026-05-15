@@ -435,9 +435,9 @@ wifi-wand currently uses both of these runtime paths on macOS:
   `wifiwand-helper.app`, launched through the helper application client, handles query/read operations such
   as current network details and nearby network scans.
 - Direct Swift source path:
-  `lib/wifi_wand/mac_helper/swift/WifiNetworkConnector.swift` and
-  `lib/wifi_wand/mac_helper/swift/WifiNetworkDisconnector.swift`, launched through
-  `MacOsSwiftRuntime`, handle connect/disconnect operations.
+  `lib/wifi_wand/platforms/mac/helper/swift/WifiNetworkConnector.swift` and
+  `lib/wifi_wand/platforms/mac/helper/swift/WifiNetworkDisconnector.swift`, launched through
+  `WifiWand::Platforms::Mac::Helper::SwiftRuntime`, handle connect/disconnect operations.
 
 The compiled helper application path exists because macOS read/query operations increasingly depend on
 CoreWLAN plus a stable, signed app identity for permission-sensitive behavior. The direct Swift source path

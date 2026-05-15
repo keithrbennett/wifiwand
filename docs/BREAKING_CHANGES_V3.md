@@ -23,8 +23,8 @@ require 'wifi-wand/models/mac_os_model'
 
 # New
 require 'wifi_wand'
-require 'wifi_wand/models/ubuntu_model'
-require 'wifi_wand/models/mac_os_model'
+require 'wifi_wand/platforms/ubuntu/model'
+require 'wifi_wand/platforms/mac/model'
 ```
 
 The gem name and command names are unchanged: install `wifi-wand` and run the
@@ -46,21 +46,21 @@ require 'wifi-wand/mac_helper/mac_os_wifi_auth_helper'
 must now require the new primary runtime entry point instead:
 
 ```ruby
-require 'wifi_wand/mac_helper/mac_os_helper_bundle'
+require 'wifi_wand/platforms/mac/helper/mac_os_helper_bundle'
 ```
 
 #### Migration
 
 - old require path: `wifi-wand/mac_helper/mac_os_wifi_auth_helper`
-- new require path: `wifi_wand/mac_helper/mac_os_helper_bundle`
+- new require path: `wifi_wand/platforms/mac/helper/mac_os_helper_bundle`
 
 The legacy constant name `WifiWand::MacOsWifiAuthHelper` no longer resolves.
-Load `wifi_wand/mac_helper/mac_os_helper_bundle` and use the supported runtime
-names directly:
+Load `wifi_wand/platforms/mac/helper/mac_os_helper_bundle` and use the supported
+runtime names directly:
 
-- `WifiWand::MacOsHelperBundle`
-- `WifiWand::MacOsHelperClient`
-- `WifiWand::MacOsHelperInstaller`
+- `WifiWand::Platforms::Mac::Helper::Bundle`
+- `WifiWand::Platforms::Mac::Helper::Client`
+- `WifiWand::Platforms::Mac::Helper::Installer`
 
 The older nested constants `WifiWand::MacOsHelperBundle::Client` and
 `WifiWand::MacOsHelperBundle::Installer` are also no longer provided.
@@ -285,7 +285,7 @@ the valid state names.
 #### `WifiWand.create_model` now strictly enforces Hash options
 
 The `WifiWand.create_model` method (and the underlying `BaseModel.create_model`
-and `OperatingSystems.create_model_for_current_os`) now strictly validates that
+and `WifiWand::Platforms::Selector.create_model_for_current_os`) now strictly validates that
 the `options` argument is a `Hash`.
 
 Previously, these methods were more permissive, which allowed passing objects

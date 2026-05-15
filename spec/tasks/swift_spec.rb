@@ -4,10 +4,10 @@ require 'rake'
 require 'spec_helper'
 
 RSpec.describe 'swift tasks' do
-  let(:helper) { WifiWand::MacOsHelperBundle }
+  let(:helper) { WifiWand::Platforms::Mac::Helper::Bundle }
   let(:bundle_path) { '/tmp/wifiwand-helper.app' }
   let(:helper_binary) do
-    File.join(bundle_path, 'Contents', 'MacOS', WifiWand::MacOsHelperBundle::EXECUTABLE_NAME)
+    File.join(bundle_path, 'Contents', 'MacOS', WifiWand::Platforms::Mac::Helper::Bundle::EXECUTABLE_NAME)
   end
 
   around do |example|

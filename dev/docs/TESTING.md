@@ -65,7 +65,7 @@ For narrower debugging, combine these with a single spec file:
 
 ```bash
 WIFIWAND_REAL_ENV_TESTS=all WIFIWAND_VERBOSE=true bundle exec rspec \
-  spec/wifi_wand/models/mac_os_model_spec.rb --fail-fast
+  spec/wifi_wand/platforms/mac/model_spec.rb --fail-fast
 ```
 
 ## Targeted Rake Tasks
@@ -76,10 +76,10 @@ Examples:
 
 ```bash
 # Read-only real-host tests for one file
-bundle exec rake 'test:read_only_target[./spec/wifi_wand/models/mac_os_model_spec.rb]'
+bundle exec rake 'test:read_only_target[./spec/wifi_wand/platforms/mac/model_spec.rb]'
 
 # Full real-host tests for one file
-bundle exec rake 'test:real[./spec/wifi_wand/models/mac_os_model_spec.rb]'
+bundle exec rake 'test:real[./spec/wifi_wand/platforms/mac/model_spec.rb]'
 
 # Multiple targets are passed through to RSpec
 bundle exec rake 'test:real[./spec/a_spec.rb ./spec/b_spec.rb]'
@@ -95,8 +95,8 @@ Shell behavior matters here:
 Examples for `zsh`:
 
 ```bash
-bundle exec rake test:real\[./spec/wifi_wand/models/mac_os_model_spec.rb\]
-noglob bundle exec rake test:real[./spec/wifi_wand/models/mac_os_model_spec.rb]
+bundle exec rake test:real\[./spec/wifi_wand/platforms/mac/model_spec.rb\]
+noglob bundle exec rake test:real[./spec/wifi_wand/platforms/mac/model_spec.rb]
 ```
 
 ## CI Guidance
@@ -197,7 +197,7 @@ That change is intentional:
 - CI and default local testing must stay non-privileged and predictable.
 
 The production code path still exists in
-`WifiWand::MacOsModel#remove_preferred_network`, which calls:
+`WifiWand::Platforms::Mac::Model#remove_preferred_network`, which calls:
 
 ```bash
 sudo networksetup -removepreferredwirelessnetwork <iface> <ssid>
@@ -321,7 +321,7 @@ Guidelines:
 The following methods have no real-environment tests on macOS:
 
 - `#disconnect` (`BaseModel`)
-- `#wifi_on` / `#wifi_off` (`MacOsModel`)
+- `#wifi_on` / `#wifi_off` (`WifiWand::Platforms::Mac::Model`)
 
 All are fully covered by mocked unit tests that exercise every code path.
 Real-environment tests were written and investigated but ultimately removed.

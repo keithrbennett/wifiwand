@@ -436,7 +436,8 @@ and create a model:
 ```ruby
 require 'wifi_wand'
 
-# Create the current OS model (WifiWand::MacOsModel or WifiWand::UbuntuModel)
+# Create the current OS model (WifiWand::Platforms::Mac::Model or
+# WifiWand::Platforms::Ubuntu::Model)
 model = WifiWand.create_model
 
 # You can now call methods on the model directly
@@ -475,16 +476,16 @@ If you know the host OS up front, you can instantiate the concrete class
 directly:
 
 ```ruby
-require 'wifi_wand/models/mac_os_model'
+require 'wifi_wand/platforms/mac/model'
 
-model = WifiWand::MacOsModel.create_model(verbose: true)
+model = WifiWand::Platforms::Mac::Model.create_model(verbose: true)
 puts model.connected_network_name
 ```
 
 ```ruby
-require 'wifi_wand/models/ubuntu_model'
+require 'wifi_wand/platforms/ubuntu/model'
 
-model = WifiWand::UbuntuModel.create_model(wifi_interface: 'wlp0s20f3')
+model = WifiWand::Platforms::Ubuntu::Model.create_model(wifi_interface: 'wlp0s20f3')
 puts model.connected_network_name
 ```
 
@@ -519,8 +520,8 @@ interface. Key methods include:
 *   `wifi_on?`
 
 OS-specific methods remain available on the concrete models. For example,
-`preferred_network_password` is available on `WifiWand::MacOsModel` and
-`WifiWand::UbuntuModel`, but it is not part of the common cross-platform API.
+`preferred_network_password` is available on `WifiWand::Platforms::Mac::Model` and
+`WifiWand::Platforms::Ubuntu::Model`, but it is not part of the common cross-platform API.
 
 Please refer to the YARD documentation for a complete list of methods and
 their parameters.

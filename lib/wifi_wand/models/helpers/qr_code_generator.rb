@@ -66,7 +66,7 @@ module WifiWand
         available = model.command_available?('qrencode')
         return if available
 
-        install_command = case WifiWand::OperatingSystems.current_os&.id
+        install_command = case WifiWand::Platforms::Selector.current_os&.id
                           when :mac
                             'brew install qrencode'
                           when :ubuntu

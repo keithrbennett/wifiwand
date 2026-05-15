@@ -67,8 +67,8 @@ Effectively, wifi-unredactor sidesteps Apple's privacy guard by:
      from Location Services).
 
 **Technical integration details**
-- Add a Ruby wrapper in `MacOsModel` that shells out to the helper first; only if it fails fall back to the
-  existing `system_profiler` based implementation.
+- Add a Ruby wrapper in `WifiWand::Platforms::Mac::Model` that shells out to the helper first; only if it
+  fails, fall back to the existing `system_profiler` based implementation.
 - Ensure spawn uses `Open3.capture3` so stdout/stderr/exitstatus can be inspected.
 - Validate that the helper is executed with the same user context (Location Services permissions are
   per-user).
@@ -85,13 +85,13 @@ Effectively, wifi-unredactor sidesteps Apple's privacy guard by:
      Support/WifiWand/<helper_version>/` with the correct permissions.
 
 2. **Ruby integration layer**
-   - Add `WifiWand::MacOsHelper` module responsible for:
+   - Add `WifiWand::Platforms::Mac::Helper` classes responsible for:
      - Locating the installed helper.
      - Running it via `Open3.capture3`.
      - Parsing the JSON response (`interface`, `ssid`, `bssid`, optional error).
      - Detecting authorization errors and surfacing actionable messages.
-   - Update `WifiWand::MacOsModel#_connected_network_name`, `#scan_networks`, etc., to call the helper first
-     and fall back to existing CLI-based approaches.
+   - Update `WifiWand::Platforms::Mac::Model#_connected_network_name`, `#scan_networks`, etc., to call the
+     helper first and fall back to existing CLI-based approaches.
 
 3. **Permission onboarding**
    - New CLI command `wifiwand mac authorize` that runs `open <helper bundle>` to trigger the Location

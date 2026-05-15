@@ -51,7 +51,7 @@ describe 'Output Format Integration Tests' do
   let(:mock_os) { create_mock_os_with_model(mock_model) }
 
   before do
-    allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(mock_os)
+    allow(WifiWand::Platforms::Selector).to receive(:current_os).and_return(mock_os)
   end
 
   # Helper method to parse command line arguments and get the real application processor

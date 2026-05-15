@@ -42,13 +42,13 @@ module WifiWand
       end
 
       def available_networks_empty_message
-        if cli.model.is_a?(WifiWand::MacOsModel)
+        if cli.model.is_a?(WifiWand::Platforms::Mac::Model)
           <<~MESSAGE.chomp
             No visible networks were found.
             On macOS 14+, this can mean the macOS helper application could not get usable
             Location Services authorization for WiFi SSIDs.
           MESSAGE
-        elsif cli.model.is_a?(WifiWand::UbuntuModel)
+        elsif cli.model.is_a?(WifiWand::Platforms::Ubuntu::Model)
           <<~MESSAGE.chomp
             No visible networks were found.
             If you expect to see networks, try running `nmcli device wifi rescan` or check your hardware/drivers.

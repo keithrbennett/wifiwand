@@ -270,7 +270,7 @@ describe WifiWand::CommandLineInterface do
 
         it 'outputs a clear empty-scan message when no networks are returned' do
           allow(mock_model).to receive(:available_network_names).and_return([])
-          allow(mock_model).to receive(:is_a?).with(WifiWand::MacOsModel).and_return(true)
+          allow(mock_model).to receive(:is_a?).with(WifiWand::Platforms::Mac::Model).and_return(true)
 
           expect do
             invoke_command(cli, 'avail_nets')

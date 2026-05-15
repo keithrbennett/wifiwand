@@ -19,7 +19,7 @@ RSpec.describe 'public_ip command' do
   end
 
   before do
-    allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(mock_os)
+    allow(WifiWand::Platforms::Selector).to receive(:current_os).and_return(mock_os)
     allow(cli).to receive(:run_shell)
     allow(interactive_cli).to receive(:run_shell)
   end

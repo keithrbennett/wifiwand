@@ -54,7 +54,8 @@ Notes:
 ### `networksetup -setairportnetwork <interface> <network_name> [password]`
 - Description: Connects to a Wi-Fi network using the built-in Network Setup tool.
 - Dynamic Values: `interface` (from `wifi_interface`), `network_name`, `password` (optional)
-- Base Model Method(s): `MacOsModel#_connect`, `MacOsWifiTransport#connect`
+- Base Model Method(s): `WifiWand::Platforms::Mac::Model#_connect`,
+  `WifiWand::Platforms::Mac::Helper::WifiTransport#connect`
 - CLI Command(s): `co`
 - Helpful Info: `networksetup` exits with code 0 even on failure; the implementation inspects the combined
   output for error patterns and raises on authentication failures.
@@ -148,7 +149,8 @@ The `security` tool integrates with the macOS Keychain to retrieve stored Wi-Fi 
 ### `sudo ifconfig <interface> disassociate`
 - Description: Disconnects the interface from its current Wi-Fi network when Swift/CoreWLAN is unavailable.
 - Dynamic Values: `interface` (from `wifi_interface`)
-- Base Model Method(s): `MacOsModel#_disconnect`, `MacOsWifiTransport#disconnect`
+- Base Model Method(s): `WifiWand::Platforms::Mac::Model#_disconnect`,
+  `WifiWand::Platforms::Mac::Helper::WifiTransport#disconnect`
 - CLI Command(s): `d`
 - Helpful Info: Falls back to `ifconfig <interface> disassociate` without sudo if the privileged form fails;
   both invocations suppress exceptions (`raise_on_error = false`) so alternate paths can run.
@@ -182,29 +184,32 @@ compiled helper-app read/query path.
 ### `swift -e 'import CoreWLAN'`
 - Description: Verifies that the Swift toolchain and CoreWLAN framework are available.
 - Dynamic Values: None
-- Base Model Method(s): `MacOsModel#swift_runtime`, `MacOsSwiftRuntime#swift_and_corewlan_present?`
+- Base Model Method(s): `WifiWand::Platforms::Mac::Model#swift_runtime`,
+  `WifiWand::Platforms::Mac::Helper::SwiftRuntime#swift_and_corewlan_present?`
 - CLI Command(s): `co`, `d`, `qr`
 - Helpful Info: Verbose mode prints actionable guidance for exit statuses 127 (Swift missing) and 1 (CoreWLAN
   unavailable).
 
-### `swift lib/wifi_wand/mac_helper/swift/WifiNetworkConnector.swift <network_name> [password]`
+### `swift lib/wifi_wand/platforms/mac/helper/swift/WifiNetworkConnector.swift <network_name> [password]`
 - Description: Uses the direct Swift source path to connect via CoreWLAN when
   available.
 - Dynamic Values: `swift_filespec` (absolute path to the script), `network_name`, `password` (optional)
-- Base Model Method(s): `MacOsModel#swift_runtime`, `MacOsSwiftRuntime#run_swift_command`,
-  `MacOsSwiftRuntime#connect`, `_connect`
+- Base Model Method(s): `WifiWand::Platforms::Mac::Model#swift_runtime`,
+  `WifiWand::Platforms::Mac::Helper::SwiftRuntime#run_swift_command`,
+  `WifiWand::Platforms::Mac::Helper::SwiftRuntime#connect`, `_connect`
 - CLI Command(s): `co`
 - Helpful Info: This mutation path remains separate from the compiled helper
   app because connect/disconnect still run through direct Swift source plus
   command-line fallbacks. Specific CoreWLAN error codes trigger retries with
   the `networksetup` fallback.
 
-### `swift lib/wifi_wand/mac_helper/swift/WifiNetworkDisconnector.swift`
+### `swift lib/wifi_wand/platforms/mac/helper/swift/WifiNetworkDisconnector.swift`
 - Description: Invokes the direct Swift source path to disconnect using
   CoreWLAN.
 - Dynamic Values: `swift_filespec` (absolute path to the script)
-- Base Model Method(s): `MacOsModel#swift_runtime`, `MacOsSwiftRuntime#run_swift_command`,
-  `MacOsSwiftRuntime#disconnect`, `_disconnect`
+- Base Model Method(s): `WifiWand::Platforms::Mac::Model#swift_runtime`,
+  `WifiWand::Platforms::Mac::Helper::SwiftRuntime#run_swift_command`,
+  `WifiWand::Platforms::Mac::Helper::SwiftRuntime#disconnect`, `_disconnect`
 - CLI Command(s): `d`
 - Helpful Info: This mutation path remains separate from the compiled helper
   app. Failure automatically falls back to the `ifconfig disassociate` path

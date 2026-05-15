@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 require 'rbconfig'
-require_relative '../wifi_wand/mac_helper/mac_os_helper_bundle'
-require_relative '../wifi_wand/mac_helper/mac_os_helper_build'
+require_relative '../wifi_wand/platforms/mac/helper/mac_os_helper_bundle'
+require_relative '../wifi_wand/platforms/mac/helper/mac_os_helper_build'
 
 namespace :swift do
-  helper = WifiWand::MacOsHelperBundle
+  helper = WifiWand::Platforms::Mac::Helper::Bundle
   helper_binary = helper.source_bundle_executable_path
 
   desc 'Compile the wifiwand macOS helper bundle executable (supports optional WIFIWAND_CODESIGN_IDENTITY)'

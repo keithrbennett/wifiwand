@@ -131,7 +131,7 @@ module RSpecConfiguration
   # Configure macOS-specific test stubbing that keeps ordinary specs isolated
   # from Keychain-backed password lookup behavior.
   #
-  # In normal unit/read-only specs, we do not want `MacOsModel` to fall through
+  # In normal unit/read-only specs, we do not want `Platforms::Mac::Model` to fall through
   # to real password retrieval paths, because those can trigger interactive
   # system prompts or depend on machine-specific Keychain state. The default
   # behavior here is therefore: if a spec is running in macOS test context and
@@ -145,7 +145,7 @@ module RSpecConfiguration
       next unless RSpecConfiguration.running_on_mac_os?
 
       unless example.metadata[:keychain_integration]
-        allow_any_instance_of(WifiWand::MacOsModel)
+        allow_any_instance_of(WifiWand::Platforms::Mac::Model)
           .to receive(:preferred_network_password)
           .and_return(nil)
       end

@@ -234,7 +234,7 @@ describe WifiWand::CommandLineInterface do
         out_stream = StringIO.new
         err_stream = StringIO.new
         fake_os = double('mac_os')
-        allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(fake_os)
+        allow(WifiWand::Platforms::Selector).to receive(:current_os).and_return(fake_os)
         allow(fake_os).to receive(:create_model) do |model_options|
           double('mac_model').tap do |model|
             allow(model).to receive(:available_network_scan) do
@@ -270,7 +270,7 @@ describe WifiWand::CommandLineInterface do
         'warning'           => 'macOS blocked wifiwand-helper from reading WiFi SSIDs',
       }
       fake_os = double('mac_os')
-      allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(fake_os)
+      allow(WifiWand::Platforms::Selector).to receive(:current_os).and_return(fake_os)
       allow(fake_os).to receive(:create_model) do |model_options|
         double('mac_model').tap do |model|
           allow(model).to receive(:available_network_scan) do

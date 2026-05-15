@@ -8,17 +8,17 @@ RSpec.describe WifiWand do
   end
 
   describe '.create_model' do
-    it 'delegates to OperatingSystems.create_model_for_current_os with Hash options' do
+    it 'delegates to Platforms::Selector.create_model_for_current_os with Hash options' do
       hash_options = { verbose: false, wifi_interface: 'wlan0' }
-      expect(WifiWand::OperatingSystems)
+      expect(WifiWand::Platforms::Selector)
         .to receive(:create_model_for_current_os).with(hash_options)
         .and_return(:mock_hash_model)
 
       expect(described_class.create_model(hash_options)).to eq(:mock_hash_model)
     end
 
-    it 'delegates to OperatingSystems.create_model_for_current_os with default options' do
-      expect(WifiWand::OperatingSystems)
+    it 'delegates to Platforms::Selector.create_model_for_current_os with default options' do
+      expect(WifiWand::Platforms::Selector)
         .to receive(:create_model_for_current_os)
         .and_return(:default_mock_model)
 

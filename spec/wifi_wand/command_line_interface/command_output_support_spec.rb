@@ -14,7 +14,7 @@ describe WifiWand::CommandLineInterface::CommandOutputSupport do
   let(:interactive_cli) { WifiWand::CommandLineInterface.new(interactive_options) }
 
   before do
-    allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(mock_os)
+    allow(WifiWand::Platforms::Selector).to receive(:current_os).and_return(mock_os)
   end
 
   describe '#handle_output' do

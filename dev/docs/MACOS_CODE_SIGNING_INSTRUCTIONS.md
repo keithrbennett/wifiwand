@@ -195,7 +195,7 @@ Normal maintainer release commands use the tracked official signing defaults and
 - Password reset and agreement-troubleshooting note:
   `dev/docs/MACOS_NOTARYTOOL_PASSWORD_RESET.md`
 - Script implementation lives in `bin/mac-helper-release` (CLI) and
-  `lib/wifi_wand/mac_helper/mac_helper_release.rb` (core logic).
+  `lib/wifi_wand/platforms/mac/helper/mac_helper_release.rb` (core logic).
 - Forget the commands? Run `bin/mac-helper-release help` for a quick reminder.
 
 Keeping this file short makes it easier to execute the release without rereading the entire history every

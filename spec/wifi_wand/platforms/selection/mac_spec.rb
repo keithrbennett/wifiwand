@@ -1,0 +1,68 @@
+# frozen_string_literal: true
+
+require_relative '../../../spec_helper'
+require_relative '../../../../lib/wifi_wand/platforms/selection/mac'
+
+describe WifiWand::Platforms::Selection::Mac do
+  subject(:os) { described_class.new }
+
+  describe '#initialize' do
+    it 'sets correct id and display_name' do
+      expect(os.id).to eq(:mac)
+      expect(os.display_name).to eq('macOS')
+    end
+  end
+
+  describe '#current_os_is_this_os?' do
+    detection_scenarios = [
+      ['detects macOS with darwin host_os',                   'darwin',          true],
+      ['detects macOS with darwin-based host_os',             'x86_64-darwin21', true],
+      ['returns false for Linux system',                      'linux-gnu',       false],
+      ['returns false for Windows system',                    'mingw32',         false],
+      ['returns false for Windows mswin variant',             'mswin',           false],
+      ['returns false for cygwin environment',                'cygwin',          false],
+      ['returns false for uppercase DARWIN (case sensitive)', 'DARWIN',          false],
+      ['returns false for nil host_os',                       nil,               false],
+      ['returns false for empty host_os',                     '',                false],
+    ].map { |name, host_os, expected| { name:, host_os:, expected: } }
+
+    detection_scenarios.each do |scenario|
+      it scenario[:name] do
+        stub_const('RbConfig::CONFIG', { 'host_os' => scenario[:host_os] })
+        expect(os.current_os_is_this_os?).to eq(scenario[:expected])
+      end
+    end
+  end
+
+  describe '#create_model' do
+    it 'delegates to Platforms::Mac::Model.create_model and returns the model' do
+      require_relative '../../../../lib/wifi_wand/platforms/mac/model'
+      options = { verbose: true, wifi_interface: 'en0' }
+      mock_model = instance_double(WifiWand::Platforms::Mac::Model)
+
+      model_class = class_double(WifiWand::Platforms::Mac::Model)
+      stub_const('WifiWand::Platforms::Mac::Model', model_class)
+      expect(model_class).to receive(:create_model).with(options).and_return(mock_model)
+
+      expect(os.create_model(options)).to eq(mock_model)
+    end
+
+    it 'passes through empty options' do
+      require_relative '../../../../lib/wifi_wand/platforms/mac/model'
+      options = {}
+      mock_model = instance_double(WifiWand::Platforms::Mac::Model)
+
+      model_class = class_double(WifiWand::Platforms::Mac::Model)
+      stub_const('WifiWand::Platforms::Mac::Model', model_class)
+      expect(model_class).to receive(:create_model).with(options).and_return(mock_model)
+
+      expect(os.create_model(options)).to eq(mock_model)
+    end
+
+    it 'rejects nil options' do
+      expect do
+        os.create_model(nil)
+      end.to raise_error(ArgumentError, /options must be a Hash/)
+    end
+  end
+end

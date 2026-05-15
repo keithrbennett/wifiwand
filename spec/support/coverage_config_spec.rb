@@ -23,8 +23,8 @@ RSpec.describe CoverageConfig do
   describe '.excluded_runtime_globs' do
     it 'defines maintainer-only files excluded from packaged runtime coverage' do
       expect(described_class.excluded_runtime_globs).to eq([
-        'lib/wifi_wand/mac_helper/mac_helper_release.rb',
-        'lib/wifi_wand/mac_helper/mac_os_helper_build.rb',
+        'lib/wifi_wand/platforms/mac/helper/mac_helper_release.rb',
+        'lib/wifi_wand/platforms/mac/helper/mac_os_helper_build.rb',
       ])
     end
   end
@@ -32,8 +32,8 @@ RSpec.describe CoverageConfig do
   describe '.excluded_runtime_files' do
     it 'expands maintainer-only files excluded from packaged runtime coverage' do
       expect(described_class.excluded_runtime_files).to include(
-        'lib/wifi_wand/mac_helper/mac_helper_release.rb',
-        'lib/wifi_wand/mac_helper/mac_os_helper_build.rb'
+        'lib/wifi_wand/platforms/mac/helper/mac_helper_release.rb',
+        'lib/wifi_wand/platforms/mac/helper/mac_os_helper_build.rb'
       )
     end
   end
@@ -50,8 +50,8 @@ RSpec.describe CoverageConfig do
 
     it 'excludes maintainer-only files that are not packaged runtime' do
       expect(described_class.tracked_runtime_files).not_to include(
-        'lib/wifi_wand/mac_helper/mac_helper_release.rb',
-        'lib/wifi_wand/mac_helper/mac_os_helper_build.rb'
+        'lib/wifi_wand/platforms/mac/helper/mac_helper_release.rb',
+        'lib/wifi_wand/platforms/mac/helper/mac_os_helper_build.rb'
       )
     end
   end

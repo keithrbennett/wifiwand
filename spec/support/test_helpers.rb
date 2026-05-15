@@ -4,9 +4,9 @@ require 'socket'
 require 'stringio'
 require_relative 'network_state_manager'
 require_relative '../../lib/wifi_wand/command_line_options'
-require_relative '../../lib/wifi_wand/operating_systems'
-require_relative '../../lib/wifi_wand/models/ubuntu_model'
-require_relative '../../lib/wifi_wand/models/mac_os_model'
+require_relative '../../lib/wifi_wand/platforms/selector'
+require_relative '../../lib/wifi_wand/platforms/ubuntu/model'
+require_relative '../../lib/wifi_wand/platforms/mac/model'
 
 module TestHelpers
   BASE_MODEL_REQUIRED_METHOD_DEFINITIONS = {
@@ -86,12 +86,12 @@ module TestHelpers
   # Handles missing system commands gracefully for CI environments
   def create_test_model(options = {})
     merged_options = merge_verbose_options(options)
-    current_os = WifiWand::OperatingSystems.current_os
+    current_os = WifiWand::Platforms::Selector.current_os
     raise WifiWand::NoSupportedOSError unless current_os
 
     case current_os.id
     when :ubuntu
-      model = WifiWand::UbuntuModel.new(merged_options)
+      model = WifiWand::Platforms::Ubuntu::Model.new(merged_options)
       # Mock command availability to prevent missing utility errors in CI
       # Mock WiFi interface detection to prevent hardware detection failures in CI
       # This can be overridden by individual tests that need to test interface detection failures
@@ -102,33 +102,34 @@ module TestHelpers
     when :mac
       # Mac models don't have the same command validation issues, but need interface detection stubbing
       # Stub interface detection methods to prevent real network calls during model creation
-      allow_any_instance_of(WifiWand::MacOsModel).to receive(:probe_wifi_interface).and_return('en0')
+      allow_any_instance_of(WifiWand::Platforms::Mac::Model)
+        .to receive(:probe_wifi_interface).and_return('en0')
       interface_detector = instance_double(
-        WifiWand::MacOsInterfaceDetector,
+        WifiWand::Platforms::Mac::InterfaceDetector,
         is_wifi_interface?: true,
         wifi_service_name:  'Wi-Fi'
       )
-      allow_any_instance_of(WifiWand::MacOsModel).to receive(:interface_detector)
+      allow_any_instance_of(WifiWand::Platforms::Mac::Model).to receive(:interface_detector)
         .and_return(interface_detector)
       unless uses_real_env?
-        empty_result = WifiWand::MacOsHelperBundle::HelperQueryResult.new
+        empty_result = WifiWand::Platforms::Mac::Helper::Bundle::HelperQueryResult.new
         helper_client = instance_double(
-          WifiWand::MacOsHelperClient,
+          WifiWand::Platforms::Mac::Helper::Client,
           connected_network_name: empty_result,
           scan_networks:          empty_result
         )
-        allow(WifiWand::MacOsHelperClient).to receive(:new).and_return(helper_client)
+        allow(WifiWand::Platforms::Mac::Helper::Client).to receive(:new).and_return(helper_client)
       end
-      WifiWand::MacOsModel.create_model(merged_options)
+      WifiWand::Platforms::Mac::Model.create_model(merged_options)
     else
       raise WifiWand::NoSupportedOSError
     end
   end
 
   # Helper method to create specific OS models with verbose configuration
-  def create_ubuntu_test_model(options = {}) = WifiWand::UbuntuModel.new(merge_verbose_options(options))
+  def create_ubuntu_test_model(options = {}) = WifiWand::Platforms::Ubuntu::Model.new(merge_verbose_options(options))
 
-  def create_mac_os_test_model(options = {}) = WifiWand::MacOsModel.new(merge_verbose_options(options))
+  def create_mac_os_test_model(options = {}) = WifiWand::Platforms::Mac::Model.new(merge_verbose_options(options))
 
   def wait_for(timeout: 5, interval: 0.1, description: 'condition')
     start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)

@@ -19,7 +19,7 @@ RSpec.shared_context 'for command line interface tests' do
     WifiWand::HelpCommand.new.bind(cli).call(*args)
   end
   before do
-    allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(mock_os)
+    allow(WifiWand::Platforms::Selector).to receive(:current_os).and_return(mock_os)
   end
 end
 

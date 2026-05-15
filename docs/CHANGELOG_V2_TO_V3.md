@@ -16,12 +16,12 @@ For upgrade-impacting API, CLI, and behavior changes, see
 ### Ubuntu Linux Support
 
 - Added full Ubuntu Linux support alongside existing macOS functionality.
-- Implemented `UbuntuModel` class using `nmcli`, `iw`, and `ip` command-line
-  tools.
+- Implemented `WifiWand::Platforms::Ubuntu::Model` using `nmcli`, `iw`, and
+  `ip` command-line tools.
 - Created Ubuntu-specific test suite with comprehensive coverage of WiFi
   operations.
-- Added OS abstraction layer in `lib/wifi_wand/os/` for clean separation of
-  OS-specific logic.
+- Added platform selection support in `lib/wifi_wand/platforms/selection/` for
+  clean separation of OS-specific logic.
 
 ### User-Facing Commands and Features
 

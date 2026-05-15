@@ -168,32 +168,32 @@ module MacHelperCLI
     def execute_subcommand(subcommand)
       case subcommand
       when 'build'
-        WifiWand::MacHelperRelease.build_signed_helper
+        WifiWand::Platforms::Mac::Helper::Release.build_signed_helper
       when 'verify'
-        WifiWand::MacHelperRelease.verify_source_attestation!
+        WifiWand::Platforms::Mac::Helper::Release.verify_source_attestation!
       when 'test'
-        WifiWand::MacHelperRelease.test_signed_helper
+        WifiWand::Platforms::Mac::Helper::Release.test_signed_helper
       when 'public-info'
         public_signing_info
       when 'store-credentials'
         store_notarytool_credentials
       when 'notarize'
-        WifiWand::MacHelperRelease.notarize_helper
+        WifiWand::Platforms::Mac::Helper::Release.notarize_helper
       when 'release'
-        WifiWand::MacHelperRelease.release_helper
+        WifiWand::Platforms::Mac::Helper::Release.release_helper
       when 'status'
-        WifiWand::MacHelperRelease.codesign_status
+        WifiWand::Platforms::Mac::Helper::Release.codesign_status
       when 'history'
-        WifiWand::MacHelperRelease.notarization_history
+        WifiWand::Platforms::Mac::Helper::Release.notarization_history
       when 'info'
         submission_id = fetch_submission_id(order: :desc, pending_only: false)
-        WifiWand::MacHelperRelease.notarization_status(submission_id)
+        WifiWand::Platforms::Mac::Helper::Release.notarization_status(submission_id)
       when 'log'
         submission_id = fetch_submission_id(order: :desc, pending_only: false)
-        WifiWand::MacHelperRelease.notarization_log(submission_id)
+        WifiWand::Platforms::Mac::Helper::Release.notarization_log(submission_id)
       when 'cancel'
         submission_id = fetch_submission_id(order: :asc, pending_only: true)
-        WifiWand::MacHelperRelease.cancel_notarization(submission_id)
+        WifiWand::Platforms::Mac::Helper::Release.cancel_notarization(submission_id)
       end
     rescue => e
       warn "Error: #{e.message}"
@@ -210,8 +210,8 @@ module MacHelperCLI
       pending_only = @options[:pending_only] unless @options[:pending_only].nil?
 
       # Auto-select from history
-      normalized_order = WifiWand::MacHelperRelease.normalize_submission_order(order)
-      auto_id = WifiWand::MacHelperRelease.select_submission_id(
+      normalized_order = WifiWand::Platforms::Mac::Helper::Release.normalize_submission_order(order)
+      auto_id = WifiWand::Platforms::Mac::Helper::Release.select_submission_id(
         order: normalized_order,
         pending_only: pending_only
       )
@@ -229,17 +229,17 @@ module MacHelperCLI
     end
 
     def public_signing_info
-      WifiWand::MacHelperRelease::Operations.require_macos!(__method__.to_s)
+      WifiWand::Platforms::Mac::Helper::Release::Operations.require_macos!(__method__.to_s)
 
-      helper = WifiWand::MacOsHelperBundle
+      helper = WifiWand::Platforms::Mac::Helper::Bundle
       profile_name = ENV.fetch(
         'WIFIWAND_NOTARYTOOL_PROFILE',
-        WifiWand::MacHelperRelease::DEFAULT_NOTARYTOOL_PROFILE
+        WifiWand::Platforms::Mac::Helper::Release::DEFAULT_NOTARYTOOL_PROFILE
       )
       keychain_path = ENV['WIFIWAND_NOTARYTOOL_KEYCHAIN']
       helper_exec_path = File.join(helper.source_bundle_path, 'Contents', 'MacOS', helper::EXECUTABLE_NAME)
-      team_id = WifiWand::MacHelperRelease.configured_team_id
-      codesign_identity = WifiWand::MacHelperRelease.configured_codesign_identity
+      team_id = WifiWand::Platforms::Mac::Helper::Release.configured_team_id
+      codesign_identity = WifiWand::Platforms::Mac::Helper::Release.configured_codesign_identity
 
       puts <<~INFO
         Public macOS signing and notarization info:
@@ -253,16 +253,16 @@ module MacHelperCLI
     end
 
     def store_notarytool_credentials
-      WifiWand::MacHelperRelease::Operations.require_macos!(__method__.to_s)
+      WifiWand::Platforms::Mac::Helper::Release::Operations.require_macos!(__method__.to_s)
 
       apple_id = fetch_apple_dev_id
       profile_name = ENV.fetch(
         'WIFIWAND_NOTARYTOOL_PROFILE',
-        WifiWand::MacHelperRelease::DEFAULT_NOTARYTOOL_PROFILE
+        WifiWand::Platforms::Mac::Helper::Release::DEFAULT_NOTARYTOOL_PROFILE
       )
       keychain_path = ENV['WIFIWAND_NOTARYTOOL_KEYCHAIN']
-      team_id = WifiWand::MacHelperRelease.configured_team_id
-      WifiWand::MacHelperRelease::Operations.verify_team_id_configured(team_id)
+      team_id = WifiWand::Platforms::Mac::Helper::Release.configured_team_id
+      WifiWand::Platforms::Mac::Helper::Release::Operations.verify_team_id_configured(team_id)
 
       command = [
         'xcrun',
@@ -306,7 +306,7 @@ end
 lib_path = Pathname.new(MacHelperCLI::REPO_ROOT).join('lib')
 $LOAD_PATH.unshift(lib_path.to_s) unless $LOAD_PATH.include?(lib_path.to_s)
 
-require 'wifi_wand/mac_helper/mac_helper_release'
+require 'wifi_wand/platforms/mac/helper/mac_helper_release'
 
 # Run the CLI
 MacHelperCLI::CLI.new(ARGV.dup).run if $PROGRAM_NAME == __FILE__

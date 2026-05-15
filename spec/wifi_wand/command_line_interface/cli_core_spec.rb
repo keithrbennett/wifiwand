@@ -8,7 +8,7 @@ describe WifiWand::CommandLineInterface do
 
   describe 'initialization' do
     it 'raises NoSupportedOSError when model access cannot detect an OS' do
-      allow(WifiWand::OperatingSystems).to receive(:current_os).and_return(nil)
+      allow(WifiWand::Platforms::Selector).to receive(:current_os).and_return(nil)
 
       cli = described_class.new(options)
       expect { cli.model }.to raise_error(WifiWand::NoSupportedOSError)
