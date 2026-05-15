@@ -38,50 +38,78 @@ module WifiWand
         expect(reader.password_for('TestNetwork', timeout_in_secs: 1.5)).to eq('mypassword123')
       end
 
-      it 'handles different keychain scenarios' do
-        test_cases = [
-          [os_command_error(exitstatus: 44, command: 'security', text: ''), nil],
-          [
-            os_command_error(exitstatus: 45, command: 'security', text: ''),
-            WifiWand::KeychainAccessDeniedError,
-          ],
-          [
-            os_command_error(exitstatus: 128, command: 'security', text: ''),
-            WifiWand::KeychainAccessCancelledError,
-          ],
-          [
-            os_command_error(exitstatus: 51, command: 'security', text: ''),
-            WifiWand::KeychainNonInteractiveError,
-          ],
-          [os_command_error(exitstatus: 25, command: 'security', text: ''), WifiWand::KeychainError],
-          [os_command_error(exitstatus: 1, command: 'security', text: 'could not be found'), nil],
-          [
-            os_command_error(exitstatus: 1, command: 'security', text: 'other error'),
-            WifiWand::KeychainError,
-          ],
-          %w[mypassword123 mypassword123],
-        ]
+      it 'returns nil when the keychain item is missing' do
+        allow(command_runner).to receive(:call)
+          .and_raise(os_command_error(exitstatus: 44, command: 'security', text: ''))
 
-        test_cases.each do |response, expected|
-          if response.is_a?(Exception)
-            allow(command_runner).to receive(:call).and_raise(response)
-          else
-            allow(command_runner).to receive(:call).and_return(command_result(stdout: response))
-          end
+        expect(reader.password_for('TestNetwork')).to be_nil
+      end
 
-          if expected.is_a?(Class) && expected < Exception
-            expect { reader.password_for('TestNetwork') }.to raise_error(expected)
-          else
-            expect(reader.password_for('TestNetwork')).to eq(expected)
-          end
-        end
+      it 'returns nil for general errors that report a missing item' do
+        allow(command_runner).to receive(:call)
+          .and_raise(os_command_error(exitstatus: 1, command: 'security', text: 'could not be found'))
+
+        expect(reader.password_for('TestNetwork')).to be_nil
+      end
+
+      it 'raises a domain error when keychain access is denied' do
+        allow(command_runner).to receive(:call)
+          .and_raise(os_command_error(exitstatus: 45, command: 'security', text: ''))
+
+        expect { reader.password_for('TestNetwork') }
+          .to raise_error(WifiWand::KeychainAccessDeniedError,
+            "Keychain access denied for network 'TestNetwork'. Please grant access when prompted")
+      end
+
+      it 'raises a domain error when the keychain prompt is cancelled' do
+        allow(command_runner).to receive(:call)
+          .and_raise(os_command_error(exitstatus: 128, command: 'security', text: ''))
+
+        expect { reader.password_for('TestNetwork') }
+          .to raise_error(WifiWand::KeychainAccessCancelledError,
+            "Keychain access cancelled for network 'TestNetwork'")
+      end
+
+      it 'raises a domain error for non-interactive keychain access' do
+        allow(command_runner).to receive(:call)
+          .and_raise(os_command_error(exitstatus: 51, command: 'security', text: ''))
+
+        expect { reader.password_for('TestNetwork') }
+          .to raise_error(WifiWand::KeychainNonInteractiveError,
+            "Cannot access keychain for network 'TestNetwork' in non-interactive environment")
+      end
+
+      it 'raises a domain error for invalid search parameters' do
+        allow(command_runner).to receive(:call)
+          .and_raise(os_command_error(exitstatus: 25, command: 'security', text: ''))
+
+        expect { reader.password_for('TestNetwork') }
+          .to raise_error(WifiWand::KeychainError,
+            "Invalid keychain search parameters for network 'TestNetwork'")
+      end
+
+      it 'includes stderr text from expected-but-failing general errors' do
+        error = WifiWand::CommandExecutor::OsCommandError.new(
+          result: command_result(
+            stderr:     'keychain database is locked',
+            exitstatus: 1,
+            command:    'security'
+          )
+        )
+        allow(command_runner).to receive(:call).and_raise(error)
+
+        expect { reader.password_for('TestNetwork') }
+          .to raise_error(WifiWand::KeychainError,
+            "Keychain error accessing password for network 'TestNetwork': keychain database is locked")
       end
 
       it 'raises detailed KeychainError for unknown exit codes' do
         error = os_command_error(exitstatus: 99, command: 'security', text: 'strange failure')
         allow(command_runner).to receive(:call).and_raise(error)
 
-        expect { reader.password_for('TestNet') }.to raise_error(WifiWand::KeychainError)
+        expect { reader.password_for('TestNet') }
+          .to raise_error(WifiWand::KeychainError,
+            "Unknown keychain error (exit code 99) accessing password for network 'TestNet': strange failure")
       end
     end
   end
