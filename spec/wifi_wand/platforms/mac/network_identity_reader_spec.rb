@@ -16,6 +16,7 @@ module WifiWand
         wifi_interface_proc:           -> { wifi_interface },
         default_interface_proc:        -> { default_interface },
         ipv4_addresses_proc:           -> { ipv4_addresses },
+        ipv6_addresses_proc:           -> { ipv6_addresses },
         airport_command:               airport_command
       )
     end
@@ -29,6 +30,7 @@ module WifiWand
     let(:wifi_interface) { 'en0' }
     let(:default_interface) { nil }
     let(:ipv4_addresses) { [] }
+    let(:ipv6_addresses) { [] }
 
     def helper_result(**kwargs)
       WifiWand::Platforms::Mac::Helper::Bundle::HelperQueryResult.new(**kwargs)
@@ -161,9 +163,7 @@ module WifiWand
 
         expect(helper_client).to receive(:connected_network_name).and_return(helper_result)
         allow(airport_data_proc).to receive(:call).and_return(no_current_network)
-        allow(reader).to receive(:associated_without_ssid?)
-          .with(hash_including('_name' => wifi_interface))
-          .and_return(true)
+        allow(reader).to receive(:associated_without_ssid?).and_return(true)
 
         expect(reader.network_identity_redacted?).to be(true)
       end
@@ -200,6 +200,32 @@ module WifiWand
         allow(reader).to receive(:associated_without_ssid?).and_return(true)
 
         expect(reader.connected?).to be(true)
+      end
+
+      context 'when only IPv6 address evidence is available' do
+        let(:ipv6_addresses) { ['2001:db8::44'] }
+
+        it 'treats the interface as associated when SSID identity is unavailable' do
+          allow(helper_client).to receive(:connected_network_name).and_return(helper_result)
+          allow(airport_data_proc).to receive(:call).and_return(
+            airport_payload(current_network_name: :missing)
+          )
+
+          expect(reader.connected?).to be(true)
+        end
+      end
+
+      context 'when only link-local IPv6 address evidence is available' do
+        let(:ipv6_addresses) { ['fe80::1'] }
+
+        it 'does not treat the interface as associated without stronger evidence' do
+          allow(helper_client).to receive(:connected_network_name).and_return(helper_result)
+          allow(airport_data_proc).to receive(:call).and_return(
+            airport_payload(current_network_name: :missing)
+          )
+
+          expect(reader.connected?).to be(false)
+        end
       end
     end
   end

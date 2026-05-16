@@ -242,6 +242,9 @@ module WifiWand
         expect(system_network_info).to receive(:ipv4_addresses)
           .with(iface: 'en0', timeout_in_secs: status_timeout)
           .and_return([])
+        expect(system_network_info).to receive(:ipv6_addresses)
+          .with(iface: 'en0', timeout_in_secs: status_timeout)
+          .and_return([])
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
           connected:    false,
@@ -275,6 +278,66 @@ module WifiWand
           network_name: nil
         )
       end
+
+      it 'returns associated-without-SSID when only IPv6 evidence remains' do
+        no_current_network = airport_payload(current_network_name: :missing)
+        allow(airport_data_proc).to receive(:call).and_return(no_current_network)
+
+        expect_wifi_power_lookup(on: true)
+        expect(helper_client).to receive(:connected_network_name)
+          .with(timeout_seconds: status_timeout)
+          .and_return(helper_result)
+        expect(command_runner).to receive(:call)
+          .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
+          .and_return(command_result(stdout: ''))
+        expect(command_runner).to receive(:call)
+          .with([airport_command, '-I'], timeout_in_secs: status_timeout)
+          .and_return(command_result(stdout: ''))
+        expect(system_network_info).to receive(:default_interface)
+          .with(timeout_in_secs: status_timeout)
+          .and_return('en1')
+        expect(system_network_info).to receive(:ipv4_addresses)
+          .with(iface: 'en0', timeout_in_secs: status_timeout)
+          .and_return([])
+        expect(system_network_info).to receive(:ipv6_addresses)
+          .with(iface: 'en0', timeout_in_secs: status_timeout)
+          .and_return(['2001:db8::44'])
+
+        expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
+          connected:    true,
+          network_name: nil
+        )
+      end
+
+      it 'does not treat link-local-only IPv6 evidence as associated-without-SSID' do
+        no_current_network = airport_payload(current_network_name: :missing)
+        allow(airport_data_proc).to receive(:call).and_return(no_current_network)
+
+        expect_wifi_power_lookup(on: true)
+        expect(helper_client).to receive(:connected_network_name)
+          .with(timeout_seconds: status_timeout)
+          .and_return(helper_result)
+        expect(command_runner).to receive(:call)
+          .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
+          .and_return(command_result(stdout: ''))
+        expect(command_runner).to receive(:call)
+          .with([airport_command, '-I'], timeout_in_secs: status_timeout)
+          .and_return(command_result(stdout: ''))
+        expect(system_network_info).to receive(:default_interface)
+          .with(timeout_in_secs: status_timeout)
+          .and_return('en1')
+        expect(system_network_info).to receive(:ipv4_addresses)
+          .with(iface: 'en0', timeout_in_secs: status_timeout)
+          .and_return([])
+        expect(system_network_info).to receive(:ipv6_addresses)
+          .with(iface: 'en0', timeout_in_secs: status_timeout)
+          .and_return(['fe80::1'])
+
+        expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
+          connected:    false,
+          network_name: nil
+        )
+      end
     end
 
     describe '#status_wifi_on?' do
@@ -302,6 +365,30 @@ module WifiWand
         expect(system_network_info).not_to receive(:ipv4_addresses)
 
         expect(status_queries.send(:status_ipv4_addresses, deadline)).to eq([])
+      end
+    end
+
+    describe '#status_ipv6_addresses' do
+      it 'returns an empty array when status interface detection is unavailable' do
+        wifi_interface_store[:value] = nil
+        deadline = monotonic_now + 0.5
+
+        expect(probe_wifi_interface_proc).to receive(:call)
+          .with(status_timeout)
+          .and_return('')
+        expect(system_network_info).not_to receive(:ipv6_addresses)
+
+        expect(status_queries.send(:status_ipv6_addresses, deadline)).to eq([])
+      end
+
+      it 'delegates to system network info when a status interface is available' do
+        deadline = monotonic_now + 0.5
+
+        expect(system_network_info).to receive(:ipv6_addresses)
+          .with(iface: 'en0', timeout_in_secs: status_timeout)
+          .and_return(['2001:db8::44'])
+
+        expect(status_queries.send(:status_ipv6_addresses, deadline)).to eq(['2001:db8::44'])
       end
     end
   end

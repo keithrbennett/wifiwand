@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'ipaddr'
+
 require_relative 'airport_data_navigator'
 require_relative 'colon_output_parser'
 require_relative 'connected_network_flag_context'
@@ -26,6 +28,7 @@ module WifiWand
           wifi_interface_proc:,
           default_interface_proc:,
           ipv4_addresses_proc:,
+          ipv6_addresses_proc:,
           airport_command:
         )
           @helper_client_proc = helper_client_proc
@@ -36,6 +39,7 @@ module WifiWand
           @wifi_interface_proc = wifi_interface_proc
           @default_interface_proc = default_interface_proc
           @ipv4_addresses_proc = ipv4_addresses_proc
+          @ipv6_addresses_proc = ipv6_addresses_proc
           @airport_command = airport_command
         end
 
@@ -64,7 +68,7 @@ module WifiWand
             interface_data = wifi_interface_airport_data
             return true if interface_associated_in_airport_data?(interface_data)
 
-            associated_without_ssid?(interface_data)
+            associated_without_ssid?
           end
         end
 
@@ -200,18 +204,18 @@ module WifiWand
           wifi_interface_data = wifi_interface_airport_data
           return false if AirportDataNavigator.current_network_present?(wifi_interface_data)
 
-          associated_without_ssid?(wifi_interface_data)
+          associated_without_ssid?
         end
 
         private def helper_placeholder_network_name?(network_name)
           !network_name.nil? && placeholder_network_name?(network_name)
         end
 
-        private def associated_without_ssid?(_wifi_interface_data = nil)
+        private def associated_without_ssid?
           iface = wifi_interface
           return true if default_interface == iface
 
-          ipv4_addresses.any?
+          ipv4_addresses.any? || ipv6_association_addresses.any?
         rescue WifiWand::CommandExecutor::OsCommandError
           false
         end
@@ -248,6 +252,23 @@ module WifiWand
 
         private def ipv4_addresses
           @ipv4_addresses_proc.call
+        end
+
+        private def ipv6_addresses
+          @ipv6_addresses_proc.call
+        end
+
+        private def ipv6_association_addresses
+          ipv6_addresses.select do |address|
+            usable_ipv6_association_address?(address)
+          end
+        end
+
+        private def usable_ipv6_association_address?(address)
+          parsed_address = IPAddr.new(address)
+          parsed_address.ipv6? && !parsed_address.link_local?
+        rescue IPAddr::InvalidAddressError
+          false
         end
 
         private def wifi_interface_airport_data(timeout_in_secs: nil)

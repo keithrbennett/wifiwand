@@ -64,7 +64,8 @@ them separate.
 
 Observed uses include:
 
-- connection readiness and `ipv4_addresses` guards in `BaseModel`
+- connection readiness and `ipv4_addresses` / `ipv6_addresses` guards in
+  `BaseModel`
 - network identity in `StatusLineDataBuilder`
 - connection-change logging in `EventLogger`
 - OS-specific connection logic in `WifiWand::Platforms::Mac::Model` and

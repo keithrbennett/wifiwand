@@ -1295,6 +1295,7 @@ module WifiWand
             .and_return(command_result(stdout: "interface: en1\n"))
           expect(model).to receive(:run_command)
             .with(%w[ifconfig en0], timeout_in_secs: status_timeout)
+            .twice
             .and_return(command_result(stdout: ''))
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
@@ -1402,6 +1403,11 @@ module WifiWand
         it 'ipv4_addresses does not raise and delegates to _ipv4_addresses' do
           allow(model).to receive(:_ipv4_addresses).and_return(['10.0.0.42'])
           expect(model.ipv4_addresses).to eq(['10.0.0.42'])
+        end
+
+        it 'ipv6_addresses does not raise and delegates to _ipv6_addresses' do
+          allow(model).to receive(:_ipv6_addresses).and_return(['2001:db8::42'])
+          expect(model.ipv6_addresses).to eq(['2001:db8::42'])
         end
       end
 

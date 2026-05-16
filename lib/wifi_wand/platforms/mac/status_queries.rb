@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'ipaddr'
+
 require_relative 'airport_data_navigator'
 require_relative 'colon_output_parser'
 require_relative '../../errors'
@@ -141,7 +143,7 @@ module WifiWand
           return false unless iface
           return true if status_default_interface(deadline) == iface
 
-          status_ipv4_addresses(deadline).any?
+          status_ipv4_addresses(deadline).any? || status_ipv6_association_addresses(deadline).any?
         rescue WifiWand::CommandExecutor::OsCommandError
           false
         end
@@ -196,6 +198,26 @@ module WifiWand
           return [] if string_nil_or_empty?(iface)
 
           system_network_info.ipv4_addresses(iface: iface, timeout_in_secs: status_timeout_for(deadline))
+        end
+
+        private def status_ipv6_addresses(deadline)
+          iface = status_wifi_interface(deadline)
+          return [] if string_nil_or_empty?(iface)
+
+          system_network_info.ipv6_addresses(iface: iface, timeout_in_secs: status_timeout_for(deadline))
+        end
+
+        private def status_ipv6_association_addresses(deadline)
+          status_ipv6_addresses(deadline).select do |address|
+            usable_ipv6_association_address?(address)
+          end
+        end
+
+        private def usable_ipv6_association_address?(address)
+          parsed_address = IPAddr.new(address)
+          parsed_address.ipv6? && !parsed_address.link_local?
+        rescue IPAddr::InvalidAddressError
+          false
         end
 
         private def system_network_info

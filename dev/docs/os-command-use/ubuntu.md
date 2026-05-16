@@ -262,6 +262,14 @@ stored DNS state, not a partial merge.
 - Helpful Info: Extracts all `inet` tokens (`x.y.z.w/nn`) and strips prefix lengths to return an array of host
   addresses.
 
+### `ip -6 addr show <wifi_interface>`
+- Description: Fetches IPv6 address assignments for the Wi-Fi interface.
+- Dynamic Values: `wifi_interface`
+- Base Model Method(s): `_ipv6_addresses`
+- CLI Command(s): `i`, `s`
+- Helpful Info: Extracts all `inet6` tokens, strips prefix lengths and zone identifiers, and returns an array
+  of host addresses.
+
 ### `ip link show <wifi_interface>`
 - Description: Retrieves link-layer details, including the MAC address.
 - Dynamic Values: `wifi_interface`

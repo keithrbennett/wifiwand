@@ -422,6 +422,7 @@ module WifiWand
             wifi_interface_proc:           -> { wifi_interface },
             default_interface_proc:        -> { default_interface },
             ipv4_addresses_proc:           -> { _ipv4_addresses },
+            ipv6_addresses_proc:           -> { _ipv6_addresses },
             airport_command:               AIRPORT_COMMAND
           )
         end
