@@ -16,12 +16,10 @@ module WifiWand
         wifi_interface_proc:           -> { wifi_interface },
         default_interface_proc:        -> { default_interface },
         ipv4_addresses_proc:           -> { ipv4_addresses },
-        ipv6_addresses_proc:           -> { ipv6_addresses },
-        airport_command:               airport_command
+        ipv6_addresses_proc:           -> { ipv6_addresses }
       )
     end
 
-    let(:airport_command) { '/usr/libexec/airport-test' }
     let(:helper_client) { double('helper_client') }
     let(:command_runner) { double('command_runner') }
     let(:airport_data_proc) { ->(_timeout_in_secs) { airport_data } }
@@ -71,25 +69,19 @@ module WifiWand
         expect(reader.connected_network_name_raw).to eq('NetworksetupNet')
       end
 
-      it 'uses airport -I when networksetup has only a placeholder SSID' do
+      it 'falls through a networksetup placeholder SSID to airport data' do
         expect(helper_client).to receive(:connected_network_name).and_return(helper_result)
         expect(command_runner).to receive(:call)
           .with(['networksetup', '-getairportnetwork', wifi_interface], timeout_in_secs: nil)
           .and_return(command_result(stdout: "Current Wi-Fi Network: <redacted>\n"))
-        expect(command_runner).to receive(:call)
-          .with([airport_command, '-I'], timeout_in_secs: nil)
-          .and_return(command_result(stdout: "     SSID: AirportNet\n"))
 
-        expect(reader.connected_network_name_raw).to eq('AirportNet')
+        expect(reader.connected_network_name_raw).to eq('ProfilerNet')
       end
 
       it 'falls back to system_profiler Airport data after helper and fast commands miss' do
         expect(helper_client).to receive(:connected_network_name).and_return(helper_result)
         expect(command_runner).to receive(:call)
           .with(['networksetup', '-getairportnetwork', wifi_interface], timeout_in_secs: nil)
-          .and_return(command_result(stdout: ''))
-        expect(command_runner).to receive(:call)
-          .with([airport_command, '-I'], timeout_in_secs: nil)
           .and_return(command_result(stdout: ''))
 
         expect(reader.connected_network_name_raw).to eq('ProfilerNet')
@@ -120,11 +112,8 @@ module WifiWand
         expect(command_runner).to receive(:call)
           .with(['networksetup', '-getairportnetwork', wifi_interface], timeout_in_secs: nil)
           .and_return(command_result(stdout: "Current Wi-Fi Network: <hidden>\n"))
-        expect(command_runner).to receive(:call)
-          .with([airport_command, '-I'], timeout_in_secs: nil)
-          .and_return(command_result(stdout: '     BSSID: aa:bb:cc:dd:ee:ff'))
         allow(airport_data_proc).to receive(:call).and_return(
-          airport_payload(current_network_name: nil)
+          airport_payload(current_network_name: '<hidden>')
         )
 
         expect { reader.connected_network_name }.to raise_error(WifiWand::MacOsRedactionError)

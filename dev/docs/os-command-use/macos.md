@@ -98,8 +98,10 @@ Notes:
 ## `system_profiler`
 
 `system_profiler` emits structured JSON snapshots of hardware and Wi-Fi state that the model parses.
-For read/query operations, it now sits behind the compiled helper-app path rather
-than defining the primary runtime by itself.
+For read/query operations, the compiled helper app is the preferred source for
+current SSID/BSSID and scan data. When the helper is unavailable, blocked by
+Location Services, or returns no usable SSID data, `system_profiler` remains the
+structured fallback for Wi-Fi telemetry.
 
 ### `system_profiler -json SPNetworkDataType`
 - Description: Produces JSON metadata describing network services and interfaces.
@@ -115,23 +117,10 @@ than defining the primary runtime by itself.
   `connection_security_type`, `network_hidden?`
 - CLI Command(s): `a` (available networks), `i` (info), `ne` (network name), `qr` (QR code generation)
 - Helpful Info: The compiled `wifiwand-helper.app` path is checked first for
-  `_available_network_names` and `_connected_network_name`. `system_profiler`
-  remains the structured fallback and still provides cached telemetry that the
-  model parses for signal sorting and security details.
-
-## `airport`
-
-`airport` exposes legacy Wi-Fi diagnostics used for current association details that are not available
-through `networksetup`.
-
-### `airport -I`
-- Description: Reads legacy current Wi-Fi association details, including SSID when available.
-- Dynamic Values: None
-- Base Model Method(s): `_connected_network_name`
-- CLI Command(s): `i`, `ne`, `qr`
-- Helpful Info: The connected-network lookup uses `airport -I` only as a legacy fallback when `networksetup`
-  reports a placeholder SSID. Current macOS releases may print only Apple's deprecation warning here, so BSSID
-  lookup uses the compiled helper path instead.
+  `_available_network_names` and `_connected_network_name`. If the helper cannot
+  provide usable SSID data, `system_profiler -json SPAirPortDataType` is the
+  fallback source for visible network names, current-network fallback data, signal
+  sorting, security details, and hidden-network checks.
 
 ## `wifiwand-helper`
 
@@ -145,7 +134,7 @@ Services authorization.
   `bssid`
 - CLI Command(s): `i`, `ne`, `s`, `log`, `qr`
 - Helpful Info: `info` uses the helper's `bssid` payload as the current access point MAC address. This is the
-  supported modern macOS path because `airport -I` can return only a deprecation warning.
+  supported modern macOS path for data that was previously read from the deprecated `airport` utility.
 
 ## `security`
 

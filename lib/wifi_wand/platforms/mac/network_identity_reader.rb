@@ -3,10 +3,8 @@
 require 'ipaddr'
 
 require_relative 'airport_data_navigator'
-require_relative 'colon_output_parser'
 require_relative 'connected_network_flag_context'
 require_relative '../../errors'
-require_relative '../../string_predicates'
 require_relative '../../services/command_executor'
 
 module WifiWand
@@ -14,8 +12,6 @@ module WifiWand
     module Mac
       class NetworkIdentityReader
         include ConnectedNetworkFlagContext
-        include ColonOutputParser
-        include StringPredicates
 
         NO_CONNECTED_NETWORK = Object.new.freeze
 
@@ -28,8 +24,7 @@ module WifiWand
           wifi_interface_proc:,
           default_interface_proc:,
           ipv4_addresses_proc:,
-          ipv6_addresses_proc:,
-          airport_command:
+          ipv6_addresses_proc:
         )
           @helper_client_proc = helper_client_proc
           @command_runner = command_runner
@@ -40,7 +35,6 @@ module WifiWand
           @default_interface_proc = default_interface_proc
           @ipv4_addresses_proc = ipv4_addresses_proc
           @ipv6_addresses_proc = ipv6_addresses_proc
-          @airport_command = airport_command
         end
 
         def associated?
@@ -148,10 +142,7 @@ module WifiWand
         end
 
         private def network_name_using_fast_commands(timeout_in_secs: nil)
-          network_name = connected_network_name_using_networksetup(timeout_in_secs: timeout_in_secs)
-          return network_name if network_name
-
-          connected_network_name_using_airport(timeout_in_secs: timeout_in_secs)
+          connected_network_name_using_networksetup(timeout_in_secs: timeout_in_secs)
         end
 
         private def connected_network_name_using_networksetup(iface: wifi_interface, timeout_in_secs: nil)
@@ -166,32 +157,9 @@ module WifiWand
           return nil unless match
 
           network_name = match[1].strip
-          return mark_connected_network_fallback_identity_redacted if placeholder_network_name?(network_name)
+          return nil if placeholder_network_name?(network_name)
 
           network_name
-        rescue WifiWand::Error
-          nil
-        end
-
-        private def connected_network_name_using_airport(timeout_in_secs: nil)
-          output = command_runner.call(
-            [@airport_command, '-I'],
-            timeout_in_secs: timeout_in_secs
-          ).stdout
-          return nil if string_nil_or_blank?(output)
-
-          airport_info = colon_output_to_hash(output)
-          network_name = airport_info['SSID']
-          if airport_info.key?('SSID')
-            if placeholder_network_name?(network_name)
-              return mark_connected_network_fallback_identity_redacted
-            end
-
-            return network_name
-          end
-
-          mark_connected_network_fallback_identity_redacted if airport_info['BSSID']
-          nil
         rescue WifiWand::Error
           nil
         end

@@ -28,8 +28,6 @@ module WifiWand
         KEYCHAIN_LOOKUP_TIMEOUT_SECONDS = KeychainPasswordReader::DEFAULT_LOOKUP_TIMEOUT_SECONDS
         SUDO_AUTH_CHECK_TIMEOUT_SECONDS = 1
         SUDO_NETWORKSETUP_TIMEOUT_SECONDS = 5
-        AIRPORT_COMMAND =
-          '/System/Library/PrivateFrameworks/Apple80211.framework/Versions/Current/Resources/airport'
 
         # Lazily detected macOS version to avoid OS calls during initialization
         def macos_version(timeout_in_secs: nil)
@@ -422,8 +420,7 @@ module WifiWand
             wifi_interface_proc:           -> { wifi_interface },
             default_interface_proc:        -> { default_interface },
             ipv4_addresses_proc:           -> { _ipv4_addresses },
-            ipv6_addresses_proc:           -> { _ipv6_addresses },
-            airport_command:               AIRPORT_COMMAND
+            ipv6_addresses_proc:           -> { _ipv6_addresses }
           )
         end
 
@@ -438,19 +435,16 @@ module WifiWand
             probe_wifi_interface_proc:     ->(**kwargs) { probe_wifi_interface(**kwargs) },
             system_network_info_proc:      -> { system_network_info },
             status_deadline_proc:          ->(timeout_in_secs) { status_deadline(timeout_in_secs) },
-            status_timeout_proc:           ->(deadline) { status_timeout_for(deadline) },
-            airport_command:               AIRPORT_COMMAND
+            status_timeout_proc:           ->(deadline) { status_timeout_for(deadline) }
           )
         end
 
         private def network_scanner
           @network_scanner ||= WifiWand::Platforms::Mac::NetworkScanner.new(
             helper_client_proc:            -> { helper_client },
-            command_runner:                ->(*args, **kwargs) { run_command(*args, **kwargs) },
             airport_data_proc:             -> { airport_data },
             airport_data_cache_scope_proc: ->(&block) { with_airport_data_cache_scope(&block) },
-            wifi_interface_proc:           -> { wifi_interface },
-            airport_command:               AIRPORT_COMMAND
+            wifi_interface_proc:           -> { wifi_interface }
           )
         end
 

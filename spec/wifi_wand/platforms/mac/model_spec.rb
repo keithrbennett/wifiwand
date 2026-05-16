@@ -164,9 +164,6 @@ module WifiWand
         allow(model).to receive(:run_command)
           .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: timeout_in_secs)
           .and_return(command_result(stdout: ''))
-        allow(model).to receive(:run_command)
-          .with([described_class::AIRPORT_COMMAND, '-I'], timeout_in_secs: timeout_in_secs)
-          .and_return(command_result(stdout: ''))
       end
 
       describe '#os_id' do
@@ -423,19 +420,20 @@ module WifiWand
           expect(model._connected_network_name).to eq('Cafe: West')
         end
 
-        it 'uses airport -I when networksetup has no usable SSID' do
+        it 'falls through a networksetup placeholder SSID to airport data' do
           result = helper_query_result.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
-          allow(model).to receive(:wifi_interface).and_return('en0')
+          allow(model).to receive_messages(airport_data: { 'SPAirPortDataType' => [{
+            'spairport_airport_interfaces' => [{
+              '_name'                                 => 'en0',
+              'spairport_current_network_information' => { '_name' => 'ProfilerNet' },
+            }],
+          }] }, wifi_interface: 'en0')
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: nil)
             .and_return(command_result(stdout: "Current Wi-Fi Network: <redacted>\n"))
-          expect(model).to receive(:run_command)
-            .with([described_class::AIRPORT_COMMAND, '-I'], timeout_in_secs: nil)
-            .and_return(command_result(stdout: "     SSID: Cafe: West\n    BSSID: aa:bb:cc:dd:ee:ff\n"))
-          expect(model).not_to receive(:airport_data)
 
-          expect(model._connected_network_name).to eq('Cafe: West')
+          expect(model._connected_network_name).to eq('ProfilerNet')
         end
 
         it 'does not read airport data when networksetup reports no association' do
@@ -1126,7 +1124,15 @@ module WifiWand
           )
         end
 
-        it 'recomputes the remaining status budget before airport -I fallback' do
+        it 'recomputes the remaining status budget before bounded airport data fallback' do
+          airport_json = JSON.generate(
+            'SPAirPortDataType' => [{
+              'spairport_airport_interfaces' => [{
+                '_name'                                 => 'en0',
+                'spairport_current_network_information' => { '_name' => 'ProfilerNet' },
+              }],
+            }]
+          )
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
             .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
@@ -1140,13 +1146,16 @@ module WifiWand
               command_result(stdout: '')
             end
           expect(model).to receive(:run_command)
-            .with([described_class::AIRPORT_COMMAND, '-I'], timeout_in_secs: be_between(0, 0.45).exclusive)
-            .and_return(command_result(stdout: "     SSID: Cafe: West\n"))
-          expect(model).not_to receive(:airport_data)
+            .with(
+              %w[system_profiler -json SPAirPortDataType],
+              raise_on_error:  true,
+              timeout_in_secs: be_between(0, 0.45).exclusive
+            )
+            .and_return(command_result(stdout: airport_json))
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
             connected:    true,
-            network_name: 'Cafe: West'
+            network_name: 'ProfilerNet'
           )
         end
 
@@ -1167,9 +1176,6 @@ module WifiWand
             .and_return(helper_query_result.new)
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
-            .and_return(command_result(stdout: ''))
-          expect(model).to receive(:run_command)
-            .with([described_class::AIRPORT_COMMAND, '-I'], timeout_in_secs: status_timeout)
             .and_return(command_result(stdout: ''))
           expect(model).to receive(:run_command)
             .with(
@@ -1199,9 +1205,6 @@ module WifiWand
             .and_return(helper_query_result.new)
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
-            .and_return(command_result(stdout: ''))
-          expect(model).to receive(:run_command)
-            .with([described_class::AIRPORT_COMMAND, '-I'], timeout_in_secs: status_timeout)
             .and_return(command_result(stdout: ''))
           expect(model).to receive(:run_command)
             .with(
@@ -1246,9 +1249,6 @@ module WifiWand
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
             .and_return(command_result(stdout: ''))
           expect(model).to receive(:run_command)
-            .with([described_class::AIRPORT_COMMAND, '-I'], timeout_in_secs: status_timeout)
-            .and_return(command_result(stdout: ''))
-          expect(model).to receive(:run_command)
             .with(
               %w[system_profiler -json SPAirPortDataType],
               raise_on_error:  true,
@@ -1279,9 +1279,6 @@ module WifiWand
             .and_return(helper_query_result.new)
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
-            .and_return(command_result(stdout: ''))
-          expect(model).to receive(:run_command)
-            .with([described_class::AIRPORT_COMMAND, '-I'], timeout_in_secs: status_timeout)
             .and_return(command_result(stdout: ''))
           expect(model).to receive(:run_command)
             .with(

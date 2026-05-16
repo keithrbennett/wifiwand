@@ -16,7 +16,6 @@ module WifiWand
     let(:command_runner) { double('command_runner') }
     let(:airport_data) { airport_payload(current_network_name: 'ProfilerNet') }
     let(:airport_data_proc) { ->(_timeout_in_secs) { airport_data } }
-    let(:airport_command) { '/usr/libexec/airport-test' }
 
     it 'does not predefine the macOS OS detector when required before selection/mac' do
       code = <<~RUBY
@@ -48,8 +47,7 @@ module WifiWand
         status_deadline_proc:          ->(timeout_in_secs) {
           timeout_in_secs ? monotonic_now + timeout_in_secs : nil
         },
-        status_timeout_proc:           ->(deadline) { deadline ? [deadline - monotonic_now, 0].max : nil },
-        airport_command:               airport_command
+        status_timeout_proc:           ->(deadline) { deadline ? [deadline - monotonic_now, 0].max : nil }
       )
     end
 
@@ -131,9 +129,21 @@ module WifiWand
         expect(command_runner).to receive(:call)
           .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
           .and_raise(timeout_error)
+
+        expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
+          connected:    true,
+          network_name: 'ProfilerNet'
+        )
+      end
+
+      it 'falls through a networksetup placeholder SSID to bounded airport data' do
+        expect_wifi_power_lookup(on: true)
+        expect(helper_client).to receive(:connected_network_name)
+          .with(timeout_seconds: status_timeout)
+          .and_return(helper_result)
         expect(command_runner).to receive(:call)
-          .with([airport_command, '-I'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: ''))
+          .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
+          .and_return(command_result(stdout: "Current Wi-Fi Network: <redacted>\n"))
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
           connected:    true,
@@ -156,9 +166,6 @@ module WifiWand
           .and_return(helper_result)
         expect(command_runner).to receive(:call)
           .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: ''))
-        expect(command_runner).to receive(:call)
-          .with([airport_command, '-I'], timeout_in_secs: status_timeout)
           .and_return(command_result(stdout: ''))
 
         expect { status_queries.status_network_identity(timeout_in_secs: 0.5) }
@@ -208,9 +215,6 @@ module WifiWand
         expect(command_runner).to receive(:call)
           .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
           .and_return(command_result(stdout: ''))
-        expect(command_runner).to receive(:call)
-          .with([airport_command, '-I'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: ''))
         expect(system_network_info).to receive(:default_interface)
           .with(timeout_in_secs: status_timeout)
           .and_return('en1')
@@ -232,9 +236,6 @@ module WifiWand
           .and_return(helper_result)
         expect(command_runner).to receive(:call)
           .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: ''))
-        expect(command_runner).to receive(:call)
-          .with([airport_command, '-I'], timeout_in_secs: status_timeout)
           .and_return(command_result(stdout: ''))
         expect(system_network_info).to receive(:default_interface)
           .with(timeout_in_secs: status_timeout)
@@ -263,9 +264,6 @@ module WifiWand
         expect(command_runner).to receive(:call)
           .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
           .and_return(command_result(stdout: ''))
-        expect(command_runner).to receive(:call)
-          .with([airport_command, '-I'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: ''))
         expect(system_network_info).to receive(:default_interface)
           .with(timeout_in_secs: status_timeout)
           .and_return('en1')
@@ -289,9 +287,6 @@ module WifiWand
           .and_return(helper_result)
         expect(command_runner).to receive(:call)
           .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: ''))
-        expect(command_runner).to receive(:call)
-          .with([airport_command, '-I'], timeout_in_secs: status_timeout)
           .and_return(command_result(stdout: ''))
         expect(system_network_info).to receive(:default_interface)
           .with(timeout_in_secs: status_timeout)
@@ -319,9 +314,6 @@ module WifiWand
           .and_return(helper_result)
         expect(command_runner).to receive(:call)
           .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: ''))
-        expect(command_runner).to receive(:call)
-          .with([airport_command, '-I'], timeout_in_secs: status_timeout)
           .and_return(command_result(stdout: ''))
         expect(system_network_info).to receive(:default_interface)
           .with(timeout_in_secs: status_timeout)

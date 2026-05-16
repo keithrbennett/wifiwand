@@ -3,7 +3,6 @@
 require 'ipaddr'
 
 require_relative 'airport_data_navigator'
-require_relative 'colon_output_parser'
 require_relative '../../errors'
 require_relative '../../services/command_executor'
 require_relative '../../string_predicates'
@@ -12,7 +11,6 @@ module WifiWand
   module Platforms
     module Mac
       class StatusQueries
-        include ColonOutputParser
         include StringPredicates
 
         NO_CONNECTED_NETWORK = Object.new.freeze
@@ -27,8 +25,7 @@ module WifiWand
           probe_wifi_interface_proc:,
           system_network_info_proc:,
           status_deadline_proc:,
-          status_timeout_proc:,
-          airport_command:
+          status_timeout_proc:
         )
           @helper_client_proc = helper_client_proc
           @command_runner = command_runner
@@ -40,7 +37,6 @@ module WifiWand
           @system_network_info_proc = system_network_info_proc
           @status_deadline_proc = status_deadline_proc
           @status_timeout_proc = status_timeout_proc
-          @airport_command = airport_command
         end
 
         def status_network_identity(timeout_in_secs: nil)
@@ -90,13 +86,10 @@ module WifiWand
           iface = status_wifi_interface(deadline)
           return nil unless iface
 
-          network_name = connected_network_name_using_networksetup(
+          connected_network_name_using_networksetup(
             iface:           iface,
             timeout_in_secs: status_timeout_for(deadline)
           )
-          return network_name if network_name
-
-          connected_network_name_using_airport(timeout_in_secs: status_timeout_for(deadline))
         end
 
         private def connected_network_name_using_networksetup(iface:, timeout_in_secs: nil)
@@ -114,22 +107,6 @@ module WifiWand
           return nil if placeholder_network_name?(network_name)
 
           network_name
-        rescue WifiWand::Error
-          nil
-        end
-
-        private def connected_network_name_using_airport(timeout_in_secs: nil)
-          output = command_runner.call(
-            [@airport_command, '-I'],
-            timeout_in_secs: timeout_in_secs
-          ).stdout
-          return nil if string_nil_or_blank?(output)
-
-          airport_info = colon_output_to_hash(output)
-          network_name = airport_info['SSID']
-          return network_name if airport_info.key?('SSID') && !placeholder_network_name?(network_name)
-
-          nil
         rescue WifiWand::Error
           nil
         end
