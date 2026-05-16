@@ -113,6 +113,17 @@ module WifiWand
             )
           end
 
+          def connected_network_bssid(timeout_seconds: nil)
+            result = execute('current-network', timeout_seconds: timeout_seconds)
+            bssid = result.payload.fetch('bssid', nil) if result.payload.is_a?(Hash)
+            Bundle::HelperQueryResult.new(
+              payload:                   bssid,
+              location_services_blocked: result.location_services_blocked,
+              error_message:             result.error_message,
+              status:                    connected_network_bssid_status(result)
+            )
+          end
+
           def scan_networks
             result = execute('scan-networks')
             payload = result.payload if result.payload.is_a?(Hash)
@@ -178,7 +189,9 @@ module WifiWand
             payload_status = payload&.fetch('status', nil)
             if helper_error_payload_status?(payload_status)
               log_helper_exit_failure(status, stderr) unless status.success?
-              return helper_error_result(payload['error'], helper_status: payload_status)
+              return helper_error_result(payload['error'],
+                helper_status: payload_status,
+                payload:       bssid_error_payload(payload))
             end
 
             unless status.success?
@@ -216,6 +229,21 @@ module WifiWand
             :connected
           end
 
+          private def connected_network_bssid_status(result)
+            return result.status unless result.status == :success || result.payload.is_a?(Hash)
+
+            payload = result.payload
+            return :error unless payload.is_a?(Hash)
+
+            helper_status = payload['status']
+            bssid = payload['bssid']
+            return :not_connected if helper_status == 'not_connected' && string_nil_or_blank?(bssid)
+            return :connected unless string_nil_or_blank?(bssid)
+            return :unknown if payload.key?('bssid')
+
+            :unknown
+          end
+
           private def scan_network_status(result)
             return result.status unless result.status == :success
 
@@ -251,13 +279,18 @@ module WifiWand
             :error
           end
 
-          private def helper_error_result(message, helper_status: nil)
+          private def helper_error_result(message, helper_status: nil, payload: nil)
             handle_error(message, helper_status: helper_status)
             result_status = helper_error_status(message, helper_status: helper_status)
             Bundle::HelperQueryResult.new(
+              payload:       payload,
               error_message: message,
               status:        result_status
             )
+          end
+
+          private def bssid_error_payload(payload)
+            payload if payload.is_a?(Hash) && payload.key?('bssid')
           end
 
           private def log_helper_exit_failure(status, stderr)

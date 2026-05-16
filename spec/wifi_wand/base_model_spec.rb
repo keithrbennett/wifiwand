@@ -29,6 +29,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         wifi_on?:                   true,
         available_network_names:    %w[TestNetwork1 TestNetwork2],
         connected_network_name:     'TestNetwork1',
+        bssid:                      '00:11:22:33:44:55',
         ip_address:                 '192.168.1.100',
         mac_address:                'aa:bb:cc:dd:ee:ff',
         default_interface:          'wlan0',
@@ -86,8 +87,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(result).to include(
         'wifi_on', 'internet_tcp_connectivity', 'dns_working', 'captive_portal_state',
         'internet_connectivity_state', 'interface', 'default_interface', 'connected', 'network',
-        'ssid_identity_available', 'ssid_identity_status', 'ssid_identity_warning', 'ip_address',
-        'mac_address', 'nameservers', 'timestamp'
+        'bssid', 'ssid_identity_available', 'ssid_identity_status', 'ssid_identity_warning',
+        'ip_address', 'mac_address', 'nameservers', 'timestamp'
       )
 
       expect(result['wifi_on']).to be(true).or be(false)
@@ -906,6 +907,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         wifi_interface:         'wlan0',
         default_interface:      'wlan0',
         connected_network_name: 'TestNet',
+        bssid:                  '00:11:22:33:44:55',
         ip_address:             '192.168.1.100',
         mac_address:            'aa:bb:cc:dd:ee:ff',
         nameservers:            ['8.8.8.8']
@@ -930,6 +932,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
           wifi_interface:             'wlan0',
           default_interface:          'wlan0',
           connected_network_name:     'TestNet',
+          bssid:                      '00:11:22:33:44:55',
           ip_address:                 '192.168.1.100',
           mac_address:                'aa:bb:cc:dd:ee:ff',
           nameservers:                ['8.8.8.8'],

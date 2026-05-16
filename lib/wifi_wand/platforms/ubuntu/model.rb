@@ -546,6 +546,19 @@ module WifiWand
           ether_index ? tokens[ether_index + 1] : nil
         end
 
+        public def bssid
+          debug_method_entry(__method__)
+
+          output = run_command(['iw', 'dev', wifi_interface, 'link'], raise_on_error: false).stdout
+          return nil if output.strip.start_with?('Not connected')
+
+          connected_line = output.split("\n").find { |line| line.strip.start_with?('Connected to ') }
+          return nil unless connected_line
+
+          match = connected_line.strip.match(/\AConnected to (?<bssid>[0-9a-f]{2}(?::[0-9a-f]{2}){5})\b/i)
+          match ? match[:bssid] : nil
+        end
+
         public def _disconnect
           debug_method_entry(__method__)
 

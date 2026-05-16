@@ -119,6 +119,34 @@ than defining the primary runtime by itself.
   remains the structured fallback and still provides cached telemetry that the
   model parses for signal sorting and security details.
 
+## `airport`
+
+`airport` exposes legacy Wi-Fi diagnostics used for current association details that are not available
+through `networksetup`.
+
+### `airport -I`
+- Description: Reads legacy current Wi-Fi association details, including SSID when available.
+- Dynamic Values: None
+- Base Model Method(s): `_connected_network_name`
+- CLI Command(s): `i`, `ne`, `qr`
+- Helpful Info: The connected-network lookup uses `airport -I` only as a legacy fallback when `networksetup`
+  reports a placeholder SSID. Current macOS releases may print only Apple's deprecation warning here, so BSSID
+  lookup uses the compiled helper path instead.
+
+## `wifiwand-helper`
+
+The compiled helper app wraps CoreWLAN read/query operations behind a stable app identity for macOS Location
+Services authorization.
+
+### `wifiwand-helper current-network`
+- Description: Reads the current Wi-Fi network identity, including SSID and BSSID, through CoreWLAN.
+- Dynamic Values: None
+- Base Model Method(s): `connected_network_name`, `_connected_network_name`, `connected?`, `associated?`,
+  `bssid`
+- CLI Command(s): `i`, `ne`, `s`, `log`, `qr`
+- Helpful Info: `info` uses the helper's `bssid` payload as the current access point MAC address. This is the
+  supported modern macOS path because `airport -I` can return only a deprecation warning.
+
 ## `security`
 
 The `security` tool integrates with the macOS Keychain to retrieve stored Wi-Fi credentials.

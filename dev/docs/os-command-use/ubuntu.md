@@ -28,6 +28,14 @@ Notes:
 - CLI Command(s): Internal (validates `--wifi-interface` overrides before executing other commands)
 - Helpful Info: Uses the shell form to silence stderr when probing nonexistent or down interfaces.
 
+### `iw dev <interface> link`
+- Description: Reads current Wi-Fi association details, including the connected BSSID and SSID.
+- Dynamic Values: `interface` (from `wifi_interface`)
+- Base Model Method(s): `bssid`, `_connected_network_name`
+- CLI Command(s): `i`, `ne`, `s`, `ci`, `co`, `na`, `qr`
+- Helpful Info: `info` parses the `Connected to <bssid>` line for the current access point MAC address.
+  The SSID lookup reads the `SSID:` line and preserves SSIDs that contain literal colons.
+
 ## `nmcli`
 
 `nmcli` drives NetworkManager for radio state, connection management, DNS, and credential handling.
@@ -63,14 +71,6 @@ stored DNS state, not a partial merge.
 - CLI Command(s): `a`
 - Helpful Info: Produces colon-delimited `SSID:SIGNAL` lines that are sorted by descending signal and
   deduplicated.
-
-### `nmcli -t -f active,ssid device wifi`
-- Description: Retrieves the active Wi-Fi connection and SSID.
-- Dynamic Values: None
-- Base Model Method(s): `_connected_network_name`
-- CLI Command(s): `ci`, `co`, `i`, `na`, `ne`, `s`
-- Helpful Info: Looks for the first line beginning with `yes:`; executed with `raise_on_error: false` to allow
-  offline polling.
 
 ### `nmcli connection modify <profile> <security_param> <password>`
 - Description: Updates a saved connection profile with a new PSK/WEP credential.

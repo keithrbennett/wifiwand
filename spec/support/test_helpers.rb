@@ -10,6 +10,7 @@ require_relative '../../lib/wifi_wand/platforms/mac/model'
 
 module TestHelpers
   BASE_MODEL_REQUIRED_METHOD_DEFINITIONS = {
+    bssid:                       -> {},
     connected?:                  -> { false },
     connection_security_type:    -> {},
     default_interface:           -> {},
@@ -197,6 +198,7 @@ module TestHelpers
       wifi_on:                              nil,
       available_network_names:              %w[TestNet1 TestNet2],
       wifi_info:                            { 'status' => 'connected' },
+      bssid:                                '00:11:22:33:44:55',
       internet_connectivity_state:          :reachable,
       connected_network_name:               'TestNetwork',
       disconnect:                           nil,

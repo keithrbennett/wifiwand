@@ -1732,6 +1732,37 @@ module WifiWand
         end
       end
 
+      describe '#bssid' do
+        it 'returns BSSID for the current wireless association' do
+          iw_output = "Connected to aa:bb:cc:dd:ee:ff (on wlp3s0)\n\tSSID: MyHomeNetwork\n\tfreq: 2462 MHz"
+          allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
+          allow(ubuntu_model).to receive(:run_command)
+            .with(%w[iw dev wlp3s0 link], raise_on_error: false)
+            .and_return(command_result(stdout: iw_output))
+
+          expect(ubuntu_model.bssid).to eq('aa:bb:cc:dd:ee:ff')
+        end
+
+        it 'parses BSSID when connected output has leading diagnostics and no interface suffix' do
+          iw_output = "\nwarning: stale cached data\nConnected to aa:bb:cc:dd:ee:ff\n\tSSID: MyHomeNetwork"
+          allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
+          allow(ubuntu_model).to receive(:run_command)
+            .with(%w[iw dev wlp3s0 link], raise_on_error: false)
+            .and_return(command_result(stdout: iw_output))
+
+          expect(ubuntu_model.bssid).to eq('aa:bb:cc:dd:ee:ff')
+        end
+
+        it 'returns nil when not associated with a wireless access point' do
+          allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
+          allow(ubuntu_model).to receive(:run_command)
+            .with(%w[iw dev wlp3s0 link], raise_on_error: false)
+            .and_return(command_result(stdout: 'Not connected.'))
+
+          expect(ubuntu_model.bssid).to be_nil
+        end
+      end
+
       describe '#active_connection_profile_name' do
         it 'parses the active profile from nmcli dev show output' do
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')

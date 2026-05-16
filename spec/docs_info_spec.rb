@@ -7,6 +7,7 @@ class DocsInfoSpecModel < WifiWand::BaseModel
 
   def validate_os_preconditions = nil
   def probe_wifi_interface = 'wlan0'
+  def bssid = '00:11:22:33:44:55'
   def connected? = true
   def connection_security_type = nil
   def default_interface = 'wlan0'
@@ -40,6 +41,7 @@ RSpec.describe 'docs/INFO_COMMAND.md' do
       'WiFi Status'                 => 'wifi_on',
       'Association Status'          => 'connected',
       'Connected Network'           => 'network',
+      'BSSID'                       => 'bssid',
       'SSID Identity Available'     => 'ssid_identity_available',
       'SSID Identity Status'        => 'ssid_identity_status',
       'SSID Identity Warning'       => 'ssid_identity_warning',

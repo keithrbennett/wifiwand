@@ -147,6 +147,7 @@ module WifiWand
       _disconnect:                 :any_visibility,
       _ip_address:                 :any_visibility,
       _preferred_network_password: :any_visibility,
+      bssid:                       :public,
       connected?:                  :public,
       connection_security_type:    :public,
       default_interface:           :public,
@@ -230,6 +231,8 @@ module WifiWand
     end
 
     def connected? = raise_override_not_implemented_error(__method__)
+
+    def bssid = raise_override_not_implemented_error(__method__)
 
     def connection_security_type = raise_override_not_implemented_error(__method__)
 
@@ -500,6 +503,7 @@ module WifiWand
         'default_interface'           => begin; default_interface; rescue WifiWand::Error; nil; end,
         'connected'                   => network_identity.fetch('connected'),
         'network'                     => network_identity.fetch('network'),
+        'bssid'                       => begin; bssid; rescue WifiWand::Error; nil; end,
         'ssid_identity_available'     => network_identity.fetch('ssid_identity_available'),
         'ssid_identity_status'        => network_identity.fetch('ssid_identity_status'),
         'ssid_identity_warning'       => network_identity.fetch('ssid_identity_warning'),

@@ -333,6 +333,11 @@ module WifiWand
           system_network_info.mac_address
         end
 
+        def bssid
+          result = helper_client.connected_network_bssid
+          result.payload
+        end
+
         def set_nameservers(nameservers) # rubocop:disable Naming/AccessorMethodName
           dns_manager.set_nameservers(nameservers)
         end

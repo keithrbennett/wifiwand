@@ -225,6 +225,66 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       end
     end
 
+    describe '#connected_network_bssid' do
+      subject(:client) do
+        Class.new(described_class) do
+          def initialize(execute_result:, **kwargs)
+            super(**kwargs)
+            @execute_result = execute_result
+          end
+
+          private def execute(_command, **_kwargs) = @execute_result
+        end.new(
+          execute_result:     raw_result,
+          out_stream_proc:    -> { out_stream },
+          err_stream_proc:    -> { err_stream },
+          verbose_proc:       -> { verbose_flag },
+          macos_version_proc: -> { macos_version }
+        )
+      end
+
+      let(:raw_result) { helper_bundle::HelperQueryResult.new }
+
+      it 'parses the current-network BSSID payload' do
+        raw_result.payload = {
+          'status' => 'connected',
+          'ssid'   => 'OfficeWiFi',
+          'bssid'  => 'aa:bb:cc:dd:ee:ff',
+        }
+        raw_result.status = :success
+
+        result = client.connected_network_bssid
+        expect(result.payload).to eq('aa:bb:cc:dd:ee:ff')
+        expect(result.status).to eq(:connected)
+        expect(result).to be_connected
+      end
+
+      it 'preserves bssid-only helper error payloads for associated redacted networks' do
+        raw_result.payload = {
+          'status' => 'error',
+          'bssid'  => 'aa:bb:cc:dd:ee:ff',
+          'error'  => 'associated Wi-Fi network SSID unavailable',
+        }
+        raw_result.status = :error
+        raw_result.error_message = 'associated Wi-Fi network SSID unavailable'
+
+        result = client.connected_network_bssid
+        expect(result.payload).to eq('aa:bb:cc:dd:ee:ff')
+        expect(result.status).to eq(:connected)
+        expect(result.error_message).to eq('associated Wi-Fi network SSID unavailable')
+      end
+
+      it 'returns nil when the helper reports no connection' do
+        raw_result.payload = { 'status' => 'not_connected', 'interface' => 'en0', 'bssid' => nil }
+        raw_result.status = :success
+
+        result = client.connected_network_bssid
+        expect(result.payload).to be_nil
+        expect(result.status).to eq(:not_connected)
+        expect(result).to be_not_connected
+      end
+    end
+
     describe '#scan_networks' do
       subject(:client) do
         Class.new(described_class) do

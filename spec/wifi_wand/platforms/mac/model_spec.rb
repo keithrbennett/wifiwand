@@ -877,6 +877,27 @@ module WifiWand
         end
       end
 
+      describe '#bssid' do
+        let(:bssid_helper_client) { instance_double(WifiWand::Platforms::Mac::Helper::Client) }
+
+        it 'returns the helper-provided current BSSID' do
+          result = helper_query_result.new(payload: 'aa:bb:cc:dd:ee:ff', status: :connected)
+          allow(model).to receive(:helper_client).and_return(bssid_helper_client)
+          expect(bssid_helper_client).to receive(:connected_network_bssid).and_return(result)
+          expect(model).not_to receive(:run_command)
+
+          expect(model.bssid).to eq('aa:bb:cc:dd:ee:ff')
+        end
+
+        it 'returns nil when the helper cannot provide a BSSID' do
+          result = helper_query_result.new(status: :unknown)
+          allow(model).to receive(:helper_client).and_return(bssid_helper_client)
+          expect(bssid_helper_client).to receive(:connected_network_bssid).and_return(result)
+
+          expect(model.bssid).to be_nil
+        end
+      end
+
       describe '#connected?' do
         let(:helper_double) do
           instance_double(WifiWand::Platforms::Mac::Helper::Client)
