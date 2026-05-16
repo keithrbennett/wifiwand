@@ -20,12 +20,17 @@ module WifiWand
           options = {}
           options[:timeout_in_secs] = timeout_in_secs if timeout_in_secs
 
-          ip_address = @command_runner.call(['ipconfig', 'getifaddr', iface], **options).stdout.chomp
-          ip_address.empty? ? nil : ip_address
+          output = @command_runner.call(['ifconfig', iface], **options).stdout
+          output.each_line.filter_map do |line|
+            tokens = line.split
+            next unless tokens.first == 'inet'
+
+            tokens[1]
+          end
         rescue WifiWand::CommandExecutor::OsCommandError => e
           raise unless e.exitstatus == 1
 
-          nil
+          []
         end
 
         def wifi_on?(iface: nil, timeout_in_secs: nil)

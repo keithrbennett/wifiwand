@@ -1073,19 +1073,19 @@ module WifiWand
             .with(['ip', '-4', 'addr', 'show', wifi_interface], raise_on_error: false)
             .and_return(command_result(stdout: ip_output))
 
-          expect(ubuntu_model.send(:_ip_address)).to eq('192.168.1.100')
+          expect(ubuntu_model.send(:_ip_address)).to eq(['192.168.1.100'])
         end
 
-        it 'returns nil when no IP address assigned' do
+        it 'returns an empty array when no IP address is assigned' do
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
           allow(ubuntu_model).to receive(:run_command)
             .with(['ip', '-4', 'addr', 'show', 'wlp3s0'], raise_on_error: false)
             .and_return(command_result(stdout: ''))
 
-          expect(ubuntu_model.send(:_ip_address)).to be_nil
+          expect(ubuntu_model.send(:_ip_address)).to eq([])
         end
 
-        it 'handles multiple IP addresses by returning first' do
+        it 'returns multiple IP addresses from the interface' do
           ip_output = <<~OUT.chomp
             2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP>
             inet 192.168.1.100/24 brd 192.168.1.255 scope global
@@ -1096,7 +1096,7 @@ module WifiWand
             .with(['ip', '-4', 'addr', 'show', 'wlp3s0'], raise_on_error: false)
             .and_return(command_result(stdout: ip_output))
 
-          expect(ubuntu_model.send(:_ip_address)).to eq('192.168.1.100')
+          expect(ubuntu_model.send(:_ip_address)).to eq(['192.168.1.100', '10.0.0.50'])
         end
       end
 
@@ -1815,7 +1815,7 @@ module WifiWand
             _connected_network_name:        'NetA',
             active_connection_profile_name: 'NetA',
             connected?:                     true,
-            _ip_address:                    nil
+            _ip_address:                    []
           )
 
           expect(ubuntu_model.connection_ready?('NetA')).to be(true)
@@ -2788,7 +2788,7 @@ module WifiWand
 
       describe 'network information' do
         it 'retrieves IP address' do
-          expect(ubuntu_model.ip_address).to match(/^\d+\.\d+\.\d+\.\d+$/)
+          expect(ubuntu_model.ip_address).to be_a_non_empty_array_of_ip_addresses
         end
 
         it 'retrieves MAC address' do

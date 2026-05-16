@@ -159,17 +159,6 @@ The `security` tool integrates with the macOS Keychain to retrieve stored Wi-Fi 
 - Helpful Info: Exit codes map to custom exceptions (e.g., 45 → `KeychainAccessDeniedError`); a missing item
   returns `nil` without raising.
 
-## `ipconfig`
-
-`ipconfig` supplies interface IP addressing details for macOS network adapters.
-
-### `ipconfig getifaddr <interface>`
-- Description: Obtains the IPv4 address assigned to the Wi-Fi interface.
-- Dynamic Values: `interface` (from `wifi_interface`)
-- Base Model Method(s): `_ip_address`
-- CLI Command(s): `i`, `s` (status ticker), `log`
-- Helpful Info: Exit status 1 is treated as “no address” and converted to `nil`; other failures propagate.
-
 ## `ifconfig`
 
 `ifconfig` exposes interface statistics and connection controls used as CoreWLAN fallbacks.
@@ -184,11 +173,13 @@ The `security` tool integrates with the macOS Keychain to retrieve stored Wi-Fi 
   both invocations suppress exceptions (`raise_on_error = false`) so alternate paths can run.
 
 ### `ifconfig <interface>`
-- Description: Retrieves interface details to extract the MAC address.
+- Description: Retrieves interface details to extract IPv4 addresses and the MAC address.
 - Dynamic Values: `interface` (from `wifi_interface`)
-- Base Model Method(s): `mac_address`
+- Base Model Method(s): `_ip_address`, `mac_address`
 - CLI Command(s): `i`, `s`, `log`
-- Helpful Info: The implementation scans for the `ether` line and returns the following token in lowercase.
+- Helpful Info: `_ip_address` scans all `inet` lines and returns an array of IPv4 address strings; exit status 1
+  is treated as “no addresses” and converted to `[]`. `mac_address` scans for the `ether` line and returns the
+  following token in lowercase.
 
 ## `scutil`
 

@@ -198,7 +198,7 @@ module WifiWand
 
       it 'preserves timeout errors while collecting association evidence' do
         no_current_network = airport_payload(current_network_name: :missing)
-        timeout_error = WifiWand::CommandTimeoutError.new(command: 'ipconfig', timeout_in_secs: 0.1)
+        timeout_error = WifiWand::CommandTimeoutError.new(command: 'ifconfig', timeout_in_secs: 0.1)
         allow(airport_data_proc).to receive(:call).and_return(no_current_network)
 
         expect_wifi_power_lookup(on: true)
@@ -241,7 +241,7 @@ module WifiWand
           .and_return('en1')
         expect(system_network_info).to receive(:ip_address)
           .with(iface: 'en0', timeout_in_secs: status_timeout)
-          .and_return(nil)
+          .and_return([])
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
           connected:    false,
@@ -268,7 +268,7 @@ module WifiWand
           .and_return('en1')
         expect(system_network_info).to receive(:ip_address)
           .with(iface: 'en0', timeout_in_secs: status_timeout)
-          .and_return('192.168.1.44')
+          .and_return(['192.168.1.44'])
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
           connected:    true,
@@ -288,6 +288,20 @@ module WifiWand
 
         expect(status_queries.status_wifi_on?(timeout_in_secs: 0.5)).to be(true)
         expect(wifi_interface_store[:value]).to eq('en0')
+      end
+    end
+
+    describe '#status_ip_address' do
+      it 'returns an empty array when status interface detection is unavailable' do
+        wifi_interface_store[:value] = nil
+        deadline = monotonic_now + 0.5
+
+        expect(probe_wifi_interface_proc).to receive(:call)
+          .with(status_timeout)
+          .and_return('')
+        expect(system_network_info).not_to receive(:ip_address)
+
+        expect(status_queries.send(:status_ip_address, deadline)).to eq([])
       end
     end
   end

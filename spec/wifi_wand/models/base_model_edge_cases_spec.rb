@@ -94,7 +94,7 @@ RSpec.describe WifiWand::BaseModel do
           def _connected_network_name = nil
           def _connect(_network, _password) = nil
           def _disconnect = nil
-          def _ip_address = nil
+          def _ip_address = []
           def _preferred_network_password(_network) = nil
         end
       RUBY

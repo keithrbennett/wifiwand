@@ -21,8 +21,11 @@ begin
   # 2. Check the current Wi-Fi status.
   if model.wifi_on?
     puts '✅ Wi-Fi is ON.'
+    ip_addresses = model.ip_address
+    ip_address_summary = ip_addresses.empty? ? 'N/A' : ip_addresses.join(', ')
+
     puts "   - Connected to: #{model.connected_network_name || 'None'}"
-    puts "   - IP Address:   #{model.ip_address || 'N/A'}"
+    puts "   - IP Address:   #{ip_address_summary}"
   else
     puts '❌ Wi-Fi is OFF.'
   end

@@ -951,7 +951,7 @@ module WifiWand
             }] },
             wifi_interface:    'en0',
             default_interface: nil,
-            _ip_address:       nil
+            _ip_address:       []
           )
 
           expect(model.connected?).to be(false)
@@ -972,7 +972,7 @@ module WifiWand
             airport_data:      { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [] }] },
             wifi_interface:    'en0',
             default_interface: nil,
-            _ip_address:       nil
+            _ip_address:       []
           )
 
           expect(model.connected?).to be(false)
@@ -991,7 +991,7 @@ module WifiWand
             wifi_interface:    'en0',
             default_interface: 'en0'
           )
-          allow(model).to receive(:_ip_address).and_return(nil)
+          allow(model).to receive(:_ip_address).and_return([])
 
           expect(model.connected?).to be(true)
         end
@@ -1011,7 +1011,7 @@ module WifiWand
             }] }] },
             wifi_interface:    'en0',
             default_interface: nil,
-            _ip_address:       '192.168.1.44'
+            _ip_address:       ['192.168.1.44']
           )
 
           original_env = ENV['WIFIWAND_DISABLE_MAC_HELPER']
@@ -1294,7 +1294,7 @@ module WifiWand
             .with(%w[route -n get default], raise_on_error: false, timeout_in_secs: status_timeout)
             .and_return(command_result(stdout: "interface: en1\n"))
           expect(model).to receive(:run_command)
-            .with(%w[ipconfig getifaddr en0], timeout_in_secs: status_timeout)
+            .with(%w[ifconfig en0], timeout_in_secs: status_timeout)
             .and_return(command_result(stdout: ''))
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
@@ -1314,7 +1314,7 @@ module WifiWand
             wifi_interface:    'en0',
             connected?:        true,
             default_interface: 'en0',
-            ip_address:        '192.168.1.25',
+            ip_address:        ['192.168.1.25'],
             mac_address:       'aa:bb:cc:dd:ee:ff',
             nameservers:       ['8.8.8.8']
           )
@@ -1399,8 +1399,8 @@ module WifiWand
         end
 
         it 'ip_address does not raise and delegates to _ip_address' do
-          allow(model).to receive(:_ip_address).and_return('10.0.0.42')
-          expect(model.ip_address).to eq('10.0.0.42')
+          allow(model).to receive(:_ip_address).and_return(['10.0.0.42'])
+          expect(model.ip_address).to eq(['10.0.0.42'])
         end
       end
 

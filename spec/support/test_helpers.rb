@@ -30,7 +30,7 @@ module TestHelpers
     _connected_network_name:     -> {},
     _connect:                    ->(*) {},
     _disconnect:                 -> {},
-    _ip_address:                 -> {},
+    _ip_address:                 -> { [] },
     _preferred_network_password: ->(*) {},
   }.freeze
 

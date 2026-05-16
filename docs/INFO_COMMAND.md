@@ -35,7 +35,7 @@ The `info` command returns a hash containing:
 - **SSID Identity Available**: Whether the current SSID name is known and usable
 - **SSID Identity Status**: `available`, `unavailable`, `not_connected`, or `unknown`
 - **SSID Identity Warning**: Explanation when macOS privacy redaction prevents exact SSID identity
-- **IP Address**: Local IP address(es)
+- **IP Address**: Local IPv4 address(es)
 - **MAC Address**: WiFi interface MAC address
 
 ### Connectivity Status
@@ -99,7 +99,7 @@ wifi-wand -o j info
 Perfect for parsing in scripts or sending to other tools:
 
 ```bash
-wifi-wand -o j info | jq '.ip_address'
+wifi-wand -o j info | jq -r '.ip_address | join(", ")'
 ```
 
 Example connectivity fields in JSON:
@@ -137,10 +137,10 @@ Outputs in Ruby inspect format.
 
 ## Practical Examples
 
-### Get Your IP Address
+### Get Your IPv4 Addresses
 
 ```bash
-wifi-wand -o j info | jq -r '.ip_address'
+wifi-wand -o j info | jq -r '.ip_address[]?'
 ```
 
 ### Check All Nameservers
@@ -173,7 +173,7 @@ wifi-wand -o p ci
 #!/bin/bash
 # Log key network info periodically
 while true; do
-  wifi-wand -o j info | jq -r '"[\(.ip_address)] Connected to: \(.network // "N/A") | Internet: \(.internet_connectivity_state)"'
+  wifi-wand -o j info | jq -r '"[\(.ip_address | join(", "))] Connected to: \(.network // "N/A") | Internet: \(.internet_connectivity_state)"'
   sleep 300
 done >> network-log.txt
 ```
@@ -186,8 +186,8 @@ done >> network-log.txt
 echo "Connected Network:"
 wifi-wand -o j info | jq '.network'
 
-echo "IP Address:"
-wifi-wand -o j info | jq '.ip_address'
+echo "IP Addresses:"
+wifi-wand -o j info | jq -r '.ip_address | join(", ")'
 
 echo "Nameservers:"
 wifi-wand -o j info | jq '.nameservers'
@@ -202,7 +202,7 @@ In interactive shell mode (`wifi-wand shell`), you can use the full power of Rub
 # Returns the info hash
 
 [2] pry(#<WifiWand::CommandLineInterface>)> data['ip_address']
-# Get just the IP address
+# Get IPv4 addresses
 
 [3] pry(#<WifiWand::CommandLineInterface>)> data.keys
 # See all available fields

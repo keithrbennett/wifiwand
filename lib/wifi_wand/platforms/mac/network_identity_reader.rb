@@ -211,7 +211,7 @@ module WifiWand
           iface = wifi_interface
           return true if default_interface == iface
 
-          !ip_address.nil?
+          ip_address.any?
         rescue WifiWand::CommandExecutor::OsCommandError
           false
         end

@@ -80,7 +80,7 @@ The `wifi-wand` gem enables the query and management
 of WiFi configuration, environment, and behavior, on Mac and Ubuntu systems.
 Internally, it uses OS-specific command line utilities to interact with the
 underlying operating system -- for example, `networksetup`, `system_profiler`,
-and `ipconfig` on macOS, and `nmcli`, `iw`, and `ip` on Ubuntu Linux.
+and `ifconfig` on macOS, and `nmcli`, `iw`, and `ip` on Ubuntu Linux.
 However, the code encapsulates the OS-specific logic in model subclasses with identical
 method names and argument lists, so that they present a unified interface for use in:
 
@@ -406,7 +406,7 @@ saved in variables, etc. In this example, the value returned by the WiFi-wand co
 in the local variable `local_ip`.
 
 ```
-[14] pry(#<WifiWand::CommandLineInterface>)> local_ip = info['ip_address'].split("\n").grep(/192/).first
+[14] pry(#<WifiWand::CommandLineInterface>)> local_ip = info['ip_address'].grep(/192/).first
 => "192.168.110.251"
 [15] pry(#<WifiWand::CommandLineInterface>)> puts "My IP address on the LAN is #{local_ip.inspect}"
 My IP address on the LAN is "192.168.110.251"
@@ -565,8 +565,8 @@ but these commands could also each be specified on a line of its own.)
 # Cycle (off/on) the network then connect to the specified network using the specified password
 > cycle; connect 'my-network', 'my-password'
 
-> @i = i; "Interface: #{@i['interface']}, SSID: #{@i['network']}, IP address: #{@i['ip_address']}."
-Interface: wlp0s20f3, SSID: CafeBleu 5G, IP address: 192.168.110.251.
+> @i = i; "Interface: #{@i['interface']}, SSID: #{@i['network']}, IP addresses: #{@i['ip_address'].join(', ')}."
+Interface: wlp0s20f3, SSID: CafeBleu 5G, IP addresses: 192.168.110.251.
 
 > puts "There are #{pr.size} preferred networks."
 There are 341 preferred networks.

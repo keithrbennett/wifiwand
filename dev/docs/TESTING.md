@@ -296,8 +296,8 @@ it 'returns wifi status' do
 end
 
 # Real-host read-only test
-it 'reads the current IP address', :real_env_read_only, real_env_os: :os_ubuntu do
-  expect(subject.ip_address).to match(/^\d+\.\d+\.\d+\.\d+$/)
+it 'reads the current IP addresses', :real_env_read_only, real_env_os: :os_ubuntu do
+  expect(subject.ip_address).to all(match(/^\d+\.\d+\.\d+\.\d+$/))
 end
 
 # Real-host read-write test

@@ -259,8 +259,8 @@ stored DNS state, not a partial merge.
 - Dynamic Values: `wifi_interface`
 - Base Model Method(s): `_ip_address`
 - CLI Command(s): `i`, `s`
-- Helpful Info: Extracts the first `inet` token (`x.y.z.w/nn`) and strips the prefix length to return the host
-  address.
+- Helpful Info: Extracts all `inet` tokens (`x.y.z.w/nn`) and strips prefix lengths to return an array of host
+  addresses.
 
 ### `ip link show <wifi_interface>`
 - Description: Retrieves link-layer details, including the MAC address.

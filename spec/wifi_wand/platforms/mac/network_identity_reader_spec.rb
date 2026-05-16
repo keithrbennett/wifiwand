@@ -28,7 +28,7 @@ module WifiWand
     let(:wifi_on) { true }
     let(:wifi_interface) { 'en0' }
     let(:default_interface) { nil }
-    let(:ip_address) { nil }
+    let(:ip_address) { [] }
 
     def helper_result(**kwargs)
       WifiWand::Platforms::Mac::Helper::Bundle::HelperQueryResult.new(**kwargs)

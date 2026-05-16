@@ -141,7 +141,7 @@ module WifiWand
           return false unless iface
           return true if status_default_interface(deadline) == iface
 
-          !status_ip_address(deadline).nil?
+          status_ip_address(deadline).any?
         rescue WifiWand::CommandExecutor::OsCommandError
           false
         end
@@ -193,7 +193,7 @@ module WifiWand
 
         private def status_ip_address(deadline)
           iface = status_wifi_interface(deadline)
-          return nil if string_nil_or_empty?(iface)
+          return [] if string_nil_or_empty?(iface)
 
           system_network_info.ip_address(iface: iface, timeout_in_secs: status_timeout_for(deadline))
         end

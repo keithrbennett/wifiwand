@@ -176,6 +176,37 @@ Ethernet.
 - DNS, TCP, and captive-portal signals are tracked separately in the broader
   connectivity flow.
 
+### Local IPv4 Reporting
+
+#### `ip_address` now returns an array
+
+The local `ip_address` field in `info` and `BaseModel#ip_address` now returns
+an array of IPv4 addresses instead of a single string or `nil`.
+
+This lets wifi-wand report every IPv4 address assigned to the WiFi interface.
+Interfaces with no assigned IPv4 address now report an empty array.
+
+##### Migration
+
+```ruby
+# Old
+info['ip_address'] #=> '192.168.1.100'
+
+# New
+info['ip_address'] #=> ['192.168.1.100']
+
+# Old, no IPv4 address assigned
+info['ip_address'] #=> nil
+
+# New, no IPv4 address assigned
+info['ip_address'] #=> []
+```
+
+Callers that only need one address can use `info['ip_address'].first`.
+Callers that previously used nil checks should use `info['ip_address'].any?`
+when testing whether an IPv4 address is present. Callers that display or log
+the value should handle multiple addresses.
+
 ### Public IP Reporting
 
 #### Public IP info removed from `info`

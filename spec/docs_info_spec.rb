@@ -31,7 +31,7 @@ class DocsInfoSpecModel < WifiWand::BaseModel
   def _connected_network_name = 'TestNetwork1'
   def _connect(_network, _password) = nil
   def _disconnect = nil
-  def _ip_address = '192.168.1.100'
+  def _ip_address = ['192.168.1.100']
   def _preferred_network_password(_network) = nil
 end
 

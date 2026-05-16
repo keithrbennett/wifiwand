@@ -523,14 +523,14 @@ module WifiWand
 
           output = run_command(['ip', '-4', 'addr', 'show', wifi_interface],
             raise_on_error: false).stdout
-          inet_line = output.split("\n").find { |line| line.include?('inet ') }
-          return nil unless inet_line
 
-          # Extract the inet address (e.g., "192.168.1.5/24" -> "192.168.1.5")
-          inet_line.split.each do |token|
-            return token.split('/').first if token.include?('/')
+          output.each_line.filter_map do |line|
+            tokens = line.split
+            next unless tokens.first == 'inet'
+
+            address_token = tokens.find { |token| token.include?('/') }
+            address_token&.split('/')&.first
           end
-          nil
         end
 
         public def mac_address

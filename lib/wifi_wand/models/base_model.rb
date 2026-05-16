@@ -507,11 +507,21 @@ module WifiWand
         'ssid_identity_available'     => network_identity.fetch('ssid_identity_available'),
         'ssid_identity_status'        => network_identity.fetch('ssid_identity_status'),
         'ssid_identity_warning'       => network_identity.fetch('ssid_identity_warning'),
-        'ip_address'                  => begin; ip_address; rescue WifiWand::Error; nil; end,
+        'ip_address'                  => wifi_info_ip_address,
         'mac_address'                 => begin; mac_address; rescue WifiWand::Error; nil; end,
         'nameservers'                 => begin; nameservers; rescue WifiWand::Error; []; end,
         'timestamp'                   => Time.now,
       }
+    end
+
+    private def wifi_info_ip_address
+      ip_address
+    rescue *NETWORK_OPERATION_COMMAND_ERRORS, WifiWand::WifiOffError, WifiWand::WifiInterfaceError
+      []
+    rescue WifiWand::Error => e
+      raise unless e.instance_of?(WifiWand::Error) && e.message.include?('not connected')
+
+      []
     end
 
     private def successful_available_network_scan(networks)

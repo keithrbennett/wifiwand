@@ -244,7 +244,7 @@ module WifiWand
           keychain_password_reader.password_for(preferred_network_name, timeout_in_secs: timeout_in_secs)
         end
 
-        # Returns the IP address assigned to the WiFi interface, or nil if none.
+        # Returns IPv4 addresses assigned to the WiFi interface.
 
         def _ip_address
           system_network_info.ip_address

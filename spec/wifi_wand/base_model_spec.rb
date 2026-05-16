@@ -30,7 +30,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         available_network_names:    %w[TestNetwork1 TestNetwork2],
         connected_network_name:     'TestNetwork1',
         bssid:                      '00:11:22:33:44:55',
-        ip_address:                 '192.168.1.100',
+        ip_address:                 ['192.168.1.100'],
         mac_address:                'aa:bb:cc:dd:ee:ff',
         default_interface:          'wlan0',
         nameservers:                ['8.8.8.8', '8.8.4.4'],
@@ -169,8 +169,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   describe '#ip_address' do
-    it 'returns string or nil for IP address' do
-      expect(subject.ip_address).to be_nil_or_a_string_matching(/\A(\d{1,3}\.){3}\d{1,3}\z/)
+    it 'returns a non-empty array of IPv4 addresses when an address is available' do
+      expect(subject.ip_address).to be_a_non_empty_array_of_ip_addresses
     end
   end
 
@@ -654,7 +654,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       expect(info['wifi_on']).to be(false)
       expect(info['network']).to be_nil
-      expect(info['ip_address']).to be_nil
+      expect(info['ip_address']).to eq([])
     end
   end
 
@@ -822,7 +822,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         def _connected_network_name = nil
         def _connect(_network_name, _password = nil) = nil
         def _disconnect = nil
-        def _ip_address = nil
+        def _ip_address = []
         def _preferred_network_password(_network_name) = nil
       end
 
@@ -908,7 +908,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         default_interface:      'wlan0',
         connected_network_name: 'TestNet',
         bssid:                  '00:11:22:33:44:55',
-        ip_address:             '192.168.1.100',
+        ip_address:             ['192.168.1.100'],
         mac_address:            'aa:bb:cc:dd:ee:ff',
         nameservers:            ['8.8.8.8']
       )
@@ -933,7 +933,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
           default_interface:          'wlan0',
           connected_network_name:     'TestNet',
           bssid:                      '00:11:22:33:44:55',
-          ip_address:                 '192.168.1.100',
+          ip_address:                 ['192.168.1.100'],
           mac_address:                'aa:bb:cc:dd:ee:ff',
           nameservers:                ['8.8.8.8'],
           internet_tcp_connectivity?: true,
@@ -1015,6 +1015,14 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(subject).to receive(:captive_portal_state).and_return(:free)
 
       subject.wifi_info
+    end
+
+    it 'does not hide unexpected ip_address errors' do
+      allow(subject).to receive(:ip_address)
+        .and_raise(WifiWand::ConfigurationError, 'broken IP implementation')
+
+      expect { subject.wifi_info }
+        .to raise_error(WifiWand::ConfigurationError, /broken IP implementation/)
     end
   end
 

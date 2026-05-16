@@ -17,6 +17,18 @@ RSpec::Matchers.define :be_nil_or_an_array_of_strings do
   failure_message { |actual| "expected that #{actual.inspect} would be nil or an Array of Strings" }
 end
 
+RSpec::Matchers.define :be_a_non_empty_array_of_ip_addresses do
+  match do |actual|
+    actual.is_a?(Array) &&
+      actual.any? &&
+      actual.all? { |i| i.is_a?(String) && i.match?(/\A(\d{1,3}\.){3}\d{1,3}\z/) }
+  end
+
+  failure_message do |actual|
+    "expected that #{actual.inspect} would be a non-empty Array of IP address Strings"
+  end
+end
+
 RSpec::Matchers.define :be_nil_or_an_array_of_ip_addresses do
   match do |actual|
     return true if actual.nil?

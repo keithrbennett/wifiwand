@@ -16,12 +16,14 @@ module WifiWand
     let(:wifi_interface) { 'en0' }
 
     describe '#ip_address' do
-      it 'handles different ipconfig responses' do
+      it 'handles different ifconfig responses' do
         test_cases = [
-          ["192.168.1.100\n", '192.168.1.100'],
-          ['10.0.0.5', '10.0.0.5'],
-          ['', nil],
-          [os_command_error(exitstatus: 1, command: 'ipconfig', text: ''), nil],
+          ["\tinet 192.168.1.100 netmask 0xffffff00 broadcast 192.168.1.255\n", ['192.168.1.100']],
+          ["\tinet 192.168.1.100 netmask 0xffffff00\n\tinet 10.0.0.5 netmask 0xffffff00\n",
+            ['192.168.1.100', '10.0.0.5']],
+          ["\tinet6 fe80::1%en0 prefixlen 64 secured scopeid 0x6\n", []],
+          ['', []],
+          [os_command_error(exitstatus: 1, command: 'ifconfig', text: ''), []],
         ]
 
         test_cases.each do |response, expected|
@@ -35,9 +37,9 @@ module WifiWand
         end
       end
 
-      it 're-raises unexpected ipconfig errors' do
+      it 're-raises unexpected ifconfig errors' do
         allow(command_runner).to receive(:call).and_raise(
-          os_command_error(exitstatus: 2, command: 'ipconfig', text: 'boom')
+          os_command_error(exitstatus: 2, command: 'ifconfig', text: 'boom')
         )
 
         expect { info.ip_address }.to raise_error(WifiWand::CommandExecutor::OsCommandError)
@@ -45,10 +47,10 @@ module WifiWand
 
       it 'accepts an explicit interface and timeout for bounded status lookups' do
         expect(command_runner).to receive(:call)
-          .with(%w[ipconfig getifaddr en1], timeout_in_secs: 0.25)
-          .and_return(command_result(stdout: "192.168.1.5\n"))
+          .with(%w[ifconfig en1], timeout_in_secs: 0.25)
+          .and_return(command_result(stdout: "\tinet 192.168.1.5 netmask 0xffffff00\n"))
 
-        expect(info.ip_address(iface: 'en1', timeout_in_secs: 0.25)).to eq('192.168.1.5')
+        expect(info.ip_address(iface: 'en1', timeout_in_secs: 0.25)).to eq(['192.168.1.5'])
       end
     end
 
