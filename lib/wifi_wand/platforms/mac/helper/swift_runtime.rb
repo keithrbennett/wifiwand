@@ -22,10 +22,10 @@ module WifiWand
           # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
           UNEXPECTED_SWIFT_PROBE_ERROR = StandardError
 
-          def initialize(command_runner:, out_stream_proc:, verbose_proc:)
+          def initialize(command_runner:, out_stream_provider:, verbosity_provider:)
             @command_runner = command_runner
-            @out_stream_proc = out_stream_proc
-            @verbose_proc = verbose_proc
+            @out_stream_provider = out_stream_provider
+            @verbosity_provider = verbosity_provider
           end
 
           def swift_and_corewlan_present?(timeout_in_secs: nil)
@@ -89,9 +89,9 @@ module WifiWand
             options
           end
 
-          private def out_stream = @out_stream_proc.call
+          private def out_stream = @out_stream_provider.call
 
-          private def verbose? = @verbose_proc.call
+          private def verbose? = @verbosity_provider.call
 
           private def swift_filespec_for(basename)
             File.absolute_path(File.join(__dir__, 'swift', "#{basename}.swift"))

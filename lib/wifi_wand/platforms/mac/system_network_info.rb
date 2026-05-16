@@ -9,11 +9,12 @@ module WifiWand
   module Platforms
     module Mac
       class SystemNetworkInfo
-        def initialize(command_runner:, wifi_interface_proc:, out_stream_proc: nil, verbose_proc: nil)
+        def initialize(command_runner:, wifi_interface_provider:, out_stream_provider: nil,
+          verbosity_provider: nil)
           @command_runner = command_runner
-          @wifi_interface_proc = wifi_interface_proc
-          @out_stream_proc = out_stream_proc
-          @verbose_proc = verbose_proc
+          @wifi_interface_provider = wifi_interface_provider
+          @out_stream_provider = out_stream_provider
+          @verbosity_provider = verbosity_provider
         end
 
         def ipv4_addresses(iface: nil, timeout_in_secs: nil)
@@ -27,7 +28,7 @@ module WifiWand
         end
 
         private def interface_addresses(line_type:, family:, iface: nil, timeout_in_secs: nil)
-          iface ||= @wifi_interface_proc.call
+          iface ||= @wifi_interface_provider.call
           options = {}
           options[:timeout_in_secs] = timeout_in_secs if timeout_in_secs
 
@@ -40,7 +41,7 @@ module WifiWand
         end
 
         def wifi_on?(iface: nil, timeout_in_secs: nil)
-          iface ||= @wifi_interface_proc.call
+          iface ||= @wifi_interface_provider.call
           options = {}
           options[:timeout_in_secs] = timeout_in_secs if timeout_in_secs
 
@@ -49,7 +50,7 @@ module WifiWand
         end
 
         def mac_address
-          iface = @wifi_interface_proc.call
+          iface = @wifi_interface_provider.call
           output = @command_runner.call(['ifconfig', iface]).stdout
           ether_line = output.split("\n").find { |line| line.include?('ether') }
           return nil unless ether_line
@@ -91,9 +92,9 @@ module WifiWand
           nil
         end
 
-        private def verbose? = @verbose_proc&.call
+        private def verbose? = @verbosity_provider&.call
 
-        private def out_stream = @out_stream_proc ? @out_stream_proc.call : $stdout
+        private def out_stream = @out_stream_provider ? @out_stream_provider.call : $stdout
       end
     end
   end

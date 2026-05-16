@@ -8,9 +8,9 @@ module WifiWand
   module Platforms
     module Mac
       class DnsManager
-        def initialize(command_runner:, service_name_proc:)
+        def initialize(command_runner:, service_name_provider:)
           @command_runner = command_runner
-          @service_name_proc = service_name_proc
+          @service_name_provider = service_name_provider
         end
 
         def set_nameservers(nameservers) # rubocop:disable Naming/AccessorMethodName
@@ -44,7 +44,7 @@ module WifiWand
         end
 
         private def wifi_service_name
-          service_name = @service_name_proc.call
+          service_name = @service_name_provider.call
           return service_name if service_name && !service_name.empty?
 
           raise WifiServiceError

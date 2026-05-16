@@ -1000,10 +1000,10 @@ module WifiWand
         it 'returns true when the helper is disabled and the WiFi interface still has an IP address' do
           allow(WifiWand::Platforms::Mac::Helper::Client).to receive(:new).and_call_original
           helper_client = WifiWand::Platforms::Mac::Helper::Client.new(
-            out_stream_proc:    -> { $stdout },
-            err_stream_proc:    -> { $stderr },
-            verbose_proc:       -> { false },
-            macos_version_proc: ->(timeout_in_secs: nil) { '14.0' }
+            out_stream_provider:  -> { $stdout },
+            err_stream_provider:  -> { $stderr },
+            verbosity_provider:   -> { false },
+            macos_version_reader: ->(timeout_in_secs: nil) { '14.0' }
           )
           model.instance_variable_set(:@helper_client, helper_client)
           allow(model).to receive_messages(

@@ -12,15 +12,15 @@ module WifiWand
         end
 
         def initialize(
-          helper_client_proc:,
-          system_profiler_wifi_data_proc:,
-          system_profiler_wifi_data_cache_scope_proc:,
-          wifi_interface_proc:
+          helper_client_provider:,
+          system_profiler_wifi_data_reader:,
+          system_profiler_wifi_data_cache_runner:,
+          wifi_interface_provider:
         )
-          @helper_client_proc = helper_client_proc
-          @system_profiler_wifi_data_proc = system_profiler_wifi_data_proc
-          @system_profiler_wifi_data_cache_scope_proc = system_profiler_wifi_data_cache_scope_proc
-          @wifi_interface_proc = wifi_interface_proc
+          @helper_client_provider = helper_client_provider
+          @system_profiler_wifi_data_reader = system_profiler_wifi_data_reader
+          @system_profiler_wifi_data_cache_runner = system_profiler_wifi_data_cache_runner
+          @wifi_interface_provider = wifi_interface_provider
         end
 
         def available_network_names
@@ -95,19 +95,19 @@ module WifiWand
         end
 
         private def helper_client
-          @helper_client_proc.call
+          @helper_client_provider.call
         end
 
         private def system_profiler_wifi_data
-          @system_profiler_wifi_data_proc.call
+          @system_profiler_wifi_data_reader.call
         end
 
         private def with_system_profiler_wifi_data_cache_scope(&)
-          @system_profiler_wifi_data_cache_scope_proc.call(&)
+          @system_profiler_wifi_data_cache_runner.call(&)
         end
 
         private def wifi_interface
-          @wifi_interface_proc.call
+          @wifi_interface_provider.call
         end
       end
     end

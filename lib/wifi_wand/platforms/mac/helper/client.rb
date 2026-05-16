@@ -90,11 +90,12 @@ module WifiWand
           # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
           HELPER_READ_BOUNDARY_ERROR = StandardError
 
-          def initialize(out_stream_proc:, verbose_proc:, macos_version_proc:, err_stream_proc: nil)
-            @out_stream_proc = out_stream_proc
-            @err_stream_proc = err_stream_proc
-            @verbose_proc = verbose_proc
-            @macos_version_proc = macos_version_proc
+          def initialize(out_stream_provider:, verbosity_provider:, macos_version_reader:,
+            err_stream_provider: nil)
+            @out_stream_provider = out_stream_provider
+            @err_stream_provider = err_stream_provider
+            @verbosity_provider = verbosity_provider
+            @macos_version_reader = macos_version_reader
             @location_warning_emitted = false
             @helper_install_verified = false
             @disabled = false
@@ -430,22 +431,22 @@ module WifiWand
           private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
           private def macos_version(timeout_seconds: nil)
-            return unless @macos_version_proc
+            return unless @macos_version_reader
 
-            if @macos_version_proc.arity.zero?
-              @macos_version_proc.call
+            if @macos_version_reader.arity.zero?
+              @macos_version_reader.call
             else
-              @macos_version_proc.call(timeout_in_secs: timeout_seconds)
+              @macos_version_reader.call(timeout_in_secs: timeout_seconds)
             end
           end
 
-          private def out_stream = @out_stream_proc&.call
+          private def out_stream = @out_stream_provider&.call
 
           private def err_stream
-            @err_stream_proc&.call
+            @err_stream_provider&.call
           end
 
-          private def verbose? = !!(@verbose_proc && @verbose_proc.call)
+          private def verbose? = !!(@verbosity_provider && @verbosity_provider.call)
         end
       end
     end

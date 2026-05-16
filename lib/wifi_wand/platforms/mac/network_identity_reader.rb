@@ -16,25 +16,25 @@ module WifiWand
         NO_CONNECTED_NETWORK = Object.new.freeze
 
         def initialize(
-          helper_client_proc:,
+          helper_client_provider:,
           command_runner:,
-          system_profiler_wifi_data_proc:,
-          system_profiler_wifi_data_cache_scope_proc:,
-          wifi_on_proc:,
-          wifi_interface_proc:,
-          default_interface_proc:,
-          ipv4_addresses_proc:,
-          ipv6_addresses_proc:
+          system_profiler_wifi_data_reader:,
+          system_profiler_wifi_data_cache_runner:,
+          wifi_power_reader:,
+          wifi_interface_provider:,
+          default_interface_provider:,
+          ipv4_addresses_reader:,
+          ipv6_addresses_reader:
         )
-          @helper_client_proc = helper_client_proc
+          @helper_client_provider = helper_client_provider
           @command_runner = command_runner
-          @system_profiler_wifi_data_proc = system_profiler_wifi_data_proc
-          @system_profiler_wifi_data_cache_scope_proc = system_profiler_wifi_data_cache_scope_proc
-          @wifi_on_proc = wifi_on_proc
-          @wifi_interface_proc = wifi_interface_proc
-          @default_interface_proc = default_interface_proc
-          @ipv4_addresses_proc = ipv4_addresses_proc
-          @ipv6_addresses_proc = ipv6_addresses_proc
+          @system_profiler_wifi_data_reader = system_profiler_wifi_data_reader
+          @system_profiler_wifi_data_cache_runner = system_profiler_wifi_data_cache_runner
+          @wifi_power_reader = wifi_power_reader
+          @wifi_interface_provider = wifi_interface_provider
+          @default_interface_provider = default_interface_provider
+          @ipv4_addresses_reader = ipv4_addresses_reader
+          @ipv6_addresses_reader = ipv6_addresses_reader
         end
 
         def associated?
@@ -195,35 +195,35 @@ module WifiWand
         private attr_reader :command_runner
 
         private def helper_client
-          @helper_client_proc.call
+          @helper_client_provider.call
         end
 
         private def with_system_profiler_wifi_data_cache_scope(&)
-          @system_profiler_wifi_data_cache_scope_proc.call(&)
+          @system_profiler_wifi_data_cache_runner.call(&)
         end
 
         private def system_profiler_wifi_data(timeout_in_secs: nil)
-          @system_profiler_wifi_data_proc.call(timeout_in_secs: timeout_in_secs)
+          @system_profiler_wifi_data_reader.call(timeout_in_secs: timeout_in_secs)
         end
 
         private def wifi_on?
-          @wifi_on_proc.call
+          @wifi_power_reader.call
         end
 
         private def wifi_interface
-          @wifi_interface_proc.call
+          @wifi_interface_provider.call
         end
 
         private def default_interface
-          @default_interface_proc.call
+          @default_interface_provider.call
         end
 
         private def ipv4_addresses
-          @ipv4_addresses_proc.call
+          @ipv4_addresses_reader.call
         end
 
         private def ipv6_addresses
-          @ipv6_addresses_proc.call
+          @ipv6_addresses_reader.call
         end
 
         private def ipv6_association_addresses

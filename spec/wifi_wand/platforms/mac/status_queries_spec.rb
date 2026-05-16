@@ -11,11 +11,11 @@ module WifiWand
     let(:wifi_interface_store) { { value: 'en0' } }
     let(:system_network_info) { double('system_network_info') }
     let(:status_timeout) { be_between(0, 0.5).inclusive }
-    let(:probe_wifi_interface_proc) { ->(_timeout_in_secs) { 'en0' } }
+    let(:wifi_interface_probe) { ->(_timeout_in_secs) { 'en0' } }
     let(:helper_client) { double('helper_client') }
     let(:command_runner) { double('command_runner') }
     let(:system_profiler_wifi_data) { system_profiler_wifi_payload(current_network_name: 'ProfilerNet') }
-    let(:system_profiler_wifi_data_proc) { ->(_timeout_in_secs) { system_profiler_wifi_data } }
+    let(:system_profiler_wifi_data_reader) { ->(_timeout_in_secs) { system_profiler_wifi_data } }
 
     it 'does not predefine the macOS OS detector when required before selection/mac' do
       code = <<~RUBY
@@ -32,22 +32,22 @@ module WifiWand
 
     subject(:status_queries) do
       described_class.new(
-        helper_client_proc:                         -> { helper_client },
-        command_runner:                             command_runner,
-        system_profiler_wifi_data_proc:             ->(timeout_in_secs: nil) {
-          system_profiler_wifi_data_proc.call(timeout_in_secs)
+        helper_client_provider:                 -> { helper_client },
+        command_runner:                         command_runner,
+        system_profiler_wifi_data_reader:       ->(timeout_in_secs: nil) {
+          system_profiler_wifi_data_reader.call(timeout_in_secs)
         },
-        system_profiler_wifi_data_cache_scope_proc: ->(&block) { block.call },
-        cached_wifi_interface_proc:                 -> { wifi_interface_store[:value] },
-        cache_wifi_interface_proc:                  ->(iface) { wifi_interface_store[:value] = iface },
-        probe_wifi_interface_proc:                  ->(timeout_in_secs: nil) {
-          probe_wifi_interface_proc.call(timeout_in_secs)
+        system_profiler_wifi_data_cache_runner: ->(&block) { block.call },
+        wifi_interface_cache_reader:            -> { wifi_interface_store[:value] },
+        wifi_interface_cache_writer:            ->(iface) { wifi_interface_store[:value] = iface },
+        wifi_interface_probe:                   ->(timeout_in_secs: nil) {
+          wifi_interface_probe.call(timeout_in_secs)
         },
-        system_network_info_proc:                   -> { system_network_info },
-        status_deadline_proc:                       ->(timeout_in_secs) {
+        system_network_info_provider:           -> { system_network_info },
+        status_deadline_factory:                ->(timeout_in_secs) {
           timeout_in_secs ? monotonic_now + timeout_in_secs : nil
         },
-        status_timeout_proc:                        ->(deadline) {
+        status_timeout_calculator:              ->(deadline) {
           deadline ? [deadline - monotonic_now, 0].max : nil
         }
       )
@@ -113,7 +113,7 @@ module WifiWand
         expect(helper_client).to receive(:connected_network_name)
           .with(timeout_seconds: status_timeout)
           .and_return(helper_result(status: :not_connected))
-        expect(system_profiler_wifi_data_proc).not_to receive(:call)
+        expect(system_profiler_wifi_data_reader).not_to receive(:call)
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
           connected:    false,
@@ -158,7 +158,7 @@ module WifiWand
           command:         'system_profiler',
           timeout_in_secs: 0.1
         )
-        allow(system_profiler_wifi_data_proc).to receive(:call) do
+        allow(system_profiler_wifi_data_reader).to receive(:call) do
           raise timeout_error
         end
 
@@ -177,7 +177,7 @@ module WifiWand
       it 'returns disconnected when status interface detection is unavailable' do
         wifi_interface_store[:value] = nil
 
-        expect(probe_wifi_interface_proc).to receive(:call)
+        expect(wifi_interface_probe).to receive(:call)
           .with(status_timeout)
           .and_return(nil)
         expect(command_runner).not_to receive(:call)
@@ -192,7 +192,7 @@ module WifiWand
       it 'does not cache a blank status interface probe result' do
         wifi_interface_store[:value] = nil
 
-        expect(probe_wifi_interface_proc).to receive(:call)
+        expect(wifi_interface_probe).to receive(:call)
           .with(status_timeout)
           .and_return('')
         expect(command_runner).not_to receive(:call)
@@ -208,7 +208,7 @@ module WifiWand
       it 'preserves timeout errors while collecting association evidence' do
         no_current_network = system_profiler_wifi_payload(current_network_name: :missing)
         timeout_error = WifiWand::CommandTimeoutError.new(command: 'ifconfig', timeout_in_secs: 0.1)
-        allow(system_profiler_wifi_data_proc).to receive(:call).and_return(no_current_network)
+        allow(system_profiler_wifi_data_reader).to receive(:call).and_return(no_current_network)
 
         expect_wifi_power_lookup(on: true)
         expect(helper_client).to receive(:connected_network_name)
@@ -230,7 +230,7 @@ module WifiWand
 
       it 'returns disconnected when association and IP data are unavailable' do
         no_current_network = system_profiler_wifi_payload(current_network_name: :missing)
-        allow(system_profiler_wifi_data_proc).to receive(:call).and_return(no_current_network)
+        allow(system_profiler_wifi_data_reader).to receive(:call).and_return(no_current_network)
 
         expect_wifi_power_lookup(on: true)
         expect(helper_client).to receive(:connected_network_name)
@@ -257,7 +257,7 @@ module WifiWand
 
       it 'returns associated-without-SSID when IP evidence remains without a default route match' do
         no_current_network = system_profiler_wifi_payload(current_network_name: :missing)
-        allow(system_profiler_wifi_data_proc).to receive(:call).and_return(no_current_network)
+        allow(system_profiler_wifi_data_reader).to receive(:call).and_return(no_current_network)
 
         expect_wifi_power_lookup(on: true)
         expect(helper_client).to receive(:connected_network_name)
@@ -281,7 +281,7 @@ module WifiWand
 
       it 'returns associated-without-SSID when only IPv6 evidence remains' do
         no_current_network = system_profiler_wifi_payload(current_network_name: :missing)
-        allow(system_profiler_wifi_data_proc).to receive(:call).and_return(no_current_network)
+        allow(system_profiler_wifi_data_reader).to receive(:call).and_return(no_current_network)
 
         expect_wifi_power_lookup(on: true)
         expect(helper_client).to receive(:connected_network_name)
@@ -308,7 +308,7 @@ module WifiWand
 
       it 'does not treat link-local-only IPv6 evidence as associated-without-SSID' do
         no_current_network = system_profiler_wifi_payload(current_network_name: :missing)
-        allow(system_profiler_wifi_data_proc).to receive(:call).and_return(no_current_network)
+        allow(system_profiler_wifi_data_reader).to receive(:call).and_return(no_current_network)
 
         expect_wifi_power_lookup(on: true)
         expect(helper_client).to receive(:connected_network_name)
@@ -338,7 +338,7 @@ module WifiWand
       it 'detects Wi-Fi power using the bounded status interface lookup' do
         wifi_interface_store[:value] = nil
 
-        expect(probe_wifi_interface_proc).to receive(:call)
+        expect(wifi_interface_probe).to receive(:call)
           .with(status_timeout)
           .and_return('en0')
         expect_wifi_power_lookup(on: true)
@@ -353,7 +353,7 @@ module WifiWand
         wifi_interface_store[:value] = nil
         deadline = monotonic_now + 0.5
 
-        expect(probe_wifi_interface_proc).to receive(:call)
+        expect(wifi_interface_probe).to receive(:call)
           .with(status_timeout)
           .and_return('')
         expect(system_network_info).not_to receive(:ipv4_addresses)
@@ -367,7 +367,7 @@ module WifiWand
         wifi_interface_store[:value] = nil
         deadline = monotonic_now + 0.5
 
-        expect(probe_wifi_interface_proc).to receive(:call)
+        expect(wifi_interface_probe).to receive(:call)
           .with(status_timeout)
           .and_return('')
         expect(system_network_info).not_to receive(:ipv6_addresses)

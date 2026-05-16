@@ -10,10 +10,10 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
   describe WifiWand::Platforms::Mac::Helper::Client do
     subject(:client) do
       described_class.new(
-        out_stream_proc:    -> { out_stream },
-        err_stream_proc:    -> { err_stream },
-        verbose_proc:       -> { verbose_flag },
-        macos_version_proc: -> { macos_version }
+        out_stream_provider:  -> { out_stream },
+        err_stream_provider:  -> { err_stream },
+        verbosity_provider:   -> { verbose_flag },
+        macos_version_reader: -> { macos_version }
       )
     end
 
@@ -97,11 +97,11 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
           private def execute(_command, **_kwargs) = @execute_result
         end.new(
-          execute_result:     raw_result,
-          out_stream_proc:    -> { out_stream },
-          err_stream_proc:    -> { err_stream },
-          verbose_proc:       -> { verbose_flag },
-          macos_version_proc: -> { macos_version }
+          execute_result:       raw_result,
+          out_stream_provider:  -> { out_stream },
+          err_stream_provider:  -> { err_stream },
+          verbosity_provider:   -> { verbose_flag },
+          macos_version_reader: -> { macos_version }
         )
       end
 
@@ -235,11 +235,11 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
           private def execute(_command, **_kwargs) = @execute_result
         end.new(
-          execute_result:     raw_result,
-          out_stream_proc:    -> { out_stream },
-          err_stream_proc:    -> { err_stream },
-          verbose_proc:       -> { verbose_flag },
-          macos_version_proc: -> { macos_version }
+          execute_result:       raw_result,
+          out_stream_provider:  -> { out_stream },
+          err_stream_provider:  -> { err_stream },
+          verbosity_provider:   -> { verbose_flag },
+          macos_version_reader: -> { macos_version }
         )
       end
 
@@ -295,11 +295,11 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
           private def execute(_command, **_kwargs) = @execute_result
         end.new(
-          execute_result:     raw_result,
-          out_stream_proc:    -> { out_stream },
-          err_stream_proc:    -> { err_stream },
-          verbose_proc:       -> { verbose_flag },
-          macos_version_proc: -> { macos_version }
+          execute_result:       raw_result,
+          out_stream_provider:  -> { out_stream },
+          err_stream_provider:  -> { err_stream },
+          verbosity_provider:   -> { verbose_flag },
+          macos_version_reader: -> { macos_version }
         )
       end
 
@@ -457,14 +457,14 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
       let(:client) do
         client_class.new(
-          available_result:     helper_available,
-          executable_available: executable_available,
-          helper_command_proc:  helper_command_proc,
-          parse_json_result:    parse_json_result,
-          out_stream_proc:      -> { out_stream },
-          err_stream_proc:      -> { err_stream },
-          verbose_proc:         -> { verbose_flag },
-          macos_version_proc:   -> { macos_version }
+          available_result:      helper_available,
+          executable_available:  executable_available,
+          helper_command_runner: helper_command_runner,
+          parse_json_result:     parse_json_result,
+          out_stream_provider:   -> { out_stream },
+          err_stream_provider:   -> { err_stream },
+          verbosity_provider:    -> { verbose_flag },
+          macos_version_reader:  -> { macos_version }
         )
       end
 
@@ -474,12 +474,12 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
             :install_timeouts, :helper_command_timeouts
 
           def initialize(
-            available_result:, executable_available:, helper_command_proc:, parse_json_result:, **kwargs
+            available_result:, executable_available:, helper_command_runner:, parse_json_result:, **kwargs
           )
             super(**kwargs)
             @available_result = available_result
             @executable_available = executable_available
-            @helper_command_proc = helper_command_proc
+            @helper_command_runner = helper_command_runner
             @parse_json_result = parse_json_result
             @handled_errors = []
             @log_messages = []
@@ -507,7 +507,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
           private def execute_helper_command(command, timeout_seconds: nil)
             @helper_command_invocations += 1
             @helper_command_timeouts << timeout_seconds
-            @helper_command_proc.call(command)
+            @helper_command_runner.call(command)
           end
 
           private def parse_json(_text)
@@ -531,11 +531,11 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       let(:helper_available) { true }
       let(:executable_available) { true }
       let(:parse_json_result) { :__use_super__ }
-      let(:helper_command_proc) { ->(_command) { raise 'override in example' } }
+      let(:helper_command_runner) { ->(_command) { raise 'override in example' } }
 
       context 'when the helper is unavailable' do
         let(:helper_available) { false }
-        let(:helper_command_proc) { ->(_command) { raise 'should not run' } }
+        let(:helper_command_runner) { ->(_command) { raise 'should not run' } }
 
         it 'returns an empty result without invoking the executable' do
           result = execute_command
@@ -551,7 +551,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
       context 'when helper availability is unknown' do
         let(:helper_available) { :unknown }
-        let(:helper_command_proc) { ->(_command) { raise 'should not run' } }
+        let(:helper_command_runner) { ->(_command) { raise 'should not run' } }
 
         it 'returns an ambiguous result without treating the machine as disconnected' do
           result = execute_command
@@ -566,7 +566,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
       context 'when the helper command succeeds' do
         let(:status) { instance_double(Process::Status, success?: true) }
-        let(:helper_command_proc) do
+        let(:helper_command_runner) do
           ->(_command) do
             {
               stdout: '{"status":"ok","payload":1}',
@@ -596,7 +596,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
       context 'when the helper exits with a non-zero status' do
         let(:status) { instance_double(Process::Status, success?: false, exitstatus: 64) }
-        let(:helper_command_proc) do
+        let(:helper_command_runner) do
           ->(_command) do
             {
               stdout: '',
@@ -619,7 +619,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
         let(:status) { instance_double(Process::Status, success?: false, exitstatus: 1) }
         let(:helper_error_message) { 'Location Services denied' }
         let(:helper_stderr) { 'helper diagnostic' }
-        let(:helper_command_proc) do
+        let(:helper_command_runner) do
           ->(_command) do
             {
               stdout: %({"status":"error","error":"#{helper_error_message}"}),
@@ -681,7 +681,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
         end
 
         context 'with an explicit permission-denied helper status' do
-          let(:helper_command_proc) do
+          let(:helper_command_runner) do
             ->(_command) do
               {
                 stdout: '{"status":"permission_denied","error":"Location Services denied"}',
@@ -703,7 +703,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
         end
 
         context 'with an explicit Location Services blocked helper status' do
-          let(:helper_command_proc) do
+          let(:helper_command_runner) do
             ->(_command) do
               {
                 stdout: '{"status":"location_services_blocked","error":"Location Services disabled"}',
@@ -726,7 +726,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
       context 'when the helper output cannot be parsed' do
         let(:status) { instance_double(Process::Status, success?: true) }
-        let(:helper_command_proc) { ->(_command) { { stdout: '{}', stderr: '', status: status } } }
+        let(:helper_command_runner) { ->(_command) { { stdout: '{}', stderr: '', status: status } } }
         let(:parse_json_result) { nil }
 
         it 'returns an empty result' do
@@ -739,7 +739,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
       context 'when the helper reports an error status' do
         let(:status) { instance_double(Process::Status, success?: true) }
-        let(:helper_command_proc) do
+        let(:helper_command_runner) do
           ->(_command) do
             {
               stdout: '{"status":"error","error":"Location Services denied"}',
@@ -760,7 +760,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       end
 
       context 'when the helper times out' do
-        let(:helper_command_proc) { ->(*) {} }
+        let(:helper_command_runner) { ->(*) {} }
 
         it 'returns a safe empty result so callers can fall back' do
           result = execute_command
@@ -774,7 +774,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
       context 'when the bounded install check leaves the helper executable missing' do
         let(:executable_available) { false }
-        let(:helper_command_proc) { ->(_command) { raise 'should not run' } }
+        let(:helper_command_runner) { ->(_command) { raise 'should not run' } }
 
         it 'returns unavailable instead of reporting a timeout' do
           result = execute_command
@@ -788,7 +788,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       end
 
       context 'when the executable is missing' do
-        let(:helper_command_proc) { ->(_command) { raise Errno::ENOENT, 'wifiwand-helper' } }
+        let(:helper_command_runner) { ->(_command) { raise Errno::ENOENT, 'wifiwand-helper' } }
 
         it 'logs the error and returns an empty result' do
           result = execute_command
@@ -803,7 +803,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       end
 
       context 'when an unexpected error occurs' do
-        let(:helper_command_proc) { ->(_command) { raise StandardError, 'boom' } }
+        let(:helper_command_runner) { ->(_command) { raise StandardError, 'boom' } }
 
         it 'logs the failure and returns an empty result' do
           result = execute_command
@@ -995,7 +995,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       end
 
       it 'logs an error when parsing fails' do
-        allow(client.instance_variable_get(:@verbose_proc)).to receive(:call).and_return(true)
+        allow(client.instance_variable_get(:@verbosity_provider)).to receive(:call).and_return(true)
         expect(client.send(:parse_json, '{invalid-json')).to be_nil
         expect(out_stream.string).to match(/failed to parse helper JSON:/)
       end
@@ -1029,7 +1029,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       end
 
       it 'logs non-location failures' do
-        allow(client.instance_variable_get(:@verbose_proc)).to receive(:call).and_return(true)
+        allow(client.instance_variable_get(:@verbosity_provider)).to receive(:call).and_return(true)
         client.send(:handle_error, 'unexpected failure')
         expect(out_stream.string).to include('helper error: unexpected failure')
       end
@@ -1075,10 +1075,10 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
     describe 'helper-backed calls after install failure' do
       subject(:client) do
         client_class.new(
-          out_stream_proc:    -> { out_stream },
-          err_stream_proc:    -> { err_stream },
-          verbose_proc:       -> { verbose_flag },
-          macos_version_proc: -> { macos_version }
+          out_stream_provider:  -> { out_stream },
+          err_stream_provider:  -> { err_stream },
+          verbosity_provider:   -> { verbose_flag },
+          macos_version_reader: -> { macos_version }
         )
       end
 

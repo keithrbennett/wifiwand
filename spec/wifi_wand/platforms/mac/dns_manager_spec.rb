@@ -8,8 +8,8 @@ module WifiWand
   describe Platforms::Mac::DnsManager do
     subject(:manager) do
       described_class.new(
-        command_runner:    command_runner,
-        service_name_proc: -> { service_name }
+        command_runner:        command_runner,
+        service_name_provider: -> { service_name }
       )
     end
 

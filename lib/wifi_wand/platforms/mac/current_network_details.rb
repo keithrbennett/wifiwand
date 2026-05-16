@@ -7,17 +7,17 @@ module WifiWand
     module Mac
       class CurrentNetworkDetails
         def initialize(
-          system_profiler_wifi_data_proc:,
-          system_profiler_wifi_data_cache_scope_proc:,
-          connected_network_name_proc:,
-          wifi_interface_proc:,
-          security_normalizer_proc:
+          system_profiler_wifi_data_reader:,
+          system_profiler_wifi_data_cache_runner:,
+          connected_network_name_reader:,
+          wifi_interface_provider:,
+          security_normalizer:
         )
-          @system_profiler_wifi_data_proc = system_profiler_wifi_data_proc
-          @system_profiler_wifi_data_cache_scope_proc = system_profiler_wifi_data_cache_scope_proc
-          @connected_network_name_proc = connected_network_name_proc
-          @wifi_interface_proc = wifi_interface_proc
-          @security_normalizer_proc = security_normalizer_proc
+          @system_profiler_wifi_data_reader = system_profiler_wifi_data_reader
+          @system_profiler_wifi_data_cache_runner = system_profiler_wifi_data_cache_runner
+          @connected_network_name_reader = connected_network_name_reader
+          @wifi_interface_provider = wifi_interface_provider
+          @security_normalizer = security_normalizer
         end
 
         def connection_security_type
@@ -45,7 +45,7 @@ module WifiWand
           if security_info.to_s.strip.empty?
             'NONE'
           else
-            @security_normalizer_proc.call(security_info)
+            @security_normalizer.call(security_info)
           end
         end
 
@@ -54,19 +54,19 @@ module WifiWand
         end
 
         private def system_profiler_wifi_data
-          @system_profiler_wifi_data_proc.call
+          @system_profiler_wifi_data_reader.call
         end
 
         private def with_system_profiler_wifi_data_cache_scope(&)
-          @system_profiler_wifi_data_cache_scope_proc.call(&)
+          @system_profiler_wifi_data_cache_runner.call(&)
         end
 
         private def connected_network_name
-          @connected_network_name_proc.call
+          @connected_network_name_reader.call
         end
 
         private def wifi_interface
-          @wifi_interface_proc.call
+          @wifi_interface_provider.call
         end
       end
     end

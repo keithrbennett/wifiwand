@@ -46,13 +46,13 @@ module WifiWand
           # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
           UNEXPECTED_SWIFT_ERROR = StandardError
 
-          def initialize(swift_runtime:, command_runner:, wifi_interface_proc:, out_stream_proc:,
-            verbose_proc:)
+          def initialize(swift_runtime:, command_runner:, wifi_interface_provider:, out_stream_provider:,
+            verbosity_provider:)
             @swift_runtime = swift_runtime
             @command_runner = command_runner
-            @wifi_interface_proc = wifi_interface_proc
-            @out_stream_proc = out_stream_proc
-            @verbose_proc = verbose_proc
+            @wifi_interface_provider = wifi_interface_provider
+            @out_stream_provider = out_stream_provider
+            @verbosity_provider = verbosity_provider
           end
 
           def connect(network_name, password = nil)
@@ -249,11 +249,11 @@ module WifiWand
             out_stream.puts "Unexpected Swift/CoreWLAN #{operation} error: #{error.class}: #{error.message}"
           end
 
-          private def wifi_interface = @wifi_interface_proc.call
+          private def wifi_interface = @wifi_interface_provider.call
 
-          private def out_stream = @out_stream_proc.call
+          private def out_stream = @out_stream_provider.call
 
-          private def verbose? = @verbose_proc.call
+          private def verbose? = @verbosity_provider.call
         end
       end
     end

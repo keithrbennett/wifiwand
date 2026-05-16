@@ -311,10 +311,10 @@ module WifiWand
 
         def helper_client
           @helper_client ||= WifiWand::Platforms::Mac::Helper::Client.new(
-            out_stream_proc:    -> { out_stream },
-            err_stream_proc:    -> { err_stream },
-            verbose_proc:       -> { verbose? },
-            macos_version_proc: ->(timeout_in_secs: nil) { macos_version(timeout_in_secs: timeout_in_secs) }
+            out_stream_provider:  -> { out_stream },
+            err_stream_provider:  -> { err_stream },
+            verbosity_provider:   -> { verbose? },
+            macos_version_reader: ->(timeout_in_secs: nil) { macos_version(timeout_in_secs: timeout_in_secs) }
           )
         end
 
@@ -368,19 +368,19 @@ module WifiWand
 
         private def swift_runtime
           @swift_runtime ||= WifiWand::Platforms::Mac::Helper::SwiftRuntime.new(
-            command_runner:  ->(*args, **kwargs) { run_command(*args, **kwargs) },
-            out_stream_proc: -> { out_stream },
-            verbose_proc:    -> { verbose? }
+            command_runner:      ->(*args, **kwargs) { run_command(*args, **kwargs) },
+            out_stream_provider: -> { out_stream },
+            verbosity_provider:  -> { verbose? }
           )
         end
 
         private def wifi_transport
           @wifi_transport ||= WifiWand::Platforms::Mac::Helper::WifiTransport.new(
-            swift_runtime:       swift_runtime,
-            command_runner:      ->(*args, **kwargs) { run_command(*args, **kwargs) },
-            wifi_interface_proc: -> { wifi_interface },
-            out_stream_proc:     -> { out_stream },
-            verbose_proc:        -> { verbose? }
+            swift_runtime:           swift_runtime,
+            command_runner:          ->(*args, **kwargs) { run_command(*args, **kwargs) },
+            wifi_interface_provider: -> { wifi_interface },
+            out_stream_provider:     -> { out_stream },
+            verbosity_provider:      -> { verbose? }
           )
         end
 
@@ -393,8 +393,8 @@ module WifiWand
 
         private def dns_manager
           @dns_manager ||= WifiWand::Platforms::Mac::DnsManager.new(
-            command_runner:    ->(*args, **kwargs) { run_command(*args, **kwargs) },
-            service_name_proc: -> { detected_wifi_service_name_for_dns }
+            command_runner:        ->(*args, **kwargs) { run_command(*args, **kwargs) },
+            service_name_provider: -> { detected_wifi_service_name_for_dns }
           )
         end
 
@@ -412,59 +412,63 @@ module WifiWand
 
         private def network_identity_reader
           @network_identity_reader ||= WifiWand::Platforms::Mac::NetworkIdentityReader.new(
-            helper_client_proc:                         -> { helper_client },
-            command_runner:                             ->(*args, **kwargs) { run_command(*args, **kwargs) },
-            system_profiler_wifi_data_proc:             ->(**kwargs) { system_profiler_wifi_data(**kwargs) },
-            system_profiler_wifi_data_cache_scope_proc: ->(&block) {
+            helper_client_provider:                 -> { helper_client },
+            command_runner:                         ->(*args, **kwargs) { run_command(*args, **kwargs) },
+            system_profiler_wifi_data_reader:       ->(**kwargs) {
+              system_profiler_wifi_data(**kwargs)
+            },
+            system_profiler_wifi_data_cache_runner: ->(&block) {
               with_system_profiler_wifi_data_cache_scope(&block)
             },
-            wifi_on_proc:                               -> { wifi_on? },
-            wifi_interface_proc:                        -> { wifi_interface },
-            default_interface_proc:                     -> { default_interface },
-            ipv4_addresses_proc:                        -> { _ipv4_addresses },
-            ipv6_addresses_proc:                        -> { _ipv6_addresses }
+            wifi_power_reader:                      -> { wifi_on? },
+            wifi_interface_provider:                -> { wifi_interface },
+            default_interface_provider:             -> { default_interface },
+            ipv4_addresses_reader:                  -> { _ipv4_addresses },
+            ipv6_addresses_reader:                  -> { _ipv6_addresses }
           )
         end
 
         private def status_queries
           @status_queries ||= WifiWand::Platforms::Mac::StatusQueries.new(
-            helper_client_proc:                         -> { helper_client },
-            command_runner:                             ->(*args, **kwargs) { run_command(*args, **kwargs) },
-            system_profiler_wifi_data_proc:             ->(**kwargs) { system_profiler_wifi_data(**kwargs) },
-            system_profiler_wifi_data_cache_scope_proc: ->(&block) {
+            helper_client_provider:                 -> { helper_client },
+            command_runner:                         ->(*args, **kwargs) { run_command(*args, **kwargs) },
+            system_profiler_wifi_data_reader:       ->(**kwargs) {
+              system_profiler_wifi_data(**kwargs)
+            },
+            system_profiler_wifi_data_cache_runner: ->(&block) {
               with_system_profiler_wifi_data_cache_scope(&block)
             },
-            cached_wifi_interface_proc:                 -> { @wifi_interface },
-            cache_wifi_interface_proc:                  ->(iface) { @wifi_interface = iface },
-            probe_wifi_interface_proc:                  ->(**kwargs) { probe_wifi_interface(**kwargs) },
-            system_network_info_proc:                   -> { system_network_info },
-            status_deadline_proc:                       ->(timeout_in_secs) {
+            wifi_interface_cache_reader:            -> { @wifi_interface },
+            wifi_interface_cache_writer:            ->(iface) { @wifi_interface = iface },
+            wifi_interface_probe:                   ->(**kwargs) { probe_wifi_interface(**kwargs) },
+            system_network_info_provider:           -> { system_network_info },
+            status_deadline_factory:                ->(timeout_in_secs) {
               status_deadline(timeout_in_secs)
             },
-            status_timeout_proc:                        ->(deadline) { status_timeout_for(deadline) }
+            status_timeout_calculator:              ->(deadline) { status_timeout_for(deadline) }
           )
         end
 
         private def network_scanner
           @network_scanner ||= WifiWand::Platforms::Mac::NetworkScanner.new(
-            helper_client_proc:                         -> { helper_client },
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: ->(&block) {
+            helper_client_provider:                 -> { helper_client },
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: ->(&block) {
               with_system_profiler_wifi_data_cache_scope(&block)
             },
-            wifi_interface_proc:                        -> { wifi_interface }
+            wifi_interface_provider:                -> { wifi_interface }
           )
         end
 
         private def current_network_details
           @current_network_details ||= WifiWand::Platforms::Mac::CurrentNetworkDetails.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: ->(&block) {
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: ->(&block) {
               with_system_profiler_wifi_data_cache_scope(&block)
             },
-            connected_network_name_proc:                -> { _connected_network_name },
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   ->(security_text) {
+            connected_network_name_reader:          -> { _connected_network_name },
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    ->(security_text) {
               canonical_security_type_from(security_text)
             }
           )
@@ -472,10 +476,10 @@ module WifiWand
 
         private def system_network_info
           @system_network_info ||= WifiWand::Platforms::Mac::SystemNetworkInfo.new(
-            command_runner:      ->(*args, **kwargs) { run_command(*args, **kwargs) },
-            wifi_interface_proc: -> { wifi_interface },
-            out_stream_proc:     -> { out_stream },
-            verbose_proc:        -> { verbose? }
+            command_runner:          ->(*args, **kwargs) { run_command(*args, **kwargs) },
+            wifi_interface_provider: -> { wifi_interface },
+            out_stream_provider:     -> { out_stream },
+            verbosity_provider:      -> { verbose? }
           )
         end
 

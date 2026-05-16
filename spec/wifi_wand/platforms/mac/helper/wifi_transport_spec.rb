@@ -9,14 +9,14 @@ module WifiWand
     let(:verbose) { true }
     let(:swift_runtime) { instance_double(WifiWand::Platforms::Mac::Helper::SwiftRuntime) }
     let(:command_runner) { double('command_runner') }
-    let(:wifi_interface_proc) { -> { 'en0' } }
+    let(:wifi_interface_provider) { -> { 'en0' } }
     let(:transport) do
       described_class.new(
-        swift_runtime:       swift_runtime,
-        command_runner:      command_runner,
-        wifi_interface_proc: wifi_interface_proc,
-        out_stream_proc:     -> { out_stream },
-        verbose_proc:        -> { verbose }
+        swift_runtime:           swift_runtime,
+        command_runner:          command_runner,
+        wifi_interface_provider: wifi_interface_provider,
+        out_stream_provider:     -> { out_stream },
+        verbosity_provider:      -> { verbose }
       )
     end
 
@@ -173,11 +173,11 @@ module WifiWand
           text:       'No WiFi interface found'
         )
         failing_transport = described_class.new(
-          swift_runtime:       swift_runtime,
-          command_runner:      command_runner,
-          wifi_interface_proc: -> { raise interface_error },
-          out_stream_proc:     -> { out_stream },
-          verbose_proc:        -> { verbose }
+          swift_runtime:           swift_runtime,
+          command_runner:          command_runner,
+          wifi_interface_provider: -> { raise interface_error },
+          out_stream_provider:     -> { out_stream },
+          verbosity_provider:      -> { verbose }
         )
         allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
         expect(command_runner).not_to receive(:call)

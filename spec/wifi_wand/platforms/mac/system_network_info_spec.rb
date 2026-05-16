@@ -7,8 +7,8 @@ module WifiWand
   describe Platforms::Mac::SystemNetworkInfo do
     subject(:info) do
       described_class.new(
-        command_runner:      command_runner,
-        wifi_interface_proc: -> { wifi_interface }
+        command_runner:          command_runner,
+        wifi_interface_provider: -> { wifi_interface }
       )
     end
 
@@ -205,10 +205,10 @@ module WifiWand
       it 'logs version detection failures when verbose output is enabled' do
         out_stream = StringIO.new
         verbose_info = described_class.new(
-          command_runner:      command_runner,
-          wifi_interface_proc: -> { wifi_interface },
-          out_stream_proc:     -> { out_stream },
-          verbose_proc:        -> { true }
+          command_runner:          command_runner,
+          wifi_interface_provider: -> { wifi_interface },
+          out_stream_provider:     -> { out_stream },
+          verbosity_provider:      -> { true }
         )
         allow(command_runner).to receive(:call).with(%w[sw_vers -productVersion])
           .and_raise(

@@ -10,9 +10,9 @@ module WifiWand
     let(:command_runner) { instance_double(Proc) }
     let(:runtime) do
       described_class.new(
-        command_runner:  command_runner,
-        out_stream_proc: -> { out_stream },
-        verbose_proc:    -> { verbose }
+        command_runner:      command_runner,
+        out_stream_provider: -> { out_stream },
+        verbosity_provider:  -> { verbose }
       )
     end
 

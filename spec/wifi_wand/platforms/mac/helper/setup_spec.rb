@@ -5,7 +5,7 @@ require 'stringio'
 require 'wifi_wand/platforms/mac/helper/setup'
 
 RSpec.describe WifiWand::Platforms::Mac::Helper::Setup do
-  subject(:setup) { described_class.new(out_stream: out_stream, macos_version_proc: -> { macos_version }) }
+  subject(:setup) { described_class.new(out_stream: out_stream, macos_version_reader: -> { macos_version }) }
 
   let(:helper_bundle) { WifiWand::Platforms::Mac::Helper::Bundle }
   let(:out_stream) { StringIO.new }

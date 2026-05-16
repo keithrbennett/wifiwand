@@ -64,13 +64,13 @@ module WifiWand
             end
           end
 
-          def initialize(out_stream: $stdout, macos_version_proc: nil)
+          def initialize(out_stream: $stdout, macos_version_reader: nil)
             @out_stream = out_stream
-            @macos_version_proc = macos_version_proc || -> { Bundle.detect_macos_version }
+            @macos_version_reader = macos_version_reader || -> { Bundle.detect_macos_version }
           end
 
           def helper_support_status
-            macos_version = @macos_version_proc&.call
+            macos_version = @macos_version_reader&.call
             Bundle.helper_support_status_for_macos_version(macos_version)
           end
 

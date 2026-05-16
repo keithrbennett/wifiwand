@@ -16,27 +16,27 @@ module WifiWand
         NO_CONNECTED_NETWORK = Object.new.freeze
 
         def initialize(
-          helper_client_proc:,
+          helper_client_provider:,
           command_runner:,
-          system_profiler_wifi_data_proc:,
-          system_profiler_wifi_data_cache_scope_proc:,
-          cached_wifi_interface_proc:,
-          cache_wifi_interface_proc:,
-          probe_wifi_interface_proc:,
-          system_network_info_proc:,
-          status_deadline_proc:,
-          status_timeout_proc:
+          system_profiler_wifi_data_reader:,
+          system_profiler_wifi_data_cache_runner:,
+          wifi_interface_cache_reader:,
+          wifi_interface_cache_writer:,
+          wifi_interface_probe:,
+          system_network_info_provider:,
+          status_deadline_factory:,
+          status_timeout_calculator:
         )
-          @helper_client_proc = helper_client_proc
+          @helper_client_provider = helper_client_provider
           @command_runner = command_runner
-          @system_profiler_wifi_data_proc = system_profiler_wifi_data_proc
-          @system_profiler_wifi_data_cache_scope_proc = system_profiler_wifi_data_cache_scope_proc
-          @cached_wifi_interface_proc = cached_wifi_interface_proc
-          @cache_wifi_interface_proc = cache_wifi_interface_proc
-          @probe_wifi_interface_proc = probe_wifi_interface_proc
-          @system_network_info_proc = system_network_info_proc
-          @status_deadline_proc = status_deadline_proc
-          @status_timeout_proc = status_timeout_proc
+          @system_profiler_wifi_data_reader = system_profiler_wifi_data_reader
+          @system_profiler_wifi_data_cache_runner = system_profiler_wifi_data_cache_runner
+          @wifi_interface_cache_reader = wifi_interface_cache_reader
+          @wifi_interface_cache_writer = wifi_interface_cache_writer
+          @wifi_interface_probe = wifi_interface_probe
+          @system_network_info_provider = system_network_info_provider
+          @status_deadline_factory = status_deadline_factory
+          @status_timeout_calculator = status_timeout_calculator
         end
 
         def status_network_identity(timeout_in_secs: nil)
@@ -141,25 +141,25 @@ module WifiWand
         end
 
         private def helper_client
-          @helper_client_proc.call
+          @helper_client_provider.call
         end
 
         private def with_system_profiler_wifi_data_cache_scope(&)
-          @system_profiler_wifi_data_cache_scope_proc.call(&)
+          @system_profiler_wifi_data_cache_runner.call(&)
         end
 
         private def system_profiler_wifi_data(timeout_in_secs: nil)
-          @system_profiler_wifi_data_proc.call(timeout_in_secs: timeout_in_secs)
+          @system_profiler_wifi_data_reader.call(timeout_in_secs: timeout_in_secs)
         end
 
         private def status_wifi_interface(deadline)
-          cached_iface = @cached_wifi_interface_proc.call
+          cached_iface = @wifi_interface_cache_reader.call
           return cached_iface if cached_iface && !cached_iface.empty?
 
-          iface = @probe_wifi_interface_proc.call(timeout_in_secs: status_timeout_for(deadline))
+          iface = @wifi_interface_probe.call(timeout_in_secs: status_timeout_for(deadline))
           return nil if string_nil_or_empty?(iface)
 
-          @cache_wifi_interface_proc.call(iface)
+          @wifi_interface_cache_writer.call(iface)
           iface
         end
 
@@ -198,15 +198,15 @@ module WifiWand
         end
 
         private def system_network_info
-          @system_network_info_proc.call
+          @system_network_info_provider.call
         end
 
         private def status_deadline(timeout_in_secs)
-          @status_deadline_proc.call(timeout_in_secs)
+          @status_deadline_factory.call(timeout_in_secs)
         end
 
         private def status_timeout_for(deadline)
-          @status_timeout_proc.call(deadline)
+          @status_timeout_calculator.call(deadline)
         end
 
         private def system_profiler_wifi_interface_data(deadline:)

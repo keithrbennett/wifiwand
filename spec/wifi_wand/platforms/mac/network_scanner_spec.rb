@@ -10,10 +10,10 @@ module WifiWand
   describe Platforms::Mac::NetworkScanner do
     subject(:scanner) do
       described_class.new(
-        helper_client_proc:                         -> { helper_client },
-        system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data_reader.call },
-        system_profiler_wifi_data_cache_scope_proc: ->(&block) { cache_scope.call(&block) },
-        wifi_interface_proc:                        -> { 'en0' }
+        helper_client_provider:                 -> { helper_client },
+        system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data_reader.call },
+        system_profiler_wifi_data_cache_runner: ->(&block) { cache_scope.call(&block) },
+        wifi_interface_provider:                -> { 'en0' }
       )
     end
 

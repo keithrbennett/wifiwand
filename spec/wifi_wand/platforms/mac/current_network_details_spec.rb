@@ -7,17 +7,17 @@ module WifiWand
   describe Platforms::Mac::CurrentNetworkDetails do
     subject(:details) do
       described_class.new(
-        system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-        system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-        connected_network_name_proc:                -> { connected_network_name },
-        wifi_interface_proc:                        -> { wifi_interface },
-        security_normalizer_proc:                   security_normalizer
+        system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+        system_profiler_wifi_data_cache_runner: cache_scope_runner,
+        connected_network_name_reader:          -> { connected_network_name },
+        wifi_interface_provider:                -> { wifi_interface },
+        security_normalizer:                    security_normalizer
       )
     end
 
     let(:connected_network_name) { 'TestNetwork' }
     let(:wifi_interface) { 'en0' }
-    let(:cache_scope_proc) { ->(&block) { block.call } }
+    let(:cache_scope_runner) { ->(&block) { block.call } }
     let(:security_normalizer) do
       ->(security_text) do
         return nil if security_text.match?(/802\.?1x|enterprise/i)
@@ -91,11 +91,11 @@ module WifiWand
 
           expect(
             described_class.new(
-              system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-              system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-              connected_network_name_proc:                -> { connected_network_name },
-              wifi_interface_proc:                        -> { wifi_interface },
-              security_normalizer_proc:                   security_normalizer
+              system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+              system_profiler_wifi_data_cache_runner: cache_scope_runner,
+              connected_network_name_reader:          -> { connected_network_name },
+              wifi_interface_provider:                -> { wifi_interface },
+              security_normalizer:                    security_normalizer
             ).connection_security_type
           ).to eq(expected_result)
         end
@@ -116,11 +116,11 @@ module WifiWand
 
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> { connected_network_name },
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> { connected_network_name },
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).connection_security_type
         ).to eq('WPA3')
       end
@@ -136,11 +136,11 @@ module WifiWand
 
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> { connected_network_name },
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> { connected_network_name },
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).connection_security_type
         ).to eq('WEP')
       end
@@ -148,11 +148,11 @@ module WifiWand
       it 'returns nil when not connected to any network' do
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> {},
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> {},
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).connection_security_type
         ).to be_nil
       end
@@ -165,11 +165,11 @@ module WifiWand
 
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> { connected_network_name },
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> { connected_network_name },
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).connection_security_type
         ).to be_nil
       end
@@ -185,11 +185,11 @@ module WifiWand
 
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> { connected_network_name },
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> { connected_network_name },
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).connection_security_type
         ).to be_nil
       end
@@ -199,11 +199,11 @@ module WifiWand
 
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> { connected_network_name },
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> { connected_network_name },
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).connection_security_type
         ).to be_nil
       end
@@ -213,11 +213,11 @@ module WifiWand
 
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> { connected_network_name },
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> { connected_network_name },
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).connection_security_type
         ).to be_nil
       end
@@ -233,11 +233,11 @@ module WifiWand
 
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> { connected_network_name },
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> { connected_network_name },
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).network_hidden?
         ).to be true
       end
@@ -250,11 +250,11 @@ module WifiWand
 
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> { connected_network_name },
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> { connected_network_name },
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).network_hidden?
         ).to be false
       end
@@ -267,11 +267,11 @@ module WifiWand
 
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> { connected_network_name },
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> { connected_network_name },
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).network_hidden?
         ).to be false
       end
@@ -279,11 +279,11 @@ module WifiWand
       it 'returns false when not connected to any network' do
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> {},
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> {},
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).network_hidden?
         ).to be false
       end
@@ -299,11 +299,11 @@ module WifiWand
 
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> { connected_network_name },
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> { connected_network_name },
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).network_hidden?
         ).to be false
       end
@@ -315,11 +315,11 @@ module WifiWand
 
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> { connected_network_name },
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> { connected_network_name },
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).network_hidden?
         ).to be false
       end
@@ -329,11 +329,11 @@ module WifiWand
 
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> { connected_network_name },
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> { connected_network_name },
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).network_hidden?
         ).to be false
       end
@@ -343,11 +343,11 @@ module WifiWand
 
         expect(
           described_class.new(
-            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-            system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-            connected_network_name_proc:                -> { connected_network_name },
-            wifi_interface_proc:                        -> { wifi_interface },
-            security_normalizer_proc:                   security_normalizer
+            system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_runner: cache_scope_runner,
+            connected_network_name_reader:          -> { connected_network_name },
+            wifi_interface_provider:                -> { wifi_interface },
+            security_normalizer:                    security_normalizer
           ).network_hidden?
         ).to be false
       end
@@ -355,7 +355,7 @@ module WifiWand
 
     it 'wraps lookups in the system_profiler WiFi data cache scope' do
       events = []
-      cache_scope_proc = ->(&block) do
+      cache_scope_runner = ->(&block) do
         events << :enter
         result = block.call
         events << :exit
@@ -363,11 +363,11 @@ module WifiWand
       end
 
       described_class.new(
-        system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
-        system_profiler_wifi_data_cache_scope_proc: cache_scope_proc,
-        connected_network_name_proc:                -> { connected_network_name },
-        wifi_interface_proc:                        -> { wifi_interface },
-        security_normalizer_proc:                   security_normalizer
+        system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+        system_profiler_wifi_data_cache_runner: cache_scope_runner,
+        connected_network_name_reader:          -> { connected_network_name },
+        wifi_interface_provider:                -> { wifi_interface },
+        security_normalizer:                    security_normalizer
       ).connection_security_type
 
       expect(events).to eq(%i[enter exit])
