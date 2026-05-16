@@ -79,11 +79,15 @@ module WifiWand
       Process.clock_gettime(Process::CLOCK_MONOTONIC)
     end
 
+    def expect_wifi_power_lookup(on:)
+      expect(system_network_info).to receive(:wifi_on?)
+        .with(iface: 'en0', timeout_in_secs: status_timeout)
+        .and_return(on)
+    end
+
     describe '#status_network_identity' do
       it 'returns a helper SSID inside the bounded status budget' do
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+        expect_wifi_power_lookup(on: true)
         expect(helper_client).to receive(:connected_network_name)
           .with(timeout_seconds: status_timeout)
           .and_return(helper_result(payload: 'HelperNet'))
@@ -95,9 +99,7 @@ module WifiWand
       end
 
       it 'returns disconnected when Wi-Fi power is off' do
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: "Wi-Fi Power (en0): Off\n"))
+        expect_wifi_power_lookup(on: false)
         expect(helper_client).not_to receive(:connected_network_name)
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
@@ -107,9 +109,7 @@ module WifiWand
       end
 
       it 'returns disconnected when the helper explicitly reports no connection' do
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+        expect_wifi_power_lookup(on: true)
         expect(helper_client).to receive(:connected_network_name)
           .with(timeout_seconds: status_timeout)
           .and_return(helper_result(status: :not_connected))
@@ -124,9 +124,7 @@ module WifiWand
       it 'falls through a timed-out fast network name lookup to bounded airport data' do
         timeout_error = WifiWand::CommandTimeoutError.new(command: 'networksetup', timeout_in_secs: 0.1)
 
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+        expect_wifi_power_lookup(on: true)
         expect(helper_client).to receive(:connected_network_name)
           .with(timeout_seconds: status_timeout)
           .and_return(helper_result)
@@ -152,9 +150,7 @@ module WifiWand
           raise timeout_error
         end
 
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+        expect_wifi_power_lookup(on: true)
         expect(helper_client).to receive(:connected_network_name)
           .with(timeout_seconds: status_timeout)
           .and_return(helper_result)
@@ -205,9 +201,7 @@ module WifiWand
         timeout_error = WifiWand::CommandTimeoutError.new(command: 'ipconfig', timeout_in_secs: 0.1)
         allow(airport_data_proc).to receive(:call).and_return(no_current_network)
 
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+        expect_wifi_power_lookup(on: true)
         expect(helper_client).to receive(:connected_network_name)
           .with(timeout_seconds: status_timeout)
           .and_return(helper_result)
@@ -232,9 +226,7 @@ module WifiWand
         no_current_network = airport_payload(current_network_name: :missing)
         allow(airport_data_proc).to receive(:call).and_return(no_current_network)
 
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+        expect_wifi_power_lookup(on: true)
         expect(helper_client).to receive(:connected_network_name)
           .with(timeout_seconds: status_timeout)
           .and_return(helper_result)
@@ -261,9 +253,7 @@ module WifiWand
         no_current_network = airport_payload(current_network_name: :missing)
         allow(airport_data_proc).to receive(:call).and_return(no_current_network)
 
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+        expect_wifi_power_lookup(on: true)
         expect(helper_client).to receive(:connected_network_name)
           .with(timeout_seconds: status_timeout)
           .and_return(helper_result)
@@ -294,9 +284,7 @@ module WifiWand
         expect(probe_wifi_interface_proc).to receive(:call)
           .with(status_timeout)
           .and_return('en0')
-        expect(command_runner).to receive(:call)
-          .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
-          .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
+        expect_wifi_power_lookup(on: true)
 
         expect(status_queries.status_wifi_on?(timeout_in_secs: 0.5)).to be(true)
         expect(wifi_interface_store[:value]).to eq('en0')

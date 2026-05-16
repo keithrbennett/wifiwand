@@ -142,9 +142,15 @@ module WifiWand
       end
 
       it 'returns nil when not connected to any network' do
-        allow(details).to receive(:connected_network_name).and_return(nil)
-
-        expect(details.connection_security_type).to be_nil
+        expect(
+          described_class.new(
+            airport_data_proc:             -> { airport_data },
+            airport_data_cache_scope_proc: cache_scope_proc,
+            connected_network_name_proc:   -> {},
+            wifi_interface_proc:           -> { wifi_interface },
+            security_normalizer_proc:      security_normalizer
+          ).connection_security_type
+        ).to be_nil
       end
 
       it 'returns nil when the security field is missing' do
@@ -267,9 +273,15 @@ module WifiWand
       end
 
       it 'returns false when not connected to any network' do
-        allow(details).to receive(:connected_network_name).and_return(nil)
-
-        expect(details.network_hidden?).to be false
+        expect(
+          described_class.new(
+            airport_data_proc:             -> { airport_data },
+            airport_data_cache_scope_proc: cache_scope_proc,
+            connected_network_name_proc:   -> {},
+            wifi_interface_proc:           -> { wifi_interface },
+            security_normalizer_proc:      security_normalizer
+          ).network_hidden?
+        ).to be false
       end
 
       it 'returns false when interface data is missing' do

@@ -33,7 +33,7 @@ module WifiWand
 
         # Lazily detected macOS version to avoid OS calls during initialization
         def macos_version(timeout_in_secs: nil)
-          @macos_version ||= detect_macos_version(timeout_in_secs: timeout_in_secs)
+          @macos_version ||= system_network_info.detect_macos_version(timeout_in_secs: timeout_in_secs)
         end
 
         def initialize(options = {})
@@ -45,6 +45,7 @@ module WifiWand
           @airport_data_provider = nil
           @dns_manager = nil
           @interface_detector = nil
+          @wifi_service_name_source = nil
           @keychain_password_reader = nil
           @network_identity_reader = nil
           @network_scanner = nil
@@ -87,7 +88,16 @@ module WifiWand
 
         # Returns the Wi-Fi service name dynamically (e.g., "Wi-Fi", "AirPort", etc.)
         def wifi_service_name
-          @wifi_service_name ||= interface_detector.wifi_service_name(known_interface: @wifi_interface)
+          return @wifi_service_name if @wifi_service_name && !@wifi_service_name.empty?
+
+          service_name = interface_detector.detected_wifi_service_name(known_interface: @wifi_interface)
+          if service_name && !service_name.empty?
+            @wifi_service_name_source = :detected
+            @wifi_service_name = service_name
+          else
+            @wifi_service_name_source = :fallback
+            @wifi_service_name = 'Wi-Fi'
+          end
         end
 
         # Identifies the (first) wireless network hardware interface in the system, e.g. en0 or en1
@@ -154,9 +164,7 @@ module WifiWand
         end
 
         def wifi_on?
-          iface = wifi_interface
-          output = run_command(['networksetup', '-getairportpower', iface]).stdout
-          output.chomp.match?(/\): On$/)
+          system_network_info.wifi_on?
         end
 
         def associated?
@@ -346,20 +354,6 @@ module WifiWand
           system_network_info.default_interface
         end
 
-        # Detects the current macOS version
-        def detect_macos_version(timeout_in_secs: nil)
-          options = {}
-          options[:timeout_in_secs] = timeout_in_secs if timeout_in_secs
-          output = run_command(%w[sw_vers -productVersion], **options).stdout
-          Helper::Bundle.normalize_detected_macos_version(output)
-        rescue WifiWand::CommandExecutor::OsCommandError, WifiWand::CommandTimeoutError,
-          WifiWand::CommandNotFoundError, WifiWand::CommandSpawnError => e
-          if verbose?
-            out_stream.puts "Could not detect macOS version: #{e.message}."
-          end
-          nil
-        end
-
         def validate_os_preconditions(timeout_in_secs: nil)
           # All core read/status commands are built into macOS. The Swift/CoreWLAN
           # source runtime is mutation-specific and is probed lazily by the
@@ -395,7 +389,7 @@ module WifiWand
         private def dns_manager
           @dns_manager ||= WifiWand::Platforms::Mac::DnsManager.new(
             command_runner:    ->(*args, **kwargs) { run_command(*args, **kwargs) },
-            service_name_proc: -> { wifi_service_name }
+            service_name_proc: -> { detected_wifi_service_name_for_dns }
           )
         end
 
@@ -465,13 +459,31 @@ module WifiWand
         private def system_network_info
           @system_network_info ||= WifiWand::Platforms::Mac::SystemNetworkInfo.new(
             command_runner:      ->(*args, **kwargs) { run_command(*args, **kwargs) },
-            wifi_interface_proc: -> { wifi_interface }
+            wifi_interface_proc: -> { wifi_interface },
+            out_stream_proc:     -> { out_stream },
+            verbose_proc:        -> { verbose? }
           )
+        end
+
+        private def detected_wifi_service_name_for_dns
+          if @wifi_service_name && !@wifi_service_name.empty? && @wifi_service_name_source != :fallback
+            return @wifi_service_name
+          end
+
+          service_name = interface_detector.detected_wifi_service_name(known_interface: @wifi_interface)
+          if service_name && !service_name.empty?
+            @wifi_service_name = service_name
+            @wifi_service_name_source = :detected
+          end
+          service_name
         end
 
         private def update_wifi_detection_state(result)
           @wifi_interface = result.interface if result.interface && !result.interface.empty?
-          @wifi_service_name = result.service_name if result.service_name && !result.service_name.empty?
+          if result.service_name && !result.service_name.empty?
+            @wifi_service_name = result.service_name
+            @wifi_service_name_source = :detected
+          end
         end
 
         private def with_airport_data_cache_scope(&)

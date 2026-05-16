@@ -50,6 +50,32 @@ module WifiWand
 
         expect(detector.wifi_service_name_from_ports(ports)).to eq('Wi-Fi')
       end
+
+      it 'supports a nil fallback for strict service-name lookups' do
+        ports = [{ name: 'Ethernet', device: 'en1' }]
+
+        expect(detector.wifi_service_name_from_ports(ports, fallback_service_name: nil)).to be_nil
+      end
+    end
+
+    describe '#detected_wifi_service_name' do
+      it 'returns the detected service name' do
+        output = "Hardware Port: AirPort\nDevice: en0\nEthernet Address: aa:bb:cc\n\n" \
+          "Hardware Port: Ethernet\nDevice: en1\n"
+        allow(command_runner).to receive(:call)
+          .with(%w[networksetup -listallhardwareports], timeout_in_secs: 2)
+          .and_return(command_result(stdout: output))
+
+        expect(detector.detected_wifi_service_name(timeout_in_secs: 2)).to eq('AirPort')
+      end
+
+      it 'returns nil instead of synthesizing Wi-Fi when no Wi-Fi service is detected' do
+        allow(command_runner).to receive(:call)
+          .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+          .and_return(command_result(stdout: "Hardware Port: Ethernet\nDevice: en1\n"))
+
+        expect(detector.detected_wifi_service_name).to be_nil
+      end
     end
 
     describe '#wifi_interface_using_networksetup' do

@@ -95,6 +95,31 @@ module WifiWand
       end
     end
 
+    describe '#wifi_on?' do
+      it 'detects Wi-Fi power from networksetup output' do
+        test_cases = [
+          ["Wi-Fi Power (en0): On\n", true],
+          ["Wi-Fi Power (en0): Off\n", false],
+        ]
+
+        test_cases.each do |output, expected|
+          allow(command_runner).to receive(:call)
+            .with(%w[networksetup -getairportpower en0])
+            .and_return(command_result(stdout: output))
+
+          expect(info.wifi_on?).to eq(expected)
+        end
+      end
+
+      it 'accepts an explicit interface and timeout for bounded status lookups' do
+        expect(command_runner).to receive(:call)
+          .with(%w[networksetup -getairportpower en1], timeout_in_secs: 0.25)
+          .and_return(command_result(stdout: "Wi-Fi Power (en1): On\n"))
+
+        expect(info.wifi_on?(iface: 'en1', timeout_in_secs: 0.25)).to be(true)
+      end
+    end
+
     describe '#open_resource' do
       it 'constructs open commands properly' do
         test_cases = [
@@ -107,6 +132,50 @@ module WifiWand
           expect(command_runner).to receive(:call).with(['open', resource])
           info.open_resource(resource)
         end
+      end
+    end
+
+    describe '#detect_macos_version' do
+      it 'normalizes the sw_vers product version' do
+        expect(command_runner).to receive(:call)
+          .with(%w[sw_vers -productVersion])
+          .and_return(command_result(stdout: "15.6\n"))
+
+        expect(info.detect_macos_version).to eq('15.6')
+      end
+
+      it 'passes through an explicit timeout' do
+        expect(command_runner).to receive(:call)
+          .with(%w[sw_vers -productVersion], timeout_in_secs: 0.25)
+          .and_return(command_result(stdout: "14.7.1\n"))
+
+        expect(info.detect_macos_version(timeout_in_secs: 0.25)).to eq('14.7.1')
+      end
+
+      it 'returns nil when version detection fails' do
+        allow(command_runner).to receive(:call).with(%w[sw_vers -productVersion])
+          .and_raise(
+            os_command_error(exitstatus: 1, command: 'sw_vers -productVersion', text: 'Command failed')
+          )
+
+        expect(info.detect_macos_version).to be_nil
+      end
+
+      it 'logs version detection failures when verbose output is enabled' do
+        out_stream = StringIO.new
+        verbose_info = described_class.new(
+          command_runner:      command_runner,
+          wifi_interface_proc: -> { wifi_interface },
+          out_stream_proc:     -> { out_stream },
+          verbose_proc:        -> { true }
+        )
+        allow(command_runner).to receive(:call).with(%w[sw_vers -productVersion])
+          .and_raise(
+            os_command_error(exitstatus: 1, command: 'sw_vers -productVersion', text: 'Command failed')
+          )
+
+        expect(verbose_info.detect_macos_version).to be_nil
+        expect(out_stream.string).to include('Could not detect macOS version:')
       end
     end
   end

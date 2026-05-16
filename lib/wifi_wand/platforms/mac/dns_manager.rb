@@ -14,7 +14,7 @@ module WifiWand
         end
 
         def set_nameservers(nameservers) # rubocop:disable Naming/AccessorMethodName
-          service_name = @service_name_proc.call
+          service_name = wifi_service_name
 
           if nameservers == :clear
             @command_runner.call(['networksetup', '-setdnsservers', service_name, 'empty'])
@@ -35,12 +35,19 @@ module WifiWand
         end
 
         def nameservers_using_networksetup
-          service_name = @service_name_proc.call
+          service_name = wifi_service_name
           output = @command_runner.call(['networksetup', '-getdnsservers', service_name]).stdout
           if output == "There aren't any DNS Servers set on #{service_name}.\n"
             output = ''
           end
           output.split("\n")
+        end
+
+        private def wifi_service_name
+          service_name = @service_name_proc.call
+          return service_name if service_name && !service_name.empty?
+
+          raise WifiServiceError
         end
 
         private def invalid_nameservers(nameservers)

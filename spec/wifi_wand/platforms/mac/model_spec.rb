@@ -34,21 +34,33 @@ module WifiWand
     describe 'version support' do
       subject(:model) { create_mac_os_test_model }
 
-      describe '#detect_macos_version' do
+      describe '#macos_version' do
+        it 'delegates through system network info' do
+          system_network_info = instance_double(Platforms::Mac::SystemNetworkInfo)
+          allow(model).to receive(:system_network_info).and_return(system_network_info)
+          allow(system_network_info).to receive(:detect_macos_version)
+            .with(timeout_in_secs: 3)
+            .and_return('15.6')
+
+          expect(model.macos_version(timeout_in_secs: 3)).to eq('15.6')
+          expect(system_network_info).to have_received(:detect_macos_version)
+            .with(timeout_in_secs: 3)
+        end
+
         it 'detects macOS version when command succeeds' do
           model = create_mac_os_test_model
           allow(model).to receive(:run_command).with(%w[sw_vers -productVersion])
             .and_return(command_result(stdout: "15.6\n"))
 
-          expect(model.send(:detect_macos_version)).to eq('15.6')
+          expect(model.macos_version).to eq('15.6')
         end
 
-        it 'uses the model command runner so verbose mode can trace sw_vers' do
+        it 'uses the model command runner for sw_vers detection' do
           model = create_mac_os_test_model
           allow(model).to receive(:run_command).with(%w[sw_vers -productVersion])
             .and_return(command_result(stdout: "15.6\n"))
 
-          model.send(:detect_macos_version)
+          model.macos_version
 
           expect(model).to have_received(:run_command).with(%w[sw_vers -productVersion])
         end
@@ -60,8 +72,19 @@ module WifiWand
               os_command_error(exitstatus: 1, command: 'sw_vers -productVersion', text: 'Command failed')
             )
 
-          expect { model.send(:detect_macos_version) }.not_to raise_error
-          expect(model.send(:detect_macos_version)).to be_nil
+          expect { model.macos_version }.not_to raise_error
+          expect(model.macos_version).to be_nil
+        end
+      end
+
+      describe '#wifi_on?' do
+        it 'delegates through system network info' do
+          system_network_info = instance_double(Platforms::Mac::SystemNetworkInfo)
+          allow(model).to receive(:system_network_info).and_return(system_network_info)
+          allow(system_network_info).to receive(:wifi_on?).and_return(true)
+
+          expect(model.wifi_on?).to be(true)
+          expect(system_network_info).to have_received(:wifi_on?)
         end
       end
 
@@ -241,6 +264,89 @@ module WifiWand
 
           expect { model.is_wifi_interface?('en2') }
             .to raise_error(WifiWand::CommandExecutor::OsCommandError, /unexpected failure/)
+        end
+      end
+
+      describe 'DNS service-name detection' do
+        let(:non_wifi_ports_output) { "Hardware Port: Ethernet\nDevice: en1\n" }
+
+        it 'uses a trusted cached service name for DNS commands' do
+          model.instance_variable_set(:@wifi_service_name, 'CustomSvc')
+          model.instance_variable_set(:@wifi_service_name_source, :detected)
+          expect(model).not_to receive(:run_command)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+          expect(model).to receive(:run_command)
+            .with(%w[networksetup -setdnsservers CustomSvc 8.8.8.8])
+
+          expect(model.set_nameservers(['8.8.8.8'])).to eq(['8.8.8.8'])
+        end
+
+        it 'caches the strict detected service name used for DNS commands' do
+          model.instance_variable_set(:@wifi_interface, 'en1')
+          model.instance_variable_set(:@wifi_service_name, nil)
+          output = "Hardware Port: AirPort\nDevice: en1\nEthernet Address: aa:bb:cc\n\n" \
+            "Hardware Port: Ethernet\nDevice: en0\n"
+          allow(model).to receive(:run_command)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+            .and_return(command_result(stdout: output))
+          expect(model).to receive(:run_command)
+            .with(%w[networksetup -setdnsservers AirPort 8.8.8.8])
+
+          expect(model.set_nameservers(['8.8.8.8'])).to eq(['8.8.8.8'])
+          expect(model.instance_variable_get(:@wifi_service_name)).to eq('AirPort')
+        end
+
+        it 'reuses a strictly detected service name for later DNS commands' do
+          model.instance_variable_set(:@wifi_interface, 'en1')
+          model.instance_variable_set(:@wifi_service_name, nil)
+          output = "Hardware Port: AirPort\nDevice: en1\nEthernet Address: aa:bb:cc\n"
+          expect(model).to receive(:run_command)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+            .once
+            .and_return(command_result(stdout: output))
+          expect(model).to receive(:run_command)
+            .with(%w[networksetup -setdnsservers AirPort 8.8.8.8])
+          expect(model).to receive(:run_command)
+            .with(%w[networksetup -setdnsservers AirPort 1.1.1.1])
+
+          expect(model.set_nameservers(['8.8.8.8'])).to eq(['8.8.8.8'])
+          expect(model.set_nameservers(['1.1.1.1'])).to eq(['1.1.1.1'])
+        end
+
+        it 'does not use the public Wi-Fi service-name fallback for DNS writes' do
+          allow(model).to receive(:run_command)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+            .and_return(command_result(stdout: non_wifi_ports_output))
+          expect(model).not_to receive(:run_command)
+            .with(%w[networksetup -setdnsservers Wi-Fi 8.8.8.8])
+
+          expect { model.set_nameservers(['8.8.8.8']) }.to raise_error(WifiWand::WifiServiceError)
+        end
+
+        it 'does not use a cached public Wi-Fi service-name fallback for DNS writes' do
+          expect(model).to receive(:run_command)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+            .ordered
+            .and_return(command_result(stdout: non_wifi_ports_output))
+          expect(model).to receive(:run_command)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+            .ordered
+            .and_return(command_result(stdout: non_wifi_ports_output))
+          expect(model).not_to receive(:run_command)
+            .with(%w[networksetup -setdnsservers Wi-Fi 8.8.8.8])
+
+          expect(model.wifi_service_name).to eq('Wi-Fi')
+          expect { model.set_nameservers(['8.8.8.8']) }.to raise_error(WifiWand::WifiServiceError)
+        end
+
+        it 'does not use the public Wi-Fi service-name fallback for DNS reads' do
+          allow(model).to receive(:run_command)
+            .with(%w[networksetup -listallhardwareports], timeout_in_secs: nil)
+            .and_return(command_result(stdout: non_wifi_ports_output))
+          expect(model).not_to receive(:run_command)
+            .with(%w[networksetup -getdnsservers Wi-Fi])
+
+          expect { model.nameservers_using_networksetup }.to raise_error(WifiWand::WifiServiceError)
         end
       end
 

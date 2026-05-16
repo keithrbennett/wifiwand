@@ -81,10 +81,22 @@ module WifiWand
   # === WIFI HARDWARE ERRORS ===
 
   class WifiInterfaceError < Error
-    def initialize(interface = nil)
-      msg = interface ? "WiFi interface '#{interface}' not found" : 'No WiFi interface found'
-      msg += '. Ensure WiFi hardware is present and drivers are installed'
+    def initialize(interface = nil, message: nil)
+      msg = message || wifi_interface_message(interface)
       super(msg)
+    end
+
+    private def wifi_interface_message(interface)
+      msg = interface ? "WiFi interface '#{interface}' not found" : 'No WiFi interface found'
+      "#{msg}. Ensure WiFi hardware is present and drivers are installed"
+    end
+  end
+
+  class WifiServiceError < WifiInterfaceError
+    def initialize
+      message = 'No macOS WiFi network service found. Ensure WiFi hardware has a Network Settings service ' \
+        'configured.'
+      super(nil, message: message)
     end
   end
 

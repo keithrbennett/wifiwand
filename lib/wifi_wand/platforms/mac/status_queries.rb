@@ -221,11 +221,10 @@ module WifiWand
           iface = status_wifi_interface(deadline)
           return false unless iface
 
-          output = command_runner.call(
-            ['networksetup', '-getairportpower', iface],
+          system_network_info.wifi_on?(
+            iface:           iface,
             timeout_in_secs: status_timeout_for(deadline)
-          ).stdout
-          output.chomp.match?(/\): On$/)
+          )
         end
 
         private def placeholder_network_name?(name)

@@ -32,6 +32,21 @@ module WifiWand
           expect(manager.nameservers_using_networksetup).to eq(expected)
         end
       end
+
+      context 'when the Wi-Fi service name is unavailable' do
+        [nil, ''].each do |unavailable_service_name|
+          context "with #{unavailable_service_name.inspect} service name" do
+            let(:service_name) { unavailable_service_name }
+
+            it 'raises before running networksetup' do
+              allow(command_runner).to receive(:call)
+
+              expect { manager.nameservers_using_networksetup }.to raise_error(WifiWand::WifiServiceError)
+              expect(command_runner).not_to have_received(:call)
+            end
+          end
+        end
+      end
     end
 
     describe '#nameservers_using_scutil' do
@@ -69,6 +84,28 @@ module WifiWand
             .with(['networksetup', '-setdnsservers', service_name] + tc[:expected_args])
 
           expect(manager.set_nameservers(tc[:input])).to eq(tc[:input])
+        end
+      end
+
+      context 'when the Wi-Fi service name is unavailable' do
+        [nil, ''].each do |unavailable_service_name|
+          context "with #{unavailable_service_name.inspect} service name" do
+            let(:service_name) { unavailable_service_name }
+
+            it 'raises before running networksetup for write requests' do
+              allow(command_runner).to receive(:call)
+
+              expect { manager.set_nameservers(['8.8.8.8']) }.to raise_error(WifiWand::WifiServiceError)
+              expect(command_runner).not_to have_received(:call)
+            end
+
+            it 'raises before running networksetup for clear requests' do
+              allow(command_runner).to receive(:call)
+
+              expect { manager.set_nameservers(:clear) }.to raise_error(WifiWand::WifiServiceError)
+              expect(command_runner).not_to have_received(:call)
+            end
+          end
         end
       end
 

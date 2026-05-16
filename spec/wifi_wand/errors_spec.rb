@@ -79,6 +79,9 @@ module WifiWand
           "WiFi interface 'en1' not found. Ensure WiFi hardware is present and drivers are installed"],
         [WifiInterfaceError,            [],
           'No WiFi interface found. Ensure WiFi hardware is present and drivers are installed'],
+        [WifiServiceError,              [],
+          'No macOS WiFi network service found. Ensure WiFi hardware has a Network Settings service ' \
+            'configured.'],
         [WifiEnableError,               [],
           'WiFi could not be enabled. Check hardware and permissions'],
         [WifiDisableError,              [],

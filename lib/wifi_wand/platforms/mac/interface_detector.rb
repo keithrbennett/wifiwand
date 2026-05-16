@@ -69,7 +69,7 @@ module WifiWand
           end
         end
 
-        def wifi_service_name_from_ports(ports, known_interface: nil)
+        def wifi_service_name_from_ports(ports, known_interface: nil, fallback_service_name: 'Wi-Fi')
           wifi_port = wifi_port_from_ports(ports)
           return wifi_port[:name] if wifi_port && wifi_port[:name] && !wifi_port[:name].empty?
 
@@ -80,13 +80,21 @@ module WifiWand
             return match[:name] if match
           end
 
-          'Wi-Fi'
+          fallback_service_name
         end
 
         def wifi_service_name(known_interface: nil, timeout_in_secs: nil)
           wifi_service_name_from_ports(
             fetch_hardware_ports(timeout_in_secs: timeout_in_secs),
             known_interface: known_interface
+          )
+        end
+
+        def detected_wifi_service_name(known_interface: nil, timeout_in_secs: nil)
+          wifi_service_name_from_ports(
+            fetch_hardware_ports(timeout_in_secs: timeout_in_secs),
+            known_interface:       known_interface,
+            fallback_service_name: nil
           )
         end
 
