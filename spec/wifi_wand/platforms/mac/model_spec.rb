@@ -408,22 +408,22 @@ module WifiWand
           expect(model._connected_network_name).to eq('HelperSSID')
         end
 
-        it 'uses networksetup for the connected SSID before reading airport data' do
+        it 'uses networksetup for the connected SSID before reading system_profiler WiFi data' do
           result = helper_query_result.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive(:wifi_interface).and_return('en0')
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: nil)
             .and_return(command_result(stdout: "Current Wi-Fi Network: Cafe: West\n"))
-          expect(model).not_to receive(:airport_data)
+          expect(model).not_to receive(:system_profiler_wifi_data)
 
           expect(model._connected_network_name).to eq('Cafe: West')
         end
 
-        it 'falls through a networksetup placeholder SSID to airport data' do
+        it 'falls through a networksetup placeholder SSID to system_profiler WiFi data' do
           result = helper_query_result.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
-          allow(model).to receive_messages(airport_data: { 'SPAirPortDataType' => [{
+          allow(model).to receive_messages(system_profiler_wifi_data: { 'SPAirPortDataType' => [{
             'spairport_airport_interfaces' => [{
               '_name'                                 => 'en0',
               'spairport_current_network_information' => { '_name' => 'ProfilerNet' },
@@ -436,26 +436,26 @@ module WifiWand
           expect(model._connected_network_name).to eq('ProfilerNet')
         end
 
-        it 'does not read airport data when networksetup reports no association' do
+        it 'does not read system_profiler WiFi data when networksetup reports no association' do
           result = helper_query_result.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive(:wifi_interface).and_return('en0')
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: nil)
             .and_return(command_result(stdout: "You are not associated with an AirPort network.\n"))
-          expect(model).not_to receive(:airport_data)
+          expect(model).not_to receive(:system_profiler_wifi_data)
 
           expect(model._connected_network_name).to be_nil
         end
 
-        it 'does not read airport data when networksetup reports WiFi power is off' do
+        it 'does not read system_profiler WiFi data when networksetup reports WiFi power is off' do
           result = helper_query_result.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive(:wifi_interface).and_return('en0')
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: nil)
             .and_return(command_result(stdout: "Wi-Fi power is currently off.\n"))
-          expect(model).not_to receive(:airport_data)
+          expect(model).not_to receive(:system_profiler_wifi_data)
 
           expect(model._connected_network_name).to be_nil
         end
@@ -467,7 +467,7 @@ module WifiWand
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: nil)
             .and_return(command_result(stdout: "You are not associated with an AirPort network.\n"))
-          expect(model).not_to receive(:airport_data)
+          expect(model).not_to receive(:system_profiler_wifi_data)
           expect(identity_reader).not_to receive(:connected?)
 
           expect(model.connected_network_name).to be_nil
@@ -481,17 +481,17 @@ module WifiWand
             expect(model).to receive(:run_command)
               .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: nil)
               .and_return(command_result(stdout: "You are not associated with an AirPort network.\n"))
-            expect(model).not_to receive(:airport_data)
+            expect(model).not_to receive(:system_profiler_wifi_data)
             expect(identity_reader).not_to receive(:connected?)
 
             expect(model.connected_network_name).to be_nil
           end
         end
 
-        it 'falls back to airport data when helper returns nil' do
+        it 'falls back to system_profiler WiFi data when helper returns nil' do
           result = helper_query_result.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
-          allow(model).to receive_messages(airport_data: { 'SPAirPortDataType' => [{
+          allow(model).to receive_messages(system_profiler_wifi_data: { 'SPAirPortDataType' => [{
             'spairport_airport_interfaces' => [{
               '_name'                                 => 'en0',
               'spairport_current_network_information' => { '_name' => 'ProfilerNet' },
@@ -502,10 +502,11 @@ module WifiWand
           expect(model._connected_network_name).to eq('ProfilerNet')
         end
 
-        it 'returns nil when helper returns nil and airport data is missing current network information' do
+        it 'returns nil when helper returns nil and system_profiler WiFi data is missing ' \
+          'current network information' do
           result = helper_query_result.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
-          allow(model).to receive_messages(airport_data: { 'SPAirPortDataType' => [{
+          allow(model).to receive_messages(system_profiler_wifi_data: { 'SPAirPortDataType' => [{
             'spairport_airport_interfaces' => [{
               '_name'                                 => 'en0',
               'spairport_current_network_information' => nil,
@@ -516,21 +517,22 @@ module WifiWand
           expect(model._connected_network_name).to be_nil
         end
 
-        it 'does not fall back to airport data when the helper explicitly reports not connected' do
+        it 'does not fall back to system_profiler WiFi data when the helper explicitly ' \
+          'reports not connected' do
           result = helper_query_result.new(status: :not_connected)
           allow(helper_double).to receive(:connected_network_name).and_return(result)
 
-          expect(model).not_to receive(:airport_data)
+          expect(model).not_to receive(:system_profiler_wifi_data)
           expect(model._connected_network_name).to be_nil
         end
 
-        it 'falls back to airport data when helper is blocked by Location Services' do
+        it 'falls back to system_profiler WiFi data when helper is blocked by Location Services' do
           result = helper_query_result.new(
             location_services_blocked: true,
             error_message:             'Location Services denied'
           )
           allow(helper_double).to receive(:connected_network_name).and_return(result)
-          allow(model).to receive_messages(airport_data: { 'SPAirPortDataType' => [{
+          allow(model).to receive_messages(system_profiler_wifi_data: { 'SPAirPortDataType' => [{
             'spairport_airport_interfaces' => [{
               '_name'                                 => 'en0',
               'spairport_current_network_information' => { '_name' => 'ProfilerNet' },
@@ -543,7 +545,7 @@ module WifiWand
 
         it 'refreshes connected network state across separate public read operations' do
           result = helper_query_result.new(payload: nil)
-          first_airport_data = JSON.generate(
+          first_system_profiler_wifi_data = JSON.generate(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
@@ -551,7 +553,7 @@ module WifiWand
               }],
             }]
           )
-          second_airport_data = JSON.generate(
+          second_system_profiler_wifi_data = JSON.generate(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
@@ -568,8 +570,8 @@ module WifiWand
             raise_on_error:  true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
           ).twice.and_return(
-            command_result(stdout: first_airport_data),
-            command_result(stdout: second_airport_data)
+            command_result(stdout: first_system_profiler_wifi_data),
+            command_result(stdout: second_system_profiler_wifi_data)
           )
 
           expect(model.connected_network_name).to eq('ProfilerNetA')
@@ -644,14 +646,14 @@ module WifiWand
           )
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(
-            wifi_on?:       true,
-            airport_data:   { 'SPAirPortDataType' => [{
+            wifi_on?:                  true,
+            system_profiler_wifi_data: { 'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
                 'spairport_current_network_information' => { '_name' => nil },
               }],
             }] },
-            wifi_interface: 'en0'
+            wifi_interface:            'en0'
           )
           stub_fast_network_identity_missing
 
@@ -669,14 +671,14 @@ module WifiWand
           )
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(
-            wifi_on?:       true,
-            airport_data:   { 'SPAirPortDataType' => [{
+            wifi_on?:                  true,
+            system_profiler_wifi_data: { 'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
                 'spairport_current_network_information' => { '_name' => nil },
               }],
             }] },
-            wifi_interface: 'en0'
+            wifi_interface:            'en0'
           )
           stub_fast_network_identity_missing
 
@@ -699,14 +701,14 @@ module WifiWand
             )
             allow(helper_double).to receive(:connected_network_name).and_return(result)
             allow(model).to receive_messages(
-              wifi_on?:       true,
-              airport_data:   { 'SPAirPortDataType' => [{
+              wifi_on?:                  true,
+              system_profiler_wifi_data: { 'SPAirPortDataType' => [{
                 'spairport_airport_interfaces' => [{
                   '_name'                                 => 'en0',
                   'spairport_current_network_information' => { '_name' => nil },
                 }],
               }] },
-              wifi_interface: 'en0'
+              wifi_interface:            'en0'
             )
             stub_fast_network_identity_missing
 
@@ -727,8 +729,8 @@ module WifiWand
             result = helper_query_result.new(status: helper_status)
             allow(helper_double).to receive(:connected_network_name).and_return(result)
             allow(model).to receive_messages(
-              wifi_on?:       true,
-              airport_data:   { 'SPAirPortDataType' => [{
+              wifi_on?:                  true,
+              system_profiler_wifi_data: { 'SPAirPortDataType' => [{
                 'spairport_airport_interfaces' => [{
                   '_name'                                 => 'en0',
                   'spairport_current_network_information' => {
@@ -737,7 +739,7 @@ module WifiWand
                   },
                 }],
               }] },
-              wifi_interface: 'en0'
+              wifi_interface:            'en0'
             )
             stub_fast_network_identity_missing
 
@@ -748,9 +750,9 @@ module WifiWand
           end
         end
 
-        it 'reuses the current airport snapshot when fallback evidence proves redaction' do
+        it 'reuses the current system_profiler WiFi snapshot when fallback evidence proves redaction' do
           result = helper_query_result.new(status: :timeout)
-          airport_json = JSON.generate(
+          system_profiler_wifi_json = JSON.generate(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
@@ -768,7 +770,7 @@ module WifiWand
             %w[system_profiler -json SPAirPortDataType],
             raise_on_error:  true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
-          ).once.and_return(command_result(stdout: airport_json))
+          ).once.and_return(command_result(stdout: system_profiler_wifi_json))
 
           expect { model.connected_network_name }.to raise_error(WifiWand::MacOsRedactionError)
         end
@@ -789,15 +791,15 @@ module WifiWand
           result = helper_query_result.new(payload: 'MyNetwork')
           allow(helper_double).to receive(:connected_network_name).and_return(result)
 
-          expect(model).not_to receive(:airport_data)
+          expect(model).not_to receive(:system_profiler_wifi_data)
           expect(model.associated?).to be(true)
         end
 
-        it 'returns true when airport data shows non-empty current network information ' \
+        it 'returns true when system_profiler WiFi data shows non-empty current network information ' \
           'without an SSID name' do
           result = helper_query_result.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
-          allow(model).to receive(:airport_data).and_return(
+          allow(model).to receive(:system_profiler_wifi_data).and_return(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
@@ -809,10 +811,10 @@ module WifiWand
           expect(model.associated?).to be(true)
         end
 
-        it 'returns false when airport data only has an empty current-network hash' do
+        it 'returns false when system_profiler WiFi data only has an empty current-network hash' do
           result = helper_query_result.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
-          allow(model).to receive(:airport_data).and_return(
+          allow(model).to receive(:system_profiler_wifi_data).and_return(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
@@ -828,14 +830,15 @@ module WifiWand
           result = helper_query_result.new(status: :not_connected)
           allow(helper_double).to receive(:connected_network_name).and_return(result)
 
-          expect(model).not_to receive(:airport_data)
+          expect(model).not_to receive(:system_profiler_wifi_data)
           expect(model.associated?).to be(false)
         end
 
-        it 'returns false when the helper reports no SSID and airport data has no current network info' do
+        it 'returns false when the helper reports no SSID and system_profiler WiFi data ' \
+          'has no current network info' do
           result = helper_query_result.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
-          allow(model).to receive(:airport_data).and_return(
+          allow(model).to receive(:system_profiler_wifi_data).and_return(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{ '_name' => 'en0' }],
             }]
@@ -911,7 +914,7 @@ module WifiWand
           result = helper_query_result.new(payload: 'MyNetwork')
           allow(helper_double).to receive(:connected_network_name).and_return(result)
 
-          expect(model).not_to receive(:airport_data)
+          expect(model).not_to receive(:system_profiler_wifi_data)
           expect(model.connected?).to be(true)
         end
 
@@ -926,13 +929,13 @@ module WifiWand
           result = helper_query_result.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(
-            airport_data:   { 'SPAirPortDataType' => [{
+            system_profiler_wifi_data: { 'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
                 'spairport_current_network_information' => { '_name' => 'SomeNet' },
               }],
             }] },
-            wifi_interface: 'en0'
+            wifi_interface:            'en0'
           )
 
           expect(model.connected?).to be(true)
@@ -942,14 +945,14 @@ module WifiWand
           result = helper_query_result.new
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(
-            airport_data:      { 'SPAirPortDataType' => [{
+            system_profiler_wifi_data: { 'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name' => 'en0',
               }],
             }] },
-            wifi_interface:    'en0',
-            default_interface: nil,
-            _ipv4_addresses:   []
+            wifi_interface:            'en0',
+            default_interface:         nil,
+            _ipv4_addresses:           []
           )
 
           expect(model.connected?).to be(false)
@@ -959,7 +962,7 @@ module WifiWand
           result = helper_query_result.new(status: :not_connected)
           allow(helper_double).to receive(:connected_network_name).and_return(result)
 
-          expect(model).not_to receive(:airport_data)
+          expect(model).not_to receive(:system_profiler_wifi_data)
           expect(model.connected?).to be(false)
         end
 
@@ -967,10 +970,10 @@ module WifiWand
           result = helper_query_result.new(payload: '<redacted>')
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(
-            airport_data:      { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [] }] },
-            wifi_interface:    'en0',
-            default_interface: nil,
-            _ipv4_addresses:   []
+            system_profiler_wifi_data: { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [] }] },
+            wifi_interface:            'en0',
+            default_interface:         nil,
+            _ipv4_addresses:           []
           )
 
           expect(model.connected?).to be(false)
@@ -983,11 +986,11 @@ module WifiWand
           )
           allow(helper_double).to receive(:connected_network_name).and_return(result)
           allow(model).to receive_messages(
-            airport_data:      { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [{
+            system_profiler_wifi_data: { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [{
               '_name' => 'en0',
             }] }] },
-            wifi_interface:    'en0',
-            default_interface: 'en0'
+            wifi_interface:            'en0',
+            default_interface:         'en0'
           )
           allow(model).to receive(:_ipv4_addresses).and_return([])
 
@@ -1004,12 +1007,12 @@ module WifiWand
           )
           model.instance_variable_set(:@helper_client, helper_client)
           allow(model).to receive_messages(
-            airport_data:      { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [{
+            system_profiler_wifi_data: { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [{
               '_name' => 'en0',
             }] }] },
-            wifi_interface:    'en0',
-            default_interface: nil,
-            _ipv4_addresses:   ['192.168.1.44']
+            wifi_interface:            'en0',
+            default_interface:         nil,
+            _ipv4_addresses:           ['192.168.1.44']
           )
 
           original_env = ENV['WIFIWAND_DISABLE_MAC_HELPER']
@@ -1081,14 +1084,14 @@ module WifiWand
             .with(timeout_seconds: status_timeout)
             .and_return(helper_query_result.new(payload: 'HelperSSID'))
 
-          expect(model).not_to receive(:airport_data)
+          expect(model).not_to receive(:system_profiler_wifi_data)
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
             connected:    true,
             network_name: 'HelperSSID'
           )
         end
 
-        it 'uses networksetup for status identity before bounded airport data' do
+        it 'uses networksetup for status identity before bounded system_profiler WiFi data' do
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportpower', 'en0'], timeout_in_secs: status_timeout)
             .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
@@ -1098,7 +1101,7 @@ module WifiWand
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
             .and_return(command_result(stdout: "Current Wi-Fi Network: Cafe: West\n"))
-          expect(model).not_to receive(:airport_data)
+          expect(model).not_to receive(:system_profiler_wifi_data)
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
             connected:    true,
@@ -1116,7 +1119,7 @@ module WifiWand
           expect(model).to receive(:run_command)
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: status_timeout)
             .and_return(command_result(stdout: "You are not associated with an AirPort network.\n"))
-          expect(model).not_to receive(:airport_data)
+          expect(model).not_to receive(:system_profiler_wifi_data)
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
             connected:    false,
@@ -1124,8 +1127,8 @@ module WifiWand
           )
         end
 
-        it 'recomputes the remaining status budget before bounded airport data fallback' do
-          airport_json = JSON.generate(
+        it 'recomputes the remaining status budget before bounded system_profiler WiFi data fallback' do
+          system_profiler_wifi_json = JSON.generate(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
@@ -1151,7 +1154,7 @@ module WifiWand
               raise_on_error:  true,
               timeout_in_secs: be_between(0, 0.45).exclusive
             )
-            .and_return(command_result(stdout: airport_json))
+            .and_return(command_result(stdout: system_profiler_wifi_json))
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
             connected:    true,
@@ -1159,8 +1162,8 @@ module WifiWand
           )
         end
 
-        it 'falls back to bounded airport data when the helper has no SSID' do
-          airport_json = JSON.generate(
+        it 'falls back to bounded system_profiler WiFi data when the helper has no SSID' do
+          system_profiler_wifi_json = JSON.generate(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
@@ -1183,7 +1186,7 @@ module WifiWand
               raise_on_error:  true,
               timeout_in_secs: status_timeout
             )
-            .and_return(command_result(stdout: airport_json))
+            .and_return(command_result(stdout: system_profiler_wifi_json))
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
             connected:    true,
@@ -1191,7 +1194,7 @@ module WifiWand
           )
         end
 
-        it 'preserves bounded airport data timeouts for status fallback handling' do
+        it 'preserves bounded system_profiler WiFi data timeouts for status fallback handling' do
           timeout_error = WifiWand::CommandTimeoutError.new(
             command:         'system_profiler',
             timeout_in_secs: 0.1
@@ -1226,15 +1229,15 @@ module WifiWand
             .with(timeout_seconds: status_timeout)
             .and_return(helper_query_result.new(status: :not_connected))
 
-          expect(model).not_to receive(:airport_data)
+          expect(model).not_to receive(:system_profiler_wifi_data)
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
             connected:    false,
             network_name: nil
           )
         end
 
-        it 'uses bounded association fallback when airport data has no SSID' do
-          airport_json = JSON.generate(
+        it 'uses bounded association fallback when system_profiler WiFi data has no SSID' do
+          system_profiler_wifi_json = JSON.generate(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{ '_name' => 'en0' }],
             }]
@@ -1254,7 +1257,7 @@ module WifiWand
               raise_on_error:  true,
               timeout_in_secs: status_timeout
             )
-            .and_return(command_result(stdout: airport_json))
+            .and_return(command_result(stdout: system_profiler_wifi_json))
           expect(model).to receive(:run_command)
             .with(%w[route -n get default], raise_on_error: false, timeout_in_secs: status_timeout)
             .and_return(command_result(stdout: "interface: en0\n"))
@@ -1266,7 +1269,7 @@ module WifiWand
         end
 
         it 'treats an empty bounded IP address result as disconnected' do
-          airport_json = JSON.generate(
+          system_profiler_wifi_json = JSON.generate(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{ '_name' => 'en0' }],
             }]
@@ -1286,7 +1289,7 @@ module WifiWand
               raise_on_error:  true,
               timeout_in_secs: status_timeout
             )
-            .and_return(command_result(stdout: airport_json))
+            .and_return(command_result(stdout: system_profiler_wifi_json))
           expect(model).to receive(:run_command)
             .with(%w[route -n get default], raise_on_error: false, timeout_in_secs: status_timeout)
             .and_return(command_result(stdout: "interface: en1\n"))
@@ -1370,7 +1373,7 @@ module WifiWand
 
       describe 'Sonoma SSID redaction: helper succeeds but system_profiler lacks current-network data' do
         let(:helper_double) { instance_double(WifiWand::Platforms::Mac::Helper::Client) }
-        let(:airport_data_without_current_network) do
+        let(:system_profiler_wifi_data_without_current_network) do
           { 'SPAirPortDataType' => [{
             'spairport_airport_interfaces' => [{ '_name' => 'en0' }],
           }] }
@@ -1380,9 +1383,9 @@ module WifiWand
           model.instance_variable_set(:@helper_client, nil)
           allow(WifiWand::Platforms::Mac::Helper::Client).to receive(:new).and_return(helper_double)
           allow(model).to receive_messages(
-            wifi_on?:       true,
-            wifi_interface: 'en0',
-            airport_data:   airport_data_without_current_network
+            wifi_on?:                  true,
+            wifi_interface:            'en0',
+            system_profiler_wifi_data: system_profiler_wifi_data_without_current_network
           )
           # Helper returns real SSID; system_profiler has no current-network key
           helper_ssid_result = helper_query_result.new(payload: 'SonomaNet')
@@ -1873,45 +1876,45 @@ module WifiWand
       end
 
       describe '#wifi_on' do
-        it 'clears cached airport data before and after turning WiFi on' do
+        it 'clears cached system_profiler WiFi data before and after turning WiFi on' do
           allow(model).to receive(:wifi_on?).and_return(false, true)
           allow(model).to receive(:wifi_interface).and_return('en0')
 
-          expect(model).to receive(:invalidate_airport_data_cache).ordered
+          expect(model).to receive(:invalidate_system_profiler_wifi_data_cache).ordered
           expect(model).to receive(:run_command)
             .with(['networksetup', '-setairportpower', 'en0', 'on'])
             .ordered
             .and_return(command_result(stdout: ''))
-          expect(model).to receive(:invalidate_airport_data_cache).ordered
+          expect(model).to receive(:invalidate_system_profiler_wifi_data_cache).ordered
 
           expect(model.wifi_on).to be_nil
         end
       end
 
       describe '#wifi_off' do
-        it 'clears cached airport data before and after turning WiFi off' do
+        it 'clears cached system_profiler WiFi data before and after turning WiFi off' do
           allow(model).to receive(:wifi_on?).and_return(true, false)
           allow(model).to receive(:wifi_interface).and_return('en0')
 
-          expect(model).to receive(:invalidate_airport_data_cache).ordered
+          expect(model).to receive(:invalidate_system_profiler_wifi_data_cache).ordered
           expect(model).to receive(:run_command)
             .with(['networksetup', '-setairportpower', 'en0', 'off'])
             .ordered
             .and_return(command_result(stdout: ''))
-          expect(model).to receive(:invalidate_airport_data_cache).ordered
+          expect(model).to receive(:invalidate_system_profiler_wifi_data_cache).ordered
 
           expect(model.wifi_off).to be_nil
         end
       end
 
       describe '#_disconnect' do
-        it 'clears cached airport data before and after delegating disconnect orchestration' do
+        it 'clears cached system_profiler WiFi data before and after delegating disconnect orchestration' do
           transport = instance_double(WifiWand::Platforms::Mac::Helper::WifiTransport, disconnect: nil)
           allow(model).to receive(:wifi_transport).and_return(transport)
 
-          expect(model).to receive(:invalidate_airport_data_cache).ordered
+          expect(model).to receive(:invalidate_system_profiler_wifi_data_cache).ordered
           expect(transport).to receive(:disconnect).ordered
-          expect(model).to receive(:invalidate_airport_data_cache).ordered
+          expect(model).to receive(:invalidate_system_profiler_wifi_data_cache).ordered
 
           expect(model._disconnect).to be_nil
         end
@@ -1996,13 +1999,13 @@ module WifiWand
       end
 
       describe '#_connect' do
-        it 'clears cached airport data before and after delegating connect orchestration' do
+        it 'clears cached system_profiler WiFi data before and after delegating connect orchestration' do
           transport = instance_double(WifiWand::Platforms::Mac::Helper::WifiTransport)
           allow(model).to receive(:wifi_transport).and_return(transport)
 
-          expect(model).to receive(:invalidate_airport_data_cache).ordered
+          expect(model).to receive(:invalidate_system_profiler_wifi_data_cache).ordered
           expect(transport).to receive(:connect).with('TestNetwork', 'password').ordered
-          expect(model).to receive(:invalidate_airport_data_cache).ordered
+          expect(model).to receive(:invalidate_system_profiler_wifi_data_cache).ordered
 
           model._connect('TestNetwork', 'password')
         end
@@ -2011,7 +2014,7 @@ module WifiWand
       describe '#connection_security_type' do
         let(:network_name) { 'TestNetwork' }
         let(:wifi_interface) { 'en0' }
-        let(:connected_airport_data) do
+        let(:connected_system_profiler_wifi_data) do
           {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
@@ -2053,7 +2056,7 @@ module WifiWand
           mode_description = security_mode.empty? ? 'blank security mode' : security_mode
 
           it "returns #{expected_result || 'nil'} for #{mode_description}" do
-            airport_data = {
+            system_profiler_wifi_data = {
               'SPAirPortDataType' => [{
                 'spairport_airport_interfaces' => [{
                   '_name'                                           => wifi_interface,
@@ -2066,7 +2069,7 @@ module WifiWand
               }],
             }
 
-            allow(model).to receive(:airport_data).and_return(airport_data)
+            allow(model).to receive(:system_profiler_wifi_data).and_return(system_profiler_wifi_data)
 
             expect(model.connection_security_type).to eq(expected_result)
           end
@@ -2076,7 +2079,7 @@ module WifiWand
         # which is the wrong key when connected. system_profiler places the current SSID under
         # 'spairport_airport_other_local_wireless_networks' once the interface is associated.
         it 'finds the connected network under other_local_wireless_networks (not local)' do
-          airport_data = {
+          system_profiler_wifi_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                           => wifi_interface,
@@ -2090,14 +2093,14 @@ module WifiWand
             }],
           }
 
-          allow(model).to receive(:airport_data).and_return(airport_data)
+          allow(model).to receive(:system_profiler_wifi_data).and_return(system_profiler_wifi_data)
 
           expect(model.connection_security_type).to eq('WPA2')
         end
 
-        it 'uses one airport snapshot while resolving security for a single lookup' do
+        it 'uses one system_profiler WiFi snapshot while resolving security for a single lookup' do
           helper_double = instance_double(WifiWand::Platforms::Mac::Helper::Client)
-          json_output = JSON.generate(connected_airport_data)
+          json_output = JSON.generate(connected_system_profiler_wifi_data)
           helper_result = helper_query_result.new(payload: nil)
 
           allow(model).to receive(:_connected_network_name).and_call_original
@@ -2114,10 +2117,10 @@ module WifiWand
           expect(model.connection_security_type).to eq('WPA2')
         end
 
-        it 'refreshes airport data between separate security lookups' do
+        it 'refreshes system_profiler WiFi data between separate security lookups' do
           helper_double = instance_double(WifiWand::Platforms::Mac::Helper::Client)
           helper_result = helper_query_result.new(payload: nil)
-          first_airport_data = JSON.generate(
+          first_system_profiler_wifi_data = JSON.generate(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                           => wifi_interface,
@@ -2129,7 +2132,7 @@ module WifiWand
               }],
             }]
           )
-          second_airport_data = JSON.generate(
+          second_system_profiler_wifi_data = JSON.generate(
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                           => wifi_interface,
@@ -2152,16 +2155,16 @@ module WifiWand
             raise_on_error:  true,
             timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
           ).twice.and_return(
-            command_result(stdout: first_airport_data),
-            command_result(stdout: second_airport_data)
+            command_result(stdout: first_system_profiler_wifi_data),
+            command_result(stdout: second_system_profiler_wifi_data)
           )
 
           expect(model.connection_security_type).to eq('WPA2')
           expect(model.connection_security_type).to eq('WPA3')
         end
 
-        it 'clears cached airport data before a state-changing operation' do
-          json_output = JSON.generate(connected_airport_data)
+        it 'clears cached system_profiler WiFi data before a state-changing operation' do
+          json_output = JSON.generate(connected_system_profiler_wifi_data)
 
           expect(model).to receive(:run_command).with(
             %w[system_profiler -json SPAirPortDataType],
@@ -2185,14 +2188,14 @@ module WifiWand
           expect(model.connection_security_type).to be_nil
         end
 
-        it 'returns nil when airport data is unavailable' do
-          allow(model).to receive(:airport_data).and_return({})
+        it 'returns nil when system_profiler WiFi data is unavailable' do
+          allow(model).to receive(:system_profiler_wifi_data).and_return({})
 
           expect(model.connection_security_type).to be_nil
         end
 
-        it 'returns nil when wifi interface not found in airport data' do
-          airport_data = {
+        it 'returns nil when wifi interface not found in system_profiler WiFi data' do
+          system_profiler_wifi_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                           => 'other_interface',
@@ -2201,13 +2204,13 @@ module WifiWand
             }],
           }
 
-          allow(model).to receive(:airport_data).and_return(airport_data)
+          allow(model).to receive(:system_profiler_wifi_data).and_return(system_profiler_wifi_data)
 
           expect(model.connection_security_type).to be_nil
         end
 
         it 'returns nil when connected network not found in scan results' do
-          airport_data = {
+          system_profiler_wifi_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                           => wifi_interface,
@@ -2219,13 +2222,13 @@ module WifiWand
             }],
           }
 
-          allow(model).to receive(:airport_data).and_return(airport_data)
+          allow(model).to receive(:system_profiler_wifi_data).and_return(system_profiler_wifi_data)
 
           expect(model.connection_security_type).to be_nil
         end
 
         it 'returns nil when security mode information is missing' do
-          airport_data = {
+          system_profiler_wifi_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                           => wifi_interface,
@@ -2237,7 +2240,7 @@ module WifiWand
             }],
           }
 
-          allow(model).to receive(:airport_data).and_return(airport_data)
+          allow(model).to receive(:system_profiler_wifi_data).and_return(system_profiler_wifi_data)
 
           expect(model.connection_security_type).to be_nil
         end
@@ -2255,7 +2258,7 @@ module WifiWand
         end
 
         it 'returns false when connected network appears in broadcast list' do
-          airport_data = {
+          system_profiler_wifi_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                     => wifi_interface,
@@ -2270,13 +2273,14 @@ module WifiWand
             }],
           }
 
-          allow(model).to receive_messages(airport_data: airport_data, connected_network_name: network_name)
+          allow(model).to receive_messages(system_profiler_wifi_data: system_profiler_wifi_data,
+            connected_network_name: network_name)
 
           expect(model.network_hidden?).to be false
         end
 
         it 'returns true when connected network is not in broadcast list (hidden)' do
-          airport_data = {
+          system_profiler_wifi_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                     => wifi_interface,
@@ -2291,13 +2295,14 @@ module WifiWand
             }],
           }
 
-          allow(model).to receive_messages(airport_data: airport_data, connected_network_name: network_name)
+          allow(model).to receive_messages(system_profiler_wifi_data: system_profiler_wifi_data,
+            connected_network_name: network_name)
 
           expect(model.network_hidden?).to be true
         end
 
         it 'returns false when connected visible network appears only in other_local_wireless_networks' do
-          airport_data = {
+          system_profiler_wifi_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                           => wifi_interface,
@@ -2317,16 +2322,16 @@ module WifiWand
           }
 
           allow(model).to receive_messages(
-            airport_data:           airport_data,
-            connected_network_name: network_name,
-            wifi_on?:               true
+            system_profiler_wifi_data: system_profiler_wifi_data,
+            connected_network_name:    network_name,
+            wifi_on?:                  true
           )
 
           expect(model.network_hidden?).to be false
         end
 
-        it 'uses provided airport data instead of re-querying the connected network name' do
-          airport_data = {
+        it 'uses provided system_profiler WiFi data instead of re-querying the connected network name' do
+          system_profiler_wifi_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                           => wifi_interface,
@@ -2341,7 +2346,7 @@ module WifiWand
             }],
           }
 
-          allow(model).to receive(:airport_data).and_return(airport_data)
+          allow(model).to receive(:system_profiler_wifi_data).and_return(system_profiler_wifi_data)
           allow(model).to receive(:connected_network_name).and_raise(
             WifiWand::MacOsRedactionError.new(operation_description: 'current WiFi network queries')
           )
@@ -2355,14 +2360,14 @@ module WifiWand
           expect(model.network_hidden?).to be false
         end
 
-        it 'returns false when airport data is unavailable' do
-          allow(model).to receive(:airport_data).and_return({})
+        it 'returns false when system_profiler WiFi data is unavailable' do
+          allow(model).to receive(:system_profiler_wifi_data).and_return({})
 
           expect(model.network_hidden?).to be false
         end
 
-        it 'returns false when wifi interface not found in airport data' do
-          airport_data = {
+        it 'returns false when wifi interface not found in system_profiler WiFi data' do
+          system_profiler_wifi_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'other_interface',
@@ -2373,13 +2378,13 @@ module WifiWand
             }],
           }
 
-          allow(model).to receive(:airport_data).and_return(airport_data)
+          allow(model).to receive(:system_profiler_wifi_data).and_return(system_profiler_wifi_data)
 
           expect(model.network_hidden?).to be false
         end
 
         it 'returns false when current network information is missing' do
-          airport_data = {
+          system_profiler_wifi_data = {
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name' => wifi_interface,
@@ -2388,7 +2393,7 @@ module WifiWand
             }],
           }
 
-          allow(model).to receive(:airport_data).and_return(airport_data)
+          allow(model).to receive(:system_profiler_wifi_data).and_return(system_profiler_wifi_data)
 
           expect(model.network_hidden?).to be false
         end

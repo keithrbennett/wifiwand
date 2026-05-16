@@ -208,7 +208,7 @@ module WifiWand
       # including nil (security type could not be determined), is treated as
       # "may require a password" so we attempt the lookup rather than skip it.
       # This handles the case where macOS moves the connected network out of the
-      # expected airport_data array, causing connection_security_type to return nil.
+      # expected system_profiler_wifi_data array, causing connection_security_type to return nil.
       security_type != 'NONE'
     rescue WifiWand::Error
       true
@@ -266,8 +266,8 @@ module WifiWand
     # CoreWLAN disconnect, macOS triggers an internal auto-reconnect. During this
     # reconnect the Swift helper may return a placeholder SSID ('<hidden>'),
     # causing connection_ready? to return false even when the interface is
-    # already associated. associated? falls back to airport data, which reports
-    # association regardless of SSID visibility. On macOS, we pair that broad
+    # already associated. associated? falls back to system_profiler WiFi data,
+    # which reports association regardless of SSID visibility. On macOS, we pair that broad
     # association check with connected_network_name so a reassociation to the
     # wrong preferred network does not suppress the explicit reconnect.
     private def settle_for_restore?(network_name)

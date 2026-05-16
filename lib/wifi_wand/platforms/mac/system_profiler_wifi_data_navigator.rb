@@ -3,7 +3,7 @@
 module WifiWand
   module Platforms
     module Mac
-      class AirportDataNavigator
+      class SystemProfilerWifiDataNavigator
         LOCAL_NETWORKS_KEY = 'spairport_airport_local_wireless_networks'
         OTHER_LOCAL_NETWORKS_KEY = 'spairport_airport_other_local_wireless_networks'
         INTERFACES_KEY = 'spairport_airport_interfaces'
@@ -75,7 +75,7 @@ module WifiWand
         end
 
         def interfaces
-          interface_data = airport_data_entries
+          interface_data = system_profiler_wifi_data_entries
             .detect { |entry| entry.key?(INTERFACES_KEY) }
             &.fetch(INTERFACES_KEY, [])
 
@@ -128,7 +128,7 @@ module WifiWand
           !visible_network_names_for_hidden_check(wifi_interface_data).include?(ssid)
         end
 
-        private def airport_data_entries
+        private def system_profiler_wifi_data_entries
           entries = @data.is_a?(Hash) ? @data['SPAirPortDataType'] : nil
           Array(entries).select { |entry| entry.is_a?(Hash) }
         end

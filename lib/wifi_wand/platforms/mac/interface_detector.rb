@@ -2,7 +2,7 @@
 
 require 'json'
 
-require_relative 'airport_data_provider'
+require_relative 'system_profiler_wifi_data_provider'
 require_relative '../../errors'
 require_relative '../../services/command_executor'
 require_relative '../../string_predicates'
@@ -21,7 +21,7 @@ module WifiWand
         ].freeze
 
         SYSTEM_PROFILER_NETWORK_ARGS = %w[system_profiler -json SPNetworkDataType].freeze
-        SYSTEM_PROFILER_TIMEOUT_SECONDS = AirportDataProvider::SYSTEM_PROFILER_TIMEOUT_SECONDS
+        SYSTEM_PROFILER_TIMEOUT_SECONDS = SystemProfilerWifiDataProvider::SYSTEM_PROFILER_TIMEOUT_SECONDS
 
         DetectionResult = Struct.new(:interface, :service_name, keyword_init: true)
 

@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
 require_relative '../../../spec_helper'
-require_relative '../../../../lib/wifi_wand/platforms/mac/airport_data_navigator'
+require_relative '../../../../lib/wifi_wand/platforms/mac/system_profiler_wifi_data_navigator'
 
 module WifiWand
-  describe Platforms::Mac::AirportDataNavigator do
-    subject(:navigator) { described_class.new(airport_data) }
+  describe Platforms::Mac::SystemProfilerWifiDataNavigator do
+    subject(:navigator) { described_class.new(system_profiler_wifi_data) }
 
-    let(:airport_data) do
+    let(:system_profiler_wifi_data) do
       {
         'SPAirPortDataType' => [{
           'spairport_airport_interfaces' => [{
@@ -150,7 +150,7 @@ module WifiWand
     end
 
     describe '#interfaces' do
-      it 'returns Airport interfaces from the system profiler payload' do
+      it 'returns WiFi interfaces from the system profiler payload' do
         expect(navigator.interfaces).to contain_exactly(include('_name' => 'en0'))
       end
 

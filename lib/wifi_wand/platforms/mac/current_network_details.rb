@@ -1,31 +1,31 @@
 # frozen_string_literal: true
 
-require_relative 'airport_data_navigator'
+require_relative 'system_profiler_wifi_data_navigator'
 
 module WifiWand
   module Platforms
     module Mac
       class CurrentNetworkDetails
         def initialize(
-          airport_data_proc:,
-          airport_data_cache_scope_proc:,
+          system_profiler_wifi_data_proc:,
+          system_profiler_wifi_data_cache_scope_proc:,
           connected_network_name_proc:,
           wifi_interface_proc:,
           security_normalizer_proc:
         )
-          @airport_data_proc = airport_data_proc
-          @airport_data_cache_scope_proc = airport_data_cache_scope_proc
+          @system_profiler_wifi_data_proc = system_profiler_wifi_data_proc
+          @system_profiler_wifi_data_cache_scope_proc = system_profiler_wifi_data_cache_scope_proc
           @connected_network_name_proc = connected_network_name_proc
           @wifi_interface_proc = wifi_interface_proc
           @security_normalizer_proc = security_normalizer_proc
         end
 
         def connection_security_type
-          with_airport_data_cache_scope do
+          with_system_profiler_wifi_data_cache_scope do
             network_name = connected_network_name
             return nil unless network_name
 
-            security_info = airport_data_navigator.network_security(wifi_interface, network_name)
+            security_info = system_profiler_wifi_data_navigator.network_security(wifi_interface, network_name)
             return nil if security_info.nil?
 
             normalized_security_type(security_info)
@@ -33,11 +33,11 @@ module WifiWand
         end
 
         def network_hidden?
-          with_airport_data_cache_scope do
+          with_system_profiler_wifi_data_cache_scope do
             network_name = connected_network_name
             return false unless network_name
 
-            airport_data_navigator.network_hidden?(wifi_interface, network_name)
+            system_profiler_wifi_data_navigator.network_hidden?(wifi_interface, network_name)
           end
         end
 
@@ -49,16 +49,16 @@ module WifiWand
           end
         end
 
-        private def airport_data_navigator
-          AirportDataNavigator.new(airport_data)
+        private def system_profiler_wifi_data_navigator
+          SystemProfilerWifiDataNavigator.new(system_profiler_wifi_data)
         end
 
-        private def airport_data
-          @airport_data_proc.call
+        private def system_profiler_wifi_data
+          @system_profiler_wifi_data_proc.call
         end
 
-        private def with_airport_data_cache_scope(&)
-          @airport_data_cache_scope_proc.call(&)
+        private def with_system_profiler_wifi_data_cache_scope(&)
+          @system_profiler_wifi_data_cache_scope_proc.call(&)
         end
 
         private def connected_network_name

@@ -2,10 +2,10 @@
 
 require 'json'
 require_relative '../../../spec_helper'
-require_relative '../../../../lib/wifi_wand/platforms/mac/airport_data_provider'
+require_relative '../../../../lib/wifi_wand/platforms/mac/system_profiler_wifi_data_provider'
 
 module WifiWand
-  describe Platforms::Mac::AirportDataProvider do
+  describe Platforms::Mac::SystemProfilerWifiDataProvider do
     subject(:provider) do
       described_class.new(
         owner:          owner,
@@ -20,7 +20,7 @@ module WifiWand
       it 'parses system_profiler JSON output' do
         json_output = '{"SPAirPortDataType": [{"test": "data"}]}'
         allow(command_runner).to receive(:call).with(
-          described_class::SYSTEM_PROFILER_AIRPORT_ARGS,
+          described_class::SYSTEM_PROFILER_WIFI_ARGS,
           raise_on_error:  true,
           timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
         ).and_return(command_result(stdout: json_output))
@@ -38,7 +38,7 @@ module WifiWand
         json_output = '{"SPAirPortDataType": [{"test": "data"}]}'
 
         expect(command_runner).to receive(:call).with(
-          described_class::SYSTEM_PROFILER_AIRPORT_ARGS,
+          described_class::SYSTEM_PROFILER_WIFI_ARGS,
           raise_on_error:  true,
           timeout_in_secs: 2.5
         ).and_return(command_result(stdout: json_output))
@@ -59,7 +59,7 @@ module WifiWand
         second_json_output = '{"SPAirPortDataType": [{"test": "second"}]}'
 
         expect(command_runner).to receive(:call).with(
-          described_class::SYSTEM_PROFILER_AIRPORT_ARGS,
+          described_class::SYSTEM_PROFILER_WIFI_ARGS,
           raise_on_error:  true,
           timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
         ).twice.and_return(
@@ -83,7 +83,7 @@ module WifiWand
         second_json_output = '{"SPAirPortDataType": [{"test": "second"}]}'
 
         expect(command_runner).to receive(:call).with(
-          described_class::SYSTEM_PROFILER_AIRPORT_ARGS,
+          described_class::SYSTEM_PROFILER_WIFI_ARGS,
           raise_on_error:  true,
           timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
         ).twice.and_return(
@@ -115,7 +115,7 @@ module WifiWand
         expect(provider.active_cache_context).to be_nil
       end
 
-      it 'keeps scoped airport snapshots isolated by owner identity' do
+      it 'keeps scoped system_profiler WiFi snapshots isolated by owner identity' do
         other_provider = described_class.new(
           owner:          Object.new,
           command_runner: command_runner
@@ -146,7 +146,7 @@ module WifiWand
         expect(provider.active_cache_context).to be_nil
       end
 
-      it 'keeps scoped airport snapshots isolated by thread' do
+      it 'keeps scoped system_profiler WiFi snapshots isolated by thread' do
         payloads = {
           'first'  => JSON.generate('SPAirPortDataType' => [{ 'test' => 'first' }]),
           'second' => JSON.generate('SPAirPortDataType' => [{ 'test' => 'second' }]),
@@ -154,14 +154,14 @@ module WifiWand
         calls = Queue.new
 
         allow(command_runner).to receive(:call) do
-          thread_name = Thread.current[:wifi_wand_airport_cache_spec_name]
+          thread_name = Thread.current[:wifi_wand_system_profiler_wifi_cache_spec_name]
           calls << thread_name
           command_result(stdout: payloads.fetch(thread_name))
         end
 
         results = %w[first second].map do |thread_name|
           Thread.new do
-            Thread.current[:wifi_wand_airport_cache_spec_name] = thread_name
+            Thread.current[:wifi_wand_system_profiler_wifi_cache_spec_name] = thread_name
             provider.with_cache_scope do
               [provider.data, provider.data]
             end
@@ -183,12 +183,12 @@ module WifiWand
     end
 
     describe '#invalidate_cache' do
-      it 'refreshes an active scoped snapshot after another thread invalidates airport data' do
+      it 'refreshes an active scoped snapshot after another thread invalidates system_profiler WiFi data' do
         first_json_output = '{"SPAirPortDataType": [{"test": "first"}]}'
         second_json_output = '{"SPAirPortDataType": [{"test": "second"}]}'
 
         expect(command_runner).to receive(:call).with(
-          described_class::SYSTEM_PROFILER_AIRPORT_ARGS,
+          described_class::SYSTEM_PROFILER_WIFI_ARGS,
           raise_on_error:  true,
           timeout_in_secs: described_class::SYSTEM_PROFILER_TIMEOUT_SECONDS
         ).twice.and_return(

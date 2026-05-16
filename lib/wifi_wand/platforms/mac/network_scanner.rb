@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require_relative 'airport_data_navigator'
+require_relative 'system_profiler_wifi_data_navigator'
 require_relative '../../errors'
 
 module WifiWand
@@ -8,18 +8,18 @@ module WifiWand
     module Mac
       class NetworkScanner
         def self.placeholder_network_name?(name)
-          AirportDataNavigator.placeholder_network_name?(name)
+          SystemProfilerWifiDataNavigator.placeholder_network_name?(name)
         end
 
         def initialize(
           helper_client_proc:,
-          airport_data_proc:,
-          airport_data_cache_scope_proc:,
+          system_profiler_wifi_data_proc:,
+          system_profiler_wifi_data_cache_scope_proc:,
           wifi_interface_proc:
         )
           @helper_client_proc = helper_client_proc
-          @airport_data_proc = airport_data_proc
-          @airport_data_cache_scope_proc = airport_data_cache_scope_proc
+          @system_profiler_wifi_data_proc = system_profiler_wifi_data_proc
+          @system_profiler_wifi_data_cache_scope_proc = system_profiler_wifi_data_cache_scope_proc
           @wifi_interface_proc = wifi_interface_proc
         end
 
@@ -28,7 +28,7 @@ module WifiWand
         end
 
         def scan
-          with_airport_data_cache_scope do
+          with_system_profiler_wifi_data_cache_scope do
             helper_result = helper_client.scan_networks
             helper_networks = helper_available_network_names_from_result(helper_result)
             return scan_result(helper_networks, source: 'mac_helper') if helper_networks
@@ -64,8 +64,8 @@ module WifiWand
 
         private def fallback_available_network_names
           iface = wifi_interface
-          data = airport_data
-          AirportDataNavigator.new(data).visible_network_names(iface)
+          data = system_profiler_wifi_data
+          SystemProfilerWifiDataNavigator.new(data).visible_network_names(iface)
         end
 
         private def scan_result(networks, source:, status: 'ok', trusted: true, warning: nil)
@@ -98,12 +98,12 @@ module WifiWand
           @helper_client_proc.call
         end
 
-        private def airport_data
-          @airport_data_proc.call
+        private def system_profiler_wifi_data
+          @system_profiler_wifi_data_proc.call
         end
 
-        private def with_airport_data_cache_scope(&)
-          @airport_data_cache_scope_proc.call(&)
+        private def with_system_profiler_wifi_data_cache_scope(&)
+          @system_profiler_wifi_data_cache_scope_proc.call(&)
         end
 
         private def wifi_interface

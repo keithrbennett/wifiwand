@@ -10,17 +10,17 @@ module WifiWand
   describe Platforms::Mac::NetworkScanner do
     subject(:scanner) do
       described_class.new(
-        helper_client_proc:            -> { helper_client },
-        airport_data_proc:             -> { airport_data_reader.call },
-        airport_data_cache_scope_proc: ->(&block) { cache_scope.call(&block) },
-        wifi_interface_proc:           -> { 'en0' }
+        helper_client_proc:                         -> { helper_client },
+        system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data_reader.call },
+        system_profiler_wifi_data_cache_scope_proc: ->(&block) { cache_scope.call(&block) },
+        wifi_interface_proc:                        -> { 'en0' }
       )
     end
 
     let(:helper_client) { instance_double(WifiWand::Platforms::Mac::Helper::Client) }
-    let(:airport_data_reader) { double('airport_data_reader') }
+    let(:system_profiler_wifi_data_reader) { double('system_profiler_wifi_data_reader') }
     let(:cache_scope) { double('cache_scope') }
-    let(:airport_data) do
+    let(:system_profiler_wifi_data) do
       {
         'SPAirPortDataType' => [{
           'spairport_airport_interfaces' => [{
@@ -38,7 +38,7 @@ module WifiWand
     end
 
     before do
-      allow(airport_data_reader).to receive(:call).and_return(airport_data)
+      allow(system_profiler_wifi_data_reader).to receive(:call).and_return(system_profiler_wifi_data)
       allow(cache_scope).to receive(:call).and_yield
     end
 
@@ -81,7 +81,7 @@ module WifiWand
       end
 
       it 'uses other local networks from system_profiler when the interface is associated' do
-        connected_data = JSON.parse(JSON.generate(airport_data))
+        connected_data = JSON.parse(JSON.generate(system_profiler_wifi_data))
         interface_data = connected_data['SPAirPortDataType'][0]['spairport_airport_interfaces'][0]
         interface_data['spairport_airport_other_local_wireless_networks'] = [
           { '_name' => 'CurrentNetwork', 'spairport_signal_noise' => '-40/-95' },
@@ -89,7 +89,7 @@ module WifiWand
         ]
         interface_data['spairport_current_network_information'] = { '_name' => 'CurrentNetwork' }
         allow(helper_client).to receive(:scan_networks).and_return(helper_result(payload: []))
-        allow(airport_data_reader).to receive(:call).and_return(connected_data)
+        allow(system_profiler_wifi_data_reader).to receive(:call).and_return(connected_data)
 
         expect(scanner.scan.fetch('networks')).to eq(%w[CurrentNetwork NeighborNetwork])
       end
@@ -116,7 +116,7 @@ module WifiWand
       end
 
       it 'preserves warning metadata even when degraded fallback has no networks' do
-        empty_airport_data = {
+        empty_system_profiler_wifi_data = {
           'SPAirPortDataType' => [{
             'spairport_airport_interfaces' => [{
               '_name'                                     => 'en0',
@@ -127,7 +127,7 @@ module WifiWand
         allow(helper_client).to receive(:scan_networks).and_return(
           helper_result(location_services_blocked: true, error_message: 'Location Services denied')
         )
-        allow(airport_data_reader).to receive(:call).and_return(empty_airport_data)
+        allow(system_profiler_wifi_data_reader).to receive(:call).and_return(empty_system_profiler_wifi_data)
 
         expect(scanner.scan).to include(
           'networks'          => [],

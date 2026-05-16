@@ -7,9 +7,9 @@ require_relative '../../errors'
 module WifiWand
   module Platforms
     module Mac
-      class AirportDataProvider
-        CACHE_CONTEXTS_KEY = :wifi_wand_airport_data_cache_contexts
-        SYSTEM_PROFILER_AIRPORT_ARGS = %w[system_profiler -json SPAirPortDataType].freeze
+      class SystemProfilerWifiDataProvider
+        CACHE_CONTEXTS_KEY = :wifi_wand_system_profiler_wifi_data_cache_contexts
+        SYSTEM_PROFILER_WIFI_ARGS = %w[system_profiler -json SPAirPortDataType].freeze
         SYSTEM_PROFILER_TIMEOUT_SECONDS = 15
 
         def initialize(owner:, command_runner:)
@@ -31,7 +31,7 @@ module WifiWand
           generation = cache_generation
           return context[:data] if cached_data_current?(context, generation)
 
-          parsed_data = parse_system_profiler_airport_data(timeout_in_secs: timeout_in_secs)
+          parsed_data = parse_system_profiler_wifi_data(timeout_in_secs: timeout_in_secs)
 
           cache_data(context, generation, parsed_data)
           parsed_data
@@ -99,9 +99,9 @@ module WifiWand
           context[:generation] = generation
         end
 
-        private def parse_system_profiler_airport_data(timeout_in_secs: nil)
+        private def parse_system_profiler_wifi_data(timeout_in_secs: nil)
           json_text = @command_runner.call(
-            SYSTEM_PROFILER_AIRPORT_ARGS,
+            SYSTEM_PROFILER_WIFI_ARGS,
             raise_on_error:  true,
             timeout_in_secs: timeout_in_secs || SYSTEM_PROFILER_TIMEOUT_SECONDS
           ).stdout

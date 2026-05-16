@@ -9,7 +9,7 @@ require_relative 'helper/swift_runtime'
 require_relative 'helper/wifi_transport'
 require_relative 'helper/bundle'
 require_relative '../../services/status_line_data_builder'
-require_relative 'airport_data_provider'
+require_relative 'system_profiler_wifi_data_provider'
 require_relative 'current_network_details'
 require_relative 'dns_manager'
 require_relative 'interface_detector'
@@ -24,7 +24,7 @@ module WifiWand
   module Platforms
     module Mac
       class Model < BaseModel
-        SYSTEM_PROFILER_TIMEOUT_SECONDS = AirportDataProvider::SYSTEM_PROFILER_TIMEOUT_SECONDS
+        SYSTEM_PROFILER_TIMEOUT_SECONDS = SystemProfilerWifiDataProvider::SYSTEM_PROFILER_TIMEOUT_SECONDS
         KEYCHAIN_LOOKUP_TIMEOUT_SECONDS = KeychainPasswordReader::DEFAULT_LOOKUP_TIMEOUT_SECONDS
         SUDO_AUTH_CHECK_TIMEOUT_SECONDS = 1
         SUDO_NETWORKSETUP_TIMEOUT_SECONDS = 5
@@ -40,7 +40,7 @@ module WifiWand
           @macos_version = nil
           @helper_client = nil
           @swift_runtime = nil
-          @airport_data_provider = nil
+          @system_profiler_wifi_data_provider = nil
           @dns_manager = nil
           @interface_detector = nil
           @wifi_service_name_source = nil
@@ -53,15 +53,15 @@ module WifiWand
         end
 
         def connection_ready?(network_name)
-          with_airport_data_cache_scope { super }
+          with_system_profiler_wifi_data_cache_scope { super }
         end
 
         def wifi_info
-          with_airport_data_cache_scope { super }
+          with_system_profiler_wifi_data_cache_scope { super }
         end
 
         def status_line_data(progress_callback: nil)
-          with_airport_data_cache_scope do
+          with_system_profiler_wifi_data_cache_scope do
             StatusLineDataBuilder.call(
               self,
               progress_callback:                          progress_callback,
@@ -74,7 +74,7 @@ module WifiWand
 
         def generate_qr_code(filespec = nil, overwrite: false, delivery_mode: :print, password: nil,
           in_stream: $stdin)
-          with_airport_data_cache_scope do
+          with_system_profiler_wifi_data_cache_scope do
             super(filespec, overwrite: overwrite, delivery_mode: delivery_mode, password: password,
               in_stream: in_stream)
           end
@@ -185,13 +185,13 @@ module WifiWand
         def wifi_on
           return if wifi_on?
 
-          invalidate_airport_data_cache
+          invalidate_system_profiler_wifi_data_cache
 
           begin
             iface = wifi_interface
             run_command(['networksetup', '-setairportpower', iface, 'on'])
           ensure
-            invalidate_airport_data_cache
+            invalidate_system_profiler_wifi_data_cache
           end
 
           wifi_on? ? nil : raise(WifiEnableError)
@@ -201,13 +201,13 @@ module WifiWand
         def wifi_off
           return unless wifi_on?
 
-          invalidate_airport_data_cache
+          invalidate_system_profiler_wifi_data_cache
 
           begin
             iface = wifi_interface
             run_command(['networksetup', '-setairportpower', iface, 'off'])
           ensure
-            invalidate_airport_data_cache
+            invalidate_system_profiler_wifi_data_cache
           end
 
           wifi_on? ? raise(WifiDisableError) : nil
@@ -218,10 +218,10 @@ module WifiWand
         # macOS utilities when Swift is unavailable or the connect attempt fails in
         # known ways.
         def _connect(network_name, password = nil)
-          invalidate_airport_data_cache
+          invalidate_system_profiler_wifi_data_cache
           wifi_transport.connect(network_name, password)
         ensure
-          invalidate_airport_data_cache
+          invalidate_system_profiler_wifi_data_cache
         end
 
         # Password lookups on macOS may block on a user-facing keychain approval
@@ -323,10 +323,10 @@ module WifiWand
         # with `ifconfig` fallback when the Swift/CoreWLAN path is unavailable or
         # fails.
         def _disconnect
-          invalidate_airport_data_cache
+          invalidate_system_profiler_wifi_data_cache
           wifi_transport.disconnect
         ensure
-          invalidate_airport_data_cache
+          invalidate_system_profiler_wifi_data_cache
         end
 
         def mac_address
@@ -384,8 +384,8 @@ module WifiWand
           )
         end
 
-        private def airport_data_provider
-          @airport_data_provider ||= WifiWand::Platforms::Mac::AirportDataProvider.new(
+        private def system_profiler_wifi_data_provider
+          @system_profiler_wifi_data_provider ||= WifiWand::Platforms::Mac::SystemProfilerWifiDataProvider.new(
             owner:          self,
             command_runner: ->(*args, **kwargs) { run_command(*args, **kwargs) }
           )
@@ -412,49 +412,61 @@ module WifiWand
 
         private def network_identity_reader
           @network_identity_reader ||= WifiWand::Platforms::Mac::NetworkIdentityReader.new(
-            helper_client_proc:            -> { helper_client },
-            command_runner:                ->(*args, **kwargs) { run_command(*args, **kwargs) },
-            airport_data_proc:             ->(**kwargs) { airport_data(**kwargs) },
-            airport_data_cache_scope_proc: ->(&block) { with_airport_data_cache_scope(&block) },
-            wifi_on_proc:                  -> { wifi_on? },
-            wifi_interface_proc:           -> { wifi_interface },
-            default_interface_proc:        -> { default_interface },
-            ipv4_addresses_proc:           -> { _ipv4_addresses },
-            ipv6_addresses_proc:           -> { _ipv6_addresses }
+            helper_client_proc:                         -> { helper_client },
+            command_runner:                             ->(*args, **kwargs) { run_command(*args, **kwargs) },
+            system_profiler_wifi_data_proc:             ->(**kwargs) { system_profiler_wifi_data(**kwargs) },
+            system_profiler_wifi_data_cache_scope_proc: ->(&block) {
+              with_system_profiler_wifi_data_cache_scope(&block)
+            },
+            wifi_on_proc:                               -> { wifi_on? },
+            wifi_interface_proc:                        -> { wifi_interface },
+            default_interface_proc:                     -> { default_interface },
+            ipv4_addresses_proc:                        -> { _ipv4_addresses },
+            ipv6_addresses_proc:                        -> { _ipv6_addresses }
           )
         end
 
         private def status_queries
           @status_queries ||= WifiWand::Platforms::Mac::StatusQueries.new(
-            helper_client_proc:            -> { helper_client },
-            command_runner:                ->(*args, **kwargs) { run_command(*args, **kwargs) },
-            airport_data_proc:             ->(**kwargs) { airport_data(**kwargs) },
-            airport_data_cache_scope_proc: ->(&block) { with_airport_data_cache_scope(&block) },
-            cached_wifi_interface_proc:    -> { @wifi_interface },
-            cache_wifi_interface_proc:     ->(iface) { @wifi_interface = iface },
-            probe_wifi_interface_proc:     ->(**kwargs) { probe_wifi_interface(**kwargs) },
-            system_network_info_proc:      -> { system_network_info },
-            status_deadline_proc:          ->(timeout_in_secs) { status_deadline(timeout_in_secs) },
-            status_timeout_proc:           ->(deadline) { status_timeout_for(deadline) }
+            helper_client_proc:                         -> { helper_client },
+            command_runner:                             ->(*args, **kwargs) { run_command(*args, **kwargs) },
+            system_profiler_wifi_data_proc:             ->(**kwargs) { system_profiler_wifi_data(**kwargs) },
+            system_profiler_wifi_data_cache_scope_proc: ->(&block) {
+              with_system_profiler_wifi_data_cache_scope(&block)
+            },
+            cached_wifi_interface_proc:                 -> { @wifi_interface },
+            cache_wifi_interface_proc:                  ->(iface) { @wifi_interface = iface },
+            probe_wifi_interface_proc:                  ->(**kwargs) { probe_wifi_interface(**kwargs) },
+            system_network_info_proc:                   -> { system_network_info },
+            status_deadline_proc:                       ->(timeout_in_secs) {
+              status_deadline(timeout_in_secs)
+            },
+            status_timeout_proc:                        ->(deadline) { status_timeout_for(deadline) }
           )
         end
 
         private def network_scanner
           @network_scanner ||= WifiWand::Platforms::Mac::NetworkScanner.new(
-            helper_client_proc:            -> { helper_client },
-            airport_data_proc:             -> { airport_data },
-            airport_data_cache_scope_proc: ->(&block) { with_airport_data_cache_scope(&block) },
-            wifi_interface_proc:           -> { wifi_interface }
+            helper_client_proc:                         -> { helper_client },
+            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_scope_proc: ->(&block) {
+              with_system_profiler_wifi_data_cache_scope(&block)
+            },
+            wifi_interface_proc:                        -> { wifi_interface }
           )
         end
 
         private def current_network_details
           @current_network_details ||= WifiWand::Platforms::Mac::CurrentNetworkDetails.new(
-            airport_data_proc:             -> { airport_data },
-            airport_data_cache_scope_proc: ->(&block) { with_airport_data_cache_scope(&block) },
-            connected_network_name_proc:   -> { _connected_network_name },
-            wifi_interface_proc:           -> { wifi_interface },
-            security_normalizer_proc:      ->(security_text) { canonical_security_type_from(security_text) }
+            system_profiler_wifi_data_proc:             -> { system_profiler_wifi_data },
+            system_profiler_wifi_data_cache_scope_proc: ->(&block) {
+              with_system_profiler_wifi_data_cache_scope(&block)
+            },
+            connected_network_name_proc:                -> { _connected_network_name },
+            wifi_interface_proc:                        -> { wifi_interface },
+            security_normalizer_proc:                   ->(security_text) {
+              canonical_security_type_from(security_text)
+            }
           )
         end
 
@@ -488,16 +500,16 @@ module WifiWand
           end
         end
 
-        private def with_airport_data_cache_scope(&)
-          airport_data_provider.with_cache_scope(&)
+        private def with_system_profiler_wifi_data_cache_scope(&)
+          system_profiler_wifi_data_provider.with_cache_scope(&)
         end
 
-        private def airport_data(timeout_in_secs: nil)
-          airport_data_provider.data(timeout_in_secs: timeout_in_secs)
+        private def system_profiler_wifi_data(timeout_in_secs: nil)
+          system_profiler_wifi_data_provider.data(timeout_in_secs: timeout_in_secs)
         end
 
-        private def invalidate_airport_data_cache
-          airport_data_provider.invalidate_cache
+        private def invalidate_system_profiler_wifi_data_cache
+          system_profiler_wifi_data_provider.invalidate_cache
         end
 
         # Gets the security type of the currently connected network.

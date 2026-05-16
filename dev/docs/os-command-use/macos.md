@@ -113,7 +113,7 @@ structured fallback for Wi-Fi telemetry.
 ### `system_profiler -json SPAirPortDataType`
 - Description: Generates detailed Wi-Fi telemetry including SSIDs, signal levels, and security information.
 - Dynamic Values: None
-- Base Model Method(s): `airport_data`, `_available_network_names`, `_connected_network_name`,
+- Base Model Method(s): `system_profiler_wifi_data`, `_available_network_names`, `_connected_network_name`,
   `connection_security_type`, `network_hidden?`
 - CLI Command(s): `a` (available networks), `i` (info), `ne` (network name), `qr` (QR code generation)
 - Helpful Info: The compiled `wifiwand-helper.app` path is checked first for

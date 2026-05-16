@@ -2,7 +2,7 @@
 
 require 'ipaddr'
 
-require_relative 'airport_data_navigator'
+require_relative 'system_profiler_wifi_data_navigator'
 require_relative '../../errors'
 require_relative '../../services/command_executor'
 require_relative '../../string_predicates'
@@ -18,8 +18,8 @@ module WifiWand
         def initialize(
           helper_client_proc:,
           command_runner:,
-          airport_data_proc:,
-          airport_data_cache_scope_proc:,
+          system_profiler_wifi_data_proc:,
+          system_profiler_wifi_data_cache_scope_proc:,
           cached_wifi_interface_proc:,
           cache_wifi_interface_proc:,
           probe_wifi_interface_proc:,
@@ -29,8 +29,8 @@ module WifiWand
         )
           @helper_client_proc = helper_client_proc
           @command_runner = command_runner
-          @airport_data_proc = airport_data_proc
-          @airport_data_cache_scope_proc = airport_data_cache_scope_proc
+          @system_profiler_wifi_data_proc = system_profiler_wifi_data_proc
+          @system_profiler_wifi_data_cache_scope_proc = system_profiler_wifi_data_cache_scope_proc
           @cached_wifi_interface_proc = cached_wifi_interface_proc
           @cache_wifi_interface_proc = cache_wifi_interface_proc
           @probe_wifi_interface_proc = probe_wifi_interface_proc
@@ -42,7 +42,7 @@ module WifiWand
         def status_network_identity(timeout_in_secs: nil)
           deadline = status_deadline(timeout_in_secs)
 
-          with_airport_data_cache_scope do
+          with_system_profiler_wifi_data_cache_scope do
             return disconnected_identity unless wifi_on_before_deadline?(deadline)
 
             helper_result = helper_client.connected_network_name(
@@ -58,7 +58,7 @@ module WifiWand
             return disconnected_identity if no_connected_network?(fast_network_name)
             return { connected: true, network_name: fast_network_name } if fast_network_name
 
-            status_network_identity_from_airport_data(deadline)
+            status_network_identity_from_system_profiler_wifi_data(deadline)
           end
         end
 
@@ -70,11 +70,11 @@ module WifiWand
 
         private attr_reader :command_runner
 
-        private def status_network_identity_from_airport_data(deadline)
-          interface_data = wifi_interface_airport_data(deadline: deadline)
-          connected = interface_associated_in_airport_data?(interface_data) ||
+        private def status_network_identity_from_system_profiler_wifi_data(deadline)
+          interface_data = system_profiler_wifi_interface_data(deadline: deadline)
+          connected = interface_associated_in_system_profiler_wifi_data?(interface_data) ||
             status_associated_without_ssid?(deadline)
-          network_name = connected ? status_network_name_from_airport_data(interface_data) : nil
+          network_name = connected ? status_network_name_from_system_profiler_wifi_data(interface_data) : nil
 
           {
             connected:    connected,
@@ -125,12 +125,12 @@ module WifiWand
           false
         end
 
-        private def interface_associated_in_airport_data?(wifi_interface_data)
-          AirportDataNavigator.associated?(wifi_interface_data)
+        private def interface_associated_in_system_profiler_wifi_data?(wifi_interface_data)
+          SystemProfilerWifiDataNavigator.associated?(wifi_interface_data)
         end
 
-        private def status_network_name_from_airport_data(wifi_interface_data)
-          AirportDataNavigator.current_network_name(wifi_interface_data)
+        private def status_network_name_from_system_profiler_wifi_data(wifi_interface_data)
+          SystemProfilerWifiDataNavigator.current_network_name(wifi_interface_data)
         end
 
         private def disconnected_identity
@@ -144,12 +144,12 @@ module WifiWand
           @helper_client_proc.call
         end
 
-        private def with_airport_data_cache_scope(&)
-          @airport_data_cache_scope_proc.call(&)
+        private def with_system_profiler_wifi_data_cache_scope(&)
+          @system_profiler_wifi_data_cache_scope_proc.call(&)
         end
 
-        private def airport_data(timeout_in_secs: nil)
-          @airport_data_proc.call(timeout_in_secs: timeout_in_secs)
+        private def system_profiler_wifi_data(timeout_in_secs: nil)
+          @system_profiler_wifi_data_proc.call(timeout_in_secs: timeout_in_secs)
         end
 
         private def status_wifi_interface(deadline)
@@ -209,11 +209,11 @@ module WifiWand
           @status_timeout_proc.call(deadline)
         end
 
-        private def wifi_interface_airport_data(deadline:)
-          data = airport_data(timeout_in_secs: status_timeout_for(deadline))
+        private def system_profiler_wifi_interface_data(deadline:)
+          data = system_profiler_wifi_data(timeout_in_secs: status_timeout_for(deadline))
           iface = status_wifi_interface(deadline)
 
-          AirportDataNavigator.new(data).interface_data(iface)
+          SystemProfilerWifiDataNavigator.new(data).interface_data(iface)
         end
 
         private def wifi_on_before_deadline?(deadline)
@@ -227,7 +227,7 @@ module WifiWand
         end
 
         private def placeholder_network_name?(name)
-          AirportDataNavigator.placeholder_network_name?(name)
+          SystemProfilerWifiDataNavigator.placeholder_network_name?(name)
         end
       end
     end
