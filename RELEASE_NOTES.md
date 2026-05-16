@@ -2,8 +2,13 @@
 
 * Breaking change: remove the `verbose` and `verbose_mode` reader aliases from
   the public library and CLI-facing objects.
-* Breaking change: `info["ip_address"]` and `BaseModel#ip_address` now return
-  an array of IPv4 addresses instead of a single string or `nil`.
+* Breaking change: `info["ip_address"]` has been renamed to
+  `info["ipv4_addresses"]`; the new field returns an array of IPv4 addresses
+  instead of a single string or `nil`.
+* Add `info["ipv6_addresses"]` for local IPv6 addresses assigned to the WiFi
+  interface.
+* `BaseModel#ipv4_addresses` replaces `BaseModel#ip_address` and returns an
+  array of IPv4 addresses instead of a single string or `nil`.
 * Use `verbose?` to read the flag and `verbose=` to update it.
 * Rename the structured command API from `run_os_command` to `run_command`.
 * `run_command` is the default library API and accepts only argument arrays, enforcing

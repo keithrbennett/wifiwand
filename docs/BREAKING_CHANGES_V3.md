@@ -176,15 +176,23 @@ Ethernet.
 - DNS, TCP, and captive-portal signals are tracked separately in the broader
   connectivity flow.
 
-### Local IPv4 Reporting
+### Local IP Address Reporting
 
-#### `ip_address` now returns an array
+#### Local IPv4 address reporting uses `ipv4_addresses`
 
-The local `ip_address` field in `info` and `BaseModel#ip_address` now returns
-an array of IPv4 addresses instead of a single string or `nil`.
+The local IPv4 field in `info` has been renamed from `ip_address` to
+`ipv4_addresses`. `info["ipv4_addresses"]` and `BaseModel#ipv4_addresses` now
+return arrays of IPv4 addresses instead of a single string or `nil`.
 
 This lets wifi-wand report every IPv4 address assigned to the WiFi interface.
 Interfaces with no assigned IPv4 address now report an empty array.
+`BaseModel#ip_address` has been removed; callers must use
+`BaseModel#ipv4_addresses`.
+
+Custom `BaseModel` subclasses must now implement `_ipv4_addresses` and
+`_ipv6_addresses`. Existing subclasses that implemented `_ip_address` must move
+their IPv4 implementation to `_ipv4_addresses`; `_ip_address` is no longer part
+of the subclass contract.
 
 ##### Migration
 
@@ -193,19 +201,35 @@ Interfaces with no assigned IPv4 address now report an empty array.
 info['ip_address'] #=> '192.168.1.100'
 
 # New
-info['ip_address'] #=> ['192.168.1.100']
+info['ipv4_addresses'] #=> ['192.168.1.100']
 
 # Old, no IPv4 address assigned
 info['ip_address'] #=> nil
 
 # New, no IPv4 address assigned
-info['ip_address'] #=> []
+info['ipv4_addresses'] #=> []
 ```
 
-Callers that only need one address can use `info['ip_address'].first`.
-Callers that previously used nil checks should use `info['ip_address'].any?`
+Callers that only need one address can use `info['ipv4_addresses'].first`.
+Callers that previously used nil checks should use `info['ipv4_addresses'].any?`
 when testing whether an IPv4 address is present. Callers that display or log
 the value should handle multiple addresses.
+
+#### Local IPv6 addresses are now reported
+
+The `info` command now also reports local IPv6 addresses assigned to the WiFi
+interface. Use the `ipv6_addresses` field, which always returns an array.
+
+```ruby
+info['ipv6_addresses'] #=> ['fe80::1', '2001:db8::100']
+
+# No IPv6 address assigned
+info['ipv6_addresses'] #=> []
+```
+
+Callers that need both address families should read `info['ipv4_addresses']`
+and `info['ipv6_addresses']` separately instead of treating `ip_address` as a
+generic local-address field.
 
 ### Public IP Reporting
 

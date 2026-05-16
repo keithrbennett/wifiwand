@@ -25,7 +25,7 @@ module WifiWand
           wifi_on_proc:,
           wifi_interface_proc:,
           default_interface_proc:,
-          ip_address_proc:,
+          ipv4_addresses_proc:,
           airport_command:
         )
           @helper_client_proc = helper_client_proc
@@ -35,7 +35,7 @@ module WifiWand
           @wifi_on_proc = wifi_on_proc
           @wifi_interface_proc = wifi_interface_proc
           @default_interface_proc = default_interface_proc
-          @ip_address_proc = ip_address_proc
+          @ipv4_addresses_proc = ipv4_addresses_proc
           @airport_command = airport_command
         end
 
@@ -211,7 +211,7 @@ module WifiWand
           iface = wifi_interface
           return true if default_interface == iface
 
-          ip_address.any?
+          ipv4_addresses.any?
         rescue WifiWand::CommandExecutor::OsCommandError
           false
         end
@@ -246,8 +246,8 @@ module WifiWand
           @default_interface_proc.call
         end
 
-        private def ip_address
-          @ip_address_proc.call
+        private def ipv4_addresses
+          @ipv4_addresses_proc.call
         end
 
         private def wifi_interface_airport_data(timeout_in_secs: nil)

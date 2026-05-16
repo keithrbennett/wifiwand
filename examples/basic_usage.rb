@@ -21,7 +21,7 @@ begin
   # 2. Check the current Wi-Fi status.
   if model.wifi_on?
     puts '✅ Wi-Fi is ON.'
-    ip_addresses = model.ip_address
+    ip_addresses = model.ipv4_addresses
     ip_address_summary = ip_addresses.empty? ? 'N/A' : ip_addresses.join(', ')
 
     puts "   - Connected to: #{model.connected_network_name || 'None'}"

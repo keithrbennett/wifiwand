@@ -31,7 +31,8 @@ class DocsInfoSpecModel < WifiWand::BaseModel
   def _connected_network_name = 'TestNetwork1'
   def _connect(_network, _password) = nil
   def _disconnect = nil
-  def _ip_address = ['192.168.1.100']
+  def _ipv4_addresses = ['192.168.1.100']
+  def _ipv6_addresses = ['2001:db8::100']
   def _preferred_network_password(_network) = nil
 end
 
@@ -45,7 +46,8 @@ RSpec.describe 'docs/INFO_COMMAND.md' do
       'SSID Identity Available'     => 'ssid_identity_available',
       'SSID Identity Status'        => 'ssid_identity_status',
       'SSID Identity Warning'       => 'ssid_identity_warning',
-      'IP Address'                  => 'ip_address',
+      'IPv4 Addresses'              => 'ipv4_addresses',
+      'IPv6 Addresses'              => 'ipv6_addresses',
       'MAC Address'                 => 'mac_address',
       'TCP Working'                 => 'internet_tcp_connectivity',
       'DNS Working'                 => 'dns_working',
@@ -71,7 +73,7 @@ RSpec.describe 'docs/INFO_COMMAND.md' do
   it 'documents the same info payload keys returned by BaseModel#wifi_info' do
     expect(documented_section).not_to be_nil
 
-    documented_labels = documented_section.scan(/^- \*\*(.+?)\*\*:/).flatten
+    documented_labels = documented_section.scan(/^- \*\*(.+?)\*\*(?: \(`[^`]+`\))?:/).flatten
     undocumented_labels = documented_labels - documented_info_field_keys.keys
 
     expect(undocumented_labels).to eq([])

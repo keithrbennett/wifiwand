@@ -35,7 +35,8 @@ The `info` command returns a hash containing:
 - **SSID Identity Available**: Whether the current SSID name is known and usable
 - **SSID Identity Status**: `available`, `unavailable`, `not_connected`, or `unknown`
 - **SSID Identity Warning**: Explanation when macOS privacy redaction prevents exact SSID identity
-- **IP Address**: Local IPv4 address(es)
+- **IPv4 Addresses** (`ipv4_addresses`): Local IPv4 address(es)
+- **IPv6 Addresses** (`ipv6_addresses`): Local IPv6 address(es)
 - **MAC Address**: WiFi interface MAC address
 
 ### Connectivity Status
@@ -71,7 +72,8 @@ The `info` command returns a hash containing:
 | Connected network | ✓ | ✓ |
 | BSSID | | ✓ |
 | Connectivity (TCP/DNS) | ✓ | ✓ |
-| IP address | | ✓ |
+| IPv4 addresses | | ✓ |
+| IPv6 addresses | | ✓ |
 | MAC address | | ✓ |
 | Nameservers | | ✓ |
 | Timestamp | | ✓ |
@@ -99,7 +101,7 @@ wifi-wand -o j info
 Perfect for parsing in scripts or sending to other tools:
 
 ```bash
-wifi-wand -o j info | jq -r '.ip_address | join(", ")'
+wifi-wand -o j info | jq -r '.ipv4_addresses | join(", ")'
 ```
 
 Example connectivity fields in JSON:
@@ -121,6 +123,13 @@ data['captive_portal_state']        #=> :free
 data['internet_connectivity_state'] #=> :reachable
 ```
 
+Local address fields are split by address family:
+
+```ruby
+data['ipv4_addresses'] #=> ['192.168.1.100']
+data['ipv6_addresses'] #=> ['fe80::1', '2001:db8::100']
+```
+
 ### YAML
 ```bash
 wifi-wand -o y info
@@ -140,7 +149,13 @@ Outputs in Ruby inspect format.
 ### Get Your IPv4 Addresses
 
 ```bash
-wifi-wand -o j info | jq -r '.ip_address[]?'
+wifi-wand -o j info | jq -r '.ipv4_addresses[]?'
+```
+
+### Get Your IPv6 Addresses
+
+```bash
+wifi-wand -o j info | jq -r '.ipv6_addresses[]?'
 ```
 
 ### Check All Nameservers
@@ -173,7 +188,7 @@ wifi-wand -o p ci
 #!/bin/bash
 # Log key network info periodically
 while true; do
-  wifi-wand -o j info | jq -r '"[\(.ip_address | join(", "))] Connected to: \(.network // "N/A") | Internet: \(.internet_connectivity_state)"'
+  wifi-wand -o j info | jq -r '"[\(.ipv4_addresses | join(", "))] Connected to: \(.network // "N/A") | Internet: \(.internet_connectivity_state)"'
   sleep 300
 done >> network-log.txt
 ```
@@ -186,8 +201,11 @@ done >> network-log.txt
 echo "Connected Network:"
 wifi-wand -o j info | jq '.network'
 
-echo "IP Addresses:"
-wifi-wand -o j info | jq -r '.ip_address | join(", ")'
+echo "IPv4 Addresses:"
+wifi-wand -o j info | jq -r '.ipv4_addresses | join(", ")'
+
+echo "IPv6 Addresses:"
+wifi-wand -o j info | jq -r '.ipv6_addresses | join(", ")'
 
 echo "Nameservers:"
 wifi-wand -o j info | jq '.nameservers'
@@ -201,7 +219,7 @@ In interactive shell mode (`wifi-wand shell`), you can use the full power of Rub
 [1] pry(#<WifiWand::CommandLineInterface>)> data = info
 # Returns the info hash
 
-[2] pry(#<WifiWand::CommandLineInterface>)> data['ip_address']
+[2] pry(#<WifiWand::CommandLineInterface>)> data['ipv4_addresses']
 # Get IPv4 addresses
 
 [3] pry(#<WifiWand::CommandLineInterface>)> data.keys

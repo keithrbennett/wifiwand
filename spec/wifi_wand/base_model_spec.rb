@@ -30,7 +30,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
         available_network_names:    %w[TestNetwork1 TestNetwork2],
         connected_network_name:     'TestNetwork1',
         bssid:                      '00:11:22:33:44:55',
-        ip_address:                 ['192.168.1.100'],
+        ipv4_addresses:             ['192.168.1.100'],
+        ipv6_addresses:             ['2001:db8::100'],
         mac_address:                'aa:bb:cc:dd:ee:ff',
         default_interface:          'wlan0',
         nameservers:                ['8.8.8.8', '8.8.4.4'],
@@ -88,7 +89,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         'wifi_on', 'internet_tcp_connectivity', 'dns_working', 'captive_portal_state',
         'internet_connectivity_state', 'interface', 'default_interface', 'connected', 'network',
         'bssid', 'ssid_identity_available', 'ssid_identity_status', 'ssid_identity_warning',
-        'ip_address', 'mac_address', 'nameservers', 'timestamp'
+        'ipv4_addresses', 'ipv6_addresses', 'mac_address', 'nameservers', 'timestamp'
       )
 
       expect(result['wifi_on']).to be(true).or be(false)
@@ -168,9 +169,15 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
-  describe '#ip_address' do
+  describe '#ipv4_addresses' do
     it 'returns a non-empty array of IPv4 addresses when an address is available' do
-      expect(subject.ip_address).to be_a_non_empty_array_of_ip_addresses
+      expect(subject.ipv4_addresses).to be_a_non_empty_array_of_ip_addresses
+    end
+  end
+
+  describe '#ipv6_addresses' do
+    it 'returns an array of IPv6 addresses when available' do
+      expect(subject.ipv6_addresses).to eq(['2001:db8::100'])
     end
   end
 
@@ -639,7 +646,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:wifi_on?).and_return(false)
       allow(subject).to receive(:available_network_names).and_call_original
       allow(subject).to receive(:connected_network_name).and_call_original
-      allow(subject).to receive(:ip_address).and_call_original
+      allow(subject).to receive(:ipv4_addresses).and_call_original
+      allow(subject).to receive(:ipv6_addresses).and_call_original
     end
 
     it_behaves_like 'interface commands complete without error'
@@ -654,7 +662,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       expect(info['wifi_on']).to be(false)
       expect(info['network']).to be_nil
-      expect(info['ip_address']).to eq([])
+      expect(info['ipv4_addresses']).to eq([])
+      expect(info['ipv6_addresses']).to eq([])
     end
   end
 
@@ -822,7 +831,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
         def _connected_network_name = nil
         def _connect(_network_name, _password = nil) = nil
         def _disconnect = nil
-        def _ip_address = []
+        def _ipv4_addresses = []
+        def _ipv6_addresses = []
         def _preferred_network_password(_network_name) = nil
       end
 
@@ -908,7 +918,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
         default_interface:      'wlan0',
         connected_network_name: 'TestNet',
         bssid:                  '00:11:22:33:44:55',
-        ip_address:             ['192.168.1.100'],
+        ipv4_addresses:         ['192.168.1.100'],
+        ipv6_addresses:         ['2001:db8::100'],
         mac_address:            'aa:bb:cc:dd:ee:ff',
         nameservers:            ['8.8.8.8']
       )
@@ -933,7 +944,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
           default_interface:          'wlan0',
           connected_network_name:     'TestNet',
           bssid:                      '00:11:22:33:44:55',
-          ip_address:                 ['192.168.1.100'],
+          ipv4_addresses:             ['192.168.1.100'],
+          ipv6_addresses:             ['2001:db8::100'],
           mac_address:                'aa:bb:cc:dd:ee:ff',
           nameservers:                ['8.8.8.8'],
           internet_tcp_connectivity?: true,
@@ -1017,12 +1029,20 @@ describe 'Common WiFi Model Behavior (All OS)' do
       subject.wifi_info
     end
 
-    it 'does not hide unexpected ip_address errors' do
-      allow(subject).to receive(:ip_address)
-        .and_raise(WifiWand::ConfigurationError, 'broken IP implementation')
+    it 'does not hide unexpected ipv4_addresses errors' do
+      allow(subject).to receive(:ipv4_addresses)
+        .and_raise(WifiWand::ConfigurationError, 'broken IPv4 implementation')
 
       expect { subject.wifi_info }
-        .to raise_error(WifiWand::ConfigurationError, /broken IP implementation/)
+        .to raise_error(WifiWand::ConfigurationError, /broken IPv4 implementation/)
+    end
+
+    it 'does not hide unexpected ipv6_addresses errors' do
+      allow(subject).to receive(:ipv6_addresses)
+        .and_raise(WifiWand::ConfigurationError, 'broken IPv6 implementation')
+
+      expect { subject.wifi_info }
+        .to raise_error(WifiWand::ConfigurationError, /broken IPv6 implementation/)
     end
   end
 

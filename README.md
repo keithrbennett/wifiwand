@@ -406,7 +406,7 @@ saved in variables, etc. In this example, the value returned by the WiFi-wand co
 in the local variable `local_ip`.
 
 ```
-[14] pry(#<WifiWand::CommandLineInterface>)> local_ip = info['ip_address'].grep(/192/).first
+[14] pry(#<WifiWand::CommandLineInterface>)> local_ip = info['ipv4_addresses'].grep(/192/).first
 => "192.168.110.251"
 [15] pry(#<WifiWand::CommandLineInterface>)> puts "My IP address on the LAN is #{local_ip.inspect}"
 My IP address on the LAN is "192.168.110.251"
@@ -506,7 +506,8 @@ interface. Key methods include:
 *   `dns_working?`
 *   `generate_qr_code(filespec: nil)`
 *   `internet_tcp_connectivity?`
-*   `ip_address`
+*   `ipv4_addresses`
+*   `ipv6_addresses`
 *   `mac_address`
 *   `nameservers`
 *   `os` — returns the current OS identifier as a symbol (`:mac`, `:ubuntu`)
@@ -565,8 +566,8 @@ but these commands could also each be specified on a line of its own.)
 # Cycle (off/on) the network then connect to the specified network using the specified password
 > cycle; connect 'my-network', 'my-password'
 
-> @i = i; "Interface: #{@i['interface']}, SSID: #{@i['network']}, IP addresses: #{@i['ip_address'].join(', ')}."
-Interface: wlp0s20f3, SSID: CafeBleu 5G, IP addresses: 192.168.110.251.
+> @i = i; "Interface: #{@i['interface']}, SSID: #{@i['network']}, IPv4 addresses: #{@i['ipv4_addresses'].join(', ')}."
+Interface: wlp0s20f3, SSID: CafeBleu 5G, IPv4 addresses: 192.168.110.251.
 
 > puts "There are #{pr.size} preferred networks."
 There are 341 preferred networks.

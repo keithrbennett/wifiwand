@@ -3,6 +3,7 @@
 require_relative 'helper/bundle'
 require_relative '../../errors'
 require_relative '../../services/command_executor'
+require_relative '../../services/ip_address_extractor'
 
 module WifiWand
   module Platforms
@@ -15,18 +16,23 @@ module WifiWand
           @verbose_proc = verbose_proc
         end
 
-        def ip_address(iface: nil, timeout_in_secs: nil)
+        def ipv4_addresses(iface: nil, timeout_in_secs: nil)
+          interface_addresses(iface: iface, timeout_in_secs: timeout_in_secs, line_type: 'inet',
+            family: :ipv4)
+        end
+
+        def ipv6_addresses(iface: nil, timeout_in_secs: nil)
+          interface_addresses(iface: iface, timeout_in_secs: timeout_in_secs, line_type: 'inet6',
+            family: :ipv6)
+        end
+
+        private def interface_addresses(line_type:, family:, iface: nil, timeout_in_secs: nil)
           iface ||= @wifi_interface_proc.call
           options = {}
           options[:timeout_in_secs] = timeout_in_secs if timeout_in_secs
 
           output = @command_runner.call(['ifconfig', iface], **options).stdout
-          output.each_line.filter_map do |line|
-            tokens = line.split
-            next unless tokens.first == 'inet'
-
-            tokens[1]
-          end
+          IPAddressExtractor.addresses(output, line_type: line_type, family: family)
         rescue WifiWand::CommandExecutor::OsCommandError => e
           raise unless e.exitstatus == 1
 

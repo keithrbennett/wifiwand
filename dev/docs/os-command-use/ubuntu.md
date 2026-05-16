@@ -257,7 +257,7 @@ stored DNS state, not a partial merge.
 ### `ip -4 addr show <wifi_interface>`
 - Description: Fetches IPv4 address assignments for the Wi-Fi interface.
 - Dynamic Values: `wifi_interface`
-- Base Model Method(s): `_ip_address`
+- Base Model Method(s): `_ipv4_addresses`
 - CLI Command(s): `i`, `s`
 - Helpful Info: Extracts all `inet` tokens (`x.y.z.w/nn`) and strips prefix lengths to return an array of host
   addresses.

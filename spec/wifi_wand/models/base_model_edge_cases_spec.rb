@@ -94,7 +94,8 @@ RSpec.describe WifiWand::BaseModel do
           def _connected_network_name = nil
           def _connect(_network, _password) = nil
           def _disconnect = nil
-          def _ip_address = []
+          def _ipv4_addresses = []
+          def _ipv6_addresses = []
           def _preferred_network_password(_network) = nil
         end
       RUBY
@@ -122,9 +123,14 @@ RSpec.describe WifiWand::BaseModel do
       expect { model.available_network_names }.to raise_error(WifiWand::Error, /WiFi is off/)
     end
 
-    it 'raises Error from ip_address without calling implementation' do
-      expect(model).not_to receive(:_ip_address)
-      expect { model.ip_address }.to raise_error(WifiWand::Error, /not connected/)
+    it 'raises Error from ipv4_addresses without calling implementation' do
+      expect(model).not_to receive(:_ipv4_addresses)
+      expect { model.ipv4_addresses }.to raise_error(WifiWand::Error, /not connected/)
+    end
+
+    it 'raises Error from ipv6_addresses without calling implementation' do
+      expect(model).not_to receive(:_ipv6_addresses)
+      expect { model.ipv6_addresses }.to raise_error(WifiWand::Error, /not connected/)
     end
 
     it 'raises Error from connected_network_password without calling implementation' do
@@ -149,9 +155,14 @@ RSpec.describe WifiWand::BaseModel do
       expect(model.send(:connected_network_password)).to be_nil
     end
 
-    it 'ip_address raises Error' do
-      expect(model).not_to receive(:_ip_address)
-      expect { model.ip_address }.to raise_error(WifiWand::Error, /not connected/)
+    it 'ipv4_addresses raises Error' do
+      expect(model).not_to receive(:_ipv4_addresses)
+      expect { model.ipv4_addresses }.to raise_error(WifiWand::Error, /not connected/)
+    end
+
+    it 'ipv6_addresses raises Error' do
+      expect(model).not_to receive(:_ipv6_addresses)
+      expect { model.ipv6_addresses }.to raise_error(WifiWand::Error, /not connected/)
     end
   end
 

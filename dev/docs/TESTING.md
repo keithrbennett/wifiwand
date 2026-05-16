@@ -297,7 +297,7 @@ end
 
 # Real-host read-only test
 it 'reads the current IP addresses', :real_env_read_only, real_env_os: :os_ubuntu do
-  expect(subject.ip_address).to all(match(/^\d+\.\d+\.\d+\.\d+$/))
+  expect(subject.ipv4_addresses).to all(match(/^\d+\.\d+\.\d+\.\d+$/))
 end
 
 # Real-host read-write test

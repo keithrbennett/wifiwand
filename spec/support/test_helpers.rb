@@ -30,7 +30,8 @@ module TestHelpers
     _connected_network_name:     -> {},
     _connect:                    ->(*) {},
     _disconnect:                 -> {},
-    _ip_address:                 -> { [] },
+    _ipv4_addresses:             -> { [] },
+    _ipv6_addresses:             -> { [] },
     _preferred_network_password: ->(*) {},
   }.freeze
 
@@ -255,8 +256,8 @@ module TestHelpers
   end
 
   # Helper for mocking IPSocket.getaddress success
-  private def mock_dns_resolution_success(ip_address = '1.2.3.4')
-    allow(IPSocket).to receive(:getaddress).and_return(ip_address)
+  private def mock_dns_resolution_success(address = '1.2.3.4')
+    allow(IPSocket).to receive(:getaddress).and_return(address)
   end
 
   # Helper for stubbing short connectivity timeouts for fast tests

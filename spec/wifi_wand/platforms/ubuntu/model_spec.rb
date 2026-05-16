@@ -1060,8 +1060,8 @@ module WifiWand
         end
       end
 
-      describe '#_ip_address' do
-        it 'returns IP address from interface' do
+      describe '#_ipv4_addresses' do
+        it 'returns IPv4 addresses from interface' do
           ip_output = <<~OUT.chomp
             2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP>
             inet 192.168.1.100/24 brd 192.168.1.255 scope global dynamic noprefixroute wlp3s0
@@ -1073,19 +1073,19 @@ module WifiWand
             .with(['ip', '-4', 'addr', 'show', wifi_interface], raise_on_error: false)
             .and_return(command_result(stdout: ip_output))
 
-          expect(ubuntu_model.send(:_ip_address)).to eq(['192.168.1.100'])
+          expect(ubuntu_model.send(:_ipv4_addresses)).to eq(['192.168.1.100'])
         end
 
-        it 'returns an empty array when no IP address is assigned' do
+        it 'returns an empty array when no IPv4 address is assigned' do
           allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
           allow(ubuntu_model).to receive(:run_command)
             .with(['ip', '-4', 'addr', 'show', 'wlp3s0'], raise_on_error: false)
             .and_return(command_result(stdout: ''))
 
-          expect(ubuntu_model.send(:_ip_address)).to eq([])
+          expect(ubuntu_model.send(:_ipv4_addresses)).to eq([])
         end
 
-        it 'returns multiple IP addresses from the interface' do
+        it 'returns multiple IPv4 addresses from the interface' do
           ip_output = <<~OUT.chomp
             2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP>
             inet 192.168.1.100/24 brd 192.168.1.255 scope global
@@ -1096,7 +1096,47 @@ module WifiWand
             .with(['ip', '-4', 'addr', 'show', 'wlp3s0'], raise_on_error: false)
             .and_return(command_result(stdout: ip_output))
 
-          expect(ubuntu_model.send(:_ip_address)).to eq(['192.168.1.100', '10.0.0.50'])
+          expect(ubuntu_model.send(:_ipv4_addresses)).to eq(['192.168.1.100', '10.0.0.50'])
+        end
+      end
+
+      describe '#_ipv6_addresses' do
+        it 'returns IPv6 addresses from interface' do
+          ip_output = <<~OUT.chomp
+            2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP>
+            inet6 2001:db8::100/64 scope global dynamic noprefixroute
+          OUT
+          wifi_interface = 'wlp3s0'
+
+          allow(ubuntu_model).to receive(:wifi_interface).and_return(wifi_interface)
+          allow(ubuntu_model).to receive(:run_command)
+            .with(['ip', '-6', 'addr', 'show', wifi_interface], raise_on_error: false)
+            .and_return(command_result(stdout: ip_output))
+
+          expect(ubuntu_model.send(:_ipv6_addresses)).to eq(['2001:db8::100'])
+        end
+
+        it 'returns an empty array when no IPv6 address is assigned' do
+          allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
+          allow(ubuntu_model).to receive(:run_command)
+            .with(['ip', '-6', 'addr', 'show', 'wlp3s0'], raise_on_error: false)
+            .and_return(command_result(stdout: ''))
+
+          expect(ubuntu_model.send(:_ipv6_addresses)).to eq([])
+        end
+
+        it 'returns multiple IPv6 addresses from the interface' do
+          ip_output = <<~OUT.chomp
+            2: wlp3s0: <BROADCAST,MULTICAST,UP,LOWER_UP>
+            inet6 fe80::1/64 scope link
+            inet6 2001:db8::100/64 scope global dynamic
+          OUT
+          allow(ubuntu_model).to receive(:wifi_interface).and_return('wlp3s0')
+          allow(ubuntu_model).to receive(:run_command)
+            .with(['ip', '-6', 'addr', 'show', 'wlp3s0'], raise_on_error: false)
+            .and_return(command_result(stdout: ip_output))
+
+          expect(ubuntu_model.send(:_ipv6_addresses)).to eq(['fe80::1', '2001:db8::100'])
         end
       end
 
@@ -1815,7 +1855,7 @@ module WifiWand
             _connected_network_name:        'NetA',
             active_connection_profile_name: 'NetA',
             connected?:                     true,
-            _ip_address:                    []
+            _ipv4_addresses:                []
           )
 
           expect(ubuntu_model.connection_ready?('NetA')).to be(true)
@@ -2787,8 +2827,8 @@ module WifiWand
       end
 
       describe 'network information' do
-        it 'retrieves IP address' do
-          expect(ubuntu_model.ip_address).to be_a_non_empty_array_of_ip_addresses
+        it 'retrieves IPv4 addresses' do
+          expect(ubuntu_model.ipv4_addresses).to be_a_non_empty_array_of_ip_addresses
         end
 
         it 'retrieves MAC address' do

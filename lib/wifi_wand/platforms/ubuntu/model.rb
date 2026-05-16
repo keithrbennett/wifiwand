@@ -5,6 +5,7 @@ require 'ipaddr'
 require_relative '../../models/base_model'
 require_relative '../../errors'
 require_relative '../../timing_constants'
+require_relative '../../services/ip_address_extractor'
 require_relative '../../services/status_line_data_builder'
 
 module WifiWand
@@ -518,19 +519,16 @@ module WifiWand
           !PREFERRED_NETWORK_SECRET_PLACEHOLDERS.include?(secret)
         end
 
-        public def _ip_address
+        public def _ipv4_addresses
           debug_method_entry(__method__)
 
-          output = run_command(['ip', '-4', 'addr', 'show', wifi_interface],
-            raise_on_error: false).stdout
+          interface_ip_addresses(command_ip_version: '-4', line_type: 'inet', family: :ipv4)
+        end
 
-          output.each_line.filter_map do |line|
-            tokens = line.split
-            next unless tokens.first == 'inet'
+        public def _ipv6_addresses
+          debug_method_entry(__method__)
 
-            address_token = tokens.find { |token| token.include?('/') }
-            address_token&.split('/')&.first
-          end
+          interface_ip_addresses(command_ip_version: '-6', line_type: 'inet6', family: :ipv6)
         end
 
         public def mac_address
@@ -544,6 +542,13 @@ module WifiWand
           tokens = ether_line.split
           ether_index = tokens.index('link/ether')
           ether_index ? tokens[ether_index + 1] : nil
+        end
+
+        private def interface_ip_addresses(command_ip_version:, line_type:, family:)
+          output = run_command(['ip', command_ip_version, 'addr', 'show', wifi_interface],
+            raise_on_error: false).stdout
+
+          IPAddressExtractor.addresses(output, line_type: line_type, family: family)
         end
 
         public def bssid

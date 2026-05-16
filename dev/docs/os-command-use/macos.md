@@ -175,9 +175,9 @@ The `security` tool integrates with the macOS Keychain to retrieve stored Wi-Fi 
 ### `ifconfig <interface>`
 - Description: Retrieves interface details to extract IPv4 addresses and the MAC address.
 - Dynamic Values: `interface` (from `wifi_interface`)
-- Base Model Method(s): `_ip_address`, `mac_address`
+- Base Model Method(s): `_ipv4_addresses`, `mac_address`
 - CLI Command(s): `i`, `s`, `log`
-- Helpful Info: `_ip_address` scans all `inet` lines and returns an array of IPv4 address strings; exit status 1
+- Helpful Info: `_ipv4_addresses` scans all `inet` lines and returns an array of IPv4 address strings; exit status 1
   is treated as “no addresses” and converted to `[]`. `mac_address` scans for the `ether` line and returns the
   following token in lowercase.
 

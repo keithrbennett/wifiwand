@@ -307,13 +307,13 @@ describe 'Output Format Integration Tests' do
 
           let(:test_data) do
             {
-              'wifi_on'    => true,
-              'network'    => {
+              'wifi_on'        => true,
+              'network'        => {
                 'ssid'     => 'HomeNet',
                 'channel'  => 11,
                 'security' => 'WPA2',
               },
-              'ip_address' => ['192.168.1.100'],
+              'ipv4_addresses' => ['192.168.1.100'],
             }
           end
           let(:options) { parse_options('-o', format_config[:code], 'i') }
@@ -433,10 +433,10 @@ describe 'Output Format Integration Tests' do
           'signal_strength' => -45,
         },
         'network_details'    => {
-          'channel'    => 11,
-          'frequency'  => '2.4GHz',
-          'security'   => 'WPA2-PSK',
-          'ip_address' => ['192.168.1.100'],
+          'channel'        => 11,
+          'frequency'      => '2.4GHz',
+          'security'       => 'WPA2-PSK',
+          'ipv4_addresses' => ['192.168.1.100'],
         },
         'available_networks' => %w[HomeNetwork GuestNetwork OfficeWiFi],
         'nameservers'        => ['8.8.8.8', '8.8.4.4', '1.1.1.1'],

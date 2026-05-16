@@ -145,7 +145,8 @@ module WifiWand
       _connected_network_name:     :any_visibility,
       _connect:                    :any_visibility,
       _disconnect:                 :any_visibility,
-      _ip_address:                 :any_visibility,
+      _ipv4_addresses:             :any_visibility,
+      _ipv6_addresses:             :any_visibility,
       _preferred_network_password: :any_visibility,
       bssid:                       :public,
       connected?:                  :public,
@@ -394,10 +395,16 @@ module WifiWand
       false
     end
 
-    def ip_address
-      raise Error, 'Cannot get IP address: not connected to a network.' unless connected?
+    def ipv4_addresses
+      raise Error, 'Cannot get IPv4 addresses: not connected to a network.' unless connected?
 
-      _ip_address
+      _ipv4_addresses
+    end
+
+    def ipv6_addresses
+      raise Error, 'Cannot get IPv6 addresses: not connected to a network.' unless connected?
+
+      _ipv6_addresses
     end
 
     def run_command(command, raise_on_error: true, timeout_in_secs: nil)
@@ -507,21 +514,36 @@ module WifiWand
         'ssid_identity_available'     => network_identity.fetch('ssid_identity_available'),
         'ssid_identity_status'        => network_identity.fetch('ssid_identity_status'),
         'ssid_identity_warning'       => network_identity.fetch('ssid_identity_warning'),
-        'ip_address'                  => wifi_info_ip_address,
+        'ipv4_addresses'              => wifi_info_ipv4_addresses,
+        'ipv6_addresses'              => wifi_info_ipv6_addresses,
         'mac_address'                 => begin; mac_address; rescue WifiWand::Error; nil; end,
         'nameservers'                 => begin; nameservers; rescue WifiWand::Error; []; end,
         'timestamp'                   => Time.now,
       }
     end
 
-    private def wifi_info_ip_address
-      ip_address
-    rescue *NETWORK_OPERATION_COMMAND_ERRORS, WifiWand::WifiOffError, WifiWand::WifiInterfaceError
+    private def wifi_info_ipv4_addresses
+      wifi_info_network_addresses(:ipv4_addresses)
+    end
+
+    private def wifi_info_ipv6_addresses
+      wifi_info_network_addresses(:ipv6_addresses)
+    end
+
+    private def wifi_info_network_addresses(method_name)
+      public_send(method_name)
+    rescue *NETWORK_OPERATION_COMMAND_ERRORS
       []
     rescue WifiWand::Error => e
-      raise unless e.instance_of?(WifiWand::Error) && e.message.include?('not connected')
+      raise unless wifi_info_network_addresses_unavailable_error?(e)
 
       []
+    end
+
+    private def wifi_info_network_addresses_unavailable_error?(error)
+      error.is_a?(WifiWand::WifiOffError) ||
+        error.is_a?(WifiWand::WifiInterfaceError) ||
+        (error.instance_of?(WifiWand::Error) && error.message.include?('not connected'))
     end
 
     private def successful_available_network_scan(networks)

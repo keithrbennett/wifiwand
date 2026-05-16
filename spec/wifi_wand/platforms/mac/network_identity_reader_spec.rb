@@ -15,7 +15,7 @@ module WifiWand
         wifi_on_proc:                  -> { wifi_on },
         wifi_interface_proc:           -> { wifi_interface },
         default_interface_proc:        -> { default_interface },
-        ip_address_proc:               -> { ip_address },
+        ipv4_addresses_proc:           -> { ipv4_addresses },
         airport_command:               airport_command
       )
     end
@@ -28,7 +28,7 @@ module WifiWand
     let(:wifi_on) { true }
     let(:wifi_interface) { 'en0' }
     let(:default_interface) { nil }
-    let(:ip_address) { [] }
+    let(:ipv4_addresses) { [] }
 
     def helper_result(**kwargs)
       WifiWand::Platforms::Mac::Helper::Bundle::HelperQueryResult.new(**kwargs)

@@ -214,7 +214,7 @@ module WifiWand
         expect(system_network_info).to receive(:default_interface)
           .with(timeout_in_secs: status_timeout)
           .and_return('en1')
-        expect(system_network_info).to receive(:ip_address)
+        expect(system_network_info).to receive(:ipv4_addresses)
           .with(iface: 'en0', timeout_in_secs: status_timeout)
           .and_raise(timeout_error)
 
@@ -239,7 +239,7 @@ module WifiWand
         expect(system_network_info).to receive(:default_interface)
           .with(timeout_in_secs: status_timeout)
           .and_return('en1')
-        expect(system_network_info).to receive(:ip_address)
+        expect(system_network_info).to receive(:ipv4_addresses)
           .with(iface: 'en0', timeout_in_secs: status_timeout)
           .and_return([])
 
@@ -266,7 +266,7 @@ module WifiWand
         expect(system_network_info).to receive(:default_interface)
           .with(timeout_in_secs: status_timeout)
           .and_return('en1')
-        expect(system_network_info).to receive(:ip_address)
+        expect(system_network_info).to receive(:ipv4_addresses)
           .with(iface: 'en0', timeout_in_secs: status_timeout)
           .and_return(['192.168.1.44'])
 
@@ -291,7 +291,7 @@ module WifiWand
       end
     end
 
-    describe '#status_ip_address' do
+    describe '#status_ipv4_addresses' do
       it 'returns an empty array when status interface detection is unavailable' do
         wifi_interface_store[:value] = nil
         deadline = monotonic_now + 0.5
@@ -299,9 +299,9 @@ module WifiWand
         expect(probe_wifi_interface_proc).to receive(:call)
           .with(status_timeout)
           .and_return('')
-        expect(system_network_info).not_to receive(:ip_address)
+        expect(system_network_info).not_to receive(:ipv4_addresses)
 
-        expect(status_queries.send(:status_ip_address, deadline)).to eq([])
+        expect(status_queries.send(:status_ipv4_addresses, deadline)).to eq([])
       end
     end
   end

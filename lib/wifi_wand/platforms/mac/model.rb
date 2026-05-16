@@ -244,10 +244,12 @@ module WifiWand
           keychain_password_reader.password_for(preferred_network_name, timeout_in_secs: timeout_in_secs)
         end
 
-        # Returns IPv4 addresses assigned to the WiFi interface.
+        def _ipv4_addresses
+          system_network_info.ipv4_addresses
+        end
 
-        def _ip_address
-          system_network_info.ip_address
+        def _ipv6_addresses
+          system_network_info.ipv6_addresses
         end
 
         def remove_preferred_network(network_name)
@@ -419,7 +421,7 @@ module WifiWand
             wifi_on_proc:                  -> { wifi_on? },
             wifi_interface_proc:           -> { wifi_interface },
             default_interface_proc:        -> { default_interface },
-            ip_address_proc:               -> { _ip_address },
+            ipv4_addresses_proc:           -> { _ipv4_addresses },
             airport_command:               AIRPORT_COMMAND
           )
         end

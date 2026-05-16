@@ -951,7 +951,7 @@ module WifiWand
             }] },
             wifi_interface:    'en0',
             default_interface: nil,
-            _ip_address:       []
+            _ipv4_addresses:   []
           )
 
           expect(model.connected?).to be(false)
@@ -972,7 +972,7 @@ module WifiWand
             airport_data:      { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [] }] },
             wifi_interface:    'en0',
             default_interface: nil,
-            _ip_address:       []
+            _ipv4_addresses:   []
           )
 
           expect(model.connected?).to be(false)
@@ -991,7 +991,7 @@ module WifiWand
             wifi_interface:    'en0',
             default_interface: 'en0'
           )
-          allow(model).to receive(:_ip_address).and_return([])
+          allow(model).to receive(:_ipv4_addresses).and_return([])
 
           expect(model.connected?).to be(true)
         end
@@ -1011,7 +1011,7 @@ module WifiWand
             }] }] },
             wifi_interface:    'en0',
             default_interface: nil,
-            _ip_address:       ['192.168.1.44']
+            _ipv4_addresses:   ['192.168.1.44']
           )
 
           original_env = ENV['WIFIWAND_DISABLE_MAC_HELPER']
@@ -1314,7 +1314,8 @@ module WifiWand
             wifi_interface:    'en0',
             connected?:        true,
             default_interface: 'en0',
-            ip_address:        ['192.168.1.25'],
+            ipv4_addresses:    ['192.168.1.25'],
+            ipv6_addresses:    ['2001:db8::25'],
             mac_address:       'aa:bb:cc:dd:ee:ff',
             nameservers:       ['8.8.8.8']
           )
@@ -1398,9 +1399,9 @@ module WifiWand
           expect(model.connection_ready?('SonomaNet')).to be(true)
         end
 
-        it 'ip_address does not raise and delegates to _ip_address' do
-          allow(model).to receive(:_ip_address).and_return(['10.0.0.42'])
-          expect(model.ip_address).to eq(['10.0.0.42'])
+        it 'ipv4_addresses does not raise and delegates to _ipv4_addresses' do
+          allow(model).to receive(:_ipv4_addresses).and_return(['10.0.0.42'])
+          expect(model.ipv4_addresses).to eq(['10.0.0.42'])
         end
       end
 
