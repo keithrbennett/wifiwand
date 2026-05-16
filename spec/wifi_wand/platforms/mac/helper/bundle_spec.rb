@@ -108,14 +108,26 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       let(:raw_result) { helper_bundle::HelperQueryResult.new }
 
       it 'parses the new connected response with an SSID payload' do
-        raw_result.payload = { 'status' => 'connected', 'ssid' => 'OfficeWiFi' }
+        raw_result.payload = { 'status' => 'connected', 'ssid' => 'OfficeWiFi', 'rssi' => -65 }
         raw_result.status = :success
         result = client.connected_network_name
         expect(result).to be_a(helper_bundle::HelperQueryResult)
         expect(result.payload).to eq('OfficeWiFi')
+        expect(result.signal_quality).to eq(WifiWand::SignalQuality.new(value: -65, unit: :dbm))
         expect(result.status).to eq(:connected)
         expect(result).to be_connected
         expect(result).not_to be_location_services_blocked
+      end
+
+      it 'ignores malformed RSSI values in the current-network payload' do
+        raw_result.payload = { 'status' => 'connected', 'ssid' => 'OfficeWiFi', 'rssi' => 'unknown' }
+        raw_result.status = :success
+
+        result = client.connected_network_name
+
+        expect(result.payload).to eq('OfficeWiFi')
+        expect(result.signal_quality).to be_nil
+        expect(result.status).to eq(:connected)
       end
 
       it 'remains compatible with old helper responses that only include an SSID' do

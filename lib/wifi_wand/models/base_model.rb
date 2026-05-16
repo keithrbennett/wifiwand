@@ -14,6 +14,7 @@ require_relative '../errors'
 require_relative '../runtime_config'
 require_relative '../connectivity_states'
 require_relative '../network_identity'
+require_relative '../signal_quality'
 require_relative '../string_predicates'
 require_relative '../services/command_executor'
 require_relative '../services/network_connectivity_tester'
@@ -161,6 +162,7 @@ module WifiWand
       preferred_networks:          :public,
       remove_preferred_network:    :public,
       set_nameservers:             :public,
+      signal_quality:              :public,
       validate_os_preconditions:   :public,
       wifi_off:                    :public,
       wifi_on:                     :public,
@@ -235,6 +237,8 @@ module WifiWand
 
     def bssid = raise_override_not_implemented_error(__method__)
 
+    def signal_quality = raise_override_not_implemented_error(__method__)
+
     def connection_security_type = raise_override_not_implemented_error(__method__)
 
     def default_interface = raise_override_not_implemented_error(__method__)
@@ -302,8 +306,9 @@ module WifiWand
       network_name = connected ? connected_network_name : nil
 
       {
-        connected:    connected,
-        network_name: network_name,
+        connected:      connected,
+        network_name:   network_name,
+        signal_quality: connected ? signal_quality : nil,
       }
     end
 
@@ -511,6 +516,7 @@ module WifiWand
         'connected'                   => network_identity.fetch('connected'),
         'network'                     => network_identity.fetch('network'),
         'bssid'                       => begin; bssid; rescue WifiWand::Error; nil; end,
+        'signal_quality'              => wifi_info_signal_quality,
         'ssid_identity_available'     => network_identity.fetch('ssid_identity_available'),
         'ssid_identity_status'        => network_identity.fetch('ssid_identity_status'),
         'ssid_identity_warning'       => network_identity.fetch('ssid_identity_warning'),
@@ -524,6 +530,12 @@ module WifiWand
 
     private def wifi_info_ipv4_addresses
       wifi_info_network_addresses(:ipv4_addresses)
+    end
+
+    private def wifi_info_signal_quality
+      signal_quality&.to_h
+    rescue WifiWand::Error
+      nil
     end
 
     private def wifi_info_ipv6_addresses

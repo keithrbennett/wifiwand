@@ -149,6 +149,46 @@ module WifiWand
       end
     end
 
+    describe '.current_network_signal_dbm' do
+      it 'extracts the current network signal from interface data' do
+        interface_data = {
+          'spairport_current_network_information' => {
+            '_name'                  => 'CurrentNetwork',
+            'spairport_signal_noise' => '-65/-95',
+          },
+        }
+
+        expect(described_class.current_network_signal_dbm(interface_data)).to eq(-65)
+      end
+
+      it 'preserves zero as a valid current network signal reading' do
+        interface_data = {
+          'spairport_current_network_information' => {
+            '_name'                  => 'CurrentNetwork',
+            'spairport_signal_noise' => '0/-95',
+          },
+        }
+
+        expect(described_class.current_network_signal_dbm(interface_data)).to eq(0)
+      end
+
+      it 'returns nil when current network data is unavailable' do
+        expect(described_class.current_network_signal_dbm({})).to be_nil
+      end
+
+      it 'returns nil when current network signal/noise data is missing or malformed' do
+        expect(described_class.current_network_signal_dbm(
+          'spairport_current_network_information' => { '_name' => 'CurrentNetwork' }
+        )).to be_nil
+        expect(described_class.current_network_signal_dbm(
+          'spairport_current_network_information' => {
+            '_name'                  => 'CurrentNetwork',
+            'spairport_signal_noise' => 'unknown',
+          }
+        )).to be_nil
+      end
+    end
+
     describe '#interfaces' do
       it 'returns WiFi interfaces from the system profiler payload' do
         expect(navigator.interfaces).to contain_exactly(include('_name' => 'en0'))

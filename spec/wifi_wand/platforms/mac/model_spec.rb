@@ -1048,8 +1048,9 @@ module WifiWand
           expect(helper_double).not_to receive(:connected_network_name)
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
-            connected:    false,
-            network_name: nil
+            connected:      false,
+            network_name:   nil,
+            signal_quality: nil
           )
           expect(model.instance_variable_get(:@wifi_interface)).to be_nil
         end
@@ -1067,11 +1068,15 @@ module WifiWand
             .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
           expect(helper_double).to receive(:connected_network_name)
             .with(timeout_seconds: status_timeout)
-            .and_return(helper_query_result.new(payload: 'HelperSSID'))
+            .and_return(helper_query_result.new(
+              payload:        'HelperSSID',
+              signal_quality: WifiWand::SignalQuality.new(value: -65, unit: :dbm)
+            ))
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
-            connected:    true,
-            network_name: 'HelperSSID'
+            connected:      true,
+            network_name:   'HelperSSID',
+            signal_quality: WifiWand::SignalQuality.new(value: -65, unit: :dbm)
           )
           expect(model.instance_variable_get(:@wifi_interface)).to eq('en0')
         end
@@ -1082,12 +1087,15 @@ module WifiWand
             .and_return(command_result(stdout: "Wi-Fi Power (en0): On\n"))
           expect(helper_double).to receive(:connected_network_name)
             .with(timeout_seconds: status_timeout)
-            .and_return(helper_query_result.new(payload: 'HelperSSID'))
-
+            .and_return(helper_query_result.new(
+              payload:        'HelperSSID',
+              signal_quality: WifiWand::SignalQuality.new(value: -65, unit: :dbm)
+            ))
           expect(model).not_to receive(:system_profiler_wifi_data)
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
-            connected:    true,
-            network_name: 'HelperSSID'
+            connected:      true,
+            network_name:   'HelperSSID',
+            signal_quality: WifiWand::SignalQuality.new(value: -65, unit: :dbm)
           )
         end
 
@@ -1104,8 +1112,9 @@ module WifiWand
           expect(model).not_to receive(:system_profiler_wifi_data)
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
-            connected:    true,
-            network_name: 'Cafe: West'
+            connected:      true,
+            network_name:   'Cafe: West',
+            signal_quality: nil
           )
         end
 
@@ -1122,8 +1131,9 @@ module WifiWand
           expect(model).not_to receive(:system_profiler_wifi_data)
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
-            connected:    false,
-            network_name: nil
+            connected:      false,
+            network_name:   nil,
+            signal_quality: nil
           )
         end
 
@@ -1132,7 +1142,10 @@ module WifiWand
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
-                'spairport_current_network_information' => { '_name' => 'ProfilerNet' },
+                'spairport_current_network_information' => {
+                  '_name'                  => 'ProfilerNet',
+                  'spairport_signal_noise' => '-65/-95',
+                },
               }],
             }]
           )
@@ -1157,8 +1170,9 @@ module WifiWand
             .and_return(command_result(stdout: system_profiler_wifi_json))
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
-            connected:    true,
-            network_name: 'ProfilerNet'
+            connected:      true,
+            network_name:   'ProfilerNet',
+            signal_quality: WifiWand::SignalQuality.new(value: -65, unit: :dbm)
           )
         end
 
@@ -1167,7 +1181,10 @@ module WifiWand
             'SPAirPortDataType' => [{
               'spairport_airport_interfaces' => [{
                 '_name'                                 => 'en0',
-                'spairport_current_network_information' => { '_name' => 'ProfilerNet' },
+                'spairport_current_network_information' => {
+                  '_name'                  => 'ProfilerNet',
+                  'spairport_signal_noise' => '-65/-95',
+                },
               }],
             }]
           )
@@ -1189,8 +1206,9 @@ module WifiWand
             .and_return(command_result(stdout: system_profiler_wifi_json))
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
-            connected:    true,
-            network_name: 'ProfilerNet'
+            connected:      true,
+            network_name:   'ProfilerNet',
+            signal_quality: WifiWand::SignalQuality.new(value: -65, unit: :dbm)
           )
         end
 
@@ -1231,8 +1249,9 @@ module WifiWand
 
           expect(model).not_to receive(:system_profiler_wifi_data)
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
-            connected:    false,
-            network_name: nil
+            connected:      false,
+            network_name:   nil,
+            signal_quality: nil
           )
         end
 
@@ -1263,8 +1282,9 @@ module WifiWand
             .and_return(command_result(stdout: "interface: en0\n"))
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
-            connected:    true,
-            network_name: nil
+            connected:      true,
+            network_name:   nil,
+            signal_quality: nil
           )
         end
 
@@ -1299,8 +1319,9 @@ module WifiWand
             .and_return(command_result(stdout: ''))
 
           expect(model.status_network_identity(timeout_in_secs: 0.5)).to eq(
-            connected:    false,
-            network_name: nil
+            connected:      false,
+            network_name:   nil,
+            signal_quality: nil
           )
         end
       end
@@ -1331,6 +1352,44 @@ module WifiWand
             'ssid_identity_status'    => 'unavailable'
           )
           expect(info.fetch('ssid_identity_warning')).to include('Location Services')
+        end
+      end
+
+      describe '#signal_quality' do
+        let(:helper_double) { instance_double(WifiWand::Platforms::Mac::Helper::Client) }
+
+        before do
+          model.instance_variable_set(:@helper_client, nil)
+          allow(WifiWand::Platforms::Mac::Helper::Client).to receive(:new).and_return(helper_double)
+        end
+
+        it 'uses helper RSSI before system_profiler data' do
+          signal_quality = WifiWand::SignalQuality.new(value: -65, unit: :dbm)
+          expect(helper_double).to receive(:connected_network_name)
+            .and_return(helper_query_result.new(payload: 'HelperSSID', signal_quality: signal_quality))
+          expect(model).not_to receive(:system_profiler_wifi_data)
+
+          expect(model.signal_quality).to eq(signal_quality)
+        end
+
+        it 'falls back when the helper cannot provide RSSI' do
+          fallback_details = instance_double(
+            WifiWand::Platforms::Mac::CurrentNetworkDetails,
+            signal_quality: WifiWand::SignalQuality.new(value: -72, unit: :dbm)
+          )
+          expect(helper_double).to receive(:connected_network_name)
+            .and_return(helper_query_result.new(payload: 'HelperSSID'))
+          allow(model).to receive(:current_network_details).and_return(fallback_details)
+
+          expect(model.signal_quality).to eq(WifiWand::SignalQuality.new(value: -72, unit: :dbm))
+        end
+
+        it 'returns nil when the helper reports no connection' do
+          expect(helper_double).to receive(:connected_network_name)
+            .and_return(helper_query_result.new(status: :not_connected))
+          expect(model).not_to receive(:current_network_details)
+
+          expect(model.signal_quality).to be_nil
         end
       end
 

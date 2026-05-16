@@ -10,6 +10,7 @@ describe WifiWand::Commands::OutputFormatter do
   let(:green_text_regex) { /\e\[32m.*\e\[0m/ }
   let(:red_text_regex) { /\e\[31m.*\e\[0m/ }
   let(:yellow_text_regex) { /\e\[33m.*\e\[0m/ }
+  let(:blue_text_regex) { /\e\[34m.*\e\[0m/ }
   let(:cyan_text_regex) { /\e\[36m.*\e\[0m/ }
   let(:status_line_hash_key_map) do
     {
@@ -264,6 +265,12 @@ describe WifiWand::Commands::OutputFormatter do
           true,
         ],
         [
+          'colorizes negative numbers in blue when TTY',
+          'Signal quality: -65 dBm',
+          "Signal quality: \e[34m-65\e[0m dBm",
+          true,
+        ],
+        [
           'does not colorize numbers that are part of words when TTY',
           'Network5G is fast',
           'Network5G is fast',
@@ -357,6 +364,19 @@ describe WifiWand::Commands::OutputFormatter do
         expect(result).to match(yellow_text_regex)
       end
 
+      it 'appends signal quality after a connected network name' do
+        data = status_data.merge(
+          connected:      true,
+          signal_quality: WifiWand::SignalQuality.new(value: -65, unit: :dbm)
+        )
+
+        result = subject.status_line(data)
+
+        expect(result).to include('TestNetwork')
+        expect(result).to match(/WiFi Network.*-65.*dBm/)
+        expect(result).to match(blue_text_regex)
+      end
+
       it 'shows UNKNOWN when network identity is indeterminate after completion' do
         data = status_data.merge(connected: nil, network_name: nil)
 
@@ -417,6 +437,17 @@ describe WifiWand::Commands::OutputFormatter do
 
         # Verify no color codes
         expect(result).not_to match(ansi_color_regex)
+      end
+
+      it 'appends percent signal quality after a connected network name' do
+        data = status_data.merge(
+          connected:      true,
+          signal_quality: WifiWand::SignalQuality.new(value: 72, unit: :percent)
+        )
+
+        result = subject.status_line(data)
+
+        expect(result).to include('TestNetwork (72%)')
       end
 
       it 'shows error conditions without color codes' do

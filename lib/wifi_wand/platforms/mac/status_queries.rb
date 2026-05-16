@@ -4,6 +4,7 @@ require 'ipaddr'
 
 require_relative 'system_profiler_wifi_data_navigator'
 require_relative '../../errors'
+require_relative '../../signal_quality'
 require_relative '../../services/command_executor'
 require_relative '../../string_predicates'
 
@@ -50,13 +51,19 @@ module WifiWand
             )
             helper_ssid = helper_result.payload
             if helper_ssid && !placeholder_network_name?(helper_ssid)
-              return { connected: true, network_name: helper_ssid }
+              return { connected:      true,
+                       network_name:   helper_ssid,
+                       signal_quality: helper_result.signal_quality }
             end
             return disconnected_identity if helper_result.not_connected?
 
             fast_network_name = status_network_name_using_fast_commands(deadline)
             return disconnected_identity if no_connected_network?(fast_network_name)
-            return { connected: true, network_name: fast_network_name } if fast_network_name
+            if fast_network_name
+              return { connected:      true,
+                       network_name:   fast_network_name,
+                       signal_quality: nil }
+            end
 
             status_network_identity_from_system_profiler_wifi_data(deadline)
           end
@@ -75,11 +82,18 @@ module WifiWand
           connected = interface_associated_in_system_profiler_wifi_data?(interface_data) ||
             status_associated_without_ssid?(deadline)
           network_name = connected ? status_network_name_from_system_profiler_wifi_data(interface_data) : nil
+          signal_quality = connected ? signal_quality_from_interface_data(interface_data) : nil
 
           {
-            connected:    connected,
-            network_name: network_name,
+            connected:      connected,
+            network_name:   network_name,
+            signal_quality: signal_quality,
           }
+        end
+
+        private def signal_quality_from_interface_data(interface_data)
+          dbm = SystemProfilerWifiDataNavigator.current_network_signal_dbm(interface_data)
+          dbm ? SignalQuality.new(value: dbm, unit: :dbm) : nil
         end
 
         private def status_network_name_using_fast_commands(deadline)
@@ -135,8 +149,9 @@ module WifiWand
 
         private def disconnected_identity
           {
-            connected:    false,
-            network_name: nil,
+            connected:      false,
+            network_name:   nil,
+            signal_quality: nil,
           }
         end
 

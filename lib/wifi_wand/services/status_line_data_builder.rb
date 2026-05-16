@@ -213,8 +213,9 @@ module WifiWand
       case worker_name
       when :network
         {
-          connected:    nil,
-          network_name: nil,
+          connected:      nil,
+          network_name:   nil,
+          signal_quality: nil,
         }
       when :connectivity
         {
@@ -289,6 +290,7 @@ module WifiWand
       wifi_on = model.status_wifi_on?(timeout_in_secs: remaining_worker_budget(deadline))
       {
         wifi_on:                       wifi_on,
+        signal_quality:                nil,
         dns_working:                   nil,
         internet_state:                ConnectivityStates::INTERNET_PENDING,
         internet_check_complete:       false,
@@ -304,6 +306,7 @@ module WifiWand
         dns_working:                   false,
         connected:                     false,
         network_name:                  nil,
+        signal_quality:                nil,
         internet_state:                ConnectivityStates::INTERNET_UNREACHABLE,
         internet_check_complete:       true,
         captive_portal_state:          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
@@ -330,8 +333,9 @@ module WifiWand
     rescue WifiWand::Error, *expected_network_errors => e
       out_stream.puts "Warning: network status lookup failed: #{e.class}: #{e.message}" if verbose?
       {
-        connected:    false,
-        network_name: nil,
+        connected:      false,
+        network_name:   nil,
+        signal_quality: nil,
       }
     end
 

@@ -22,6 +22,7 @@ module TestHelpers
     preferred_networks:          -> { [] },
     remove_preferred_network:    ->(*) {},
     set_nameservers:             ->(*) {},
+    signal_quality:              nil,
     validate_os_preconditions:   -> {},
     wifi_off:                    -> {},
     wifi_on:                     -> {},
@@ -59,7 +60,13 @@ module TestHelpers
 
     klass.class_eval do
       method_definitions.each do |method_name, implementation|
-        define_method(method_name, &implementation) unless skipped_methods.include?(method_name)
+        next if skipped_methods.include?(method_name)
+
+        if implementation.respond_to?(:call)
+          define_method(method_name, &implementation)
+        else
+          define_method(method_name) { implementation }
+        end
       end
     end
 

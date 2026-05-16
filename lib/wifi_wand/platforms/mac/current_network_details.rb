@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require_relative 'system_profiler_wifi_data_navigator'
+require_relative '../../signal_quality'
 
 module WifiWand
   module Platforms
@@ -38,6 +39,16 @@ module WifiWand
             return false unless network_name
 
             system_profiler_wifi_data_navigator.network_hidden?(wifi_interface, network_name)
+          end
+        end
+
+        def signal_quality
+          with_system_profiler_wifi_data_cache_scope do
+            return nil unless connected_network_name
+
+            iface_data = system_profiler_wifi_data_navigator.interface_data(wifi_interface)
+            dbm = SystemProfilerWifiDataNavigator.current_network_signal_dbm(iface_data)
+            dbm ? SignalQuality.new(value: dbm, unit: :dbm) : nil
           end
         end
 

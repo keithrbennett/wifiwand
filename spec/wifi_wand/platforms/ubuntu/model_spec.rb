@@ -1418,10 +1418,19 @@ module WifiWand
             .with(%w[iw dev wlp3s0 link], raise_on_error: false, timeout_in_secs: status_timeout)
             .ordered
             .and_return(command_result(stdout: "Connected to aa:bb:cc\nSSID: HomeNetwork\n"))
+          expect(ubuntu_model).to receive(:run_command)
+            .with(
+              ['nmcli', '-t', '-f', 'IN-USE,SIGNAL', 'dev', 'wifi', 'list', '--rescan', 'no'],
+              raise_on_error:  false,
+              timeout_in_secs: status_timeout
+            )
+            .ordered
+            .and_return(command_result(stdout: "*:72\n"))
 
           expect(ubuntu_model.status_network_identity(timeout_in_secs: 0.5)).to eq(
-            connected:    true,
-            network_name: 'HomeNetwork'
+            connected:      true,
+            network_name:   'HomeNetwork',
+            signal_quality: WifiWand::SignalQuality.new(value: 72, unit: :percent)
           )
         end
 
@@ -1800,6 +1809,62 @@ module WifiWand
             .and_return(command_result(stdout: 'Not connected.'))
 
           expect(ubuntu_model.bssid).to be_nil
+        end
+      end
+
+      describe '#signal_quality' do
+        it 'returns the active network signal percentage from nmcli' do
+          allow(ubuntu_model).to receive(:connected?).and_return(true)
+          allow(ubuntu_model).to receive(:run_command)
+            .with(
+              ['nmcli', '-t', '-f', 'IN-USE,SIGNAL', 'dev', 'wifi', 'list', '--rescan', 'no'],
+              raise_on_error: false
+            )
+            .and_return(command_result(stdout: " :40\n*:72\n"))
+
+          signal_quality = ubuntu_model.signal_quality
+
+          expect(signal_quality.value).to eq(72)
+          expect(signal_quality.unit).to eq(:percent)
+          expect(signal_quality.to_s).to eq('72%')
+        end
+
+        it 'returns nil when disconnected' do
+          allow(ubuntu_model).to receive(:connected?).and_return(false)
+
+          expect(ubuntu_model.signal_quality).to be_nil
+        end
+
+        it 'returns nil when nmcli signal lookup fails' do
+          allow(ubuntu_model).to receive(:connected?).and_return(true)
+          allow(ubuntu_model).to receive(:run_command)
+            .and_raise(WifiWand::Error, 'signal unavailable')
+
+          expect(ubuntu_model.signal_quality).to be_nil
+        end
+
+        it 'returns nil when active nmcli signal output is blank, missing, or malformed' do
+          allow(ubuntu_model).to receive(:connected?).and_return(true)
+          allow(ubuntu_model).to receive(:run_command)
+            .with(
+              ['nmcli', '-t', '-f', 'IN-USE,SIGNAL', 'dev', 'wifi', 'list', '--rescan', 'no'],
+              raise_on_error: false
+            )
+            .and_return(command_result(stdout: "*\n :72\n"))
+
+          expect(ubuntu_model.signal_quality).to be_nil
+        end
+
+        it 'returns nil when active nmcli signal output is outside the percentage range' do
+          allow(ubuntu_model).to receive(:connected?).and_return(true)
+          allow(ubuntu_model).to receive(:run_command)
+            .with(
+              ['nmcli', '-t', '-f', 'IN-USE,SIGNAL', 'dev', 'wifi', 'list', '--rescan', 'no'],
+              raise_on_error: false
+            )
+            .and_return(command_result(stdout: "*:101\n"))
+
+          expect(ubuntu_model.signal_quality).to be_nil
         end
       end
 

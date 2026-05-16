@@ -39,7 +39,7 @@ module WifiWand
     let(:system_profiler_wifi_data) { system_profiler_wifi_data_with_current_network(security_mode: 'WPA2') }
 
     def system_profiler_wifi_data_with_current_network(security_mode:, local_networks: [],
-      other_local_networks: nil)
+      other_local_networks: nil, signal_noise: '-65/-95')
       other_local_networks ||= [{
         '_name'                   => 'TestNetwork',
         'spairport_security_mode' => security_mode,
@@ -49,7 +49,10 @@ module WifiWand
         'SPAirPortDataType' => [{
           'spairport_airport_interfaces' => [{
             '_name'                                           => 'en0',
-            'spairport_current_network_information'           => { '_name' => 'TestNetwork' },
+            'spairport_current_network_information'           => {
+              '_name'                  => 'TestNetwork',
+              'spairport_signal_noise' => signal_noise,
+            },
             'spairport_airport_local_wireless_networks'       => local_networks,
             'spairport_airport_other_local_wireless_networks' => other_local_networks,
           }],
@@ -350,6 +353,44 @@ module WifiWand
             security_normalizer:                    security_normalizer
           ).network_hidden?
         ).to be false
+      end
+    end
+
+    describe '#signal_quality' do
+      it 'returns current network signal quality in dBm' do
+        signal_quality = details.signal_quality
+
+        expect(signal_quality.value).to eq(-65)
+        expect(signal_quality.unit).to eq(:dbm)
+        expect(signal_quality.to_s).to eq('-65 dBm')
+      end
+
+      it 'returns nil when not connected to any network' do
+        details = described_class.new(
+          system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+          system_profiler_wifi_data_cache_runner: cache_scope_runner,
+          connected_network_name_reader:          -> {},
+          wifi_interface_provider:                -> { wifi_interface },
+          security_normalizer:                    security_normalizer
+        )
+
+        expect(details.signal_quality).to be_nil
+      end
+
+      it 'preserves zero as a valid dBm reading' do
+        system_profiler_wifi_data = system_profiler_wifi_data_with_current_network(
+          security_mode: 'WPA2',
+          signal_noise:  '0/-95'
+        )
+        details = described_class.new(
+          system_profiler_wifi_data_reader:       -> { system_profiler_wifi_data },
+          system_profiler_wifi_data_cache_runner: cache_scope_runner,
+          connected_network_name_reader:          -> { connected_network_name },
+          wifi_interface_provider:                -> { wifi_interface },
+          security_normalizer:                    security_normalizer
+        )
+
+        expect(details.signal_quality.to_s).to eq('0 dBm')
       end
     end
 

@@ -4,6 +4,7 @@ require 'ipaddr'
 
 require_relative '../../models/base_model'
 require_relative '../../errors'
+require_relative '../../signal_quality'
 require_relative '../../timing_constants'
 require_relative '../../services/ip_address_extractor'
 require_relative '../../services/status_line_data_builder'
@@ -113,10 +114,12 @@ module WifiWand
           validate_os_preconditions unless @wifi_interface
           connected = status_connected?(deadline)
           network_name = connected ? status_connected_network_name(deadline) : nil
+          sq = connected ? status_signal_quality(deadline) : nil
 
           {
-            connected:    connected,
-            network_name: network_name,
+            connected:      connected,
+            network_name:   network_name,
+            signal_quality: sq,
           }
         end
 
@@ -562,6 +565,49 @@ module WifiWand
 
           match = connected_line.strip.match(/\AConnected to (?<bssid>[0-9a-f]{2}(?::[0-9a-f]{2}){5})\b/i)
           match ? match[:bssid] : nil
+        end
+
+        public def signal_quality
+          return nil unless connected?
+
+          signal_quality_from_nmcli_scan
+        rescue WifiWand::Error
+          nil
+        end
+
+        private def status_signal_quality(deadline)
+          signal_quality_from_nmcli_scan(timeout_in_secs: status_timeout_for(deadline))
+        rescue WifiWand::Error
+          nil
+        end
+
+        private def signal_quality_from_nmcli_scan(timeout_in_secs: nil)
+          command_options = { raise_on_error: false }
+          command_options[:timeout_in_secs] = timeout_in_secs if timeout_in_secs
+          output = run_command(
+            ['nmcli', '-t', '-f', 'IN-USE,SIGNAL', 'dev', 'wifi', 'list', '--rescan', 'no'],
+            **command_options
+          ).stdout
+
+          output.split("\n").each do |line|
+            in_use, signal = nmcli_split(line, 2)
+            next unless in_use.strip == '*'
+
+            value = signal_quality_percent_value(signal)
+            return nil unless value
+
+            return SignalQuality.new(value: value, unit: :percent)
+          end
+
+          nil
+        end
+
+        private def signal_quality_percent_value(signal)
+          value = signal.to_s.strip
+          return nil unless value.match?(/\A\d+\z/)
+
+          percent = value.to_i
+          percent.between?(0, 100) ? percent : nil
         end
 
         public def _disconnect

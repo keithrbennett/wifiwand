@@ -16,6 +16,7 @@ struct CurrentNetworkResult: Codable {
     let interface: String?
     let ssid: String?
     let bssid: String?
+    let rssi: Int?
     let error: String?
 }
 
@@ -309,6 +310,7 @@ Click 'Open Settings' to go there now.
                 interface: interface.interfaceName,
                 ssid: ssid,
                 bssid: bssid,
+                rssi: interface.rssiValue(),
                 error: nil
             )
         }
@@ -319,6 +321,7 @@ Click 'Open Settings' to go there now.
                 interface: interface.interfaceName,
                 ssid: nil,
                 bssid: bssid,
+                rssi: interface.rssiValue(),
                 error: "associated Wi-Fi network SSID unavailable"
             )
         }
@@ -328,6 +331,7 @@ Click 'Open Settings' to go there now.
             interface: interface.interfaceName,
             ssid: nil,
             bssid: nil,
+            rssi: nil,
             error: nil
         )
     }

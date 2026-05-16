@@ -523,6 +523,16 @@ module WifiWand
           current_network_details.connection_security_type
         end
 
+        public def signal_quality
+          helper_result = helper_client.connected_network_name
+          return helper_result.signal_quality if helper_result.signal_quality
+          return nil if helper_result.not_connected?
+
+          current_network_details.signal_quality
+        rescue WifiWand::Error
+          current_network_details.signal_quality
+        end
+
         # Checks if the currently connected network is a hidden network.
         # A hidden network does not broadcast its SSID.
         # @return [Boolean] true if connected to a hidden network, false otherwise

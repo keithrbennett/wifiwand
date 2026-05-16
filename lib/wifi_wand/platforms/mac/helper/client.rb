@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'json'
+require_relative '../../../signal_quality'
 require_relative '../../../string_predicates'
 
 module WifiWand
@@ -27,10 +28,12 @@ module WifiWand
             :payload,
             :location_services_blocked,
             :error_message,
+            :signal_quality,
             :status,
             keyword_init: true
           ) do
-            def initialize(payload: nil, location_services_blocked: nil, error_message: nil, status: nil)
+            def initialize(payload: nil, location_services_blocked: nil, error_message: nil,
+              signal_quality: nil, status: nil)
               result_status = status || default_status(
                 location_services_blocked: location_services_blocked,
                 error_message:             error_message
@@ -46,6 +49,7 @@ module WifiWand
                 payload:                   payload,
                 location_services_blocked: blocked,
                 error_message:             error_message,
+                signal_quality:            signal_quality,
                 status:                    result_status
               )
             end
@@ -110,6 +114,7 @@ module WifiWand
               payload:                   ssid,
               location_services_blocked: result.location_services_blocked,
               error_message:             result.error_message,
+              signal_quality:            signal_quality_from_payload(result.payload),
               status:                    connected_network_status(result)
             )
           end
@@ -228,6 +233,15 @@ module WifiWand
             return :unknown if helper_placeholder_ssid?(ssid)
 
             :connected
+          end
+
+          private def signal_quality_from_payload(payload)
+            return nil unless payload.is_a?(Hash)
+
+            rssi = payload['rssi']
+            return nil unless rssi.is_a?(Integer)
+
+            SignalQuality.new(value: rssi, unit: :dbm)
           end
 
           private def connected_network_bssid_status(result)

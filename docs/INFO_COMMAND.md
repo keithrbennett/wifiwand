@@ -32,6 +32,8 @@ The `info` command returns a hash containing:
 - **Association Status**: Whether the WiFi interface appears associated with a network
 - **Connected Network**: Current SSID, or nil when disconnected or SSID identity is unavailable
 - **BSSID**: Current access point MAC address, or nil when unavailable
+- **Signal Quality**: Current connection quality as a structured value/unit hash, such as
+  `{ value: -65, unit: :dbm }` on macOS or `{ value: 72, unit: :percent }` on Ubuntu
 - **SSID Identity Available**: Whether the current SSID name is known and usable
 - **SSID Identity Status**: `available`, `unavailable`, `not_connected`, or `unknown`
 - **SSID Identity Warning**: Explanation when macOS privacy redaction prevents exact SSID identity
@@ -71,6 +73,7 @@ The `info` command returns a hash containing:
 | WiFi power state | ✓ | ✓ |
 | Connected network | ✓ | ✓ |
 | BSSID | | ✓ |
+| Signal quality | ✓ | ✓ |
 | Connectivity (TCP/DNS) | ✓ | ✓ |
 | IPv4 addresses | | ✓ |
 | IPv6 addresses | | ✓ |

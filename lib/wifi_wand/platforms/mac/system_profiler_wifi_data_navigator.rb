@@ -61,10 +61,25 @@ module WifiWand
         def self.signal_strength(network)
           # 'spairport_signal_noise' is a slash-separated "signal/noise" string (e.g. "-65/-95").
           # Take the first component as the signal strength in dBm; default to "0/0" if absent.
-          return 0 unless network.is_a?(Hash)
-
-          network.fetch(SIGNAL_NOISE_KEY, '0/0').to_s.split('/').first.to_i
+          signal_dbm(network) || 0
         end
+
+        def self.current_network_signal_dbm(interface_data)
+          current_network = interface_data&.fetch(CURRENT_NETWORK_KEY, nil)
+          return nil unless current_network.is_a?(Hash)
+
+          signal_dbm(current_network)
+        end
+
+        def self.signal_dbm(network)
+          return nil unless network.is_a?(Hash)
+
+          signal = network.fetch(SIGNAL_NOISE_KEY, nil).to_s.split('/').first
+          return nil unless signal&.match?(/\A-?\d+\z/)
+
+          signal.to_i
+        end
+        private_class_method :signal_dbm
 
         def self.network_array(value)
           value.is_a?(Array) ? value.select { |network| network.is_a?(Hash) } : []

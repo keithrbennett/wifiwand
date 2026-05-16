@@ -58,11 +58,11 @@ module WifiWand
       WifiWand::Platforms::Mac::Helper::Bundle::HelperQueryResult.new(**kwargs)
     end
 
-    def system_profiler_wifi_payload(current_network_name:, interface_name: 'en0')
+    def system_profiler_wifi_payload(current_network_name:, interface_name: 'en0', signal_noise: '-65/-95')
       current_network = if current_network_name == :missing
         nil
       else
-        { '_name' => current_network_name }
+        { '_name' => current_network_name, 'spairport_signal_noise' => signal_noise }
       end
 
       {
@@ -90,11 +90,16 @@ module WifiWand
         expect_wifi_power_lookup(on: true)
         expect(helper_client).to receive(:connected_network_name)
           .with(timeout_seconds: status_timeout)
-          .and_return(helper_result(payload: 'HelperNet'))
+          .and_return(helper_result(
+            payload:        'HelperNet',
+            signal_quality: WifiWand::SignalQuality.new(value: -65, unit: :dbm)
+          ))
+        expect(system_profiler_wifi_data_reader).not_to receive(:call)
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
-          connected:    true,
-          network_name: 'HelperNet'
+          connected:      true,
+          network_name:   'HelperNet',
+          signal_quality: WifiWand::SignalQuality.new(value: -65, unit: :dbm)
         )
       end
 
@@ -103,8 +108,9 @@ module WifiWand
         expect(helper_client).not_to receive(:connected_network_name)
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
-          connected:    false,
-          network_name: nil
+          connected:      false,
+          network_name:   nil,
+          signal_quality: nil
         )
       end
 
@@ -116,8 +122,9 @@ module WifiWand
         expect(system_profiler_wifi_data_reader).not_to receive(:call)
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
-          connected:    false,
-          network_name: nil
+          connected:      false,
+          network_name:   nil,
+          signal_quality: nil
         )
       end
 
@@ -133,8 +140,9 @@ module WifiWand
           .and_raise(timeout_error)
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
-          connected:    true,
-          network_name: 'ProfilerNet'
+          connected:      true,
+          network_name:   'ProfilerNet',
+          signal_quality: WifiWand::SignalQuality.new(value: -65, unit: :dbm)
         )
       end
 
@@ -148,8 +156,9 @@ module WifiWand
           .and_return(command_result(stdout: "Current Wi-Fi Network: <redacted>\n"))
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
-          connected:    true,
-          network_name: 'ProfilerNet'
+          connected:      true,
+          network_name:   'ProfilerNet',
+          signal_quality: WifiWand::SignalQuality.new(value: -65, unit: :dbm)
         )
       end
 
@@ -184,8 +193,9 @@ module WifiWand
         expect(helper_client).not_to receive(:connected_network_name)
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
-          connected:    false,
-          network_name: nil
+          connected:      false,
+          network_name:   nil,
+          signal_quality: nil
         )
       end
 
@@ -199,8 +209,9 @@ module WifiWand
         expect(helper_client).not_to receive(:connected_network_name)
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
-          connected:    false,
-          network_name: nil
+          connected:      false,
+          network_name:   nil,
+          signal_quality: nil
         )
         expect(wifi_interface_store[:value]).to be_nil
       end
@@ -250,8 +261,9 @@ module WifiWand
           .and_return([])
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
-          connected:    false,
-          network_name: nil
+          connected:      false,
+          network_name:   nil,
+          signal_quality: nil
         )
       end
 
@@ -274,8 +286,9 @@ module WifiWand
           .and_return(['192.168.1.44'])
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
-          connected:    true,
-          network_name: nil
+          connected:      true,
+          network_name:   nil,
+          signal_quality: nil
         )
       end
 
@@ -301,8 +314,9 @@ module WifiWand
           .and_return(['2001:db8::44'])
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
-          connected:    true,
-          network_name: nil
+          connected:      true,
+          network_name:   nil,
+          signal_quality: nil
         )
       end
 
@@ -328,8 +342,9 @@ module WifiWand
           .and_return(['fe80::1'])
 
         expect(status_queries.status_network_identity(timeout_in_secs: 0.5)).to eq(
-          connected:    false,
-          network_name: nil
+          connected:      false,
+          network_name:   nil,
+          signal_quality: nil
         )
       end
     end

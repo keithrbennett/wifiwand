@@ -30,6 +30,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         available_network_names:    %w[TestNetwork1 TestNetwork2],
         connected_network_name:     'TestNetwork1',
         bssid:                      '00:11:22:33:44:55',
+        signal_quality:             WifiWand::SignalQuality.new(value: 72, unit: :percent),
         ipv4_addresses:             ['192.168.1.100'],
         ipv6_addresses:             ['2001:db8::100'],
         mac_address:                'aa:bb:cc:dd:ee:ff',
@@ -88,7 +89,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(result).to include(
         'wifi_on', 'internet_tcp_connectivity', 'dns_working', 'captive_portal_state',
         'internet_connectivity_state', 'interface', 'default_interface', 'connected', 'network',
-        'bssid', 'ssid_identity_available', 'ssid_identity_status', 'ssid_identity_warning',
+        'bssid', 'signal_quality', 'ssid_identity_available', 'ssid_identity_status', 'ssid_identity_warning',
         'ipv4_addresses', 'ipv6_addresses', 'mac_address', 'nameservers', 'timestamp'
       )
 
@@ -96,6 +97,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(result['connected']).to satisfy do |value|
         [true, false, nil].include?(value)
       end
+      expect(result['signal_quality']).to eq(value: 72, unit: :percent)
       expect(result['ssid_identity_available']).to be(true).or be(false)
       expect(result['ssid_identity_status']).to satisfy do |value|
         %w[available unavailable not_connected unknown].include?(value)
@@ -841,17 +843,21 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end.to raise_error(NotImplementedError, /must implement.*open_resource/)
     end
 
-    it 'requires connection_security_type and network_hidden? subclass overrides' do
+    it 'requires connection_security_type, signal_quality, and network_hidden? subclass overrides' do
       incomplete_class = Class.new(WifiWand::BaseModel) do
         def self.os_id = :test
       end
       define_base_model_required_methods(
-        incomplete_class, except: %i[connection_security_type network_hidden?]
+        incomplete_class, except: %i[connection_security_type signal_quality network_hidden?]
       )
 
       expect do
         incomplete_class.verify_required_methods_implemented(incomplete_class)
-      end.to raise_error(NotImplementedError, /connection_security_type.*network_hidden\?/)
+      end.to raise_error(NotImplementedError) { |error|
+        expect(error.message).to include('connection_security_type')
+        expect(error.message).to include('network_hidden?')
+        expect(error.message).to include('signal_quality')
+      }
     end
 
     it 'validates anonymous subclasses during initialization' do
@@ -859,14 +865,17 @@ describe 'Common WiFi Model Behavior (All OS)' do
         def self.os_id = :test
       end
       define_base_model_required_methods(
-        incomplete_class, except: %i[connection_security_type network_hidden?]
+        incomplete_class, except: %i[connection_security_type signal_quality network_hidden?]
       )
 
       expect do
         incomplete_class.new
-      end.to raise_error(
-        NotImplementedError, /Subclass \(anonymous\).*connection_security_type.*network_hidden\?/
-      )
+      end.to raise_error(NotImplementedError) { |error|
+        expect(error.message).to include('Subclass (anonymous)')
+        expect(error.message).to include('connection_security_type')
+        expect(error.message).to include('network_hidden?')
+        expect(error.message).to include('signal_quality')
+      }
     end
 
     # NOTE: TracePoint callback testing is unreliable due to test mocking interference.
@@ -882,6 +891,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect do
         base_model_instance.connection_security_type
       end.to raise_error(NotImplementedError, /must implement connection_security_type/)
+      expect do
+        base_model_instance.signal_quality
+      end.to raise_error(NotImplementedError, /must implement signal_quality/)
       expect do
         base_model_instance.network_hidden?
       end.to raise_error(NotImplementedError, /must implement network_hidden\?/)

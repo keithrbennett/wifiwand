@@ -40,7 +40,8 @@ module WifiWand
       def colorize_network_name(text) = text.gsub(/"([^"]*)"/) { |match| colorize_text(match, :cyan) }
 
       def colorize_values(text)
-        text.gsub(/\b\d+%|\b\d+\.\d+\.\d+\.\d+|\b\d+\b/) { |match| colorize_text(match, :blue) }
+        # Match signal percentages, IPv4 addresses, and standalone signed/unsigned numbers.
+        text.gsub(/-?\b\d+%|\b\d+\.\d+\.\d+\.\d+|-?\b\d+\b/) { |match| colorize_text(match, :blue) }
       end
 
       def format_boolean_status(value, true_str: '✅ YES', false_str: '❌ NO', pending_str: '⏳ WAIT')
@@ -97,7 +98,9 @@ module WifiWand
             [network_name.to_s, :cyan]
           end
 
-        wifi_network_status = colorize_text(network_text, network_color)
+        signal_quality = status_data[:signal_quality]
+        signal_text = signal_quality ? " (#{colorize_values(signal_quality.to_s)})" : ''
+        wifi_network_status = colorize_text(network_text, network_color) + signal_text
 
         line = "WiFi: #{wifi_status} | WiFi Network: #{wifi_network_status} | " \
           "DNS: #{dns_status} | Internet: #{internet_status}"

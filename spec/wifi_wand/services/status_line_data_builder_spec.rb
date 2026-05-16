@@ -12,7 +12,7 @@ describe WifiWand::StatusLineDataBuilder do
     double('model',
       wifi_on?:                   true,
       status_wifi_on?:            true,
-      status_network_identity:    { connected: true, network_name: 'HomeNetwork' },
+      status_network_identity:    { connected: true, network_name: 'HomeNetwork', signal_quality: nil },
       internet_tcp_connectivity?: true,
       dns_working?:               true,
       captive_portal_state:       :free
@@ -37,6 +37,7 @@ describe WifiWand::StatusLineDataBuilder do
   let(:expected_initial_progress) do
     {
       wifi_on:                       true,
+      signal_quality:                nil,
       dns_working:                   nil,
       internet_state:                :pending,
       internet_check_complete:       false,
@@ -49,6 +50,7 @@ describe WifiWand::StatusLineDataBuilder do
   let(:expected_network_partial_progress) do
     {
       wifi_on:                       true,
+      signal_quality:                nil,
       dns_working:                   nil,
       internet_state:                :pending,
       internet_check_complete:       false,
@@ -61,6 +63,7 @@ describe WifiWand::StatusLineDataBuilder do
   let(:expected_reachable_result) do
     {
       wifi_on:                       true,
+      signal_quality:                nil,
       dns_working:                   true,
       connected:                     true,
       internet_state:                :reachable,
@@ -157,6 +160,7 @@ describe WifiWand::StatusLineDataBuilder do
         internet_state:                :unreachable,
         internet_check_complete:       true,
         network_name:                  nil,
+        signal_quality:                nil,
         captive_portal_state:          :indeterminate,
         captive_portal_login_required: :unknown
       )
@@ -472,6 +476,7 @@ describe WifiWand::StatusLineDataBuilder do
 
       expect(result).to eq(
         wifi_on:                       true,
+        signal_quality:                nil,
         dns_working:                   true,
         connected:                     false,
         internet_state:                :reachable,
@@ -516,7 +521,7 @@ describe WifiWand::StatusLineDataBuilder do
         def status_wifi_on?(timeout_in_secs:) = true
 
         def status_network_identity(timeout_in_secs:)
-          { connected: true, network_name: 'HomeNetwork' }
+          { connected: true, network_name: 'HomeNetwork', signal_quality: nil }
         end
 
         define_method(:internet_tcp_connectivity?) do |timeout_in_secs:, return_details:|
@@ -545,6 +550,7 @@ describe WifiWand::StatusLineDataBuilder do
         internet_state:                :unreachable,
         internet_check_complete:       true,
         network_name:                  'HomeNetwork',
+        signal_quality:                nil,
         captive_portal_state:          :indeterminate,
         captive_portal_login_required: :unknown
       )
@@ -568,12 +574,13 @@ describe WifiWand::StatusLineDataBuilder do
         internet_state:                :reachable,
         internet_check_complete:       true,
         network_name:                  nil,
+        signal_quality:                nil,
         captive_portal_state:          :free,
         captive_portal_login_required: :no
       )
       expect(progress_updates).to eq([
         expected_initial_progress,
-        expected_initial_progress.merge(connected: nil, network_name: nil),
+        expected_initial_progress.merge(connected: nil, network_name: nil, signal_quality: nil),
         result,
       ])
     end
@@ -650,6 +657,7 @@ describe WifiWand::StatusLineDataBuilder do
         internet_state:                :indeterminate,
         internet_check_complete:       true,
         network_name:                  'HomeNetwork',
+        signal_quality:                nil,
         captive_portal_state:          :indeterminate,
         captive_portal_login_required: :unknown
       )
@@ -690,12 +698,13 @@ describe WifiWand::StatusLineDataBuilder do
         internet_state:                :reachable,
         internet_check_complete:       true,
         network_name:                  nil,
+        signal_quality:                nil,
         captive_portal_state:          :free,
         captive_portal_login_required: :no
       )
       expect(progress_updates).to eq([
         expected_initial_progress,
-        expected_initial_progress.merge(connected: nil, network_name: nil),
+        expected_initial_progress.merge(connected: nil, network_name: nil, signal_quality: nil),
         result,
       ])
     end
@@ -759,12 +768,13 @@ describe WifiWand::StatusLineDataBuilder do
         internet_state:                :indeterminate,
         internet_check_complete:       true,
         network_name:                  nil,
+        signal_quality:                nil,
         captive_portal_state:          :indeterminate,
         captive_portal_login_required: :unknown
       )
       expect(progress_updates).to eq([
         expected_initial_progress,
-        expected_initial_progress.merge(connected: nil, network_name: nil),
+        expected_initial_progress.merge(connected: nil, network_name: nil, signal_quality: nil),
         result,
       ])
     end

@@ -73,6 +73,7 @@ RSpec.describe WifiWand::BaseModel do
           end
 
           def bssid = '00:11:22:33:44:55'
+          def signal_quality = nil
           def connected? = false
           def validate_os_preconditions = nil
           def probe_wifi_interface = 'wlan0'
