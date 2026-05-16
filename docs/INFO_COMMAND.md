@@ -133,6 +133,13 @@ data['ipv4_addresses'] #=> ['192.168.1.100']
 data['ipv6_addresses'] #=> ['fe80::1', '2001:db8::100']
 ```
 
+### Pretty JSON
+```bash
+wifi-wand -o J info
+```
+
+Outputs indented JSON for humans while preserving JSON parsing semantics.
+
 ### YAML
 ```bash
 wifi-wand -o y info
@@ -146,6 +153,27 @@ wifi-wand -o i info
 ```
 
 Outputs in Ruby inspect format.
+
+### Puts
+```bash
+wifi-wand -o p info
+```
+
+Outputs via Ruby's standard `puts`.
+
+### Pretty Print
+```bash
+wifi-wand -o P info
+```
+
+Outputs using Ruby's standard pretty printer.
+
+### Awesome Print
+```bash
+wifi-wand -o a info
+```
+
+Outputs using `awesome_print`.
 
 ## Practical Examples
 

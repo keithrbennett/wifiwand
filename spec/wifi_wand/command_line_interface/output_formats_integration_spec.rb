@@ -5,13 +5,13 @@
 # =============================================================================
 #
 # PURPOSE:
-# Tests that all configurable output formats (-o i/j/k/p/y) produce valid,
+# Tests that all configurable output formats (-o a/i/j/J/p/P/y) produce valid,
 # parseable output across different data types. These tests validate that
 # the formatters defined in lib/wifi_wand/main.rb work correctly for the
 # variety of data structures returned by CLI commands.
 #
 # WHAT THIS FILE TESTS:
-# - All 5 output formats: inspect, JSON, pretty JSON, puts, YAML
+# - All 7 output formats: awesome print, inspect, JSON, pretty JSON, puts, pretty print, YAML
 # - Each format with various data types:
 #   * Strings (network names)
 #   * Booleans (wifi on/off status)
@@ -42,6 +42,7 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi_wand/command_line_interface'
 require_relative '../../../lib/wifi_wand/main'
 require 'json'
+require 'pp'
 require 'yaml'
 
 describe 'Output Format Integration Tests' do
@@ -63,21 +64,31 @@ describe 'Output Format Integration Tests' do
     cli.resolve_command(command_name).call(*args)
   end
 
+  def pretty_print_output(object)
+    String.new.tap { |output| PP.pp(object, output) }.strip
+  end
+
   describe 'Output format validation' do
     output_formats = {
-      inspect:     {
+      awesome_print: {
+        code: 'a',
+      },
+      inspect:       {
         code: 'i',
       },
-      json:        {
+      json:          {
         code: 'j',
       },
-      pretty_json: {
-        code: 'k',
+      pretty_json:   {
+        code: 'J',
       },
-      puts:        {
+      puts:          {
         code: 'p',
       },
-      yaml:        {
+      pretty_print:  {
+        code: 'P',
+      },
+      yaml:          {
         code: 'y',
       },
     }
@@ -100,13 +111,17 @@ describe 'Output Format Integration Tests' do
             end
 
             case format_name
+            when :awesome_print
+              expect(output).to eq(test_data.awesome_inspect(plain: true))
             when :inspect
               expect(output).to eq(test_data.inspect)
+            when :pretty_print
+              expect(output).to eq(pretty_print_output(test_data))
+            when :puts
+              expect(output).to eq(test_data)
             when :json, :pretty_json
               parsed = JSON.parse(output)
               expect(parsed).to eq(test_data)
-            when :puts
-              expect(output).to eq(test_data)
             when :yaml
               parsed = YAML.safe_load(output)
               expect(parsed).to eq(test_data)
@@ -130,8 +145,14 @@ describe 'Output Format Integration Tests' do
             end
 
             case format_name
-            when :inspect, :puts
+            when :awesome_print
+              expect(output).to eq(test_data.awesome_inspect(plain: true))
+            when :inspect
+              expect(output).to eq(test_data.inspect)
+            when :puts
               expect(output).to eq('true')
+            when :pretty_print
+              expect(output).to eq(pretty_print_output(test_data))
             when :json, :pretty_json
               parsed = JSON.parse(output)
               expect(parsed).to be(true)
@@ -142,7 +163,8 @@ describe 'Output Format Integration Tests' do
           end
 
           it 'produces valid output for false' do
-            allow(mock_model).to receive(:wifi_on?).and_return(false)
+            expected_value = false
+            allow(mock_model).to receive(:wifi_on?).and_return(expected_value)
 
             output = silence_output do |stdout, _stderr|
               invoke_command(subject, 'wifi_on')
@@ -150,8 +172,14 @@ describe 'Output Format Integration Tests' do
             end
 
             case format_name
-            when :inspect, :puts
+            when :awesome_print
+              expect(output).to eq(expected_value.awesome_inspect(plain: true))
+            when :inspect
+              expect(output).to eq(expected_value.inspect)
+            when :puts
               expect(output).to eq('false')
+            when :pretty_print
+              expect(output).to eq(pretty_print_output(expected_value))
             when :json, :pretty_json
               parsed = JSON.parse(output)
               expect(parsed).to be(false)
@@ -190,6 +218,9 @@ describe 'Output Format Integration Tests' do
               expect(output).to match(/\n/)
             when :puts
               expect(output).to eq(test_data.join("\n"))
+            when :awesome_print, :pretty_print
+              expect(output).to include('Network1')
+              expect(output).to include('Network3')
             when :yaml
               parsed = YAML.safe_load(output)
               expect(parsed).to eq(test_data)
@@ -219,8 +250,9 @@ describe 'Output Format Integration Tests' do
               parsed = JSON.parse(output)
               expect(parsed).to eq([])
             when :puts
-              # Empty array with puts produces empty output
               expect(output).to eq('')
+            when :awesome_print, :pretty_print
+              expect(output).to eq('[]')
             when :yaml
               parsed = YAML.safe_load(output)
               expect(parsed).to eq([])
@@ -291,8 +323,7 @@ describe 'Output Format Integration Tests' do
               # Verify pretty formatting with newlines and indentation
               expect(output).to match(/\n/)
               expect(output).to match(/  /)
-            when :puts
-              # Hash puts format
+            when :awesome_print, :puts, :pretty_print
               expect(output).to include('ssid')
               expect(output).to include('TestNet')
             when :yaml
@@ -343,7 +374,7 @@ describe 'Output Format Integration Tests' do
               # Verify pretty formatting
               expect(output).to match(/\n/)
               expect(output).to match(/  /)
-            when :puts
+            when :awesome_print, :puts, :pretty_print
               expect(output).to include('wifi_on')
               expect(output).to include('network')
             when :yaml
@@ -370,14 +401,17 @@ describe 'Output Format Integration Tests' do
             end
 
             case format_name
+            when :awesome_print
+              expect(output).to eq(test_data.awesome_inspect(plain: true))
             when :inspect
               expect(output).to eq('nil')
+            when :pretty_print
+              expect(output).to eq(pretty_print_output(test_data))
+            when :puts
+              expect(output).to eq('')
             when :json, :pretty_json
               parsed = JSON.parse(output)
               expect(parsed).to be_nil
-            when :puts
-              # nil with puts produces empty string
-              expect(output).to eq('')
             when :yaml
               parsed = YAML.safe_load(output)
               expect(parsed).to be_nil
@@ -395,11 +429,13 @@ describe 'Output Format Integration Tests' do
       outputs = {}
 
       format_codes = {
-        inspect:     'i',
-        json:        'j',
-        pretty_json: 'k',
-        puts:        'p',
-        yaml:        'y',
+        awesome_print: 'a',
+        inspect:       'i',
+        json:          'j',
+        pretty_json:   'J',
+        puts:          'p',
+        pretty_print:  'P',
+        yaml:          'y',
       }
 
       format_codes.each do |format_name, code|
@@ -445,7 +481,7 @@ describe 'Output Format Integration Tests' do
 
     format_names = {
       'j' => 'JSON',
-      'k' => 'Pretty JSON',
+      'J' => 'Pretty JSON',
       'y' => 'YAML',
     }
 
@@ -462,7 +498,7 @@ describe 'Output Format Integration Tests' do
 
         # Parse the output
         parsed = case format_code
-                 when 'j', 'k' then JSON.parse(output)
+                 when 'j', 'J' then JSON.parse(output)
                  when 'y' then YAML.safe_load(output)
         end
 

@@ -8,6 +8,42 @@ non-breaking additions, see [Version 2.x to 3.0 Code Base Changes](CHANGELOG_V2_
 
 ## Breaking Changes
 
+### Output format flags changed
+
+#### Pretty JSON moved to `-o J`
+
+The noninteractive `--output_format` codes have changed so each human-oriented
+Ruby formatter has a distinct option.
+
+| Format | Old flag | New flag |
+|--------|----------|----------|
+| Compact JSON | `-o j` | `-o j` |
+| Pretty JSON | `-o k` | `-o J` |
+| Puts | `-o p` | `-o p` |
+| Pretty print | not available | `-o P` |
+| Awesome print | default human output only | `-o a` |
+| Inspect | `-o i` | `-o i` |
+| YAML | `-o y` | `-o y` |
+
+The `-o p` flag still means plain `puts` output. Scripts that depended on
+`-o p` for unquoted scalar values can keep using it:
+
+```bash
+state="$(wifi-wand -o p ci)"
+```
+
+Use `-o J` when you want indented JSON:
+
+```bash
+wifi-wand -o J info
+```
+
+Use `-o P` when you want Ruby pretty print output:
+
+```bash
+wifi-wand -o P info
+```
+
 ### Ruby require paths renamed
 
 #### Library require paths now use `wifi_wand`

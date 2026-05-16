@@ -185,8 +185,8 @@ Available commands can be seen by using the `-h` (or `--help`) option:
 Command Line Switches     [wifi-wand version 3.0.0-alpha.1 at https://github.com/keithrbennett/wifiwand]
 ---------------------
 -h, --help                - show this help message
--o, --output_format {i,j,k,p,y}
-                          - when not in shell mode, outputs data in the following formats: inspect, JSON, pretty JSON, puts, YAML
+-o, --output_format {a,i,j,J,p,P,y}
+                          - when not in shell mode, outputs data in the following formats: awesome print, inspect, JSON, pretty JSON, puts, pretty print, YAML
 -p, --wifi-interface interface_name
                           - specify WiFi interface name (overrides auto-detection)
 -V, --version             - show version
@@ -259,7 +259,7 @@ modes.
 ### JSON, YAML, and Other Output Formats
 
 You can specify that output in _noninteractive_ mode be in a certain format.
-Currently, JSON, "Pretty" JSON, YAML, inspect, and puts formats are supported.
+Currently, JSON, pretty JSON, YAML, inspect, puts, pretty print, and awesome print formats are supported.
 See the help for which command line switches to use.
 If you are scripting against the CLI, prefer machine-readable output such as JSON (`-o j`)
 instead of parsing human-formatted text. Structured output is simpler to consume and less likely

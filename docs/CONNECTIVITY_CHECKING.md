@@ -80,18 +80,24 @@ Internet connectivity: indeterminate
 For scripts, prefer a machine-readable format:
 
 ```bash
-wifi-wand -o p ci
 wifi-wand -o j ci
+wifi-wand -o J ci
+wifi-wand -o p ci
 ```
 
 Examples:
 
+Compact JSON (`-o j`) and pretty JSON (`-o J`) quote the state as a JSON
+string:
+
 ```text
-reachable
+"reachable"
 ```
 
-```json
-"reachable"
+Puts output (`-o p`) prints the raw state string:
+
+```text
+reachable
 ```
 
 ## What the States Mean

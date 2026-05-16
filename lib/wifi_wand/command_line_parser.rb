@@ -2,9 +2,11 @@
 
 require 'json'
 require 'optparse'
+require 'pp'
 require 'shellwords'
 require 'stringio'
 require 'yaml'
+require 'awesome_print'
 
 require_relative 'command_line_options'
 require_relative 'errors'
@@ -15,12 +17,18 @@ module WifiWand
     include StringPredicates
 
     FORMATTERS = {
+      'a' => ->(object) { object.awesome_inspect(plain: true) },
       'i' => ->(object) { object.inspect },
       'j' => ->(object) { object.to_json },
-      'k' => ->(object) { JSON.pretty_generate(object) },
+      'J' => ->(object) { JSON.pretty_generate(object) },
       'p' => ->(object) do
         sio = StringIO.new
         sio.puts(object)
+        sio.string
+      end,
+      'P' => ->(object) do
+        sio = StringIO.new
+        PP.pp(object, sio)
         sio.string
       end,
       'y' => ->(object) { object.to_yaml },
@@ -75,19 +83,30 @@ module WifiWand
     end
 
     private def formatter_for(raw_value)
-      choice = raw_value.to_s[0]&.downcase
+      choice = normalized_format_choice(raw_value)
 
       unless FORMATTERS.key?(choice)
         @err_stream.puts <<~MESSAGE
 
-          Output format "#{choice}" not in list of available formats (#{FORMATTERS.keys.join(', ')}).
+          Output format "#{choice}" not in list of available formats (#{available_format_choices.join(', ')}).
 
         MESSAGE
         raise ConfigurationError,
-          "Invalid output format '#{choice}'. Available formats: #{FORMATTERS.keys.join(', ')}"
+          "Invalid output format '#{choice}'. Available formats: #{available_format_choices.join(', ')}"
       end
 
       FORMATTERS[choice]
+    end
+
+    private def available_format_choices
+      FORMATTERS.keys.sort_by { |key| [key.downcase, key == key.upcase ? 1 : 0] }
+    end
+
+    private def normalized_format_choice(raw_value)
+      choice = raw_value.to_s[0]
+      return choice if FORMATTERS.keys.any? { |key| key == choice && key != key.downcase }
+
+      choice&.downcase
     end
 
     private def prepend_env_options(args)

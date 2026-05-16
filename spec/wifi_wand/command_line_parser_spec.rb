@@ -175,10 +175,12 @@ describe WifiWand::CommandLineParser do
 
   describe 'output format processors' do
     {
+      'a' => 'awesome print',
       'i' => 'inspect',
       'j' => 'JSON',
-      'k' => 'pretty JSON',
+      'J' => 'pretty JSON',
       'p' => 'puts',
+      'P' => 'pretty print',
       'y' => 'YAML',
     }.each do |format_code, format_name|
       it "correctly formats as #{format_name}" do
@@ -186,17 +188,19 @@ describe WifiWand::CommandLineParser do
         result = options.post_processor.call({ 'test' => 'value' })
 
         case format_code
+        when 'a'
+          expect(result).to include('"test" => "value"')
         when 'i'
           expect(result).to eq({ 'test' => 'value' }.inspect)
         when 'j'
           expect(result).to eq('{"test":"value"}')
-        when 'k'
+        when 'J'
           expect(result).to eq(<<~JSON.chomp)
             {
               "test": "value"
             }
           JSON
-        when 'p'
+        when 'p', 'P'
           expect(result).to end_with("\n")
           expect(result.chomp).to match(/\{"test"\s*=>\s*"value"\}/)
         when 'y'

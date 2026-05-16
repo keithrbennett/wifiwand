@@ -12,10 +12,10 @@
 #
 # WHAT THIS FILE TESTS:
 # - Full command-line argument parsing: "-o j info" → JSON output
-# - All 5 formats with multiple commands (info, wifi status, preferred networks)
+# - All 7 formats with multiple commands (info, wifi status, preferred networks)
 # - Edge cases and error handling:
 #   * Invalid format codes (proper ConfigurationError raised)
-#   * Case insensitivity (-o J and -o j both work)
+#   * Case handling (-o J is pretty JSON; -o j is compact JSON)
 #   * Unicode characters in all formats (日本語, emoji)
 #   * Special characters in YAML (colons, spaces, symbols)
 #   * Pretty JSON vs compact JSON whitespace differences
@@ -42,6 +42,7 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi_wand/main'
 require_relative '../../../lib/wifi_wand/command_line_interface'
 require 'json'
+require 'pp'
 require 'yaml'
 
 describe 'Output Format End-to-End Tests' do
@@ -63,6 +64,10 @@ describe 'Output Format End-to-End Tests' do
     cli.resolve_command(command_name).call(*args)
   end
 
+  def pretty_print_output(object)
+    String.new.tap { |output| PP.pp(object, output) }.strip
+  end
+
   describe 'Command-line option parsing and output formatting' do
     let(:test_network_info) do
       {
@@ -77,8 +82,10 @@ describe 'Output Format End-to-End Tests' do
     {
       'i' => { name: 'inspect' },
       'j' => { name: 'JSON' },
-      'k' => { name: 'Pretty JSON' },
+      'J' => { name: 'Pretty JSON' },
       'p' => { name: 'puts' },
+      'P' => { name: 'pretty print' },
+      'a' => { name: 'awesome print' },
       'y' => { name: 'YAML' },
     }.each do |format_code, config|
       context "with -o #{format_code} (#{config[:name]}) option" do
@@ -104,12 +111,16 @@ describe 'Output Format End-to-End Tests' do
             expect(output).to include('ssid')
           when 'j'
             expect(JSON.parse(output)).to eq(JSON.parse(test_network_info.to_json))
-          when 'k'
+          when 'J'
             parsed = JSON.parse(output)
             expect(parsed).to eq(JSON.parse(test_network_info.to_json))
             expect(output).to match(/\n/)
           when 'p'
-            expect(output).to be_a(String)
+            expect(output).to eq(test_network_info.to_s)
+          when 'P'
+            expect(output).to eq(pretty_print_output(test_network_info))
+          when 'a'
+            expect(output).to eq(test_network_info.awesome_inspect(plain: true))
           when 'y'
             expect(YAML.safe_load(output)).to eq(YAML.safe_load(test_network_info.to_yaml))
           end
@@ -127,12 +138,14 @@ describe 'Output Format End-to-End Tests' do
           end
 
           case format_code
-          when 'i'
+          when 'i', 'P'
             expect(output).to eq('"reachable"')
-          when 'j', 'k'
+          when 'j', 'J'
             expect(JSON.parse(output)).to eq('reachable')
           when 'p'
             expect(output).to eq('reachable')
+          when 'a'
+            expect(output).to eq('reachable'.awesome_inspect(plain: true))
           when 'y'
             expect(YAML.safe_load(output)).to eq('reachable')
           end
@@ -151,12 +164,14 @@ describe 'Output Format End-to-End Tests' do
           end
 
           case format_code
-          when 'i'
+          when 'i', 'P'
             expect(output).to eq(networks.inspect)
-          when 'j', 'k'
+          when 'j', 'J'
             expect(JSON.parse(output)).to eq(networks)
           when 'p'
             expect(output).to eq(networks.join("\n"))
+          when 'a'
+            expect(output).to include('Network1')
           when 'y'
             expect(YAML.safe_load(output)).to eq(networks)
           end
@@ -229,8 +244,8 @@ describe 'Output Format End-to-End Tests' do
       end
     end
 
-    context 'with case insensitivity' do
-      it 'accepts uppercase format codes' do
+    context 'with case handling' do
+      it 'uses uppercase J for pretty JSON' do
         options = parse_options('-o', 'J', 'info')
         expect(options.post_processor).not_to be_nil
 
@@ -242,11 +257,11 @@ describe 'Output Format End-to-End Tests' do
           stdout.string.strip
         end
 
-        # Should still parse as JSON
         expect { JSON.parse(output) }.not_to raise_error
+        expect(output).to match(/\n/)
       end
 
-      it 'accepts mixed case format codes' do
+      it 'accepts uppercase aliases where no case-sensitive format exists' do
         options = parse_options('-o', 'Y', 'info')
         expect(options.post_processor).not_to be_nil
 
@@ -271,7 +286,7 @@ describe 'Output Format End-to-End Tests' do
         allow(mock_model).to receive(:wifi_info).and_return(test_data)
 
         json_options = parse_options('-o', 'j', 'info')
-        pretty_options = parse_options('-o', 'k', 'info')
+        pretty_options = parse_options('-o', 'J', 'info')
 
         json_cli = WifiWand::CommandLineInterface.new(json_options)
         pretty_cli = WifiWand::CommandLineInterface.new(pretty_options)
@@ -322,7 +337,7 @@ describe 'Output Format End-to-End Tests' do
         test_data = { 'network' => '日本語ネットワーク', 'emoji' => '🔐 WiFi' }
         allow(mock_model).to receive(:wifi_info).and_return(test_data)
 
-        %w[j k y].each do |format_code|
+        %w[j J y].each do |format_code|
           options = parse_options('-o', format_code, 'info')
           cli = WifiWand::CommandLineInterface.new(options)
 
@@ -332,7 +347,7 @@ describe 'Output Format End-to-End Tests' do
           end
 
           parsed = case format_code
-                   when 'j', 'k' then JSON.parse(output)
+                   when 'j', 'J' then JSON.parse(output)
                    when 'y' then YAML.safe_load(output)
           end
 

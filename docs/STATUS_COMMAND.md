@@ -296,7 +296,7 @@ wifi-wand status
 wifi-wand -o j status
 
 # Pretty JSON
-wifi-wand -o k status
+wifi-wand -o J status
 
 # YAML
 wifi-wand -o y status
@@ -306,6 +306,12 @@ wifi-wand -o i status
 
 # Plain text (puts)
 wifi-wand -o p status
+
+# Pretty print
+wifi-wand -o P status
+
+# Awesome print
+wifi-wand -o a status
 ```
 
 ## Verbose Mode
