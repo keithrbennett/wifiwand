@@ -90,8 +90,8 @@ If step 3 fails while steps 1–2 pass, a captive portal is confidently detected
 
 ## Machine-Readable Output
 
-The `dns_working`, `internet_state`, `captive_portal_state`, and
-`captive_portal_login_required` fields are present in all machine-readable output formats.
+The `dns_working`, `internet_state`, and `captive_portal_login_required` fields are present in all
+machine-readable output formats.
 
 In JSON they appear as strings. In Ruby-oriented formats such as inspect/YAML or
 in the interactive shell, they appear as symbols.
@@ -114,24 +114,16 @@ less likely to change over time.
 |-------|---------|
 | `"reachable"` | TCP, DNS, and captive portal checks all confirmed Internet access |
 | `"unreachable"` | TCP failed, DNS failed, or a captive portal was detected |
-| `"indeterminate"` | TCP and DNS worked, but captive portal status could not be determined |
+| `"indeterminate"` | TCP and DNS worked, but the captive portal login requirement could not be determined |
 | `"pending"` | Temporary streaming-progress state before checks complete |
-
-### Key: `captive_portal_state`
-
-| Value | Meaning |
-|-------|---------|
-| `"free"` | No captive portal detected |
-| `"present"` | Captive portal detected |
-| `"indeterminate"` | Captive portal status could not be determined |
 
 ### Key: `captive_portal_login_required`
 
 | Value       | Meaning                                                        |
 |-------------|----------------------------------------------------------------|
 | `"yes"`     | Captive portal confidently detected; login required            |
-| `"no"`      | No captive portal detected after a completed portal check       |
-| `"unknown"` | Portal status is pending, unavailable, or was not checked       |
+| `"no"`      | No captive portal login appears to be required                 |
+| `"unknown"` | Login requirement is pending, unavailable, or was not checked  |
 
 ### JSON example
 
@@ -146,7 +138,6 @@ Normal connected state:
   "network_name": "HomeNetwork",
   "dns_working": true,
   "internet_state": "reachable",
-  "captive_portal_state": "free",
   "captive_portal_login_required": "no"
 }
 ```
@@ -158,7 +149,6 @@ Captive portal detected:
   "network_name": "HotelWiFi",
   "dns_working": true,
   "internet_state": "unreachable",
-  "captive_portal_state": "present",
   "captive_portal_login_required": "yes"
 }
 ```
@@ -170,7 +160,6 @@ Indeterminate result:
   "network_name": "CafeWiFi",
   "dns_working": true,
   "internet_state": "indeterminate",
-  "captive_portal_state": "indeterminate",
   "captive_portal_login_required": "unknown"
 }
 ```
@@ -187,7 +176,6 @@ wifi-wand -o y status
 :network_name: HotelWiFi
 :dns_working: true
 :internet_state: :unreachable
-:captive_portal_state: :present
 :captive_portal_login_required: :yes
 ```
 
@@ -353,6 +341,6 @@ wifi-wand till internet_off  # Wait until Internet becomes unreachable
 | Output                    | Single line                      | Multi-line detailed data        |
 | Speed                     | Fast                             | Slower (more comprehensive)     |
 | Connectivity checks       | Yes (TCP/DNS/captive portal)     | Yes (same checks)               |
-| Captive portal detection  | Yes (in status data + display)   | Yes (`captive_portal_state` field) |
+| Captive portal detection  | Yes (status data + display)      | Yes (`captive_portal_login_required` field) |
 | For scripts               | Better with `-o j`               | Better (structured data)        |
 | For humans                | Good (quick check)               | Better (comprehensive info)     |

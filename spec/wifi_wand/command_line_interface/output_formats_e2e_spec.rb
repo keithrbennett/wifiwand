@@ -208,7 +208,6 @@ describe 'Output Format End-to-End Tests' do
           network_name:                  'HotelWiFi',
           dns_working:                   true,
           internet_state:                :unreachable,
-          captive_portal_state:          :present,
           captive_portal_login_required: :yes,
         }
       end
@@ -227,7 +226,6 @@ describe 'Output Format End-to-End Tests' do
         parsed = JSON.parse(output)
         expect(parsed['network_name']).to eq('HotelWiFi')
         expect(parsed['internet_state']).to eq('unreachable')
-        expect(parsed['captive_portal_state']).to eq('present')
         expect(parsed['captive_portal_login_required']).to eq('yes')
         expect(output).not_to include('Captive Portal Login Required')
         expect(output).not_to include('⚠️')

@@ -5,6 +5,8 @@
 * Breaking change: `info["ip_address"]` has been renamed to
   `info["ipv4_addresses"]`; the new field returns an array of IPv4 addresses
   instead of a single string or `nil`.
+* Add captive portal reporting through `captive_portal_login_required`, with
+  `:yes`, `:no`, or `:unknown` values.
 * Add `info["ipv6_addresses"]` for local IPv6 addresses assigned to the WiFi
   interface.
 * `BaseModel#ipv4_addresses` replaces `BaseModel#ip_address` and returns an

@@ -10,7 +10,7 @@ require_relative '../../../lib/wifi_wand/services/captive_portal_checker'
 describe WifiWand::CaptivePortalChecker do
   include TestHelpers
 
-  describe '#captive_portal_state' do
+  describe '#captive_portal_login_required' do
     let(:checker) { described_class.new(verbose: false) }
     let(:open_probe_writers) { [] }
     let(:endpoints) do
@@ -30,29 +30,29 @@ describe WifiWand::CaptivePortalChecker do
       allow(checker).to receive(:captive_portal_check_endpoints).and_return(endpoints)
     end
 
-    it 'returns :free when any helper reports a successful endpoint' do
-      allow(checker).to receive(:captive_portal_results).and_return(%i[present free])
+    it 'returns :no when any helper reports a successful endpoint' do
+      allow(checker).to receive(:captive_portal_results).and_return(%i[yes no])
 
-      expect(checker.captive_portal_state).to eq(:free)
+      expect(checker.captive_portal_login_required).to eq(:no)
     end
 
-    it 'returns :present when endpoints mismatch and none succeed' do
-      allow(checker).to receive(:captive_portal_results).and_return(%i[present indeterminate])
+    it 'returns :yes when endpoints mismatch and none succeed' do
+      allow(checker).to receive(:captive_portal_results).and_return(%i[yes unknown])
 
-      expect(checker.captive_portal_state).to eq(:present)
+      expect(checker.captive_portal_login_required).to eq(:yes)
     end
 
-    it 'returns :indeterminate when every endpoint errors' do
-      allow(checker).to receive(:captive_portal_results).and_return(%i[indeterminate indeterminate])
+    it 'returns :unknown when every endpoint errors' do
+      allow(checker).to receive(:captive_portal_results).and_return(%i[unknown unknown])
 
-      expect(checker.captive_portal_state).to eq(:indeterminate)
+      expect(checker.captive_portal_login_required).to eq(:unknown)
     end
 
-    it 'returns promptly after a helper reports :free and terminates slower helpers' do
+    it 'returns promptly after a helper reports :no and terminates slower helpers' do
       pending_probe = open_probe(endpoint: endpoints.last).merge(pid: 12_345)
       terminated_probes = []
       allow(checker).to receive(:start_captive_portal_probe).and_return(
-        completed_probe(endpoint: endpoints.first, payload: { state: 'free', actual_code: 204 }),
+        completed_probe(endpoint: endpoints.first, payload: { login_required: 'no', actual_code: 204 }),
         pending_probe
       )
       allow(checker).to receive(:terminate_probe) do |probe, grace:|
@@ -62,9 +62,9 @@ describe WifiWand::CaptivePortalChecker do
       end
 
       result = nil
-      Timeout.timeout(1) { result = checker.captive_portal_state }
+      Timeout.timeout(1) { result = checker.captive_portal_login_required }
 
-      expect(result).to eq(:free)
+      expect(result).to eq(:no)
       expect(terminated_probes).to include([pending_probe, checker.helper_result_grace])
       expect(pending_probe[:reader]).to be_closed
       expect(pending_probe[:pid]).to be_nil
@@ -73,28 +73,28 @@ describe WifiWand::CaptivePortalChecker do
     it 'returns promptly when a helper writes partial JSON and then stalls' do
       stub_const('WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT', 0.1)
       allow(checker).to receive(:start_captive_portal_probe).and_return(
-        open_probe(endpoint: endpoints.first, raw_output: '{"state":"free"')
+        open_probe(endpoint: endpoints.first, raw_output: '{"login_required":"no"')
       )
 
       result = nil
-      Timeout.timeout(1) { result = checker.captive_portal_state }
+      Timeout.timeout(1) { result = checker.captive_portal_login_required }
 
-      expect(result).to eq(:indeterminate)
+      expect(result).to eq(:unknown)
     end
 
-    it 'returns parsed state before a successful helper closes stdout' do
+    it 'returns parsed login_required before a successful helper closes stdout' do
       allow(checker).to receive_messages(
         captive_portal_check_endpoints: [endpoints.first],
         start_captive_portal_probe:     open_probe(
           endpoint: endpoints.first,
-          payload:  { state: 'free', actual_code: 204 }
+          payload:  { login_required: 'no', actual_code: 204 }
         )
       )
 
       result = nil
-      Timeout.timeout(2) { result = checker.captive_portal_state }
+      Timeout.timeout(2) { result = checker.captive_portal_login_required }
 
-      expect(result).to eq(:free)
+      expect(result).to eq(:no)
     end
 
     it 'uses zero helper grace when the caller provides a timeout budget' do
@@ -109,9 +109,9 @@ describe WifiWand::CaptivePortalChecker do
       end
 
       result = nil
-      Timeout.timeout(1) { result = checker.captive_portal_state(timeout_in_secs: 0.05) }
+      Timeout.timeout(1) { result = checker.captive_portal_login_required(timeout_in_secs: 0.05) }
 
-      expect(result).to eq(:indeterminate)
+      expect(result).to eq(:unknown)
       expect(observed_graces).to include(0)
     end
 
@@ -120,7 +120,7 @@ describe WifiWand::CaptivePortalChecker do
         captive_portal_check_endpoints: [endpoints.first],
         start_captive_portal_probe:     completed_probe(
           endpoint: endpoints.first,
-          payload:  { state: 'free', actual_code: 204 }
+          payload:  { login_required: 'no', actual_code: 204 }
         )
       )
       observed_graces = []
@@ -130,9 +130,9 @@ describe WifiWand::CaptivePortalChecker do
       end
 
       result = nil
-      Timeout.timeout(1) { result = checker.captive_portal_state(timeout_in_secs: 0.2) }
+      Timeout.timeout(1) { result = checker.captive_portal_login_required(timeout_in_secs: 0.2) }
 
-      expect(result).to eq(:free)
+      expect(result).to eq(:no)
       expect(observed_graces).to include(0)
     end
 
@@ -145,23 +145,23 @@ describe WifiWand::CaptivePortalChecker do
       end
 
       it 'logs the endpoints being checked' do
-        allow(checker).to receive(:captive_portal_results).and_return([:free])
+        allow(checker).to receive(:captive_portal_results).and_return([:no])
 
-        checker.captive_portal_state
+        checker.captive_portal_login_required
         expect(output.string).to match(/Testing captive portal via HTTP:/)
       end
 
       it 'logs a pass result' do
         allow(checker).to receive(:start_captive_portal_probe).and_return(
-          completed_probe(endpoint: endpoints.first, payload: { state: 'free', actual_code: 204 })
+          completed_probe(endpoint: endpoints.first, payload: { login_required: 'no', actual_code: 204 })
         )
 
-        checker.captive_portal_state
+        checker.captive_portal_login_required
         expect(output.string).to include('pass')
       end
     end
 
-    context 'with verbose mode and captive portal detected' do
+    context 'with verbose mode and captive portal login required' do
       let(:output) { StringIO.new }
       let(:checker) { described_class.new(verbose: true, output: output) }
 
@@ -170,15 +170,15 @@ describe WifiWand::CaptivePortalChecker do
           captive_portal_check_endpoints: [endpoints.first],
           start_captive_portal_probe:     completed_probe(
             endpoint: endpoints.first,
-            payload:  { state: 'present', actual_code: 302 }
+            payload:  { login_required: 'yes', actual_code: 302 }
           )
         )
       end
 
-      it 'logs results array and detected status' do
-        checker.captive_portal_state
+      it 'logs results array and required status' do
+        checker.captive_portal_login_required
         expect(output.string).to include('mismatch')
-        expect(output.string).to include('detected')
+        expect(output.string).to include('required')
       end
     end
   end
@@ -227,13 +227,13 @@ describe WifiWand::CaptivePortalChecker do
 
     it 'returns the endpoint probe metadata used by subprocess helpers' do
       allow(checker).to receive(:perform_captive_portal_check).and_return(
-        state:       :indeterminate,
-        error_class: 'SocketError'
+        login_required: :unknown,
+        error_class:    'SocketError'
       )
 
       expect(checker.probe_endpoint(endpoint)).to eq(
-        state:       :indeterminate,
-        error_class: 'SocketError'
+        login_required: :unknown,
+        error_class:    'SocketError'
       )
     end
   end
@@ -242,64 +242,64 @@ describe WifiWand::CaptivePortalChecker do
     let(:checker) { described_class.new(verbose: false) }
     let(:endpoint) { { url: 'http://example.com/check', expected_code: 204 } }
 
-    it 'returns :free metadata when the endpoint returns the expected code' do
-      mock_captive_portal_free_state
+    it 'returns :no metadata when the endpoint returns the expected code' do
+      mock_captive_portal_login_not_required
 
       expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
-        state: :free, actual_code: 204
+        login_required: :no, actual_code: 204
       )
     end
 
-    it 'returns :present metadata when the endpoint returns a redirect' do
-      mock_captive_portal_detected
+    it 'returns :yes metadata when the endpoint returns a redirect' do
+      mock_captive_portal_login_required
 
       expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
-        state: :present, actual_code: 302
+        login_required: :yes, actual_code: 302
       )
     end
 
-    it 'returns :free when both code and expected body match' do
+    it 'returns :no when both code and expected body match' do
       endpoint_with_body = {
         url:           'http://example.com/connecttest.txt',
         expected_code: 200,
         expected_body: 'Microsoft Connect Test',
       }
-      mock_captive_portal_free_state(code: '200', body: 'Microsoft Connect Test')
+      mock_captive_portal_login_not_required(code: '200', body: 'Microsoft Connect Test')
 
       expect(checker.send(:perform_captive_portal_check, endpoint_with_body)).to eq(
-        state: :free, actual_code: 200
+        login_required: :no, actual_code: 200
       )
     end
 
-    it 'returns :present when the code matches but the body does not' do
+    it 'returns :yes when the code matches but the body does not' do
       endpoint_with_body = {
         url:           'http://example.com/connecttest.txt',
         expected_code: 200,
         expected_body: 'Microsoft Connect Test',
       }
-      mock_captive_portal_detected(code: '200', body: '<html>Login</html>')
+      mock_captive_portal_login_required(code: '200', body: '<html>Login</html>')
 
       expect(checker.send(:perform_captive_portal_check, endpoint_with_body)).to eq(
-        state: :present, actual_code: 200
+        login_required: :yes, actual_code: 200
       )
     end
 
-    it 'returns :indeterminate metadata on network errors' do
+    it 'returns :unknown metadata on network errors' do
       stub_short_connectivity_timeouts
       allow(Net::HTTP).to receive(:get_response).and_raise(Errno::ECONNREFUSED)
 
       expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
-        state: :indeterminate, error_class: 'Errno::ECONNREFUSED'
+        login_required: :unknown, error_class: 'Errno::ECONNREFUSED'
       )
     end
 
-    it 'returns :indeterminate metadata on HTTP-level network failures' do
+    it 'returns :unknown metadata on HTTP-level network failures' do
       allow(Net::HTTP).to receive(:get_response).and_raise(SocketError)
 
       expect do
         expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
-          state:       WifiWand::ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
-          error_class: 'SocketError'
+          login_required: WifiWand::ConnectivityStates::CAPTIVE_PORTAL_LOGIN_UNKNOWN,
+          error_class:    'SocketError'
         )
       end.not_to raise_error
     end
@@ -327,54 +327,54 @@ describe WifiWand::CaptivePortalChecker do
       }
     end
 
-    it 'returns :indeterminate and records the error class for empty output' do
+    it 'returns :unknown and records the error class for empty output' do
       result = checker.send(:read_probe_result, probe_with_output(''))
-      expect(result[:state]).to eq(:indeterminate)
+      expect(result[:login_required]).to eq(:unknown)
       expect(result[:error_class]).to be_a(String)
     end
 
-    it 'returns :indeterminate and records the error class for malformed JSON' do
+    it 'returns :unknown and records the error class for malformed JSON' do
       result = checker.send(:read_probe_result, probe_with_output('not json {{{'))
-      expect(result[:state]).to eq(:indeterminate)
+      expect(result[:login_required]).to eq(:unknown)
       expect(result[:error_class]).to be_a(String)
     end
 
     it 'returns nil for partial JSON before EOF and fails only after EOF' do
-      probe = probe_with_output('{"state":"free"', close_writer: false)
+      probe = probe_with_output('{"login_required":"no"', close_writer: false)
 
       expect(checker.send(:read_probe_result, probe)).to be_nil
 
       probe[:writer].close
       result = checker.send(:read_probe_result, probe)
-      expect(result[:state]).to eq(:indeterminate)
+      expect(result[:login_required]).to eq(:unknown)
       expect(result[:error_class]).to eq('JSON::ParserError')
     ensure
       probe[:writer]&.close unless probe[:writer]&.closed?
       probe[:reader]&.close unless probe[:reader]&.closed?
     end
 
-    it 'returns :indeterminate for a JSON object with an unrecognised state value' do
-      json = JSON.generate({ state: 'unexpected_value', actual_code: 200 })
+    it 'returns :unknown for a JSON object with an unrecognised login_required value' do
+      json = JSON.generate({ login_required: 'unexpected_value', actual_code: 200 })
       result = checker.send(:read_probe_result, probe_with_output(json))
-      expect(result[:state]).to eq(:indeterminate)
+      expect(result[:login_required]).to eq(:unknown)
     end
 
-    it 'returns :indeterminate for a JSON array (wrong top-level type)' do
+    it 'returns :unknown for a JSON array (wrong top-level type)' do
       result = checker.send(:read_probe_result, probe_with_output('[]'))
-      expect(result[:state]).to eq(:indeterminate)
+      expect(result[:login_required]).to eq(:unknown)
     end
 
-    it 'returns :free for well-formed JSON with state "free"' do
-      json = JSON.generate({ state: 'free', actual_code: 204 })
+    it 'returns :no for well-formed JSON with login_required "no"' do
+      json = JSON.generate({ login_required: 'no', actual_code: 204 })
       result = checker.send(:read_probe_result, probe_with_output(json))
-      expect(result[:state]).to eq(:free)
+      expect(result[:login_required]).to eq(:no)
       expect(result[:actual_code]).to eq(204)
     end
 
-    it 'returns :present for well-formed JSON with state "present"' do
-      json = JSON.generate({ state: 'present', actual_code: 302 })
+    it 'returns :yes for well-formed JSON with login_required "yes"' do
+      json = JSON.generate({ login_required: 'yes', actual_code: 302 })
       result = checker.send(:read_probe_result, probe_with_output(json))
-      expect(result[:state]).to eq(:present)
+      expect(result[:login_required]).to eq(:yes)
     end
   end
 
@@ -399,22 +399,22 @@ describe WifiWand::CaptivePortalChecker do
       allow(checker).to receive(:captive_portal_check_endpoints).and_return([endpoint])
     end
 
-    it 'logs indeterminate aggregate status when no helper reaches a decision' do
-      allow(checker).to receive(:captive_portal_results).and_return([:indeterminate])
+    it 'logs unknown aggregate status when no helper reaches a decision' do
+      allow(checker).to receive(:captive_portal_results).and_return([:unknown])
 
-      expect(checker.captive_portal_state).to eq(:indeterminate)
-      expect(output.string).to include('indeterminate')
+      expect(checker.captive_portal_login_required).to eq(:unknown)
+      expect(output.string).to include('unknown')
     end
 
     it 'logs helper network errors without treating them as captive portals' do
       allow(checker).to receive(:start_captive_portal_probe).and_return(
         completed_probe(
           endpoint: endpoint,
-          payload:  { state: 'indeterminate', error_class: 'SocketError' }
+          payload:  { login_required: 'unknown', error_class: 'SocketError' }
         )
       )
 
-      expect(checker.captive_portal_state).to eq(:indeterminate)
+      expect(checker.captive_portal_login_required).to eq(:unknown)
       expect(output.string).to include(
         'Captive portal check network error for http://example.com/check: SocketError'
       )
@@ -424,32 +424,32 @@ describe WifiWand::CaptivePortalChecker do
   # ---------------------------------------------------------------------------
   # Integration: real subprocess path (no spawn_probe stub)
   # ---------------------------------------------------------------------------
-  describe '#captive_portal_state with real helper subprocess', :loopback_socket do
+  describe '#captive_portal_login_required with real helper subprocess', :loopback_socket do
     let(:checker) { described_class.new(verbose: false) }
 
-    it 'returns :free via the real helper executable when the endpoint is portal-free' do
+    it 'returns :no via the real helper executable when the endpoint is no-login-required' do
       with_local_http_server(response_code: 204) do |port|
         endpoint = { url: "http://127.0.0.1:#{port}/check", expected_code: 204 }
         allow(checker).to receive(:captive_portal_check_endpoints).and_return([endpoint])
-        expect(checker.captive_portal_state).to eq(:free)
+        expect(checker.captive_portal_login_required).to eq(:no)
       end
     end
 
-    it 'returns :present via the real helper executable when the portal intercepts' do
+    it 'returns :yes via the real helper executable when the portal intercepts' do
       with_local_http_server(response_code: 302) do |port|
         endpoint = { url: "http://127.0.0.1:#{port}/check", expected_code: 204 }
         allow(checker).to receive(:captive_portal_check_endpoints).and_return([endpoint])
-        expect(checker.captive_portal_state).to eq(:present)
+        expect(checker.captive_portal_login_required).to eq(:yes)
       end
     end
 
-    it 'returns :indeterminate via the real helper executable on a network error' do
+    it 'returns :unknown via the real helper executable on a network error' do
       closed_server = TCPServer.new('127.0.0.1', 0)
       closed_port = closed_server.addr[1]
       closed_server.close
       endpoint = { url: "http://127.0.0.1:#{closed_port}/check", expected_code: 204 }
       allow(checker).to receive(:captive_portal_check_endpoints).and_return([endpoint])
-      expect(checker.captive_portal_state).to eq(:indeterminate)
+      expect(checker.captive_portal_login_required).to eq(:unknown)
     end
   end
 

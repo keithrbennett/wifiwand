@@ -44,19 +44,19 @@ The `info` command returns a hash containing:
 ### Connectivity Status
 - **TCP Working**: Can establish TCP connections
 - **DNS Working**: Can resolve domain names
-- **Captive Portal State**: `:free`, `:present`, or `:indeterminate`
+- **Captive Portal Login Required**: `:yes`, `:no`, or `:unknown`
 - **Internet Connectivity State**: `:reachable`, `:unreachable`, or `:indeterminate`
 
 `internet_connectivity_state` is derived from TCP, DNS, and
-`captive_portal_state`:
+whether captive portal login is currently required:
 
-| TCP | DNS | Captive portal | Internet connectivity |
-|-----|-----|----------------|-----------------------|
-| pass | pass | `:free` | `:reachable` |
+| TCP | DNS | Captive portal login required | Internet connectivity |
+|-----|-----|--------------------------------|-----------------------|
+| pass | pass | `:no` | `:reachable` |
 | fail | any | any | `:unreachable` |
 | any | fail | any | `:unreachable` |
-| pass | pass | `:present` | `:unreachable` |
-| pass | pass | `:indeterminate` | `:indeterminate` |
+| pass | pass | `:yes` | `:unreachable` |
+| pass | pass | `:unknown` | `:indeterminate` |
 
 ### Network Configuration
 - **Nameservers**: Currently configured DNS servers
@@ -113,7 +113,7 @@ Example connectivity fields in JSON:
 {
   "internet_tcp_connectivity": true,
   "dns_working": true,
-  "captive_portal_state": "free",
+  "captive_portal_login_required": "no",
   "internet_connectivity_state": "reachable"
 }
 ```
@@ -122,7 +122,7 @@ Example connectivity fields in interactive Ruby:
 
 ```ruby
 data = info
-data['captive_portal_state']        #=> :free
+data['captive_portal_login_required'] #=> :no
 data['internet_connectivity_state'] #=> :reachable
 ```
 

@@ -36,7 +36,7 @@ module WifiWand
 
     # Parses +argv+, performs a captive portal probe, and writes a JSON result
     # hash to +output+.  Any +ArgumentError+ raised during argument parsing is
-    # caught and serialised as an indeterminate result so the parent process
+    # caught and serialised as an unknown result so the parent process
     # always receives valid JSON.
     #
     # @param argv    [Array<String>]           see {parse_argv}
@@ -51,7 +51,7 @@ module WifiWand
       output.flush
     rescue ArgumentError => e
       output.print(JSON.generate(
-        { state: 'indeterminate', error_class: e.class.to_s, error_message: e.message }))
+        { login_required: 'unknown', error_class: e.class.to_s, error_message: e.message }))
       output.flush
     end
   end

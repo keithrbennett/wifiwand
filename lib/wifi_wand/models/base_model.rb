@@ -420,12 +420,12 @@ module WifiWand
     # Returns an explicit internet connectivity state:
     # :reachable, :unreachable, or :indeterminate.
     def internet_connectivity_state(tcp_working = nil, dns_working = nil,
-      captive_portal_state = NetworkConnectivityTester::UNSET, timeout_in_secs: nil)
+      captive_portal_login_required = NetworkConnectivityTester::UNSET, timeout_in_secs: nil)
       debug_method_entry(__method__)
       @connectivity_tester.internet_connectivity_state(
         tcp_working,
         dns_working,
-        captive_portal_state,
+        captive_portal_login_required,
         timeout_in_secs: timeout_in_secs
       )
     end
@@ -448,10 +448,10 @@ module WifiWand
       )
     end
 
-    # Returns an explicit captive-portal state: :free, :present, or :indeterminate.
-    def captive_portal_state(timeout_in_secs: nil)
+    # Returns whether captive portal login appears to be required now: :yes, :no, or :unknown.
+    def captive_portal_login_required(timeout_in_secs: nil)
       debug_method_entry(__method__)
-      @connectivity_tester.captive_portal_state(timeout_in_secs: timeout_in_secs)
+      @connectivity_tester.captive_portal_login_required(timeout_in_secs: timeout_in_secs)
     end
 
     EXPECTED_NETWORK_ERRORS = [
@@ -486,45 +486,45 @@ module WifiWand
         false
       end
 
-      portal_state = if internet_tcp && dns_working
+      portal_login_required = if internet_tcp && dns_working
         begin
-          captive_portal_state
+          captive_portal_login_required
         rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
-          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
+          :unknown
         end
       else
-        ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
+        :unknown
       end
 
       # Pass all pre-computed values to avoid redundant network calls
-      connectivity_state = ConnectivityStates.internet_state_from(
-        tcp_working:          internet_tcp,
-        dns_working:          dns_working,
-        captive_portal_state: portal_state
+      connectivity_state = ConnectivityStates.internet_state_from_login_required(
+        tcp_working:                   internet_tcp,
+        dns_working:                   dns_working,
+        captive_portal_login_required: portal_login_required
       )
 
       network_identity = wifi_info_network_identity
 
       {
-        'wifi_on'                     => wifi_on?,
-        'internet_tcp_connectivity'   => internet_tcp,
-        'dns_working'                 => dns_working,
-        'captive_portal_state'        => portal_state,
-        'internet_connectivity_state' => connectivity_state,
-        'interface'                   => wifi_interface,
-        'default_interface'           => begin; default_interface; rescue WifiWand::Error; nil; end,
-        'connected'                   => network_identity.fetch('connected'),
-        'network'                     => network_identity.fetch('network'),
-        'bssid'                       => begin; bssid; rescue WifiWand::Error; nil; end,
-        'signal_quality'              => wifi_info_signal_quality,
-        'ssid_identity_available'     => network_identity.fetch('ssid_identity_available'),
-        'ssid_identity_status'        => network_identity.fetch('ssid_identity_status'),
-        'ssid_identity_warning'       => network_identity.fetch('ssid_identity_warning'),
-        'ipv4_addresses'              => wifi_info_ipv4_addresses,
-        'ipv6_addresses'              => wifi_info_ipv6_addresses,
-        'mac_address'                 => begin; mac_address; rescue WifiWand::Error; nil; end,
-        'nameservers'                 => begin; nameservers; rescue WifiWand::Error; []; end,
-        'timestamp'                   => Time.now,
+        'wifi_on'                       => wifi_on?,
+        'internet_tcp_connectivity'     => internet_tcp,
+        'dns_working'                   => dns_working,
+        'captive_portal_login_required' => portal_login_required,
+        'internet_connectivity_state'   => connectivity_state,
+        'interface'                     => wifi_interface,
+        'default_interface'             => begin; default_interface; rescue WifiWand::Error; nil; end,
+        'connected'                     => network_identity.fetch('connected'),
+        'network'                       => network_identity.fetch('network'),
+        'bssid'                         => begin; bssid; rescue WifiWand::Error; nil; end,
+        'signal_quality'                => wifi_info_signal_quality,
+        'ssid_identity_available'       => network_identity.fetch('ssid_identity_available'),
+        'ssid_identity_status'          => network_identity.fetch('ssid_identity_status'),
+        'ssid_identity_warning'         => network_identity.fetch('ssid_identity_warning'),
+        'ipv4_addresses'                => wifi_info_ipv4_addresses,
+        'ipv6_addresses'                => wifi_info_ipv6_addresses,
+        'mac_address'                   => begin; mac_address; rescue WifiWand::Error; nil; end,
+        'nameservers'                   => begin; nameservers; rescue WifiWand::Error; []; end,
+        'timestamp'                     => Time.now,
       }
     end
 
@@ -674,8 +674,8 @@ module WifiWand
     # Network identity and internet checks run concurrently in native threads so
     # blocking OS commands and socket work can overlap. Internet status uses the
     # full connectivity path so captive portals are reported as unreachable.
-    # The returned hash includes :internet_state and :captive_portal_state
-    # plus the derived :captive_portal_login_required (:yes/:no/:unknown).
+    # The returned hash includes :internet_state and
+    # :captive_portal_login_required (:yes/:no/:unknown).
     def status_line_data(progress_callback: nil)
       StatusLineDataBuilder.call(
         self,
@@ -736,7 +736,7 @@ module WifiWand
     # @param target_status one of StatusWaiter::PERMITTED_STATES:
     #   :wifi_on / :wifi_off         – WiFi hardware power state
     #   :associated / :disassociated – WiFi SSID association state
-    #   :internet_on / :internet_off – full Internet reachability (TCP + DNS + captive-portal free)
+    #   :internet_on / :internet_off – full Internet reachability (TCP + DNS + no captive-portal login)
     # @param timeout_in_secs after this many seconds the method will raise a WaitTimeoutError;
     #        if nil (default), waits indefinitely
     # @param wait_interval_in_secs sleeps this interval between retries; if nil or absent,

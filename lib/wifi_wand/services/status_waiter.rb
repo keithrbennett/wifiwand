@@ -15,7 +15,7 @@ module WifiWand
       on:   "':on' was removed. Use ':wifi_on' to wait for the WiFi radio to be powered on.",
       off:  "':off' was removed. Use ':wifi_off' to wait for the WiFi radio to be powered off.",
       conn: "':conn' was removed. Use ':internet_on' to wait for full Internet reachability " \
-        "(TCP + DNS + captive-portal free), or ':associated' to wait for WiFi SSID association.",
+        "(TCP + DNS + no captive-portal login), or ':associated' to wait for WiFi SSID association.",
       disc: "':disc' was removed. Use ':internet_off' to wait for Internet reachability to be " \
         "lost, or ':disassociated' to wait for WiFi to leave the current SSID.",
     }.freeze
@@ -35,7 +35,7 @@ module WifiWand
     #   :wifi_off        – WiFi hardware is powered off
     #   :associated      – WiFi is associated with an SSID (at the WiFi layer)
     #   :disassociated   – WiFi is not associated with any SSID
-    #   :internet_on     – Full Internet reachability (TCP + DNS + captive-portal free)
+    #   :internet_on     – Full Internet reachability (TCP + DNS + no captive-portal login)
     #   :internet_off    – Internet reachability check fails
     # @param timeout_in_secs after this many seconds the method raises WaitTimeoutError;
     #        if nil (default), waits indefinitely

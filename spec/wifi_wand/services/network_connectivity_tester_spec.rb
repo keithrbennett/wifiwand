@@ -449,9 +449,9 @@ describe WifiWand::NetworkConnectivityTester do
 
     it 'returns :reachable when TCP, DNS, and captive portal check all pass' do
       allow(tester).to receive_messages(
-        tcp_connectivity?:    true,
-        dns_working?:         true,
-        captive_portal_state: :free
+        tcp_connectivity?:             true,
+        dns_working?:                  true,
+        captive_portal_login_required: :no
       )
 
       expect(tester.internet_connectivity_state).to eq(:reachable)
@@ -477,19 +477,19 @@ describe WifiWand::NetworkConnectivityTester do
 
     it 'returns :unreachable when captive portal is detected' do
       allow(tester).to receive_messages(
-        tcp_connectivity?:    true,
-        dns_working?:         true,
-        captive_portal_state: :present
+        tcp_connectivity?:             true,
+        dns_working?:                  true,
+        captive_portal_login_required: :yes
       )
 
       expect(tester.internet_connectivity_state).to eq(:unreachable)
     end
 
-    it 'returns :indeterminate when TCP and DNS pass but captive portal status is indeterminate' do
+    it 'returns :indeterminate when TCP and DNS pass but captive portal login requirement is unknown' do
       allow(tester).to receive_messages(
-        tcp_connectivity?:    true,
-        dns_working?:         true,
-        captive_portal_state: :indeterminate
+        tcp_connectivity?:             true,
+        dns_working?:                  true,
+        captive_portal_login_required: :unknown
       )
 
       expect(tester.internet_connectivity_state).to eq(:indeterminate)
@@ -497,23 +497,23 @@ describe WifiWand::NetworkConnectivityTester do
 
     it 'skips captive portal check when TCP fails (short-circuit)' do
       allow(tester).to receive_messages(tcp_connectivity?: false, dns_working?: true)
-      expect(tester).not_to receive(:captive_portal_state)
+      expect(tester).not_to receive(:captive_portal_login_required)
 
       tester.internet_connectivity_state
     end
 
-    it 'accepts a pre-computed captive portal state and does not re-check' do
+    it 'accepts a pre-computed captive portal login requirement and does not re-check' do
       allow(tester).to receive_messages(tcp_connectivity?: true, dns_working?: true)
-      expect(tester).not_to receive(:captive_portal_state)
+      expect(tester).not_to receive(:captive_portal_login_required)
 
-      expect(tester.internet_connectivity_state(true, true, :free)).to eq(:reachable)
+      expect(tester.internet_connectivity_state(true, true, :no)).to eq(:reachable)
     end
 
-    it 'preserves a pre-computed indeterminate captive portal state' do
+    it 'preserves a pre-computed unknown captive portal login requirement as indeterminate connectivity' do
       allow(tester).to receive_messages(tcp_connectivity?: true, dns_working?: true)
-      expect(tester).not_to receive(:captive_portal_state)
+      expect(tester).not_to receive(:captive_portal_login_required)
 
-      expect(tester.internet_connectivity_state(true, true, :indeterminate)).to eq(:indeterminate)
+      expect(tester.internet_connectivity_state(true, true, :unknown)).to eq(:indeterminate)
     end
 
     it 'returns :indeterminate when the caller timeout expires during TCP probing' do
@@ -525,7 +525,7 @@ describe WifiWand::NetworkConnectivityTester do
         )
       ).and_return(success: false, timed_out: true)
       expect(tester).not_to receive(:dns_working?)
-      expect(tester).not_to receive(:captive_portal_state)
+      expect(tester).not_to receive(:captive_portal_login_required)
 
       expect(tester.internet_connectivity_state(timeout_in_secs: 0.05)).to eq(:indeterminate)
     end
@@ -544,48 +544,48 @@ describe WifiWand::NetworkConnectivityTester do
           return_details:  true
         )
       ).and_return(success: false, timed_out: true)
-      expect(tester).not_to receive(:captive_portal_state)
+      expect(tester).not_to receive(:captive_portal_login_required)
 
       expect(tester.internet_connectivity_state(timeout_in_secs: 0.05)).to eq(:indeterminate)
     end
   end
 
-  describe '#captive_portal_state' do
+  describe '#captive_portal_login_required' do
     let(:tester) { described_class.new(verbose: false) }
 
     it 'delegates to the captive_portal_checker' do
       checker = tester.captive_portal_checker
-      allow(checker).to receive(:captive_portal_state).and_return(:free)
-      expect(tester.captive_portal_state).to eq(:free)
+      allow(checker).to receive(:captive_portal_login_required).and_return(:no)
+      expect(tester.captive_portal_login_required).to eq(:no)
     end
 
     context 'when the connectivity check endpoint returns 204' do
       before do
-        allow(tester.captive_portal_checker).to receive(:captive_portal_state).and_return(:free)
+        allow(tester.captive_portal_checker).to receive(:captive_portal_login_required).and_return(:no)
       end
 
-      it 'returns :free' do
-        expect(tester.captive_portal_state).to eq(:free)
+      it 'returns :no' do
+        expect(tester.captive_portal_login_required).to eq(:no)
       end
     end
 
     context 'when the connectivity check endpoint returns a redirect (captive portal)' do
       before do
-        allow(tester.captive_portal_checker).to receive(:captive_portal_state).and_return(:present)
+        allow(tester.captive_portal_checker).to receive(:captive_portal_login_required).and_return(:yes)
       end
 
-      it 'returns :present' do
-        expect(tester.captive_portal_state).to eq(:present)
+      it 'returns :yes' do
+        expect(tester.captive_portal_login_required).to eq(:yes)
       end
     end
 
     context 'when all HTTP requests fail with network errors' do
       before do
-        allow(tester.captive_portal_checker).to receive(:captive_portal_state).and_return(:indeterminate)
+        allow(tester.captive_portal_checker).to receive(:captive_portal_login_required).and_return(:unknown)
       end
 
-      it 'returns :indeterminate' do
-        expect(tester.captive_portal_state).to eq(:indeterminate)
+      it 'returns :unknown' do
+        expect(tester.captive_portal_login_required).to eq(:unknown)
       end
     end
 
@@ -594,41 +594,41 @@ describe WifiWand::NetworkConnectivityTester do
       let(:tester) { described_class.new(verbose: true, output: output) }
 
       before do
-        allow(tester.captive_portal_checker).to receive(:captive_portal_state) do
+        allow(tester.captive_portal_checker).to receive(:captive_portal_login_required) do
           output.puts 'Testing captive portal via HTTP: http://example.com/check'
           output.puts 'Captive portal check http://example.com/check: HTTP 204 (expected 204) -> pass'
-          output.puts 'Captive portal results: [:free] -- free'
-          :free
+          output.puts 'Captive portal results: [:no] -- no'
+          :no
         end
       end
 
       it 'logs the endpoints being checked' do
-        tester.captive_portal_state
+        tester.captive_portal_login_required
         expect(output.string).to match(/Testing captive portal via HTTP:/)
       end
 
       it 'logs a pass result' do
-        tester.captive_portal_state
+        tester.captive_portal_login_required
         expect(output.string).to include('pass')
       end
     end
 
-    context 'with verbose mode and captive portal detected' do
+    context 'with verbose mode and captive portal login required' do
       let(:output) { StringIO.new }
       let(:tester) { described_class.new(verbose: true, output: output) }
 
       before do
-        allow(tester.captive_portal_checker).to receive(:captive_portal_state) do
+        allow(tester.captive_portal_checker).to receive(:captive_portal_login_required) do
           output.puts 'Captive portal check http://example.com/check: HTTP 302 (expected 204) -> mismatch'
-          output.puts 'Captive portal results: [:present] -- detected'
-          :present
+          output.puts 'Captive portal results: [:yes] -- required'
+          :yes
         end
       end
 
-      it 'logs results array and detected status' do
-        tester.captive_portal_state
+      it 'logs results array and required status' do
+        tester.captive_portal_login_required
         expect(output.string).to include('mismatch')
-        expect(output.string).to include('detected')
+        expect(output.string).to include('required')
       end
     end
   end

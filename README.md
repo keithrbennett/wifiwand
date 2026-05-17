@@ -501,7 +501,7 @@ interface. Key methods include:
 *   `connected_network_name`
 *   `connected_to?(ssid)`
 *   `internet_connectivity_state` — returns `:reachable`, `:unreachable`, or `:indeterminate`
-*   `captive_portal_state` — returns `:free`, `:present`, or `:indeterminate`
+*   `captive_portal_login_required` — returns `:yes`, `:no`, or `:unknown`
 *   `cycle_network`
 *   `default_interface`
 *   `disconnect`

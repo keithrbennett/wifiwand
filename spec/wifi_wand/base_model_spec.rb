@@ -17,9 +17,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
       # Also mock the underlying NetworkConnectivityTester to prevent real network calls
       tester = subject.connectivity_tester
       allow(tester).to receive_messages(
-        tcp_connectivity?:    true,
-        dns_working?:         true,
-        captive_portal_state: :free
+        tcp_connectivity?:             true,
+        dns_working?:                  true,
+        captive_portal_login_required: :no
       )
       allow(subject.connection_manager).to receive(:wait_for_connection_activation)
 
@@ -39,7 +39,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
         preferred_networks:         %w[TestNetwork1 SavedNetwork1],
         internet_tcp_connectivity?: true,
         dns_working?:               true,
-        captive_portal_state:       :free,
         run_command:                command_result(stdout: ''),
         till:                       nil
       )
@@ -87,7 +86,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       # All OSes must provide these fields with consistent types
       expect(result).to include(
-        'wifi_on', 'internet_tcp_connectivity', 'dns_working', 'captive_portal_state',
+        'wifi_on', 'internet_tcp_connectivity', 'dns_working', 'captive_portal_login_required',
         'internet_connectivity_state', 'interface', 'default_interface', 'connected', 'network',
         'bssid', 'signal_quality', 'ssid_identity_available', 'ssid_identity_status', 'ssid_identity_warning',
         'ipv4_addresses', 'ipv6_addresses', 'mac_address', 'nameservers', 'timestamp'
@@ -104,8 +103,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
       expect(result['internet_tcp_connectivity']).to be(true).or be(false)
       expect(result['dns_working']).to be(true).or be(false)
-      expect(result['captive_portal_state']).to satisfy do |value|
-        %i[free present indeterminate].include?(value)
+      expect(result['captive_portal_login_required']).to satisfy do |value|
+        %i[yes no unknown].include?(value)
       end
       expect(result['internet_connectivity_state']).to satisfy do |value|
         %i[reachable unreachable indeterminate].include?(value)
@@ -976,14 +975,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
       result = subject.wifi_info
 
-      subject.internet_connectivity_state(
-        result['internet_tcp_connectivity'],
-        result['dns_working'],
-        result['captive_portal_state']
-      )
-
       expect(result['internet_tcp_connectivity']).to be false
       expect(result['internet_connectivity_state']).to eq(:unreachable)
+      expect(result['captive_portal_login_required']).to eq(:unknown)
     end
 
     it 'handles dns_working exceptions' do
@@ -997,48 +991,47 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(result['internet_connectivity_state']).to eq(:unreachable)
     end
 
-    it 'does not call captive_portal_state when TCP fails' do
+    it 'does not call captive portal checks when TCP fails' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: false,
         dns_working?:               true
       )
-      expect(subject).not_to receive(:captive_portal_state)
+      expect(subject.connectivity_tester).not_to receive(:captive_portal_login_required)
 
       result = subject.wifi_info
-      expect(result['captive_portal_state']).to eq(:indeterminate)
+      expect(result['captive_portal_login_required']).to eq(:unknown)
     end
 
-    it 'does not call captive_portal_state when DNS fails' do
+    it 'does not call captive portal checks when DNS fails' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: true,
         dns_working?:               false
       )
-      expect(subject).not_to receive(:captive_portal_state)
+      expect(subject.connectivity_tester).not_to receive(:captive_portal_login_required)
 
       result = subject.wifi_info
-      expect(result['captive_portal_state']).to eq(:indeterminate)
+      expect(result['captive_portal_login_required']).to eq(:unknown)
     end
 
-    it 'does not call captive_portal_state when both TCP and DNS fail' do
+    it 'does not call captive portal checks when both TCP and DNS fail' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: false,
         dns_working?:               false
       )
-      expect(subject).not_to receive(:captive_portal_state)
+      expect(subject.connectivity_tester).not_to receive(:captive_portal_login_required)
 
       result = subject.wifi_info
-      expect(result['captive_portal_state']).to eq(:indeterminate)
+      expect(result['captive_portal_login_required']).to eq(:unknown)
     end
 
-    it 'calls captive_portal_state when both TCP and DNS succeed' do
+    it 'checks captive portal login requirement when both TCP and DNS succeed' do
       allow(subject).to receive_messages(
         internet_tcp_connectivity?: true,
-        dns_working?:               true,
-        captive_portal_state:       :free
+        dns_working?:               true
       )
-      expect(subject).to receive(:captive_portal_state).and_return(:free)
+      expect(subject.connectivity_tester).to receive(:captive_portal_login_required).and_return(:no)
 
-      subject.wifi_info
+      expect(subject.wifi_info['captive_portal_login_required']).to eq(:no)
     end
 
     it 'does not hide unexpected ipv4_addresses errors' do

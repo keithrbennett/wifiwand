@@ -50,7 +50,7 @@ For upgrade-impacting API, CLI, and behavior changes, see
 
 - Added explicit connectivity states and richer CLI output.
 - Added application-layer captive-portal detection after TCP probes.
-- Added `captive_portal_free` to the `wifi_info` hash.
+- Added `captive_portal_login_required` to the `wifi_info` hash.
 - Internet connectivity checks now use fast multi-endpoint TCP probes.
 - Local IPv4 info output now uses `ipv4_addresses` and returns an array.
 - Local IPv6 info output is available through `ipv6_addresses`.

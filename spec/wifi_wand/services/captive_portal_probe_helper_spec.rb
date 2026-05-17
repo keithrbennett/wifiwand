@@ -57,52 +57,52 @@ describe WifiWand::CaptivePortalProbeHelper do
   describe '.run' do
     let(:output) { StringIO.new }
 
-    it 'outputs JSON with state "free" when the probe reports portal-free' do
-      checker = stub_checker({ state: :free, actual_code: 204 })
+    it 'outputs JSON with login_required "no" when the probe reports no-login-required' do
+      checker = stub_checker({ login_required: :no, actual_code: 204 })
       described_class.run(['http://example.com/check', '204'], output: output, checker: checker)
 
       result = JSON.parse(output.string, symbolize_names: true)
-      expect(result[:state]).to eq('free')
+      expect(result[:login_required]).to eq('no')
       expect(result[:actual_code]).to eq(204)
     end
 
-    it 'outputs JSON with state "present" when a captive portal is detected' do
-      checker = stub_checker({ state: :present, actual_code: 302 })
+    it 'outputs JSON with login_required "yes" when a captive portal is detected' do
+      checker = stub_checker({ login_required: :yes, actual_code: 302 })
       described_class.run(['http://example.com/check', '204'], output: output, checker: checker)
 
       result = JSON.parse(output.string, symbolize_names: true)
-      expect(result[:state]).to eq('present')
+      expect(result[:login_required]).to eq('yes')
       expect(result[:actual_code]).to eq(302)
     end
 
-    it 'outputs JSON with state "indeterminate" and error_class on a network error' do
-      checker = stub_checker({ state: :indeterminate, error_class: 'Errno::ECONNREFUSED' })
+    it 'outputs JSON with login_required "unknown" and error_class on a network error' do
+      checker = stub_checker({ login_required: :unknown, error_class: 'Errno::ECONNREFUSED' })
       described_class.run(['http://example.com/check', '204'], output: output, checker: checker)
 
       result = JSON.parse(output.string, symbolize_names: true)
-      expect(result[:state]).to eq('indeterminate')
+      expect(result[:login_required]).to eq('unknown')
       expect(result[:error_class]).to eq('Errno::ECONNREFUSED')
     end
 
-    it 'outputs indeterminate JSON when argv is empty (missing url)' do
+    it 'outputs unknown JSON when argv is empty (missing url)' do
       described_class.run([], output: output)
 
       result = JSON.parse(output.string, symbolize_names: true)
-      expect(result[:state]).to eq('indeterminate')
+      expect(result[:login_required]).to eq('unknown')
       expect(result[:error_class]).to be_a(String)
       expect(result[:error_message]).to be_a(String)
     end
 
-    it 'outputs indeterminate JSON when expected_code is non-numeric' do
+    it 'outputs unknown JSON when expected_code is non-numeric' do
       described_class.run(['http://example.com/check', 'not-a-number'], output: output)
 
       result = JSON.parse(output.string, symbolize_names: true)
-      expect(result[:state]).to eq('indeterminate')
+      expect(result[:login_required]).to eq('unknown')
       expect(result[:error_class]).to be_a(String)
     end
 
     it 'calls the checker through the explicit public probe interface' do
-      checker = stub_checker({ state: :free, actual_code: 204 })
+      checker = stub_checker({ login_required: :no, actual_code: 204 })
 
       described_class.run(['http://example.com/check', '204'], output: output, checker: checker)
 
@@ -151,41 +151,41 @@ describe WifiWand::CaptivePortalProbeHelper do
       end
     end
 
-    it 'outputs valid indeterminate JSON when called with no arguments' do
+    it 'outputs valid unknown JSON when called with no arguments' do
       raw = run_helper
       result = JSON.parse(raw, symbolize_names: true)
-      expect(result[:state]).to eq('indeterminate')
+      expect(result[:login_required]).to eq('unknown')
       expect(result[:error_class]).to be_a(String)
     end
 
-    it 'outputs valid indeterminate JSON when expected_code is not an integer' do
+    it 'outputs valid unknown JSON when expected_code is not an integer' do
       raw = run_helper('http://example.com/check', 'bad')
       result = JSON.parse(raw, symbolize_names: true)
-      expect(result[:state]).to eq('indeterminate')
+      expect(result[:login_required]).to eq('unknown')
     end
 
     # The following tests open a loopback TCP server and are skipped in
     # sandboxed environments where socket binding is not permitted.
     context 'with a real loopback HTTP server', :loopback_socket do
-      it 'outputs JSON with state "free" when the endpoint responds with the expected code' do
+      it 'outputs JSON with login_required "no" when the endpoint responds with the expected code' do
         with_local_http_server(response_code: 204) do |port|
           raw = run_helper("http://127.0.0.1:#{port}/check", '204')
           result = JSON.parse(raw, symbolize_names: true)
-          expect(result[:state]).to eq('free')
+          expect(result[:login_required]).to eq('no')
           expect(result[:actual_code]).to eq(204)
         end
       end
 
-      it 'outputs JSON with state "present" when the portal intercepts the request' do
+      it 'outputs JSON with login_required "yes" when the portal intercepts the request' do
         with_local_http_server(response_code: 302) do |port|
           raw = run_helper("http://127.0.0.1:#{port}/check", '204')
           result = JSON.parse(raw, symbolize_names: true)
-          expect(result[:state]).to eq('present')
+          expect(result[:login_required]).to eq('yes')
           expect(result[:actual_code]).to eq(302)
         end
       end
 
-      it 'outputs JSON with state "indeterminate" when the endpoint is unreachable' do
+      it 'outputs JSON with login_required "unknown" when the endpoint is unreachable' do
         # Grab a free port then close the server so connections are refused.
         closed_server = TCPServer.new('127.0.0.1', 0)
         closed_port   = closed_server.addr[1]
@@ -193,24 +193,24 @@ describe WifiWand::CaptivePortalProbeHelper do
 
         raw = run_helper("http://127.0.0.1:#{closed_port}/check", '204')
         result = JSON.parse(raw, symbolize_names: true)
-        expect(result[:state]).to eq('indeterminate')
+        expect(result[:login_required]).to eq('unknown')
         expect(result[:error_class]).to be_a(String)
       end
 
-      it 'outputs state "free" when both HTTP code and body match the expected values' do
+      it 'outputs login_required "no" when both HTTP code and body match the expected values' do
         with_local_http_server(response_code: 200, response_body: 'Microsoft Connect Test') do |port|
           raw = run_helper("http://127.0.0.1:#{port}/check", '200', 'Microsoft Connect Test')
           result = JSON.parse(raw, symbolize_names: true)
-          expect(result[:state]).to eq('free')
+          expect(result[:login_required]).to eq('no')
           expect(result[:actual_code]).to eq(200)
         end
       end
 
-      it 'outputs state "present" when the HTTP code matches but the body does not' do
+      it 'outputs login_required "yes" when the HTTP code matches but the body does not' do
         with_local_http_server(response_code: 200, response_body: '<html>Login</html>') do |port|
           raw = run_helper("http://127.0.0.1:#{port}/check", '200', 'Microsoft Connect Test')
           result = JSON.parse(raw, symbolize_names: true)
-          expect(result[:state]).to eq('present')
+          expect(result[:login_required]).to eq('yes')
         end
       end
 
@@ -219,7 +219,7 @@ describe WifiWand::CaptivePortalProbeHelper do
           # Passing an empty third argument should behave the same as no body constraint.
           raw = run_helper("http://127.0.0.1:#{port}/check", '204', '')
           result = JSON.parse(raw, symbolize_names: true)
-          expect(result[:state]).to eq('free')
+          expect(result[:login_required]).to eq('no')
         end
       end
     end

@@ -27,7 +27,7 @@ class DocsInfoSpecModel < WifiWand::BaseModel
   def wifi_on? = true
   def internet_tcp_connectivity? = true
   def dns_working? = true
-  def captive_portal_state = :free
+  def captive_portal_login_required = :no
   def _available_network_names = %w[TestNetwork1 TestNetwork2]
   def _connected_network_name = 'TestNetwork1'
   def _connect(_network, _password) = nil
@@ -40,25 +40,25 @@ end
 RSpec.describe 'docs/INFO_COMMAND.md' do
   let(:documented_info_field_keys) do
     {
-      'WiFi Status'                 => 'wifi_on',
-      'Association Status'          => 'connected',
-      'Connected Network'           => 'network',
-      'BSSID'                       => 'bssid',
-      'Signal Quality'              => 'signal_quality',
-      'SSID Identity Available'     => 'ssid_identity_available',
-      'SSID Identity Status'        => 'ssid_identity_status',
-      'SSID Identity Warning'       => 'ssid_identity_warning',
-      'IPv4 Addresses'              => 'ipv4_addresses',
-      'IPv6 Addresses'              => 'ipv6_addresses',
-      'MAC Address'                 => 'mac_address',
-      'TCP Working'                 => 'internet_tcp_connectivity',
-      'DNS Working'                 => 'dns_working',
-      'Captive Portal State'        => 'captive_portal_state',
-      'Internet Connectivity State' => 'internet_connectivity_state',
-      'Nameservers'                 => 'nameservers',
-      'WiFi Interface'              => 'interface',
-      'Default Route Interface'     => 'default_interface',
-      'Timestamp'                   => 'timestamp',
+      'WiFi Status'                   => 'wifi_on',
+      'Association Status'            => 'connected',
+      'Connected Network'             => 'network',
+      'BSSID'                         => 'bssid',
+      'Signal Quality'                => 'signal_quality',
+      'SSID Identity Available'       => 'ssid_identity_available',
+      'SSID Identity Status'          => 'ssid_identity_status',
+      'SSID Identity Warning'         => 'ssid_identity_warning',
+      'IPv4 Addresses'                => 'ipv4_addresses',
+      'IPv6 Addresses'                => 'ipv6_addresses',
+      'MAC Address'                   => 'mac_address',
+      'TCP Working'                   => 'internet_tcp_connectivity',
+      'DNS Working'                   => 'dns_working',
+      'Captive Portal Login Required' => 'captive_portal_login_required',
+      'Internet Connectivity State'   => 'internet_connectivity_state',
+      'Nameservers'                   => 'nameservers',
+      'WiFi Interface'                => 'interface',
+      'Default Route Interface'       => 'default_interface',
+      'Timestamp'                     => 'timestamp',
     }
   end
 

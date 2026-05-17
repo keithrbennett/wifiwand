@@ -23,58 +23,58 @@ module WifiWand
       )
     end
 
-    # Determines whether the current network connection is free of captive portal
-    # interception by making real HTTP requests to well-known connectivity check
-    # endpoints and verifying the response status codes.
+    # Determines whether captive portal login appears to be required now by
+    # making real HTTP requests to well-known connectivity check endpoints and
+    # verifying the response status codes.
     #
     # Multiple endpoints are checked concurrently so that a single misbehaving
     # endpoint cannot cause a false captive-portal detection without adding the
-    # serial worst-case latency of back-to-back HTTP timeouts. Returns +:free+
-    # if any endpoint returns the expected code, +:present+ only when at least
-    # one endpoint returned a wrong status code and none succeeded, and
-    # +:indeterminate+ when every endpoint failed with a network error.
+    # serial worst-case latency of back-to-back HTTP timeouts. Returns +:no+
+    # if any endpoint returns the expected response, +:yes+ only when at least
+    # one endpoint returned an unexpected response and none succeeded, and
+    # +:unknown+ when every endpoint failed with a network error.
     #
     # For full details on endpoint redundancy, return-value rationale, decision
     # flow, and terminology ("mismatch"), see docs/CONNECTIVITY_CHECKING.md
     # section "Captive Portal Detection".
     #
-    # @return [Symbol] :free if no captive portal is detected,
-    #   :present if a captive portal is confidently detected,
-    #   :indeterminate if the result is indeterminate because all endpoints errored.
+    # @return [Symbol] :no if login does not appear to be required,
+    #   :yes if login appears to be required,
+    #   :unknown if the requirement could not be determined because all endpoints errored.
     # @see attempt_captive_portal_check for per-endpoint HTTP check details
     # @see captive_portal_check_endpoints for the configured endpoint list
     #
-    def captive_portal_state(timeout_in_secs: nil)
+    def captive_portal_login_required(timeout_in_secs: nil)
       endpoints = captive_portal_check_endpoints
 
       output.puts "Testing captive portal via HTTP: #{endpoints.map { _1[:url] }.join(', ')}" if verbose?
 
       results = captive_portal_results(endpoints, timeout_in_secs: timeout_in_secs)
 
-      state = if results.include?(ConnectivityStates::CAPTIVE_PORTAL_FREE)
-        ConnectivityStates::CAPTIVE_PORTAL_FREE
-      elsif results.include?(ConnectivityStates::CAPTIVE_PORTAL_PRESENT)
-        ConnectivityStates::CAPTIVE_PORTAL_PRESENT
+      login_required = if results.include?(ConnectivityStates::CAPTIVE_PORTAL_LOGIN_NOT_REQUIRED)
+        ConnectivityStates::CAPTIVE_PORTAL_LOGIN_NOT_REQUIRED
+      elsif results.include?(ConnectivityStates::CAPTIVE_PORTAL_LOGIN_REQUIRED)
+        ConnectivityStates::CAPTIVE_PORTAL_LOGIN_REQUIRED
       else
-        ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
+        ConnectivityStates::CAPTIVE_PORTAL_LOGIN_UNKNOWN
       end
 
       if verbose?
-        status = case state
-                 when ConnectivityStates::CAPTIVE_PORTAL_FREE then 'free'
-                 when ConnectivityStates::CAPTIVE_PORTAL_PRESENT then 'detected'
-                 else 'indeterminate'
+        status = case login_required
+                 when ConnectivityStates::CAPTIVE_PORTAL_LOGIN_NOT_REQUIRED then 'not required'
+                 when ConnectivityStates::CAPTIVE_PORTAL_LOGIN_REQUIRED then 'required'
+                 else 'unknown'
         end
         output.puts "Captive portal results: #{results.inspect} — #{status}"
       end
 
-      state
+      login_required
     end
 
     # Shared probe interface used by the helper subprocess wrapper.
     #
     # @param endpoint [Hash] captive-portal endpoint configuration
-    # @return [Hash] probe metadata including :state and either :actual_code or :error_class
+    # @return [Hash] probe metadata including :login_required and either :actual_code or :error_class
     def probe_endpoint(endpoint)
       perform_captive_portal_check(endpoint)
     end
@@ -86,7 +86,7 @@ module WifiWand
     private def captive_portal_results(endpoints, timeout_in_secs: nil)
       probes = endpoints.filter_map { |endpoint| start_captive_portal_probe(endpoint) }
       results = []
-      free_found = false
+      no_login_required_found = false
       probe_timeout = timeout_in_secs || TimingConstants::HTTP_CONNECTIVITY_TIMEOUT
       terminate_grace = timeout_in_secs ? 0 : helper_result_grace
       deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + probe_timeout
@@ -100,23 +100,23 @@ module WifiWand
           result = read_probe_result(probe)
           next if result.nil?
 
-          results << result[:state]
+          results << result[:login_required]
           log_probe_result(probe[:endpoint], result)
           finalize_probe(probe, grace: terminate_grace)
           probes.delete(probe)
 
-          if result[:state] == ConnectivityStates::CAPTIVE_PORTAL_FREE
-            free_found = true
+          if result[:login_required] == ConnectivityStates::CAPTIVE_PORTAL_LOGIN_NOT_REQUIRED
+            no_login_required_found = true
             break
           end
         end
 
-        break if free_found
+        break if no_login_required_found
       end
 
-      # Probes still in-flight when we exited the loop (deadline hit or :free found early)
-      # never wrote a result. Count each as :indeterminate before terminating them.
-      results.concat(Array.new(probes.length, ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE))
+      # Probes still in-flight when we exited the loop (deadline hit or a no-login result arrived)
+      # never wrote a result. Count each as :unknown before terminating them.
+      results.concat(Array.new(probes.length, ConnectivityStates::CAPTIVE_PORTAL_LOGIN_UNKNOWN))
       terminate_probes(probes, grace: terminate_grace)
       probes = []
       results
@@ -173,9 +173,9 @@ module WifiWand
       return failure_probe_result(TypeError) unless payload.is_a?(Hash)
 
       {
-        state:       normalize_probe_state(payload[:state]),
-        actual_code: payload[:actual_code],
-        error_class: payload[:error_class],
+        login_required: normalize_probe_login_required(payload[:login_required]),
+        actual_code:    payload[:actual_code],
+        error_class:    payload[:error_class],
       }
     rescue JSON::ParserError
       return nil unless probe[:eof]
@@ -202,28 +202,33 @@ module WifiWand
 
     private def failure_probe_result(error_class)
       {
-        state:       ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
-        error_class: error_class.to_s,
+        login_required: ConnectivityStates::CAPTIVE_PORTAL_LOGIN_UNKNOWN,
+        error_class:    error_class.to_s,
       }
     end
 
-    private def normalize_probe_state(state)
-      case state
-      when ConnectivityStates::CAPTIVE_PORTAL_FREE.to_s
-        ConnectivityStates::CAPTIVE_PORTAL_FREE
-      when ConnectivityStates::CAPTIVE_PORTAL_PRESENT.to_s
-        ConnectivityStates::CAPTIVE_PORTAL_PRESENT
+    private def normalize_probe_login_required(login_required)
+      case login_required
+      when ConnectivityStates::CAPTIVE_PORTAL_LOGIN_NOT_REQUIRED.to_s
+        ConnectivityStates::CAPTIVE_PORTAL_LOGIN_NOT_REQUIRED
+      when ConnectivityStates::CAPTIVE_PORTAL_LOGIN_REQUIRED.to_s
+        ConnectivityStates::CAPTIVE_PORTAL_LOGIN_REQUIRED
       else
-        ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
+        ConnectivityStates::CAPTIVE_PORTAL_LOGIN_UNKNOWN
       end
     end
 
     private def log_probe_result(endpoint, result)
       return unless verbose?
 
-      case result[:state]
-      when ConnectivityStates::CAPTIVE_PORTAL_FREE, ConnectivityStates::CAPTIVE_PORTAL_PRESENT
-        status = result[:state] == ConnectivityStates::CAPTIVE_PORTAL_FREE ? 'pass' : 'mismatch'
+      case result[:login_required]
+      when ConnectivityStates::CAPTIVE_PORTAL_LOGIN_NOT_REQUIRED, ConnectivityStates::CAPTIVE_PORTAL_LOGIN_REQUIRED
+        status =
+          if result[:login_required] == ConnectivityStates::CAPTIVE_PORTAL_LOGIN_NOT_REQUIRED
+            'pass'
+          else
+            'mismatch'
+          end
         output.puts "Captive portal check #{endpoint[:url]}: " \
           "HTTP #{result[:actual_code]} (expected #{endpoint[:expected_code]}) -> #{status}"
       else
@@ -238,9 +243,9 @@ module WifiWand
     # Attempts an HTTP GET to a captive portal check endpoint and compares the response code.
     #
     # @param endpoint [Hash] with :url (String) and :expected_code (Integer)
-    # @return [Symbol] :free if the server returned the expected HTTP status code
-    # @return [Symbol] :present if the server returned a different status code
-    # @return [Symbol] :indeterminate if a network error prevented any response
+    # @return [Symbol] :no if the server returned the expected response
+    # @return [Symbol] :yes if the server returned a different response
+    # @return [Symbol] :unknown if a network error prevented any response
     #
     private def perform_captive_portal_check(endpoint)
       uri = URI(endpoint[:url])
@@ -251,19 +256,21 @@ module WifiWand
         response = Net::HTTP.get_response(uri)
         actual_code = response.code.to_i
         body_matches = expected_body.nil? || response.body.to_s.include?(expected_body)
-        state = if actual_code == expected_code && body_matches
-          ConnectivityStates::CAPTIVE_PORTAL_FREE
+        login_required = if actual_code == expected_code && body_matches
+          ConnectivityStates::CAPTIVE_PORTAL_LOGIN_NOT_REQUIRED
         else
-          ConnectivityStates::CAPTIVE_PORTAL_PRESENT
+          ConnectivityStates::CAPTIVE_PORTAL_LOGIN_REQUIRED
         end
-        { state: state, actual_code: actual_code }
+        { login_required: login_required, actual_code: actual_code }
       end
     rescue URI::InvalidURIError, Timeout::Error, SocketError, SystemCallError, IOError,
       Net::HTTPError => e
-      { state: ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE, error_class: e.class.to_s }
+      { login_required: ConnectivityStates::CAPTIVE_PORTAL_LOGIN_UNKNOWN, error_class: e.class.to_s }
     end
 
-    private def attempt_captive_portal_check(endpoint) = perform_captive_portal_check(endpoint)[:state]
+    private def attempt_captive_portal_check(endpoint)
+      perform_captive_portal_check(endpoint)[:login_required]
+    end
 
     # Loads captive portal check endpoint configuration from YAML.
     #

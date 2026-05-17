@@ -453,7 +453,6 @@ describe WifiWand::CommandLineInterface do
         internet_state:                :indeterminate,
         internet_check_complete:       true,
         network_name:                  nil,
-        captive_portal_state:          :indeterminate,
         captive_portal_login_required: :unknown,
       }
 

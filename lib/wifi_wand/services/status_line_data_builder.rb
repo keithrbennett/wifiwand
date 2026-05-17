@@ -92,8 +92,8 @@ module WifiWand
       #   that can reach helper subprocess I/O and system_profiler reads; on Ubuntu
       #   it can wait on external commands such as iw.
       # - connectivity_data may block inside model.internet_tcp_connectivity?,
-      #   model.dns_working?, or model.captive_portal_state. Those probes already run in helper
-      #   subprocesses, so this worker mostly waits on bounded pipe reads and helper deadlines.
+      #   model.dns_working?, or model.captive_portal_login_required. Those probes already run in
+      #   helper subprocesses, so this worker mostly waits on bounded pipe reads and helper deadlines.
       [
         spawn_worker(:network, worker_start_time + worker_result_timeout_seconds_for(:network)) do
           publish_worker_result(result_queue, :network) { network_identity(worker_start_time) }
@@ -222,7 +222,6 @@ module WifiWand
           dns_working:                   nil,
           internet_state:                ConnectivityStates::INTERNET_INDETERMINATE,
           internet_check_complete:       true,
-          captive_portal_state:          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
           captive_portal_login_required: :unknown,
         }
       else
@@ -296,7 +295,6 @@ module WifiWand
         internet_check_complete:       false,
         connected:                     :pending,
         network_name:                  :pending,
-        captive_portal_state:          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
         captive_portal_login_required: :unknown,
       }
     end
@@ -309,9 +307,6 @@ module WifiWand
         signal_quality:                nil,
         internet_state:                ConnectivityStates::INTERNET_UNREACHABLE,
         internet_check_complete:       true,
-        captive_portal_state:          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
-        # WiFi-off means no portal can redirect, but no portal check ran, so
-        # keep this aligned with the indeterminate portal state.
         captive_portal_login_required: :unknown,
       }
     end
@@ -359,19 +354,18 @@ module WifiWand
       return fallback_worker_result(:connectivity) if dns_result[:timed_out]
       return data_when_internet_unreachable(dns_working: dns_result[:success]) unless dns_result[:success]
 
-      portal_state = captive_portal_state(timeout_in_secs: remaining_worker_budget(deadline))
+      login_required = captive_portal_login_required(timeout_in_secs: remaining_worker_budget(deadline))
       return cancelled_worker_result(:connectivity) if cancelled?
 
       {
         dns_working:                   true,
-        internet_state:                ConnectivityStates.internet_state_from(
-          tcp_working:          true,
-          dns_working:          true,
-          captive_portal_state: portal_state
+        internet_state:                ConnectivityStates.internet_state_from_login_required(
+          tcp_working:                   true,
+          dns_working:                   true,
+          captive_portal_login_required: login_required
         ),
         internet_check_complete:       true,
-        captive_portal_state:          portal_state,
-        captive_portal_login_required: captive_portal_login_required(portal_state),
+        captive_portal_login_required: login_required,
       }
     end
 
@@ -400,10 +394,10 @@ module WifiWand
       { success: false, timed_out: false }
     end
 
-    private def captive_portal_state(timeout_in_secs:)
-      model.captive_portal_state(timeout_in_secs: timeout_in_secs)
+    private def captive_portal_login_required(timeout_in_secs:)
+      model.captive_portal_login_required(timeout_in_secs: timeout_in_secs)
     rescue *expected_network_errors, WifiWand::Error
-      ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
+      :unknown
     end
 
     private def remaining_worker_budget(deadline)
@@ -416,23 +410,11 @@ module WifiWand
       { success: result == true, timed_out: false }
     end
 
-    private def captive_portal_login_required(portal_state)
-      case portal_state
-      when ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE
-        :unknown
-      when ConnectivityStates::CAPTIVE_PORTAL_FREE
-        :no
-      else
-        :yes
-      end
-    end
-
     private def data_when_internet_unreachable(dns_working:)
       {
         dns_working:                   dns_working,
         internet_state:                ConnectivityStates::INTERNET_UNREACHABLE,
         internet_check_complete:       true,
-        captive_portal_state:          ConnectivityStates::CAPTIVE_PORTAL_INDETERMINATE,
         captive_portal_login_required: :unknown,
       }
     end

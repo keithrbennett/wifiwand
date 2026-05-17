@@ -80,7 +80,7 @@ describe 'Probe Cleanup Regressions' do
     end
 
     it 'reaps a successful captive portal helper that keeps running after writing valid JSON' do
-      payload = { state: 'free', actual_code: 204 }
+      payload = { login_required: 'no', actual_code: 204 }
       helper_pid = nil
 
       allow(checker).to receive(:start_captive_portal_probe) do |_endpoint|
@@ -92,8 +92,8 @@ describe 'Probe Cleanup Regressions' do
         { pid: pid, reader: reader, endpoint: endpoint, buffer: +'', eof: false }
       end
 
-      result = checker.captive_portal_state(timeout_in_secs: 1)
-      expect(result).to eq(:free)
+      result = checker.captive_portal_login_required(timeout_in_secs: 1)
+      expect(result).to eq(:no)
 
       # Verify helper is reaped
       expect(helper_pid).not_to be_nil

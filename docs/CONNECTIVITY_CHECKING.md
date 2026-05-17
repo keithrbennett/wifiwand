@@ -205,15 +205,15 @@ Beyond basic TCP and DNS checks, wifi-wand can detect **captive portals**: the
 interception pages common in hotels, airports, and coffee shops that block real
 internet access behind a login screen.
 
-### Companion API: `captive_portal_state`
+### Companion API: `captive_portal_login_required`
 
-The captive-portal API is now explicit too:
+The public captive-portal API reports whether login appears to be required now:
 
 | State | Meaning |
 |-------|---------|
-| `:free` | No captive portal detected |
-| `:present` | Captive portal detected |
-| `:indeterminate` | Captive-portal state could not be determined |
+| `:yes` | Captive portal login appears to be required |
+| `:no` | Captive portal login does not appear to be required |
+| `:unknown` | Captive portal login requirement could not be determined |
 
 ### How It Works
 
@@ -221,7 +221,7 @@ Captive portals intercept TCP connections and complete the handshake on behalf
 of external hosts. This makes plain TCP connectivity checks unreliable:
 `tcp_connectivity?` can return `true` even when real internet access is blocked.
 
-The `captive_portal_state` method disambiguates by issuing real HTTP GET
+The captive-portal check disambiguates by issuing real HTTP GET
 requests to well-known connectivity-check endpoints and verifying each
 endpoint's expected response contract. For some endpoints that contract is only
 an HTTP status code (for example Google's `generate_204` endpoints). For
@@ -238,8 +238,8 @@ Multiple endpoints are checked concurrently so that a single misbehaving or
 rewritten endpoint cannot cause a false captive-portal detection without adding
 serial worst-case timeout cost:
 
-- If any endpoint satisfies its expected response contract, the result is
-  `:free`
+- If any endpoint satisfies its expected response contract, the result is `:no`
+  (login not required)
 - If an endpoint returns an unexpected status code, the method records a
   mismatch and keeps checking
 - If an endpoint returns the expected status code but the wrong body for a
@@ -250,29 +250,29 @@ serial worst-case timeout cost:
 
 | Return | Condition | Meaning |
 |--------|-----------|---------|
-| `:free` | At least one endpoint satisfied its expected response contract | No captive portal detected |
-| `:present` | At least one endpoint mismatched its expected response contract and none succeeded | Captive portal detected |
-| `:indeterminate` | All endpoints failed with network errors | Captive-portal state could not be determined |
+| `:no` | At least one endpoint satisfied its expected response contract | Login does not appear to be required |
+| `:yes` | At least one endpoint mismatched its expected response contract and none succeeded | Login appears to be required |
+| `:unknown` | All endpoints failed with network errors | Login requirement could not be determined |
 
 ## How `internet_connectivity_state` Is Derived
 
-The higher-level `internet_connectivity_state` API combines TCP, DNS, and
-captive-portal state into an explicit symbolic result:
+The higher-level `internet_connectivity_state` API combines TCP, DNS, and the
+captive-portal login requirement into an explicit symbolic result:
 
-| TCP | DNS | Captive portal | Internet connectivity |
-|-----|-----|----------------|-----------------------|
-| pass | pass | `:free` | `:reachable` |
+| TCP | DNS | Captive portal login required | Internet connectivity |
+|-----|-----|--------------------------------|-----------------------|
+| pass | pass | `:no` | `:reachable` |
 | fail | any | any | `:unreachable` |
 | any | fail | any | `:unreachable` |
-| pass | pass | `:present` | `:unreachable` |
-| pass | pass | `:indeterminate` | `:indeterminate` |
+| pass | pass | `:yes` | `:unreachable` |
+| pass | pass | `:unknown` | `:indeterminate` |
 
 ## Deferred Checking in `wifi_info`
 
 The `wifi_info` method (used by the `info` command) skips the captive-portal
-HTTP check when TCP or DNS has already failed. Since a captive portal can only
-be present when both TCP and DNS are working, performing the HTTP request on an
-obviously offline network adds unnecessary delay.
+HTTP check when TCP or DNS has already failed. Since captive portal login can
+only be detected when both TCP and DNS are working, performing the HTTP request
+on an obviously offline network adds unnecessary delay.
 
-When TCP or DNS is `false`, `captive_portal_state` is set to `:indeterminate`
+When TCP or DNS is `false`, `captive_portal_login_required` is set to `:unknown`
 without making any HTTP request.

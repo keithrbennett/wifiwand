@@ -10,12 +10,12 @@ class StatusLineDataBuilderSpecExpectedError < StandardError; end
 describe WifiWand::StatusLineDataBuilder do
   let(:model) do
     double('model',
-      wifi_on?:                   true,
-      status_wifi_on?:            true,
-      status_network_identity:    { connected: true, network_name: 'HomeNetwork', signal_quality: nil },
-      internet_tcp_connectivity?: true,
-      dns_working?:               true,
-      captive_portal_state:       :free
+      wifi_on?:                      true,
+      status_wifi_on?:               true,
+      status_network_identity:       { connected: true, network_name: 'HomeNetwork', signal_quality: nil },
+      internet_tcp_connectivity?:    true,
+      dns_working?:                  true,
+      captive_portal_login_required: :no
     )
   end
 
@@ -43,7 +43,6 @@ describe WifiWand::StatusLineDataBuilder do
       internet_check_complete:       false,
       connected:                     :pending,
       network_name:                  :pending,
-      captive_portal_state:          :indeterminate,
       captive_portal_login_required: :unknown,
     }
   end
@@ -56,7 +55,6 @@ describe WifiWand::StatusLineDataBuilder do
       internet_check_complete:       false,
       connected:                     true,
       network_name:                  'HomeNetwork',
-      captive_portal_state:          :indeterminate,
       captive_portal_login_required: :unknown,
     }
   end
@@ -69,7 +67,6 @@ describe WifiWand::StatusLineDataBuilder do
       internet_state:                :reachable,
       internet_check_complete:       true,
       network_name:                  'HomeNetwork',
-      captive_portal_state:          :free,
       captive_portal_login_required: :no,
     }
   end
@@ -161,31 +158,29 @@ describe WifiWand::StatusLineDataBuilder do
         internet_check_complete:       true,
         network_name:                  nil,
         signal_quality:                nil,
-        captive_portal_state:          :indeterminate,
         captive_portal_login_required: :unknown
       )
     end
 
     it 'marks captive portal login required when portal detection succeeds' do
       allow(model).to receive_messages(
-        internet_tcp_connectivity?: true,
-        dns_working?:               true,
-        captive_portal_state:       :present
+        internet_tcp_connectivity?:    true,
+        dns_working?:                  true,
+        captive_portal_login_required: :yes
       )
 
       result = builder.call
 
       expect(result[:dns_working]).to be true
       expect(result[:internet_state]).to eq(:unreachable)
-      expect(result[:captive_portal_state]).to eq(:present)
       expect(result[:captive_portal_login_required]).to eq(:yes)
     end
 
     it 'preserves an indeterminate captive portal result when TCP and DNS succeed' do
       allow(model).to receive_messages(
-        internet_tcp_connectivity?: true,
-        dns_working?:               true,
-        captive_portal_state:       :indeterminate
+        internet_tcp_connectivity?:    true,
+        dns_working?:                  true,
+        captive_portal_login_required: :unknown
       )
 
       result = builder.call
@@ -193,7 +188,6 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result[:dns_working]).to be true
       expect(result[:internet_state]).to eq(:indeterminate)
       expect(result[:internet_check_complete]).to be true
-      expect(result[:captive_portal_state]).to eq(:indeterminate)
       expect(result[:captive_portal_login_required]).to eq(:unknown)
     end
 
@@ -205,7 +199,6 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result[:dns_working]).to be false
       expect(result[:internet_state]).to eq(:unreachable)
       expect(result[:internet_check_complete]).to be true
-      expect(result[:captive_portal_state]).to eq(:indeterminate)
       expect(result[:captive_portal_login_required]).to eq(:unknown)
     end
 
@@ -217,7 +210,6 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result[:dns_working]).to be true
       expect(result[:internet_state]).to eq(:unreachable)
       expect(result[:internet_check_complete]).to be true
-      expect(result[:captive_portal_state]).to eq(:indeterminate)
       expect(result[:captive_portal_login_required]).to eq(:unknown)
     end
 
@@ -236,7 +228,6 @@ describe WifiWand::StatusLineDataBuilder do
       expect(result[:dns_working]).to be_nil
       expect(result[:internet_state]).to eq(:unreachable)
       expect(result[:internet_check_complete]).to be true
-      expect(result[:captive_portal_state]).to eq(:indeterminate)
       expect(result[:captive_portal_login_required]).to eq(:unknown)
     end
 
@@ -424,7 +415,7 @@ describe WifiWand::StatusLineDataBuilder do
         network_release.pop
         { connected: true, network_name: 'HomeNetwork' }
       end
-      allow(model).to receive(:captive_portal_state) do
+      allow(model).to receive(:captive_portal_login_required) do
         connectivity_failed << :failed
         raise 'boom'
       end
@@ -462,7 +453,7 @@ describe WifiWand::StatusLineDataBuilder do
           { success: true, timed_out: false }
         end
 
-        def captive_portal_state(timeout_in_secs:) = :free
+        def captive_portal_login_required(timeout_in_secs:) = :no
       end.new
       out_stream = StringIO.new
       failing_builder = described_class.new(
@@ -482,7 +473,6 @@ describe WifiWand::StatusLineDataBuilder do
         internet_state:                :reachable,
         internet_check_complete:       true,
         network_name:                  nil,
-        captive_portal_state:          :free,
         captive_portal_login_required: :no
       )
       expect(out_stream.string).to include(
@@ -532,7 +522,7 @@ describe WifiWand::StatusLineDataBuilder do
           raise StatusLineDataBuilderSpecExpectedError, 'dns down'
         end
 
-        def captive_portal_state(timeout_in_secs:) = :free
+        def captive_portal_login_required(timeout_in_secs:) = :no
       end.new
       failing_builder = described_class.new(
         failing_model,
@@ -551,7 +541,6 @@ describe WifiWand::StatusLineDataBuilder do
         internet_check_complete:       true,
         network_name:                  'HomeNetwork',
         signal_quality:                nil,
-        captive_portal_state:          :indeterminate,
         captive_portal_login_required: :unknown
       )
     end
@@ -575,7 +564,6 @@ describe WifiWand::StatusLineDataBuilder do
         internet_check_complete:       true,
         network_name:                  nil,
         signal_quality:                nil,
-        captive_portal_state:          :free,
         captive_portal_login_required: :no
       )
       expect(progress_updates).to eq([
@@ -604,7 +592,7 @@ describe WifiWand::StatusLineDataBuilder do
           { success: true, timed_out: false }
         end
 
-        def captive_portal_state(timeout_in_secs:) = :free
+        def captive_portal_login_required(timeout_in_secs:) = :no
 
         def status_network_identity(timeout_in_secs:)
           @network_identity_timeouts << timeout_in_secs
@@ -658,7 +646,6 @@ describe WifiWand::StatusLineDataBuilder do
         internet_check_complete:       true,
         network_name:                  'HomeNetwork',
         signal_quality:                nil,
-        captive_portal_state:          :indeterminate,
         captive_portal_login_required: :unknown
       )
       expect(progress_updates).to eq([
@@ -699,7 +686,6 @@ describe WifiWand::StatusLineDataBuilder do
         internet_check_complete:       true,
         network_name:                  nil,
         signal_quality:                nil,
-        captive_portal_state:          :free,
         captive_portal_login_required: :no
       )
       expect(progress_updates).to eq([
@@ -739,7 +725,7 @@ describe WifiWand::StatusLineDataBuilder do
           { success: true, timed_out: false }
         end
 
-        def captive_portal_state(timeout_in_secs:) = :free
+        def captive_portal_login_required(timeout_in_secs:) = :no
       end.new(
         network_started:      network_started,
         connectivity_started: connectivity_started
@@ -769,7 +755,6 @@ describe WifiWand::StatusLineDataBuilder do
         internet_check_complete:       true,
         network_name:                  nil,
         signal_quality:                nil,
-        captive_portal_state:          :indeterminate,
         captive_portal_login_required: :unknown
       )
       expect(progress_updates).to eq([
@@ -809,7 +794,7 @@ describe WifiWand::StatusLineDataBuilder do
           { success: true, timed_out: false }
         end
 
-        def captive_portal_state(timeout_in_secs:) = :free
+        def captive_portal_login_required(timeout_in_secs:) = :no
       end.new(
         network_started:    network_started,
         network_release:    network_release,
@@ -876,7 +861,7 @@ describe WifiWand::StatusLineDataBuilder do
 
         true
       end
-      allow(model).to receive(:captive_portal_state).and_raise(RuntimeError, 'boom')
+      allow(model).to receive(:captive_portal_login_required).and_raise(RuntimeError, 'boom')
 
       caller_thread = Thread.new { builder.call }
       caller_thread.report_on_exception = false
@@ -1011,15 +996,14 @@ describe WifiWand::StatusLineDataBuilder do
         dns_working:                   nil,
         internet_state:                :indeterminate,
         internet_check_complete:       true,
-        captive_portal_state:          :indeterminate,
         captive_portal_login_required: :unknown
       )
     end
 
     it 'treats captive portal lookup failures as indeterminate connectivity' do
-      allow(model).to receive(:captive_portal_state).and_raise(WifiWand::Error, 'portal failed')
+      allow(model).to receive(:captive_portal_login_required).and_raise(WifiWand::Error, 'portal failed')
 
-      expect(builder.send(:captive_portal_state, timeout_in_secs: 0.01)).to eq(:indeterminate)
+      expect(builder.send(:captive_portal_login_required, timeout_in_secs: 0.01)).to eq(:unknown)
     end
   end
 end

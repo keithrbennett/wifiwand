@@ -194,11 +194,11 @@ This change makes uncertainty explicit. `:indeterminate` means TCP and DNS
 worked, but captive-portal checks could not determine whether the network is
 actually open Internet or intercepted.
 
-The companion captive-portal API is now `captive_portal_state`, returning:
+The companion captive-portal API is now `captive_portal_login_required`, returning:
 
-- `:free`
-- `:present`
-- `:indeterminate`
+- `:yes`
+- `:no`
+- `:unknown`
 
 ##### Migration
 

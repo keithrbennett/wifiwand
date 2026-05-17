@@ -31,8 +31,9 @@ module WifiWand
       )
     end
 
-    def internet_connectivity_state(tcp_working = nil, dns_working = nil, captive_portal_state = UNSET,
-      timeout_in_secs: nil)
+    def internet_connectivity_state(
+      tcp_working = nil, dns_working = nil, captive_portal_login_required = UNSET, timeout_in_secs: nil
+    )
       deadline = timeout_in_secs && (current_time + timeout_in_secs)
 
       tcp_result = probe_result_for(
@@ -53,21 +54,21 @@ module WifiWand
       return ConnectivityStates::INTERNET_INDETERMINATE if dns_result[:timed_out]
       return ConnectivityStates::INTERNET_UNREACHABLE unless dns_result[:success]
 
-      if captive_portal_state.equal?(UNSET)
+      if captive_portal_login_required.equal?(UNSET)
         remaining_time = deadline ? remaining_time_until(deadline) : nil
         return ConnectivityStates::INTERNET_INDETERMINATE if deadline && remaining_time <= 0
 
-        captive_portal_state = self.captive_portal_state(timeout_in_secs: remaining_time)
+        captive_portal_login_required = self.captive_portal_login_required(timeout_in_secs: remaining_time)
       end
-      ConnectivityStates.internet_state_from(
-        tcp_working:          true,
-        dns_working:          true,
-        captive_portal_state: captive_portal_state
+      ConnectivityStates.internet_state_from_login_required(
+        tcp_working:                   true,
+        dns_working:                   true,
+        captive_portal_login_required: captive_portal_login_required
       )
     end
 
-    def captive_portal_state(timeout_in_secs: nil)
-      @captive_portal_checker.captive_portal_state(timeout_in_secs: timeout_in_secs)
+    def captive_portal_login_required(timeout_in_secs: nil)
+      @captive_portal_checker.captive_portal_login_required(timeout_in_secs: timeout_in_secs)
     end
 
     def tcp_connectivity?(timeout_in_secs: nil, overall_timeout: nil, return_details: false)
