@@ -20,6 +20,8 @@ module WifiWand
     end
 
     class Base
+      DEFAULT_INVOCATION_OPTIONS = %i[help version verbose].freeze
+
       class LazyModel
         def initialize(cli)
           @cli = cli
@@ -104,6 +106,20 @@ module WifiWand
           inherited_sources = superclass.respond_to?(:binding_sources) ? superclass.binding_sources : {}
           inherited_sources.merge(@binding_sources || {})
         end
+
+        def allow_invocation_options(*option_names)
+          @allowed_invocation_options ||= []
+          @allowed_invocation_options |= option_names
+        end
+
+        def allowed_invocation_options
+          inherited_options = if superclass.respond_to?(:allowed_invocation_options)
+            superclass.allowed_invocation_options
+          else
+            DEFAULT_INVOCATION_OPTIONS
+          end
+          inherited_options | (@allowed_invocation_options || [])
+        end
       end
 
       attr_reader :metadata, :cli
@@ -133,6 +149,30 @@ module WifiWand
 
           #{metadata.description}
           HELP
+      end
+
+      # `context:` is reserved for command-specific validators that need parser
+      # context beyond the already-normalized options and positional arguments.
+      def validate_options(invocation_options:, command_options:, args:, context: nil)
+        invalid_invocation_options(invocation_options).map do |option_name|
+          "#{invocation_option_display(option_name)} is not valid for #{metadata.long_string}."
+        end
+      end
+
+      private def invalid_invocation_options(invocation_options)
+        invalid_options =
+          Array(invocation_options.specified_invocation_options) - self.class.allowed_invocation_options
+        invalid_options.reject do |option_name|
+          invocation_option_source(invocation_options, option_name) == :environment
+        end
+      end
+
+      private def invocation_option_display(option_name)
+        "--#{option_name.to_s.tr('_', '-')}"
+      end
+
+      private def invocation_option_source(invocation_options, option_name)
+        invocation_options.invocation_option_sources&.fetch(option_name, nil)
       end
 
       private def assign_attributes(attributes)

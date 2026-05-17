@@ -14,6 +14,7 @@ module WifiWand
       )
 
       binds output_support: :output_support
+      allow_invocation_options :output_format
 
       def call(*args)
         validate_max_arguments!(args, 0)

@@ -103,13 +103,13 @@ describe WifiWand::Main do
     end
 
     it 'parses arguments and executes CLI with correct options' do
-      stub_const('ARGV', ['-v', '-p', 'wlan0', 'shell'])
+      stub_const('ARGV', ['-v', '-p', 'wlan0', 'info'])
 
       expect(WifiWand::CommandLineInterface).to receive(:new) do |options, argv:|
         expect(options.verbose).to be(true)
         expect(options.interactive_mode).to be_nil
         expect(options.wifi_interface).to eq('wlan0')
-        expect(argv).to eq(['shell'])
+        expect(argv).to eq(['info'])
         mock_cli
       end
       expect(mock_cli).to receive(:call).and_return(0)
@@ -202,9 +202,8 @@ describe WifiWand::Main do
     [
       ['--help'],
       ['-h'],
-      ['-h', 'info'],
     ].each do |argv|
-      it "prints help for #{argv.join(' ')} without initializing the model" do
+      it "prints global help for #{argv.join(' ')} without initializing the model" do
         expect(WifiWand).not_to receive(:create_model)
 
         out_stream = StringIO.new
@@ -217,7 +216,19 @@ describe WifiWand::Main do
       end
     end
 
-    it 'passes trailing -h through to the command instead of treating it as top-level help' do
+    it 'prints command help for -h info without initializing the model' do
+      expect(WifiWand).not_to receive(:create_model)
+
+      out_stream = StringIO.new
+      err_stream = StringIO.new
+      main = described_class.new(out_stream, err_stream, argv: ['-h', 'info'])
+
+      expect(main.call).to eq(0)
+      expect(out_stream.string).to include('Usage: wifi-wand info')
+      expect(err_stream.string).to eq('')
+    end
+
+    it 'normalizes trailing -h into command help' do
       mock_cli = double('CommandLineInterface')
       expect(mock_cli).to receive(:call).and_return(0)
 
@@ -226,14 +237,24 @@ describe WifiWand::Main do
       main = described_class.new(out_stream, err_stream, argv: ['info', '-h'])
 
       expect(WifiWand::CommandLineInterface).to receive(:new) do |options, argv:|
-        expect(options.help_requested).to be_nil
-        expect(argv).to eq(['info', '-h'])
+        expect(options.help_requested).to be(true)
+        expect(argv).to eq(%w[help info])
         mock_cli
       end
 
       expect(main.call).to eq(0)
       expect(out_stream.string).to eq('')
       expect(err_stream.string).to eq('')
+    end
+  end
+
+  describe 'invalid option behavior' do
+    it 'prints the option error with a help hint' do
+      main = described_class.new(out_stream, err_stream, argv: ['--bananas'])
+
+      expect(main.call).to eq(1)
+      expect(err_stream.string).to include('Error: invalid option: --bananas')
+      expect(err_stream.string).to include('Use -h or --help to see available options.')
     end
   end
 

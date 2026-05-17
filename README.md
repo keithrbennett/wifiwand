@@ -185,7 +185,7 @@ Available commands can be seen by using the `-h` (or `--help`) option:
 Command Line Switches     [wifi-wand version 3.0.0-alpha.1 at https://github.com/keithrbennett/wifiwand]
 ---------------------
 -h, --help                - show this help message
--o, --output_format {a,i,j,J,p,P,y}
+-o, --output-format {a,i,j,J,p,P,y}
                           - when not in shell mode, outputs data in the following formats: amazing print, inspect, JSON, pretty JSON, puts, pretty print, YAML
 -p, --wifi-interface interface_name
                           - specify WiFi interface name (overrides auto-detection)

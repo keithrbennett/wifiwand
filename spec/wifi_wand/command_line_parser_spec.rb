@@ -41,6 +41,27 @@ describe WifiWand::CommandLineParser do
       expect(options.utc).to be(false)
     end
 
+    it 'parses utc flags after the command' do
+      options = parse_with_argv('info', '-u', 'yes')
+
+      expect(options.utc).to be(true)
+      expect(options.argv).to eq(['info'])
+    end
+
+    it 'parses false utc values after the command' do
+      options = parse_with_argv('info', '--utc=false')
+
+      expect(options.utc).to be(false)
+      expect(options.argv).to eq(['info'])
+    end
+
+    it 'uses the last occurrence when an option is repeated' do
+      options = parse_with_argv('-u', 'yes', '--utc=false', 'info')
+
+      expect(options.utc).to be(false)
+      expect(options.argv).to eq(['info'])
+    end
+
     {
       true  => %w[true yes y t +],
       false => %w[false no n f -],
@@ -57,8 +78,20 @@ describe WifiWand::CommandLineParser do
       it "rejects unsupported utc boolean value #{value.inspect}" do
         expect do
           parse_with_argv('--utc', value, 'info')
-        end.to raise_error(OptionParser::InvalidArgument)
+        end.to raise_error(WifiWand::ConfigurationError) { |error|
+          expect(error.message).to include('invalid argument')
+          expect(error.message).to include('Use -h or --help to see available options.')
+        }
       end
+    end
+
+    it 'does not treat a following command as an implicit utc value' do
+      expect do
+        described_class.new(%w[-u connect TestNetwork], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('invalid argument: -u connect')
+        expect(error.message).to include('Use -h or --help to see available options.')
+      }
     end
 
     it 'defaults utc to nil when not specified' do
@@ -88,6 +121,12 @@ describe WifiWand::CommandLineParser do
     end
 
     it 'parses output format options' do
+      options = parse_with_argv('--output-format', 'j', 'info')
+      expect(options.post_processor).to respond_to(:call)
+
+      options = parse_with_argv('--out', 'j', 'info')
+      expect(options.post_processor).to respond_to(:call)
+
       options = parse_with_argv('--output_format', 'j', 'info')
       expect(options.post_processor).to respond_to(:call)
 
@@ -99,38 +138,41 @@ describe WifiWand::CommandLineParser do
       expect do
         described_class.new(['-o', 'z', 'info'], ENV, err_stream).parse
       end.to raise_error(WifiWand::ConfigurationError, /Invalid output format 'z'/)
-      expect(err_stream.string).to include('Output format "z" not in list of available formats')
+      expect(err_stream.string).to be_empty
     end
 
     it 'handles empty output format with a configuration error' do
       expect do
         described_class.new(['-o', '', 'info'], ENV, err_stream).parse
       end.to raise_error(WifiWand::ConfigurationError, /Invalid output format ''/)
-      expect(err_stream.string).to include('Output format "" not in list of available formats')
+      expect(err_stream.string).to be_empty
     end
 
     it 'handles unrecognized flags' do
       expect do
         described_class.new(['--invalid-flag'], ENV, err_stream).parse
-      end.to raise_error(OptionParser::InvalidOption)
+      end.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('invalid option: --invalid-flag')
+        expect(error.message).to include('Use -h or --help to see available options.')
+      }
     end
 
     it 'normalizes --help into the help command' do
       options = described_class.new(['--help'], ENV, err_stream).parse
       expect(options.help_requested).to be(true)
-      expect(options.argv).to eq(['h'])
+      expect(options.argv).to eq(['help'])
     end
 
     it 'normalizes leading help flags combined with a command into the help command' do
       options = described_class.new(['-h', 'info'], ENV, err_stream).parse
       expect(options.help_requested).to be(true)
-      expect(options.argv).to eq(['h'])
+      expect(options.argv).to eq(%w[help info])
     end
 
-    it 'leaves trailing help flags after a command unparsed' do
+    it 'normalizes trailing help flags after a command into command help' do
       options = described_class.new(['info', '-h'], ENV, err_stream).parse
-      expect(options.help_requested).to be_nil
-      expect(options.argv).to eq(['info', '-h'])
+      expect(options.help_requested).to be(true)
+      expect(options.argv).to eq(%w[help info])
     end
 
     it 'parses version flags' do
@@ -146,20 +188,267 @@ describe WifiWand::CommandLineParser do
       expect(options.argv).to eq(%w[connect TestNetwork])
     end
 
+    it 'returns command argv without parsed options that appear after the command' do
+      options = described_class.new(['info', '-u', 'yes'], ENV, err_stream).parse
+
+      expect(options.utc).to be(true)
+      expect(options.argv).to eq(['info'])
+    end
+
+    it 'rejects utc before connect' do
+      expect do
+        described_class.new(%w[-u yes connect TestNetwork], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--utc is not valid for connect/)
+    end
+
+    it 'rejects utc after connect' do
+      expect do
+        described_class.new(%w[connect TestNetwork -u yes], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--utc is not valid for connect/)
+    end
+
+    it 'rejects utc for commands without timestamped output' do
+      expect do
+        described_class.new(%w[status -u yes], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--utc is not valid for status/)
+    end
+
+    it 'rejects output formatting for commands without structured output' do
+      expect do
+        described_class.new(%w[connect TestNetwork -o json], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--output-format is not valid for connect/)
+    end
+
+    it 'rejects compact and abbreviated invocation options from the command line' do
+      expect do
+        described_class.new(%w[-ufalse connect TestNetwork], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--utc is not valid for connect/)
+
+      expect do
+        described_class.new(%w[-oj connect TestNetwork], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--output-format is not valid for connect/)
+
+      expect do
+        described_class.new(%w[-pen0 public_ip], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--wifi-interface is not valid for public_ip/)
+
+      expect do
+        described_class.new(%w[--out j connect TestNetwork], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--output-format is not valid for connect/)
+
+      expect do
+        described_class.new(%w[--output-f j connect TestNetwork], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--output-format is not valid for connect/)
+    end
+
+    it 'rejects wifi interface selection for commands that do not use WiFi model behavior' do
+      expect do
+        described_class.new(%w[public_ip -p en0], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--wifi-interface is not valid for public_ip/)
+    end
+
+    it 'rejects positional command arguments before the command' do
+      expect do
+        described_class.new(%w[TestNetwork connect], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /Unexpected argument\(s\) before connect: TestNetwork/)
+    end
+
+    it 'rejects positional command arguments before the command when options are mixed in' do
+      expect do
+        described_class.new(%w[TestNetwork -v secret connect], ENV, err_stream).parse
+      end.to raise_error(
+        WifiWand::ConfigurationError,
+        /Unexpected argument\(s\) before connect: TestNetwork, secret/
+      )
+    end
+
+    it 'parses log interval after the log command' do
+      options = described_class.new(%w[log --interval 5], ENV, err_stream).parse
+
+      expect(options.command_options).to eq(interval: 5.0)
+      expect(options.argv).to eq(['log'])
+    end
+
+    it 'parses log interval before the log command' do
+      options = described_class.new(%w[--interval 5 log], ENV, err_stream).parse
+
+      expect(options.command_options).to eq(interval: 5.0)
+      expect(options.argv).to eq(['log'])
+    end
+
+    it 'parses log interval with invocation options around the command' do
+      options = described_class.new(%w[--interval 5 -u yes log], ENV, err_stream).parse
+
+      expect(options.utc).to be(true)
+      expect(options.command_options).to eq(interval: 5.0)
+      expect(options.argv).to eq(['log'])
+    end
+
+    it 'parses log file destination after the log command' do
+      options = described_class.new(%w[log --file /tmp/events.log], ENV, err_stream).parse
+
+      expect(options.command_options).to include(
+        file_destination_requested: true,
+        log_file_path:              '/tmp/events.log'
+      )
+      expect(options.argv).to eq(['log'])
+    end
+
+    it 'parses log default file destination after the log command' do
+      options = described_class.new(%w[log --file], ENV, err_stream).parse
+
+      expect(options.command_options).to include(
+        file_destination_requested: true,
+        log_file_path:              WifiWand::LogFileManager::DEFAULT_LOG_FILE
+      )
+      expect(options.argv).to eq(['log'])
+    end
+
+    it 'parses log default file destination before the log command' do
+      options = described_class.new(%w[--file log], ENV, err_stream).parse
+
+      expect(options.command_options).to include(
+        file_destination_requested: true,
+        log_file_path:              WifiWand::LogFileManager::DEFAULT_LOG_FILE
+      )
+      expect(options.argv).to eq(['log'])
+    end
+
+    it 'parses custom log file destination before the log command' do
+      options = described_class.new(%w[--file /tmp/events.log log], ENV, err_stream).parse
+
+      expect(options.command_options).to include(
+        file_destination_requested: true,
+        log_file_path:              '/tmp/events.log'
+      )
+      expect(options.argv).to eq(['log'])
+    end
+
+    it 'parses pre-command log file destination that matches another command alias' do
+      options = described_class.new(%w[--file status log], ENV, err_stream).parse
+
+      expect(options.command_options).to include(
+        file_destination_requested: true,
+        log_file_path:              'status'
+      )
+      expect(options.argv).to eq(['log'])
+    end
+
+    it 'parses repeated pre-command log file destinations' do
+      options = described_class.new(%w[--file /tmp/first.log --file /tmp/second.log log], ENV,
+        err_stream).parse
+
+      expect(options.command_options).to include(
+        file_destination_requested: true,
+        log_file_path:              '/tmp/second.log'
+      )
+      expect(options.argv).to eq(['log'])
+    end
+
+    it 'parses log stdout destination after the log command' do
+      options = described_class.new(%w[log --file /tmp/events.log --stdout], ENV, err_stream).parse
+
+      expect(options.command_options).to include(
+        file_destination_requested: true,
+        log_file_path:              '/tmp/events.log',
+        stdout_explicit:            true
+      )
+      expect(options.argv).to eq(['log'])
+    end
+
+    it 'rejects log interval for other commands' do
+      expect do
+        described_class.new(%w[info --interval 5], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--interval is not valid for info/)
+    end
+
+    it 'rejects log interval before other commands' do
+      expect do
+        described_class.new(%w[--interval 5 info], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--interval is not valid for info/)
+    end
+
+    it 'raises a configuration error when log interval is not numeric' do
+      expect do
+        described_class.new(%w[log --interval bad_value], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('invalid argument')
+        expect(error.message).to include('Use -h or --help to see available options.')
+      }
+    end
+
+    it 'raises a configuration error when log interval is missing' do
+      expect do
+        described_class.new(%w[log --interval], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('missing argument: --interval')
+        expect(error.message).to include('Use -h or --help to see available options.')
+      }
+    end
+
+    it 'raises a configuration error when log stdout has a needless value' do
+      expect do
+        described_class.new(%w[log --stdout=bad], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('needless argument: --stdout=bad')
+        expect(error.message).to include('Use -h or --help to see available options.')
+      }
+    end
+
+    it 'rejects log file options for other commands' do
+      expect do
+        described_class.new(%w[info --file /tmp/events.log], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--file is not valid for info/)
+    end
+
+    it 'preserves positional arguments after the option terminator' do
+      options = described_class.new(%w[connect -- -NetworkStartingWithDash], ENV, err_stream).parse
+
+      expect(options.argv).to eq(%w[connect -NetworkStartingWithDash])
+    end
+
+    it 'validates invocation options when the command appears after the option terminator' do
+      expect do
+        described_class.new(%w[-u true -- connect TestNetwork], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--utc is not valid for connect/)
+    end
+
     it 'handles multiple flags together' do
-      options = described_class.new(['-v', '-p', 'eth0', '--output_format', 'j', 'info'], ENV,
+      options = described_class.new(['-v', '-p', 'eth0', '--output-format', 'j', 'info'], ENV,
         err_stream).parse
       expect(options.verbose).to be(true)
       expect(options.wifi_interface).to eq('eth0')
       expect(options.post_processor).to respond_to(:call)
     end
 
-    it 'handles shell command alongside other flags' do
-      options = described_class.new(['-v', '-p', 'eth0', 'shell'], ENV, err_stream).parse
+    it 'handles shell command alongside wifi interface selection' do
+      options = described_class.new(%w[-v -p eth0 shell], ENV, err_stream).parse
+
       expect(options.verbose).to be(true)
       expect(options.wifi_interface).to eq('eth0')
       expect(options.interactive_mode).to be_nil
       expect(options.argv).to eq(['shell'])
+    end
+
+    it 'allows shell startup to inherit utc configuration' do
+      options = described_class.new(%w[-u true shell], ENV, err_stream).parse
+
+      expect(options.utc).to be(true)
+      expect(options.argv).to eq(['shell'])
+    end
+
+    it 'lets shell startup report its own output format error' do
+      options = described_class.new(%w[-o json shell], ENV, err_stream).parse
+
+      expect(options.post_processor).to respond_to(:call)
+      expect(options.argv).to eq(['shell'])
+    end
+
+    it 'handles ropen command alongside wifi interface selection' do
+      options = described_class.new(%w[-p eth0 ropen ipw], ENV, err_stream).parse
+
+      expect(options.wifi_interface).to eq('eth0')
+      expect(options.argv).to eq(%w[ropen ipw])
     end
 
     it 'prepends options from WIFIWAND_OPTS before CLI arguments' do
@@ -170,6 +459,90 @@ describe WifiWand::CommandLineParser do
 
       expect(options.verbose).to be(true)
       expect(options.argv).to eq(['info'])
+    end
+
+    it 'does not reject help when WIFIWAND_OPTS contains model options' do
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('-p en0 -u false -o j')
+
+      options = described_class.new(['help'], ENV, err_stream).parse
+
+      expect(options.wifi_interface).to eq('en0')
+      expect(options.utc).to be(false)
+      expect(options.post_processor).to respond_to(:call)
+      expect(options.argv).to eq(['help'])
+    end
+
+    it 'does not reject quit when WIFIWAND_OPTS contains model options' do
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('-p en0 -u false -o j')
+
+      options = described_class.new(['quit'], ENV, err_stream).parse
+
+      expect(options.wifi_interface).to eq('en0')
+      expect(options.utc).to be(false)
+      expect(options.post_processor).to respond_to(:call)
+      expect(options.argv).to eq(['quit'])
+    end
+
+    it 'ignores irrelevant invocation options from WIFIWAND_OPTS' do
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--utc true --output-format j')
+
+      options = described_class.new(%w[connect TestNetwork], ENV, err_stream).parse
+
+      expect(options.utc).to be(true)
+      expect(options.post_processor).to respond_to(:call)
+      expect(options.argv).to eq(%w[connect TestNetwork])
+    end
+
+    it 'does not treat the option terminator as an explicit invocation option' do
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--utc true')
+
+      options = described_class.new(%w[-- connect TestNetwork], ENV, err_stream).parse
+
+      expect(options.utc).to be(true)
+      expect(options.argv).to eq(%w[connect TestNetwork])
+    end
+
+    it 'still rejects irrelevant invocation options from the command line' do
+      expect do
+        described_class.new(%w[--utc true connect TestNetwork], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--utc is not valid for connect/)
+    end
+
+    it 'identifies invalid command-specific options from WIFIWAND_OPTS' do
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--interval 5')
+
+      expect do
+        described_class.new(%w[info], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('--interval is not valid for info.')
+        expect(error.message).to include('This option came from WIFIWAND_OPTS.')
+      }
+    end
+
+    it 'identifies invalid command-specific options with inline values from WIFIWAND_OPTS' do
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--interval=5')
+
+      expect do
+        described_class.new(%w[info], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('--interval is not valid for info.')
+        expect(error.message).to include('This option came from WIFIWAND_OPTS.')
+      }
+    end
+
+    it 'rejects unknown options from WIFIWAND_OPTS' do
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--bananas')
+
+      expect do
+        described_class.new(%w[info], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /invalid option: --bananas/)
     end
 
     it 'allows explicit command-line flags to override WIFIWAND_OPTS defaults' do

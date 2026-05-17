@@ -17,6 +17,7 @@ module WifiWand
       STATES = %w[wifi_on wifi_off associated disassociated internet_on internet_off].freeze
 
       binds :model, :interactive_mode
+      allow_invocation_options :wifi_interface
 
       def help_text
         <<~HELP

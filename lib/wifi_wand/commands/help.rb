@@ -13,6 +13,7 @@ module WifiWand
       )
 
       binds output: :out_stream
+      allow_invocation_options :wifi_interface, :output_format, :utc
 
       def help_text
         return metadata.usage unless cli

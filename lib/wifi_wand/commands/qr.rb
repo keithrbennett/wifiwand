@@ -13,6 +13,7 @@ module WifiWand
       )
 
       binds :model, :interactive_mode, :in_stream, output_support: :output_support
+      allow_invocation_options :wifi_interface, :output_format
 
       def help_text
         <<~HELP

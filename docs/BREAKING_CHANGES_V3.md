@@ -12,7 +12,7 @@ non-breaking additions, see [Version 2.x to 3.0 Code Base Changes](CHANGELOG_V2_
 
 #### Pretty JSON moved to `-o J`
 
-The noninteractive `--output_format` codes have changed so each human-oriented
+The noninteractive `--output-format` codes have changed so each human-oriented
 Ruby formatter has a distinct option.
 
 | Format | Old flag | New flag |

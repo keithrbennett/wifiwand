@@ -36,6 +36,17 @@ describe WifiWand::Commands::Shell do
       )
     end
 
+    it 'ignores environment-sourced output formatting for shell startup' do
+      options.post_processor = ->(object) { object.to_json }
+      options.invocation_option_sources = { output_format: :environment }
+      command = described_class.new.bind(cli)
+
+      expect(cli).to receive(:with_interactive_mode).and_yield
+      expect(cli).to receive(:run_shell)
+
+      command.call
+    end
+
     it 'raises a usage-oriented error when extra arguments are provided' do
       command = described_class.new.bind(cli)
 

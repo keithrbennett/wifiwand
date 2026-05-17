@@ -15,6 +15,7 @@ module WifiWand
       )
 
       binds :model, output_support: :output_support
+      allow_invocation_options :wifi_interface, :output_format
 
       def call(*args)
         subcommand = subcommand_for(args)

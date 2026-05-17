@@ -23,6 +23,61 @@ describe WifiWand::Commands::Connect do
     usage:       'Usage: wifi-wand connect <network> [password]',
     description: 'connect to a WiFi network'
 
+  describe '#validate_options' do
+    subject(:command) { described_class.new }
+
+    it 'rejects utc configuration' do
+      options = WifiWand::CommandLineOptions.new(utc: false, specified_invocation_options: [:utc])
+
+      errors = command.validate_options(
+        invocation_options: options,
+        command_options:    {},
+        args:               ['TestNetwork']
+      )
+
+      expect(errors).to eq(['--utc is not valid for connect.'])
+    end
+
+    it 'rejects output formatting' do
+      options = WifiWand::CommandLineOptions.new(specified_invocation_options: [:output_format])
+
+      errors = command.validate_options(
+        invocation_options: options,
+        command_options:    {},
+        args:               ['TestNetwork']
+      )
+
+      expect(errors).to eq(['--output-format is not valid for connect.'])
+    end
+
+    it 'accepts wifi interface configuration' do
+      options = WifiWand::CommandLineOptions.new(
+        wifi_interface:               'en0',
+        specified_invocation_options: [:wifi_interface]
+      )
+
+      errors = command.validate_options(
+        invocation_options: options,
+        command_options:    {},
+        args:               ['TestNetwork']
+      )
+
+      expect(errors).to eq([])
+    end
+
+    it 'accepts absent utc configuration' do
+      options = WifiWand::CommandLineOptions.new
+
+      errors = command.validate_options(
+        invocation_options: options,
+        command_options:    {},
+        args:               ['TestNetwork']
+      )
+
+      expect(errors).to eq([])
+    end
+  end
+
   describe '#call' do
     subject(:command) { described_class.new.bind(cli) }
 

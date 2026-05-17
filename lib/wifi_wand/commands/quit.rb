@@ -13,6 +13,7 @@ module WifiWand
       )
 
       EXTRA_ALIASES = %w[x xit].freeze
+      allow_invocation_options :wifi_interface, :output_format, :utc
 
       def aliases
         super + EXTRA_ALIASES

@@ -13,6 +13,7 @@ module WifiWand
       )
 
       binds :model, output_support: :output_support
+      allow_invocation_options :wifi_interface, :output_format
 
       def call(*options)
         validate_network_names!(options)

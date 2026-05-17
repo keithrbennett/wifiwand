@@ -23,7 +23,7 @@ module WifiWand
     include Commands::Registry
     include Commands::ShellInterface
 
-    attr_reader :interactive_mode, :options, :err_stream, :in_stream
+    attr_reader :interactive_mode, :options, :command_options, :err_stream, :in_stream
 
     SUCCESS_EXIT_CODE = 0
     FAILURE_EXIT_CODE = 1
@@ -35,6 +35,7 @@ module WifiWand
       @original_out_stream = options.out_stream
       @err_stream = options.err_stream || $stderr
       @in_stream = options.in_stream || $stdin
+      @command_options = options.command_options || {}
 
       @model_options = {
         verbose:        options.verbose,

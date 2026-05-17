@@ -13,6 +13,7 @@ module WifiWand
       )
 
       binds :model
+      allow_invocation_options :wifi_interface
 
       def call(*args)
         validate_max_arguments!(args, 0)

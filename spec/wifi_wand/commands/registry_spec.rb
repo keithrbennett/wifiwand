@@ -108,6 +108,8 @@ describe 'command registry components' do
         def verbose? = false
 
         def out_stream = StringIO.new
+
+        def command_options = {}
       end
     end
 

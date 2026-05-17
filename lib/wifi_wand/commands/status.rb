@@ -17,6 +17,7 @@ module WifiWand
       )
 
       binds :model, :interactive_mode, :out_stream, output_support: :output_support
+      allow_invocation_options :wifi_interface, :output_format
 
       def call(*args)
         validate_max_arguments!(args, 0)

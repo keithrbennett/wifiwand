@@ -1,6 +1,5 @@
 # frozen_string_literal: true
 
-require 'optparse'
 require 'yaml'
 
 require_relative 'command_line_interface'
@@ -46,14 +45,6 @@ module WifiWand
 
     private def handle_error(error, verbose)
       case error
-      when OptionParser::InvalidOption
-        # Clean error message for invalid command line options
-        @err_stream.puts <<~MESSAGE
-
-          Error: #{error.message}
-
-          Use -h or --help to see available options.
-        MESSAGE
       when WifiWand::CommandExecutor::OsCommandError
         # Show the helpful command error message and details but not the stack trace
         @err_stream.puts <<~MESSAGE

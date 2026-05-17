@@ -19,7 +19,7 @@ describe WifiWand::Commands::Log do
   let(:output) { StringIO.new }
   let(:runtime_config) { WifiWand::RuntimeConfig.new(utc: true, out_stream: output) }
 
-  let(:cli) { double('cli', model: mock_model, verbose?: true, out_stream: output) }
+  let(:cli) { double('cli', model: mock_model, verbose?: true, out_stream: output, command_options: {}) }
 
   it_behaves_like 'binds command context',
     bound_attributes: { model: :mock_model, output: :output, verbose?: -> { cli.verbose? } }
@@ -121,6 +121,33 @@ describe WifiWand::Commands::Log do
           mock_model,
           hash_including(interval: 2.5)
         )
+      end
+
+      it 'uses interval parsed by the top-level command parser' do
+        command = described_class.new(
+          model:           mock_model,
+          output:          output,
+          verbose_flag:    false,
+          command_options: { interval: 4.0 }
+        )
+        command.call
+
+        expect(WifiWand::EventLogger).to have_received(:new).with(
+          mock_model,
+          hash_including(interval: 4.0)
+        )
+      end
+
+      it 'validates interval parsed by the top-level command parser' do
+        command = described_class.new(
+          model:           mock_model,
+          output:          output,
+          verbose_flag:    false,
+          command_options: { interval: 0.0 }
+        )
+
+        expect { command.call }
+          .to raise_error(WifiWand::ConfigurationError, /Interval must be greater than 0/)
       end
 
       it 'raises error for invalid interval value' do

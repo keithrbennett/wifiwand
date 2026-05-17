@@ -21,7 +21,7 @@ module WifiWand
       HELP_SWITCHES = [
         ['-h, --help', 'show this help message'],
         [
-          '-o, --output_format {a,i,j,J,p,P,y}',
+          '-o, --output-format {a,i,j,J,p,P,y}',
           'when not in shell mode, outputs data in the following formats: ' \
             'amazing print, inspect, JSON, pretty JSON, puts, pretty print, YAML',
         ],

@@ -20,7 +20,62 @@ module WifiWand
         ].join(' ')
       )
 
-      binds :model, output: :out_stream, verbose_flag: :verbose?
+      VALUE_TAKING_OPTIONS = %w[--interval].freeze
+      OPTIONAL_VALUE_OPTIONS = %w[--file].freeze
+      FLAG_OPTIONS = %w[--stdout].freeze
+      SCOPED_OPTIONS = (VALUE_TAKING_OPTIONS + OPTIONAL_VALUE_OPTIONS + FLAG_OPTIONS).freeze
+
+      binds :model, output: :out_stream, verbose_flag: :verbose?, command_options: :command_options
+      allow_invocation_options :wifi_interface, :utc
+
+      def self.add_options(parser, interval_setter:, file_setter:, stdout_setter:)
+        parser.on('--interval N', Float, 'Poll interval in seconds (default: 5)') do |value|
+          interval_setter.call(value)
+        end
+
+        parser.on('--file [PATH]', 'Enable file logging (default: wifiwand-events.log)') do |value|
+          file_setter.call(value)
+        end
+
+        parser.on('--stdout', 'Keep stdout when file destination is used') do
+          stdout_setter.call
+        end
+      end
+
+      def self.scoped_options = SCOPED_OPTIONS
+
+      def self.normalize_option_args!(args, selected_command:)
+        index = 0
+
+        while index < args.length
+          if args[index] == '--file'
+            value = args[index + 1]
+            if consume_file_option_value?(args, index, selected_command, value)
+              args[index] = "--file=#{value}"
+              args.delete_at(index + 1)
+            elsif value == selected_command && pre_command_option?(args, index, selected_command)
+              args[index] = "--file=#{LogFileManager::DEFAULT_LOG_FILE}"
+            end
+          end
+
+          index += 1
+        end
+      end
+
+      def self.consume_file_option_value?(args, index, selected_command, value)
+        return false if value.nil? || value.start_with?('-')
+        return true unless selected_command
+        return true unless pre_command_option?(args, index, selected_command)
+
+        # A pre-command optional value is a real path only when another copy of
+        # the selected command remains later to serve as the command token.
+        args[(index + 2)..].include?(selected_command)
+      end
+
+      def self.pre_command_option?(args, index, selected_command)
+        command_index = args.index(selected_command)
+        command_index && index < command_index
+      end
 
       def verbose? = @verbose_flag
 
@@ -55,12 +110,16 @@ module WifiWand
       end
 
       private def parse_options(options)
-        interval = TimingConstants::EVENT_LOG_POLLING_INTERVAL
-        log_file_path = nil
+        self.class.normalize_option_args!(options, selected_command: nil)
+
+        interval = validate_interval(
+          configured_command_options.fetch(:interval, TimingConstants::EVENT_LOG_POLLING_INTERVAL)
+        )
+        log_file_path = configured_command_options[:log_file_path]
         output_to_stdout = true
         verbose_flag = verbose?
-        stdout_explicit = false
-        file_destination_requested = false
+        stdout_explicit = configured_command_options.fetch(:stdout_explicit, false)
+        file_destination_requested = configured_command_options.fetch(:file_destination_requested, false)
         help_requested = false
 
         parser = build_parser(
@@ -111,19 +170,14 @@ module WifiWand
           opts.separator ''
           opts.separator 'Options:'
 
-          opts.on('--interval N', Float, 'Poll interval in seconds (default: 5)') do |v|
-            interval_setter.call(v)
-          end
+          self.class.add_options(
+            opts,
+            interval_setter: interval_setter,
+            file_setter:     file_setter,
+            stdout_setter:   stdout_setter
+          )
 
-          opts.on('--file [PATH]', 'Enable file logging (default: wifiwand-events.log)') do |v|
-            file_setter.call(v)
-          end
-
-          opts.on('--stdout', 'Keep stdout when file destination is used') do
-            stdout_setter.call
-          end
-
-          opts.on('--verbose', '-v', 'Enable verbose logging') do
+          opts.on('-v', '--verbose', 'Enable verbose logging') do
             verbose_setter.call
           end
 
@@ -167,6 +221,10 @@ module WifiWand
 
         raise WifiWand::ConfigurationError,
           "Interval must be greater than 0. Use 'wifi-wand help' or 'wifi-wand -h' for help."
+      end
+
+      private def configured_command_options
+        command_options || {}
       end
     end
   end
