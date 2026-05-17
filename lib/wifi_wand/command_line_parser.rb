@@ -6,7 +6,7 @@ require 'pp'
 require 'shellwords'
 require 'stringio'
 require 'yaml'
-require 'awesome_print'
+require 'amazing_print'
 
 require_relative 'command_line_options'
 require_relative 'errors'
@@ -17,7 +17,7 @@ module WifiWand
     include StringPredicates
 
     FORMATTERS = {
-      'a' => ->(object) { object.awesome_inspect(plain: true) },
+      'a' => ->(object) { object.ai(plain: true) },
       'i' => ->(object) { object.inspect },
       'j' => ->(object) { object.to_json },
       'J' => ->(object) { JSON.pretty_generate(object) },

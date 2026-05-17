@@ -186,7 +186,7 @@ Command Line Switches     [wifi-wand version 3.0.0-alpha.1 at https://github.com
 ---------------------
 -h, --help                - show this help message
 -o, --output_format {a,i,j,J,p,P,y}
-                          - when not in shell mode, outputs data in the following formats: awesome print, inspect, JSON, pretty JSON, puts, pretty print, YAML
+                          - when not in shell mode, outputs data in the following formats: amazing print, inspect, JSON, pretty JSON, puts, pretty print, YAML
 -p, --wifi-interface interface_name
                           - specify WiFi interface name (overrides auto-detection)
 -V, --version             - show version
@@ -253,13 +253,13 @@ When in interactive shell mode:
 
 ### Pretty Output
 
-The `awesome_print` gem is used for formatting output nicely in both non-interactive and interactive (shell)
+The `amazing_print` gem is used for formatting output nicely in both non-interactive and interactive (shell)
 modes.
 
 ### JSON, YAML, and Other Output Formats
 
 You can specify that output in _noninteractive_ mode be in a certain format.
-Currently, JSON, pretty JSON, YAML, inspect, puts, pretty print, and awesome print formats are supported.
+Currently, JSON, pretty JSON, YAML, inspect, puts, pretty print, and amazing print formats are supported.
 See the help for which command line switches to use.
 If you are scripting against the CLI, prefer machine-readable output such as JSON (`-o j`)
 instead of parsing human-formatted text. Structured output is simpler to consume and less likely
@@ -400,7 +400,7 @@ wifi-wand log --interval 1 --file    # check every 1 second instead of default 5
 #### Interactive Shell Commands
 
 The `pry` shell used by wifi_wand outputs the last evaluated value in the terminal session.
-The `awesome_print` gem is used to format that output nicely.
+The `amazing_print` gem is used to format that output nicely.
 As with other shells, command return values can also be used in expressions, passed to methods,
 saved in variables, etc. In this example, the value returned by the WiFi-wand command is saved
 in the local variable `local_ip`.

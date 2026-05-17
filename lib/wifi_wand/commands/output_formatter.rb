@@ -1,13 +1,13 @@
 # frozen_string_literal: true
 
-require 'awesome_print'
+require 'amazing_print'
 require_relative '../connectivity_states'
 require_relative '../network_identity'
 
 module WifiWand
   module Commands
     module OutputFormatter
-      def format_object(object) = object.awesome_inspect
+      def format_object(object) = object.ai
 
       def colorize_text(text, color = nil)
         return text unless out_stream.respond_to?(:tty?) && out_stream.tty? && color

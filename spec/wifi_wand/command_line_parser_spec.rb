@@ -175,7 +175,7 @@ describe WifiWand::CommandLineParser do
 
   describe 'output format processors' do
     {
-      'a' => 'awesome print',
+      'a' => 'amazing print',
       'i' => 'inspect',
       'j' => 'JSON',
       'J' => 'pretty JSON',

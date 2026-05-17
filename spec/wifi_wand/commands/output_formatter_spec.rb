@@ -65,7 +65,7 @@ describe WifiWand::Commands::OutputFormatter do
   describe '#format_object' do
     let(:test_object) { { name: 'test', value: 123 } }
 
-    it 'returns awesome_inspect formatted output' do
+    it 'returns ai formatted output' do
       result = subject.format_object(test_object)
       expect(result).to include('name', 'test', 'value', '123')
       expect(result).to be_a(String)

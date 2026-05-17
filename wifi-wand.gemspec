@@ -60,7 +60,7 @@ Gem::Specification.new do |spec|
 
   spec.required_ruby_version = '>= 3.2.0'
 
-  spec.add_dependency('awesome_print', '>= 1.9.2', '< 2')
+  spec.add_dependency('amazing_print', '~> 2.0')
 
   # reline will no longer be part of the default gems starting from Ruby 3.5.0.
   spec.add_dependency 'reline', '~> 0.5'

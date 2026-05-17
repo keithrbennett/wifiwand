@@ -22,7 +22,7 @@
 # - Multi-command sequences with consistent formatting
 # - Type preservation through JSON serialization
 # - Output stability and reproducibility (same input → same output)
-# - Default behavior without -o flag (human-readable awesome_print)
+# - Default behavior without -o flag (human-readable amazing_print)
 #
 # HOW IT DIFFERS FROM output_formats_integration_spec.rb:
 # - END-TO-END focus: Tests complete ARGV parsing → CLI → command → output flow
@@ -85,7 +85,7 @@ describe 'Output Format End-to-End Tests' do
       'J' => { name: 'Pretty JSON' },
       'p' => { name: 'puts' },
       'P' => { name: 'pretty print' },
-      'a' => { name: 'awesome print' },
+      'a' => { name: 'amazing print' },
       'y' => { name: 'YAML' },
     }.each do |format_code, config|
       context "with -o #{format_code} (#{config[:name]}) option" do
@@ -120,7 +120,7 @@ describe 'Output Format End-to-End Tests' do
           when 'P'
             expect(output).to eq(pretty_print_output(test_network_info))
           when 'a'
-            expect(output).to eq(test_network_info.awesome_inspect(plain: true))
+            expect(output).to eq(test_network_info.ai(plain: true))
           when 'y'
             expect(YAML.safe_load(output)).to eq(YAML.safe_load(test_network_info.to_yaml))
           end
@@ -145,7 +145,7 @@ describe 'Output Format End-to-End Tests' do
           when 'p'
             expect(output).to eq('reachable')
           when 'a'
-            expect(output).to eq('reachable'.awesome_inspect(plain: true))
+            expect(output).to eq('reachable'.ai(plain: true))
           when 'y'
             expect(YAML.safe_load(output)).to eq('reachable')
           end
@@ -193,10 +193,10 @@ describe 'Output Format End-to-End Tests' do
           stdout.string
         end
 
-        # Default format should be human-readable (awesome_print with key-value formatting)
+        # Default format should be human-readable (amazing_print with key-value formatting)
         expect(output).to include('ssid')
         expect(output).to include('TestNetwork')
-        # awesome_print uses => notation instead of JSON's : notation
+        # amazing_print uses => notation instead of JSON's : notation
         expect(output).to include('=>')
       end
     end

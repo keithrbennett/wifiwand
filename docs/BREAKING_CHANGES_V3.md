@@ -21,7 +21,7 @@ Ruby formatter has a distinct option.
 | Pretty JSON | `-o k` | `-o J` |
 | Puts | `-o p` | `-o p` |
 | Pretty print | not available | `-o P` |
-| Awesome print | default human output only | `-o a` |
+| Amazing print | default human output only | `-o a` |
 | Inspect | `-o i` | `-o i` |
 | YAML | `-o y` | `-o y` |
 
@@ -43,6 +43,15 @@ Use `-o P` when you want Ruby pretty print output:
 ```bash
 wifi-wand -o P info
 ```
+
+### Pretty output dependency changed
+
+#### `awesome_print` replaced by `amazing_print`
+
+wifi-wand now depends on `amazing_print` for human-readable object formatting.
+Ruby consumers that indirectly relied on wifi-wand to make `awesome_print`
+available must add their own direct `awesome_print` dependency or migrate to
+`amazing_print`.
 
 ### Ruby require paths renamed
 
@@ -411,7 +420,7 @@ model = WifiWand.create_model(options)
   and was not central to WiFi management. If similar behavior is needed again,
   it can return as a private OS-specific helper instead of a required public
   model method.
-- Removed `fancy_print`. Awesome Print is now a required gem, so there is no
+- Removed `fancy_print`. Amazing Print is now a required gem, so there is no
   need for a separate fallback.
 - The `-s` / `--shell` command-line option has been replaced with a `shell`
   command.

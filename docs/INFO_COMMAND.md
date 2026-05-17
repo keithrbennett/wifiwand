@@ -168,12 +168,12 @@ wifi-wand -o P info
 
 Outputs using Ruby's standard pretty printer.
 
-### Awesome Print
+### Amazing Print
 ```bash
 wifi-wand -o a info
 ```
 
-Outputs using `awesome_print`.
+Outputs using `amazing_print`.
 
 ## Practical Examples
 

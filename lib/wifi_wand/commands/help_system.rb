@@ -23,7 +23,7 @@ module WifiWand
         [
           '-o, --output_format {a,i,j,J,p,P,y}',
           'when not in shell mode, outputs data in the following formats: ' \
-            'awesome print, inspect, JSON, pretty JSON, puts, pretty print, YAML',
+            'amazing print, inspect, JSON, pretty JSON, puts, pretty print, YAML',
         ],
         [
           '-p, --wifi-interface interface_name',

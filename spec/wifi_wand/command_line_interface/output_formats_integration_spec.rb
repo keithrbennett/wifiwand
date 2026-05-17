@@ -11,7 +11,7 @@
 # variety of data structures returned by CLI commands.
 #
 # WHAT THIS FILE TESTS:
-# - All 7 output formats: awesome print, inspect, JSON, pretty JSON, puts, pretty print, YAML
+# - All 7 output formats: amazing print, inspect, JSON, pretty JSON, puts, pretty print, YAML
 # - Each format with various data types:
 #   * Strings (network names)
 #   * Booleans (wifi on/off status)
@@ -70,7 +70,7 @@ describe 'Output Format Integration Tests' do
 
   describe 'Output format validation' do
     output_formats = {
-      awesome_print: {
+      amazing_print: {
         code: 'a',
       },
       inspect:       {
@@ -111,8 +111,8 @@ describe 'Output Format Integration Tests' do
             end
 
             case format_name
-            when :awesome_print
-              expect(output).to eq(test_data.awesome_inspect(plain: true))
+            when :amazing_print
+              expect(output).to eq(test_data.ai(plain: true))
             when :inspect
               expect(output).to eq(test_data.inspect)
             when :pretty_print
@@ -145,8 +145,8 @@ describe 'Output Format Integration Tests' do
             end
 
             case format_name
-            when :awesome_print
-              expect(output).to eq(test_data.awesome_inspect(plain: true))
+            when :amazing_print
+              expect(output).to eq(test_data.ai(plain: true))
             when :inspect
               expect(output).to eq(test_data.inspect)
             when :puts
@@ -172,8 +172,8 @@ describe 'Output Format Integration Tests' do
             end
 
             case format_name
-            when :awesome_print
-              expect(output).to eq(expected_value.awesome_inspect(plain: true))
+            when :amazing_print
+              expect(output).to eq(expected_value.ai(plain: true))
             when :inspect
               expect(output).to eq(expected_value.inspect)
             when :puts
@@ -218,7 +218,7 @@ describe 'Output Format Integration Tests' do
               expect(output).to match(/\n/)
             when :puts
               expect(output).to eq(test_data.join("\n"))
-            when :awesome_print, :pretty_print
+            when :amazing_print, :pretty_print
               expect(output).to include('Network1')
               expect(output).to include('Network3')
             when :yaml
@@ -251,7 +251,7 @@ describe 'Output Format Integration Tests' do
               expect(parsed).to eq([])
             when :puts
               expect(output).to eq('')
-            when :awesome_print, :pretty_print
+            when :amazing_print, :pretty_print
               expect(output).to eq('[]')
             when :yaml
               parsed = YAML.safe_load(output)
@@ -323,7 +323,7 @@ describe 'Output Format Integration Tests' do
               # Verify pretty formatting with newlines and indentation
               expect(output).to match(/\n/)
               expect(output).to match(/  /)
-            when :awesome_print, :puts, :pretty_print
+            when :amazing_print, :puts, :pretty_print
               expect(output).to include('ssid')
               expect(output).to include('TestNet')
             when :yaml
@@ -374,7 +374,7 @@ describe 'Output Format Integration Tests' do
               # Verify pretty formatting
               expect(output).to match(/\n/)
               expect(output).to match(/  /)
-            when :awesome_print, :puts, :pretty_print
+            when :amazing_print, :puts, :pretty_print
               expect(output).to include('wifi_on')
               expect(output).to include('network')
             when :yaml
@@ -401,8 +401,8 @@ describe 'Output Format Integration Tests' do
             end
 
             case format_name
-            when :awesome_print
-              expect(output).to eq(test_data.awesome_inspect(plain: true))
+            when :amazing_print
+              expect(output).to eq(test_data.ai(plain: true))
             when :inspect
               expect(output).to eq('nil')
             when :pretty_print
@@ -429,7 +429,7 @@ describe 'Output Format Integration Tests' do
       outputs = {}
 
       format_codes = {
-        awesome_print: 'a',
+        amazing_print: 'a',
         inspect:       'i',
         json:          'j',
         pretty_json:   'J',

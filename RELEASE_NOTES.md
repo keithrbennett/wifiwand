@@ -19,6 +19,10 @@
   dependencies without reaching into the command executor.
 * Add a minimal throttle between failed `try_os_command_until` attempts to avoid tight retry loops for fast
   commands.
+* Breaking change: replace the transitive `awesome_print` dependency with
+  `amazing_print` for human-readable object formatting. Ruby consumers that
+  relied on wifi-wand to provide `awesome_print` must add their own direct
+  dependency or migrate to `amazing_print`.
 
 ## v3.0.0-alpha.1
 
