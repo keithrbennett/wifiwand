@@ -44,7 +44,7 @@ module WifiWand
       stringify_permitted_values_in_error_msg: false)
       wait_interval_in_secs ||= TimingConstants::DEFAULT_WAIT_INTERVAL
       validate_timing_value!(timeout_in_secs, :timeout_in_secs)
-      validate_timing_value!(wait_interval_in_secs, :wait_interval_in_secs)
+      validate_wait_interval!(wait_interval_in_secs)
       validate_target!(target_status, stringify_permitted_values_in_error_msg)
       message_prefix = "StatusWaiter (#{target_status}):"
 
@@ -181,6 +181,12 @@ module WifiWand
       return if value.nil? || value >= 0
 
       raise ArgumentError, "#{name} must be non-negative. Was: #{value.inspect}"
+    end
+
+    private def validate_wait_interval!(value)
+      return if value.positive?
+
+      raise ArgumentError, "wait_interval_in_secs must be positive. Was: #{value.inspect}"
     end
   end
 end

@@ -86,7 +86,7 @@ module WifiWand
         return nil if raw_value.nil?
 
         value = Float(raw_value)
-        raise_negative_interval(raw_value) if value < 0
+        raise_non_positive_interval(raw_value) if value <= 0
 
         value
       rescue ArgumentError, TypeError
@@ -94,9 +94,9 @@ module WifiWand
           "Invalid interval value '#{raw_value}'. Interval must be a number. #{cli.help_hint}"
       end
 
-      private def raise_negative_interval(raw_value)
+      private def raise_non_positive_interval(raw_value)
         raise WifiWand::ConfigurationError,
-          "Invalid interval value '#{raw_value}'. Interval must be non-negative. #{cli.help_hint}"
+          "Invalid interval value '#{raw_value}'. Interval must be positive. #{cli.help_hint}"
       end
     end
   end

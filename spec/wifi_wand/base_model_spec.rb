@@ -535,6 +535,8 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
 
     context 'when target is an association state (:associated / :disassociated)' do
+      let(:association_wait_interval) { 0.1 }
+
       before do
         allow(subject).to receive(:till).and_call_original
         allow(subject.status_waiter).to receive(:sleep)
@@ -556,7 +558,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
         allow(subject).to receive(:associated?).and_return(false, false, true)
 
         expect(
-          subject.till(:associated, timeout_in_secs: 1, wait_interval_in_secs: 0)
+          subject.till(
+            :associated,
+            timeout_in_secs:       1,
+            wait_interval_in_secs: association_wait_interval
+          )
         ).to be_nil
       end
 
@@ -564,7 +570,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
         allow(subject).to receive(:associated?).and_return(true, true, false)
 
         expect(
-          subject.till(:disassociated, timeout_in_secs: 1, wait_interval_in_secs: 0)
+          subject.till(
+            :disassociated,
+            timeout_in_secs:       1,
+            wait_interval_in_secs: association_wait_interval
+          )
         ).to be_nil
       end
 
@@ -574,7 +584,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
           .and_return(1000.0, 1000.0, 1001.1)
 
         expect do
-          subject.till(:associated, timeout_in_secs: 1, wait_interval_in_secs: 0)
+          subject.till(
+            :associated,
+            timeout_in_secs:       1,
+            wait_interval_in_secs: association_wait_interval
+          )
         end.to raise_error(WifiWand::WaitTimeoutError)
       end
 
@@ -584,7 +598,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
           .and_return(1000.0, 1000.0, 1001.1)
 
         expect do
-          subject.till(:disassociated, timeout_in_secs: 1, wait_interval_in_secs: 0)
+          subject.till(
+            :disassociated,
+            timeout_in_secs:       1,
+            wait_interval_in_secs: association_wait_interval
+          )
         end.to raise_error(WifiWand::WaitTimeoutError)
       end
     end

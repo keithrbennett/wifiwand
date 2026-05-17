@@ -16,6 +16,9 @@ describe WifiWand::StatusWaiter do
   let(:waiter) { described_class.new(mock_model, verbose: false) }
 
   describe '#wait_for' do
+    let(:short_timeout_wait_interval) { 0.01 }
+    let(:standard_wait_interval) { 0.1 }
+
     def stub_monotonic_clock(*times)
       allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(*times)
     end
@@ -150,7 +153,11 @@ describe WifiWand::StatusWaiter do
         stub_monotonic_clock(1000.0, 1000.0, 1000.05)
 
         expect do
-          waiter.wait_for(:internet_on, timeout_in_secs: 0.05, wait_interval_in_secs: 0)
+          waiter.wait_for(
+            :internet_on,
+            timeout_in_secs:       0.05,
+            wait_interval_in_secs: short_timeout_wait_interval
+          )
         end.to raise_error(WifiWand::WaitTimeoutError)
 
         expect(probe_timeouts).to contain_exactly(be_within(0.01).of(0.05))
@@ -186,7 +193,11 @@ describe WifiWand::StatusWaiter do
         stub_monotonic_clock(1000.0, 1000.0, 1000.1, 1000.1, 1020.0)
 
         expect do
-          waiter.wait_for(:internet_on, timeout_in_secs: 20, wait_interval_in_secs: 0)
+          waiter.wait_for(
+            :internet_on,
+            timeout_in_secs:       20,
+            wait_interval_in_secs: standard_wait_interval
+          )
         end.to raise_error(WifiWand::WaitTimeoutError)
 
         expect(probe_timeouts).to contain_exactly(
@@ -205,7 +216,11 @@ describe WifiWand::StatusWaiter do
         stub_monotonic_clock(1000.0, 1000.0, 1000.1, 1000.1, 1020.0)
 
         expect do
-          waiter.wait_for(:internet_off, timeout_in_secs: 20, wait_interval_in_secs: 0)
+          waiter.wait_for(
+            :internet_off,
+            timeout_in_secs:       20,
+            wait_interval_in_secs: standard_wait_interval
+          )
         end.to raise_error(WifiWand::WaitTimeoutError)
 
         expect(probe_timeouts).to contain_exactly(
@@ -230,7 +245,11 @@ describe WifiWand::StatusWaiter do
         stub_monotonic_clock(1000.0, 1000.0, 1000.02, 1000.02, 1000.05)
 
         expect do
-          waiter.wait_for(:internet_on, timeout_in_secs: 0.05, wait_interval_in_secs: 0)
+          waiter.wait_for(
+            :internet_on,
+            timeout_in_secs:       0.05,
+            wait_interval_in_secs: short_timeout_wait_interval
+          )
         end.to raise_error(WifiWand::WaitTimeoutError)
 
         expect(call_count).to eq(2)
@@ -255,7 +274,12 @@ describe WifiWand::StatusWaiter do
     context 'with wait interval' do
       it 'raises ArgumentError when wait interval is negative' do
         expect { waiter.wait_for(:wifi_on, wait_interval_in_secs: -0.1) }
-          .to raise_error(ArgumentError, /wait_interval_in_secs must be non-negative/)
+          .to raise_error(ArgumentError, /wait_interval_in_secs must be positive/)
+      end
+
+      it 'raises ArgumentError when wait interval is zero' do
+        expect { waiter.wait_for(:wifi_on, wait_interval_in_secs: 0) }
+          .to raise_error(ArgumentError, /wait_interval_in_secs must be positive/)
       end
     end
 
@@ -264,7 +288,11 @@ describe WifiWand::StatusWaiter do
       allow(waiter).to receive(:sleep)
 
       expect do
-        waiter.wait_for(:internet_on, timeout_in_secs: 0, wait_interval_in_secs: 0)
+        waiter.wait_for(
+          :internet_on,
+          timeout_in_secs:       0,
+          wait_interval_in_secs: short_timeout_wait_interval
+        )
       end.to raise_error(WifiWand::WaitTimeoutError)
     end
 
@@ -273,7 +301,11 @@ describe WifiWand::StatusWaiter do
       allow(waiter).to receive(:sleep)
 
       expect do
-        waiter.wait_for(:internet_off, timeout_in_secs: 0, wait_interval_in_secs: 0)
+        waiter.wait_for(
+          :internet_off,
+          timeout_in_secs:       0,
+          wait_interval_in_secs: short_timeout_wait_interval
+        )
       end.to raise_error(WifiWand::WaitTimeoutError)
     end
   end

@@ -106,7 +106,12 @@ describe WifiWand::Commands::Till do
 
     it 'raises ConfigurationError when interval is negative' do
       expect { command.call('wifi_on', '10', '-0.1') }
-        .to raise_error(WifiWand::ConfigurationError, /Interval must be non-negative/)
+        .to raise_error(WifiWand::ConfigurationError, /Interval must be positive/)
+    end
+
+    it 'raises ConfigurationError when interval is zero' do
+      expect { command.call('wifi_on', '10', '0') }
+        .to raise_error(WifiWand::ConfigurationError, /Interval must be positive/)
     end
 
     it 'accepts valid numeric timeout and interval as strings' do

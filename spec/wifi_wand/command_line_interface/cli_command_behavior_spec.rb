@@ -515,7 +515,16 @@ describe WifiWand::CommandLineInterface do
             .to raise_error(WifiWand::ConfigurationError) do |error|
             expect(error.message).to include('Invalid interval value')
             expect(error.message).to include('-0.1')
-            expect(error.message).to include('must be non-negative')
+            expect(error.message).to include('must be positive')
+          end
+        end
+
+        it 'raises ConfigurationError when interval is zero' do
+          expect { invoke_command(cli, 'till', 'wifi_on', '10', '0') }
+            .to raise_error(WifiWand::ConfigurationError) do |error|
+            expect(error.message).to include('Invalid interval value')
+            expect(error.message).to include('0')
+            expect(error.message).to include('must be positive')
           end
         end
 
