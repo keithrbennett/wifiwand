@@ -16,14 +16,15 @@ module WifiWand
         return text unless out_stream.respond_to?(:tty?) && out_stream.tty? && color
 
         color_codes = {
-          red:     "\e[31m",
-          green:   "\e[32m",
-          yellow:  "\e[33m",
-          blue:    "\e[34m",
-          cyan:    "\e[36m",
-          magenta: "\e[35m",
-          bold:    "\e[1m",
-          reset:   "\e[0m",
+          red:         "\e[31m",
+          green:       "\e[32m",
+          yellow:      "\e[33m",
+          blue:        "\e[34m",
+          bright_blue: "\e[94m",
+          cyan:        "\e[36m",
+          magenta:     "\e[35m",
+          bold:        "\e[1m",
+          reset:       "\e[0m",
         }
 
         "#{color_codes[color]}#{text}#{color_codes[:reset]}"
@@ -44,7 +45,7 @@ module WifiWand
 
       def colorize_values(text)
         # Match signal percentages, IPv4 addresses, and standalone signed/unsigned numbers.
-        text.gsub(/-?\b\d+%|\b\d+\.\d+\.\d+\.\d+|-?\b\d+\b/) { |match| colorize_text(match, :blue) }
+        text.gsub(/-?\b\d+%|\b\d+\.\d+\.\d+\.\d+|-?\b\d+\b/) { |match| colorize_text(match, :bright_blue) }
       end
 
       def format_boolean_status(value, true_str: '✅ YES', false_str: '❌ NO', pending_str: '⏳ WAIT')

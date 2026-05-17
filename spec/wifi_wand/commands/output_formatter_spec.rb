@@ -11,6 +11,7 @@ describe WifiWand::Commands::OutputFormatter do
   let(:red_text_regex) { /\e\[31m.*\e\[0m/ }
   let(:yellow_text_regex) { /\e\[33m.*\e\[0m/ }
   let(:blue_text_regex) { /\e\[34m.*\e\[0m/ }
+  let(:bright_blue_text_regex) { /\e\[94m.*\e\[0m/ }
   let(:cyan_text_regex) { /\e\[36m.*\e\[0m/ }
   let(:status_line_hash_key_map) do
     {
@@ -107,6 +108,7 @@ describe WifiWand::Commands::OutputFormatter do
       ['colorizes text with green color when TTY',            :green,   "\e[32mtest text\e[0m", true],
       ['colorizes text with yellow color when TTY',           :yellow,  "\e[33mtest text\e[0m", true],
       ['colorizes text with blue color when TTY',             :blue,    "\e[34mtest text\e[0m", true],
+      ['colorizes text with bright blue color when TTY',      :bright_blue, "\e[94mtest text\e[0m", true],
       ['colorizes text with cyan color when TTY',             :cyan,    "\e[36mtest text\e[0m", true],
       ['colorizes text with magenta color when TTY',          :magenta, "\e[35mtest text\e[0m", true],
       ['colorizes text with bold style when TTY',             :bold,    "\e[1mtest text\e[0m",  true],
@@ -268,33 +270,33 @@ describe WifiWand::Commands::OutputFormatter do
       method_name: :colorize_values,
       tests:       [
         [
-          'colorizes percentages in blue when TTY',
+          'colorizes percentages in bright blue when TTY',
           'Signal strength: 85%',
-          "Signal strength: \e[34m85%\e[0m",
+          "Signal strength: \e[94m85%\e[0m",
           true,
         ],
         [
-          'colorizes IP addresses in blue when TTY',
+          'colorizes IP addresses in bright blue when TTY',
           'IP: 192.168.1.1',
-          "IP: \e[34m192.168.1.1\e[0m",
+          "IP: \e[94m192.168.1.1\e[0m",
           true,
         ],
         [
-          'colorizes standalone numbers in blue when TTY',
+          'colorizes standalone numbers in bright blue when TTY',
           'Channel: 6',
-          "Channel: \e[34m6\e[0m",
+          "Channel: \e[94m6\e[0m",
           true,
         ],
         [
           'colorizes multiple values in the same text when TTY',
           'Signal: 75% on channel 11 at 192.168.1.1',
-          "Signal: \e[34m75%\e[0m on channel \e[34m11\e[0m at \e[34m192.168.1.1\e[0m",
+          "Signal: \e[94m75%\e[0m on channel \e[94m11\e[0m at \e[94m192.168.1.1\e[0m",
           true,
         ],
         [
-          'colorizes negative numbers in blue when TTY',
+          'colorizes negative numbers in bright blue when TTY',
           'Signal quality: -65 dBm',
-          "Signal quality: \e[34m-65\e[0m dBm",
+          "Signal quality: \e[94m-65\e[0m dBm",
           true,
         ],
         [
@@ -401,7 +403,7 @@ describe WifiWand::Commands::OutputFormatter do
 
         expect(result).to include('TestNetwork')
         expect(result).to match(/WiFi Network.*-65.*dBm/)
-        expect(result).to match(blue_text_regex)
+        expect(result).to match(bright_blue_text_regex)
       end
 
       it 'shows UNKNOWN when network identity is indeterminate after completion' do
