@@ -7,6 +7,7 @@ require 'rbconfig'
 require 'shellwords'
 require_relative 'bundle'
 require_relative 'build'
+require_relative 'git_skip_worktree'
 
 module WifiWand
   module Platforms
@@ -78,6 +79,13 @@ module WifiWand
             SOURCE_ATTESTATION_VALID =
               '✓ Source attestation matches committed helper source, entitlements, and bundle contents'
 
+            def self.helper_skip_worktree_check_failed(error_message)
+              <<~MSG
+                ✗ Helper artifact skip-worktree check failed:
+                #{error_message}
+              MSG
+            end
+
             def self.notarizing_header(bundle_path:, profile_name:, keychain_path:)
               details = [
                 "  Bundle: #{bundle_path}",
@@ -125,7 +133,8 @@ module WifiWand
 
                 Next steps:
                   1. Test the notarized helper: bin/mac-helper-release test
-                  2. Commit the signed helper: git add #{bundle_path}
+                  2. Commit the signed helper and manifest:
+                     git add #{bundle_path} #{Bundle.source_bundle_manifest_path}
                   3. Build and release the gem: gem build wifi-wand.gemspec
               MSG
             end
@@ -148,8 +157,8 @@ module WifiWand
               ✓ Complete release workflow finished!
 
               The helper is now ready for gem distribution.
-              Don't forget to commit the signed binary:
-                git add libexec/macos/wifiwand-helper.app
+              Don't forget to commit the signed binary and manifest:
+                git add libexec/macos/wifiwand-helper.app libexec/macos/wifiwand-helper.source-manifest.json
                 git commit -m 'Update signed and notarized macOS helper'
             MSG
 
@@ -392,12 +401,25 @@ module WifiWand
 
           # Public API - main operations
           module_function def verify_source_attestation!
+            ensure_helper_artifacts_visible_for_release!
             Bundle.verify_source_bundle_current!
             puts Messages::SOURCE_ATTESTATION_VALID
+          rescue GitSkipWorktree::Error => e
+            abort Messages.helper_skip_worktree_check_failed(e.message)
           rescue RELEASE_COMMAND_BOUNDARY_ERROR => e
             # Release tooling is a command boundary: abort with the attestation
             # diagnostic so maintainers do not continue a potentially stale build.
             abort Messages.source_attestation_invalid(e.message)
+          end
+
+          module_function def ensure_helper_artifacts_visible_for_release!
+            manager = GitSkipWorktree.new
+            skip_status = manager.status
+            return skip_status unless skip_status.skipped_count.positive?
+
+            cleared_status = manager.stop(print_result: false)
+            puts 'Helper artifact skip-worktree was enabled; cleared it for release checks.'
+            cleared_status
           end
 
           module_function def build_signed_helper

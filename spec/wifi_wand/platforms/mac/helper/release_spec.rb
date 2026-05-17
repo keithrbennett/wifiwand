@@ -62,6 +62,23 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Release do
     end
   end
 
+  describe 'release guidance messages' do
+    it 'tells maintainers to stage the signed helper and source manifest after notarization' do
+      message = described_class::Messages.helper_ready('libexec/macos/wifiwand-helper.app')
+
+      expect(message).to include(
+        'git add libexec/macos/wifiwand-helper.app',
+        'libexec/macos/wifiwand-helper.source-manifest.json'
+      )
+    end
+
+    it 'tells maintainers to stage the signed helper and source manifest after the workflow' do
+      expect(described_class::Messages::WORKFLOW_COMPLETE).to include(
+        'git add libexec/macos/wifiwand-helper.app libexec/macos/wifiwand-helper.source-manifest.json'
+      )
+    end
+  end
+
   describe '.fetch_notary_credentials!' do
     around do |example|
       original_profile = ENV['WIFIWAND_NOTARYTOOL_PROFILE']
@@ -182,7 +199,9 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Release do
 
   describe '.verify_source_attestation!' do
     it 'confirms the bundle matches the checked-in helper source attestation inputs' do
+      expect(described_class).to receive(:ensure_helper_artifacts_visible_for_release!).ordered
       allow(WifiWand::Platforms::Mac::Helper::Bundle).to receive(:verify_source_bundle_current!)
+      expect(WifiWand::Platforms::Mac::Helper::Bundle).to receive(:verify_source_bundle_current!).ordered
 
       expect { described_class.verify_source_attestation! }
         .to output(/Source attestation matches committed helper source, entitlements, and bundle contents/)
@@ -190,11 +209,68 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Release do
     end
 
     it 'aborts with the attestation failure reason when verification raises' do
+      allow(described_class).to receive(:ensure_helper_artifacts_visible_for_release!)
       allow(WifiWand::Platforms::Mac::Helper::Bundle).to receive(:verify_source_bundle_current!)
         .and_raise(StandardError, 'manifest digest mismatch')
 
       expect_system_exit_with_stderr(/Source attestation failed:.*manifest digest mismatch/m) do
         described_class.verify_source_attestation!
+      end
+    end
+
+    it 'aborts with skip-worktree guidance when Git index checks fail' do
+      allow(described_class).to receive(:ensure_helper_artifacts_visible_for_release!)
+        .and_raise(WifiWand::Platforms::Mac::Helper::GitSkipWorktree::Error,
+          'git ls-files failed: fatal: index corrupt')
+      expect(WifiWand::Platforms::Mac::Helper::Bundle).not_to receive(:verify_source_bundle_current!)
+
+      expect do
+        expect { described_class.verify_source_attestation! }.to raise_error(SystemExit)
+      end.to output(
+        /Helper artifact skip-worktree check failed:.*git ls-files failed: fatal: index corrupt/m
+      ).to_stderr
+    end
+  end
+
+  describe '.ensure_helper_artifacts_visible_for_release!' do
+    let(:skip_manager) { instance_double(WifiWand::Platforms::Mac::Helper::GitSkipWorktree) }
+    let(:skip_status) do
+      instance_double(WifiWand::Platforms::Mac::Helper::GitSkipWorktree::Result,
+        skipped_count: skipped_count)
+    end
+
+    before do
+      allow(WifiWand::Platforms::Mac::Helper::GitSkipWorktree).to receive(:new).and_return(skip_manager)
+      allow(skip_manager).to receive(:status).and_return(skip_status)
+    end
+
+    context 'when helper artifacts are not skipped' do
+      let(:skipped_count) { 0 }
+
+      it 'leaves the local index alone' do
+        expect(skip_manager).not_to receive(:stop)
+
+        result = nil
+        expect { result = described_class.ensure_helper_artifacts_visible_for_release! }
+          .not_to output.to_stdout
+        expect(result).to eq(skip_status)
+      end
+    end
+
+    context 'when helper artifacts are skipped' do
+      let(:skipped_count) { 2 }
+      let(:cleared_status) do
+        instance_double(WifiWand::Platforms::Mac::Helper::GitSkipWorktree::Result, skipped_count: 0)
+      end
+
+      it 'clears skip-worktree before release checks continue' do
+        expect(skip_manager).to receive(:stop).with(print_result: false).and_return(cleared_status)
+
+        result = nil
+        expect { result = described_class.ensure_helper_artifacts_visible_for_release! }
+          .to output(/cleared it for release checks/).to_stdout
+        expect(result).to eq(cleared_status)
+        expect(result.skipped_count).to eq(0)
       end
     end
   end

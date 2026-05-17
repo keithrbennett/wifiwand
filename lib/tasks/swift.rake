@@ -3,6 +3,8 @@
 require 'rbconfig'
 require_relative '../wifi_wand/platforms/mac/helper/bundle'
 require_relative '../wifi_wand/platforms/mac/helper/build'
+require_relative '../wifi_wand/platforms/mac/helper/git_skip_worktree'
+require_relative '../wifi_wand/platforms/mac/helper/release'
 
 namespace :swift do
   helper = WifiWand::Platforms::Mac::Helper::Bundle
@@ -29,8 +31,7 @@ namespace :swift do
 
   desc 'Verify the committed wifiwand macOS helper bundle matches the current source attestation inputs'
   task :verify_helper_attestation do
-    helper.verify_source_bundle_current!
-    puts 'Source attestation matches committed helper source, entitlements, and bundle contents.'
+    WifiWand::Platforms::Mac::Helper::Release.verify_source_attestation!
   end
 
   desc 'Verify the committed wifiwand macOS helper bundle code signature'
@@ -48,4 +49,29 @@ namespace :swift do
 
   desc 'Compile all Swift targets that require compilation (supports optional WIFIWAND_CODESIGN_IDENTITY)'
   task compile: [:compile_helper]
+
+  # These tasks manage a local Git index flag, not repository content. The macOS
+  # helper app contains tracked generated artifacts because releases ship a
+  # signed, prebuilt bundle, but frequent local helper rebuilds can otherwise be
+  # swept into unrelated commits by `git add .`. `swift:helper_skip:start` hides
+  # only the generated executable, signing metadata, and manifest from normal
+  # staging; it leaves the Swift source and helper bundle template files visible.
+  # `swift:helper_skip:stop` must be used before release work so the regenerated
+  # helper artifact is visible to Git and can be staged intentionally.
+  namespace :helper_skip do
+    desc 'Start skip-worktree for generated macOS helper artifact files'
+    task :start do
+      WifiWand::Platforms::Mac::Helper::GitSkipWorktree.new.start
+    end
+
+    desc 'Stop skip-worktree for generated macOS helper artifact files'
+    task :stop do
+      WifiWand::Platforms::Mac::Helper::GitSkipWorktree.new.stop
+    end
+
+    desc 'Show skip-worktree status for generated macOS helper artifact files'
+    task :status do
+      WifiWand::Platforms::Mac::Helper::GitSkipWorktree.new.print_status
+    end
+  end
 end

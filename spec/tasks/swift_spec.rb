@@ -80,7 +80,7 @@ RSpec.describe 'swift tasks' do
   end
 
   it 'verifies helper source attestation as a standalone task' do
-    expect(helper).to receive(:verify_source_bundle_current!)
+    expect(WifiWand::Platforms::Mac::Helper::Release).to receive(:verify_source_attestation!)
     expect(helper).not_to receive(:verify_source_bundle_signature!)
 
     Rake::Task['swift:verify_helper_attestation'].invoke
@@ -108,7 +108,7 @@ RSpec.describe 'swift tasks' do
   it 'verifies helper attestation and code signature from the aggregate task' do
     allow(RbConfig::CONFIG).to receive(:[]).with('host_os').and_return('darwin')
 
-    expect(helper).to receive(:verify_source_bundle_current!).ordered
+    expect(WifiWand::Platforms::Mac::Helper::Release).to receive(:verify_source_attestation!).ordered
     expect(helper).to receive(:verify_source_bundle_signature!).ordered
 
     Rake::Task['swift:verify_helper'].invoke
