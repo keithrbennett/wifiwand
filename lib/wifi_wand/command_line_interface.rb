@@ -38,6 +38,7 @@ module WifiWand
 
       @model_options = {
         verbose:        options.verbose,
+        utc:            options.utc,
         wifi_interface: options.wifi_interface,
         out_stream:     out_stream,
         err_stream:     err_stream,

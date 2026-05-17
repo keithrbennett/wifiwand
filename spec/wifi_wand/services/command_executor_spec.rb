@@ -316,6 +316,27 @@ describe WifiWand::CommandExecutor do
         end.to output(/Command:.*echo "test".*Duration:.*seconds/m).to_stdout
       end
 
+      it 'outputs UTC timestamps when runtime config requests UTC' do
+        output = StringIO.new
+        verbose_executor = described_class.new(verbose: true, utc: true, output: output)
+
+        verbose_executor.run_command_using_shell('echo "test"')
+
+        expect(output.string).to match(/Duration: .* seconds -- \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/)
+      end
+
+      it 'outputs local timestamps by default' do
+        output = StringIO.new
+        verbose_executor = described_class.new(verbose: true, output: output)
+        fixed_time = Time.new(2026, 5, 17, 18, 3, 50, '+07:00')
+
+        allow(Time).to receive(:now).and_return(fixed_time)
+
+        verbose_executor.run_command_using_shell('echo "test"')
+
+        expect(output.string).to include("seconds -- #{fixed_time.getlocal.iso8601}")
+      end
+
       it 'warns when forceful reader cleanup does not finish promptly' do
         output = StringIO.new
         verbose_executor = described_class.new(verbose: true, output: output)

@@ -3,6 +3,7 @@
 module WifiWand
   CommandLineOptions = Struct.new(
     :verbose,
+    :utc,
     :post_processor,
     :wifi_interface,
     :version_requested,

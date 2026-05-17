@@ -21,7 +21,7 @@ module WifiWand
           data
         else
           output = if cli.options.post_processor
-            cli.options.post_processor.(data)
+            post_process(data)
           else
             human_readable_string_producer.call
           end

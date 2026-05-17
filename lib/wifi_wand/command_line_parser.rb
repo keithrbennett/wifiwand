@@ -56,6 +56,15 @@ module WifiWand
           options.verbose = value
         end
 
+        parser.on(
+          '-u',
+          '--utc BOOLEAN',
+          TrueClass,
+          'Use UTC for timestamps (default: false, for local time)'
+        ) do |value|
+          options.utc = value
+        end
+
         parser.on('-o', '--output_format FORMAT', 'Format output data') do |value|
           options.post_processor = formatter_for(value)
         end

@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'time'
 require_relative '../connectivity_states'
 require_relative '../network_identity'
 
@@ -8,7 +9,7 @@ module WifiWand
     module OutputFormatter
       def format_object(object)
         require 'amazing_print'
-        object.ai
+        object_for_display(object).ai
       end
 
       def colorize_text(text, color = nil)
@@ -114,10 +115,25 @@ module WifiWand
         line
       end
 
-      # If a post-processor has been configured (e.g. YAML or JSON), use it.
-      def post_process(object) = post_processor ? post_processor.(object) : object
+      def post_process(object)
+        display_object = object_for_display(object)
+        post_processor ? post_processor.(display_object) : display_object
+      end
 
       def post_processor = options.post_processor
+
+      private def object_for_display(object)
+        case object
+        when Time
+          options.utc ? object.getutc.iso8601 : object.getlocal.iso8601
+        when Hash
+          object.transform_values { |value| object_for_display(value) }
+        when Array
+          object.map { |value| object_for_display(value) }
+        else
+          object
+        end
+      end
     end
   end
 end

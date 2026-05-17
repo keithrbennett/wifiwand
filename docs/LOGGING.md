@@ -39,14 +39,14 @@ wifi-wand log
 
 Output appears as events occur:
 ```
-[2025-10-28T23:44:14Z] Event logging started (polling every 5s)
-[2025-10-28T23:44:19Z] Current state: WiFi on, connected to MyNetwork, internet available
-[2025-10-28T23:45:10Z] WiFi OFF
-[2025-10-28T23:45:15Z] Disconnected from MyNetwork
-[2025-10-28T23:45:20Z] Internet unavailable
-[2025-10-28T23:45:45Z] WiFi ON
-[2025-10-28T23:45:50Z] Connected to MyNetwork
-[2025-10-28T23:45:55Z] Internet available
+[2025-10-28T19:44:14-04:00] Event logging started (polling every 5s)
+[2025-10-28T19:44:19-04:00] Current state: WiFi on, connected to MyNetwork, internet available
+[2025-10-28T19:45:10-04:00] WiFi OFF
+[2025-10-28T19:45:15-04:00] Disconnected from MyNetwork
+[2025-10-28T19:45:20-04:00] Internet unavailable
+[2025-10-28T19:45:45-04:00] WiFi ON
+[2025-10-28T19:45:50-04:00] Connected to MyNetwork
+[2025-10-28T19:45:55-04:00] Internet available
 ```
 
 Press `Ctrl+C` to stop logging.
@@ -135,6 +135,18 @@ Enable verbose logging (shows additional details).
 wifi-wand log --verbose
 ```
 
+### `--utc BOOLEAN`, `-u BOOLEAN`
+
+Event timestamps use local time by default. The `--utc` option requires an explicit boolean value. To write
+timestamps in UTC, pass the global UTC option before the `log` command:
+
+```bash
+wifi-wand --utc true log # true values: true, t, yes, y, +
+wifi-wand -u true log    # false values: false, f, no, n, -
+```
+
+To force local-time output when a default option enables UTC, pass `--utc false` or `-u false`.
+
 ## Event Types
 
 The logger tracks and reports the following event types:
@@ -176,24 +188,26 @@ are emitted in this order:
 
 ## Log File Format
 
-Each log entry is timestamped in ISO-8601 format:
+Each log entry is timestamped in ISO-8601 format. Local time is the default:
 
 ```
-[YYYY-MM-DDTHH:MM:SSZ] Event description
+[YYYY-MM-DDTHH:MM:SS-04:00] Event description
 ```
 
 Example log file content:
 
 ```
-[2025-10-28T14:32:15Z] Event logging started (polling every 5s)
-[2025-10-28T14:32:20Z] Current state: WiFi on, connected to MyNetwork, internet available
-[2025-10-28T14:32:25Z] WiFi OFF
-[2025-10-28T14:32:30Z] Disconnected from MyNetwork
-[2025-10-28T14:32:35Z] Internet unavailable
-[2025-10-28T14:32:45Z] WiFi ON
-[2025-10-28T14:32:50Z] Connected to MyNetwork
-[2025-10-28T14:32:55Z] Internet available
+[2025-10-28T10:32:15-04:00] Event logging started (polling every 5s)
+[2025-10-28T10:32:20-04:00] Current state: WiFi on, connected to MyNetwork, internet available
+[2025-10-28T10:32:25-04:00] WiFi OFF
+[2025-10-28T10:32:30-04:00] Disconnected from MyNetwork
+[2025-10-28T10:32:35-04:00] Internet unavailable
+[2025-10-28T10:32:45-04:00] WiFi ON
+[2025-10-28T10:32:50-04:00] Connected to MyNetwork
+[2025-10-28T10:32:55-04:00] Internet available
 ```
+
+With `--utc true`, timestamps use the UTC `Z` suffix.
 
 ## Practical Examples
 

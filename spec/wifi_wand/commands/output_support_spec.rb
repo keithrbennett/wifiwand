@@ -43,6 +43,42 @@ describe WifiWand::Commands::OutputSupport do
       expect(output).to eq(%({:KEY=>"VALUE"}\n)).or eq(%({KEY: "VALUE"}\n))
     end
 
+    it 'applies utc display conversion before post processing Time values' do
+      timestamp = Time.new(2026, 5, 17, 18, 3, 50, '+07:00')
+      json_options = create_cli_options(post_processor: ->(obj) { JSON.generate(obj) }, utc: true)
+      json_cli = WifiWand::CommandLineInterface.new(json_options)
+      output_support = described_class.new(json_cli)
+      output = nil
+
+      silence_output do |stdout, _stderr|
+        output_support.handle_output({ timestamp: timestamp }, human_readable_producer)
+        output = stdout.string
+      end
+
+      expect(JSON.parse(output)).to eq('timestamp' => '2026-05-17T11:03:50Z')
+      expect(timestamp.utc_offset).to eq(7 * 60 * 60)
+    end
+
+    it 'applies local display conversion before post processing Time values by default' do
+      previous_tz = ENV.fetch('TZ', nil)
+      ENV['TZ'] = 'America/New_York'
+      timestamp = Time.utc(2026, 5, 17, 11, 3, 50)
+      json_options = create_cli_options(post_processor: ->(obj) { JSON.generate(obj) })
+      json_cli = WifiWand::CommandLineInterface.new(json_options)
+      output_support = described_class.new(json_cli)
+      output = nil
+
+      silence_output do |stdout, _stderr|
+        output_support.handle_output({ timestamp: timestamp }, human_readable_producer)
+        output = stdout.string
+      end
+
+      expect(JSON.parse(output)).to eq('timestamp' => timestamp.getlocal.iso8601)
+      expect(timestamp).to be_utc
+    ensure
+      previous_tz.nil? ? ENV.delete('TZ') : ENV['TZ'] = previous_tz
+    end
+
     it 'uses the human readable producer when no post processor is configured' do
       output_support = described_class.new(cli)
 

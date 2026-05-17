@@ -27,7 +27,7 @@ module WifiWand
   class BaseModel
     include StringPredicates
 
-    Options = Struct.new(:verbose, :wifi_interface, :out_stream, :err_stream, keyword_init: true)
+    Options = Struct.new(:verbose, :utc, :wifi_interface, :out_stream, :err_stream, keyword_init: true)
 
     attr_writer :wifi_interface
     attr_reader :runtime_config
@@ -52,6 +52,7 @@ module WifiWand
       @options = options
       @runtime_config = RuntimeConfig.new(
         verbose:    options.verbose,
+        utc:        options.utc || false,
         out_stream: options.out_stream || $stdout,
         err_stream: options.err_stream || $stderr
       )

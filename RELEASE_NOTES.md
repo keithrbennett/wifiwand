@@ -1,5 +1,8 @@
 ## Unreleased
 
+* Breaking change: user-visible timestamps now default to local time instead of UTC. Pass `--utc true` or
+  `-u true` before the command to print timestamps in UTC.
+* Add the global `--utc BOOLEAN` / `-u BOOLEAN` option to control timestamp timezone output.
 * Breaking change: remove the `verbose` and `verbose_mode` reader aliases from
   the public library and CLI-facing objects.
 * Breaking change: `info["ip_address"]` has been renamed to

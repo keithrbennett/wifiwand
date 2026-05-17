@@ -30,6 +30,7 @@ module WifiWand
           'specify WiFi interface name (overrides auto-detection)',
         ],
         ['-V, --version', 'show version'],
+        ['-u, --utc BOOLEAN', 'use UTC for timestamps (default: false, for local time)'],
         ['-v, --[no-]verbose', 'verbose mode (prints OS commands and their outputs)'],
       ].freeze
 

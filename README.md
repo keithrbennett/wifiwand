@@ -190,6 +190,7 @@ Command Line Switches     [wifi-wand version 3.0.0-alpha.1 at https://github.com
 -p, --wifi-interface interface_name
                           - specify WiFi interface name (overrides auto-detection)
 -V, --version             - show version
+-u, --utc BOOLEAN         - use UTC for timestamps (default: false, for local time)
 -v, --[no-]verbose        - verbose mode (prints OS commands and their outputs)
                             To disable: use --no-verbose or --no-v (short form negation like -v- is not supported)
 
@@ -268,6 +269,17 @@ instead of parsing human-formatted text. Structured output is simpler to consume
 to change over time.
 In _interactive_ mode, you can call the usual Ruby methods (`to_json`, `to_yaml`, etc.) instead.
 
+### Timestamp Timezone
+
+User-visible timestamps default to local time. The `--utc` option requires an explicit boolean value. To print
+timestamps in UTC, pass `--utc true` or `-u true` before the command:
+
+```bash
+wifi-wand --utc true info # true values: true, t, yes, y, +
+wifi-wand -u true log     # false values: false, f, no, n, -
+```
+
+To force local-time output when a default option enables UTC, pass `--utc false` or `-u false`.
 
 ### Seeing the Underlying OS Commands and Output
 

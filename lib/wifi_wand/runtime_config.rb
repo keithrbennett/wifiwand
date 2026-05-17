@@ -2,11 +2,12 @@
 
 module WifiWand
   class RuntimeConfig
-    attr_reader :verbose
+    attr_reader :verbose, :utc
     attr_accessor :out_stream, :err_stream
 
-    def initialize(verbose: false, out_stream: $stdout, err_stream: $stderr)
+    def initialize(verbose: false, utc: false, out_stream: $stdout, err_stream: $stderr)
       @verbose = !!verbose
+      @utc = !!utc
       @out_stream = out_stream
       @err_stream = err_stream
     end
@@ -15,9 +16,14 @@ module WifiWand
       @verbose = !!value
     end
 
+    def utc=(value)
+      @utc = !!value
+    end
+
     def to_h
       {
         verbose:    verbose,
+        utc:        utc,
         out_stream: out_stream,
         err_stream: err_stream,
       }

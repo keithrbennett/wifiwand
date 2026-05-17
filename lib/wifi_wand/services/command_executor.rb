@@ -11,9 +11,10 @@ module WifiWand
     TRY_OS_COMMAND_RETRY_SLEEP_SECS = 0.001
     private attr_reader :runtime_config
 
-    def initialize(verbose: false, output: $stdout, runtime_config: nil)
+    def initialize(verbose: false, utc: false, output: $stdout, runtime_config: nil)
       @runtime_config = runtime_config || RuntimeConfig.new(
         verbose:    verbose,
+        utc:        utc,
         out_stream: output
       )
     end
@@ -174,7 +175,7 @@ module WifiWand
       status_string = "#{result.termination_status} (#{result.success? ? 'success' : 'error'})"
 
       if verbose?
-        output.puts "#{status_string}, Duration: #{format('%.4f', duration)} seconds -- #{Time.now.iso8601}"
+        output.puts "#{status_string}, Duration: #{format('%.4f', duration)} seconds -- #{current_timestamp}"
         unless result.stdout.empty?
           output.puts command_result_as_string("STDOUT:\n#{result.stdout}")
         end
@@ -219,6 +220,10 @@ module WifiWand
     private def verbose? = runtime_config.verbose
 
     private def output = runtime_config.out_stream
+
+    private def current_timestamp(time = Time.now)
+      runtime_config.utc ? time.getutc.iso8601 : time.getlocal.iso8601
+    end
 
     private def command_attempt_as_string(command) = "\n\n#{banner_line}\nCommand: #{command}\n"
 

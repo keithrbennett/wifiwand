@@ -36,11 +36,23 @@ describe WifiWand::CommandLineInterface do
       expect(WifiWand).to receive(:create_model) do |model_options|
         expect(model_options).to be_a(Hash)
         expect(model_options[:verbose]).to eq(options.verbose)
+        expect(model_options[:utc]).to eq(options.utc)
         expect(model_options[:wifi_interface]).to eq(options.wifi_interface)
         mock_model
       end
 
       cli = described_class.new(options)
+      expect(cli.model).to eq(mock_model)
+    end
+
+    it 'passes utc through to model creation when configured globally' do
+      utc_options = create_cli_options(utc: true)
+      expect(WifiWand).to receive(:create_model) do |model_options|
+        expect(model_options[:utc]).to be(true)
+        mock_model
+      end
+
+      cli = described_class.new(utc_options)
       expect(cli.model).to eq(mock_model)
     end
   end

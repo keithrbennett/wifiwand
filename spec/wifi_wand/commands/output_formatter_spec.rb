@@ -70,6 +70,33 @@ describe WifiWand::Commands::OutputFormatter do
       expect(result).to include('name', 'test', 'value', '123')
       expect(result).to be_a(String)
     end
+
+    it 'formats Time values as local ISO8601 timestamps by default without mutating the object' do
+      previous_tz = ENV.fetch('TZ', nil)
+      ENV['TZ'] = 'America/New_York'
+      timestamp = Time.utc(2026, 5, 17, 11, 3, 50)
+      object = { timestamp: timestamp }
+      expected_timestamp = timestamp.getlocal.iso8601
+
+      result = subject.format_object(object)
+
+      expect(result).to include(expected_timestamp)
+      expect(object[:timestamp]).to equal(timestamp)
+      expect(timestamp).to be_utc
+    ensure
+      previous_tz.nil? ? ENV.delete('TZ') : ENV['TZ'] = previous_tz
+    end
+
+    it 'formats Time values as UTC ISO8601 timestamps when utc is enabled' do
+      utc_options = WifiWand::CommandLineOptions.new(post_processor: nil, utc: true)
+      formatter = test_class.new(utc_options, mock_model)
+      timestamp = Time.new(2026, 5, 17, 18, 3, 50, '+07:00')
+
+      result = formatter.format_object({ timestamp: timestamp })
+
+      expect(result).to include('2026-05-17T11:03:50Z')
+      expect(timestamp.utc_offset).to eq(7 * 60 * 60)
+    end
   end
 
   describe '#colorize_text' do
@@ -515,12 +542,37 @@ describe WifiWand::Commands::OutputFormatter do
         # Accept both old Ruby format and new Ruby format
         expect(result).to eq('{:KEY=>"VALUE"}').or eq('{KEY: "VALUE"}')
       end
+
+      it 'applies display conversion before post processing Time values' do
+        utc_options = WifiWand::CommandLineOptions.new(
+          post_processor: ->(obj) { JSON.generate(obj) },
+          utc:            true
+        )
+        formatter = test_class.new(utc_options, mock_model)
+        timestamp = Time.new(2026, 5, 17, 18, 3, 50, '+07:00')
+
+        result = formatter.post_process({ timestamp: timestamp })
+
+        expect(JSON.parse(result)).to eq('timestamp' => '2026-05-17T11:03:50Z')
+        expect(timestamp.utc_offset).to eq(7 * 60 * 60)
+      end
     end
 
     context 'when post_processor is nil' do
-      it 'returns the object unchanged' do
+      it 'returns display-safe data without post processing' do
         result = subject.post_process(test_object)
         expect(result).to eq(test_object)
+      end
+
+      it 'applies display conversion to Time values' do
+        timestamp = Time.new(2026, 5, 17, 18, 3, 50, '+07:00')
+        utc_options = WifiWand::CommandLineOptions.new(post_processor: nil, utc: true)
+        formatter = test_class.new(utc_options, mock_model)
+
+        result = formatter.post_process({ timestamp: timestamp })
+
+        expect(result).to eq(timestamp: '2026-05-17T11:03:50Z')
+        expect(timestamp.utc_offset).to eq(7 * 60 * 60)
       end
     end
   end

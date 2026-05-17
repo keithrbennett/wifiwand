@@ -14,7 +14,10 @@ module WifiWand
         short_string: 'lo',
         long_string:  'log',
         description:  'start event logging (monitors wifi on/off, connected/disconnected, internet on/off)',
-        usage:        'Usage: wifi-wand log [--interval N] [--file [PATH]] [--stdout] [--verbose]'
+        usage:        [
+          'Usage: wifi-wand log [--interval N] [--file [PATH]]',
+          '[--stdout] [--verbose]',
+        ].join(' ')
       )
 
       binds :model, output: :out_stream, verbose_flag: :verbose?
@@ -94,7 +97,13 @@ module WifiWand
         [interval, log_file_path, output_to_stdout, verbose_flag]
       end
 
-      private def build_parser(interval_setter:, file_setter:, stdout_setter:, verbose_setter:, help_setter:)
+      private def build_parser(
+        interval_setter:,
+        file_setter:,
+        stdout_setter:,
+        verbose_setter:,
+        help_setter:
+      )
         OptionParser.new do |opts|
           opts.banner = metadata.usage
           opts.separator ''

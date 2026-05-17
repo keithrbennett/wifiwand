@@ -7,7 +7,7 @@ require_relative '../../../lib/wifi_wand/services/event_logger'
 require_relative '../../../lib/wifi_wand/services/log_file_manager'
 
 describe WifiWand::EventLogger do
-  let(:iso8601_timestamp_pattern) { '\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z\]' }
+  let(:iso8601_timestamp_pattern) { '\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})\]' }
 
   let(:mock_model) do
     double('Model',
@@ -58,6 +58,31 @@ describe WifiWand::EventLogger do
 
       expect(logger.verbose?).to be true
       expect(runtime_config.verbose).to be false
+    end
+
+    it 'reads utc from shared runtime config after initialization' do
+      runtime_config = WifiWand::RuntimeConfig.new(utc: false, out_stream: out_stream)
+      logger = described_class.new(mock_model, runtime_config: runtime_config)
+
+      runtime_config.utc = true
+
+      expect(logger.send(:current_timestamp, Time.new(2025, 10, 28, 14, 32, 30, '+03:00')))
+        .to eq('2025-10-28T11:32:30Z')
+    end
+
+    it 'uses an explicit utc override without mutating shared runtime config' do
+      runtime_config = WifiWand::RuntimeConfig.new(utc: false, out_stream: out_stream)
+      logger = described_class.new(mock_model, runtime_config: runtime_config, utc: true)
+
+      expect(logger.send(:current_timestamp, Time.new(2025, 10, 28, 14, 32, 30, '+03:00')))
+        .to eq('2025-10-28T11:32:30Z')
+      expect(runtime_config.utc).to be false
+    end
+
+    it 'coerces an explicit utc override to a boolean' do
+      logger = described_class.new(mock_model, utc: 'yes')
+
+      expect(logger.send(:utc?)).to be true
     end
 
     it 'reads out_stream from shared runtime config after initialization' do
@@ -781,14 +806,40 @@ describe WifiWand::EventLogger do
       described_class.new(mock_model, out_stream: out_stream)
     end
 
+    around do |example|
+      previous_tz = ENV.fetch('TZ', nil)
+      ENV['TZ'] = 'America/New_York'
+      example.run
+    ensure
+      previous_tz.nil? ? ENV.delete('TZ') : ENV['TZ'] = previous_tz
+    end
+
     it 'formats wifi_on event' do
+      timestamp = Time.utc(2025, 10, 28, 14, 32, 30)
       event = {
         type:      :wifi_on,
-        timestamp: Time.new(2025, 10, 28, 14, 32, 30, 0),
+        timestamp: timestamp,
         details:   {},
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/#{iso8601_timestamp_pattern} WiFi ON/)
+      expected_timestamp = Time.utc(2025, 10, 28, 14, 32, 30).getlocal.iso8601
+      expect(message).to eq("[#{expected_timestamp}] WiFi ON")
+      expect(timestamp).to be_utc
+    end
+
+    it 'formats event timestamps in UTC when requested' do
+      utc_logger = described_class.new(mock_model, out_stream: out_stream, utc: true)
+      timestamp = Time.new(2025, 10, 28, 14, 32, 30, '+03:00')
+      event = {
+        type:      :wifi_on,
+        timestamp: timestamp,
+        details:   {},
+      }
+
+      message = utc_logger.send(:format_event_message, event)
+
+      expect(message).to eq('[2025-10-28T11:32:30Z] WiFi ON')
+      expect(timestamp.utc_offset).to eq(3 * 60 * 60)
     end
 
     it 'formats wifi_off event' do

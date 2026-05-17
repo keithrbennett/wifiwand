@@ -68,6 +68,11 @@ describe WifiWand::Commands::HelpSystem do
       expect(help).to include('status line (WiFi, Network, DNS, Internet')
     end
 
+    it 'documents the global utc timestamp option' do
+      expect(help).to include('-u, --utc BOOLEAN')
+      expect(help).to include('use UTC for timestamps (default: false, for local time)')
+    end
+
     it 'documents exact short and long command forms for public_ip' do
       expect(help).to include('pi / public_ip [address|country|both|a|c|b]')
       expect(help).to include("e.g. 'public_ip a' or 'pi country'")

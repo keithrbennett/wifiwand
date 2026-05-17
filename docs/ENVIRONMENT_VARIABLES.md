@@ -42,6 +42,12 @@ wifi-wand info
 export WIFIWAND_OPTS="--verbose"
 wifi-wand status
 ```
+
+```bash
+export WIFIWAND_OPTS="--utc true"
+wifi-wand log
+```
+
 - **Overrides:** Later command-line arguments can override most defaults, but commands (e.g., `shell`)
   cannot be negated, nor can their options be overridden from the environment.
 - **Scope:** `WIFIWAND_OPTS` only supports top-level flags; command options (like `log --file`) must still

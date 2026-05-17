@@ -27,6 +27,45 @@ describe WifiWand::CommandLineParser do
       expect(options.verbose).to be_nil
     end
 
+    it 'parses utc flags with boolean values' do
+      options = parse_with_argv('--utc', 'true', 'info')
+      expect(options.utc).to be(true)
+
+      options = parse_with_argv('-u', 'yes', 'info')
+      expect(options.utc).to be(true)
+
+      options = parse_with_argv('--utc=false', 'info')
+      expect(options.utc).to be(false)
+
+      options = parse_with_argv('-ufalse', 'info')
+      expect(options.utc).to be(false)
+    end
+
+    {
+      true  => %w[true yes y t +],
+      false => %w[false no n f -],
+    }.each do |expected, values|
+      values.each do |value|
+        it "parses --utc #{value.inspect} as #{expected}" do
+          options = parse_with_argv('--utc', value, 'info')
+          expect(options.utc).to be(expected)
+        end
+      end
+    end
+
+    %w[on off 1 0].each do |value|
+      it "rejects unsupported utc boolean value #{value.inspect}" do
+        expect do
+          parse_with_argv('--utc', value, 'info')
+        end.to raise_error(OptionParser::InvalidArgument)
+      end
+    end
+
+    it 'defaults utc to nil when not specified' do
+      options = parse_with_argv('info')
+      expect(options.utc).to be_nil
+    end
+
     %w[--no-v --no-verbose].each do |negation_flag|
       it "handles verbose flag negation when -v is followed by #{negation_flag}" do
         options = parse_with_argv('-v', negation_flag, 'info')

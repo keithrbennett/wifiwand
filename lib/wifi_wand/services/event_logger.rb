@@ -58,8 +58,9 @@ module WifiWand
     )
       @model = model
       @interval = interval
-      @runtime_config = runtime_config || RuntimeConfig.new(verbose: kwargs[:verbose])
+      @runtime_config = runtime_config || RuntimeConfig.new(verbose: kwargs[:verbose], utc: kwargs[:utc])
       @verbose_override = kwargs[:verbose] if kwargs.key?(:verbose)
+      @utc_override = !!kwargs[:utc] if kwargs.key?(:utc)
       @out_stream_override = kwargs[:out_stream] if kwargs.key?(:out_stream)
       # Only create LogFileManager if file logging is requested
       @log_file_manager = if log_file_manager
@@ -86,7 +87,7 @@ module WifiWand
     # thread so another thread can call `stop`.
     def run
       start_running
-      timestamp = Time.now.utc.iso8601
+      timestamp = current_timestamp
       log_message("[#{timestamp}] Event logging started (polling every #{@interval}s)")
 
       begin
@@ -106,7 +107,7 @@ module WifiWand
           sleep_until(poll_started_at + @interval)
         end
       rescue Interrupt
-        timestamp = Time.now.utc.iso8601
+        timestamp = current_timestamp
         log_message("[#{timestamp}] Event logging stopped")
         stop
       rescue POLLING_BOUNDARY_ERROR => e
@@ -145,7 +146,7 @@ module WifiWand
     end
 
     def log_initial_state(state)
-      timestamp = Time.now.utc.iso8601
+      timestamp = current_timestamp
       wifi = wifi_state_label(state[:wifi_on])
       network = network_state_label(state)
       internet = internet_state_label(state[:internet_state])
@@ -338,7 +339,7 @@ module WifiWand
     private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
     private def log_termination_message(error)
-      timestamp = Time.now.utc.iso8601
+      timestamp = current_timestamp
       log_message("[#{timestamp}] Event logging terminated: #{error.class}: #{error.message}")
     rescue WifiWand::LogWriteError
       # Preserve the polling failure as the primary exception when the best-effort
@@ -423,7 +424,7 @@ module WifiWand
     end
 
     private def format_event_message(event)
-      timestamp = event[:timestamp].utc.iso8601
+      timestamp = current_timestamp(event[:timestamp])
       event_type = event[:type]
       details = event[:details]
 
@@ -498,6 +499,18 @@ module WifiWand
       else
         runtime_config.verbose
       end
+    end
+
+    private def utc?
+      if instance_variable_defined?(:@utc_override)
+        @utc_override
+      else
+        runtime_config.utc
+      end
+    end
+
+    private def current_timestamp(time = Time.now)
+      utc? ? time.getutc.iso8601 : time.getlocal.iso8601
     end
   end
 end

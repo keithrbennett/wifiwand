@@ -17,6 +17,7 @@ describe WifiWand::Commands::Log do
   end
 
   let(:output) { StringIO.new }
+  let(:runtime_config) { WifiWand::RuntimeConfig.new(utc: true, out_stream: output) }
 
   let(:cli) { double('cli', model: mock_model, verbose?: true, out_stream: output) }
 
@@ -63,6 +64,23 @@ describe WifiWand::Commands::Log do
           log_file_path: nil,
           out_stream:    output
         )
+      )
+    end
+
+    it 'lets EventLogger inherit global utc configuration from the model runtime config' do
+      allow(mock_model).to receive(:respond_to?).with(:runtime_config).and_return(true)
+      allow(mock_model).to receive(:runtime_config).and_return(runtime_config)
+      command = described_class.new(model: mock_model, output: output, verbose_flag: false)
+
+      command.call
+
+      expect(WifiWand::EventLogger).to have_received(:new).with(
+        mock_model,
+        hash_including(runtime_config: runtime_config)
+      )
+      expect(WifiWand::EventLogger).to have_received(:new).with(
+        mock_model,
+        hash_not_including(:utc)
       )
     end
 
