@@ -189,7 +189,7 @@ describe WifiWand::CommandLineParser do
 
         case format_code
         when 'a'
-          expect(result).to include('"test" => "value"')
+          expect(strip_ansi(result)).to include('"test" => "value"')
         when 'i'
           expect(result).to eq({ 'test' => 'value' }.inspect)
         when 'j'

@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'yaml'
-require 'amazing_print'
 require_relative 'operating_systems'
 require_relative 'command_line_options'
 require_relative 'errors'

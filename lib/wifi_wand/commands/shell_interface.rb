@@ -8,6 +8,7 @@ module WifiWand
       def run_shell
         out_stream.puts "For help, type 'h[Enter]' or 'help[Enter]'."
         require 'pry'
+        require 'amazing_print'
 
         # Enable the line below if you have any problems with pry configuration being loaded
         # that is messing up this runtime use of pry:

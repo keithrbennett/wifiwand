@@ -119,6 +119,7 @@ describe WifiWand::Commands::ShellInterface do
 
     it 'outputs a 1-line help message before starting pry session' do
       allow(subject).to receive(:require).with('pry')
+      allow(subject).to receive(:require).with('amazing_print')
       mock_pry_session
 
       subject.run_shell
@@ -127,6 +128,15 @@ describe WifiWand::Commands::ShellInterface do
 
     it 'requires pry gem' do
       expect(subject).to receive(:require).with('pry')
+      allow(subject).to receive(:require).with('amazing_print')
+      mock_pry_session
+
+      subject.run_shell
+    end
+
+    it 'requires amazing_print gem' do
+      allow(subject).to receive(:require).with('pry')
+      expect(subject).to receive(:require).with('amazing_print')
       mock_pry_session
 
       subject.run_shell
@@ -144,6 +154,7 @@ describe WifiWand::Commands::ShellInterface do
       stub_const('Pry', pry_class)
 
       allow(subject).to receive(:require).with('pry')
+      allow(subject).to receive(:require).with('amazing_print')
       mock_binding = double('binding', pry: nil)
       allow(subject).to receive(:binding).and_return(mock_binding)
 
@@ -158,6 +169,7 @@ describe WifiWand::Commands::ShellInterface do
 
     it 'returns 0 when pry finishes normally' do
       allow(subject).to receive(:require).with('pry')
+      allow(subject).to receive(:require).with('amazing_print')
       mock_pry_session
 
       expect(subject.run_shell).to eq(0)
@@ -165,6 +177,7 @@ describe WifiWand::Commands::ShellInterface do
 
     it 'returns 0 when quit throws the shell exit signal' do
       allow(subject).to receive(:require).with('pry')
+      allow(subject).to receive(:require).with('amazing_print')
 
       pry_config = double('pry_config')
       allow(pry_config).to receive(:command_prefix=)

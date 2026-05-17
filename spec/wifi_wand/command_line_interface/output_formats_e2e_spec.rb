@@ -120,7 +120,7 @@ describe 'Output Format End-to-End Tests' do
           when 'P'
             expect(output).to eq(pretty_print_output(test_network_info))
           when 'a'
-            expect(output).to eq(test_network_info.ai(plain: true))
+            expect(strip_ansi(output)).to eq(strip_ansi(test_network_info.ai(plain: false)))
           when 'y'
             expect(YAML.safe_load(output)).to eq(YAML.safe_load(test_network_info.to_yaml))
           end
@@ -145,7 +145,7 @@ describe 'Output Format End-to-End Tests' do
           when 'p'
             expect(output).to eq('reachable')
           when 'a'
-            expect(output).to eq('reachable'.ai(plain: true))
+            expect(strip_ansi(output)).to eq(strip_ansi('reachable'.ai(plain: false)))
           when 'y'
             expect(YAML.safe_load(output)).to eq('reachable')
           end

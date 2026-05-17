@@ -261,6 +261,8 @@ modes.
 You can specify that output in _noninteractive_ mode be in a certain format.
 Currently, JSON, pretty JSON, YAML, inspect, puts, pretty print, and amazing print formats are supported.
 See the help for which command line switches to use.
+Amazing Print output (`-o a`) uses ANSI color when stdout is a terminal and plain text when output is piped or
+redirected. Pipe through `tee` if you want terminal-readable plain output while also saving or forwarding it.
 If you are scripting against the CLI, prefer machine-readable output such as JSON (`-o j`)
 instead of parsing human-formatted text. Structured output is simpler to consume and less likely
 to change over time.

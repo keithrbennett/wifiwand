@@ -44,6 +44,16 @@ Use `-o P` when you want Ruby pretty print output:
 wifi-wand -o P info
 ```
 
+#### Amazing Print color follows stdout
+
+The `-o a` formatter now lets `amazing_print` decide whether to emit ANSI color instead of forcing plain text.
+It uses color when stdout is a terminal and plain text when output is piped or redirected. Pipe through `tee`
+if you want terminal-readable plain output while also saving or forwarding it:
+
+```bash
+wifi-wand -o a info | tee wifi-info.txt
+```
+
 ### Pretty output dependency changed
 
 #### `awesome_print` replaced by `amazing_print`

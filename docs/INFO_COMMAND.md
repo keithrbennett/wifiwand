@@ -173,7 +173,9 @@ Outputs using Ruby's standard pretty printer.
 wifi-wand -o a info
 ```
 
-Outputs using `amazing_print`.
+Outputs using `amazing_print`. ANSI color follows stdout: color is enabled when stdout is a terminal and
+suppressed when output is piped or redirected. Pipe through `tee` if you want terminal-readable plain output
+while also saving or forwarding it.
 
 ## Practical Examples
 

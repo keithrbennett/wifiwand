@@ -197,6 +197,8 @@ module TestHelpers
   YELLOW_TEXT_REGEX = /\e\[33m.*\e\[0m/
   CYAN_TEXT_REGEX = /\e\[36m.*\e\[0m/
 
+  def strip_ansi(text) = text.to_s.gsub(/\e\[[\d;]*m/, '')
+
   # Factory method for creating standard CLI mock model with common methods
   private def create_standard_mock_model(overrides = {})
     defaults = {

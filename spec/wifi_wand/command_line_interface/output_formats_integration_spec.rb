@@ -112,7 +112,7 @@ describe 'Output Format Integration Tests' do
 
             case format_name
             when :amazing_print
-              expect(output).to eq(test_data.ai(plain: true))
+              expect(strip_ansi(output)).to eq(strip_ansi(test_data.ai(plain: false)))
             when :inspect
               expect(output).to eq(test_data.inspect)
             when :pretty_print
@@ -146,7 +146,7 @@ describe 'Output Format Integration Tests' do
 
             case format_name
             when :amazing_print
-              expect(output).to eq(test_data.ai(plain: true))
+              expect(strip_ansi(output)).to eq(strip_ansi(test_data.ai(plain: false)))
             when :inspect
               expect(output).to eq(test_data.inspect)
             when :puts
@@ -173,7 +173,7 @@ describe 'Output Format Integration Tests' do
 
             case format_name
             when :amazing_print
-              expect(output).to eq(expected_value.ai(plain: true))
+              expect(strip_ansi(output)).to eq(strip_ansi(expected_value.ai(plain: false)))
             when :inspect
               expect(output).to eq(expected_value.inspect)
             when :puts
@@ -402,7 +402,7 @@ describe 'Output Format Integration Tests' do
 
             case format_name
             when :amazing_print
-              expect(output).to eq(test_data.ai(plain: true))
+              expect(strip_ansi(output)).to eq(strip_ansi(test_data.ai(plain: false)))
             when :inspect
               expect(output).to eq('nil')
             when :pretty_print

@@ -23,6 +23,12 @@
   `amazing_print` for human-readable object formatting. Ruby consumers that
   relied on wifi-wand to provide `awesome_print` must add their own direct
   dependency or migrate to `amazing_print`.
+* Breaking change: `-o a` Amazing Print output now lets `amazing_print` decide
+  whether to emit ANSI color instead of forcing plain text. It uses color when
+  stdout is a terminal and plain text when output is piped or redirected; pipe
+  through `tee` when you want terminal-readable plain output.
+* Load `amazing_print` only when Amazing Print output or shell printing is
+  needed.
 
 ## v3.0.0-alpha.1
 

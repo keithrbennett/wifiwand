@@ -310,9 +310,12 @@ wifi-wand -o p status
 # Pretty print
 wifi-wand -o P status
 
-# Awesome print
+# Amazing Print
 wifi-wand -o a status
 ```
+
+Amazing Print output uses ANSI color when stdout is a terminal and plain text when output is piped or
+redirected. Pipe through `tee` if you want terminal-readable plain output while also saving or forwarding it.
 
 ## Verbose Mode
 
