@@ -196,6 +196,24 @@ describe WifiWand::Commands::Log do
         )
       end
 
+      it 'uses file destination parsed by the top-level command parser' do
+        command = described_class.new(
+          model:           mock_model,
+          output:          output,
+          verbose_flag:    false,
+          command_options: {
+            file_destination_requested: true,
+            log_file_path:              '/tmp/preparsed.log',
+          }
+        )
+        command.call
+
+        expect(WifiWand::EventLogger).to have_received(:new).with(
+          mock_model,
+          hash_including(log_file_path: '/tmp/preparsed.log', out_stream: nil)
+        )
+      end
+
       it 'fails fast when the requested log file cannot be opened and stdout is disabled' do
         command = described_class.new(model: mock_model, output: output, verbose_flag: false)
         allow(WifiWand::EventLogger).to receive(:new)

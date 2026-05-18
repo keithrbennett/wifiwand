@@ -3,6 +3,7 @@
 require_relative '../version'
 require_relative '../timing_constants'
 require_relative '../models/helpers/resource_manager'
+require_relative 'log'
 
 module WifiWand
   module Commands
@@ -116,18 +117,7 @@ module WifiWand
           ],
           ['h / help', 'prints this help'],
           ['i / info', 'a hash of detailed networking information'],
-          [
-            'lo / log',
-            [
-              'start event logging (monitors wifi on/off, connected/disconnected, internet on/off)',
-              'options: --interval N (default 5 seconds), --file [PATH] (default: wifiwand-events.log),',
-              '--stdout (keep stdout when file destination is used)',
-              'Logs events: wifi on/off, connected/disconnected, internet on/off',
-              'Internet events are derived from reachable/unreachable state; ' \
-                'indeterminate is preserved as unknown',
-              'Ctrl+C to stop',
-            ],
-          ],
+          ['lo / log', WifiWand::Commands::Log.help_summary_lines],
           [
             'na / nameservers',
             [

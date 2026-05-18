@@ -167,7 +167,7 @@ module WifiWand
 
     private def command_scoped_option?(option)
       commands.any? do |command|
-        command.class.respond_to?(:scoped_options) && command.class.scoped_options.include?(option)
+        command_option_specs_for(command.class).fetch(:scoped_options).include?(option)
       end
     end
 
@@ -236,7 +236,7 @@ module WifiWand
     end
 
     private def optional_option_argument_expected?(arg, following_args)
-      return false unless Commands::Log::OPTIONAL_VALUE_OPTIONS.include?(arg)
+      return false unless optional_value_command_options.include?(arg)
 
       optional_value, *remaining_args = following_args
       optional_value &&
@@ -245,34 +245,51 @@ module WifiWand
     end
 
     private def value_taking_options
-      VALUE_TAKING_INVOCATION_OPTIONS + Commands::Log::VALUE_TAKING_OPTIONS
+      VALUE_TAKING_INVOCATION_OPTIONS + value_taking_command_options
     end
 
     private def normalize_command_option_args!(args, selected_command)
       command_class = selected_command_class(selected_command)
-      return unless command_class.respond_to?(:normalize_option_args!)
+      return unless command_class.respond_to?(:normalize_command_option_args!)
 
-      command_class.normalize_option_args!(args, selected_command: selected_command)
+      command_class.normalize_command_option_args!(args, selected_command: selected_command)
     end
 
     private def add_command_options(parser, selected_command, command_options)
       command_class = selected_command_class(selected_command)
-      return unless command_class.respond_to?(:add_options)
+      return unless command_class.respond_to?(:add_command_options)
 
-      command_class.add_options(
-        parser,
-        interval_setter: ->(value) { command_options[:interval] = value },
-        file_setter:     ->(value) do
-          command_options[:log_file_path] = LogFileManager::DEFAULT_LOG_FILE
-          command_options[:log_file_path] = value unless value.nil?
-          command_options[:file_destination_requested] = true
-        end,
-        stdout_setter:   -> { command_options[:stdout_explicit] = true }
-      )
+      command_class.add_command_options(parser, command_options)
     end
 
     private def selected_command_class(selected_command)
       selected_command && find_command(selected_command)&.class
+    end
+
+    private def value_taking_command_options
+      @value_taking_command_options ||= commands.flat_map do |command|
+        command_option_specs_for(command.class).fetch(:value_taking_options)
+      end.freeze
+    end
+
+    private def optional_value_command_options
+      @optional_value_command_options ||= commands.flat_map do |command|
+        command_option_specs_for(command.class).fetch(:optional_value_options)
+      end.freeze
+    end
+
+    private def command_option_specs_for(command_class)
+      return default_command_option_specs unless command_class.respond_to?(:command_option_specs)
+
+      default_command_option_specs.merge(command_class.command_option_specs)
+    end
+
+    private def default_command_option_specs
+      {
+        optional_value_options: [],
+        scoped_options:         [],
+        value_taking_options:   [],
+      }
     end
 
     private def help_argv_for(selected_command)

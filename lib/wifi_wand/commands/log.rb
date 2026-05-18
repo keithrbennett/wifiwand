@@ -23,28 +23,75 @@ module WifiWand
       VALUE_TAKING_OPTIONS = %w[--interval].freeze
       OPTIONAL_VALUE_OPTIONS = %w[--file].freeze
       FLAG_OPTIONS = %w[--stdout].freeze
-      SCOPED_OPTIONS = (VALUE_TAKING_OPTIONS + OPTIONAL_VALUE_OPTIONS + FLAG_OPTIONS).freeze
+      OPTION_DEFINITIONS = {
+        interval: {
+          parser_description: 'Poll interval in seconds (default: 5)',
+          summary:            '--interval N (default 5 seconds)',
+          switch:             '--interval N',
+        },
+        file:     {
+          parser_description: 'Enable file logging (default: wifiwand-events.log)',
+          summary:            '--file [PATH] (default: wifiwand-events.log)',
+          switch:             '--file [PATH]',
+        },
+        stdout:   {
+          parser_description: 'Keep stdout when file destination is used',
+          summary:            '--stdout (keep stdout when file destination is used)',
+          switch:             '--stdout',
+        },
+      }.freeze
+      COMMAND_OPTION_SPECS = {
+        optional_value_options: OPTIONAL_VALUE_OPTIONS,
+        scoped_options:         (VALUE_TAKING_OPTIONS + OPTIONAL_VALUE_OPTIONS + FLAG_OPTIONS).freeze,
+        value_taking_options:   VALUE_TAKING_OPTIONS,
+      }.freeze
 
       binds :model, output: :out_stream, verbose_flag: :verbose?, command_options: :command_options
       allow_invocation_options :wifi_interface, :utc
 
-      def self.add_options(parser, interval_setter:, file_setter:, stdout_setter:)
-        parser.on('--interval N', Float, 'Poll interval in seconds (default: 5)') do |value|
-          interval_setter.call(value)
+      def self.command_option_specs = COMMAND_OPTION_SPECS
+
+      def self.help_summary_lines
+        [
+          declared_metadata.description,
+          "options: #{option_summary(:interval)}, #{option_summary(:file)},",
+          option_summary(:stdout),
+          'Logs events: wifi on/off, connected/disconnected, internet on/off',
+          'Internet events are derived from reachable/unreachable state; ' \
+            'indeterminate is preserved as unknown',
+          'Ctrl+C to stop',
+        ]
+      end
+
+      def self.add_command_options(parser, command_options)
+        parser.on(option_switch(:interval), Float, option_parser_description(:interval)) do |value|
+          command_options[:interval] = value
         end
 
-        parser.on('--file [PATH]', 'Enable file logging (default: wifiwand-events.log)') do |value|
-          file_setter.call(value)
+        parser.on(option_switch(:file), option_parser_description(:file)) do |value|
+          command_options[:log_file_path] = LogFileManager::DEFAULT_LOG_FILE
+          command_options[:log_file_path] = value unless value.nil?
+          command_options[:file_destination_requested] = true
         end
 
-        parser.on('--stdout', 'Keep stdout when file destination is used') do
-          stdout_setter.call
+        parser.on(option_switch(:stdout), option_parser_description(:stdout)) do
+          command_options[:stdout_explicit] = true
         end
       end
 
-      def self.scoped_options = SCOPED_OPTIONS
+      def self.option_switch(option_name)
+        OPTION_DEFINITIONS.fetch(option_name).fetch(:switch)
+      end
 
-      def self.normalize_option_args!(args, selected_command:)
+      def self.option_parser_description(option_name)
+        OPTION_DEFINITIONS.fetch(option_name).fetch(:parser_description)
+      end
+
+      def self.option_summary(option_name)
+        OPTION_DEFINITIONS.fetch(option_name).fetch(:summary)
+      end
+
+      def self.normalize_command_option_args!(args, selected_command:)
         index = 0
 
         while index < args.length
@@ -81,15 +128,7 @@ module WifiWand
 
       def help_text
         # Reuse the command parser as the single source of truth for help text.
-        # These setters are intentionally inert because help generation should not
-        # mutate command state or trigger execution behavior.
-        build_parser(
-          interval_setter: ->(_value) {},
-          file_setter:     ->(_value) {},
-          stdout_setter:   -> {},
-          verbose_setter:  -> {},
-          help_setter:     -> {}
-        ).help
+        build_parser(command_options: {}, verbose_setter: -> {}, help_setter: -> {}).help
       end
 
       def call(*options)
@@ -110,28 +149,15 @@ module WifiWand
       end
 
       private def parse_options(options)
-        self.class.normalize_option_args!(options, selected_command: nil)
+        self.class.normalize_command_option_args!(options, selected_command: nil)
 
-        interval = validate_interval(
-          configured_command_options.fetch(:interval, TimingConstants::EVENT_LOG_POLLING_INTERVAL)
-        )
-        log_file_path = configured_command_options[:log_file_path]
         output_to_stdout = true
         verbose_flag = verbose?
-        stdout_explicit = configured_command_options.fetch(:stdout_explicit, false)
-        file_destination_requested = configured_command_options.fetch(:file_destination_requested, false)
         help_requested = false
+        parsed_command_options = {}
 
         parser = build_parser(
-          interval_setter: ->(value) { interval = validate_interval(value) },
-          file_setter:     ->(value) do
-            log_file_path = value || LogFileManager::DEFAULT_LOG_FILE
-            file_destination_requested = true
-          end,
-          stdout_setter:   -> do
-            output_to_stdout = true
-            stdout_explicit = true
-          end,
+          command_options: parsed_command_options,
           verbose_setter:  -> { verbose_flag = true },
           help_setter:     -> { help_requested = true }
         )
@@ -139,10 +165,18 @@ module WifiWand
         begin
           parser.parse!(options)
         rescue OptionParser::ParseError => e
-          raise WifiWand::ConfigurationError, "#{e.message}. Use 'wifi-wand help' or 'wifi-wand -h' for help."
+          raise WifiWand::ConfigurationError, "#{e.message}. #{help_hint}"
         end
 
         validate_max_arguments!(options, 0)
+
+        effective_command_options = configured_command_options.merge(parsed_command_options)
+        interval = validate_interval(
+          effective_command_options.fetch(:interval, TimingConstants::EVENT_LOG_POLLING_INTERVAL)
+        )
+        log_file_path = effective_command_options[:log_file_path]
+        stdout_explicit = effective_command_options.fetch(:stdout_explicit, false)
+        file_destination_requested = effective_command_options.fetch(:file_destination_requested, false)
 
         if help_requested
           output.puts(parser.help)
@@ -157,9 +191,7 @@ module WifiWand
       end
 
       private def build_parser(
-        interval_setter:,
-        file_setter:,
-        stdout_setter:,
+        command_options:,
         verbose_setter:,
         help_setter:
       )
@@ -170,12 +202,7 @@ module WifiWand
           opts.separator ''
           opts.separator 'Options:'
 
-          self.class.add_options(
-            opts,
-            interval_setter: interval_setter,
-            file_setter:     file_setter,
-            stdout_setter:   stdout_setter
-          )
+          self.class.add_command_options(opts, command_options)
 
           opts.on('-v', '--verbose', 'Enable verbose logging') do
             verbose_setter.call
@@ -220,11 +247,15 @@ module WifiWand
         return interval if interval > 0
 
         raise WifiWand::ConfigurationError,
-          "Interval must be greater than 0. Use 'wifi-wand help' or 'wifi-wand -h' for help."
+          "Interval must be greater than 0. #{help_hint}"
       end
 
       private def configured_command_options
         command_options || {}
+      end
+
+      private def help_hint
+        cli&.help_hint || "Use 'wifi-wand help' or 'wifi-wand -h' for help."
       end
     end
   end

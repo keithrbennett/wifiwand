@@ -83,6 +83,16 @@ describe WifiWand::Commands::HelpSystem do
       expect(help).not_to include('Subcommands')
     end
 
+    it 'uses the log command-owned help summary' do
+      allow(WifiWand::Commands::Log).to receive(:help_summary_lines).and_call_original
+
+      help
+
+      expect(WifiWand::Commands::Log).to have_received(:help_summary_lines)
+      expect(help).to include('options: --interval N (default 5 seconds),')
+      expect(help).to include('--stdout (keep stdout when file destination is used)')
+    end
+
     it 'wraps long switch labels onto their own line before the description' do
       expect(help).to match(/^\s{2}-p, --wifi-interface interface_name\n\s{38}specify WiFi interface name/m)
     end

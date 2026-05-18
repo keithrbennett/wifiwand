@@ -276,6 +276,13 @@ describe WifiWand::CommandLineParser do
       expect(options.argv).to eq(['log'])
     end
 
+    it 'parses inline log interval before the log command' do
+      options = described_class.new(%w[--interval=5 log], ENV, err_stream).parse
+
+      expect(options.command_options).to eq(interval: 5.0)
+      expect(options.argv).to eq(['log'])
+    end
+
     it 'parses log interval with invocation options around the command' do
       options = described_class.new(%w[--interval 5 -u yes log], ENV, err_stream).parse
 
@@ -356,9 +363,22 @@ describe WifiWand::CommandLineParser do
       expect(options.argv).to eq(['log'])
     end
 
+    it 'parses log stdout without a file destination' do
+      options = described_class.new(%w[log --stdout], ENV, err_stream).parse
+
+      expect(options.command_options).to include(stdout_explicit: true)
+      expect(options.argv).to eq(['log'])
+    end
+
     it 'rejects log interval for other commands' do
       expect do
         described_class.new(%w[info --interval 5], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--interval is not valid for info/)
+    end
+
+    it 'rejects inline log interval for other commands' do
+      expect do
+        described_class.new(%w[info --interval=5], ENV, err_stream).parse
       end.to raise_error(WifiWand::ConfigurationError, /--interval is not valid for info/)
     end
 
