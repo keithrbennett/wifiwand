@@ -103,7 +103,7 @@ describe WifiWand::Main do
     end
 
     it 'parses arguments and executes CLI with correct options' do
-      stub_const('ARGV', ['-v', '-p', 'wlan0', 'info'])
+      stub_const('ARGV', ['-v', 'true', '-p', 'wlan0', 'info'])
 
       expect(WifiWand::CommandLineInterface).to receive(:new) do |options, argv:|
         expect(options.verbose).to be(true)

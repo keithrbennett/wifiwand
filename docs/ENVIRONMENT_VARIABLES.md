@@ -26,20 +26,20 @@ WIFIWAND_VERBOSE=true bundle exec rake test:all  # combined with rake task
 
 **Alternative (runtime only):** Use the `-v` command-line flag instead:
 ```bash
-wifi-wand -v info
+wifi-wand -v true info
 ```
 
 ### `WIFIWAND_OPTS`
 Prepend default command-line switches from the environment, parsed with shell-style quoting so complex values
 work just like they do in the shell. **Values:** Space-delimited options (e.g., `--output-format y`,
-`--verbose`) **Usage examples:**
+`--verbose true`) **Usage examples:**
 ```bash
 export WIFIWAND_OPTS="--output-format y" # YAML
 wifi-wand info
 ```
 
 ```bash
-export WIFIWAND_OPTS="--verbose"
+export WIFIWAND_OPTS="--verbose true"
 wifi-wand status
 ```
 
@@ -50,10 +50,10 @@ wifi-wand log
 
 - **Overrides:** Later command-line arguments can override most defaults, but commands (e.g., `shell`) cannot
   be negated.
-- **Scope:** `WIFIWAND_OPTS` can include invocation-wide defaults such as `--utc true` or
-  `--output-format y`. If a selected command does not use one of those defaults, wifi-wand ignores it for
-  that command. Command-specific options are still validated against the selected command: `--interval 10` is
-  valid when the invocation runs `log`, but invalid when it runs `info`. Unknown options always abort with a
+- **Scope:** `WIFIWAND_OPTS` can include invocation-wide defaults such as `--verbose true`, `--utc true`, or
+  `--output-format y`. If a selected command does not use one of those defaults, wifi-wand ignores it for that
+  command. Command-specific options are still validated against the selected command: `--interval 10` is valid
+  when the invocation runs `log`, but invalid when it runs `info`. Unknown options always abort with a
   configuration error.
 - **Parsing errors:** If the value contains unmatched quotes or otherwise cannot be parsed, wifi-wand aborts
   with a configuration error.

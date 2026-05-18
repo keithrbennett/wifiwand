@@ -279,7 +279,7 @@ Don't use `info` in tight loops. If you're checking frequently, use `status` for
 Use verbose mode to see which OS commands are being executed:
 
 ```bash
-wifi-wand -v info
+wifi-wand -v true info
 ```
 
 This is helpful for understanding how the detailed information is gathered or debugging connectivity issues.

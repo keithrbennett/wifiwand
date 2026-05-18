@@ -26,6 +26,8 @@ For upgrade-impacting API, CLI, and behavior changes, see
 ### User-Facing Commands and Features
 
 - Added `-V` / `--version` to print the version and exit.
+- Changed the global `-v` / `--verbose` option to require an explicit boolean
+  value, matching the global `-u` / `--utc` option.
 - Added `log` to monitor WiFi and Internet connectivity events.
 - Added `qr` to generate a QR code for the current or specified WiFi network.
 - Added `shell` as the interactive REPL entry point.

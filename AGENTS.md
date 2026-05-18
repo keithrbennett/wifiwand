@@ -121,7 +121,7 @@ bundle exec exe/wifi-wand --help
 bundle exec exe/wifi-wand shell
 
 # Test with verbose mode to see underlying OS commands
-bundle exec exe/wifi-wand -v info
+bundle exec exe/wifi-wand -v true info
 ```
 
 ## Architecture

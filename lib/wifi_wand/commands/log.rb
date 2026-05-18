@@ -16,7 +16,7 @@ module WifiWand
         description:  'start event logging (monitors wifi on/off, connected/disconnected, internet on/off)',
         usage:        [
           'Usage: wifi-wand log [--interval N] [--file [PATH]]',
-          '[--stdout] [--verbose]',
+          '[--stdout] [--verbose BOOLEAN]',
         ].join(' ')
       )
 
@@ -128,7 +128,7 @@ module WifiWand
 
       def help_text
         # Reuse the command parser as the single source of truth for help text.
-        build_parser(command_options: {}, verbose_setter: -> {}, help_setter: -> {}).help
+        build_parser(command_options: {}, verbose_setter: ->(_value) {}, help_setter: -> {}).help
       end
 
       def call(*options)
@@ -158,7 +158,7 @@ module WifiWand
 
         parser = build_parser(
           command_options: parsed_command_options,
-          verbose_setter:  -> { verbose_flag = true },
+          verbose_setter:  ->(value) { verbose_flag = value },
           help_setter:     -> { help_requested = true }
         )
 
@@ -204,8 +204,8 @@ module WifiWand
 
           self.class.add_command_options(opts, command_options)
 
-          opts.on('-v', '--verbose', 'Enable verbose logging') do
-            verbose_setter.call
+          opts.on('-v', '--verbose BOOLEAN', TrueClass, 'Enable verbose logging') do |value|
+            verbose_setter.call(value)
           end
 
           opts.on('-h', '--help', 'Show help for the log command') do
@@ -251,6 +251,11 @@ module WifiWand
       end
 
       private def configured_command_options
+        if cli && command_options.nil?
+          raise WifiWand::ConfigurationError,
+            "Internal command binding error: #{metadata.long_string} command_options was nil."
+        end
+
         command_options || {}
       end
 

@@ -1,13 +1,24 @@
 ## Unreleased
 
-* Breaking change: user-visible timestamps now default to local time instead of UTC. Pass `--utc true` or
-  `-u true` before the command to print timestamps in UTC.
+### Breaking Changes
+
+* User-visible timestamps now default to local time instead of UTC. Pass `--utc true` or `-u true` before the
+  command to print timestamps in UTC.
+* The global verbose option now requires an explicit boolean value. Use `-v true` or `--verbose true` to
+  enable verbose mode and `-v false` or `--verbose false` to disable a default.
+* Remove the `verbose` and `verbose_mode` reader aliases from the public library and CLI-facing objects.
+* `info["ip_address"]` has been renamed to `info["ipv4_addresses"]`; the new field returns an array of IPv4
+  addresses instead of a single string or `nil`.
+* Replace the transitive `awesome_print` dependency with `amazing_print` for human-readable object formatting.
+  Ruby consumers that relied on wifi-wand to provide `awesome_print` must add their own direct dependency or
+  migrate to `amazing_print`.
+* `-o a` Amazing Print output now lets `amazing_print` decide whether to emit ANSI color instead of forcing
+  plain text. It uses color when stdout is a terminal and plain text when output is piped or redirected; pipe
+  through `tee` when you want terminal-readable plain output.
+
+### Other Changes
+
 * Add the global `--utc BOOLEAN` / `-u BOOLEAN` option to control timestamp timezone output.
-* Breaking change: remove the `verbose` and `verbose_mode` reader aliases from
-  the public library and CLI-facing objects.
-* Breaking change: `info["ip_address"]` has been renamed to
-  `info["ipv4_addresses"]`; the new field returns an array of IPv4 addresses
-  instead of a single string or `nil`.
 * Add captive portal reporting through `captive_portal_login_required`, with
   `:yes`, `:no`, or `:unknown` values.
 * Add `info["ipv6_addresses"]` for local IPv6 addresses assigned to the WiFi
@@ -24,14 +35,6 @@
   dependencies without reaching into the command executor.
 * Add a minimal throttle between failed `try_os_command_until` attempts to avoid tight retry loops for fast
   commands.
-* Breaking change: replace the transitive `awesome_print` dependency with
-  `amazing_print` for human-readable object formatting. Ruby consumers that
-  relied on wifi-wand to provide `awesome_print` must add their own direct
-  dependency or migrate to `amazing_print`.
-* Breaking change: `-o a` Amazing Print output now lets `amazing_print` decide
-  whether to emit ANSI color instead of forcing plain text. It uses color when
-  stdout is a terminal and plain text when output is piped or redirected; pipe
-  through `tee` when you want terminal-readable plain output.
 * Load `amazing_print` only when Amazing Print output or shell printing is
   needed.
 

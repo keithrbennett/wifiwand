@@ -38,13 +38,13 @@ module WifiWand
       'y' => ->(object) { object.to_yaml },
     }.freeze
     VALUE_TAKING_INVOCATION_OPTIONS = %w[
-      -u --utc -o --output-format --output_format -p --wifi-interface
+      -v --verbose -u --utc -o --output-format --output_format -p --wifi-interface
     ].freeze
     INVOCATION_OPTION_ALIASES = {
       help:           %w[-h --help],
       output_format:  %w[-o --output-format --output_format],
       utc:            %w[-u --utc],
-      verbose:        %w[-v --verbose --no-verbose --no-v],
+      verbose:        %w[-v --verbose],
       version:        %w[-V --version],
       wifi_interface: %w[-p --wifi-interface],
     }.freeze
@@ -67,7 +67,7 @@ module WifiWand
       normalize_command_option_args!(args, selected_command)
 
       parser = OptionParser.new do |parser|
-        parser.on('-v', '--[no-]verbose', 'Run verbosely') do |value|
+        parser.on('-v', '--verbose BOOLEAN', TrueClass, 'Run verbosely') do |value|
           specified_invocation_options << :verbose
           options.verbose = value
         end

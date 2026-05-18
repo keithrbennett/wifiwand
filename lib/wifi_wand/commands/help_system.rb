@@ -31,8 +31,16 @@ module WifiWand
           'specify WiFi interface name (overrides auto-detection)',
         ],
         ['-V, --version', 'show version'],
-        ['-u, --utc BOOLEAN', 'use UTC for timestamps (default: false, for local time)'],
-        ['-v, --[no-]verbose', 'verbose mode (prints OS commands and their outputs)'],
+        [
+          '-u, --utc BOOLEAN',
+          'use UTC for timestamps (default: false, for local time); values: true/t/yes/y/+ or ' \
+            'false/f/no/n/-; inline forms like --utc=true and -ufalse are accepted',
+        ],
+        [
+          '-v, --verbose BOOLEAN',
+          'verbose mode (prints OS commands and their outputs); values: true/t/yes/y/+ or false/f/no/n/-; ' \
+            'inline forms like --verbose=true and -vfalse are accepted',
+        ],
       ].freeze
 
       # Help text to be used when requested by 'h' command, in case of unrecognized or nonexistent command, etc.

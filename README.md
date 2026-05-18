@@ -107,6 +107,7 @@ See **[Version 3 Breaking Changes](docs/BREAKING_CHANGES_V3.md)** for the
 canonical migration guide. Highlights include:
 
 - `connected_to_internet?` replaced by `internet_connectivity_state`
+- global `-v` / `--verbose` now requires an explicit boolean value, such as `-v true`
 - legacy `till` wait-state aliases `on`/`off`/`conn`/`disc` replaced by explicit wait-state names
 - `-s` / `--shell` replaced by the `shell` command
 - partial CLI abbreviations removed; use exact short or long command names
@@ -140,7 +141,7 @@ wifi-wand i
 wifi-wand shell
 
 # Display underlying OS calls and their output
-wifi-wand -v ...
+wifi-wand -v true ...
 ```
 
 ### Documentation
@@ -191,8 +192,7 @@ Command Line Switches     [wifi-wand version 3.0.0-alpha.1 at https://github.com
                           - specify WiFi interface name (overrides auto-detection)
 -V, --version             - show version
 -u, --utc BOOLEAN         - use UTC for timestamps (default: false, for local time)
--v, --[no-]verbose        - verbose mode (prints OS commands and their outputs)
-                            To disable: use --no-verbose or --no-v (short form negation like -v- is not supported)
+-v, --verbose BOOLEAN     - verbose mode (prints OS commands and their outputs)
 
 Commands
 --------
@@ -280,13 +280,14 @@ wifi-wand -u true log     # false values: false, f, no, n, -
 ```
 
 To force local-time output when a default option enables UTC, pass `--utc false` or `-u false`.
+Boolean values may also use inline forms such as `--utc=false`, `-ufalse`, `--verbose=true`, or `-vtrue`.
 
 ### Seeing the Underlying OS Commands and Output
 
 If you would like to see the OS commands and their output,
-you can do so by specifying "-v" (for _verbose_) on the command line.
-To disable verbose mode, use `--no-verbose` or `--no-v`
-(Ruby's OptionParser does not support short-form negations like `-v-`).
+you can do so by specifying `-v true` (for _verbose_) on the command line.
+To disable verbose mode when a default option enables it, pass `--verbose false` or `-v false`.
+Inline forms such as `--verbose=true` and `-vfalse` are also accepted.
 
 On Ubuntu, when you connect with an inline password, wifi-wand intentionally
 passes that password to `nmcli` as a command-line argument. This means the

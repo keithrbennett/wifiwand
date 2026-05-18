@@ -12,13 +12,22 @@ describe WifiWand::CommandLineParser do
 
   describe '#parse' do
     it 'parses verbose flags' do
-      options = parse_with_argv('--verbose', 'info')
+      options = parse_with_argv('--verbose', 'true', 'info')
       expect(options.verbose).to be(true)
 
-      options = parse_with_argv('-v', 'info')
+      options = parse_with_argv('-v', 'yes', 'info')
       expect(options.verbose).to be(true)
 
-      options = parse_with_argv('--no-verbose', 'info')
+      options = parse_with_argv('-vtrue', 'info')
+      expect(options.verbose).to be(true)
+
+      options = parse_with_argv('--verbose=true', 'info')
+      expect(options.verbose).to be(true)
+
+      options = parse_with_argv('--verbose=false', 'info')
+      expect(options.verbose).to be(false)
+
+      options = parse_with_argv('-vfalse', 'info')
       expect(options.verbose).to be(false)
     end
 
@@ -67,21 +76,28 @@ describe WifiWand::CommandLineParser do
       false => %w[false no n f -],
     }.each do |expected, values|
       values.each do |value|
-        it "parses --utc #{value.inspect} as #{expected}" do
-          options = parse_with_argv('--utc', value, 'info')
-          expect(options.utc).to be(expected)
+        {
+          '--utc'     => :utc,
+          '--verbose' => :verbose,
+        }.each do |option, attribute|
+          it "parses #{option} #{value.inspect} as #{expected}" do
+            options = parse_with_argv(option, value, 'info')
+            expect(options.public_send(attribute)).to be(expected)
+          end
         end
       end
     end
 
     %w[on off 1 0].each do |value|
-      it "rejects unsupported utc boolean value #{value.inspect}" do
-        expect do
-          parse_with_argv('--utc', value, 'info')
-        end.to raise_error(WifiWand::ConfigurationError) { |error|
-          expect(error.message).to include('invalid argument')
-          expect(error.message).to include('Use -h or --help to see available options.')
-        }
+      %w[--utc --verbose].each do |option|
+        it "rejects unsupported #{option} boolean value #{value.inspect}" do
+          expect do
+            parse_with_argv(option, value, 'info')
+          end.to raise_error(WifiWand::ConfigurationError) { |error|
+            expect(error.message).to include('invalid argument')
+            expect(error.message).to include('Use -h or --help to see available options.')
+          }
+        end
       end
     end
 
@@ -94,16 +110,29 @@ describe WifiWand::CommandLineParser do
       }
     end
 
+    it 'does not treat a following command as an implicit verbose value' do
+      expect do
+        described_class.new(%w[-v connect TestNetwork], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('invalid argument: -v connect')
+        expect(error.message).to include('Use -h or --help to see available options.')
+      }
+    end
+
+    %w[-v --verbose].each do |option|
+      it "raises a configuration error when #{option} has no value" do
+        expect do
+          described_class.new([option], ENV, err_stream).parse
+        end.to raise_error(WifiWand::ConfigurationError) { |error|
+          expect(error.message).to include("missing argument: #{option}")
+          expect(error.message).to include('Use -h or --help to see available options.')
+        }
+      end
+    end
+
     it 'defaults utc to nil when not specified' do
       options = parse_with_argv('info')
       expect(options.utc).to be_nil
-    end
-
-    %w[--no-v --no-verbose].each do |negation_flag|
-      it "handles verbose flag negation when -v is followed by #{negation_flag}" do
-        options = parse_with_argv('-v', negation_flag, 'info')
-        expect(options.verbose).to be(false)
-      end
     end
 
     it 'leaves shell in argv for normal command dispatch' do
@@ -184,7 +213,8 @@ describe WifiWand::CommandLineParser do
     end
 
     it 'returns command argv without the parsed options' do
-      options = described_class.new(['-v', '-p', 'wlan0', 'connect', 'TestNetwork'], ENV, err_stream).parse
+      options = described_class.new(['-v', 'true', '-p', 'wlan0', 'connect', 'TestNetwork'], ENV,
+        err_stream).parse
       expect(options.argv).to eq(%w[connect TestNetwork])
     end
 
@@ -255,7 +285,7 @@ describe WifiWand::CommandLineParser do
 
     it 'rejects positional command arguments before the command when options are mixed in' do
       expect do
-        described_class.new(%w[TestNetwork -v secret connect], ENV, err_stream).parse
+        described_class.new(%w[TestNetwork -v false secret connect], ENV, err_stream).parse
       end.to raise_error(
         WifiWand::ConfigurationError,
         /Unexpected argument\(s\) before connect: TestNetwork, secret/
@@ -434,7 +464,7 @@ describe WifiWand::CommandLineParser do
     end
 
     it 'handles multiple flags together' do
-      options = described_class.new(['-v', '-p', 'eth0', '--output-format', 'j', 'info'], ENV,
+      options = described_class.new(['-v', 'true', '-p', 'eth0', '--output-format', 'j', 'info'], ENV,
         err_stream).parse
       expect(options.verbose).to be(true)
       expect(options.wifi_interface).to eq('eth0')
@@ -442,7 +472,7 @@ describe WifiWand::CommandLineParser do
     end
 
     it 'handles shell command alongside wifi interface selection' do
-      options = described_class.new(%w[-v -p eth0 shell], ENV, err_stream).parse
+      options = described_class.new(%w[-v true -p eth0 shell], ENV, err_stream).parse
 
       expect(options.verbose).to be(true)
       expect(options.wifi_interface).to eq('eth0')
@@ -473,7 +503,7 @@ describe WifiWand::CommandLineParser do
 
     it 'prepends options from WIFIWAND_OPTS before CLI arguments' do
       allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--verbose')
+      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--verbose true')
 
       options = described_class.new(['info'], ENV, err_stream).parse
 
@@ -536,12 +566,15 @@ describe WifiWand::CommandLineParser do
       allow(ENV).to receive(:[]).and_call_original
       allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--interval 5')
 
+      parser = described_class.new(%w[info], ENV, err_stream)
+
       expect do
-        described_class.new(%w[info], ENV, err_stream).parse
+        parser.parse
       end.to raise_error(WifiWand::ConfigurationError) { |error|
         expect(error.message).to include('--interval is not valid for info.')
         expect(error.message).to include('This option came from WIFIWAND_OPTS.')
       }
+      expect(parser.send(:option_source_for, '--interval')).to be(:environment)
     end
 
     it 'identifies invalid command-specific options with inline values from WIFIWAND_OPTS' do
@@ -567,9 +600,9 @@ describe WifiWand::CommandLineParser do
 
     it 'allows explicit command-line flags to override WIFIWAND_OPTS defaults' do
       allow(ENV).to receive(:[]).and_call_original
-      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--verbose --wifi-interface en0')
+      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--verbose true --wifi-interface en0')
 
-      options = described_class.new(['--no-verbose', '--wifi-interface', 'en1', 'info'], ENV,
+      options = described_class.new(['--verbose', 'false', '--wifi-interface', 'en1', 'info'], ENV,
         err_stream).parse
 
       expect(options.verbose).to be(false)
@@ -586,16 +619,16 @@ describe WifiWand::CommandLineParser do
     end
 
     it 'does not mutate the argv array passed to it' do
-      input = ['-v', '-p', 'wlan0', 'connect', 'TestNetwork']
+      input = ['-v', 'true', '-p', 'wlan0', 'connect', 'TestNetwork']
       original = input.dup
       described_class.new(input, ENV, err_stream).parse
       expect(input).to eq(original)
     end
 
     it 'does not mutate the argv array when parsing shell command' do
-      input = ['-v', 'shell']
+      input = ['-v', 'true', 'shell']
       described_class.new(input, ENV, err_stream).parse
-      expect(input).to eq(['-v', 'shell'])
+      expect(input).to eq(['-v', 'true', 'shell'])
     end
 
     it 'does not mutate the argv array when help is requested' do

@@ -418,6 +418,37 @@ model = WifiWand.create_model(options)
 
 ### CLI and Configuration Changes
 
+#### Global `--verbose` now requires an explicit boolean value
+
+The global verbose option now follows the same boolean parsing contract as the
+global `--utc` option. The old toggle-style forms no longer work.
+
+| Old usage | New usage |
+|-----------|-----------|
+| `wifi-wand -v info` | `wifi-wand -v true info` |
+| `wifi-wand --verbose info` | `wifi-wand --verbose true info` |
+| `wifi-wand --no-verbose info` | `wifi-wand --verbose false info` |
+| `wifi-wand --no-v info` | `wifi-wand -v false info` |
+
+Accepted true values are `true`, `t`, `yes`, `y`, and `+`. Accepted false
+values are `false`, `f`, `no`, `n`, and `-`.
+
+Inline forms are also accepted:
+
+```bash
+wifi-wand --verbose=true info
+wifi-wand -vfalse info
+```
+
+When setting defaults through `WIFIWAND_OPTS`, include the boolean value:
+
+```bash
+export WIFIWAND_OPTS="--verbose true"
+```
+
+The `log` command's command-local `--verbose` / `-v` option now uses the same
+explicit boolean values.
+
 - `WifiWand::Main#parse_command_line` has been removed from the public API.
   If you parsed CLI arguments programmatically, instantiate
   `WifiWand::CommandLineParser` and call `#parse` instead.

@@ -310,7 +310,7 @@ redirected. Pipe through `tee` if you want terminal-readable plain output while 
 Use verbose mode to see which OS commands are being executed:
 
 ```bash
-wifi-wand -v status
+wifi-wand -v true status
 ```
 
 ## Related Commands

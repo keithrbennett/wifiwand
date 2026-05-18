@@ -71,6 +71,15 @@ describe WifiWand::Commands::HelpSystem do
     it 'documents the global utc timestamp option' do
       expect(help).to include('-u, --utc BOOLEAN')
       expect(help).to include('use UTC for timestamps (default: false, for local time)')
+      expect(help).to match(/values:\s+true\/t\/yes\/y\/\+ or false\/f\/no\/n\/-/)
+      expect(help).to match(/inline forms like\s+--utc=true\s+and -ufalse are accepted/)
+    end
+
+    it 'documents the global verbose option as a boolean value' do
+      expect(help).to include('-v, --verbose BOOLEAN')
+      expect(help).to include('verbose mode (prints OS commands and their outputs)')
+      expect(help).to match(/values:\s+true\/t\/yes\/y\/\+ or false\/f\/no\/n\/-/)
+      expect(help).to match(/inline forms like\s+--verbose=true and -vfalse are accepted/)
     end
 
     it 'documents exact short and long command forms for public_ip' do

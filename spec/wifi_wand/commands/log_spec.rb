@@ -43,6 +43,18 @@ describe WifiWand::Commands::Log do
       expect(command.output).to eq(output)
       expect(command.verbose?).to be false
     end
+
+    it 'raises clearly when a bound cli does not provide command options' do
+      bad_cli = double('cli', model: mock_model, verbose?: false, out_stream: output, command_options: nil)
+      command = described_class.new.bind(bad_cli)
+
+      expect do
+        command.call
+      end.to raise_error(
+        WifiWand::ConfigurationError,
+        /Internal command binding error: log command_options was nil/
+      )
+    end
   end
 
   describe '#call' do
@@ -282,9 +294,9 @@ describe WifiWand::Commands::Log do
     end
 
     context 'with --verbose option' do
-      it 'passes true to EventLogger when --verbose is specified' do
+      it 'passes true to EventLogger when --verbose true is specified' do
         command = described_class.new(model: mock_model, verbose_flag: false, output: output)
-        command.call('--verbose')
+        command.call('--verbose', 'true')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
@@ -292,14 +304,67 @@ describe WifiWand::Commands::Log do
         )
       end
 
-      it 'passes true to EventLogger when -v is specified' do
+      it 'passes true to EventLogger when -v true is specified' do
         command = described_class.new(model: mock_model, verbose_flag: false, output: output)
-        command.call('-v')
+        command.call('-v', 'true')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
           hash_including(verbose: true)
         )
+      end
+
+      it 'passes true to EventLogger when --verbose=true is specified' do
+        command = described_class.new(model: mock_model, verbose_flag: false, output: output)
+        command.call('--verbose=true')
+
+        expect(WifiWand::EventLogger).to have_received(:new).with(
+          mock_model,
+          hash_including(verbose: true)
+        )
+      end
+
+      it 'passes true to EventLogger when -vtrue is specified' do
+        command = described_class.new(model: mock_model, verbose_flag: false, output: output)
+        command.call('-vtrue')
+
+        expect(WifiWand::EventLogger).to have_received(:new).with(
+          mock_model,
+          hash_including(verbose: true)
+        )
+      end
+
+      it 'passes false to EventLogger when --verbose false is specified' do
+        command = described_class.new(model: mock_model, verbose_flag: true, output: output)
+        command.call('--verbose', 'false')
+
+        expect(WifiWand::EventLogger).to have_received(:new).with(
+          mock_model,
+          hash_including(verbose: false)
+        )
+      end
+
+      it 'passes false to EventLogger when -vfalse is specified' do
+        command = described_class.new(model: mock_model, verbose_flag: true, output: output)
+        command.call('-vfalse')
+
+        expect(WifiWand::EventLogger).to have_received(:new).with(
+          mock_model,
+          hash_including(verbose: false)
+        )
+      end
+
+      %w[-v --verbose].each do |option|
+        it "raises a configuration error when #{option} has no value" do
+          command = described_class.new(model: mock_model, verbose_flag: false, output: output)
+
+          expect do
+            command.call(option)
+          end.to raise_error(WifiWand::ConfigurationError) { |error|
+            expect(error.message).to include("missing argument: #{option}")
+            expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+          }
+        end
       end
     end
 
