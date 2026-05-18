@@ -3,10 +3,21 @@
 module WifiWand
   module Commands
     module ShellInterface
+      STARTUP_MESSAGE = [
+        "For help, type 'h[Enter]' or 'help[Enter]'.",
+        '',
+        'When in interactive shell mode:',
+        '  * remember to quote string literals.',
+        '  * for pry commands, use prefix `%`, e.g. `%ls`.',
+        '  * To display the QR code in the shell, pass the string returned by `qr :-` to `puts`. ' \
+          'Ex: `puts(qr :-)`',
+      ].join("\n")
+
       # Runs a pry session in the context of this object.
       # Commands and options specified on the command line can also be specified in the shell.
       def run_shell
-        out_stream.puts "For help, type 'h[Enter]' or 'help[Enter]'."
+        out_stream.puts STARTUP_MESSAGE
+        out_stream.puts
         require 'pry'
         require 'amazing_print'
 

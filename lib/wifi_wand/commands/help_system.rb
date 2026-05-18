@@ -65,15 +65,6 @@ module WifiWand
           nil,
           format_entries(commands),
           nil,
-          nil,
-          'When in interactive shell mode:',
-          format_lines([
-            'remember to quote string literals.',
-            'for pry commands, use prefix `%`, e.g. `%ls`.',
-            'To display the QR code in the shell, pass the string returned by `qr :-` to `puts`. ' \
-              'Ex: `puts(qr :-)`',
-          ], bullet: '*'),
-          nil,
         ].map { |entry| entry.nil? ? '' : entry }.join("\n")
 
         "#{body}\n"

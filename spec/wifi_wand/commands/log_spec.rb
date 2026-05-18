@@ -43,6 +43,14 @@ describe WifiWand::Commands::Log do
       expect(command.output).to eq(output)
       expect(command.verbose?).to be false
     end
+  end
+
+  describe '#call' do
+    let(:mock_logger) { double('EventLogger', run: nil) }
+
+    before do
+      allow(WifiWand::EventLogger).to receive(:new).and_return(mock_logger)
+    end
 
     it 'raises clearly when a bound cli does not provide command options' do
       bad_cli = double('cli', model: mock_model, verbose?: false, out_stream: output, command_options: nil)
@@ -54,14 +62,6 @@ describe WifiWand::Commands::Log do
         WifiWand::ConfigurationError,
         /Internal command binding error: log command_options was nil/
       )
-    end
-  end
-
-  describe '#call' do
-    let(:mock_logger) { double('EventLogger', run: nil) }
-
-    before do
-      allow(WifiWand::EventLogger).to receive(:new).and_return(mock_logger)
     end
 
     it 'creates EventLogger with default options (stdout only)' do

@@ -245,11 +245,6 @@ t / till                - wait until state is reached:
                             Examples: "till wifi_off 20"  "till internet_on 30 0.5"
 w / wifi_on             - is the WiFi on?
 x / xit                 - exits this program (interactive shell mode only) (same as 'q')
-
-When in interactive shell mode:
-  * remember to quote string literals.
-  * for pry commands, use prefix `%`, e.g. `%ls`.
-  * To display the QR code in the shell, pass the string returned by `qr :-` to `puts`. Ex: `puts(qr :-)`
 ```
 
 ### Pretty Output

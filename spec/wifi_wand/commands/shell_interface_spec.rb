@@ -117,13 +117,15 @@ describe WifiWand::Commands::ShellInterface do
       allow(mock_binding).to receive(:pry)
     end
 
-    it 'outputs a 1-line help message before starting pry session' do
+    it 'outputs interactive shell guidance before starting pry session' do
       allow(subject).to receive(:require).with('pry')
       allow(subject).to receive(:require).with('amazing_print')
       mock_pry_session
 
       subject.run_shell
-      expect(subject.out_stream.string).to eq("For help, type 'h[Enter]' or 'help[Enter]'.\n")
+      expect(subject.out_stream.string).to eq(
+        "#{WifiWand::Commands::ShellInterface::STARTUP_MESSAGE}\n\n"
+      )
     end
 
     it 'requires pry gem' do

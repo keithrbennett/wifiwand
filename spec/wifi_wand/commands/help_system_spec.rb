@@ -92,6 +92,12 @@ describe WifiWand::Commands::HelpSystem do
       expect(help).not_to include('Subcommands')
     end
 
+    it 'does not include interactive shell startup guidance' do
+      expect(help).not_to include('When in interactive shell mode:')
+      expect(help).not_to include('remember to quote string literals.')
+      expect(help).not_to include('for pry commands, use prefix `%`, e.g. `%ls`.')
+    end
+
     it 'uses the log command-owned help summary' do
       allow(WifiWand::Commands::Log).to receive(:help_summary_lines).and_call_original
 
