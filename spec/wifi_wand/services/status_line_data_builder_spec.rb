@@ -578,7 +578,7 @@ describe WifiWand::StatusLineDataBuilder do
         attr_reader :network_identity_timeouts
 
         def initialize
-          @network_identity_active = false
+          @network_identity_finished = Queue.new
           @network_identity_timeouts = []
         end
 
@@ -596,17 +596,18 @@ describe WifiWand::StatusLineDataBuilder do
 
         def status_network_identity(timeout_in_secs:)
           @network_identity_timeouts << timeout_in_secs
-          @network_identity_active = true
           sleep(timeout_in_secs)
           raise WifiWand::CommandTimeoutError.new(
             command:         'status network identity',
             timeout_in_secs: timeout_in_secs
           )
         ensure
-          @network_identity_active = false
+          @network_identity_finished << :finished
         end
 
-        def network_identity_active? = @network_identity_active
+        def wait_for_network_identity_finish(timeout:)
+          @network_identity_finished.pop(timeout: timeout)
+        end
       end.new
       bounded_builder = described_class.new(
         bounded_model,
@@ -626,7 +627,7 @@ describe WifiWand::StatusLineDataBuilder do
         network_name: nil
       )
       expect(bounded_model.network_identity_timeouts.first).to be_between(0, 0.02).exclusive
-      expect(bounded_model.network_identity_active?).to be(false)
+      expect(bounded_model.wait_for_network_identity_finish(timeout: 1)).to eq(:finished)
     end
 
     it 'returns an indeterminate connectivity result when the connectivity worker never publishes a result' do
