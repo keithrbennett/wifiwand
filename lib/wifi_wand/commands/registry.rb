@@ -19,6 +19,7 @@ require_relative 'pref_nets'
 require_relative 'public_ip'
 require_relative 'qr'
 require_relative 'quit'
+require_relative 'random_mac'
 require_relative 'ropen'
 require_relative 'shell'
 require_relative 'status'
@@ -49,6 +50,7 @@ module WifiWand
           WifiWand::Commands::PrefNets.new,
           WifiWand::Commands::Quit.new,
           WifiWand::Commands::Qr.new,
+          WifiWand::Commands::RandomMac.new,
           WifiWand::Commands::Ropen.new,
           WifiWand::Commands::Shell.new,
           WifiWand::Commands::Status.new,

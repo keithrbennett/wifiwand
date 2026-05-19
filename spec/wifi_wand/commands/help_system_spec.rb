@@ -87,6 +87,11 @@ describe WifiWand::Commands::HelpSystem do
       expect(help).to include("e.g. 'public_ip a' or 'pi country'")
     end
 
+    it 'documents the non-destructive random_mac alias' do
+      expect(help).to include('rmac / random_mac')
+      expect(help).not_to include('rm / random_mac')
+    end
+
     it 'lists shell with the normal commands' do
       expect(help).to include('sh / shell')
       expect(help).not_to include('Subcommands')

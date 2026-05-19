@@ -228,6 +228,7 @@ pr / pref_nets          - preferred (saved) networks
 q / quit                - exits this program (interactive shell mode only) (same as 'x')
 qr [filespec|'-'] [password]
                          - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats; optional password avoids macOS auth prompt
+rmac / random_mac       - generate a random locally administered unicast MAC address
 ro / ropen              - open web resources: 'cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page)
 sh / shell              - start interactive shell (interactive pry REPL session)
 s / status              - status line (WiFi, WiFi Network, DNS, Internet; shows captive portal warning if login is required)

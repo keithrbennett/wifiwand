@@ -221,6 +221,7 @@ module TestHelpers
       public_ip_address:                    '203.0.113.10',
       public_ip_country:                    'TH',
       public_ip_info:                       { 'address' => '203.0.113.10', 'country' => 'TH' },
+      random_mac_address:                   '02:00:00:00:00:01',
       remove_preferred_networks:            ['RemovedNet'],
       till:                                 nil,
       last_connection_used_saved_password?: false,

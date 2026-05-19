@@ -144,6 +144,7 @@ module WifiWand
               "'.svg' / '.eps' use those formats; optional password avoids macOS auth prompt",
             ],
           ],
+          ['rmac / random_mac', 'generate a random locally administered unicast MAC address'],
           ['ro / ropen', "open web resources: #{resource_help}"],
           ['sh / shell', 'start interactive shell (interactive pry REPL session)'],
           [
