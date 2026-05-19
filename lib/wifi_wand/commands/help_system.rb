@@ -138,10 +138,10 @@ module WifiWand
           ['pr / pref_nets', 'preferred (saved) networks'],
           ['q / quit', "exits this program (interactive shell mode only) (same as 'x')"],
           [
-            "qr [filespec|'-'] [password]",
+            'qr [filespec] [password]',
             [
-              "generate a Wi-Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout;",
-              "'.svg' / '.eps' use those formats; optional password avoids macOS auth prompt",
+              'generate a Wi-Fi QR code; default prints ANSI QR to stdout; pass a filename for file output;',
+              "'.svg' / '.eps' use those formats; use '-' explicitly for stdout with a password",
             ],
           ],
           ['rmac / random_mac', 'generate a random locally administered unicast MAC address'],

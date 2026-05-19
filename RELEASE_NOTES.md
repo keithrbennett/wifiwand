@@ -42,6 +42,8 @@
 * Retry transient public IP lookup failures with short exponential backoff while preserving immediate
   failures for rate limits and non-retryable client errors.
 * Add the `rmac` / `random_mac` command for generating locally administered unicast MAC addresses.
+* Make `wifi-wand qr` print an ANSI QR code to stdout by default. Passing a filename still writes a QR image
+  file, and `BaseModel#print_qr_code` gives library callers an explicit stdout-oriented API.
 
 ## v3.0.0-alpha.1
 

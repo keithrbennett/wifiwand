@@ -920,14 +920,25 @@ module WifiWand
     # model API instead of reaching into the command executor directly.
     def command_available?(command) = @command_executor.command_available?(command)
 
-    # Generates a QR code for the currently connected WiFi network
-    # @return [String] The filename of the generated QR code PNG file
+    # Generates a QR code for the currently connected WiFi network.
+    # @param filespec [String, nil] Output path, or '-' for ANSI terminal output.
+    # @param delivery_mode [Symbol] Use :return with filespec '-' to return the ANSI QR string.
+    # @return [String] The filename, '-' when printing ANSI output, or the ANSI string with delivery_mode :return.
     # @raise [WifiWand::Error] If not connected to a network or qrencode is not available
     def generate_qr_code(filespec = nil, overwrite: false, delivery_mode: :print, password: nil,
       in_stream: $stdin)
       debug_method_entry(__method__)
       qr_code_generator.generate(self, filespec, overwrite: overwrite, delivery_mode: delivery_mode,
         password: password, in_stream: in_stream)
+    end
+
+    # Prints an ANSI QR code for the currently connected WiFi network.
+    # @return [nil]
+    # @raise [WifiWand::Error] If not connected to a network or qrencode is not available
+    def print_qr_code(password: nil, in_stream: $stdin)
+      debug_method_entry(__method__)
+      qr_code_generator.generate(self, '-', delivery_mode: :print, password: password, in_stream: in_stream)
+      nil
     end
 
     private def valid_public_ip_address?(address)

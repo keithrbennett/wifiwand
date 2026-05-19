@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'base'
+
 module WifiWand
   module Commands
     module ShellInterface
@@ -9,8 +11,7 @@ module WifiWand
         'When in interactive shell mode:',
         '  * remember to quote string literals.',
         '  * for pry commands, use prefix `%`, e.g. `%ls`.',
-        '  * To display the QR code in the shell, pass the string returned by `qr :-` to `puts`. ' \
-          'Ex: `puts(qr :-)`',
+        '  * Type `qr` to display a Wi-Fi QR code in the shell.',
       ].join("\n")
 
       # Runs a pry session in the context of this object.
@@ -29,7 +30,9 @@ module WifiWand
         # code context output, which is not useful here. Anyway, this will differentiate
         # a pry command from a DSL command, which _is_ useful here.
         Pry.config.command_prefix = '%'
-        Pry.config.print = ->(output, value, _pry) { output.puts(value.ai) }
+        Pry.config.print = ->(output, value, _pry) do
+          output.puts(value.ai) unless value.equal?(WifiWand::Commands::SILENT_RESULT)
+        end
         Pry.config.exception_handler = proc do |output, exception, _pry_|
           output.puts exception.message
         end

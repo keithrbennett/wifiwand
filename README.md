@@ -226,8 +226,10 @@ pi / public_ip [address|country|both|a|c|b]
                          - public IP lookup; selectors may use long or short form; both (b) is the default
 pr / pref_nets          - preferred (saved) networks
 q / quit                - exits this program (interactive shell mode only) (same as 'x')
-qr [filespec|'-'] [password]
-                         - generate a Wi‑Fi QR code; default PNG file <SSID>-qr-code.png; '-' prints ANSI QR to stdout; '.svg'/' .eps' use those formats; optional password avoids macOS auth prompt
+qr [filespec] [password]
+                         - generate a Wi‑Fi QR code; default prints ANSI QR to stdout; pass a filename for
+                            image output; '.svg' / '.eps' use those formats; use '-' explicitly for stdout
+                            with a password
 rmac / random_mac       - generate a random locally administered unicast MAC address
 ro / ropen              - open web resources: 'cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page)
 sh / shell              - start interactive shell (interactive pry REPL session)
@@ -397,9 +399,10 @@ wifi-wand pr           # prints preferred networks
 wifi-wand cy           # cycles the WiFi off and on
 wifi-wand co a-network a-password # connects to a network requiring a password
 wifi-wand co a-network            # connects to a network _not_ requiring a password
-wifi-wand qr          # generate PNG file: <SSID>-qr-code.png
+wifi-wand qr          # print ANSI QR to terminal
+wifi-wand qr wifi.png # generate PNG file: wifi.png
 wifi-wand qr wifi.svg # generate SVG file: wifi.svg
-wifi-wand qr -        # print ANSI QR to terminal
+wifi-wand qr - secret # print ANSI QR using an explicit password
 wifi-wand t internet_on && say "Internet connected" # Play audible message when Internet becomes connected
 wifi-wand s           # display status (WiFi, WiFi Network, DNS, Internet)
 wifi-wand log         # monitor WiFi status changes in real-time (to terminal)
@@ -515,7 +518,8 @@ interface. Key methods include:
 *   `default_interface`
 *   `disconnect`
 *   `dns_working?`
-*   `generate_qr_code(filespec: nil)`
+*   `generate_qr_code(filespec = nil)`
+*   `print_qr_code`
 *   `internet_tcp_connectivity?`
 *   `ipv4_addresses`
 *   `ipv6_addresses`
@@ -607,12 +611,12 @@ Connected!
 
 You can create QR codes for the currently connected network to share credentials quickly:
 
-- Default file output (PNG): `wifi-wand qr` → `<SSID>-qr-code.png`
-- Custom filespec: `wifi-wand qr wifi.png`
+- Default terminal output: `wifi-wand qr` prints an ANSI QR directly to the terminal
+- File output: `wifi-wand qr wifi.png`
 - Alternate formats via filespec:
   - `.svg` → SVG output (uses `qrencode -t SVG`)
   - `.eps` → EPS output (uses `qrencode -t EPS`)
-- Text (stdout): `wifi-wand qr -` prints an ANSI QR directly to the terminal
+- Explicit password with terminal output: `wifi-wand qr - secret-password`
 
 Notes:
 - Requires `qrencode` to be installed (macOS: `brew install qrencode`, Ubuntu: `sudo apt install qrencode`).
@@ -621,9 +625,9 @@ Notes:
   non-interactive use, it errors instead.
 - For PDF, generate an SVG first and convert with a separate tool (e.g., `rsvg-convert`, `inkscape`, or
   ImageMagick's `magick`).
-- **Interactive shell QR display**: When using `qr '-'` in the interactive shell, wrap the result with `puts`
-  (e.g., `puts qr('-')`) to properly render the ANSI characters. Without `puts`, pry calls `inspect` on the
-  string, which escapes the ANSI codes and prevents the QR code from displaying correctly.
+- In the interactive shell, type `qr` to display the QR code directly.
+- Library callers that need the ANSI QR string instead of printing it can use
+  `generate_qr_code('-', delivery_mode: :return)`.
 
 
 ### Public IP Information

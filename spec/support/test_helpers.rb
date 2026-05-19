@@ -229,6 +229,7 @@ module TestHelpers
       open_resources_by_codes:              { opened_resources: [], invalid_codes: [] },
       resource_manager:                     double('resource_manager', invalid_codes_error: 'Invalid codes'),
       generate_qr_code:                     'TestNetwork-qr-code.png',
+      print_qr_code:                        nil,
     }
     double('model', defaults.merge(overrides))
   end

@@ -80,6 +80,12 @@ module WifiWand
           end
         end
 
+        def print_qr_code(password: nil, in_stream: $stdin)
+          with_system_profiler_wifi_data_cache_scope do
+            super(password: password, in_stream: in_stream)
+          end
+        end
+
         def self.os_id
           :mac
         end

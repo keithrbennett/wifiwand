@@ -26,8 +26,8 @@ describe WifiWand::Commands::Qr do
       help = described_class.new.help_text
 
       expect(help).to include('Usage: wifi-wand qr')
-      expect(help).to include('Default PNG file: <SSID>-qr-code.png')
-      expect(help).to include("Use '-' to print ANSI QR to stdout")
+      expect(help).to include('Default output prints an ANSI QR to stdout')
+      expect(help).to include('Pass a filename to write a QR image file')
     end
   end
 
@@ -46,26 +46,89 @@ describe WifiWand::Commands::Qr do
       command.call('test.png')
     end
 
-    it 'returns nil when printing to stdout in non-interactive mode' do
-      allow(mock_model).to receive(:generate_qr_code)
-        .with('-', hash_including(
-          delivery_mode: :print,
-          password:      nil,
-          in_stream:     in_stream
-        )).and_return('-')
+    it 'prints to stdout by default in non-interactive mode' do
+      expect(mock_model).to receive(:print_qr_code)
+        .with(password: nil, in_stream: in_stream).and_return(nil)
+
+      expect(command.call).to be_nil
+    end
+
+    it 'returns nil when explicitly printing to stdout in non-interactive mode' do
+      expect(mock_model).to receive(:print_qr_code)
+        .with(password: nil, in_stream: in_stream).and_return(nil)
 
       expect(command.call('-')).to be_nil
+    end
+
+    it 'uses dash as an explicit stdout target when a password is passed' do
+      expect(mock_model).to receive(:print_qr_code)
+        .with(password: 'secret', in_stream: in_stream).and_return(nil)
+
+      expect(command.call('-', 'secret')).to be_nil
+    end
+
+    it 'treats an empty filespec as stdout output' do
+      expect(mock_model).to receive(:print_qr_code)
+        .with(password: nil, in_stream: in_stream).and_return(nil)
+
+      expect(command.call('')).to be_nil
+    end
+
+    it 'rejects output formatting for stdout output' do
+      options = WifiWand::CommandLineOptions.new(
+        post_processor:               ->(object) { object.inspect },
+        invocation_option_sources:    { output_format: :command_line },
+        specified_invocation_options: [:output_format]
+      )
+      output_support = double('output_support', options: options)
+      cli = double('cli', model: mock_model, interactive_mode: false, in_stream: in_stream,
+        output_support: output_support, help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      command = described_class.new.bind(cli)
+
+      expect(mock_model).not_to receive(:print_qr_code)
+      expect { command.call }.to raise_error(WifiWand::ConfigurationError, /qr stdout output/)
+    end
+
+    it 'ignores an implicit post processor when output formatting was not specified' do
+      options = WifiWand::CommandLineOptions.new(
+        post_processor: ->(object) { object.inspect }
+      )
+      output_support = double('output_support', options: options)
+      cli = double('cli', model: mock_model, interactive_mode: false, in_stream: in_stream,
+        output_support: output_support, help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      command = described_class.new.bind(cli)
+
+      expect(mock_model).to receive(:print_qr_code)
+        .with(password: nil, in_stream: in_stream).and_return(nil)
+
+      expect(command.call).to be_nil
+    end
+
+    it 'ignores environment-sourced output formatting for stdout output at runtime' do
+      options = WifiWand::CommandLineOptions.new(
+        post_processor:               ->(object) { object.inspect },
+        invocation_option_sources:    { output_format: :environment },
+        specified_invocation_options: [:output_format]
+      )
+      output_support = double('output_support', options: options)
+      cli = double('cli', model: mock_model, interactive_mode: false, in_stream: in_stream,
+        output_support: output_support, help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      command = described_class.new.bind(cli)
+
+      expect(mock_model).to receive(:print_qr_code)
+        .with(password: nil, in_stream: in_stream).and_return(nil)
+
+      expect(command.call).to be_nil
     end
 
     context 'when interactive and printing to stdout' do
       let(:interactive_mode) { true }
 
-      it 'returns the ANSI QR string' do
-        allow(mock_model).to receive(:generate_qr_code)
-          .with('-', hash_including(delivery_mode: :return, password: nil,
-            in_stream: in_stream)).and_return('[QR]')
+      it 'prints the ANSI QR and returns a silent shell result' do
+        allow(mock_model).to receive(:print_qr_code)
+          .with(password: nil, in_stream: in_stream).and_return(nil)
 
-        expect(command.call('-')).to eq('[QR]')
+        expect(command.call).to equal(WifiWand::Commands::SILENT_RESULT)
       end
     end
 
@@ -87,9 +150,61 @@ describe WifiWand::Commands::Qr do
       expect { command.call('test.png', 'secret', 'extra') }
         .to raise_error(WifiWand::ConfigurationError) { |error|
           expect(error.message).to include('Unexpected argument(s): extra')
-          expect(error.message).to include("Usage: wifi-wand qr [filespec|'-'] [password]")
+          expect(error.message).to include('Usage: wifi-wand qr [filespec] [password]')
           expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
         }
+    end
+  end
+
+  describe '#validate_options' do
+    subject(:command) { described_class.new }
+
+    it 'rejects output formatting for default stdout output' do
+      options = WifiWand::CommandLineOptions.new(
+        specified_invocation_options: [:output_format],
+        invocation_option_sources:    { output_format: :command_line }
+      )
+
+      errors = command.validate_options(invocation_options: options, command_options: {}, args: [])
+
+      expect(errors).to eq([
+        '--output-format is not valid for qr stdout output. Pass a filename for formatted file output.',
+      ])
+    end
+
+    it 'rejects output formatting for explicit stdout output' do
+      options = WifiWand::CommandLineOptions.new(
+        specified_invocation_options: [:output_format],
+        invocation_option_sources:    { output_format: :command_line }
+      )
+
+      errors = command.validate_options(invocation_options: options, command_options: {}, args: ['-'])
+
+      expect(errors).to eq([
+        '--output-format is not valid for qr stdout output. Pass a filename for formatted file output.',
+      ])
+    end
+
+    it 'ignores environment-sourced output formatting for stdout output' do
+      options = WifiWand::CommandLineOptions.new(
+        specified_invocation_options: [:output_format],
+        invocation_option_sources:    { output_format: :environment }
+      )
+
+      errors = command.validate_options(invocation_options: options, command_options: {}, args: [])
+
+      expect(errors).to eq([])
+    end
+
+    it 'accepts output formatting for file output' do
+      options = WifiWand::CommandLineOptions.new(
+        specified_invocation_options: [:output_format],
+        invocation_option_sources:    { output_format: :command_line }
+      )
+
+      errors = command.validate_options(invocation_options: options, command_options: {}, args: ['wifi.png'])
+
+      expect(errors).to eq([])
     end
   end
 end

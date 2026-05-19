@@ -172,6 +172,28 @@ module WifiWand
         end
       end
 
+      describe '#print_qr_code' do
+        it 'prints through the system_profiler WiFi data cache scope' do
+          model.out_stream = StringIO.new
+          allow(model).to receive_messages(
+            command_available?:          true,
+            connected_network_name:      'TestNetwork',
+            connection_security_type:    'WPA2',
+            preferred_network_password:  'secret',
+            _preferred_network_password: 'secret',
+            network_hidden?:             false
+          )
+          allow(model).to receive(:run_command)
+            .with(satisfy { |cmd| cmd.first(3) == %w[qrencode -t ANSI] })
+            .and_return(command_result(stdout: "[QR-ANSI]\n"))
+
+          expect(model).to receive(:with_system_profiler_wifi_data_cache_scope).and_yield
+
+          expect(model.print_qr_code).to be_nil
+          expect(model.out_stream.string).to include('[QR-ANSI]')
+        end
+      end
+
       describe '#status_line_data' do
         let(:progress_callback) { ->(_data) {} }
 

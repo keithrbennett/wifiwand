@@ -249,6 +249,19 @@ describe WifiWand::CommandLineParser do
       end.to raise_error(WifiWand::ConfigurationError, /--output-format is not valid for connect/)
     end
 
+    it 'rejects output formatting for qr terminal output' do
+      expect do
+        described_class.new(%w[-o json qr], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--output-format is not valid for qr stdout output/)
+    end
+
+    it 'accepts output formatting for qr file output' do
+      options = described_class.new(%w[-o json qr wifi.png], ENV, err_stream).parse
+
+      expect(options.post_processor).to respond_to(:call)
+      expect(options.argv).to eq(%w[qr wifi.png])
+    end
+
     it 'rejects compact and abbreviated invocation options from the command line' do
       expect do
         described_class.new(%w[-ufalse connect TestNetwork], ENV, err_stream).parse
@@ -544,6 +557,17 @@ describe WifiWand::CommandLineParser do
       expect(options.utc).to be(true)
       expect(options.post_processor).to respond_to(:call)
       expect(options.argv).to eq(%w[connect TestNetwork])
+    end
+
+    it 'ignores environment-sourced output formatting for qr terminal output' do
+      allow(ENV).to receive(:[]).and_call_original
+      allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--output-format j')
+
+      options = described_class.new(%w[qr], ENV, err_stream).parse
+
+      expect(options.post_processor).to respond_to(:call)
+      expect(options.invocation_option_sources).to include(output_format: :environment)
+      expect(options.argv).to eq(%w[qr])
     end
 
     it 'does not treat the option terminator as an explicit invocation option' do

@@ -169,6 +169,32 @@ describe WifiWand::Commands::ShellInterface do
       expect(io.string).to include('boom')
     end
 
+    it 'suppresses explicit silent command results in pry output' do
+      captured_print = nil
+
+      pry_config = double('pry_config')
+      allow(pry_config).to receive(:command_prefix=)
+      allow(pry_config).to receive(:print=) { |printer| captured_print = printer }
+      allow(pry_config).to receive(:exception_handler=)
+      pry_class = double('Pry', config: pry_config)
+      stub_const('Pry', pry_class)
+
+      allow(subject).to receive(:require).with('pry')
+      allow(subject).to receive(:require).with('amazing_print')
+      mock_binding = double('binding', pry: nil)
+      allow(subject).to receive(:binding).and_return(mock_binding)
+
+      subject.run_shell
+
+      io = StringIO.new
+      captured_print.call(io, WifiWand::Commands::SILENT_RESULT, nil)
+      expect(io.string).to be_empty
+    end
+
+    it 'renders silent command results as an empty string when manually printed' do
+      expect(WifiWand::Commands::SILENT_RESULT.to_s).to eq('')
+    end
+
     it 'returns 0 when pry finishes normally' do
       allow(subject).to receive(:require).with('pry')
       allow(subject).to receive(:require).with('amazing_print')

@@ -4,6 +4,12 @@ require_relative '../errors'
 
 module WifiWand
   module Commands
+    class SilentResult
+      def to_s = ''
+    end
+
+    SILENT_RESULT = SilentResult.new.freeze
+
     class Metadata
       attr_reader :short_string, :long_string, :description, :usage
 
@@ -231,6 +237,8 @@ module WifiWand
       private def missing_argument?(value)
         value.nil? || value.to_s.empty?
       end
+
+      private def silent_result = SILENT_RESULT
     end
   end
 end

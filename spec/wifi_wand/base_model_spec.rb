@@ -1602,6 +1602,21 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
     end
 
+    context 'when printing QR codes' do
+      it 'prints ANSI QR to the model output stream and returns nil' do
+        out_stream = StringIO.new
+        subject.out_stream = out_stream
+        allow(subject).to receive(:run_command)
+          .with(satisfy { |cmd| cmd.first(3) == %w[qrencode -t ANSI] })
+          .and_return(command_result(stdout: "[QR-ANSI]\n"))
+
+        result = subject.print_qr_code
+
+        expect(result).to be_nil
+        expect(out_stream.string).to include('[QR-ANSI]')
+      end
+    end
+
     context 'when handling errors' do
       it 'raises WifiWand::Error when qrencode command fails' do
         allow(subject).to receive(:run_command)

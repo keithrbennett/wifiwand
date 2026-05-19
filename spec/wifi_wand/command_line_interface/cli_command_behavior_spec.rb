@@ -112,24 +112,42 @@ describe WifiWand::CommandLineInterface do
 
   describe 'QR code generation edge cases' do
     describe 'qr command' do
-      context 'with symbol argument for ANSI output' do
-        it 'returns ANSI string in interactive mode and does not print' do
-          ansi_content = "[QR-ANSI]\nLINE2\n"
-          allow(interactive_cli.model).to receive(:generate_qr_code)
-            .with('-', hash_including(delivery_mode: :return, password: nil)).and_return(ansi_content)
+      context 'with no filespec' do
+        it 'prints ANSI via model and returns nil in non-interactive mode' do
+          allow(mock_model).to receive(:print_qr_code) do
+            $stdout.print("[QR-ANSI]\n")
+            nil
+          end
 
           result = nil
-          expect { result = invoke_command(interactive_cli, 'qr', :-) }.not_to output.to_stdout
-          expect(result).to eq(ansi_content)
+          captured = silence_output do |stdout, _stderr|
+            result = invoke_command(cli, 'qr')
+            stdout.string
+          end
+
+          expect(result).to be_nil
+          expect(captured).to eq("[QR-ANSI]\n")
+        end
+      end
+
+      context 'with explicit dash argument in interactive mode' do
+        it 'prints ANSI in interactive mode and returns a silent shell result' do
+          allow(interactive_cli.model).to receive(:print_qr_code).with(password: nil, in_stream: anything) do
+            $stdout.print("[QR-ANSI]\n")
+            nil
+          end
+
+          result = nil
+          expect { result = invoke_command(interactive_cli, 'qr', :-) }.to output("[QR-ANSI]\n").to_stdout
+          expect(result).to equal(WifiWand::Commands::SILENT_RESULT)
         end
       end
 
       context 'when in non-interactive stdout mode' do
         it 'prints ANSI via model and returns nil' do
-          allow(mock_model).to receive(:generate_qr_code)
-            .with('-', hash_including(delivery_mode: :print, password: nil)) do
+          allow(mock_model).to receive(:print_qr_code).with(password: nil, in_stream: anything) do
             $stdout.print("[QR-ANSI]\n")
-            '-'
+            nil
           end
 
           result = nil
@@ -231,8 +249,6 @@ describe WifiWand::CommandLineInterface do
         non_interactive_output: /status.*connected/m },
       { command_name: 'ci', model_method: :internet_connectivity_state, return_value: :reachable,
         non_interactive_output: "Internet connectivity: reachable\n" },
-      { command_name: 'qr', model_method: :generate_qr_code, return_value: 'TestNetwork-qr-code.png',
-        non_interactive_output: "QR code generated: TestNetwork-qr-code.png\n" },
     ].freeze
 
     command_test_cases.each do |tc|
