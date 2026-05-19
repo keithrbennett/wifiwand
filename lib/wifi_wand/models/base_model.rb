@@ -475,27 +475,10 @@ module WifiWand
     # Returns comprehensive WiFi information including connectivity details
     def wifi_info
       debug_method_entry(__method__)
-      internet_tcp = begin
-        internet_tcp_connectivity?
-      rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
-        false
-      end
-
-      dns_working = begin
-        dns_working?
-      rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
-        false
-      end
-
-      portal_login_required = if internet_tcp && dns_working
-        begin
-          captive_portal_login_required
-        rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
-          :unknown
-        end
-      else
-        :unknown
-      end
+      connectivity = wifi_info_connectivity
+      internet_tcp = connectivity.fetch(:internet_tcp)
+      dns_working = connectivity.fetch(:dns_working)
+      portal_login_required = connectivity.fetch(:portal_login_required)
 
       # Pass all pre-computed values to avoid redundant network calls
       connectivity_state = ConnectivityStates.internet_state_from_login_required(
@@ -527,6 +510,60 @@ module WifiWand
         'nameservers'                   => begin; nameservers; rescue WifiWand::Error; []; end,
         'timestamp'                     => Time.now,
       }
+    end
+
+    private def wifi_info_connectivity
+      initial_probe_results = wifi_info_initial_connectivity_probe_results
+      internet_tcp = initial_probe_results.fetch(:internet_tcp)
+      dns_working = initial_probe_results.fetch(:dns_working)
+
+      {
+        internet_tcp:          internet_tcp,
+        dns_working:           dns_working,
+        portal_login_required: wifi_info_captive_portal_login_required(internet_tcp, dns_working),
+      }
+    end
+
+    private def wifi_info_initial_connectivity_probe_results
+      workers = []
+      result_queue = Queue.new
+      workers << wifi_info_probe_worker(result_queue, :internet_tcp) { internet_tcp_connectivity? }
+      workers << wifi_info_probe_worker(result_queue, :dns_working) { dns_working? }
+
+      wifi_info_collect_probe_results(result_queue, workers.length)
+    ensure
+      workers.each(&:join)
+    end
+
+    private def wifi_info_probe_worker(result_queue, probe_name)
+      Thread.new do
+        result_queue << [probe_name, :result, yield]
+      rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
+        result_queue << [probe_name, :result, false]
+      rescue StandardError, ScriptError => e
+        result_queue << [probe_name, :error, e]
+      end
+    end
+
+    private def wifi_info_collect_probe_results(result_queue, result_count)
+      results = {}
+
+      result_count.times do
+        probe_name, status, payload = result_queue.pop
+        raise payload if status == :error
+
+        results[probe_name] = payload
+      end
+
+      results
+    end
+
+    private def wifi_info_captive_portal_login_required(internet_tcp, dns_working)
+      return :unknown unless internet_tcp && dns_working
+
+      captive_portal_login_required
+    rescue *EXPECTED_NETWORK_ERRORS, WifiWand::Error
+      :unknown
     end
 
     private def wifi_info_ipv4_addresses

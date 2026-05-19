@@ -150,6 +150,31 @@ describe 'Common WiFi Model Behavior (All OS)' do
       result = subject.wifi_info
       expect(result).not_to have_key('public_ip')
     end
+
+    it 'starts TCP and DNS connectivity probes before waiting for either result' do
+      dns_started_mutex = Mutex.new
+      dns_started_condition = ConditionVariable.new
+      dns_started = false
+
+      allow(subject).to receive(:internet_tcp_connectivity?) do
+        dns_started_mutex.synchronize do
+          dns_started_condition.wait(dns_started_mutex, 5) unless dns_started
+          raise 'DNS probe did not start while TCP probe was still running' unless dns_started
+        end
+
+        true
+      end
+      allow(subject).to receive(:dns_working?) do
+        dns_started_mutex.synchronize do
+          dns_started = true
+          dns_started_condition.broadcast
+        end
+
+        true
+      end
+
+      expect(subject.wifi_info['internet_connectivity_state']).to eq(:reachable)
+    end
   end
 
   describe '#wifi_on?' do
@@ -877,6 +902,33 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(first).to be_a(WifiWand::Helpers::QrCodeGenerator)
       expect(second).to equal(first)
     end
+
+    it 'reports non-StandardError wifi info probe failures through the result queue' do
+      result_queue = Queue.new
+      worker = subject.send(:wifi_info_probe_worker, result_queue, :internet_tcp) do
+        raise ScriptError, 'probe failed'
+      end
+
+      worker.join
+      probe_name, status, payload = result_queue.pop(true)
+
+      expect(probe_name).to eq(:internet_tcp)
+      expect(status).to eq(:error)
+      expect(payload).to be_a(ScriptError)
+      expect(payload.message).to eq('probe failed')
+    end
+
+    it 'joins already-started wifi info probe workers when later thread creation fails' do
+      started_worker = instance_double(Thread)
+      allow(started_worker).to receive(:join)
+      allow(subject).to receive(:wifi_info_probe_worker).and_return(started_worker)
+      allow(subject).to receive(:wifi_info_probe_worker).with(anything, :dns_working).and_raise(ThreadError)
+
+      expect do
+        subject.send(:wifi_info_initial_connectivity_probe_results)
+      end.to raise_error(ThreadError)
+      expect(started_worker).to have_received(:join)
+    end
   end
 
   describe 'subclass method validation' do
@@ -1105,6 +1157,13 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(subject.connectivity_tester).to receive(:captive_portal_login_required).and_return(:no)
 
       expect(subject.wifi_info['captive_portal_login_required']).to eq(:no)
+    end
+
+    it 'propagates unexpected TCP probe failures from worker threads' do
+      allow(subject).to receive(:internet_tcp_connectivity?).and_raise(RuntimeError, 'broken probe')
+      allow(subject).to receive(:dns_working?).and_return(true)
+
+      expect { subject.wifi_info }.to raise_error(RuntimeError, 'broken probe')
     end
 
     it 'does not hide unexpected ipv4_addresses errors' do
