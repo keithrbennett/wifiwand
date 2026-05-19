@@ -527,14 +527,16 @@ module WifiWand
     end
 
     private def wifi_info_initial_connectivity_probe_results
-      workers = []
+      workers = {}
       result_queue = Queue.new
-      workers << wifi_info_probe_worker(result_queue, :internet_tcp) { internet_tcp_connectivity? }
-      workers << wifi_info_probe_worker(result_queue, :dns_working) { dns_working? }
+      workers[:internet_tcp] = wifi_info_probe_worker(result_queue, :internet_tcp) do
+        internet_tcp_connectivity?
+      end
+      workers[:dns_working] = wifi_info_probe_worker(result_queue, :dns_working) { dns_working? }
 
-      wifi_info_collect_probe_results(result_queue, workers.length)
+      wifi_info_collect_probe_results(result_queue, workers)
     ensure
-      workers.each(&:join)
+      workers.each_value(&:join)
     end
 
     private def wifi_info_probe_worker(result_queue, probe_name)
@@ -547,17 +549,32 @@ module WifiWand
       end
     end
 
-    private def wifi_info_collect_probe_results(result_queue, result_count)
+    private def wifi_info_collect_probe_results(result_queue, workers)
       results = {}
 
-      result_count.times do
-        probe_name, status, payload = result_queue.pop
+      until results.length == workers.length
+        probe_name, status, payload = wifi_info_next_probe_result(result_queue, workers, results)
         raise payload if status == :error
 
         results[probe_name] = payload
       end
 
       results
+    end
+
+    private def wifi_info_next_probe_result(result_queue, workers, results)
+      loop do
+        return result_queue.pop(true)
+      rescue ThreadError
+        probe_name, worker = workers.find { |name, thread| !results.key?(name) && !thread.alive? }
+
+        if worker
+          worker.value
+          raise(WifiWand::Error, "WiFi info probe #{probe_name} exited without reporting a result")
+        end
+
+        sleep(0.01)
+      end
     end
 
     private def wifi_info_captive_portal_login_required(internet_tcp, dns_working)

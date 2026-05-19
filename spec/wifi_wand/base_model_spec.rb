@@ -929,6 +929,15 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end.to raise_error(ThreadError)
       expect(started_worker).to have_received(:join)
     end
+
+    it 'propagates a worker that exits without publishing a probe result' do
+      failed_worker = instance_double(Thread, alive?: false)
+      allow(failed_worker).to receive(:value).and_raise(NoMemoryError, 'worker failed')
+
+      expect do
+        subject.send(:wifi_info_collect_probe_results, Queue.new, internet_tcp: failed_worker)
+      end.to raise_error(NoMemoryError, 'worker failed')
+    end
   end
 
   describe 'subclass method validation' do
