@@ -1473,6 +1473,18 @@ module WifiWand
       describe '#remove_preferred_network' do
         let(:sudo_check_command) { %w[sudo -n true] }
 
+        def stub_sudo_tty_stream(stream, responds_to_tty:, tty: true)
+          allow(stream).to receive(:respond_to?).and_call_original
+          allow(stream).to receive(:respond_to?).with(:tty?).and_return(responds_to_tty)
+          allow(stream).to receive(:tty?)
+          allow(stream).to receive(:tty?).and_return(tty) if responds_to_tty
+        end
+
+        def stub_sudo_tty_streams(stdin_tty: true, stderr_tty: true)
+          stub_sudo_tty_stream($stdin, responds_to_tty: true, tty: stdin_tty)
+          stub_sudo_tty_stream($stderr, responds_to_tty: true, tty: stderr_tty)
+        end
+
         it 'constructs a correctly escaped removal command for various network names' do
           allow(model).to receive(:wifi_interface).and_return('en0')
           allow(model).to receive(:run_command).with(
@@ -1586,6 +1598,52 @@ module WifiWand
           expect(err_stream.string).to include(
             'Administrator authentication is required to remove a saved WiFi network.'
           )
+        end
+
+        it 'returns false from the sudo cache check when sudo -n times out' do
+          allow(model).to receive(:run_command).with(
+            sudo_check_command,
+            raise_on_error:  false,
+            timeout_in_secs: described_class::SUDO_AUTH_CHECK_TIMEOUT_SECONDS
+          ).and_raise(WifiWand::CommandTimeoutError.new(
+            command:         sudo_check_command.join(' '),
+            timeout_in_secs: described_class::SUDO_AUTH_CHECK_TIMEOUT_SECONDS
+          ))
+
+          expect(model.send(:sudo_authentication_cached?)).to be(false)
+        end
+
+        it 'detects interactive sudo authentication when stdin and stderr are TTYs' do
+          stub_sudo_tty_streams
+
+          expect(model.send(:interactive_sudo_authentication_available?)).to be(true)
+        end
+
+        it 'rejects interactive sudo authentication when stdin is not a TTY' do
+          stub_sudo_tty_streams(stdin_tty: false)
+
+          expect(model.send(:interactive_sudo_authentication_available?)).to be(false)
+        end
+
+        it 'rejects interactive sudo authentication when stderr is not a TTY' do
+          stub_sudo_tty_streams(stderr_tty: false)
+
+          expect(model.send(:interactive_sudo_authentication_available?)).to be(false)
+        end
+
+        it 'rejects interactive sudo authentication when stdin cannot report TTY status' do
+          stub_sudo_tty_stream($stdin, responds_to_tty: false)
+
+          expect(model.send(:interactive_sudo_authentication_available?)).to be(false)
+          expect($stdin).not_to have_received(:tty?)
+        end
+
+        it 'rejects interactive sudo authentication when stderr cannot report TTY status' do
+          stub_sudo_tty_stream($stdin, responds_to_tty: true)
+          stub_sudo_tty_stream($stderr, responds_to_tty: false)
+
+          expect(model.send(:interactive_sudo_authentication_available?)).to be(false)
+          expect($stderr).not_to have_received(:tty?)
         end
 
         it 'fails clearly instead of prompting when sudo authentication is unavailable non-interactively' do

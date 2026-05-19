@@ -362,6 +362,55 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
+  describe '#connection_ready?' do
+    it 'logs lookup failures in verbose mode and returns false' do
+      output = StringIO.new
+      test_model_class = Class.new(WifiWand::BaseModel) do
+        def self.os_id = :mac
+      end
+      define_base_model_required_methods(test_model_class, probe_wifi_interface: 'en0')
+      model = test_model_class.new(verbose: true, out_stream: output)
+
+      allow(model).to receive(:connected?).and_raise(WifiWand::Error, 'state probe failed')
+
+      expect(model.connection_ready?('TestNet')).to be(false)
+      expect(output.string).to include('connection_ready? check failed: WifiWand::Error: state probe failed')
+    end
+  end
+
+  describe '#disconnect_stability_window_in_secs' do
+    it 'defaults to two ordinary wait intervals' do
+      expect(subject.disconnect_stability_window_in_secs)
+        .to eq(WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL * 2)
+    end
+  end
+
+  describe '#disassociated_stable?' do
+    it 'returns true once the interface stays disassociated through the stability window' do
+      allow(subject).to receive_messages(
+        disconnect_stability_window_in_secs: 0.2,
+        disconnect_association_state:        { associated: false, network_name: nil }
+      )
+      allow(subject).to receive(:monotonic_now).and_return(10.0, 10.1, 10.2)
+      allow(subject).to receive(:sleep)
+
+      expect(subject.disassociated_stable?).to be(true)
+      expect(subject).to have_received(:sleep).with(WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL).once
+    end
+
+    it 'returns false when the interface is still associated at the start of the stability window' do
+      allow(subject).to receive_messages(
+        disconnect_stability_window_in_secs: 0.2,
+        disconnect_association_state:        { associated: true, network_name: 'TestNet' }
+      )
+      allow(subject).to receive(:monotonic_now).and_return(10.0)
+      allow(subject).to receive(:sleep)
+
+      expect(subject.disassociated_stable?).to be(false)
+      expect(subject).not_to have_received(:sleep)
+    end
+  end
+
   # No real-environment test for #disconnect.
   #
   # macOS's airportd daemon reconnects to preferred networks within
@@ -375,12 +424,18 @@ describe 'Common WiFi Model Behavior (All OS)' do
   # The disconnect logic is fully covered by the mocked unit tests above.
   # See dev/docs/TESTING.md for the full investigation and decision record.
 
-  describe '#associated?', :real_env_read_only do
-    it 'returns a boolean' do
+  describe '#associated?' do
+    it 'returns false when the connected network lookup raises a wifi-wand error' do
+      allow(subject).to receive(:connected_network_name).and_raise(WifiWand::Error, 'SSID unavailable')
+
+      expect(subject.associated?).to be(false)
+    end
+
+    it 'returns a boolean', :real_env_read_only do
       expect(subject.associated?).to be(true).or be(false)
     end
 
-    it 'is true when wifi is on and a non-empty network name is present' do
+    it 'is true when wifi is on and a non-empty network name is present', :real_env_read_only do
       skip 'WiFi is currently off' unless subject.wifi_on?
 
       name = subject.connected_network_name

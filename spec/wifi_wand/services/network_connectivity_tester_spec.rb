@@ -43,6 +43,28 @@ describe WifiWand::NetworkConnectivityTester do
     raise
   end
 
+  def raw_connectivity_probe(helper_mode:, output:)
+    reader, writer = IO.pipe
+    writer.write(output)
+    writer.close
+    { pid: nil, reader: reader, helper_mode: helper_mode, buffer: +'', eof: false }
+  rescue IOError, SystemCallError
+    reader&.close unless reader&.closed?
+    writer&.close unless writer&.closed?
+    raise
+  end
+
+  def with_probe_io(pid: 12_345, helper_mode: :tcp)
+    reader, writer = IO.pipe
+    writer.close
+    probe = { pid: pid, reader: reader, helper_mode: helper_mode, buffer: +'', eof: false }
+
+    yield reader, writer, probe
+  ensure
+    reader&.close unless reader&.closed?
+    writer&.close unless writer&.closed?
+  end
+
   def successful_probe_payload
     { success: true, timed_out: false }
   end
@@ -441,6 +463,55 @@ describe WifiWand::NetworkConnectivityTester do
       expect(writer).to be_closed
     ensure
       original_reader_close.call if original_reader_closed && !original_reader_closed.call
+    end
+
+    it 'clears the helper pid when the process is already gone during cleanup' do
+      with_probe_io do |reader, _writer, probe|
+        allow(Process).to receive(:kill).with('TERM', 12_345).and_raise(Errno::ESRCH)
+
+        expect { tester.send(:cleanup_failed_connectivity_probe_process, probe) }.not_to raise_error
+        expect(probe[:pid]).to be_nil
+        expect(reader).to be_closed
+      end
+    end
+
+    it 'suppresses system call failures during failed helper cleanup' do
+      with_probe_io do |reader, _writer, probe|
+        allow(Process).to receive(:kill).with('TERM', 12_345).and_raise(Errno::EPERM)
+
+        expect { tester.send(:cleanup_failed_connectivity_probe_process, probe) }.not_to raise_error
+        expect(reader).to be_closed
+      end
+    end
+  end
+
+  describe '#read_probe_result' do
+    let(:tester) { described_class.new(verbose: false) }
+
+    it 'returns a failed helper result when the helper closes stdout without output' do
+      probe = raw_connectivity_probe(helper_mode: :tcp, output: '')
+
+      expect(tester.send(:read_probe_result, probe)).to eq(
+        success:       false,
+        timed_out:     false,
+        error_class:   'EOFError',
+        probe_results: []
+      )
+    ensure
+      probe&.fetch(:reader)&.close unless probe&.fetch(:reader)&.closed?
+    end
+
+    it 'returns a failed helper result when closed helper output is malformed JSON' do
+      probe = raw_connectivity_probe(helper_mode: :tcp, output: 'not json {{{')
+
+      expect(tester.send(:read_probe_result, probe)).to eq(
+        success:       false,
+        timed_out:     false,
+        error_class:   'JSON::ParserError',
+        probe_results: []
+      )
+    ensure
+      probe&.fetch(:reader)&.close unless probe&.fetch(:reader)&.closed?
     end
   end
 

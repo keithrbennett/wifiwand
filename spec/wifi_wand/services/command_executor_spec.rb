@@ -240,6 +240,20 @@ describe WifiWand::CommandExecutor do
         expect(result.exitstatus).to eq(0)
       end
 
+      it 'ignores IOError while closing command streams' do
+        stream = instance_double(IO, closed?: false)
+
+        allow(stream).to receive(:close).and_raise(IOError, 'already closed')
+
+        expect { executor.send(:close_command_streams, stream) }.not_to raise_error
+      end
+
+      it 'reports a process group as not alive when signal probing raises ESRCH' do
+        allow(Process).to receive(:kill).with(0, -12_345).and_raise(Errno::ESRCH)
+
+        expect(executor.send(:process_group_alive?, 12_345)).to be(false)
+      end
+
       it 'represents commands terminated by a signal as unsuccessful results' do
         stdin = instance_double(IO, close: nil)
         stdout = stream_class.new([EOFError.new])
