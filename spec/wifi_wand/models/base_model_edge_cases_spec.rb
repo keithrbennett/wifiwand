@@ -289,13 +289,53 @@ RSpec.describe WifiWand::BaseModel do
     end
 
     it 'raises timeout errors clearly' do
+      allow(model).to receive(:sleep)
       allow(fake_http).to receive(:request).and_raise(Net::ReadTimeout)
 
       expect { model.public_ip_address }
         .to raise_error(WifiWand::PublicIPLookupError, 'Public IP lookup failed: timeout')
     end
 
+    it 'retries transient timeout errors before returning a successful address' do
+      allow(model).to receive(:sleep)
+      fake_response = double('response', body: '203.0.113.5')
+      allow(fake_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+      request_count = 0
+      allow(fake_http).to receive(:request) do
+        request_count += 1
+        raise Net::ReadTimeout if request_count < 3
+
+        fake_response
+      end
+
+      expect(model.public_ip_address).to eq('203.0.113.5')
+      expect(model).to have_received(:sleep).with(0.2)
+      expect(model).to have_received(:sleep).with(0.4)
+    end
+
+    it 'stops after the configured retry budget is exhausted' do
+      allow(model).to receive(:sleep)
+      allow(fake_http).to receive(:request).and_raise(SocketError, 'lookup failed')
+
+      expect { model.public_ip_address }
+        .to raise_error(WifiWand::PublicIPLookupError, 'Public IP lookup failed: network error')
+      expect(fake_http).to have_received(:request).exactly(3).times
+    end
+
+    it 'does not retry non-rate-limited client errors' do
+      fake_response = instance_double(Net::HTTPResponse, code: '400', message: 'Bad Request')
+      allow(fake_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(false)
+      allow(fake_http).to receive(:request).and_return(fake_response)
+      allow(model).to receive(:sleep)
+
+      expect { model.public_ip_address }
+        .to raise_error(WifiWand::PublicIPLookupError, 'Public IP lookup failed: HTTP 400 Bad Request')
+      expect(fake_http).to have_received(:request).once
+      expect(model).not_to have_received(:sleep)
+    end
+
     it 'preserves the request URL on transport errors' do
+      allow(model).to receive(:sleep)
       allow(fake_http).to receive(:request).and_raise(SocketError, 'lookup failed')
 
       expect { model.public_ip_address }.to raise_error(WifiWand::PublicIPLookupError) { |error|
@@ -305,6 +345,7 @@ RSpec.describe WifiWand::BaseModel do
     end
 
     it 'raises transport errors clearly' do
+      allow(model).to receive(:sleep)
       allow(fake_http).to receive(:request).and_raise(SocketError, 'lookup failed')
 
       expect { model.public_ip_address }
@@ -333,9 +374,14 @@ RSpec.describe WifiWand::BaseModel do
       fake_response = instance_double(Net::HTTPResponse, code: '429', message: 'Too Many Requests')
       allow(fake_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(false)
       allow(fake_http).to receive(:request).and_return(fake_response)
+      allow(model).to receive(:sleep)
 
       expect { model.public_ip_info }
-        .to raise_error(WifiWand::PublicIPLookupError, 'Public IP lookup failed: rate limited')
+        .to raise_error(WifiWand::PublicIPLookupError, 'Public IP lookup failed: rate limited') { |error|
+          expect(error.status_code).to eq('429')
+        }
+      expect(fake_http).to have_received(:request).once
+      expect(model).not_to have_received(:sleep)
     end
   end
 

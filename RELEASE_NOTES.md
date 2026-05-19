@@ -37,6 +37,8 @@
   commands.
 * Load `amazing_print` only when Amazing Print output or shell printing is
   needed.
+* Retry transient public IP lookup failures with short exponential backoff while preserving immediate
+  failures for rate limits and non-retryable client errors.
 
 ## v3.0.0-alpha.1
 

@@ -170,7 +170,9 @@ module WifiWand
       wifi_on?:                    :public,
     }.freeze
 
-    PUBLIC_IP_TIMEOUT_IN_SECONDS = 2
+    PUBLIC_IP_TIMEOUT_IN_SECONDS = 3
+    PUBLIC_IP_MAX_ATTEMPTS = 3
+    PUBLIC_IP_RETRY_BASE_DELAY_IN_SECONDS = 0.2
     COUNTRY_CODE_REGEX = /\A[A-Z]{2}\z/
 
     def self.subclass_overrides_method?(subclass, method_name)
@@ -919,6 +921,21 @@ module WifiWand
     end
 
     private def public_ip_http_get(uri)
+      attempts = 0
+
+      begin
+        attempts += 1
+        public_ip_http_get_once(uri)
+      rescue WifiWand::PublicIPLookupError => e
+        raise unless public_ip_retryable_error?(e)
+        raise if attempts >= PUBLIC_IP_MAX_ATTEMPTS
+
+        sleep(public_ip_retry_delay(attempts))
+        retry
+      end
+    end
+
+    private def public_ip_http_get_once(uri)
       http = Net::HTTP.new(uri.host, uri.port)
       http.use_ssl = (uri.scheme == 'https')
       http.open_timeout = PUBLIC_IP_TIMEOUT_IN_SECONDS
@@ -930,8 +947,8 @@ module WifiWand
 
       if response.code == '429'
         raise(WifiWand::PublicIPLookupError.new(
-          status_code:    nil,
-          status_message: nil,
+          status_code:    response.code,
+          status_message: response.message,
           message:        'Public IP lookup failed: rate limited',
           url:            uri.to_s
         ))
@@ -957,6 +974,16 @@ module WifiWand
         message:        'Public IP lookup failed: network error',
         url:            uri.to_s
       ))
+    end
+
+    private def public_ip_retry_delay(attempts_completed)
+      PUBLIC_IP_RETRY_BASE_DELAY_IN_SECONDS * (2**(attempts_completed - 1))
+    end
+
+    private def public_ip_retryable_error?(error)
+      return true if error.status_code.nil?
+
+      error.status_code.to_i >= 500
     end
 
     # Normalizes a raw security descriptor string from OS tools to
