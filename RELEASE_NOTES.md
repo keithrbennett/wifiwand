@@ -41,7 +41,7 @@
   their wait times together.
 * Retry transient public IP lookup failures with short exponential backoff while preserving immediate
   failures for rate limits and non-retryable client errors.
-* Add the `rm` / `random_mac` command for generating locally administered unicast MAC addresses.
+* Add the `rmac` / `random_mac` command for generating locally administered unicast MAC addresses.
 
 ## v3.0.0-alpha.1
 
