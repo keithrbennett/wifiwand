@@ -19,8 +19,8 @@ module WifiWand
         ].freeze
         PREFERRED_NETWORK_SECRET_PLACEHOLDERS = %w[--].freeze
         ACTIVE_CONNECTION_PROFILE_PLACEHOLDERS = %w[--].freeze
-        SAVED_WIFI_PROFILE_SUMMARY_FIELDS = 'NAME,TYPE,TIMESTAMP'
         SAVED_WIFI_PROFILE_SSID_FIELD = '802-11-wireless.ssid'
+        SAVED_WIFI_PROFILE_SUMMARY_FIELDS = "NAME,TYPE,TIMESTAMP,#{SAVED_WIFI_PROFILE_SSID_FIELD}".freeze
         DNS_CONNECTION_FIELDS = %w[
           ipv4.dns
           ipv4.ignore-auto-dns
@@ -903,8 +903,8 @@ module WifiWand
           return [] unless result.success?
 
           result.stdout.split("\n").filter_map do |line|
-            name, type, timestamp = nmcli_split(line, 3)
-            ssid = saved_wifi_profile_ssid(name) if type == '802-11-wireless'
+            name, type, timestamp, ssid = nmcli_split(line, 4)
+            ssid = saved_wifi_profile_ssid(name) if type == '802-11-wireless' && string_nil_or_empty?(ssid)
             saved_wifi_profile_from_fields(name: name, ssid: ssid, type: type, timestamp: timestamp)
           end
         rescue WifiWand::CommandTimeoutError, WifiWand::CommandNotFoundError, WifiWand::CommandSpawnError

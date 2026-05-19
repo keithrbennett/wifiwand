@@ -32,7 +32,11 @@ module WifiWand
     end
 
     def nmcli_saved_profile_summary_fields
-      %w[nmcli -t -f NAME,TYPE,TIMESTAMP connection show]
+      %w[nmcli -t -f NAME,TYPE,TIMESTAMP,802-11-wireless.ssid connection show]
+    end
+
+    def nmcli_saved_profile_ssid_fields(profile_name)
+      ['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show', profile_name]
     end
 
     def wifi_interface_regex = /wl[a-z0-9]+/
@@ -419,27 +423,11 @@ module WifiWand
           expect(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .and_return(command_result(
-              stdout: "MySSID:802-11-wireless:100\n" \
-                "Renamed Profile:802-11-wireless:300\n" \
-                "MySSID 2:802-11-wireless:200\n" \
-                'OtherSSID:802-11-wireless:999'
+              stdout: "MySSID:802-11-wireless:100:MySSID\n" \
+                "Renamed Profile:802-11-wireless:300:MySSID\n" \
+                "MySSID 2:802-11-wireless:200:MySSID\n" \
+                'OtherSSID:802-11-wireless:999:OtherSSID'
             ))
-          expect(ubuntu_model).to receive(:run_command)
-            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-              'MySSID'], raise_on_error: false)
-            .and_return(command_result(stdout: '802-11-wireless.ssid:MySSID'))
-          expect(ubuntu_model).to receive(:run_command)
-            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-              'Renamed Profile'], raise_on_error: false)
-            .and_return(command_result(stdout: '802-11-wireless.ssid:MySSID'))
-          expect(ubuntu_model).to receive(:run_command)
-            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-              'MySSID 2'], raise_on_error: false)
-            .and_return(command_result(stdout: '802-11-wireless.ssid:MySSID'))
-          expect(ubuntu_model).to receive(:run_command)
-            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-              'OtherSSID'], raise_on_error: false)
-            .and_return(command_result(stdout: '802-11-wireless.ssid:OtherSSID'))
 
           expect(ubuntu_model.send(:find_best_profile_for_ssid, 'MySSID')).to eq('Renamed Profile')
         end
@@ -451,18 +439,8 @@ module WifiWand
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .once
             .and_return(command_result(
-              stdout: "MySSID:802-11-wireless:100\nOtherSSID:802-11-wireless:200"
+              stdout: "MySSID:802-11-wireless:100:MySSID\nOtherSSID:802-11-wireless:200:OtherSSID"
             ))
-          expect(ubuntu_model).to receive(:run_command)
-            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show', 'MySSID'],
-              raise_on_error: false)
-            .once
-            .and_return(command_result(stdout: '802-11-wireless.ssid:MySSID'))
-          expect(ubuntu_model).to receive(:run_command)
-            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show', 'OtherSSID'],
-              raise_on_error: false)
-            .once
-            .and_return(command_result(stdout: '802-11-wireless.ssid:OtherSSID'))
           expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli connection up MySSID])
             .and_return(command_result(stdout: ''))
@@ -490,18 +468,9 @@ module WifiWand
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .once
             .and_return(command_result(
-              stdout: "Home Profile:802-11-wireless:100\nOffice Profile:802-11-wireless:200"
+              stdout: "Home Profile:802-11-wireless:100:Home\n" \
+                'Office Profile:802-11-wireless:200:Office'
             ))
-          expect(ubuntu_model).to receive(:run_command)
-            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-              'Home Profile'], raise_on_error: false)
-            .once
-            .and_return(command_result(stdout: '802-11-wireless.ssid:Home'))
-          expect(ubuntu_model).to receive(:run_command)
-            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-              'Office Profile'], raise_on_error: false)
-            .once
-            .and_return(command_result(stdout: '802-11-wireless.ssid:Office'))
           expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'delete', 'Home Profile'])
             .ordered
@@ -519,12 +488,7 @@ module WifiWand
           expect(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .once
-            .and_return(command_result(stdout: 'Home Profile:802-11-wireless:100'))
-          expect(ubuntu_model).to receive(:run_command)
-            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-              'Home Profile'], raise_on_error: false)
-            .once
-            .and_return(command_result(stdout: '802-11-wireless.ssid:Home'))
+            .and_return(command_result(stdout: 'Home Profile:802-11-wireless:100:Home'))
           expect(ubuntu_model).to receive(:run_command)
             .with(['nmcli', 'connection', 'delete', 'Home Profile'])
             .once
@@ -954,27 +918,60 @@ module WifiWand
       describe '#preferred_networks' do
         it 'returns list of saved Wi-Fi network SSIDs' do
           nmcli_output = <<~OUT.chomp
-            Renamed profile 1:802-11-wireless:100
-            TestNetwork-2:802-11-wireless:200
+            Renamed profile 1:802-11-wireless:100:TestNetwork-1
+            TestNetwork-2:802-11-wireless:200:TestNetwork-2
             Wired connection 1:ethernet:300
           OUT
           allow(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
-          allow(ubuntu_model).to receive(:run_command)
-            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-              'Renamed profile 1'], raise_on_error: false)
-            .and_return(command_result(stdout: '802-11-wireless.ssid:TestNetwork-1'))
-          allow(ubuntu_model).to receive(:run_command)
-            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-              'TestNetwork-2'], raise_on_error: false)
-            .and_return(command_result(stdout: '802-11-wireless.ssid:TestNetwork-2'))
 
           result = ubuntu_model.preferred_networks
           expect(result).to be_an(Array)
           expect(result).to include('TestNetwork-1', 'TestNetwork-2')
           expect(result).not_to include('Renamed profile 1')
           expect(result).not_to include('Wired connection 1')
+        end
+
+        it 'falls back to per-profile SSID lookup when the bulk query omits SSIDs' do
+          nmcli_output = <<~OUT.chomp
+            Renamed profile 1:802-11-wireless:100
+            TestNetwork-2:802-11-wireless:200:TestNetwork-2
+          OUT
+          allow(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .and_return(command_result(stdout: nmcli_output))
+          expect(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_ssid_fields('Renamed profile 1'), raise_on_error: false)
+            .and_return(command_result(stdout: '802-11-wireless.ssid:TestNetwork-1'))
+
+          expect(ubuntu_model.preferred_networks).to eq(%w[TestNetwork-1 TestNetwork-2])
+        end
+
+        it 'deduplicates duplicate SSIDs when one profile needs the fallback lookup' do
+          nmcli_output = <<~OUT.chomp
+            TestNetwork:802-11-wireless:100:TestNetwork
+            TestNetwork 1:802-11-wireless:200
+          OUT
+          allow(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .and_return(command_result(stdout: nmcli_output))
+          expect(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_ssid_fields('TestNetwork 1'), raise_on_error: false)
+            .and_return(command_result(stdout: '802-11-wireless.ssid:TestNetwork'))
+
+          expect(ubuntu_model.preferred_networks).to eq(['TestNetwork'])
+        end
+
+        it 'skips a Wi-Fi profile when the fallback lookup returns an empty SSID' do
+          allow(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .and_return(command_result(stdout: 'Empty SSID profile:802-11-wireless:100'))
+          allow(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_ssid_fields('Empty SSID profile'), raise_on_error: false)
+            .and_return(command_result(stdout: '802-11-wireless.ssid:'))
+
+          expect(ubuntu_model.preferred_networks).to eq([])
         end
 
         it 'returns empty array when no Wi-Fi connections exist' do
@@ -990,9 +987,6 @@ module WifiWand
           allow(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .and_return(command_result(stderr: 'network manager unavailable', exitstatus: 10))
-          expect(ubuntu_model).not_to receive(:run_command)
-            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show', anything],
-              raise_on_error: false)
 
           expect(ubuntu_model.preferred_networks).to eq([])
         end
@@ -1005,13 +999,20 @@ module WifiWand
           expect(ubuntu_model.preferred_networks).to eq([])
         end
 
-        it 'returns empty array when a saved profile SSID lookup cannot start' do
+        it 'returns empty array when the saved profile query cannot start' do
+          allow(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .and_raise(WifiWand::CommandSpawnError.new(command: 'nmcli', reason: 'spawn failed'))
+
+          expect(ubuntu_model.preferred_networks).to eq([])
+        end
+
+        it 'skips a Wi-Fi profile when its fallback SSID lookup cannot start' do
           allow(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .and_return(command_result(stdout: 'Saved profile:802-11-wireless:100'))
           allow(ubuntu_model).to receive(:run_command)
-            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-              'Saved profile'], raise_on_error: false)
+            .with(nmcli_saved_profile_ssid_fields('Saved profile'), raise_on_error: false)
             .and_raise(WifiWand::CommandSpawnError.new(command: 'nmcli', reason: 'spawn failed'))
 
           expect(ubuntu_model.preferred_networks).to eq([])
@@ -1019,7 +1020,7 @@ module WifiWand
 
         it 'filters out empty lines and non-Wi-Fi connections from output' do
           nmcli_output = <<~OUT.chomp
-            TestNetwork:802-11-wireless:100
+            TestNetwork:802-11-wireless:100:TestNetwork
 
 
             Wired connection:ethernet:200
@@ -1028,10 +1029,6 @@ module WifiWand
           allow(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
             .and_return(command_result(stdout: nmcli_output))
-          allow(ubuntu_model).to receive(:run_command)
-            .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-              'TestNetwork'], raise_on_error: false)
-            .and_return(command_result(stdout: '802-11-wireless.ssid:TestNetwork'))
 
           result = ubuntu_model.preferred_networks
           expect(result).to eq(['TestNetwork'])
@@ -1971,24 +1968,12 @@ module WifiWand
 
         describe '#find_best_profile_for_ssid' do
           it 'finds existing connection profile for SSID' do
-            connection_output = "MyNetwork:802-11-wireless:1672574400\n" \
-              "Renamed MyNetwork:802-11-wireless:1672660200\n" \
-              'OtherNetwork:802-11-wireless:1672547800'
+            connection_output = "MyNetwork:802-11-wireless:1672574400:MyNetwork\n" \
+              "Renamed MyNetwork:802-11-wireless:1672660200:MyNetwork\n" \
+              'OtherNetwork:802-11-wireless:1672547800:OtherNetwork'
             allow(ubuntu_model).to receive(:run_command)
               .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'MyNetwork'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:MyNetwork'))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'Renamed MyNetwork'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:MyNetwork'))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'OtherNetwork'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
 
             result = ubuntu_model.send(:find_best_profile_for_ssid, 'MyNetwork')
             expect(result).to eq('Renamed MyNetwork')  # Most recent matching profile
@@ -1996,18 +1981,11 @@ module WifiWand
 
           it 'returns nil when no profile exists for SSID' do
             connection_output =
-              "MyNetwork:802-11-wireless:1672574400\nOtherNetwork:802-11-wireless:1672547800"
+              "MyNetwork:802-11-wireless:1672574400:MyNetwork\n" \
+                'OtherNetwork:802-11-wireless:1672547800:OtherNetwork'
             allow(ubuntu_model).to receive(:run_command)
               .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'MyNetwork'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:MyNetwork'))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'OtherNetwork'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
 
             expect(ubuntu_model.send(:find_best_profile_for_ssid, 'NonExistent')).to be_nil
           end
@@ -2192,77 +2170,44 @@ module WifiWand
         describe '#find_best_profile_for_ssid with colon-containing profile name' do
           it 'correctly parses profile names and SSIDs that contain literal colons' do
             connection_output =
-              "Corp\\:Profile:802-11-wireless:1672660200\nOtherNetwork:802-11-wireless:1672574400"
+              "Corp\\:Profile:802-11-wireless:1672660200:Corp\\:Net\n" \
+                'OtherNetwork:802-11-wireless:1672574400:OtherNetwork'
             allow(ubuntu_model).to receive(:run_command)
               .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'Corp:Profile'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:Corp\\:Net'))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'OtherNetwork'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
 
             expect(ubuntu_model.send(:find_best_profile_for_ssid, 'Corp:Net')).to eq('Corp:Profile')
           end
 
           it 'matches configured SSIDs when the profile and SSID contain literal backslashes' do
             connection_output =
-              "Lab\\\\Profile:802-11-wireless:1672660200\nOtherNetwork:802-11-wireless:1672574400"
+              "Lab\\\\Profile:802-11-wireless:1672660200:Lab\\\\Net\n" \
+                'OtherNetwork:802-11-wireless:1672574400:OtherNetwork'
             allow(ubuntu_model).to receive(:run_command)
               .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'Lab\\Profile'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:Lab\\\\Net'))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'OtherNetwork'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
 
             expect(ubuntu_model.send(:find_best_profile_for_ssid, 'Lab\\Net')).to eq('Lab\\Profile')
           end
 
           it 'does not match a profile whose name merely starts with the SSID' do
             connection_output =
-              "Office-Guest:802-11-wireless:1672660200\nOffice Extra:802-11-wireless:1672574400"
+              "Office-Guest:802-11-wireless:1672660200:Office-Guest\n" \
+                'Office Extra:802-11-wireless:1672574400:Office Extra'
             allow(ubuntu_model).to receive(:run_command)
               .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'Office-Guest'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:Office-Guest'))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'Office Extra'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:Office Extra'))
 
             expect(ubuntu_model.send(:find_best_profile_for_ssid, 'Office')).to be_nil
           end
 
           it 'matches the newest NM duplicate profile by configured SSID' do
-            connection_output = "Office:802-11-wireless:1672574400\n" \
-              "Office 1:802-11-wireless:1672660200\n" \
-              'Office-Guest:802-11-wireless:1672547800'
+            connection_output = "Office:802-11-wireless:1672574400:Office\n" \
+              "Office 1:802-11-wireless:1672660200:Office\n" \
+              'Office-Guest:802-11-wireless:1672547800:Office-Guest'
             allow(ubuntu_model).to receive(:run_command)
               .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'Office'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:Office'))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'Office 1'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:Office'))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'Office-Guest'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:Office-Guest'))
 
             result = ubuntu_model.send(:find_best_profile_for_ssid, 'Office')
             expect(result).to eq('Office 1')
@@ -2272,18 +2217,11 @@ module WifiWand
         describe '#preferred_network_password with backslash-containing values' do
           it 'uses the saved password from the matching backslash-containing profile and SSID' do
             connection_output =
-              "Lab\\\\Profile:802-11-wireless:1672660200\nOtherNetwork:802-11-wireless:1672574400"
+              "Lab\\\\Profile:802-11-wireless:1672660200:Lab\\\\Net\n" \
+                'OtherNetwork:802-11-wireless:1672574400:OtherNetwork'
             allow(ubuntu_model).to receive(:run_command)
               .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
               .and_return(command_result(stdout: connection_output))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'Lab\\Profile'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:Lab\\\\Net'))
-            allow(ubuntu_model).to receive(:run_command)
-              .with(['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show',
-                'OtherNetwork'], raise_on_error: false)
-              .and_return(command_result(stdout: '802-11-wireless.ssid:OtherNetwork'))
             expect(ubuntu_model).to receive(:run_command)
               .with(['nmcli', '--show-secrets', 'connection', 'show',
                 'Lab\\Profile'], raise_on_error: false)
