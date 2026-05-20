@@ -5,9 +5,9 @@
 # Generates Wi‑Fi QR codes for the currently connected network.
 #
 # Capabilities
-# - File output: writes a QR image to a file. By default uses PNG. When the
-#   filespec ends with .svg or .eps, output type is set accordingly.
-# - Stdout output: when filespec is '-' prints an ANSI QR to stdout.
+# - File output: writes a QR image to a file. By default uses PNG. File
+#   extensions .png, .svg, and .eps are supported.
+# - Render output: returns QR data without writing or printing.
 # - Overwrite safety: prompts before overwriting existing files in interactive
 #   TTY sessions; errors in non‑interactive mode if the file exists.
 #
@@ -15,8 +15,8 @@
 #   model.generate_qr_code                # ./<SSID>-qr-code.png (PNG)
 #   model.generate_qr_code('wifi.svg')    # ./wifi.svg (SVG)
 #   model.generate_qr_code('wifi.eps')    # ./wifi.eps (EPS)
-#   model.generate_qr_code('-')           # prints ANSI QR to stdout
-#   model.generate_qr_code('-', delivery_mode: :return) # returns ANSI QR string
+#   model.render_qr_code(format: :ansi)   # returns ANSI QR string
+#   model.render_qr_code(format: :png)    # returns PNG bytes
 #   model.print_qr_code                   # prints ANSI QR to stdout
 #
 # Notes
@@ -42,26 +42,57 @@ module WifiWand
         '\\' => '\\\\',
       }.freeze
 
-      def generate(model, filespec = nil, overwrite: false, delivery_mode: :print, password: nil,
-        in_stream: $stdin)
+      RENDER_FORMATS = {
+        ansi: 'ANSI',
+        png:  'PNG',
+        svg:  'SVG',
+        eps:  'EPS',
+      }.freeze
+      BINARY_RENDER_FORMATS = [:png].freeze
+      FILE_OUTPUT_FORMATS = {
+        '.png' => :png,
+        '.svg' => :svg,
+        '.eps' => :eps,
+      }.freeze
+
+      def generate(model, filespec = nil, overwrite: false, password: nil, in_stream: $stdin)
+        # Normalize filespec for robust API.
+        spec = filespec&.to_s
+        if spec == '-'
+          raise WifiWand::Error,
+            'Use print_qr_code to print an ANSI QR code or render_qr_code(format: :ansi) to return one.'
+        end
+
+        filename = nil
+        format = nil
+        if spec && !spec.empty?
+          filename = spec
+          format = qr_output_format_for(filename)
+          validate_qr_output_directory_ready!(filename)
+        end
+
         ensure_qrencode_available(model)
 
-        network_name = require_connected_network_name(model)
-        security     = model.connection_security_type
-        password     = resolved_password_for(model, network_name, security, password)
-        is_hidden    = model.network_hidden?
+        network_name, security, resolved_password, is_hidden = qr_context(model, password)
+        qr_string = build_wifi_qr_string(network_name, resolved_password, security, is_hidden: is_hidden)
 
-        # Normalize filespec for robust API (support symbols as '-' too)
-        spec = filespec&.to_s
-
-        qr_string = build_wifi_qr_string(network_name, password, security, is_hidden: is_hidden)
-        return run_qrencode_text(model, qr_string, delivery_mode: delivery_mode) if spec == '-'
-
-        filename  = spec && !spec.empty? ? spec : build_filename(network_name)
+        filename ||= build_filename(network_name)
+        format ||= qr_output_format_for(filename)
+        validate_qr_output_directory_ready!(filename) unless spec && !spec.empty?
         confirm_overwrite(filename, overwrite: overwrite, output_stream: model.out_stream,
           input_stream: in_stream)
-        run_qrencode_file(model, filename, qr_string)
+        rendered_output = render_qr_data(model, qr_string, format: format)
+        write_qr_file(model, filename, rendered_output)
         filename
+      end
+
+      def render(model, format: :ansi, password: nil)
+        qrencode_type = qrencode_type_for(format)
+        ensure_qrencode_available(model)
+
+        network_name, security, resolved_password, is_hidden = qr_context(model, password)
+        qr_string = build_wifi_qr_string(network_name, resolved_password, security, is_hidden: is_hidden)
+        render_qr_data(model, qr_string, format: format, qrencode_type: qrencode_type)
       end
 
       private def ensure_qrencode_available(model)
@@ -89,6 +120,15 @@ module WifiWand
         end
 
         name
+      end
+
+      private def qr_context(model, password)
+        network_name = require_connected_network_name(model)
+        security     = model.connection_security_type
+        password     = resolved_password_for(model, network_name, security, password)
+        is_hidden    = model.network_hidden?
+
+        [network_name, security, password, is_hidden]
       end
 
       private def resolved_password_for(model, network_name, security_type, explicit_password)
@@ -174,7 +214,7 @@ module WifiWand
         "#{safe}-qr-code.png"
       end
 
-      private def confirm_overwrite(filename, overwrite: false, output_stream: $stdout, input_stream: $stdin)
+      private def confirm_overwrite(filename, overwrite:, output_stream:, input_stream:)
         return unless File.exist?(filename)
         return if overwrite
 
@@ -194,23 +234,19 @@ module WifiWand
         end
       end
 
-      private def run_qrencode_file(model, filename, qr_string)
-        validate_qr_output_directory!(filename)
+      private def write_qr_file(model, filename, rendered_output)
+        tempfile = nil
+        temp_path = nil
 
         begin
-          Tempfile.create(tempfile_args_for(filename), tempfile_directory_for(filename)) do |tempfile|
-            staged_filename = tempfile.path
-            tempfile.close
+          tempfile = Tempfile.create(tempfile_args_for(filename), tempfile_directory_for(filename))
+          temp_path = tempfile.path
+          tempfile.binmode
+          tempfile.write(rendered_output)
+          tempfile.close
 
-            type_flags = qr_type_flag_for(filename)
-            cmd = ['qrencode'] + type_flags + ['-o', staged_filename, qr_string]
-
-            model.run_command(cmd)
-            File.rename(staged_filename, filename)
-            model.out_stream.puts "QR code generated: #{filename}" if model.verbose?
-          end
-        rescue WifiWand::CommandExecutor::OsCommandError => e
-          raise WifiWand::QrCodeGenerationError.new(reason: e.message, source: e)
+          File.rename(temp_path, filename)
+          temp_path = nil
         rescue SystemCallError => e
           raise WifiWand::QrCodeOutputFileError.new(
             filename:  filename,
@@ -218,31 +254,54 @@ module WifiWand
             reason:    e.message,
             source:    e
           )
+        ensure
+          delete_tempfile_path(tempfile, temp_path)
         end
+
+        model.out_stream.puts "QR code generated: #{filename}" if model.verbose?
       end
 
-      private def run_qrencode_text(model, qr_string, delivery_mode: :print)
-        cmd = %w[qrencode -t ANSI] + [qr_string]
-        begin
-          result = model.run_command(cmd)
-          output = result.stdout
-          if delivery_mode.to_sym == :return
-            output
-          else
-            model.out_stream.print(output)
-            '-'
-          end
-        rescue WifiWand::CommandExecutor::OsCommandError => e
-          raise WifiWand::QrCodeGenerationError.new(reason: e.message, source: e)
-        end
+      private def render_qr_data(model, qr_string, format:, qrencode_type: qrencode_type_for(format))
+        cmd = ['qrencode', '-t', qrencode_type, '-o', '-', qr_string]
+
+        qrencode_result = model.run_command(
+          cmd,
+          log_stdout:    false,
+          binary_stdout: binary_render_format?(format)
+        )
+        qrencode_result.stdout
+      rescue WifiWand::CommandExecutor::OsCommandError => e
+        raise WifiWand::QrCodeGenerationError.new(reason: e.message, source: e)
       end
 
-      private def qr_type_flag_for(filename)
-        case File.extname(filename).downcase
-        when '.svg' then %w[-t SVG]
-        when '.eps' then %w[-t EPS]
-        else [] # default PNG (no type flag needed)
-        end
+      private def delete_tempfile_path(tempfile, temp_path)
+        return unless tempfile && temp_path && File.exist?(temp_path)
+
+        tempfile.close unless tempfile.closed?
+        File.delete(temp_path)
+      rescue SystemCallError
+        nil
+      end
+
+      private def binary_render_format?(format)
+        BINARY_RENDER_FORMATS.include?(format.to_sym)
+      end
+
+      private def qrencode_type_for(format)
+        key = format.to_sym
+        RENDER_FORMATS.fetch(key)
+      rescue KeyError
+        raise ArgumentError, "unsupported QR render format: #{format.inspect}"
+      end
+
+      private def qr_output_format_for(filename)
+        extension = File.extname(filename).downcase
+        return :png if extension.empty?
+
+        FILE_OUTPUT_FORMATS.fetch(extension)
+      rescue KeyError
+        raise ArgumentError,
+          "unsupported QR output file extension: #{extension.inspect}. Use .png, .svg, or .eps."
       end
 
       private def tempfile_args_for(filename)
@@ -256,7 +315,7 @@ module WifiWand
         directory.empty? ? '.' : directory
       end
 
-      private def validate_qr_output_directory!(filename)
+      private def validate_qr_output_directory_ready!(filename)
         directory = tempfile_directory_for(filename)
         return if File.directory?(directory) && File.writable?(directory)
 

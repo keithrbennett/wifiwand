@@ -212,7 +212,7 @@ module WifiWand
         "output directory '#{directory}' does not exist."
       elsif File.directory?(directory)
         if File.writable?(directory)
-          "filesystem error while staging output in output directory '#{directory}'."
+          "filesystem error while writing output in output directory '#{directory}'."
         else
           "output directory '#{directory}' is not writable."
         end

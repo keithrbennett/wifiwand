@@ -28,6 +28,7 @@ describe WifiWand::Commands::Qr do
       expect(help).to include('Usage: wifi-wand qr')
       expect(help).to include('Default output prints an ANSI QR to stdout')
       expect(help).to include('Pass a filename to write a QR image file')
+      expect(help).to include('Supported file extensions are .png, .svg, and .eps')
     end
   end
 
@@ -48,28 +49,28 @@ describe WifiWand::Commands::Qr do
 
     it 'prints to stdout by default in non-interactive mode' do
       expect(mock_model).to receive(:print_qr_code)
-        .with(password: nil, in_stream: in_stream).and_return(nil)
+        .with(password: nil).and_return(nil)
 
       expect(command.call).to be_nil
     end
 
     it 'returns nil when explicitly printing to stdout in non-interactive mode' do
       expect(mock_model).to receive(:print_qr_code)
-        .with(password: nil, in_stream: in_stream).and_return(nil)
+        .with(password: nil).and_return(nil)
 
       expect(command.call('-')).to be_nil
     end
 
-    it 'uses dash as an explicit stdout target when a password is passed' do
+    it 'uses hyphen as an explicit stdout target when a password is passed' do
       expect(mock_model).to receive(:print_qr_code)
-        .with(password: 'secret', in_stream: in_stream).and_return(nil)
+        .with(password: 'secret').and_return(nil)
 
       expect(command.call('-', 'secret')).to be_nil
     end
 
     it 'treats an empty filespec as stdout output' do
       expect(mock_model).to receive(:print_qr_code)
-        .with(password: nil, in_stream: in_stream).and_return(nil)
+        .with(password: nil).and_return(nil)
 
       expect(command.call('')).to be_nil
     end
@@ -99,7 +100,7 @@ describe WifiWand::Commands::Qr do
       command = described_class.new.bind(cli)
 
       expect(mock_model).to receive(:print_qr_code)
-        .with(password: nil, in_stream: in_stream).and_return(nil)
+        .with(password: nil).and_return(nil)
 
       expect(command.call).to be_nil
     end
@@ -116,7 +117,7 @@ describe WifiWand::Commands::Qr do
       command = described_class.new.bind(cli)
 
       expect(mock_model).to receive(:print_qr_code)
-        .with(password: nil, in_stream: in_stream).and_return(nil)
+        .with(password: nil).and_return(nil)
 
       expect(command.call).to be_nil
     end
@@ -126,7 +127,7 @@ describe WifiWand::Commands::Qr do
 
       it 'prints the ANSI QR and returns a silent shell result' do
         allow(mock_model).to receive(:print_qr_code)
-          .with(password: nil, in_stream: in_stream).and_return(nil)
+          .with(password: nil).and_return(nil)
 
         expect(command.call).to equal(WifiWand::Commands::SILENT_RESULT)
       end

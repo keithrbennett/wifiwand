@@ -89,6 +89,9 @@ describe WifiWand::CommandExecutor do
 
             response
           end
+
+          def binmode
+          end
         end
       end
 
@@ -107,6 +110,48 @@ describe WifiWand::CommandExecutor do
 
         expect(result.stdout).to eq('ok')
         expect(result.exitstatus).to eq(0)
+      end
+
+      it 'captures binary stdout bytes without UTF-8 transcoding' do
+        expected_bytes = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
+
+        result = executor.run_command_using_args(
+          [
+            RbConfig.ruby,
+            '-e',
+            "STDOUT.binmode; STDOUT.write #{expected_bytes.inspect}.pack('C*')",
+          ],
+          binary_stdout: true
+        )
+
+        expect(result.stdout.encoding).to eq(Encoding::BINARY)
+        expect(result.stdout.bytes).to eq(expected_bytes)
+        expect(result.combined_output.encoding).to eq(Encoding::BINARY)
+        expect(result.combined_output.bytes).to eq(expected_bytes)
+      end
+
+      it 'keeps stderr text encoding when stdout is binary' do
+        stdin = instance_double(IO, close: nil)
+        stdout_chunk = "\x89P".b
+        stderr_chunk = 'warning: déjà vu'.encode(Encoding::UTF_8)
+        stdout = stream_class.new([stdout_chunk, EOFError.new])
+        stderr = stream_class.new([stderr_chunk, EOFError.new])
+        wait_thr = instance_double(Thread)
+        status = instance_double(Process::Status, exitstatus: 0, termsig: nil)
+
+        expect(stdout_chunk).to receive(:b).at_least(:once).and_call_original
+        allow(wait_thr).to receive_messages(join: wait_thr, value: status)
+        allow(Open3).to receive(:popen3).and_yield(stdin, stdout, stderr, wait_thr)
+
+        result = executor.run_command_using_args(%w[qrencode -t PNG -o - payload], binary_stdout: true)
+
+        expect(result.stdout.encoding).to eq(Encoding::BINARY)
+        expect(result.stdout.bytes).to eq([0x89, 0x50])
+        expect(result.stderr.encoding).to eq(Encoding::UTF_8)
+        expect(result.stderr).to eq('warning: déjà vu')
+        expect(stderr_chunk.encoding).to eq(Encoding::UTF_8)
+        expect(result.combined_output.encoding).to eq(Encoding::BINARY)
+        expect(result.combined_output.bytes).to eq(stdout_chunk.bytes + stderr_chunk.bytes)
       end
 
       it 'treats stdout and stderr EOF as normal command shutdown' do
@@ -328,6 +373,22 @@ describe WifiWand::CommandExecutor do
         expect do
           executor.run_command_using_shell('echo "test"')
         end.to output(/Command:.*echo "test".*Duration:.*seconds/m).to_stdout
+      end
+
+      it 'can suppress verbose stdout logging while still returning stdout' do
+        output = StringIO.new
+        verbose_executor = described_class.new(verbose: true, output: output)
+
+        result = verbose_executor.run_command_using_args(
+          [RbConfig.ruby, '-e', 'STDOUT.write 115.chr + 101.chr + 99.chr + 114.chr + 101.chr + 116.chr'],
+          log_stdout: false
+        )
+
+        expect(result.stdout).to eq('secret')
+        expect(output.string).to include('Command:')
+        expect(output.string).to include('Duration:')
+        expect(output.string).not_to include('STDOUT:')
+        expect(output.string).not_to include('secret')
       end
 
       it 'outputs UTC timestamps when runtime config requests UTC' do

@@ -1522,7 +1522,9 @@ describe 'Common WiFi Model Behavior (All OS)' do
           silence_output { subject.generate_qr_code }
 
           expect(subject).to have_received(:run_command)
-            .with(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
+            .with(satisfy do |cmd|
+              cmd.first(5) == %w[qrencode -t PNG -o -] && cmd.last == expected_qr_string
+            end, log_stdout: false, binary_stdout: true)
         end
       end
 
@@ -1533,7 +1535,10 @@ describe 'Common WiFi Model Behavior (All OS)' do
         silence_output { subject.generate_qr_code }
 
         expect(subject).to have_received(:run_command)
-          .with(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
+          .with(
+            satisfy { |cmd| cmd.first(5) == %w[qrencode -t PNG -o -] && cmd.last == expected_qr_string },
+            log_stdout: false, binary_stdout: true
+          )
       end
     end
 
@@ -1556,17 +1561,11 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
           silence_output { subject.generate_qr_code }
 
-          safe_network_name = test_network.gsub(/[^\w\-_]/, '_')
-          expected_filename = "#{safe_network_name}-qr-code.png"
-
           expect(subject).to have_received(:run_command)
             .with(satisfy do |cmd|
-              staged_prefix = "./#{expected_filename.delete_suffix('.png')}-"
-              cmd.first(2) == %w[qrencode -o] &&
-                cmd[2].start_with?(staged_prefix) &&
-                cmd[2].end_with?('.png') &&
+              cmd.first(5) == %w[qrencode -t PNG -o -] &&
                 cmd.last == expected_qr_string
-            end)
+            end, log_stdout: false, binary_stdout: true)
         end
       end
     end
@@ -1597,17 +1596,39 @@ describe 'Common WiFi Model Behavior (All OS)' do
         result = silence_output { subject.generate_qr_code }
 
         expect(subject).to have_received(:run_command)
-          .with(satisfy { |cmd| cmd.first(2) == %w[qrencode -o] && cmd.last == expected_qr_string })
+          .with(
+            satisfy { |cmd| cmd.first(5) == %w[qrencode -t PNG -o -] && cmd.last == expected_qr_string },
+            log_stdout: false, binary_stdout: true
+          )
         expect(result).to eq('TestNetwork-qr-code.png')
       end
     end
 
     context 'when printing QR codes' do
+      it 'renders ANSI QR to a string without printing' do
+        out_stream = StringIO.new
+        subject.out_stream = out_stream
+        allow(subject).to receive(:run_command)
+          .with(
+            satisfy { |cmd| cmd.first(5) == %w[qrencode -t ANSI -o -] },
+            log_stdout: false, binary_stdout: false
+          )
+          .and_return(command_result(stdout: "[QR-ANSI]\n"))
+
+        result = subject.render_qr_code(format: :ansi)
+
+        expect(result).to eq("[QR-ANSI]\n")
+        expect(out_stream.string).to eq('')
+      end
+
       it 'prints ANSI QR to the model output stream and returns nil' do
         out_stream = StringIO.new
         subject.out_stream = out_stream
         allow(subject).to receive(:run_command)
-          .with(satisfy { |cmd| cmd.first(3) == %w[qrencode -t ANSI] })
+          .with(
+            satisfy { |cmd| cmd.first(5) == %w[qrencode -t ANSI -o -] },
+            log_stdout: false, binary_stdout: false
+          )
           .and_return(command_result(stdout: "[QR-ANSI]\n"))
 
         result = subject.print_qr_code

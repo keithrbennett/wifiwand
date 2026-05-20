@@ -72,17 +72,21 @@ module WifiWand
           end
         end
 
-        def generate_qr_code(filespec = nil, overwrite: false, delivery_mode: :print, password: nil,
-          in_stream: $stdin)
+        def generate_qr_code(filespec = nil, overwrite: false, password: nil, in_stream: $stdin)
           with_system_profiler_wifi_data_cache_scope do
-            super(filespec, overwrite: overwrite, delivery_mode: delivery_mode, password: password,
-              in_stream: in_stream)
+            super(filespec, overwrite: overwrite, password: password, in_stream: in_stream)
           end
         end
 
-        def print_qr_code(password: nil, in_stream: $stdin)
+        def render_qr_code(format: :ansi, password: nil)
           with_system_profiler_wifi_data_cache_scope do
-            super(password: password, in_stream: in_stream)
+            super(format: format, password: password)
+          end
+        end
+
+        def print_qr_code(password: nil)
+          with_system_profiler_wifi_data_cache_scope do
+            super(password: password)
           end
         end
 

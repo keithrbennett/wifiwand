@@ -228,8 +228,8 @@ pr / pref_nets          - preferred (saved) networks
 q / quit                - exits this program (interactive shell mode only) (same as 'x')
 qr [filespec] [password]
                          - generate a Wi‑Fi QR code; default prints ANSI QR to stdout; pass a filename for
-                            image output; '.svg' / '.eps' use those formats; use '-' explicitly for stdout
-                            with a password
+                            image output; '.png', '.svg', and '.eps' are supported; use '-' explicitly for
+                            stdout with a password
 rmac / random_mac       - generate a random locally administered unicast MAC address
 ro / ropen              - open web resources: 'cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page)
 sh / shell              - start interactive shell (interactive pry REPL session)
@@ -520,6 +520,7 @@ interface. Key methods include:
 *   `dns_working?`
 *   `generate_qr_code(filespec = nil)`
 *   `print_qr_code`
+*   `render_qr_code(format: :ansi)`
 *   `internet_tcp_connectivity?`
 *   `ipv4_addresses`
 *   `ipv6_addresses`
@@ -614,6 +615,7 @@ You can create QR codes for the currently connected network to share credentials
 - Default terminal output: `wifi-wand qr` prints an ANSI QR directly to the terminal
 - File output: `wifi-wand qr wifi.png`
 - Alternate formats via filespec:
+  - `.png` → PNG output (the default file format)
   - `.svg` → SVG output (uses `qrencode -t SVG`)
   - `.eps` → EPS output (uses `qrencode -t EPS`)
 - Explicit password with terminal output: `wifi-wand qr - secret-password`
@@ -623,11 +625,13 @@ Notes:
 - If wifi-wand cannot determine whether the current network is open, pass the optional password argument.
 - When a target file already exists, wifi-wand prompts before overwriting in interactive terminals; in
   non-interactive use, it errors instead.
+- File output accepts no extension or one of `.png`, `.svg`, and `.eps`; other extensions are rejected to avoid
+  writing one format under a misleading filename.
 - For PDF, generate an SVG first and convert with a separate tool (e.g., `rsvg-convert`, `inkscape`, or
   ImageMagick's `magick`).
 - In the interactive shell, type `qr` to display the QR code directly.
-- Library callers that need the ANSI QR string instead of printing it can use
-  `generate_qr_code('-', delivery_mode: :return)`.
+- Ruby code can get rendered QR data without printing or writing by calling `render_qr_code(format: :ansi)`.
+  Supported render formats are `:ansi`, `:png`, `:svg`, and `:eps`.
 
 
 ### Public IP Information

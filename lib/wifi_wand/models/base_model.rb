@@ -415,9 +415,10 @@ module WifiWand
       _ipv6_addresses
     end
 
-    def run_command(command, raise_on_error: true, timeout_in_secs: nil)
+    def run_command(command, raise_on_error: true, timeout_in_secs: nil, log_stdout: true,
+      binary_stdout: false)
       @command_executor.run_command_using_args(command, raise_on_error: raise_on_error,
-        timeout_in_secs: timeout_in_secs)
+        timeout_in_secs: timeout_in_secs, log_stdout: log_stdout, binary_stdout: binary_stdout)
     end
 
     # Returns an explicit internet connectivity state:
@@ -921,23 +922,31 @@ module WifiWand
     def command_available?(command) = @command_executor.command_available?(command)
 
     # Generates a QR code for the currently connected WiFi network.
-    # @param filespec [String, nil] Output path, or '-' for ANSI terminal output.
-    # @param delivery_mode [Symbol] Use :return with filespec '-' to return the ANSI QR string.
-    # @return [String] The filename, '-' when printing ANSI output, or the ANSI string with delivery_mode :return.
+    # @param filespec [String, nil] Output path, or nil for the default generated PNG filename.
+    # @return [String] The filename for file output.
     # @raise [WifiWand::Error] If not connected to a network or qrencode is not available
-    def generate_qr_code(filespec = nil, overwrite: false, delivery_mode: :print, password: nil,
-      in_stream: $stdin)
+    def generate_qr_code(filespec = nil, overwrite: false, password: nil, in_stream: $stdin)
       debug_method_entry(__method__)
-      qr_code_generator.generate(self, filespec, overwrite: overwrite, delivery_mode: delivery_mode,
-        password: password, in_stream: in_stream)
+      qr_code_generator.generate(
+        self, filespec, overwrite: overwrite, password: password, in_stream: in_stream
+      )
+    end
+
+    # Renders a QR code for the currently connected WiFi network without writing or printing it.
+    # @param format [Symbol] Output format to render. Supports :ansi, :png, :svg, and :eps.
+    # @return [String] Rendered QR output.
+    # @raise [WifiWand::Error] If not connected to a network or qrencode is not available
+    def render_qr_code(format: :ansi, password: nil)
+      debug_method_entry(__method__)
+      qr_code_generator.render(self, format: format, password: password)
     end
 
     # Prints an ANSI QR code for the currently connected WiFi network.
     # @return [nil]
     # @raise [WifiWand::Error] If not connected to a network or qrencode is not available
-    def print_qr_code(password: nil, in_stream: $stdin)
+    def print_qr_code(password: nil)
       debug_method_entry(__method__)
-      qr_code_generator.generate(self, '-', delivery_mode: :print, password: password, in_stream: in_stream)
+      out_stream.print(qr_code_generator.render(self, format: :ansi, password: password))
       nil
     end
 

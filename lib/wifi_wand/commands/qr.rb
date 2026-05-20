@@ -23,8 +23,8 @@ module WifiWand
 
           Default output prints an ANSI QR to stdout
           Pass a filename to write a QR image file
-          Use '-' explicitly for stdout when passing a password
-          Use .svg or .eps for those formats
+          Use a hyphen explicitly for stdout when passing a password
+          Supported file extensions are .png, .svg, and .eps
           Optional password avoids the macOS auth prompt
         HELP
       end
@@ -36,7 +36,7 @@ module WifiWand
 
         if stdout_target?(filespec)
           validate_stdout_output_format!
-          model.print_qr_code(password: password, in_stream: in_stream)
+          model.print_qr_code(password: password)
           interactive_mode ? silent_result : nil
         else
           result = model.generate_qr_code(filespec, password: password, in_stream: in_stream)

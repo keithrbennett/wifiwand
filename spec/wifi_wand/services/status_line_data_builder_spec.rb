@@ -914,10 +914,16 @@ describe WifiWand::StatusLineDataBuilder do
         worker_cleanup_timeout_seconds: 0.001
       )
       worker_terminated = Queue.new
+      worker_release = Queue.new
+      original_cancel_workers = verbose_builder.method(:cancel_workers!)
+      allow(verbose_builder).to receive(:cancel_workers!) do
+        original_cancel_workers.call
+        worker_release << :cancelled
+      end
 
       deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + 0.05
       worker = verbose_builder.send(:spawn_worker, :network, deadline) do
-        sleep(0.02)
+        worker_release.pop
       ensure
         worker_terminated << :terminated
       end

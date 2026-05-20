@@ -141,7 +141,7 @@ module WifiWand
             'qr [filespec] [password]',
             [
               'generate a Wi-Fi QR code; default prints ANSI QR to stdout; pass a filename for file output;',
-              "'.svg' / '.eps' use those formats; use '-' explicitly for stdout with a password",
+              "'.png' / '.svg' / '.eps' use those formats; use '-' explicitly for stdout with a password",
             ],
           ],
           ['rmac / random_mac', 'generate a random locally administered unicast MAC address'],

@@ -130,9 +130,9 @@ describe WifiWand::CommandLineInterface do
         end
       end
 
-      context 'with explicit dash argument in interactive mode' do
+      context 'with explicit hyphen argument in interactive mode' do
         it 'prints ANSI in interactive mode and returns a silent shell result' do
-          allow(interactive_cli.model).to receive(:print_qr_code).with(password: nil, in_stream: anything) do
+          allow(interactive_cli.model).to receive(:print_qr_code).with(password: nil) do
             $stdout.print("[QR-ANSI]\n")
             nil
           end
@@ -145,7 +145,7 @@ describe WifiWand::CommandLineInterface do
 
       context 'when in non-interactive stdout mode' do
         it 'prints ANSI via model and returns nil' do
-          allow(mock_model).to receive(:print_qr_code).with(password: nil, in_stream: anything) do
+          allow(mock_model).to receive(:print_qr_code).with(password: nil) do
             $stdout.print("[QR-ANSI]\n")
             nil
           end

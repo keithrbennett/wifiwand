@@ -23,8 +23,11 @@ module WifiWand
     # @param command [Array] Command array of arguments
     # @param raise_on_error [Boolean] Whether to raise on non-zero exit
     # @param timeout_in_secs [Numeric, nil] Optional command timeout in seconds
+    # @param log_stdout [Boolean] Whether verbose mode should print captured stdout
+    # @param binary_stdout [Boolean] Whether stdout should be captured as binary bytes
     # @return [OsCommandResult] Structured command result
-    def run_command_using_args(command, raise_on_error: true, timeout_in_secs: nil)
+    def run_command_using_args(command, raise_on_error: true, timeout_in_secs: nil, log_stdout: true,
+      binary_stdout: false)
       unless command.is_a?(Array)
         raise ArgumentError,
           "run_command_using_args requires an Array; got #{command.class}"
@@ -33,7 +36,7 @@ module WifiWand
       command_array = command.map { |arg| arg.nil? ? '' : arg.to_s }
       command_display = command_array.join(' ')
       execute_command(command_array, command_display, raise_on_error: raise_on_error,
-        timeout_in_secs: timeout_in_secs)
+        timeout_in_secs: timeout_in_secs, log_stdout: log_stdout, binary_stdout: binary_stdout)
     end
 
     # Executes a command string through the shell when shell semantics are intended.
@@ -44,7 +47,7 @@ module WifiWand
       end
 
       execute_command(['sh', '-c', command], command, raise_on_error: raise_on_error,
-        timeout_in_secs: timeout_in_secs)
+        timeout_in_secs: timeout_in_secs, log_stdout: true, binary_stdout: false)
     end
 
     # Tries an OS command until the stop condition is true.
@@ -72,7 +75,8 @@ module WifiWand
       nil
     end
 
-    private def execute_command(command_array, command_display, raise_on_error:, timeout_in_secs:)
+    private def execute_command(command_array, command_display, raise_on_error:, timeout_in_secs:,
+      log_stdout:, binary_stdout:)
       if verbose?
         output.puts command_attempt_as_string(command_display)
       end
@@ -94,6 +98,7 @@ module WifiWand
         # We don't send any input to the process, so close stdin immediately.
         # Leaving it open can cause the child to block waiting for input.
         stdin.close
+        stdout.binmode if binary_stdout
 
         # A mutex guards the shared chunk arrays below. Two threads write to
         # them concurrently (one per stream), so without synchronization the
@@ -112,8 +117,9 @@ module WifiWand
           loop do
             chunk = stream.readpartial(4096)
             mutex.synchronize do
-              (type == :stdout ? stdout_chunks : stderr_chunks) << chunk
-              combined_chunks << chunk
+              stored_chunk = binary_stdout && type == :stdout ? chunk.b : chunk
+              (type == :stdout ? stdout_chunks : stderr_chunks) << stored_chunk
+              combined_chunks << stored_chunk
             end
           end
         # EOFError subclasses IOError, so this handles normal EOF and forced stream closure.
@@ -165,7 +171,7 @@ module WifiWand
       result = OsCommandResult.new(
         stdout:          stdout_chunks.join,
         stderr:          stderr_chunks.join,
-        combined_output: combined_chunks.join,
+        combined_output: combined_output_for(combined_chunks, binary_stdout),
         exitstatus:      status&.exitstatus,
         termsig:         process_status_termsig(status),
         command:         command_display,
@@ -176,7 +182,7 @@ module WifiWand
 
       if verbose?
         output.puts "#{status_string}, Duration: #{format('%.4f', duration)} seconds -- #{current_timestamp}"
-        unless result.stdout.empty?
+        if !result.stdout.empty? && log_stdout
           output.puts command_result_as_string("STDOUT:\n#{result.stdout}")
         end
         unless result.stderr.empty?
@@ -213,6 +219,15 @@ module WifiWand
       return nil unless status.respond_to?(:termsig)
 
       status.termsig
+    end
+
+    private def combined_output_for(chunks, binary_stdout)
+      return chunks.join unless binary_stdout
+
+      chunks.each_with_object(String.new.b) do |chunk, output|
+        binary_chunk = chunk.encoding == Encoding::BINARY ? chunk : chunk.b
+        output << binary_chunk
+      end
     end
 
     private def banner_line = @banner_line ||= '-' * 79
