@@ -1000,7 +1000,8 @@ module WifiWand
             }] },
             wifi_interface:            'en0',
             default_interface:         nil,
-            _ipv4_addresses:           []
+            _ipv4_addresses:           [],
+            _ipv6_addresses:           []
           )
 
           expect(model.connected?).to be(false)
@@ -1021,7 +1022,8 @@ module WifiWand
             system_profiler_wifi_data: { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [] }] },
             wifi_interface:            'en0',
             default_interface:         nil,
-            _ipv4_addresses:           []
+            _ipv4_addresses:           [],
+            _ipv6_addresses:           []
           )
 
           expect(model.connected?).to be(false)

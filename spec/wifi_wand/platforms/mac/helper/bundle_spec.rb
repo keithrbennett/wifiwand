@@ -873,6 +873,9 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
         let(:verbose_flag) { true }
 
         it 'logs the timeout and returns nil' do
+          allow(WifiWand::Platforms::Mac::Helper::Installer)
+            .to receive(:terminate_helper_process).with(wait_thr)
+
           timeout_seconds = 4.5
           timeout_message =
             "helper command 'scan-networks' timed out after #{timeout_seconds}s"
