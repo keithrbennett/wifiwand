@@ -21,6 +21,7 @@ module WifiWand
         ACTIVE_CONNECTION_PROFILE_PLACEHOLDERS = %w[--].freeze
         SAVED_WIFI_PROFILE_SUMMARY_FIELDS = 'NAME,TYPE,TIMESTAMP'
         SAVED_WIFI_PROFILE_SSID_FIELD = '802-11-wireless.ssid'
+        SAVED_WIFI_PROFILE_SSID_LOOKUP_WORKERS = 8
         DNS_CONNECTION_FIELDS = %w[
           ipv4.dns
           ipv4.ignore-auto-dns
@@ -902,17 +903,58 @@ module WifiWand
           )
           return [] unless result.success?
 
-          result.stdout.split("\n").filter_map do |line|
+          wifi_profile_rows = result.stdout.split("\n").filter_map do |line|
             name, type, timestamp = nmcli_split(line, 3)
-            ssid = saved_wifi_profile_ssid(name) if type == '802-11-wireless'
-            saved_wifi_profile_from_fields(name: name, ssid: ssid, type: type, timestamp: timestamp)
+            next unless type == '802-11-wireless'
+
+            { name: name, type: type, timestamp: timestamp }
           end
+
+          saved_wifi_profiles_with_ssids(wifi_profile_rows)
         rescue WifiWand::CommandTimeoutError, WifiWand::CommandNotFoundError, WifiWand::CommandSpawnError
           []
         end
 
+        private def saved_wifi_profiles_with_ssids(profile_rows)
+          return [] if profile_rows.empty?
+
+          work_queue = Queue.new
+          profile_rows.each_with_index { |row, index| work_queue << row.merge(index: index) }
+          saved_profiles = []
+          saved_profiles_mutex = Mutex.new
+          worker_count = [SAVED_WIFI_PROFILE_SSID_LOOKUP_WORKERS, profile_rows.length].min
+          worker_count.times { work_queue << nil }
+
+          workers = worker_count.times.map do
+            Thread.new do
+              loop do
+                row = work_queue.pop
+                break unless row
+
+                ssid = saved_wifi_profile_ssid(row[:name])
+                profile = saved_wifi_profile_from_fields(
+                  name: row[:name], ssid: ssid, type: row[:type], timestamp: row[:timestamp]
+                )
+                saved_profiles_mutex.synchronize { saved_profiles << [row[:index], profile] } if profile
+              end
+            end
+          end
+          join_saved_wifi_profile_workers(workers)
+
+          saved_profiles.sort_by(&:first).map(&:last)
+        end
+
+        private def join_saved_wifi_profile_workers(workers)
+          first_error = nil
+          workers.each do |worker|
+            worker.join
+          rescue => e
+            first_error ||= e
+          end
+          raise first_error if first_error
+        end
+
         private def saved_wifi_profile_from_fields(name:, ssid:, type:, timestamp:)
-          return unless type == '802-11-wireless'
           return if string_nil_or_empty?(ssid)
 
           SavedWifiProfile.new(name: name, ssid: ssid, type: type, timestamp: timestamp.to_i)

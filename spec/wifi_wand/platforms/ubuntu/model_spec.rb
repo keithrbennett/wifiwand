@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'timeout'
+
 require_relative '../../../spec_helper'
 require_relative '../../../../lib/wifi_wand/platforms/ubuntu/model'
 
@@ -968,6 +970,86 @@ module WifiWand
           expect(ubuntu_model.preferred_networks).to eq(%w[TestNetwork-1 TestNetwork-2])
         end
 
+        it 'handles Wi-Fi profile detail lookups that finish out of order' do
+          stub_const('WifiWand::Platforms::Ubuntu::Model::SAVED_WIFI_PROFILE_SSID_LOOKUP_WORKERS', 2)
+          nmcli_output = <<~OUT.chomp
+            Slow profile:802-11-wireless:100
+            Fast profile:802-11-wireless:200
+            Wired connection:ethernet:300
+          OUT
+          slow_started = Queue.new
+          release_slow = Queue.new
+          completion_order = Queue.new
+
+          allow(ubuntu_model).to receive(:run_command) do |command, raise_on_error: true|
+            if command == nmcli_saved_profile_summary_fields && raise_on_error == false
+              command_result(stdout: nmcli_output)
+            elsif command[0, 5] == %w[nmcli -t -f 802-11-wireless.ssid connection] &&
+                command[5] == 'show' && raise_on_error == false
+              profile_name = command[6]
+              if profile_name == 'Slow profile'
+                slow_started << true
+                release_slow.pop
+                completion_order << profile_name
+                command_result(stdout: '802-11-wireless.ssid:SlowNetwork')
+              else
+                completion_order << profile_name
+                command_result(stdout: '802-11-wireless.ssid:FastNetwork')
+              end
+            else
+              command_result(stdout: '')
+            end
+          end
+
+          result_thread = Thread.new { ubuntu_model.preferred_networks }
+          Timeout.timeout(1) { slow_started.pop }
+          expect(Timeout.timeout(1) { completion_order.pop }).to eq('Fast profile')
+          release_slow << true
+
+          expect(result_thread.value).to eq(%w[FastNetwork SlowNetwork])
+        end
+
+        it 'bounds concurrent Wi-Fi profile detail lookups' do
+          worker_count = 3
+          stub_const('WifiWand::Platforms::Ubuntu::Model::SAVED_WIFI_PROFILE_SSID_LOOKUP_WORKERS',
+            worker_count)
+          profile_names = Array.new(worker_count + 4) { |index| "Profile #{index}" }
+          nmcli_output = profile_names.map do |profile_name|
+            "#{profile_name}:802-11-wireless:100"
+          end.join("\n")
+          entered_detail_lookup = Queue.new
+          release_detail_lookup = Queue.new
+          concurrency_mutex = Mutex.new
+          active_detail_lookups = 0
+          max_detail_lookups = 0
+
+          allow(ubuntu_model).to receive(:run_command) do |command, raise_on_error: true|
+            if command == nmcli_saved_profile_summary_fields && raise_on_error == false
+              command_result(stdout: nmcli_output)
+            elsif command[0, 5] == %w[nmcli -t -f 802-11-wireless.ssid connection] &&
+                command[5] == 'show' && raise_on_error == false
+              profile_name = command[6]
+              concurrency_mutex.synchronize do
+                active_detail_lookups += 1
+                max_detail_lookups = [max_detail_lookups, active_detail_lookups].max
+              end
+              entered_detail_lookup << true
+              release_detail_lookup.pop
+              concurrency_mutex.synchronize { active_detail_lookups -= 1 }
+              command_result(stdout: "802-11-wireless.ssid:#{profile_name}")
+            else
+              command_result(stdout: '')
+            end
+          end
+
+          result_thread = Thread.new { ubuntu_model.preferred_networks }
+          Timeout.timeout(1) { worker_count.times { entered_detail_lookup.pop } }
+          expect(max_detail_lookups).to eq(worker_count)
+
+          profile_names.length.times { release_detail_lookup << true }
+          expect(result_thread.value).to eq(profile_names)
+        end
+
         it 'deduplicates duplicate SSIDs from profile details' do
           nmcli_output = <<~OUT.chomp
             TestNetwork:802-11-wireless:100
@@ -995,6 +1077,22 @@ module WifiWand
             .and_return(command_result(stdout: '802-11-wireless.ssid:'))
 
           expect(ubuntu_model.preferred_networks).to eq([])
+        end
+
+        it 'skips only the Wi-Fi profile whose detail lookup fails' do
+          nmcli_output = <<~OUT.chomp
+            Working profile:802-11-wireless:100
+            Broken profile:802-11-wireless:200
+          OUT
+          allow(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .and_return(command_result(stdout: nmcli_output))
+          stub_saved_profile_ssid('Working profile', 'WorkingNetwork')
+          allow(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_ssid_fields('Broken profile'), raise_on_error: false)
+            .and_raise(WifiWand::CommandSpawnError.new(command: 'nmcli', reason: 'spawn failed'))
+
+          expect(ubuntu_model.preferred_networks).to eq(['WorkingNetwork'])
         end
 
         it 'returns empty array when no Wi-Fi connections exist' do
