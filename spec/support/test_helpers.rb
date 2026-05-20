@@ -280,18 +280,6 @@ module TestHelpers
     stub_const('WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT', 0.01)
   end
 
-  # Helper for mocking Net::HTTP to return a no-login-required response (HTTP 204)
-  private def mock_captive_portal_login_not_required(code: '204', body: '')
-    response = instance_double(Net::HTTPResponse, code: code, body: body)
-    allow(Net::HTTP).to receive(:get_response).and_return(response)
-  end
-
-  # Helper for mocking Net::HTTP to simulate required captive portal login (HTTP 302 redirect)
-  private def mock_captive_portal_login_required(code: '302', body: '')
-    response = instance_double(Net::HTTPResponse, code: code, body: body)
-    allow(Net::HTTP).to receive(:get_response).and_return(response)
-  end
-
   # Starts a minimal one-shot HTTP server on an OS-assigned local port.
   # Accepts a single connection, reads the HTTP request headers, and writes a
   # response with the given status code and body before closing.  Yields the
@@ -306,12 +294,7 @@ module TestHelpers
     server_thread = Thread.new do
       client = server.accept
       loop { break if client.gets.strip.empty? }
-      client.write(<<~HEADERS.gsub("\n", "\r\n") + response_body)
-        HTTP/1.1 #{response_code} OK
-        Content-Length: #{response_body.bytesize}
-        Connection: close
-
-      HEADERS
+      client.write(local_http_response(response_code, response_body))
       client.close
     rescue
       nil
@@ -331,5 +314,16 @@ module TestHelpers
       nil
     end
     server_thread&.join(2)
+  end
+
+  private def local_http_response(response_code, response_body)
+    reason = response_code == 302 ? 'Found' : 'OK'
+    headers = [
+      "HTTP/1.1 #{response_code} #{reason}",
+      "Content-Length: #{response_body.bytesize}",
+      'Connection: close',
+    ]
+    headers << 'Location: http://captive.portal/login' if response_code == 302
+    "#{headers.join("\r\n")}\r\n\r\n#{response_body}"
   end
 end

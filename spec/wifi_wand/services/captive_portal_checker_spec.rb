@@ -243,7 +243,7 @@ describe WifiWand::CaptivePortalChecker do
     let(:endpoint) { { url: 'http://example.com/check', expected_code: 204 } }
 
     it 'returns :no metadata when the endpoint returns the expected code' do
-      mock_captive_portal_login_not_required
+      stub_captive_portal_response(checker, code: '204')
 
       expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
         login_required: :no, actual_code: 204
@@ -251,7 +251,7 @@ describe WifiWand::CaptivePortalChecker do
     end
 
     it 'returns :yes metadata when the endpoint returns a redirect' do
-      mock_captive_portal_login_required
+      stub_captive_portal_response(checker, code: '302')
 
       expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
         login_required: :yes, actual_code: 302
@@ -264,7 +264,7 @@ describe WifiWand::CaptivePortalChecker do
         expected_code: 200,
         expected_body: 'Microsoft Connect Test',
       }
-      mock_captive_portal_login_not_required(code: '200', body: 'Microsoft Connect Test')
+      stub_captive_portal_response(checker, code: '200', body: 'Microsoft Connect Test')
 
       expect(checker.send(:perform_captive_portal_check, endpoint_with_body)).to eq(
         login_required: :no, actual_code: 200
@@ -277,7 +277,7 @@ describe WifiWand::CaptivePortalChecker do
         expected_code: 200,
         expected_body: 'Microsoft Connect Test',
       }
-      mock_captive_portal_login_required(code: '200', body: '<html>Login</html>')
+      stub_captive_portal_response(checker, code: '200', body: '<html>Login</html>')
 
       expect(checker.send(:perform_captive_portal_check, endpoint_with_body)).to eq(
         login_required: :yes, actual_code: 200
@@ -286,7 +286,7 @@ describe WifiWand::CaptivePortalChecker do
 
     it 'returns :unknown metadata on network errors' do
       stub_short_connectivity_timeouts
-      allow(Net::HTTP).to receive(:get_response).and_raise(Errno::ECONNREFUSED)
+      allow(checker).to receive(:captive_portal_http_response).and_raise(Errno::ECONNREFUSED)
 
       expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
         login_required: :unknown, error_class: 'Errno::ECONNREFUSED'
@@ -294,7 +294,7 @@ describe WifiWand::CaptivePortalChecker do
     end
 
     it 'returns :unknown metadata on HTTP-level network failures' do
-      allow(Net::HTTP).to receive(:get_response).and_raise(SocketError)
+      allow(checker).to receive(:captive_portal_http_response).and_raise(SocketError)
 
       expect do
         expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
@@ -302,6 +302,42 @@ describe WifiWand::CaptivePortalChecker do
           error_class:    'SocketError'
         )
       end.not_to raise_error
+    end
+
+    it 'uses direct HTTP without proxy environment settings' do
+      uri = URI('http://example.com/check')
+      http = instance_double(Net::HTTP)
+      response = instance_double(Net::HTTPResponse)
+      allow(http).to receive(:get).with('/check').and_return(response)
+
+      expect(Net::HTTP).to receive(:start).with(
+        'example.com',
+        80,
+        nil,
+        use_ssl:      false,
+        open_timeout: WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT,
+        read_timeout: WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT
+      ).and_yield(http)
+
+      expect(checker.send(:captive_portal_http_response, uri)).to eq(response)
+    end
+
+    it 'uses direct HTTPS with SSL enabled' do
+      uri = URI('https://example.com/check')
+      http = instance_double(Net::HTTP)
+      response = instance_double(Net::HTTPResponse)
+      allow(http).to receive(:get).with('/check').and_return(response)
+
+      expect(Net::HTTP).to receive(:start).with(
+        'example.com',
+        443,
+        nil,
+        use_ssl:      true,
+        open_timeout: WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT,
+        read_timeout: WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT
+      ).and_yield(http)
+
+      expect(checker.send(:captive_portal_http_response, uri)).to eq(response)
     end
   end
 
@@ -475,5 +511,10 @@ describe WifiWand::CaptivePortalChecker do
     reader&.close unless reader&.closed?
     writer&.close unless writer&.closed?
     raise
+  end
+
+  def stub_captive_portal_response(checker, code:, body: '')
+    response = instance_double(Net::HTTPResponse, code: code, body: body)
+    allow(checker).to receive(:captive_portal_http_response).and_return(response)
   end
 end

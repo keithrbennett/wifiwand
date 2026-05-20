@@ -253,7 +253,7 @@ module WifiWand
       expected_body = endpoint[:expected_body]
 
       Timeout.timeout(TimingConstants::HTTP_CONNECTIVITY_TIMEOUT) do
-        response = Net::HTTP.get_response(uri)
+        response = captive_portal_http_response(uri)
         actual_code = response.code.to_i
         body_matches = expected_body.nil? || response.body.to_s.include?(expected_body)
         login_required = if actual_code == expected_code && body_matches
@@ -266,6 +266,19 @@ module WifiWand
     rescue URI::InvalidURIError, Timeout::Error, SocketError, SystemCallError, IOError,
       Net::HTTPError => e
       { login_required: ConnectivityStates::CAPTIVE_PORTAL_LOGIN_UNKNOWN, error_class: e.class.to_s }
+    end
+
+    private def captive_portal_http_response(uri)
+      Net::HTTP.start(
+        uri.hostname,
+        uri.port,
+        nil,
+        use_ssl:      uri.scheme == 'https',
+        open_timeout: TimingConstants::HTTP_CONNECTIVITY_TIMEOUT,
+        read_timeout: TimingConstants::HTTP_CONNECTIVITY_TIMEOUT
+      ) do |http|
+        http.get(uri.request_uri)
+      end
     end
 
     private def attempt_captive_portal_check(endpoint)
