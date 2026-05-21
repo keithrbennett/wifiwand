@@ -12,7 +12,7 @@ module WifiWand
     RESTORE_CONNECT_RETRY_PATTERNS = [
       /Error:\s*-3900/i,
       /tmpErr/i,
-      /couldn(?:\?\?\?|')t be completed/i,
+      /couldn(?:\?\?\?|'|’)t be completed/i,
     ].freeze
 
     EXPECTED_RESTORE_ERRORS = [

@@ -435,6 +435,34 @@ describe WifiWand::NetworkStateManager do
         .with(described_class::RESTORE_CONNECT_RETRY_WAIT_SECONDS)
     end
 
+    it 'retries macOS networksetup restore failures with curly apostrophe operation text' do
+      transient_error = os_command_error(
+        exitstatus: 1,
+        command:    'networksetup -setairportnetwork en0 TestNetwork testpass',
+        text:       "Failed to join network TestNetwork.\nThe operation couldn’t be completed."
+      )
+      allow(mock_model).to receive_messages(
+        mac?:                   true,
+        wifi_on?:               true,
+        connected_network_name: 'OtherNetwork'
+      )
+      allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
+      allow(mock_model).to receive(:associated?).and_return(false)
+      allow(state_manager).to receive(:sleep)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
+      connect_attempts = 0
+      allow(mock_model).to receive(:connect).with('TestNetwork', 'testpass') do
+        connect_attempts += 1
+        raise transient_error if connect_attempts == 1
+      end
+
+      state_manager.restore_network_state(valid_state)
+
+      expect(mock_model).to have_received(:connect).twice
+      expect(state_manager).to have_received(:sleep)
+        .with(described_class::RESTORE_CONNECT_RETRY_WAIT_SECONDS)
+    end
+
     it 'retries transient macOS restore failures when reassociation lands on the wrong network' do
       transient_error = os_command_error(
         exitstatus: 1,
