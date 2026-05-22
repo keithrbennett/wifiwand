@@ -180,74 +180,21 @@ readers browsing the source repository rather than installed gem documentation.
 
 ### Usage
 
-Available commands can be seen by using the `-h` (or `--help`) option:
+Available commands and options can be seen with generated help:
 
+```bash
+wifi-wand --help
+wifi-wand help
 ```
-Command Line Switches     [wifi-wand version 3.0.0-alpha.1 at https://github.com/keithrbennett/wifiwand]
----------------------
--h, --help                - show this help message
--o, --output-format {a,i,j,J,p,P,y}
-                          - when not in shell mode, outputs data in the following formats: amazing print, inspect, JSON, pretty JSON, puts, pretty print, YAML
--p, --wifi-interface interface_name
-                          - specify WiFi interface name (overrides auto-detection)
--V, --version             - show version
--u, --utc BOOLEAN         - use UTC for timestamps (default: false, for local time)
--v, --verbose BOOLEAN     - verbose mode (prints OS commands and their outputs)
 
-Commands
---------
-Commands accept only the exact short or exact long form shown below.
-a / avail_nets          - visible networks; machine formats include scan metadata
-ci                        - Internet connectivity state: reachable, unreachable, or indeterminate
-co / connect network-name - connects to the specified network-name, turning WiFi on if necessary
-cy / cycle               - toggles WiFi on/off state twice, regardless of starting state
-d / disconnect          - disconnects from current network, does not turn off WiFi
-                            macOS note: a preferred network may auto-reassociate immediately after disconnect;
-                            if you need disconnect to stay effective, use `forget` on that network after joining it
-f / forget name1 [..name_n] - removes network-name(s) from the preferred (saved) networks list
-                            in interactive mode, can be a single array of names, e.g. returned by `pref_nets`
-                            Example: `wifi-wand connect foo && wifi-wand forget foo` (no sleep normally needed)
-h / help                - prints this help
-i / info                - a hash of detailed networking information
-lo / log                - start event logging (polls WiFi status, logs changes)
-                            options: --interval N (default 5 seconds), --file [PATH] (default: wifiwand-events.log),
-                                     --stdout (keep stdout when file destination is used)
-                            Logs events: internet on/off (derived from explicit reachable/unreachable state)
-                            Ctrl+C to stop (see docs/LOGGING.md for details)
-na / nameservers        - nameservers: 'show' or no arg to show, 'clear' to clear,
-                            or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'
-                            on Ubuntu, this replaces the profile DNS state;
-                            omitted IPv4/IPv6 families revert to DHCP/router-provided DNS
-ne / network_name       - name (SSID) of currently connected WiFi network
-on                        - turns WiFi on
-of / off                - turns WiFi off
-pa / password network-name - password for preferred network name
-pi / public_ip [address|country|both|a|c|b]
-                         - public IP lookup; selectors may use long or short form; both (b) is the default
-pr / pref_nets          - preferred (saved) networks
-q / quit                - exits this program (interactive shell mode only) (same as 'x')
-qr [filespec] [password]
-                         - generate a Wi‑Fi QR code; default prints ANSI QR to stdout; pass a filename for
-                            image output; '.png', '.svg', and '.eps' are supported; use '-' explicitly for
-                            stdout with a password
-rmac / random_mac       - generate a random locally administered unicast MAC address
-ro / ropen              - open web resources: 'cap' (Portal Logins), 'ipl' (IP Location), 'ipw' (What is My IP), 'libre' (LibreSpeed), 'spe' (Speed Test), 'this' (wifi-wand home page)
-sh / shell              - start interactive shell (interactive pry REPL session)
-s / status              - status line (WiFi, WiFi Network, DNS, Internet; shows captive portal warning if login is required)
-                            (see docs/STATUS_COMMAND.md for details on connectivity detection and machine-readable status fields)
-t / till                - wait until state is reached:
-                            Usage: till <state> [timeout_secs] [interval_secs]
-                            States:
-                              wifi_on        – WiFi hardware powered on
-                              wifi_off       – WiFi hardware powered off
-                              associated     – WiFi associated with an SSID (WiFi layer)
-                              disassociated  – WiFi not associated with any SSID
-                              internet_on    – Internet connectivity state is reachable
-                              internet_off   – Internet connectivity state is unreachable
-                            Defaults: timeout = wait indefinitely; interval = 0.5s
-                            Examples: "till wifi_off 20"  "till internet_on 30 0.5"
-w / wifi_on             - is the WiFi on?
-x / xit                 - exits this program (interactive shell mode only) (same as 'q')
+The generated help is the canonical command reference and includes current boolean option forms, command
+aliases, `log` event semantics, `status` wording, and `till` wait-state names.
+
+Scripting note: `wifi-wand connect` returns once the requested SSID is associated at the WiFi layer, not when
+DNS or full internet connectivity is ready. To wait for internet readiness after joining, run:
+
+```bash
+wifi-wand till internet_on 30
 ```
 
 ### Pretty Output
