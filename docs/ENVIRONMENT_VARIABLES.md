@@ -4,9 +4,24 @@ This document lists all environment variables that affect wifi-wand behavior.
 
 ## Runtime Variables
 
-### `WIFIWAND_VERBOSE`
+### `WIFIWAND_OPTS`
 
-Enable verbose output showing underlying OS commands and their output.
+Prepend default command-line switches from the environment, parsed with shell-style quoting so complex values
+work just like they do in the shell. Use this for runtime defaults such as verbose output, UTC timestamps, or
+machine-readable output formats.
+
+To enable runtime verbose output by default, include the boolean value expected by the CLI:
+
+```bash
+export WIFIWAND_OPTS="--verbose true"
+wifi-wand info
+```
+
+The direct CLI equivalent is:
+
+```bash
+wifi-wand -v true info
+```
 
 On Ubuntu, `connect` commands that include an inline password intentionally
 show the exact password-bearing `nmcli` command. wifi-wand targets
@@ -15,24 +30,10 @@ credential is considered more useful for troubleshooting than hiding it.
 Avoid inline passwords on systems where local process inspection is not
 trusted.
 
-**Values:** Any non-empty value enables verbose mode (e.g., `true`, `1`, `yes`)
+**Values:** Space-delimited options (e.g., `--output-format y`, `--verbose true`)
 
-**Usage:**
-```bash
-WIFIWAND_VERBOSE=true wifi-wand info          # runtime
-WIFIWAND_VERBOSE=true bundle exec rspec       # during tests
-WIFIWAND_VERBOSE=true bundle exec rake test:all  # combined with rake task
-```
+**Usage examples:**
 
-**Alternative (runtime only):** Use the `-v` command-line flag instead:
-```bash
-wifi-wand -v true info
-```
-
-### `WIFIWAND_OPTS`
-Prepend default command-line switches from the environment, parsed with shell-style quoting so complex values
-work just like they do in the shell. **Values:** Space-delimited options (e.g., `--output-format y`,
-`--verbose true`) **Usage examples:**
 ```bash
 export WIFIWAND_OPTS="--output-format y" # YAML
 wifi-wand info
@@ -59,6 +60,21 @@ wifi-wand log
   with a configuration error.
 
 ## Test Configuration Variables
+
+### `WIFIWAND_VERBOSE`
+
+Enable verbose output in the test support code. Current test helpers read this value with an exact string
+comparison, so it must be exactly `true`; values such as `1`, `yes`, or any other non-empty string do not
+enable test verbosity.
+
+**Values:** `true` to enable
+
+**Usage:**
+
+```bash
+WIFIWAND_VERBOSE=true bundle exec rspec
+WIFIWAND_VERBOSE=true bundle exec rake test:all
+```
 
 ### `WIFIWAND_REAL_ENV_TESTS`
 
