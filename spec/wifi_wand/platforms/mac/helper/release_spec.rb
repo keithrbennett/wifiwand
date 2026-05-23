@@ -63,18 +63,35 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Release do
   end
 
   describe 'release guidance messages' do
-    it 'tells maintainers to stage the signed helper and source manifest after notarization' do
+    it 'tells maintainers to stage the signed helper, source manifest, and version after notarization' do
       message = described_class::Messages.helper_ready('libexec/macos/wifiwand-helper.app')
 
       expect(message).to include(
         'git add libexec/macos/wifiwand-helper.app',
-        'libexec/macos/wifiwand-helper.source-manifest.json'
+        'libexec/macos/wifiwand-helper.source-manifest.json',
+        'lib/wifi_wand/version.rb',
+        'bundle exec rake test',
+        'bundle exec rake build',
+        'tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz',
+        '# Do not edit files after inspecting the payload',
+        'bundle exec rake release build:checksum'
       )
     end
 
-    it 'tells maintainers to stage the signed helper and source manifest after the workflow' do
-      expect(described_class::Messages::WORKFLOW_COMPLETE).to include(
-        'git add libexec/macos/wifiwand-helper.app libexec/macos/wifiwand-helper.source-manifest.json'
+    it 'tells maintainers to stage the signed helper, source manifest, and version after the workflow' do
+      git_add_command = [
+        '     git add libexec/macos/wifiwand-helper.app \\',
+        '       libexec/macos/wifiwand-helper.source-manifest.json \\',
+        '       lib/wifi_wand/version.rb',
+      ].join("\n")
+
+      expect(described_class::Messages.workflow_complete).to include(
+        git_add_command,
+        'bundle exec rake test',
+        'bundle exec rake build',
+        'tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz',
+        '# Do not edit files after inspecting the payload',
+        'bundle exec rake release build:checksum'
       )
     end
   end
@@ -725,7 +742,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Release do
 
       expect { described_class.codesign_status }
         .to output(
-          /Not universal: x86_64.*Signature is invalid:.*invalid signature data.*not notarized/m
+          /Not universal: x86_64.*Signature verification failed:.*invalid signature data.*not notarized/m
         ).to_stdout
     end
 

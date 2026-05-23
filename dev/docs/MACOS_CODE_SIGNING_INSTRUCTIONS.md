@@ -150,13 +150,24 @@ Follow the same sequence each time you change the helper or cut a gem release.
    ```
    Shows signature, hardened runtime, and notarization status.
 
-4. **Commit & publish**
+4. **Run the maintainer release checklist**
    ```bash
-   git add libexec/macos/wifiwand-helper.app
-   git commit -m "Update signed macOS helper for X.Y.Z"
-   gem build wifi-wand.gemspec
-   gem push wifi-wand-X.Y.Z.gem
+   # Update lib/wifi_wand/version.rb first if this release changes the gem version.
+   git add libexec/macos/wifiwand-helper.app \
+     libexec/macos/wifiwand-helper.source-manifest.json \
+     lib/wifi_wand/version.rb
+   git commit -m "Update signed and notarized macOS helper for <version>"
+   bundle exec rake test
+   bundle exec rake build
+   tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz
+   # Do not edit after inspecting the payload; release rebuilds before pushing.
+   bundle exec rake release build:checksum
    ```
+   Before publishing, inspect the built gem payload and confirm it includes the required runtime files,
+   executables, helper assets, and user-facing documents while excluding maintainer-only tooling. Use
+   `bundle exec rake release build:checksum` for the RubyGems publish path. Keep the tree unchanged after the
+   payload inspection because the release task rebuilds before pushing, then `build:checksum` generates the
+   checksum from that same release-task build.
 
 5. **If notarization stalls or fails**
    - Check Apple's queue: `bin/mac-helper-release history`
@@ -172,7 +183,6 @@ Follow the same sequence each time you change the helper or cut a gem release.
      few minutes and retry `bin/mac-helper-release store-credentials`
    - If the submission was rejected, rebuild the helper (`bin/mac-helper-release build`) before re-running
      the release flow.
-     flow.
 
 ### Runtime configuration
 

@@ -24,8 +24,8 @@ module WifiWand
 
           # Message templates for output
           module Messages
-            SECTION_SEPARATOR = '=' * 60
-            SUBSECTION_SEPARATOR = '-' * 60
+            SECTION_SEPARATOR = ('=' * 60).freeze
+            SUBSECTION_SEPARATOR = ('-' * 60).freeze
 
             def self.building_helper(source:, destination:, identity:)
               <<~MSG
@@ -55,10 +55,14 @@ module WifiWand
             SIGNATURE_VALID = '✓ Signature is valid'
 
             def self.signature_invalid(stderr)
-              <<~MSG
+              <<~MSG.chomp
                 ✗ Signature verification failed:
                 #{stderr}
               MSG
+            end
+
+            def self.payload_inspection_command
+              'tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz'
             end
 
             def self.helper_executed_success(stdout)
@@ -120,7 +124,7 @@ module WifiWand
             TICKET_STAPLED = '✓ Notarization ticket stapled'
 
             def self.staple_warning(stderr)
-              <<~MSG
+              <<~MSG.chomp
                 Warning: Could not staple ticket (this is optional):
                 #{stderr}
               MSG
@@ -133,9 +137,17 @@ module WifiWand
 
                 Next steps:
                   1. Test the notarized helper: bin/mac-helper-release test
-                  2. Commit the signed helper and manifest:
-                     git add #{bundle_path} #{Bundle.source_bundle_manifest_path}
-                  3. Build and release the gem: gem build wifi-wand.gemspec
+                  2. Update lib/wifi_wand/version.rb if this release changes the gem version.
+                  3. Commit the signed helper, manifest, and version bump:
+                     git add #{bundle_path} \\
+                       #{Bundle.source_bundle_manifest_path} \\
+                       lib/wifi_wand/version.rb
+                  4. Build, inspect, and release through Rake:
+                     bundle exec rake test
+                     bundle exec rake build
+                     #{payload_inspection_command}
+                     # Do not edit files after inspecting the payload; rebuild first if anything changes.
+                     bundle exec rake release build:checksum
               MSG
             end
 
@@ -147,20 +159,34 @@ module WifiWand
               MSG
             end
 
-            WORKFLOW_SEPARATOR = <<~MSG.freeze
+            def self.workflow_separator
+              <<~MSG
 
-              #{SECTION_SEPARATOR}
+                #{SECTION_SEPARATOR}
 
-            MSG
+              MSG
+            end
 
-            WORKFLOW_COMPLETE = <<~MSG
-              ✓ Complete release workflow finished!
+            def self.workflow_complete
+              <<~MSG
+                ✓ Complete release workflow finished!
 
-              The helper is now ready for gem distribution.
-              Don't forget to commit the signed binary and manifest:
-                git add libexec/macos/wifiwand-helper.app libexec/macos/wifiwand-helper.source-manifest.json
-                git commit -m 'Update signed and notarized macOS helper'
-            MSG
+                The helper is now ready for gem distribution.
+                Next steps:
+                  1. Update lib/wifi_wand/version.rb if this release changes the gem version.
+                  2. Commit the signed binary, manifest, and version bump:
+                     git add libexec/macos/wifiwand-helper.app \\
+                       libexec/macos/wifiwand-helper.source-manifest.json \\
+                       lib/wifi_wand/version.rb
+                     git commit -m 'Update signed and notarized macOS helper for <version>'
+                  3. Build, inspect, and release through Rake:
+                     bundle exec rake test
+                     bundle exec rake build
+                     #{payload_inspection_command}
+                     # Do not edit files after inspecting the payload; rebuild first if anything changes.
+                     bundle exec rake release build:checksum
+              MSG
+            end
 
             def self.codesign_status_header
               <<~MSG
@@ -172,29 +198,26 @@ module WifiWand
               MSG
             end
 
-            SIGNATURE_VERIFICATION_HEADER = <<~MSG.freeze
+            def self.signature_verification_header
+              <<~MSG
 
-              Signature Verification:
-              #{SUBSECTION_SEPARATOR}
-            MSG
+                Signature Verification:
+                #{SUBSECTION_SEPARATOR}
+              MSG
+            end
 
-            NOTARIZATION_STATUS_HEADER = <<~MSG.freeze
+            def self.notarization_status_header
+              <<~MSG
 
-              Notarization Status:
-              #{SUBSECTION_SEPARATOR}
-            MSG
+                Notarization Status:
+                #{SUBSECTION_SEPARATOR}
+              MSG
+            end
 
             def self.bundle_not_found(bundle_path)
               <<~MSG
                 Helper bundle not found at #{bundle_path}
                 Run: bin/mac-helper-release build
-              MSG
-            end
-
-            def self.signature_invalid_status(stderr)
-              <<~MSG
-                ✗ Signature is invalid:
-                #{stderr}
               MSG
             end
 
@@ -663,11 +686,11 @@ module WifiWand
           module_function def release_helper
             puts Messages.workflow_starting
             build_signed_helper
-            puts Messages::WORKFLOW_SEPARATOR
+            puts Messages.workflow_separator
             test_signed_helper
-            puts Messages::WORKFLOW_SEPARATOR
+            puts Messages.workflow_separator
             notarize_helper
-            puts Messages::WORKFLOW_SEPARATOR, Messages::WORKFLOW_COMPLETE
+            puts Messages.workflow_separator, Messages.workflow_complete
           end
 
           module_function def codesign_status
@@ -694,12 +717,12 @@ module WifiWand
               puts "⚠ Not universal: #{archs.join(', ')}"
             end
 
-            puts Messages::SIGNATURE_VERIFICATION_HEADER
+            puts Messages.signature_verification_header
             _stdout, stderr, status = Open3.capture3('codesign', '--verify', '--verbose', bundle_path)
-            message = status.success? ? Messages::SIGNATURE_VALID : Messages.signature_invalid_status(stderr)
+            message = status.success? ? Messages::SIGNATURE_VALID : Messages.signature_invalid(stderr)
             puts message
 
-            puts Messages::NOTARIZATION_STATUS_HEADER
+            puts Messages.notarization_status_header
             stdout, _stderr, status = Open3.capture3('spctl', '-a', '-vv', '-t', 'install', bundle_path)
             puts stdout
             message = if status.success?

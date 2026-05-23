@@ -259,6 +259,7 @@ module WifiWand
         'Network not found',
         'The operation could not be completed. tmpErr (code: 82)',
         "The operation couldn't be completed. tmpErr (code: 82)",
+        'The operation couldn’t be completed. tmpErr (code: 82)',
         'The operation couldn???t be completed because tmpErr occurred',
       ].each do |error_text|
         it "recognizes recoverable Swift/CoreWLAN connect failure: #{error_text}" do

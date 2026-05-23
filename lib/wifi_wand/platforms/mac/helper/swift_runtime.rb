@@ -17,7 +17,7 @@ module WifiWand
             /possible keychain access or authentication issue/i,
             /network not found/i,
             /tmpErr\s*\(code:\s*82\)/i,
-            /couldn(?:\?\?\?|')t be completed.*tmpErr/i,
+            /couldn(?:\?\?\?|['’])t be completed.*tmpErr/i,
           ].freeze
           # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
           UNEXPECTED_SWIFT_PROBE_ERROR = StandardError

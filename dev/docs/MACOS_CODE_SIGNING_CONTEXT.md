@@ -153,16 +153,28 @@ bin/mac-helper-release build
 # 2. Notarize with Apple (uses the stored keychain profile)
 bin/mac-helper-release notarize
 
-# 3. Commit the signed binary
-git add libexec/macos/wifiwand-helper.app
-git commit -m "Update signed and notarized macOS helper"
+# 3. Commit the signed binary, source attestation manifest, and version bump
+# Update version if needed
+# Edit lib/wifi_wand/version.rb
+git add libexec/macos/wifiwand-helper.app \
+  libexec/macos/wifiwand-helper.source-manifest.json \
+  lib/wifi_wand/version.rb
+git commit -m "Update signed and notarized macOS helper for <version>"
 
-# 4. Build and release gem
-gem build wifi-wand.gemspec
-gem push wifi-wand-X.Y.Z.gem
+# 4. Build and inspect the release candidate payload
+bundle exec rake test
+bundle exec rake build
+tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz
+
+# 5. Release from the same committed inputs; do not edit after inspecting the payload
+bundle exec rake release build:checksum
 ```
 
-The signed binary is committed to git and distributed with the gem.
+The signed binary is committed to git and distributed with the gem. Inspect the built gem payload before
+publishing so required runtime files, executables, helper assets, and user-facing documents are present. Do
+not edit the tree after inspecting the payload; `release` rebuilds before pushing, so it should run from the
+same committed inputs. Run `release` and `build:checksum` in the same Rake invocation so the checksum is
+generated from the gem built and pushed by the release task.
 
 ---
 
@@ -367,21 +379,27 @@ Shows:
 ### After Successful Notarization
 
 ```bash
-# Commit the signed helper
-git add libexec/macos/wifiwand-helper.app
-git commit -m "Update signed and notarized macOS helper for version X.Y.Z"
-
 # Update version if needed
 # Edit lib/wifi_wand/version.rb
 
-# Build gem
-gem build wifi-wand.gemspec
+# Commit the signed helper and source attestation manifest
+git add libexec/macos/wifiwand-helper.app \
+  libexec/macos/wifiwand-helper.source-manifest.json \
+  lib/wifi_wand/version.rb
+git commit -m "Update signed and notarized macOS helper for <version>"
 
-# Test the gem locally
-gem install wifi-wand-X.Y.Z.gem --local
+# Run the default test suite
+bundle exec rake test
 
-# Publish to RubyGems
-gem push wifi-wand-X.Y.Z.gem
+# Build the gem
+bundle exec rake build
+
+# Inspect the payload before release
+tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz
+
+# Create the tag, publish to RubyGems, and checksum the released gem.
+# Do not edit after inspecting the payload; release rebuilds before pushing.
+bundle exec rake release build:checksum
 ```
 
 ---
