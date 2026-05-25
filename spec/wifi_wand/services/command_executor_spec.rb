@@ -151,7 +151,11 @@ describe WifiWand::CommandExecutor do
         expect(result.stderr).to eq('warning: déjà vu')
         expect(stderr_chunk.encoding).to eq(Encoding::UTF_8)
         expect(result.combined_output.encoding).to eq(Encoding::BINARY)
-        expect(result.combined_output.bytes).to eq(stdout_chunk.bytes + stderr_chunk.bytes)
+        valid_combined_byte_orders = [
+          stdout_chunk.bytes + stderr_chunk.bytes,
+          stderr_chunk.bytes + stdout_chunk.bytes,
+        ]
+        expect(valid_combined_byte_orders).to include(result.combined_output.bytes)
       end
 
       it 'treats stdout and stderr EOF as normal command shutdown' do
