@@ -43,6 +43,11 @@ module CoverageConfig
 
       # Only track coverage when running the full test suite
       enable_coverage :branch if ENV['COVERAGE_BRANCH'] == 'true'
+
+      # Newer versions of SimpleCov by default include all the source code covered in coverage.json.
+      # This call will exclude that source code.
+      # Older versions of simplecov do not have or need this call since they do not include the source code.
+      source_in_json(false) if respond_to?(:source_in_json)
     end
   end
 
