@@ -320,9 +320,11 @@ module RSpecConfiguration
       Current real environment setting: WIFIWAND_REAL_ENV_TESTS=#{ENV['WIFIWAND_REAL_ENV_TESTS'] || 'none'}
 
       Modifier env vars (orthogonal to test scope — combine with any of the above):
-        WIFIWAND_VERBOSE=true|yes|on|1  - show underlying OS commands
-        COVERAGE_BRANCH=true|yes|on|1   - enable branch coverage analysis
+        WIFIWAND_VERBOSE=true|yes|on|1              - show underlying OS commands
+        COVERAGE_BRANCH=true|yes|on|1               - enable branch coverage analysis
+        WIFIWAND_COBERTURA_COVERAGE=false|no|off|0  - disable Cobertura XML output
       Current: WIFIWAND_VERBOSE=#{ENV['WIFIWAND_VERBOSE'] || '[undefined]'}
+      Current: WIFIWAND_COBERTURA_COVERAGE=#{ENV['WIFIWAND_COBERTURA_COVERAGE'] || '[undefined]'}
 
       Coverage tracking is enabled via SimpleCov.
       HTML coverage report will be generated in coverage/index.html

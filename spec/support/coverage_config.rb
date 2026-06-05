@@ -1,10 +1,32 @@
 # frozen_string_literal: true
 
 require 'simplecov'
-require 'simplecov-cobertura'
 require_relative 'env_boolean'
 
 module CoverageConfig
+  module Formatters
+    COBERTURA_COVERAGE_ENABLED = true
+    COBERTURA_COVERAGE_ENV_VAR = 'WIFIWAND_COBERTURA_COVERAGE'
+
+    def self.cobertura_coverage_enabled?
+      EnvBoolean.enabled?(ENV, COBERTURA_COVERAGE_ENV_VAR, default: COBERTURA_COVERAGE_ENABLED)
+    end
+
+    def self.simplecov_formatters
+      formatters = [
+        SimpleCov::Formatter::HTMLFormatter,
+        SimpleCov::Formatter::SimpleFormatter,
+      ]
+
+      if cobertura_coverage_enabled?
+        require 'simplecov-cobertura'
+        formatters.insert(1, SimpleCov::Formatter::CoberturaFormatter)
+      end
+
+      formatters
+    end
+  end
+
   PROJECT_ROOT = File.expand_path('../..', __dir__)
   DEFAULT_RESULTSET_BASENAME = '.resultset.json'
   REAL_ENV_RESULTSET_TEMPLATE = '.resultset.%<os>s.json'
@@ -36,11 +58,7 @@ module CoverageConfig
       add_group 'Core', 'lib/wifi_wand'
 
       # Generate multiple output formats
-      formatter SimpleCov::Formatter::MultiFormatter.new([
-        SimpleCov::Formatter::HTMLFormatter,
-        SimpleCov::Formatter::CoberturaFormatter,
-        SimpleCov::Formatter::SimpleFormatter,
-      ])
+      formatter SimpleCov::Formatter::MultiFormatter.new(CoverageConfig::Formatters.simplecov_formatters)
 
       # Only track coverage when running the full test suite
       enable_coverage :branch if EnvBoolean.enabled?(ENV, 'COVERAGE_BRANCH', default: false)

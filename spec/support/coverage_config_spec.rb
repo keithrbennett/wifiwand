@@ -5,10 +5,12 @@ require 'spec_helper'
 RSpec.describe CoverageConfig do
   around do |example|
     original_real_env_tests = ENV['WIFIWAND_REAL_ENV_TESTS']
+    original_cobertura_coverage = ENV['WIFIWAND_COBERTURA_COVERAGE']
 
     example.run
   ensure
     ENV['WIFIWAND_REAL_ENV_TESTS'] = original_real_env_tests
+    ENV['WIFIWAND_COBERTURA_COVERAGE'] = original_cobertura_coverage
   end
 
   describe '.tracked_runtime_globs' do
@@ -67,6 +69,66 @@ RSpec.describe CoverageConfig do
         'exe/wifi-wand',
         'exe/wifi-wand-macos-setup'
       )
+    end
+  end
+
+  describe CoverageConfig::Formatters do
+    subject(:formatters) { described_class }
+
+    it 'returns true by default' do
+      ENV.delete('WIFIWAND_COBERTURA_COVERAGE')
+
+      expect(formatters.cobertura_coverage_enabled?).to be(true)
+    end
+
+    it 'returns the source flag value when the environment flag is unset' do
+      ENV.delete('WIFIWAND_COBERTURA_COVERAGE')
+
+      stub_const('CoverageConfig::Formatters::COBERTURA_COVERAGE_ENABLED', false)
+
+      expect(formatters.cobertura_coverage_enabled?).to be(false)
+    end
+
+    it 'returns true for truthy flag values' do
+      ENV['WIFIWAND_COBERTURA_COVERAGE'] = 'true'
+
+      expect(formatters.cobertura_coverage_enabled?).to be(true)
+    end
+
+    it 'returns false for falsey flag values' do
+      ENV['WIFIWAND_COBERTURA_COVERAGE'] = 'false'
+
+      expect(formatters.cobertura_coverage_enabled?).to be(false)
+    end
+
+    it 'falls back to the source flag for unrecognized flag values' do
+      ENV['WIFIWAND_COBERTURA_COVERAGE'] = 'maybe'
+
+      expect(formatters.cobertura_coverage_enabled?).to be(true)
+    end
+
+    it 'excludes the Cobertura formatter when disabled' do
+      ENV['WIFIWAND_COBERTURA_COVERAGE'] = 'false'
+
+      expect(formatters.simplecov_formatters).to eq([
+        SimpleCov::Formatter::HTMLFormatter,
+        SimpleCov::Formatter::SimpleFormatter,
+      ])
+    end
+
+    it 'requires and includes the Cobertura formatter by default' do
+      cobertura_formatter = Class.new
+      ENV.delete('WIFIWAND_COBERTURA_COVERAGE')
+
+      stub_const('SimpleCov::Formatter::CoberturaFormatter', cobertura_formatter)
+      allow(formatters).to receive(:require).with('simplecov-cobertura')
+
+      expect(formatters.simplecov_formatters).to eq([
+        SimpleCov::Formatter::HTMLFormatter,
+        cobertura_formatter,
+        SimpleCov::Formatter::SimpleFormatter,
+      ])
+      expect(formatters).to have_received(:require).with('simplecov-cobertura')
     end
   end
 
