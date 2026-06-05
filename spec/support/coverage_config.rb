@@ -2,6 +2,7 @@
 
 require 'simplecov'
 require 'simplecov-cobertura'
+require_relative 'env_boolean'
 
 module CoverageConfig
   PROJECT_ROOT = File.expand_path('../..', __dir__)
@@ -42,7 +43,7 @@ module CoverageConfig
       ])
 
       # Only track coverage when running the full test suite
-      enable_coverage :branch if ENV['COVERAGE_BRANCH'] == 'true'
+      enable_coverage :branch if EnvBoolean.enabled?(ENV, 'COVERAGE_BRANCH', default: false)
 
       # Newer versions of SimpleCov by default include all the source code covered in coverage.json.
       # This call will exclude that source code.

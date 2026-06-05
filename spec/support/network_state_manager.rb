@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative 'env_boolean'
+
 module NetworkStateManager
   class Session
     attr_reader :model, :network_state
@@ -41,7 +43,7 @@ module NetworkStateManager
   end
 
   def self.build_model
-    options = { verbose: ENV['WIFIWAND_VERBOSE'] == 'true' }
+    options = { verbose: EnvBoolean.enabled?(ENV, 'WIFIWAND_VERBOSE', default: false) }
     WifiWand::Platforms::Selector.create_model_for_current_os(options)
   end
 

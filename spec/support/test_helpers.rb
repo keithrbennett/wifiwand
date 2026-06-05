@@ -2,6 +2,7 @@
 
 require 'socket'
 require 'stringio'
+require_relative 'env_boolean'
 require_relative 'network_state_manager'
 require_relative '../../lib/wifi_wand/command_line_options'
 require_relative '../../lib/wifi_wand/platforms/selector'
@@ -172,7 +173,7 @@ module TestHelpers
 
   private def merge_verbose_options(options = {})
     # Check for verbose mode from environment variable (as default)
-    verbose = ENV['WIFIWAND_VERBOSE'] == 'true'
+    verbose = EnvBoolean.enabled?(ENV, 'WIFIWAND_VERBOSE', default: false)
 
     # Merge environment default with provided options (options override env)
     { verbose: verbose }.merge(options)
