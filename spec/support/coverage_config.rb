@@ -60,8 +60,7 @@ module CoverageConfig
       # Generate multiple output formats
       formatter SimpleCov::Formatter::MultiFormatter.new(CoverageConfig::Formatters.simplecov_formatters)
 
-      # Only track coverage when running the full test suite
-      enable_coverage :branch if EnvBoolean.enabled?(ENV, 'COVERAGE_BRANCH', default: false)
+      enable_coverage :branch
 
       # Newer versions of SimpleCov by default include all the source code covered in coverage.json.
       # This call will exclude that source code.

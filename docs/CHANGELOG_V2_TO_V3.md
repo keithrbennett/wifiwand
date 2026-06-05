@@ -110,7 +110,7 @@ For upgrade-impacting API, CLI, and behavior changes, see
 - Added regression specs for OS tag filtering and disruptive-test skip logic.
 - Added captive-portal specs for success, redirect, and all-network-error
   scenarios.
-- Added branch coverage support with `COVERAGE_BRANCH=true`.
+- Enabled branch coverage by default.
 - Implemented coverage grouping by component.
 - Created `CoverageConfig` in `spec/support/coverage_config.rb`.
 - Made verbose mode accessible to tests via `WIFIWAND_VERBOSE`.

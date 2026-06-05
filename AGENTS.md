@@ -79,7 +79,6 @@ bundle exec rake test:all           # + real-env read-write tests
 Env vars are orthogonal modifiers — combine them with any rake task or plain rspec:
 ```bash
 WIFIWAND_VERBOSE=true bundle exec rake test:safe   # show underlying OS commands
-COVERAGE_BRANCH=true bundle exec rake test:safe    # enable branch coverage analysis
 
 # Run a specific file directly
 bundle exec rspec spec/wifi_wand/platforms/ubuntu/model_spec.rb
@@ -195,9 +194,9 @@ The macOS model currently uses two distinct Swift/CoreWLAN runtime paths:
 
 ### Test Coverage
 - SimpleCov generates coverage reports automatically when running tests
+- Branch coverage is enabled by default
 - HTML reports are saved to `coverage/index.html`
 - Coverage is grouped by component (Shared Models, Platforms, Services, Core)
-- Branch coverage can be enabled with `COVERAGE_BRANCH=true`
 - Use the **cov-loupe** MCP tool (or CLI) to query coverage data — prefer it over reading `.resultset.json`
   directly or reasoning from scratch. For example: `cov-loupe summary lib/wifi_wand/platforms/mac/model.rb`
   or, when available, call the `file_coverage_summary` / `project_coverage` MCP tools.

@@ -94,6 +94,22 @@ RSpec.describe RSpecConfiguration do
     metadata
   end
 
+  describe '.show_test_usage_information' do
+    it 'advertises only supported modifier environment variables' do
+      reporter = double('reporter')
+      message = nil
+
+      allow(RSpec.configuration).to receive(:reporter).and_return(reporter)
+      allow(reporter).to receive(:message) { |value| message = value }
+
+      described_class.show_test_usage_information
+
+      expect(message).to include('WIFIWAND_VERBOSE')
+      expect(message).to include('WIFIWAND_COBERTURA_COVERAGE')
+      expect(message).to include('Branch coverage is enabled by default.')
+    end
+  end
+
   # Ubuntu (and other Linux hosts) do not require sudo/keychain prompts, but
   # they still depend on network state capture to restore connectivity after
   # real_env_read_write specs. This example fails if the capture hook stops

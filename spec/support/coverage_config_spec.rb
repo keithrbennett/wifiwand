@@ -13,6 +13,27 @@ RSpec.describe CoverageConfig do
     ENV['WIFIWAND_COBERTURA_COVERAGE'] = original_cobertura_coverage
   end
 
+  describe '.setup' do
+    it 'enables branch coverage by default' do
+      enabled_coverage_types = []
+      config_double = Object.new
+      config_double.define_singleton_method(:track_files) { |_pattern| nil }
+      config_double.define_singleton_method(:add_filter) { |_filter| nil }
+      config_double.define_singleton_method(:add_group) { |_name, _filter| nil }
+      config_double.define_singleton_method(:formatter) { |_formatter| nil }
+      config_double.define_singleton_method(:enable_coverage) { |type| enabled_coverage_types << type }
+      config_double.define_singleton_method(:source_in_json) { |_enabled| nil }
+
+      allow(described_class).to receive(:configure_resultset_path!)
+      allow(SimpleCov).to receive(:command_name)
+      allow(SimpleCov).to receive(:start) { |&block| config_double.instance_eval(&block) }
+
+      described_class.setup
+
+      expect(enabled_coverage_types).to eq([:branch])
+    end
+  end
+
   describe '.tracked_runtime_globs' do
     it 'defines the broad packaged Ruby runtime surface' do
       expect(described_class.tracked_runtime_globs).to eq([

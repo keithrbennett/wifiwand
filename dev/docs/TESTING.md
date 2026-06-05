@@ -266,6 +266,7 @@ Practical rule:
   SimpleCov starts from `lib/**/*.rb` and `exe/*`, then excludes maintainer-only files that are also excluded
   by the gemspec. Use cov-loupe when deciding whether packaged runtime files are covered, uncovered, or
   missing from the resultset.
+- Branch coverage is enabled by default.
 - `bin/*` contains maintainer tooling that is not shipped as gem executables, so it is not part of normal
   runtime coverage accounting.
 - For targeted local work, it is fine to rely on targeted coverage artifacts, but only for the code exercised
@@ -280,9 +281,6 @@ These env vars are orthogonal to test scope and can be combined with any rake ta
 ```bash
 # Show underlying OS commands during tests
 WIFIWAND_VERBOSE=true bundle exec rake test:read_only
-
-# Enable branch coverage analysis
-COVERAGE_BRANCH=true bundle exec rake test:safe
 ```
 
 ## Writing Tests

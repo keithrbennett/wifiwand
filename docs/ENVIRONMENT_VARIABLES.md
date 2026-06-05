@@ -121,26 +121,10 @@ Automatically set by RSpec when tests are running. Adjusts timeout values for be
 
 **Usage:** Internal use only - do not set manually.
 
-## Coverage Variables
-
-### `COVERAGE_BRANCH`
-
-Enable SimpleCov branch coverage analysis.
-
-**Values:** `true` to enable
-
-**Usage:**
-```bash
-COVERAGE_BRANCH=true bundle exec rspec
-COVERAGE_BRANCH=true bundle exec rake test:all
-```
-
-**Note:** Branch coverage is orthogonal to test scope — it can be combined with any rake task or rspec
-invocation. It is more detailed but slower than line coverage.
-
-### Coverage Resultset Files
+## Coverage Resultset Files
 
 SimpleCov chooses the resultset filename from `WIFIWAND_REAL_ENV_TESTS`.
+Branch coverage is enabled by default.
 
 **Behavior:**
 - Unset or `none` - Write coverage to `coverage/.resultset.json`
