@@ -121,6 +121,25 @@ Automatically set by RSpec when tests are running. Adjusts timeout values for be
 
 **Usage:** Internal use only - do not set manually.
 
+### `WIFIWAND_COBERTURA_COVERAGE`
+
+Control whether the test coverage setup loads `simplecov-cobertura` and registers the Cobertura XML
+formatter.
+
+**Values:**
+- unset, `true`, `yes`, `on`, or `1` - Generate Cobertura XML coverage output
+- `false`, `no`, `off`, or `0` - Skip loading `simplecov-cobertura` and skip Cobertura XML output
+
+**Usage:**
+```bash
+WIFIWAND_COBERTURA_COVERAGE=false bundle exec rspec
+```
+
+This flag affects runtime formatter loading only. `Gemfile` still declares `simplecov-cobertura` as a
+development/test dependency, so Bundler must still resolve it before the suite can start. To test against a
+SimpleCov version that is incompatible with `simplecov-cobertura`, modify `Gemfile` as well, then refresh the
+bundle.
+
 ## Coverage Resultset Files
 
 SimpleCov chooses the resultset filename from `WIFIWAND_REAL_ENV_TESTS`.

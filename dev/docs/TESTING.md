@@ -281,7 +281,15 @@ These env vars are orthogonal to test scope and can be combined with any rake ta
 ```bash
 # Show underlying OS commands during tests
 WIFIWAND_VERBOSE=true bundle exec rake test:read_only
+
+# Disable Cobertura formatter loading and XML output
+WIFIWAND_COBERTURA_COVERAGE=false bundle exec rake test:safe
 ```
+
+`WIFIWAND_COBERTURA_COVERAGE=false` only affects runtime formatter loading. Because `Gemfile` declares
+`simplecov-cobertura` as a development/test dependency, Bundler still resolves it before tests run. When
+testing a SimpleCov version that is incompatible with `simplecov-cobertura`, modify `Gemfile` too and refresh
+the bundle.
 
 ## Writing Tests
 
