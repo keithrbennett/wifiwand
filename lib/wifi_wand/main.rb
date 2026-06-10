@@ -27,6 +27,7 @@ module WifiWand
 
     def call(argv = @argv)
       options = CommandLineParser.new(argv, @env, @err_stream).parse
+      yield options if block_given?
       if options.version_requested
         @out_stream.puts(WifiWand::VERSION)
         return SUCCESS_EXIT_CODE

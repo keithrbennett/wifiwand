@@ -45,6 +45,13 @@ describe WifiWand::Main do
       expect(err_stream.string).to eq("Error: Test error\n")
     end
 
+    it 'lets interrupts propagate to the executable boundary' do
+      allow(mock_cli).to receive(:call).and_raise(Interrupt)
+
+      expect { subject.call }.to raise_error(Interrupt)
+      expect(err_stream.string).to eq('')
+    end
+
     it 'prints backtrace only in verbose mode and returns code 1' do
       ex = StandardError.new('Test error')
       allow(ex).to receive(:backtrace).and_return(%w[line1 line2 line3])

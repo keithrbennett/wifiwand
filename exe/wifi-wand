@@ -9,4 +9,57 @@ Warning[:experimental] = false
 require_relative '../lib/wifi_wand'
 require_relative '../lib/wifi_wand/main'
 
-exit(WifiWand::Main.new.call)
+module WifiWandExecutable
+  INTERRUPT_EXIT_CODE = 130
+
+  def self.call(argv: ARGV, env: ENV, in_stream: $stdin, out_stream: $stdout, err_stream: $stderr)
+    exit_code = run(
+      argv:       argv,
+      env:        env,
+      in_stream:  in_stream,
+      out_stream: out_stream,
+      err_stream: err_stream
+    )
+    exit(exit_code)
+  end
+
+  def self.run(argv: ARGV, env: ENV, in_stream: $stdin, out_stream: $stdout, err_stream: $stderr)
+    options = nil
+    main = WifiWand::Main.new(out_stream, err_stream, argv: argv, env: env, in_stream: in_stream)
+    main.call { |parsed_options| options = parsed_options }
+  rescue Interrupt => e
+    handle_interrupt(e, options, err_stream)
+    INTERRUPT_EXIT_CODE
+  end
+
+  def self.handle_interrupt(error, options, err_stream)
+    message = "Error: Interrupted by Ctrl-C#{interrupt_context(options)}."
+    if options&.verbose
+      location = interrupt_location(error)
+      message = "#{message}\nInterrupted at: #{location}" if location
+    end
+
+    err_stream.puts "\n#{message}"
+  end
+
+  def self.interrupt_context(options)
+    command = interrupt_command(options)
+
+    if command
+      " while running command: #{command}"
+    else
+      ''
+    end
+  end
+
+  def self.interrupt_command(options)
+    command = Array(options&.argv).first
+    command.to_s.empty? ? nil : command
+  end
+
+  def self.interrupt_location(error)
+    Array(error.backtrace).find { |frame| frame.include?('/lib/wifi_wand/') }
+  end
+end
+
+WifiWandExecutable.call if $PROGRAM_NAME == __FILE__
