@@ -1,32 +1,57 @@
 # frozen_string_literal: true
 
-version_source = File.read(File.expand_path('lib/wifi_wand/version.rb', __dir__))
-version_match = version_source.match(/\bVERSION\s*=\s*['"]([^'"]+)['"]/)
-raise 'Could not read wifi-wand version from lib/wifi_wand/version.rb' unless version_match
+# Extract the version string from lib/wifi_wand/version.rb so it remains the
+# single source of truth and doesn't need to be duplicated here.  MatchData[0]
+# is the full match (e.g. VERSION = "1.2.3"), [1] is the first capture group
+# (the version string alone).
+version = -> {
+  source = File.read(File.expand_path('lib/wifi_wand/version.rb', __dir__))
+  source.match(/\bVERSION\s*=\s*['"]([^'"]+)['"]/)&.[](1)
+}.call
+raise 'Could not read wifi-wand version from lib/wifi_wand/version.rb' unless version
+
+# Whitelist of glob patterns for files to include in the built gem.  Only files
+# matching at least one of these are eligible; they may still be removed by the
+# exclusion list below.
+packaged_file_patterns = [
+  'LICENSE.txt',
+  'README.md',
+  'RELEASE_NOTES.md',
+  'docs/**/*.md',
+  'exe/*',
+  'lib/**/*.rb',
+  'lib/wifi_wand/platforms/mac/helper/swift/*.swift',
+  'lib/**/*.yml',
+  'libexec/**/*',
+].freeze
+
+# Exclusion list (regexps matched against each file path).  These remove
+# maintainer-only tooling and build artifacts that happen to match the
+# whitelist globs above.
+excluded_packaged_files = [
+  %r{\Adocs/(?:ai-reports|dev)/},                                  # AI / developer-only doc directories
+  %r{\Alib/tasks/},                                                # rake tasks (not needed at runtime)
+  %r{\Alib/wifi_wand/platforms/mac/helper/release\.rb\z},          # macOS helper release script
+  %r{\Alib/wifi_wand/platforms/mac/helper/build\.rb\z},            # macOS helper build script
+  %r{\Alibexec/macos/(?:src/|wifiwand-helper\.entitlements\z|wifiwand-helper\.source-manifest\.json\z)},
+  # ^ macOS helper source code, entitlements, and source manifest
+  %r{\Adocs/TESTING\.md\z},                                        # internal testing guide
+].freeze
+
+# Resolve the gem's file list from git-tracked files, filtered through the
+# whitelist globs and exclusion regexps defined above.  This keeps the list
+# in sync with version control and prevents untracked cruft from leaking in.
+resolve_files = -> {
+  Dir.chdir(File.expand_path(__dir__)) do
+    tracked = `git ls-files -z`.split("\x0")
+    eligible = tracked.select { |f| packaged_file_patterns.any? { |pat| File.fnmatch?(pat, f, File::FNM_PATHNAME) } }
+    eligible.reject { |f| excluded_packaged_files.any? { |pat| pat.match?(f) } }
+  end
+}
 
 Gem::Specification.new do |spec|
-  packaged_file_patterns = [
-    'LICENSE.txt',
-    'README.md',
-    'RELEASE_NOTES.md',
-    'docs/**/*.md',
-    'exe/*',
-    'lib/**/*.rb',
-    'lib/wifi_wand/platforms/mac/helper/swift/*.swift',
-    'lib/**/*.yml',
-    'libexec/**/*',
-  ].freeze
-  excluded_packaged_files = [
-    %r{\Adocs/(?:ai-reports|dev)/},
-    %r{\Alib/tasks/},
-    %r{\Alib/wifi_wand/platforms/mac/helper/release\.rb\z},
-    %r{\Alib/wifi_wand/platforms/mac/helper/build\.rb\z},
-    %r{\Alibexec/macos/(?:src/|wifiwand-helper\.entitlements\z|wifiwand-helper\.source-manifest\.json\z)},
-    %r{\Adocs/TESTING\.md\z},
-  ].freeze
-
   spec.name          = 'wifi-wand'
-  spec.version       = version_match[1]
+  spec.version       = version
   spec.authors       = ['Keith Bennett']
   spec.email         = ['keithrbennett@gmail.com']
   spec.description   = 'A command line interface for managing WiFi on Mac and Ubuntu systems.'
@@ -41,18 +66,9 @@ Gem::Specification.new do |spec|
     'rubygems_mfa_required' => 'true',
   }
 
-  spec.files = Dir.chdir(File.expand_path(__dir__)) do
-    tracked_files = `git ls-files -z`.split("\x0")
-    packaged_files = tracked_files.select do |file|
-      packaged_file_patterns.any? do |pattern|
-        File.fnmatch?(pattern, file, File::FNM_PATHNAME)
-      end
-    end
-
-    packaged_files.reject do |file|
-      excluded_packaged_files.any? { |pattern| pattern.match?(file) }
-    end
-  end
+  spec.files = resolve_files.call
+  # Executable scripts live under exe/; derive the bindir and the list of
+  # executables from the resolved file list so they stay in sync automatically.
   spec.bindir        = 'exe'
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
 
@@ -68,7 +84,9 @@ Gem::Specification.new do |spec|
   # on last line of method:
   spec.add_dependency('pry', '~> 0.14', '>= 0.14.2')
 
-  # Post-install message for macOS users about location permission setup
+  # On macOS, display a post-install message pointing users to the one-time
+  # location-permission setup script and quick-start guide.  On other platforms
+  # the message is nil (not printed).
   spec.post_install_message = if RbConfig::CONFIG['host_os'] =~ /darwin/i
     <<~MESSAGE
 
