@@ -105,7 +105,7 @@ RSpec.describe RSpecConfiguration do
       described_class.show_test_usage_information
 
       expect(message).to include('WIFIWAND_VERBOSE')
-      expect(message).to include('WIFIWAND_COBERTURA_COVERAGE')
+      expect(message).not_to include('WIFIWAND_COBERTURA_COVERAGE')
       expect(message).to include('Branch coverage is enabled by default.')
     end
   end

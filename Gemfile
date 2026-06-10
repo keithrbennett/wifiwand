@@ -13,6 +13,5 @@ group :development, :test do
   gem 'rubocop', '~> 1.86'
   gem 'rubocop-rspec', '~> 3.9'
 
-  gem 'simplecov', '~> 0.22'
-  gem 'simplecov-cobertura', '~> 3.1'
+  gem 'simplecov', '>= 1.0.0.rc1', '< 2.0.0'
 end

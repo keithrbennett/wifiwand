@@ -321,9 +321,7 @@ module RSpecConfiguration
 
       Modifier env vars (orthogonal to test scope — combine with any of the above):
         WIFIWAND_VERBOSE=true|yes|on|1              - show underlying OS commands
-        WIFIWAND_COBERTURA_COVERAGE=false|no|off|0  - disable Cobertura XML output
       Current: WIFIWAND_VERBOSE=#{ENV['WIFIWAND_VERBOSE'] || '[undefined]'}
-      Current: WIFIWAND_COBERTURA_COVERAGE=#{ENV['WIFIWAND_COBERTURA_COVERAGE'] || '[undefined]'}
 
       Coverage tracking is enabled via SimpleCov.
       Branch coverage is enabled by default.

@@ -1,29 +1,31 @@
 # frozen_string_literal: true
 
 require 'simplecov'
-require_relative 'env_boolean'
 
 module CoverageConfig
   module Formatters
-    COBERTURA_COVERAGE_ENABLED = true
-    COBERTURA_COVERAGE_ENV_VAR = 'WIFIWAND_COBERTURA_COVERAGE'
-
-    def self.cobertura_coverage_enabled?
-      EnvBoolean.enabled?(ENV, COBERTURA_COVERAGE_ENV_VAR, default: COBERTURA_COVERAGE_ENABLED)
-    end
+    # Cobertura XML output is temporarily disabled because simplecov-cobertura constrains SimpleCov
+    # below the 1.x release line. When simplecov-cobertura supports SimpleCov 1.x, restore the
+    # dependency and re-enable the switch/formatter path below.
+    #
+    # require_relative 'env_boolean'
+    # COBERTURA_COVERAGE_ENABLED = true
+    # COBERTURA_COVERAGE_ENV_VAR = 'WIFIWAND_COBERTURA_COVERAGE'
+    #
+    # def self.cobertura_coverage_enabled?
+    #   EnvBoolean.enabled?(ENV, COBERTURA_COVERAGE_ENV_VAR, default: COBERTURA_COVERAGE_ENABLED)
+    # end
 
     def self.simplecov_formatters
-      formatters = [
+      [
         SimpleCov::Formatter::HTMLFormatter,
         SimpleCov::Formatter::SimpleFormatter,
       ]
 
-      if cobertura_coverage_enabled?
-        require 'simplecov-cobertura'
-        formatters.insert(1, SimpleCov::Formatter::CoberturaFormatter)
-      end
-
-      formatters
+      # To restore Cobertura, insert the formatter between HTMLFormatter and SimpleFormatter:
+      #
+      # require 'simplecov-cobertura'
+      # SimpleCov::Formatter::CoberturaFormatter
     end
   end
 
