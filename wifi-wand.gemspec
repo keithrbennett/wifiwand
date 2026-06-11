@@ -84,38 +84,35 @@ Gem::Specification.new do |spec|
   # on last line of method:
   spec.add_dependency('pry', '~> 0.14', '>= 0.14.2')
 
-  # On macOS, display a post-install message pointing users to the one-time
-  # location-permission setup script and quick-start guide.  On other platforms
-  # the message is nil (not printed).
-  spec.post_install_message = if RbConfig::CONFIG['host_os'] =~ /darwin/i
-    <<~MESSAGE
+  # Post-install message directing macOS users to the location-permission
+  # setup script and quick-start guide.
+  spec.post_install_message = <<~MESSAGE
 
-      ╔═══════════════════════════════════════════════════════════════════╗
-      ║  ⚠️  Important for macOS Users (10.15+)                           ║
-      ╚═══════════════════════════════════════════════════════════════════╝
+    ╔═══════════════════════════════════════════════════════════════════╗
+    ║  ⚠️  Important for macOS Users (10.15+)                           ║
+    ╚═══════════════════════════════════════════════════════════════════╝
 
-      wifi-wand requires Ruby >= 3.2.0 and location permission.
+    wifi-wand requires Ruby >= 3.2.0 and location permission.
 
-      If you are using an older version, such as version 2.6 shipped with
-      macOS, the easiest way to install a modern Ruby is with Homebrew:
+    If you are using an older version, such as version 2.6 shipped with
+    macOS, the easiest way to install a modern Ruby is with Homebrew:
 
-          brew install ruby
+        brew install ruby
 
-      Then add to your shell profile (~/.zshrc or ~/.bash_profile):
+    Then add to your shell profile (~/.zshrc or ~/.bash_profile):
 
-          # Apple Silicon Macs:
-          export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+        # Apple Silicon Macs:
+        export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
 
-          # Intel Macs:
-          export PATH="/usr/local/opt/ruby/bin:$PATH"
+        # Intel Macs:
+        export PATH="/usr/local/opt/ruby/bin:$PATH"
 
-      After installing wifi-wand, run the one-time setup script:
+    After installing wifi-wand, run the one-time setup script:
 
-          wifi-wand-macos-setup
+        wifi-wand-macos-setup
 
-      For more information, see: docs/MACOS_QUICK_START.md
-      or visit: https://github.com/keithrbennett/wifiwand/blob/main/docs/MACOS_QUICK_START.md
+    For more information, see: docs/MACOS_QUICK_START.md
+    or visit: https://github.com/keithrbennett/wifiwand/blob/main/docs/MACOS_QUICK_START.md
 
     MESSAGE
-  end
 end
