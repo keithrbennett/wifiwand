@@ -22,6 +22,8 @@ jobs:
         include:
           - os: macos-latest
             ruby-version: '4.0'
+          - os: ubuntu-latest
+            ruby-version: jruby
 
     steps:
     - uses: actions/checkout@v6
