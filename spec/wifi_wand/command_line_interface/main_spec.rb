@@ -45,11 +45,31 @@ describe WifiWand::Main do
       expect(err_stream.string).to eq("Error: Test error\n")
     end
 
-    it 'lets interrupts propagate to the executable boundary' do
+    it 'handles interrupts by printing a friendly message and returning code 130' do
       allow(mock_cli).to receive(:call).and_raise(Interrupt)
 
-      expect { subject.call }.to raise_error(Interrupt)
-      expect(err_stream.string).to eq('')
+      expect(subject.call).to eq(130)
+      expect(err_stream.string).to eq("\nError: Interrupted by Ctrl-C while running command: info.\n")
+    end
+
+    it 'prints backtrace of the interrupt in verbose mode' do
+      error = Interrupt.new
+      allow(error).to receive(:backtrace).and_return(['/lib/wifi_wand/model.rb:10', 'other_file.rb:5'])
+      allow(mock_cli).to receive(:call).and_raise(error)
+
+      options = WifiWand::CommandLineOptions.new(verbose: true, interactive_mode: false, argv: ['info'])
+      allow(mock_parser).to receive(:parse).and_return(options)
+
+      expect(subject.call).to eq(130)
+      expect(err_stream.string).to include('Error: Interrupted by Ctrl-C while running command: info.')
+      expect(err_stream.string).to include('Interrupted at: /lib/wifi_wand/model.rb:10')
+    end
+
+    it 'handles interrupts that occur during option parsing before options are populated' do
+      allow(mock_parser).to receive(:parse).and_raise(Interrupt)
+
+      expect(subject.call).to eq(130)
+      expect(err_stream.string).to eq("\nError: Interrupted by Ctrl-C.\n")
     end
 
     it 'prints backtrace only in verbose mode and returns code 1' do
