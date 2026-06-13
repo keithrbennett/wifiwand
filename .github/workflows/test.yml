@@ -18,13 +18,8 @@ jobs:
         ruby-version: ['3.2', '3.3', '3.4', '4.0']
         os: [ubuntu-latest]
         include:
-          # macOS runners cost ~10x more than Ubuntu in GitHub Actions minutes,
-          # so we run only one Ruby version there. We use a stable mid-range version
-          # (3.4) rather than the latest (4.0) to avoid Ruby-compatibility noise
-          # obscuring genuine macOS-specific failures. When you drop 3.2/3.3 from
-          # the Ubuntu matrix, bump this to the new minimum to keep it in sync.
           - os: macos-latest
-            ruby-version: '3.4'
+            ruby-version: '4.0'
 
     steps:
     - uses: actions/checkout@v6
@@ -43,7 +38,7 @@ jobs:
     - name: Upload coverage reports
       id: codecov
       uses: codecov/codecov-action@v6
-      if: matrix.ruby-version == '3.3' && matrix.os == 'ubuntu-latest'
+      if: matrix.ruby-version == '4.0' && matrix.os == 'ubuntu-latest'
       continue-on-error: true
       with:
         files: ./coverage/coverage.xml
