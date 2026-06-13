@@ -15,4 +15,7 @@ group :development, :test do
 
   gem 'simplecov', '~> 0.22'
   gem 'simplecov-cobertura', '~> 3.1'
+
+  gem 'bundler-audit', require: false
+  gem 'ruby_audit', require: false
 end

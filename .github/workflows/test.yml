@@ -56,6 +56,24 @@ jobs:
       if: steps.codecov.outcome == 'failure'
       run: echo "::warning::Codecov upload failed; tests passed, but coverage publishing needs attention."
 
+  security:
+    name: Security audit
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v6
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '4.0'
+        bundler-cache: true
+
+    - name: Audit dependencies for vulnerabilities
+      run: bundle exec bundle-audit check --update
+
+    - name: Audit Ruby version for vulnerabilities
+      run: bundle exec ruby-audit check
+
   rubocop:
     name: RuboCop
     runs-on: ubuntu-latest
