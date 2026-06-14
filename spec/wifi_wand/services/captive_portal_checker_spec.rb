@@ -148,7 +148,7 @@ describe WifiWand::CaptivePortalChecker do
         allow(checker).to receive(:captive_portal_results).and_return([:no])
 
         checker.captive_portal_login_required
-        expect(output.string).to match(/Testing captive portal via HTTP:/)
+        expect(output.string).to include('Testing captive portal via HTTP:')
       end
 
       it 'logs a pass result' do

@@ -187,14 +187,14 @@ RSpec.describe 'bin/op-wrap' do
     it 'exits 1 with an error message when op_bin does not exist' do
       result = run_op_wrap(env: { 'WIFIWAND_OP_BIN' => '/nonexistent/op' })
       expect(result[:exit_code]).to eq(1)
-      expect(result[:stderr]).to match(/not found in PATH/)
+      expect(result[:stderr]).to include('not found in PATH')
     end
 
     it 'exits 64 with usage text when op is found but no arguments are given' do
       with_fake_op_in_tmpdir do |_, path|
         result = run_op_wrap(env: { 'WIFIWAND_OP_BIN' => path }, argv: [])
         expect(result[:exit_code]).to eq(64)
-        expect(result[:stderr]).to match(/Usage:/)
+        expect(result[:stderr]).to include('Usage:')
       end
     end
 

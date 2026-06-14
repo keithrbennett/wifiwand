@@ -418,20 +418,20 @@ describe WifiWand::Commands::OutputFormatter do
       context 'when captive portal is detected' do
         it 'does not show captive portal warning when captive_portal_login_required is false' do
           result = subject.status_line(status_data)
-          expect(result).not_to match(/Captive Portal/)
+          expect(result).not_to include('Captive Portal')
         end
 
         it 'does not show captive portal warning when captive_portal_login_required is :unknown' do
           data = status_data.merge(captive_portal_login_required: :unknown)
           result = subject.status_line(data)
-          expect(result).not_to match(/Captive Portal/)
+          expect(result).not_to include('Captive Portal')
         end
 
         it 'shows captive portal warning with icon and red color when login_required is :yes' do
           data = status_data.merge(captive_portal_login_required: :yes, internet_state: :unreachable)
           result = subject.status_line(data)
 
-          expect(result).to match(/Captive Portal Login Required/)
+          expect(result).to include('Captive Portal Login Required')
           expect(result).to include('⚠️')
           expect(result).to match(red_text_regex)
         end
@@ -439,7 +439,7 @@ describe WifiWand::Commands::OutputFormatter do
         it 'shows captive portal warning even when status_data has no captive_portal_login_required key' do
           data = status_data.except(:captive_portal_login_required)
           result = subject.status_line(data)
-          expect(result).not_to match(/Captive Portal/)
+          expect(result).not_to include('Captive Portal')
         end
       end
 
@@ -511,14 +511,14 @@ describe WifiWand::Commands::OutputFormatter do
           data = status_data.merge(captive_portal_login_required: :yes, internet_state: :unreachable)
           result = subject.status_line(data)
 
-          expect(result).to match(/Captive Portal Login Required/)
+          expect(result).to include('Captive Portal Login Required')
           expect(result).to include('⚠️')
           expect(result).not_to match(ansi_color_regex)
         end
 
         it 'does not show captive portal warning when not required' do
           result = subject.status_line(status_data)
-          expect(result).not_to match(/Captive Portal/)
+          expect(result).not_to include('Captive Portal')
         end
       end
 

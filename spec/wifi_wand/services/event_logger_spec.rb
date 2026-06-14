@@ -899,7 +899,7 @@ describe WifiWand::EventLogger do
         details:   {},
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/UNKNOWN EVENT: unknown_type/)
+      expect(message).to include('UNKNOWN EVENT: unknown_type')
     end
   end
 
@@ -951,21 +951,21 @@ describe WifiWand::EventLogger do
         logger.stop if call_count >= 1
       end
       logger.run
-      expect(out_stream.string).to match(/Event logging started/)
+      expect(out_stream.string).to include('Event logging started')
     end
 
     it 'logs initial state on startup' do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
       allow(logger).to receive(:detect_and_emit_events) { logger.stop }
       logger.run
-      expect(out_stream.string).to match(/Current state: WiFi/)
+      expect(out_stream.string).to include('Current state: WiFi')
     end
 
     it 'logs stopped message on Ctrl+C' do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
       allow(logger).to receive(:sleep_until).and_raise(Interrupt)
       logger.run
-      expect(out_stream.string).to match(/Event logging stopped/)
+      expect(out_stream.string).to include('Event logging stopped')
     end
 
     it 'logs escaped polling errors before re-raising them' do

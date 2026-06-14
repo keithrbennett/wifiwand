@@ -341,7 +341,7 @@ describe WifiWand::CommandExecutor do
         end
 
         expect(captured_error).to be_a(WifiWand::CommandExecutor::OsCommandError)
-        expect(captured_error.message).to match(/aborted/)
+        expect(captured_error.message).to include('aborted')
         expect(captured_error.display_message).to match(signal_6_status_regex)
       end
 
@@ -532,7 +532,7 @@ describe WifiWand::CommandExecutor do
       verbose_executor = described_class.new(verbose: true, output: io)
       condition = ->(_output) { true }
       verbose_executor.try_os_command_until(%w[echo test], condition, 3)
-      expect(io.string).to match(/Command was executed 1 time/)
+      expect(io.string).to include('Command was executed 1 time')
     end
   end
 

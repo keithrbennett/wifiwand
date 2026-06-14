@@ -119,13 +119,13 @@ describe WifiWand::StatusWaiter do
         allow(mock_model).to receive(:wifi_on?).and_return(true)
         verbose_waiter.wait_for(:wifi_on)
 
-        expect(output.string).to match(/StatusWaiter \(wifi_on\): completed without needing to wait/)
+        expect(output.string).to include('StatusWaiter (wifi_on): completed without needing to wait')
       end
 
       it 'logs total wait time after polling' do
         verbose_waiter.wait_for(:wifi_on, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)
 
-        expect(output.string).to match(/StatusWaiter \(wifi_on\): wait time \(seconds\):/)
+        expect(output.string).to include('StatusWaiter (wifi_on): wait time (seconds):')
       end
     end
 
@@ -141,7 +141,7 @@ describe WifiWand::StatusWaiter do
 
         verbose_waiter.wait_for(:wifi_on, timeout_in_secs: 10)
 
-        expect(output.string).to match(/StatusWaiter \(wifi_on\): wait time \(seconds\): 2\.5/)
+        expect(output.string).to include('StatusWaiter (wifi_on): wait time (seconds): 2.5')
       end
 
       it 'caps the initial :internet_on probe to the remaining timeout budget' do

@@ -131,7 +131,7 @@ describe WifiWand::NetworkStateManager do
 
       state = verbose_manager.capture_network_state
       expect(state[:network_password]).to be_nil
-      expect(output.string).to match(/Warning: Failed to retrieve password for TestNetwork: Keychain error/)
+      expect(output.string).to include('Warning: Failed to retrieve password for TestNetwork: Keychain error')
     end
   end
 
@@ -212,7 +212,7 @@ describe WifiWand::NetworkStateManager do
         expect(output.string).to match(
           /Warning: Could not restore network state \(WifiWand::NetworkConnectionError\): Failed to connect/m
         )
-        expect(output.string).to match(/You may need to manually reconnect to: TestNetwork/)
+        expect(output.string).to include('You may need to manually reconnect to: TestNetwork')
       end
 
       it 'swallows expected network errors and logs to configured output' do
@@ -229,10 +229,9 @@ describe WifiWand::NetworkStateManager do
 
         manager.restore_network_state(valid_state, fail_silently: true)
 
-        expect(output.string).to match(
-          /Warning: Could not restore network state \(SocketError\): lookup failed/
-        )
-        expect(output.string).to match(/You may need to manually reconnect to: TestNetwork/)
+        expect(output.string).to include(
+          'Warning: Could not restore network state (SocketError): lookup failed')
+        expect(output.string).to include('You may need to manually reconnect to: TestNetwork')
       end
 
       it 'uses manual-state guidance for blank network names' do
@@ -243,8 +242,8 @@ describe WifiWand::NetworkStateManager do
 
         manager.restore_network_state(state_identity_unavailable, fail_silently: true)
 
-        expect(output.string).not_to match(/You may need to manually reconnect to:/)
-        expect(output.string).to match(/You may need to manually restore the original WiFi state\./)
+        expect(output.string).not_to include('You may need to manually reconnect to:')
+        expect(output.string).to include('You may need to manually restore the original WiFi state.')
       end
 
       it 'swallows disassociated restore failures with manual-state guidance' do
@@ -257,11 +256,10 @@ describe WifiWand::NetworkStateManager do
 
         manager.restore_network_state(state_no_network, fail_silently: true)
 
-        expect(output.string).to match(
-          /Warning: Could not restore network state \(WifiWand::NetworkDisconnectionError\): /
-        )
-        expect(output.string).not_to match(/You may need to manually reconnect to:/)
-        expect(output.string).to match(/You may need to manually restore the original WiFi state\./)
+        expect(output.string).to include(
+          'Warning: Could not restore network state (WifiWand::NetworkDisconnectionError): ')
+        expect(output.string).not_to include('You may need to manually reconnect to:')
+        expect(output.string).to include('You may need to manually restore the original WiFi state.')
       end
 
       it 'swallows macOS associated-without-SSID restore failures with manual-state guidance' do
@@ -276,11 +274,10 @@ describe WifiWand::NetworkStateManager do
 
         manager.restore_network_state(state_identity_unavailable, fail_silently: true)
 
-        expect(output.string).to match(
-          /Warning: Could not restore network state \(WifiWand::MacOsRedactionError\): /
-        )
-        expect(output.string).not_to match(/You may need to manually reconnect to:/)
-        expect(output.string).to match(/You may need to manually restore the original WiFi state\./)
+        expect(output.string).to include(
+          'Warning: Could not restore network state (WifiWand::MacOsRedactionError): ')
+        expect(output.string).not_to include('You may need to manually reconnect to:')
+        expect(output.string).to include('You may need to manually restore the original WiFi state.')
       end
 
       it 'swallows non-macOS associated-without-SSID restore failures with manual-state guidance' do
@@ -295,14 +292,11 @@ describe WifiWand::NetworkStateManager do
 
         manager.restore_network_state(state_identity_unavailable, fail_silently: true)
 
-        expect(output.string).to match(
-          /Warning: Could not restore network state \(WifiWand::Error\): /
-        )
-        expect(output.string).to match(
-          /Cannot restore network association because the original WiFi state was associated/
-        )
-        expect(output.string).not_to match(/You may need to manually reconnect to:/)
-        expect(output.string).to match(/You may need to manually restore the original WiFi state\./)
+        expect(output.string).to include('Warning: Could not restore network state (WifiWand::Error): ')
+        expect(output.string).to include(
+          'Cannot restore network association because the original WiFi state was associated')
+        expect(output.string).not_to include('You may need to manually reconnect to:')
+        expect(output.string).to include('You may need to manually restore the original WiFi state.')
       end
 
       it 'propagates unexpected exceptions even when fail_silently is true' do
@@ -871,8 +865,8 @@ describe WifiWand::NetworkStateManager do
       expect do
         verbose_manager.restore_network_state(valid_state)
       end.to raise_error(WifiWand::NetworkConnectionError)
-      expect(output.string).to match(
-        /Warning: Connection timeout - expected "TestNetwork", currently connected to "ActualNetwork"/)
+      expect(output.string).to include(
+        'Warning: Connection timeout - expected "TestNetwork", currently connected to "ActualNetwork"')
     end
 
     it 'logs WaitTimeoutError details in verbose mode when network query fails' do
@@ -895,8 +889,8 @@ describe WifiWand::NetworkStateManager do
       expect do
         verbose_manager.restore_network_state(valid_state)
       end.to raise_error(WifiWand::NetworkConnectionError)
-      expect(output.string).to match(
-        /Warning: Connection timeout and failed to query current network: Network query failed/)
+      expect(output.string).to include(
+        'Warning: Connection timeout and failed to query current network: Network query failed')
     end
   end
 
@@ -948,8 +942,8 @@ describe WifiWand::NetworkStateManager do
 
       result = verbose_manager.send(:fallback_password_for, 'TestNetwork')
       expect(result).to be_nil
-      expect(output.string).to match(
-        /Warning: Failed to retrieve fallback password for TestNetwork: Password lookup failed/)
+      expect(output.string).to include(
+        'Warning: Failed to retrieve fallback password for TestNetwork: Password lookup failed')
     end
 
     it 'connected_network_password returns password when network is connected' do

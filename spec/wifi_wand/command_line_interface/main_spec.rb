@@ -81,8 +81,8 @@ describe WifiWand::Main do
       allow(mock_parser).to receive(:parse).and_return(options)
 
       expect(subject.call).to eq(1)
-      expect(err_stream.string).to match(/Error: Test error/)
-      expect(err_stream.string).to match(/Stack trace:/)
+      expect(err_stream.string).to include('Error: Test error')
+      expect(err_stream.string).to include('Stack trace:')
     end
 
     it 'returns code 1 for shell command failures too' do
@@ -92,7 +92,7 @@ describe WifiWand::Main do
       allow(mock_cli).to receive(:call).and_raise(ex)
 
       expect(subject.call).to eq(1)
-      expect(err_stream.string).to match(/Error: Shell startup failed/)
+      expect(err_stream.string).to include('Error: Shell startup failed')
     end
 
     it 'succeeds when no exceptions occur' do
@@ -220,8 +220,8 @@ describe WifiWand::Main do
       allow(mock_parser).to receive(:parse).and_return(options)
 
       expect(subject.call).to eq(1)
-      expect(err_stream.string).to match(/Error: a message/)
-      expect(err_stream.string).to match(/Stack trace:/)
+      expect(err_stream.string).to include('Error: a message')
+      expect(err_stream.string).to include('Stack trace:')
     end
   end
 

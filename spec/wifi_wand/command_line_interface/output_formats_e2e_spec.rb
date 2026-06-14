@@ -307,7 +307,7 @@ describe 'Output Format End-to-End Tests' do
 
         # Pretty JSON should have newlines and indentation
         expect(pretty_output).to match(/\n/)
-        expect(pretty_output).to match(/  /)
+        expect(pretty_output).to include('  ')
       end
     end
 

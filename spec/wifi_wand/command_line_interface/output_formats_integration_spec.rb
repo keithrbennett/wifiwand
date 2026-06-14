@@ -322,7 +322,7 @@ describe 'Output Format Integration Tests' do
               expect(parsed).to eq(test_data)
               # Verify pretty formatting with newlines and indentation
               expect(output).to match(/\n/)
-              expect(output).to match(/  /)
+              expect(output).to include('  ')
             when :amazing_print, :puts, :pretty_print
               expect(output).to include('ssid')
               expect(output).to include('TestNet')
@@ -373,7 +373,7 @@ describe 'Output Format Integration Tests' do
               expect(parsed['network']['ssid']).to eq('HomeNet')
               # Verify pretty formatting
               expect(output).to match(/\n/)
-              expect(output).to match(/  /)
+              expect(output).to include('  ')
             when :amazing_print, :puts, :pretty_print
               expect(output).to include('wifi_on')
               expect(output).to include('network')

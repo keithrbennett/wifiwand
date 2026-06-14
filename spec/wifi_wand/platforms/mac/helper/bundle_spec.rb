@@ -1012,7 +1012,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       it 'logs an error when parsing fails' do
         allow(client.instance_variable_get(:@verbosity_provider)).to receive(:call).and_return(true)
         expect(client.send(:parse_json, '{invalid-json')).to be_nil
-        expect(out_stream.string).to match(/failed to parse helper JSON:/)
+        expect(out_stream.string).to include('failed to parse helper JSON:')
       end
     end
 

@@ -297,7 +297,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Setup do
       it 'returns authorized: false with a descriptive message' do
         status = setup.check_status
         expect(status.authorized?).to be(false)
-        expect(status.permission_message).to match(/parse/)
+        expect(status.permission_message).to include('parse')
       end
     end
 

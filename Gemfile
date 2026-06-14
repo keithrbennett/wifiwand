@@ -10,8 +10,10 @@ gemspec
 group :development, :test do
   gem 'rake', '~> 13.3.0'
   gem 'rspec', '>= 3.13.1', '< 4'
-  gem 'rubocop', '~> 1.86'
-  gem 'rubocop-rspec', '~> 3.9'
+
+  # Pin these so that Github does not deviate from the dev host's versions:
+  gem 'rubocop', '1.86.2'
+  gem 'rubocop-rspec', '3.10.2'
 
   gem 'simplecov', '~> 0.22'
   gem 'simplecov-cobertura', '~> 3.1'

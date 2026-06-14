@@ -71,7 +71,7 @@ describe WifiWand::CommandLineInterface do
 
         cli = described_class.new(opts, argv: [])
         expect(cli.validate_command_line).to eq(described_class::FAILURE_EXIT_CODE)
-        expect(err_stream.string).to match(/Syntax is:/)
+        expect(err_stream.string).to include('Syntax is:')
       end
 
       specify 'validation succeeds when command is provided' do
