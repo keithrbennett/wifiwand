@@ -132,7 +132,11 @@ module WifiWand
       loop do
         ready_readers = ready_probe_readers([probe], deadline)
         if ready_readers.nil? || ready_readers.empty?
-          timed_out = deadline_exceeded?(deadline)
+          # ready_probe_readers returns nil/empty only when the deadline has
+          # been reached (either because IO.select timed out or because the
+          # remaining time was already non-positive). Treat it as a timeout
+          # unconditionally to avoid clock-precision races on JRuby.
+          timed_out = true
           break
         end
 
