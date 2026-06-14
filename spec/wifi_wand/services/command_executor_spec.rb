@@ -78,6 +78,9 @@ describe WifiWand::CommandExecutor do
     runner&.kill if runner&.alive?
   end
 
+  # Signal 6 is SIGABRT on CRuby and SIGIOT on JRuby; both names are valid.
+  let(:signal_6_status_regex) { /Signal: SIG(?:ABRT|IOT) \(6\)/ }
+
   describe '#run_command_using_args' do
     context 'with verbose mode disabled' do
       let(:executor) { described_class.new(verbose: false) }
@@ -318,7 +321,7 @@ describe WifiWand::CommandExecutor do
         expect(result).not_to be_success
         expect(result.exitstatus).to be_nil
         expect(result.termsig).to eq(6)
-        expect(result.termination_status).to eq('Signal: SIGABRT (6)')
+        expect(result.termination_status).to match(signal_6_status_regex)
       end
 
       it 'raises command errors with signal details when signaled commands must succeed' do
@@ -339,7 +342,7 @@ describe WifiWand::CommandExecutor do
 
         expect(captured_error).to be_a(WifiWand::CommandExecutor::OsCommandError)
         expect(captured_error.message).to match(/aborted/)
-        expect(captured_error.display_message).to include('Signal: SIGABRT (6)')
+        expect(captured_error.display_message).to match(signal_6_status_regex)
       end
 
       it 'wraps temporary process spawn failures with command context' do

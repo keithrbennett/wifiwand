@@ -50,12 +50,17 @@ module WifiWand
 
       options = normalize_constructor_options(options)
       @options = options
-      @runtime_config = RuntimeConfig.new(
-        verbose:    options.verbose,
-        utc:        options.utc || false,
-        out_stream: options.out_stream || $stdout,
-        err_stream: options.err_stream || $stderr
-      )
+      # JRuby may bundle keyword-style arguments into a single positional Hash
+      # when the caller itself accepts a positional options Hash. Build an
+      # explicit Hash and splat it so keyword arguments are reliably delivered
+      # to RuntimeConfig#initialize on all supported Ruby implementations.
+      runtime_config_options = {
+        verbose:    options[:verbose],
+        utc:        options[:utc] || false,
+        out_stream: options[:out_stream] || $stdout,
+        err_stream: options[:err_stream] || $stderr,
+      }
+      @runtime_config = RuntimeConfig.new(**runtime_config_options)
       @command_executor = CommandExecutor.new(runtime_config: @runtime_config)
       @connectivity_tester = NetworkConnectivityTester.new(runtime_config: @runtime_config)
       @state_manager = NetworkStateManager.new(self, runtime_config: @runtime_config)
@@ -565,16 +570,19 @@ module WifiWand
 
     private def wifi_info_next_probe_result(result_queue, workers, results)
       loop do
-        return result_queue.pop(true)
-      rescue ThreadError
+        # Use a blocking pop with a timeout. This avoids a tight poll loop and
+        # gives JRuby time to make a worker's Queue write visible after the
+        # worker has finished, which prevents false "exited without result"
+        # errors caused by JRuby's thread/Queue visibility ordering.
+        item = result_queue.pop(timeout: 1)
+        return item if item
+
         probe_name, worker = workers.find { |name, thread| !results.key?(name) && !thread.alive? }
 
         if worker
           worker.value
           raise(WifiWand::Error, "WiFi info probe #{probe_name} exited without reporting a result")
         end
-
-        sleep(0.01)
       end
     end
 

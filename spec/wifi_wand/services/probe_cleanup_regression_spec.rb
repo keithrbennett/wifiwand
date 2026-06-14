@@ -11,15 +11,21 @@ describe 'Probe Cleanup Regressions' do
 
   let(:ruby_bin) { RbConfig.ruby }
   let(:spawned_pids) { [] }
+  # JRuby helper startup is significantly slower than CRuby, so allow more
+  # time for the spawned helper to write its result before the parent times out.
+  let(:probe_helper_timeout) { RUBY_PLATFORM == 'java' ? 10 : 1 }
 
   after do
     spawned_pids.each { |pid| kill_and_reap_process(pid) }
   end
 
   def sleeping_helper_script(payload, delay)
+    # Pre-serialize the payload so the spawned helper does not need to load
+    # JSON itself. This keeps JRuby helper startup fast enough to write its
+    # result before the parent-side timeout fires.
+    payload_json = payload.to_json
     <<~RUBY
-      require 'json'
-      STDOUT.write(JSON.generate(#{payload.inspect}))
+      STDOUT.write(#{payload_json.inspect})
       STDOUT.flush
       sleep(#{delay})
     RUBY
@@ -41,7 +47,7 @@ describe 'Probe Cleanup Regressions' do
         { pid: pid, reader: reader, helper_mode: :tcp, buffer: +'', eof: false }
       end
 
-      result = tester.tcp_connectivity?(overall_timeout: 1)
+      result = tester.tcp_connectivity?(overall_timeout: probe_helper_timeout)
       expect(result).to be true
 
       # Verify helper is reaped
@@ -62,7 +68,7 @@ describe 'Probe Cleanup Regressions' do
         { pid: pid, reader: reader, helper_mode: :dns, buffer: +'', eof: false }
       end
 
-      result = tester.dns_working?(overall_timeout: 1)
+      result = tester.dns_working?(overall_timeout: probe_helper_timeout)
       expect(result).to be true
 
       # Verify helper is reaped
@@ -92,7 +98,7 @@ describe 'Probe Cleanup Regressions' do
         { pid: pid, reader: reader, endpoint: endpoint, buffer: +'', eof: false }
       end
 
-      result = checker.captive_portal_login_required(timeout_in_secs: 1)
+      result = checker.captive_portal_login_required(timeout_in_secs: probe_helper_timeout)
       expect(result).to eq(:no)
 
       # Verify helper is reaped
