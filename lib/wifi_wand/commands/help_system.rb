@@ -56,6 +56,10 @@ module WifiWand
           format_header_line('Version', WifiWand::VERSION),
           HORIZONTAL_RULE,
           nil,
+          'WIFIWAND_OPTS can be used to set default options. ' \
+            'Command-line arguments override these defaults.',
+          'Example: export WIFIWAND_OPTS="--verbose true --output-format json"',
+          nil,
           nil,
           section('Command Line Switches', HELP_SWITCHES),
           nil,

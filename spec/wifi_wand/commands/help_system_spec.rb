@@ -113,6 +113,12 @@ describe WifiWand::Commands::HelpSystem do
       expect(help).to include('--stdout (keep stdout when file destination is used)')
     end
 
+    it 'documents the WIFIWAND_OPTS environment variable for default options' do
+      expect(help).to include('WIFIWAND_OPTS can be used to set default options')
+      expect(help).to include('Command-line arguments override these defaults')
+      expect(help).to include('Example: export WIFIWAND_OPTS="--verbose true --output-format json"')
+    end
+
     it 'wraps long switch labels onto their own line before the description' do
       expect(help).to match(/^\s{2}-p, --wifi-interface interface_name\n\s{38}specify WiFi interface name/m)
     end
