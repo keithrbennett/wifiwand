@@ -33,7 +33,12 @@ export PATH="/usr/local/opt/ruby/bin:$PATH"
 Ruby versions older than 3.2 are unsupported because the tracked source uses modern Ruby syntax and APIs. If
 your system Ruby is too old, install a modern Ruby before installing `wifi-wand`.
 
-Optional dependency for QR codes:
+#### JRuby Compatibility
+
+The test suite passes on JRuby, and to the best of our knowledge the project is fully JRuby-compatible.
+If you encounter any JRuby-specific issues, please open a GitHub issue, including as much detail as possible.
+
+#### Optional Dependency for QR Codes
 
 - To use the `wifi-wand qr` command for generating Wi‑Fi QR codes, install `qrencode`.
   - macOS: `brew install qrencode`
