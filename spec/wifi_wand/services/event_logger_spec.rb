@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'json'
 require 'tempfile'
 require 'timeout'
 require_relative '../../spec_helper'
@@ -7,8 +8,6 @@ require_relative '../../../lib/wifi_wand/services/event_logger'
 require_relative '../../../lib/wifi_wand/services/log_file_manager'
 
 describe WifiWand::EventLogger do
-  let(:iso8601_timestamp_pattern) { '\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:\d{2})\]' }
-
   let(:mock_model) do
     double('Model',
       internet_connectivity_state: WifiWand::ConnectivityStates::INTERNET_REACHABLE,
@@ -455,9 +454,7 @@ describe WifiWand::EventLogger do
         )
       end
 
-      expect(out_stream.string).not_to include(
-        'WARNING: Status polling is encountering repeated lookup failures.'
-      )
+      expect(out_stream.string).not_to include('"event":"warning"')
     end
 
     it 'preserves an indeterminate startup internet state' do
@@ -497,11 +494,10 @@ describe WifiWand::EventLogger do
         .and_raise(WifiWand::Error, 'internet probe failed')
 
       3.times { logger.send(:fetch_current_state) }
-      warning = [
-        'WARNING: Status polling is encountering repeated lookup failures.',
-        'Continuing with partial state until lookups recover.',
-      ].join(' ')
+      warning = 'Status polling is encountering repeated lookup failures. ' \
+        'Continuing with partial state until lookups recover.'
       expect(out_stream.string.scan(warning).length).to eq(1)
+      expect(out_stream.string).to include('"event":"warning"')
 
       allow(mock_model).to receive(:internet_connectivity_state)
         .and_return(WifiWand::ConnectivityStates::INTERNET_REACHABLE)
@@ -511,6 +507,41 @@ describe WifiWand::EventLogger do
 
       2.times { logger.send(:fetch_current_state) }
       expect(out_stream.string.scan(warning).length).to eq(2)
+      expect(out_stream.string.scan('"event":"warning"').length).to eq(2)
+    end
+
+    it 'writes repeated-failure warnings to the log file when file logging is active' do
+      Dir.mktmpdir do |dir|
+        log_path = File.join(dir, 'events.log')
+        logger = described_class.new(
+          mock_model,
+          out_stream:    nil,
+          log_file_path: log_path
+        )
+        logger.instance_variable_set(:@previous_state,
+          {
+            wifi_on:        true,
+            connected:      true,
+            network_name:   'PreviousNetwork',
+            internet_state: WifiWand::ConnectivityStates::INTERNET_UNREACHABLE,
+          })
+
+        allow(mock_model).to receive_messages(
+          wifi_on?:               true,
+          connected?:             true,
+          connected_network_name: 'TestNetwork'
+        )
+        allow(mock_model).to receive(:internet_connectivity_state)
+          .and_raise(WifiWand::Error, 'internet probe failed')
+
+        3.times { logger.send(:fetch_current_state) }
+        logger.cleanup
+
+        expect(File.read(log_path)).to include('"event":"warning"')
+        expect(File.read(log_path)).to include(
+          'Status polling is encountering repeated lookup failures.'
+        )
+      end
     end
   end
 
@@ -608,6 +639,35 @@ describe WifiWand::EventLogger do
       logger.send(:detect_and_emit_events, current_state)
     end
 
+    it 'emits connected event with null network when SSID is unavailable' do
+      logger.instance_variable_set(:@previous_state,
+        { wifi_on: true, connected: false, network_name: nil, internet_state: :reachable })
+
+      current_state = {
+        wifi_on:        true,
+        connected:      true,
+        network_name:   WifiWand::NetworkIdentity::SSID_UNAVAILABLE_LABEL,
+        internet_state: :reachable,
+      }
+
+      expect(logger).to receive(:emit_event)
+        .with(:connected, { network_name: WifiWand::NetworkIdentity::SSID_UNAVAILABLE_LABEL },
+          kind_of(Hash), kind_of(Hash))
+
+      logger.send(:detect_and_emit_events, current_state)
+    end
+
+    it 'formats connected event with null network when SSID is unavailable' do
+      event = {
+        type:      :connected,
+        timestamp: Time.new(2025, 10, 28, 14, 32, 32, 0),
+        details:   { network_name: WifiWand::NetworkIdentity::SSID_UNAVAILABLE_LABEL },
+      }
+      message = logger.send(:format_event_message, event)
+      expect(message).to include('"event":"connected"')
+      expect(message).to include('"network":null')
+    end
+
     it 'emits disconnected event when network is left' do
       logger.instance_variable_set(:@previous_state,
         { wifi_on: true, connected: true, network_name: 'TestNetwork', internet_state: :reachable })
@@ -618,6 +678,17 @@ describe WifiWand::EventLogger do
         .with(:disconnected, { network_name: 'TestNetwork' }, kind_of(Hash), kind_of(Hash))
 
       logger.send(:detect_and_emit_events, current_state)
+    end
+
+    it 'formats disconnected event with null network when SSID is unavailable' do
+      event = {
+        type:      :disconnected,
+        timestamp: Time.new(2025, 10, 28, 14, 32, 33, 0),
+        details:   { network_name: WifiWand::NetworkIdentity::SSID_UNAVAILABLE_LABEL },
+      }
+      message = logger.send(:format_event_message, event)
+      expect(message).to include('"event":"disconnected"')
+      expect(message).to include('"network":null')
     end
 
     it 'emits both disconnected and connected events when network roams (non-nil to non-nil)' do
@@ -814,7 +885,7 @@ describe WifiWand::EventLogger do
       previous_tz.nil? ? ENV.delete('TZ') : ENV['TZ'] = previous_tz
     end
 
-    it 'formats wifi_on event' do
+    it 'formats wifi_on event as JSONL' do
       timestamp = Time.utc(2025, 10, 28, 14, 32, 30)
       event = {
         type:      :wifi_on,
@@ -823,7 +894,7 @@ describe WifiWand::EventLogger do
       }
       message = logger.send(:format_event_message, event)
       expected_timestamp = Time.utc(2025, 10, 28, 14, 32, 30).getlocal.iso8601
-      expect(message).to eq("[#{expected_timestamp}] WiFi ON")
+      expect(message).to eq("{\"timestamp\":\"#{expected_timestamp}\",\"event\":\"wifi_on\"}")
       expect(timestamp).to be_utc
     end
 
@@ -838,68 +909,71 @@ describe WifiWand::EventLogger do
 
       message = utc_logger.send(:format_event_message, event)
 
-      expect(message).to eq('[2025-10-28T11:32:30Z] WiFi ON')
+      expect(message).to eq('{"timestamp":"2025-10-28T11:32:30Z","event":"wifi_on"}')
       expect(timestamp.utc_offset).to eq(3 * 60 * 60)
     end
 
-    it 'formats wifi_off event' do
+    it 'formats wifi_off event as JSONL' do
       event = {
         type:      :wifi_off,
         timestamp: Time.new(2025, 10, 28, 14, 32, 31, 0),
         details:   {},
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/#{iso8601_timestamp_pattern} WiFi OFF/)
+      expect(message).to include('"event":"wifi_off"')
     end
 
-    it 'formats connected event' do
+    it 'formats connected event as JSONL' do
       event = {
         type:      :connected,
         timestamp: Time.new(2025, 10, 28, 14, 32, 32, 0),
         details:   { network_name: 'TestNetwork' },
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/#{iso8601_timestamp_pattern} Connected to TestNetwork/)
+      expect(message).to include('"event":"connected"')
+      expect(message).to include('"network":"TestNetwork"')
     end
 
-    it 'formats disconnected event' do
+    it 'formats disconnected event as JSONL' do
       event = {
         type:      :disconnected,
         timestamp: Time.new(2025, 10, 28, 14, 32, 33, 0),
         details:   { network_name: 'TestNetwork' },
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/#{iso8601_timestamp_pattern} Disconnected from TestNetwork/)
+      expect(message).to include('"event":"disconnected"')
+      expect(message).to include('"network":"TestNetwork"')
     end
 
-    it 'formats internet_on event' do
+    it 'formats internet_on event as JSONL' do
       event = {
         type:      :internet_on,
         timestamp: Time.new(2025, 10, 28, 14, 32, 30, 0),
         details:   {},
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/#{iso8601_timestamp_pattern} Internet available/)
+      expect(message).to include('"event":"internet_on"')
     end
 
-    it 'formats internet_off event' do
+    it 'formats internet_off event as JSONL' do
       event = {
         type:      :internet_off,
         timestamp: Time.new(2025, 10, 28, 14, 33, 0, 0),
         details:   {},
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to match(/#{iso8601_timestamp_pattern} Internet unavailable/)
+      expect(message).to include('"event":"internet_off"')
     end
 
-    it 'formats unknown event type gracefully' do
+    it 'formats unknown event type gracefully as JSONL' do
       event = {
         type:      :unknown_type,
         timestamp: Time.new(2025, 10, 28, 14, 34, 0, 0),
         details:   {},
       }
       message = logger.send(:format_event_message, event)
-      expect(message).to include('UNKNOWN EVENT: unknown_type')
+      expect(message).to include('"event":"unknown"')
+      expect(message).to include('"raw_event":"unknown_type"')
     end
   end
 
@@ -943,7 +1017,7 @@ describe WifiWand::EventLogger do
       end
     end
 
-    it 'logs startup message' do
+    it 'logs startup message as JSONL' do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
       call_count = 0
       allow(logger).to receive(:detect_and_emit_events) do
@@ -951,24 +1025,28 @@ describe WifiWand::EventLogger do
         logger.stop if call_count >= 1
       end
       logger.run
-      expect(out_stream.string).to include('Event logging started')
+      expect(out_stream.string).to include('"event":"logging_started"')
+      expect(out_stream.string).to include('"interval":0')
     end
 
-    it 'logs initial state on startup' do
+    it 'logs initial state on startup as JSONL' do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
       allow(logger).to receive(:detect_and_emit_events) { logger.stop }
       logger.run
-      expect(out_stream.string).to include('Current state: WiFi')
+      expect(out_stream.string).to include('"event":"current_state"')
+      expect(out_stream.string).to include('"wifi":true')
+      expect(out_stream.string).to include('"network":"TestNetwork"')
+      expect(out_stream.string).to include('"internet":"available"')
     end
 
-    it 'logs stopped message on Ctrl+C' do
+    it 'logs stopped message on Ctrl+C as JSONL' do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
       allow(logger).to receive(:sleep_until).and_raise(Interrupt)
       logger.run
-      expect(out_stream.string).to include('Event logging stopped')
+      expect(out_stream.string).to include('"event":"logging_stopped"')
     end
 
-    it 'logs escaped polling errors before re-raising them' do
+    it 'logs escaped polling errors before re-raising them as JSONL' do
       logger = described_class.new(mock_model, out_stream: out_stream, interval: 0)
       allow(mock_model).to receive(:wifi_on?).and_raise(RuntimeError, 'unexpected polling failure')
 
@@ -981,9 +1059,10 @@ describe WifiWand::EventLogger do
 
       expect(rescued_error).to be_a(RuntimeError)
       expect(rescued_error.message).to eq('unexpected polling failure')
-      expect(out_stream.string).to match(
-        /#{iso8601_timestamp_pattern} Event logging terminated: RuntimeError: unexpected polling failure/
-      )
+      expect(out_stream.string).to include('"event":"logging_terminated"')
+      expect(out_stream.string).to include('"error_class":"RuntimeError"')
+      expect(out_stream.string).to include('"error_message":"unexpected polling failure"')
+      expect(out_stream.string).not_to include('"event":"logging_stopped"')
     end
 
     it 'preserves escaped polling errors when file-only termination logging fails' do
@@ -1163,6 +1242,7 @@ describe WifiWand::EventLogger do
       Timeout.timeout(0.5) { runner.join }
 
       expect(logger.instance_variable_get(:@running)).to be false
+      expect(out_stream.string).to include('"event":"logging_stopped"')
     end
   end
 
@@ -1171,51 +1251,75 @@ describe WifiWand::EventLogger do
       described_class.new(mock_model, out_stream: out_stream)
     end
 
-    it 'logs initial state with all fields available' do
+    def parse_jsonl(message)
+      JSON.parse(message)
+    end
+
+    it 'logs initial state with all fields available as JSONL' do
       state = { wifi_on: true, connected: true, network_name: 'TestNetwork', internet_state: :reachable }
 
       expect(logger).to receive(:log_message) do |message|
-        expect(message).to match(
-          /#{iso8601_timestamp_pattern} Current state: WiFi on, connected to TestNetwork, internet available/
-        )
+        parsed = parse_jsonl(message)
+        expect(parsed['event']).to eq('current_state')
+        expect(parsed['wifi']).to be true
+        expect(parsed['connection']).to eq('connected')
+        expect(parsed['network']).to eq('TestNetwork')
+        expect(parsed['internet']).to eq('available')
+        expect(parsed['timestamp']).to match(/\d{4}-\d{2}-\d{2}T/)
       end
 
       logger.send(:log_initial_state, state)
     end
 
-    it 'logs initial state with WiFi off' do
+    it 'logs initial state with WiFi off as JSONL' do
       state = { wifi_on: false, connected: false, network_name: nil, internet_state: :unreachable }
 
       expect(logger).to receive(:log_message) do |message|
-        expect(message).to match(
-          /#{iso8601_timestamp_pattern} Current state: WiFi off, not connected, internet unavailable/
-        )
+        parsed = parse_jsonl(message)
+        expect(parsed['event']).to eq('current_state')
+        expect(parsed['wifi']).to be false
+        expect(parsed['connection']).to eq('disconnected')
+        expect(parsed['network']).to be_nil
+        expect(parsed['internet']).to eq('unavailable')
       end
 
       logger.send(:log_initial_state, state)
     end
 
-    it 'logs initial state with indeterminate internet connectivity as unknown' do
+    it 'logs initial state with indeterminate internet connectivity as unknown JSONL' do
       state = { wifi_on: true, connected: true, network_name: 'TestNetwork', internet_state: :indeterminate }
 
       expect(logger).to receive(:log_message) do |message|
-        expect(message).to match(
-          /#{iso8601_timestamp_pattern} Current state: WiFi on, connected to TestNetwork, internet unknown/
-        )
+        parsed = parse_jsonl(message)
+        expect(parsed['event']).to eq('current_state')
+        expect(parsed['connection']).to eq('connected')
+        expect(parsed['internet']).to eq('unknown')
       end
 
       logger.send(:log_initial_state, state)
     end
 
-    it 'logs degraded connected state when the SSID is unavailable' do
+    it 'logs degraded connected state when the SSID is unavailable as JSONL' do
       state = { wifi_on: true, connected: true, network_name: nil, internet_state: :reachable }
-      expected_pattern = Regexp.new(
-        "#{iso8601_timestamp_pattern} Current state: WiFi on, " \
-          'connected \(SSID unavailable\), internet available'
-      )
 
       expect(logger).to receive(:log_message) do |message|
-        expect(message).to match(expected_pattern)
+        parsed = parse_jsonl(message)
+        expect(parsed['event']).to eq('current_state')
+        expect(parsed['connection']).to eq('connected')
+        expect(parsed['network']).to be_nil
+      end
+
+      logger.send(:log_initial_state, state)
+    end
+
+    it 'logs unknown connection state as JSONL' do
+      state = { wifi_on: true, connected: nil, network_name: nil, internet_state: :reachable }
+
+      expect(logger).to receive(:log_message) do |message|
+        parsed = parse_jsonl(message)
+        expect(parsed['event']).to eq('current_state')
+        expect(parsed['connection']).to eq('unknown')
+        expect(parsed['network']).to be_nil
       end
 
       logger.send(:log_initial_state, state)
@@ -1255,8 +1359,9 @@ describe WifiWand::EventLogger do
       expect { logger.send(:log_message, 'test message') }.not_to raise_error
       expect(out_stream.string).to include('test message')
       expect(out_stream.string).to include(
-        'WARNING: File logging is disabled. Stdout is the only remaining log destination.'
+        'File logging is disabled. Stdout is the only remaining log destination.'
       )
+      expect(out_stream.string).to include('"event":"warning"')
       expect(mock_log_file_manager).to have_received(:close)
       expect(logger.log_file_manager).to be_nil
     end
@@ -1273,9 +1378,10 @@ describe WifiWand::EventLogger do
 
       expect { logger.send(:log_message, 'test message') }.not_to raise_error
       expect(out_stream.string).to include(
-        'WARNING: File logging is disabled. Stdout is the only remaining log destination.'
+        'File logging is disabled. Stdout is the only remaining log destination.'
       )
       expect(out_stream.string).to include('Cleanup also failed: close failed')
+      expect(out_stream.string).to include('"event":"warning"')
       expect(logger.log_file_manager).to be_nil
     end
 

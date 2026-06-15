@@ -34,14 +34,6 @@ module WifiWand
   class EventLogger
     SSID_UNAVAILABLE_LABEL = NetworkIdentity::SSID_UNAVAILABLE_LABEL
 
-    EVENT_TYPES = {
-      wifi_on:      'WiFi ON',
-      wifi_off:     'WiFi OFF',
-      connected:    'Connected to %<network_name>s',
-      disconnected: 'Disconnected from %<network_name>s',
-      internet_on:  'Internet available',
-      internet_off: 'Internet unavailable',
-    }.freeze
     # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
     POLLING_BOUNDARY_ERROR = StandardError
 
@@ -87,8 +79,8 @@ module WifiWand
     # thread so another thread can call `stop`.
     def run
       start_running
-      timestamp = current_timestamp
-      log_message("[#{timestamp}] Event logging started (polling every #{@interval}s)")
+      log_message(format_json_line(event: 'logging_started', interval: @interval))
+      polling_error_raised = false
 
       begin
         while running?
@@ -107,13 +99,13 @@ module WifiWand
           sleep_until(poll_started_at + @interval)
         end
       rescue Interrupt
-        timestamp = current_timestamp
-        log_message("[#{timestamp}] Event logging stopped")
         stop
       rescue POLLING_BOUNDARY_ERROR => e
+        polling_error_raised = true
         log_termination_message(e)
         raise
       ensure
+        log_message(format_json_line(event: 'logging_stopped')) unless polling_error_raised
         cleanup
       end
     end
@@ -146,11 +138,13 @@ module WifiWand
     end
 
     def log_initial_state(state)
-      timestamp = current_timestamp
-      wifi = wifi_state_label(state[:wifi_on])
-      network = network_state_label(state)
-      internet = internet_state_label(state[:internet_state])
-      log_message("[#{timestamp}] Current state: WiFi #{wifi}, #{network}, internet #{internet}")
+      log_message(format_json_line(
+        event:      'current_state',
+        wifi:       json_boolean_value(state[:wifi_on]),
+        connection: json_connection_value(state[:connected]),
+        network:    json_network_value(state),
+        internet:   internet_state_label(state[:internet_state])
+      ))
     end
 
     def cleanup
@@ -254,14 +248,6 @@ module WifiWand
       end
     end
 
-    private def wifi_state_label(value)
-      case value
-      when true then 'on'
-      when false then 'off'
-      else 'unknown'
-      end
-    end
-
     private def current_network_name(connected)
       network_name = @model.connected_network_name
       network_name_available = !network_name.nil? && !network_name.to_s.empty?
@@ -274,12 +260,37 @@ module WifiWand
       connected ? SSID_UNAVAILABLE_LABEL : nil
     end
 
-    private def network_state_label(state)
-      return 'not connected' if state[:connected] == false
-      return 'connection unknown' if state[:connected].nil?
-      return "connected to #{state[:network_name]}" if state[:network_name]
+    private def format_json_line(timestamp: nil, **fields)
+      timestamp ||= current_timestamp
+      JSON.generate({ timestamp: timestamp }.merge(fields))
+    end
 
-      'connected (SSID unavailable)'
+    private def json_boolean_value(value)
+      return true if value == true
+      return false if value == false
+
+      nil
+    end
+
+    private def json_connection_value(connected)
+      case connected
+      when true then 'connected'
+      when false then 'disconnected'
+      else 'unknown'
+      end
+    end
+
+    private def json_network_value(state)
+      return nil unless state[:connected] == true
+      return nil if [nil, SSID_UNAVAILABLE_LABEL].include?(state[:network_name])
+
+      state[:network_name]
+    end
+
+    private def json_event_network_value(network_name)
+      return nil if [nil, SSID_UNAVAILABLE_LABEL].include?(network_name)
+
+      network_name
     end
 
     private def connection_became_connected?(current_state)
@@ -328,7 +339,9 @@ module WifiWand
       yield
     rescue WifiWand::Error => e
       fetch_failures << { field: field_name, error: e }
-      log_message("Error fetching #{field_name}: #{e.message}") if verbose?
+      if verbose?
+        log_message(format_json_line(event: 'debug', message: "Error fetching #{field_name}: #{e.message}"))
+      end
       fallback_value
     end
 
@@ -339,8 +352,11 @@ module WifiWand
     private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
     private def log_termination_message(error)
-      timestamp = current_timestamp
-      log_message("[#{timestamp}] Event logging terminated: #{error.class}: #{error.message}")
+      log_message(format_json_line(
+        event:         'logging_terminated',
+        error_class:   error.class.to_s,
+        error_message: error.message
+      ))
     rescue WifiWand::LogWriteError
       # Preserve the polling failure as the primary exception when the best-effort
       # termination diagnostic cannot be written.
@@ -375,19 +391,17 @@ module WifiWand
 
     private def should_emit_state_fetch_warning?
       !verbose? &&
-        out_stream &&
         !@state_fetch_warning_emitted &&
         @consecutive_state_fetch_failures >= 2
     end
 
     private def emit_state_fetch_warning
       @state_fetch_warning_emitted = true
-      warning = [
-        'WARNING: Status polling is encountering repeated lookup failures.',
-        'Continuing with partial state until lookups recover.',
-      ].join(' ')
-      out_stream.puts(warning)
-      out_stream.flush if out_stream.respond_to?(:flush)
+      log_message(format_json_line(
+        event:   'warning',
+        message: 'Status polling is encountering repeated lookup failures. ' \
+          'Continuing with partial state until lookups recover.'
+      ))
     end
 
     private def comparable_boolean_values?(current_value, previous_value)
@@ -419,25 +433,33 @@ module WifiWand
     end
 
     private def log_event(event)
-      formatted_message = format_event_message(event)
-      log_message(formatted_message)
+      log_message(format_event_message(event))
     end
 
     private def format_event_message(event)
-      timestamp = current_timestamp(event[:timestamp])
+      format_json_line(timestamp: current_timestamp(event[:timestamp]), **event_json_fields(event))
+    end
+
+    private def event_json_fields(event)
       event_type = event[:type]
       details = event[:details]
 
-      template = EVENT_TYPES[event_type]
-      return "#{timestamp} UNKNOWN EVENT: #{event_type}" unless template
-
-      message = if details.empty?
-        template
+      case event_type
+      when :wifi_on
+        { event: 'wifi_on' }
+      when :wifi_off
+        { event: 'wifi_off' }
+      when :connected
+        { event: 'connected', network: json_event_network_value(details[:network_name]) }
+      when :disconnected
+        { event: 'disconnected', network: json_event_network_value(details[:network_name]) }
+      when :internet_on
+        { event: 'internet_on' }
+      when :internet_off
+        { event: 'internet_off' }
       else
-        template % details
+        { event: 'unknown', raw_event: event_type.to_s }
       end
-
-      "[#{timestamp}] #{message}"
     end
 
     # Preserve the current stdout-first behavior, then enforce file-sink health explicitly.
@@ -487,10 +509,10 @@ module WifiWand
       return if @file_logging_warning_emitted
 
       @file_logging_warning_emitted = true
-      warning =
-        "WARNING: File logging is disabled. Stdout is the only remaining log destination. #{error_message}"
-      out_stream.puts(warning)
-      out_stream.flush if out_stream.respond_to?(:flush)
+      log_message(format_json_line(
+        event:   'warning',
+        message: "File logging is disabled. Stdout is the only remaining log destination. #{error_message}"
+      ))
     end
 
     def verbose?

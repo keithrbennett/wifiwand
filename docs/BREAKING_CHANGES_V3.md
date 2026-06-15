@@ -418,6 +418,25 @@ model = WifiWand.create_model(options)
 
 ### CLI and Configuration Changes
 
+#### Log command output is now JSON Lines
+
+The `log` command previously wrote human-readable bracketed lines such as:
+
+```text
+[2025-10-28T19:44:19-04:00] Current state: WiFi on, connected to MyNetwork, internet available
+[2025-10-28T19:45:50-04:00] Connected to MyNetwork
+```
+
+It now emits JSON Lines (one JSON object per line):
+
+```json
+{"timestamp":"2025-10-28T19:44:19-04:00","event":"current_state","wifi":true,"connection":"connected","network":"MyNetwork","internet":"available"}
+{"timestamp":"2025-10-28T19:45:50-04:00","event":"connected","network":"MyNetwork"}
+```
+
+Scripts that grep or parse the old bracketed format must be updated. The `event`
+field identifies each line type; see `docs/LOGGING.md` for the full event schema.
+
 #### Global `--verbose` now requires an explicit boolean value
 
 The global verbose option now follows the same boolean parsing contract as the

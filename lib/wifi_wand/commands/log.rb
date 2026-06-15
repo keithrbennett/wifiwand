@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require 'json'
 require 'optparse'
 require_relative 'base'
 require_relative '../services/event_logger'
@@ -13,7 +14,7 @@ module WifiWand
       command_metadata(
         short_string: 'lo',
         long_string:  'log',
-        description:  'start event logging (monitors wifi on/off, connected/disconnected, internet on/off)',
+        description:  'start JSON Lines event logging (monitors wifi, connection, and internet state)',
         usage:        [
           'Usage: wifi-wand log [--interval N] [--file [PATH]]',
           '[--stdout] [--verbose BOOLEAN]',
@@ -56,7 +57,7 @@ module WifiWand
           declared_metadata.description,
           "options: #{option_summary(:interval)}, #{option_summary(:file)},",
           option_summary(:stdout),
-          'Logs events: wifi on/off, connected/disconnected, internet on/off',
+          'Outputs JSON Lines: one JSON object per event',
           'Internet events are derived from reachable/unreachable state; ' \
             'indeterminate is preserved as unknown',
           'Ctrl+C to stop',
@@ -221,7 +222,7 @@ module WifiWand
           verbose:        verbose_flag,
           log_file_path:  log_file_path,
           out_stream:     logger_out_stream,
-          runtime_config: model.respond_to?(:runtime_config) ? model.runtime_config : nil
+          runtime_config: model.runtime_config
         )
       rescue WifiWand::LogFileInitializationError => e
         raise WifiWand::ConfigurationError, e.message unless logger_out_stream
@@ -232,15 +233,27 @@ module WifiWand
           interval:       interval,
           verbose:        verbose_flag,
           out_stream:     logger_out_stream,
-          runtime_config: model.respond_to?(:runtime_config) ? model.runtime_config : nil
+          runtime_config: model.runtime_config
         )
       end
 
       private def warn_file_logging_fallback(error_message)
-        warning =
-          "WARNING: File logging is disabled. Stdout is the only remaining log destination. #{error_message}"
+        message = "File logging is disabled. Stdout is the only remaining log destination. #{error_message}"
+        warning = JSON.generate(
+          timestamp: fallback_warning_timestamp,
+          event:     'warning',
+          message:   message
+        )
         output.puts(warning)
         output.flush if output.respond_to?(:flush)
+      end
+
+      private def fallback_warning_timestamp
+        utc? ? Time.now.getutc.iso8601 : Time.now.getlocal.iso8601
+      end
+
+      private def utc?
+        model.runtime_config.utc
       end
 
       private def validate_interval(interval)

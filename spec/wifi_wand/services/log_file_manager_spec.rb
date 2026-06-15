@@ -58,6 +58,14 @@ describe WifiWand::LogFileManager do
       end
     end
 
+    it 'writes verbose initialization message to stdout as JSONL' do
+      manager = described_class.new(log_file_path: log_file_path, verbose: true, out_stream: out_stream)
+      manager.close
+
+      expect(out_stream.string).to include('"event":"debug"')
+      expect(out_stream.string).to include('Log file initialized at')
+    end
+
     it 'accepts out_stream' do
       manager = described_class.new(log_file_path: log_file_path, out_stream: out_stream)
       expect(manager.out_stream).to eq(out_stream)
@@ -176,9 +184,9 @@ describe WifiWand::LogFileManager do
       manager = described_class.new(log_file_path: log_file_path)
 
       entries = [
-        '[2025-10-28 14:30:15] WiFi ON',
-        '[2025-10-28 14:30:20] Connected to HomeNetwork',
-        '[2025-10-28 14:45:30] Internet unavailable',
+        '{"timestamp":"2025-10-28T14:30:15-04:00","event":"wifi_on"}',
+        '{"timestamp":"2025-10-28T14:30:20-04:00","event":"connected","network":"HomeNetwork"}',
+        '{"timestamp":"2025-10-28T14:45:30-04:00","event":"internet_off"}',
       ]
 
       entries.each { |entry| manager.write(entry) }

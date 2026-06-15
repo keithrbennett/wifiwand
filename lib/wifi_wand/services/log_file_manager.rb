@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require 'fileutils'
+require 'json'
 require_relative '../errors'
 require_relative '../runtime_config'
 
@@ -77,8 +78,18 @@ module WifiWand
     end
 
     private def log_message(message)
-      out_stream.puts(message) if out_stream
+      return unless out_stream
+
+      out_stream.puts(JSON.generate(timestamp: current_timestamp, event: 'debug', message: message))
       out_stream.flush if out_stream.respond_to?(:flush)
+    end
+
+    private def current_timestamp
+      utc? ? Time.now.getutc.iso8601 : Time.now.getlocal.iso8601
+    end
+
+    private def utc?
+      runtime_config.utc
     end
 
     def verbose?

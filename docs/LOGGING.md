@@ -17,15 +17,16 @@ events when any of these states change. This is useful for:
 The main library connectivity API is now `internet_connectivity_state`, which
 returns `:reachable`, `:unreachable`, or `:indeterminate`.
 
-The log command still emits the historical event names `internet_on` and
-`internet_off`, but those events are derived from the explicit state model:
+The log command emits JSON Lines. Event objects use an `event` field whose
+values include `internet_on` and `internet_off`. Those events are derived from
+the explicit state model:
 
 - `internet_on` means the state changed to `:reachable`
 - `internet_off` means the state changed to `:unreachable`
 - no internet event is emitted for `:indeterminate`
 
 If the current state is indeterminate when logging starts, the initial snapshot
-will say `internet unknown`.
+uses `"internet": "unknown"`.
 
 ## Basic Usage
 
@@ -37,16 +38,16 @@ The simplest invocation logs events to the terminal:
 wifi-wand log
 ```
 
-Output appears as events occur:
+Output appears as one JSON object per line:
 ```
-[2025-10-28T19:44:14-04:00] Event logging started (polling every 5s)
-[2025-10-28T19:44:19-04:00] Current state: WiFi on, connected to MyNetwork, internet available
-[2025-10-28T19:45:10-04:00] WiFi OFF
-[2025-10-28T19:45:15-04:00] Disconnected from MyNetwork
-[2025-10-28T19:45:20-04:00] Internet unavailable
-[2025-10-28T19:45:45-04:00] WiFi ON
-[2025-10-28T19:45:50-04:00] Connected to MyNetwork
-[2025-10-28T19:45:55-04:00] Internet available
+{"timestamp":"2025-10-28T19:44:14-04:00","event":"logging_started","interval":5}
+{"timestamp":"2025-10-28T19:44:19-04:00","event":"current_state","wifi":true,"connection":"connected","network":"MyNetwork","internet":"available"}
+{"timestamp":"2025-10-28T19:45:10-04:00","event":"wifi_off"}
+{"timestamp":"2025-10-28T19:45:15-04:00","event":"disconnected","network":"MyNetwork"}
+{"timestamp":"2025-10-28T19:45:20-04:00","event":"internet_off"}
+{"timestamp":"2025-10-28T19:45:45-04:00","event":"wifi_on"}
+{"timestamp":"2025-10-28T19:45:50-04:00","event":"connected","network":"MyNetwork"}
+{"timestamp":"2025-10-28T19:45:55-04:00","event":"internet_on"}
 ```
 
 Press `Ctrl+C` to stop logging.
@@ -59,7 +60,8 @@ Press `Ctrl+C` to stop logging.
 wifi-wand log --file
 ```
 
-Creates `wifiwand-events.log` in the current directory with events logged to file only (no stdout output).
+Creates `wifiwand-events.log` in the current directory with events logged to file only
+(no stdout output).
 
 #### Custom file location
 
@@ -123,9 +125,9 @@ wifi-wand log --interval 10     # check every 10 seconds
   probe often takes about 300-500ms on a working connection and can take
   longer when offline. Below roughly 2 seconds, probe time can start to exceed
   the configured interval and compress the effective polling cadence.
-  When the network is down or degraded, an `Internet unavailable` event can be
-  logged later than the configured interval because each poll waits for the
-  full connectivity probe to finish before the next poll begins.
+  When the network is down or degraded, an `internet_off` event can be logged
+  later than the configured interval because each poll waits for the full
+  connectivity probe to finish before the next poll begins.
 
 ### `--verbose BOOLEAN`, `-v BOOLEAN`
 
@@ -155,25 +157,40 @@ To force local-time output when a default option enables UTC, pass `--utc false`
 
 The logger tracks and reports the following event types:
 
-| Event | Description |
-|-------|-------------|
-| **WiFi ON** | WiFi power was turned on |
-| **WiFi OFF** | WiFi power was turned off |
-| **Connected to \<network\>** | Connected to a WiFi network |
-| **Disconnected from \<network\>** | Disconnected from a WiFi network |
-| **Internet available** | Internet connectivity became available |
-| **Internet unavailable** | Internet connectivity was lost |
+| `event` value | Description |
+|---------------|-------------|
+| `wifi_on` | WiFi power was turned on |
+| `wifi_off` | WiFi power was turned off |
+| `connected` | Connected to a WiFi network (`network` field holds the SSID) |
+| `disconnected` | Disconnected from a WiFi network (`network` field holds the SSID) |
+| `internet_on` | Internet connectivity became available |
+| `internet_off` | Internet connectivity was lost |
+| `current_state` | Initial snapshot at startup (`wifi`, `connection`, `network`, `internet`) |
+| `logging_started` | Logger started (`interval` field holds the poll interval) |
+| `logging_stopped` | Logger stopped (usually via Ctrl+C) |
+| `logging_terminated` | Logger terminated because of a polling error (`error_class`, `error_message`) |
+| `warning` | Operational warning (`message` field holds the text) |
+| `debug` | Verbose diagnostic (`message` field holds the text) |
+
+### `current_state` field values
+
+The `current_state` object uses the following values:
+
+- `wifi`: `true` (on), `false` (off), or `null` (state could not be determined)
+- `connection`: `"connected"`, `"disconnected"`, or `"unknown"`
+- `network`: the SSID string when connected and available, otherwise `null`
+- `internet`: `"available"`, `"unavailable"`, or `"unknown"`
 
 ### Event Emission Order
 
 When multiple state changes occur in a single poll, events are emitted in this order:
 
-1. **WiFi power** (wifi_on/wifi_off)
-2. **Network connection** (connected/disconnected)
-3. **Internet connectivity** (internet_on/internet_off)
+1. **WiFi power** (`wifi_on`/`wifi_off`)
+2. **Network connection** (`connected`/`disconnected`)
+3. **Internet connectivity** (`internet_on`/`internet_off`)
 
-These event names are retained CLI/log vocabulary. The source of truth for the
-underlying state is still `internet_connectivity_state`.
+The source of truth for the underlying state is still
+`internet_connectivity_state`.
 
 This ensures that related state changes are logged in a logical sequence.
 
@@ -184,31 +201,31 @@ and `:unreachable` states.
 
 ### Network Roaming
 
-When the network name changes from one non-nil value to another (e.g., "NetworkA" to "NetworkB"), both events
-are emitted in this order:
+When the network name changes from one non-nil value to another (for example,
+`NetworkA` to `NetworkB`), both events are emitted in this order:
 
-1. `Disconnected from NetworkA`
-2. `Connected to NetworkB`
+1. `{"event":"disconnected","network":"NetworkA"}`
+2. `{"event":"connected","network":"NetworkB"}`
 
 ## Log File Format
 
-Each log entry is timestamped in ISO-8601 format. Local time is the default:
+Each log entry is one JSON object per line (JSON Lines). Local time is the default:
 
-```
-[YYYY-MM-DDTHH:MM:SS-04:00] Event description
+```json
+{"timestamp":"YYYY-MM-DDTHH:MM:SS-04:00","event":"..."}
 ```
 
 Example log file content:
 
-```
-[2025-10-28T10:32:15-04:00] Event logging started (polling every 5s)
-[2025-10-28T10:32:20-04:00] Current state: WiFi on, connected to MyNetwork, internet available
-[2025-10-28T10:32:25-04:00] WiFi OFF
-[2025-10-28T10:32:30-04:00] Disconnected from MyNetwork
-[2025-10-28T10:32:35-04:00] Internet unavailable
-[2025-10-28T10:32:45-04:00] WiFi ON
-[2025-10-28T10:32:50-04:00] Connected to MyNetwork
-[2025-10-28T10:32:55-04:00] Internet available
+```json
+{"timestamp":"2025-10-28T10:32:15-04:00","event":"logging_started","interval":5}
+{"timestamp":"2025-10-28T10:32:20-04:00","event":"current_state","wifi":true,"connection":"connected","network":"MyNetwork","internet":"available"}
+{"timestamp":"2025-10-28T10:32:25-04:00","event":"wifi_off"}
+{"timestamp":"2025-10-28T10:32:30-04:00","event":"disconnected","network":"MyNetwork"}
+{"timestamp":"2025-10-28T10:32:35-04:00","event":"internet_off"}
+{"timestamp":"2025-10-28T10:32:45-04:00","event":"wifi_on"}
+{"timestamp":"2025-10-28T10:32:50-04:00","event":"connected","network":"MyNetwork"}
+{"timestamp":"2025-10-28T10:32:55-04:00","event":"internet_on"}
 ```
 
 With `--utc true`, timestamps use the UTC `Z` suffix.
@@ -281,8 +298,8 @@ The logger monitors three aspects of WiFi state:
      is active
    - This differs from `connected?`, which is intentionally WiFi-specific and may be `false` when Ethernet is
      providing the only active uplink
-   - `:indeterminate` is preserved internally and reported as `internet unknown`
-     in the initial-state line
+   - `:indeterminate` is preserved internally and reported as
+     `"internet": "unknown"` in the initial-state object
    - Transition events are emitted only when both the previous and current
      states are explicit (`:reachable` or `:unreachable`)
 
@@ -344,8 +361,8 @@ wifi-wand log --file /var/log/wifi-events.log &
 LOG_PID=$!
 
 # In another terminal:
-tail -f /var/log/wifi-events.log | while read line; do
-  if echo "$line" | grep -q "Internet unavailable"; then
+tail -f /var/log/wifi-events.log | while read -r line; do
+  if echo "$line" | jq -e '.event == "internet_off"' >/dev/null 2>&1; then
     # Take action (e.g., send alert, restart networking, etc.)
     echo "Internet down! $(date)" >> /var/log/wifi-alerts.log
   fi

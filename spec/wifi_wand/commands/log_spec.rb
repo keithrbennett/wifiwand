@@ -12,12 +12,13 @@ describe WifiWand::Commands::Log do
         network_name:            'HomeNetwork',
         internet_state:          :reachable,
         internet_check_complete: true,
-      }
+      },
+      runtime_config:   runtime_config
     )
   end
 
   let(:output) { StringIO.new }
-  let(:runtime_config) { WifiWand::RuntimeConfig.new(utc: true, out_stream: output) }
+  let(:runtime_config) { WifiWand::RuntimeConfig.new(utc: false, out_stream: output) }
 
   let(:cli) { double('cli', model: mock_model, verbose?: true, out_stream: output, command_options: {}) }
 
@@ -79,9 +80,7 @@ describe WifiWand::Commands::Log do
       )
     end
 
-    it 'lets EventLogger inherit global utc configuration from the model runtime config' do
-      allow(mock_model).to receive(:respond_to?).with(:runtime_config).and_return(true)
-      allow(mock_model).to receive(:runtime_config).and_return(runtime_config)
+    it 'lets EventLogger inherit the model runtime config' do
       command = described_class.new(model: mock_model, output: output, verbose_flag: false)
 
       command.call
@@ -287,9 +286,39 @@ describe WifiWand::Commands::Log do
         command.call('--file', '/missing/events.log', '--stdout')
 
         expect(output.string).to include(
-  'WARNING: File logging is disabled. Stdout is the only remaining log destination.'
-)
+          'File logging is disabled. Stdout is the only remaining log destination.'
+        )
+        expect(output.string).to include('"event":"warning"')
+        expect(output.string).to match(
+          /"timestamp":"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|[+-]\d{2}:\d{2})"/
+        )
         expect(mock_logger).to have_received(:run)
+      end
+
+      it 'uses UTC timestamps in the fallback warning when the model runtime config requests UTC' do
+        utc_model = double('Model',
+          status_line_data: {
+            wifi_on:                 true,
+            network_name:            'HomeNetwork',
+            internet_state:          :reachable,
+            internet_check_complete: true,
+          },
+          runtime_config:   WifiWand::RuntimeConfig.new(utc: true, out_stream: output))
+        command = described_class.new(model: utc_model, output: output, verbose_flag: false)
+        allow(WifiWand::EventLogger).to receive(:new) do |_model_arg, **kwargs|
+          if kwargs[:log_file_path] == '/missing/events.log'
+            raise(
+              WifiWand::LogFileInitializationError,
+              'Cannot open log file /missing/events.log: No such file or directory'
+            )
+          end
+
+          mock_logger
+        end
+
+        command.call('--file', '/missing/events.log', '--stdout')
+
+        expect(output.string).to match(/"timestamp":"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z"/)
       end
     end
 
