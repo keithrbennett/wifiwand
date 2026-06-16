@@ -136,6 +136,12 @@ module WifiWand
         parse_result = parse_options(options)
         return if parse_result == :skip_execution
 
+        if model.runtime_config.verbose
+          raise WifiWand::ConfigurationError, <<~MESSAGE.chomp
+            Global --verbose is incompatible with the log command: OS command tracing writes plain text that corrupts the JSONL output stream. From the CLI, run `wifi-wand log` without global verbose. Verbose EventLogger diagnostics are only available in the interactive shell; there, run `log '--verbose', 'true'`.
+          MESSAGE
+        end
+
         interval, log_file_path, output_to_stdout, verbose_flag = parse_result
         logger_out_stream = output_to_stdout ? output : nil
 

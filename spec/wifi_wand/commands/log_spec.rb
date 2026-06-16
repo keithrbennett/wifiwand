@@ -102,6 +102,40 @@ describe WifiWand::Commands::Log do
       expect(mock_logger).to have_received(:run)
     end
 
+    context 'when global verbose is enabled on the model' do
+      let(:runtime_config) { WifiWand::RuntimeConfig.new(utc: false, out_stream: output, verbose: true) }
+
+      it 'raises ConfigurationError explaining the incompatibility' do
+        command = described_class.new(model: mock_model, output: output, verbose_flag: false)
+
+        expect { command.call }.to raise_error(WifiWand::ConfigurationError) do |error|
+          expect(error.message).to include(
+            'Global --verbose is incompatible with the log command',
+            'without global verbose',
+            'only available in the interactive shell'
+          )
+        end
+        expect(mock_logger).not_to have_received(:run)
+      end
+
+      it 'does not raise when --help is requested despite global verbose being on' do
+        command = described_class.new(model: mock_model, output: output, verbose_flag: false)
+
+        expect { command.call('--help') }.not_to raise_error
+        expect(output.string).to include('Usage: wifi-wand log')
+        expect(output.string).to include('Options:')
+        expect(mock_logger).not_to have_received(:run)
+      end
+
+      it 'does not raise when -h is requested despite global verbose being on' do
+        command = described_class.new(model: mock_model, output: output, verbose_flag: false)
+
+        expect { command.call('-h') }.not_to raise_error
+        expect(output.string).to include('Usage: wifi-wand log')
+        expect(mock_logger).not_to have_received(:run)
+      end
+    end
+
     it 'prints help for the log command' do
       command = described_class.new(model: mock_model, output: output, verbose_flag: false)
 
