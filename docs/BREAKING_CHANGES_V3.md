@@ -465,8 +465,8 @@ When setting defaults through `WIFIWAND_OPTS`, include the boolean value:
 export WIFIWAND_OPTS="--verbose true"
 ```
 
-The `log` command's command-local `--verbose` / `-v` option now uses the same
-explicit boolean values.
+The `log` command's `--verbose-logs` option also uses explicit boolean
+values.
 
 - `WifiWand::Main#parse_command_line` has been removed from the public API.
   If you parsed CLI arguments programmatically, instantiate

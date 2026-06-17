@@ -112,7 +112,7 @@ describe WifiWand::Commands::Log do
           expect(error.message).to include(
             'Global --verbose is incompatible with the log command',
             'without global verbose',
-            'only available in the interactive shell'
+            '--verbose-logs true'
           )
         end
         expect(mock_logger).not_to have_received(:run)
@@ -356,10 +356,10 @@ describe WifiWand::Commands::Log do
       end
     end
 
-    context 'with --verbose option' do
-      it 'passes true to EventLogger when --verbose true is specified' do
+    context 'with --verbose-logs option' do
+      it 'passes true to EventLogger when --verbose-logs true is specified' do
         command = described_class.new(model: mock_model, verbose_flag: false, output: output)
-        command.call('--verbose', 'true')
+        command.call('--verbose-logs', 'true')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
@@ -367,9 +367,9 @@ describe WifiWand::Commands::Log do
         )
       end
 
-      it 'passes true to EventLogger when -v true is specified' do
+      it 'passes true to EventLogger when --verbose-logs=true is specified' do
         command = described_class.new(model: mock_model, verbose_flag: false, output: output)
-        command.call('-v', 'true')
+        command.call('--verbose-logs=true')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
@@ -377,29 +377,9 @@ describe WifiWand::Commands::Log do
         )
       end
 
-      it 'passes true to EventLogger when --verbose=true is specified' do
-        command = described_class.new(model: mock_model, verbose_flag: false, output: output)
-        command.call('--verbose=true')
-
-        expect(WifiWand::EventLogger).to have_received(:new).with(
-          mock_model,
-          hash_including(verbose: true)
-        )
-      end
-
-      it 'passes true to EventLogger when -vtrue is specified' do
-        command = described_class.new(model: mock_model, verbose_flag: false, output: output)
-        command.call('-vtrue')
-
-        expect(WifiWand::EventLogger).to have_received(:new).with(
-          mock_model,
-          hash_including(verbose: true)
-        )
-      end
-
-      it 'passes false to EventLogger when --verbose false is specified' do
+      it 'passes false to EventLogger when --verbose-logs false is specified' do
         command = described_class.new(model: mock_model, verbose_flag: true, output: output)
-        command.call('--verbose', 'false')
+        command.call('--verbose-logs', 'false')
 
         expect(WifiWand::EventLogger).to have_received(:new).with(
           mock_model,
@@ -407,27 +387,15 @@ describe WifiWand::Commands::Log do
         )
       end
 
-      it 'passes false to EventLogger when -vfalse is specified' do
-        command = described_class.new(model: mock_model, verbose_flag: true, output: output)
-        command.call('-vfalse')
+      it 'raises a configuration error when --verbose-logs has no value' do
+        command = described_class.new(model: mock_model, verbose_flag: false, output: output)
 
-        expect(WifiWand::EventLogger).to have_received(:new).with(
-          mock_model,
-          hash_including(verbose: false)
-        )
-      end
-
-      %w[-v --verbose].each do |option|
-        it "raises a configuration error when #{option} has no value" do
-          command = described_class.new(model: mock_model, verbose_flag: false, output: output)
-
-          expect do
-            command.call(option)
-          end.to raise_error(WifiWand::ConfigurationError) { |error|
-            expect(error.message).to include("missing argument: #{option}")
-            expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
-          }
-        end
+        expect do
+          command.call('--verbose-logs')
+        end.to raise_error(WifiWand::ConfigurationError) { |error|
+          expect(error.message).to include('missing argument: --verbose-logs')
+          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        }
       end
     end
 

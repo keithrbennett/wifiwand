@@ -326,6 +326,20 @@ describe WifiWand::CommandLineParser do
       expect(options.argv).to eq(['log'])
     end
 
+    it 'parses log verbose-logs option after the log command' do
+      options = described_class.new(%w[log --verbose-logs true], ENV, err_stream).parse
+
+      expect(options.command_options).to eq(verbose_logs: true)
+      expect(options.argv).to eq(['log'])
+    end
+
+    it 'parses log verbose-logs option before the log command' do
+      options = described_class.new(%w[--verbose-logs true log], ENV, err_stream).parse
+
+      expect(options.command_options).to eq(verbose_logs: true)
+      expect(options.argv).to eq(['log'])
+    end
+
     it 'parses log interval with invocation options around the command' do
       options = described_class.new(%w[--interval 5 -u yes log], ENV, err_stream).parse
 
@@ -429,6 +443,33 @@ describe WifiWand::CommandLineParser do
       expect do
         described_class.new(%w[--interval 5 info], ENV, err_stream).parse
       end.to raise_error(WifiWand::ConfigurationError, /--interval is not valid for info/)
+    end
+
+    it 'rejects log verbose-logs for other commands' do
+      expect do
+        described_class.new(%w[info --verbose-logs true], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--verbose-logs is not valid for info/)
+    end
+
+    it 'rejects inline log verbose-logs for other commands' do
+      expect do
+        described_class.new(%w[info --verbose-logs=true], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--verbose-logs is not valid for info/)
+    end
+
+    it 'rejects log verbose-logs before other commands' do
+      expect do
+        described_class.new(%w[--verbose-logs true info], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError, /--verbose-logs is not valid for info/)
+    end
+
+    it 'raises a configuration error when log verbose-logs is not a boolean' do
+      expect do
+        described_class.new(%w[log --verbose-logs maybe], ENV, err_stream).parse
+      end.to raise_error(WifiWand::ConfigurationError) { |error|
+        expect(error.message).to include('invalid argument')
+        expect(error.message).to include('Use -h or --help to see available options.')
+      }
     end
 
     it 'raises a configuration error when log interval is not numeric' do

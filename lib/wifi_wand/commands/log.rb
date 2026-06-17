@@ -17,11 +17,11 @@ module WifiWand
         description:  'start JSON Lines event logging (monitors wifi, connection, and internet state)',
         usage:        [
           'Usage: wifi-wand log [--interval N] [--file [PATH]]',
-          '[--stdout] [--verbose BOOLEAN]',
+          '[--stdout] [--verbose-logs BOOLEAN]',
         ].join(' ')
       )
 
-      VALUE_TAKING_OPTIONS = %w[--interval].freeze
+      VALUE_TAKING_OPTIONS = %w[--interval --verbose-logs].freeze
       OPTIONAL_VALUE_OPTIONS = %w[--file].freeze
       FLAG_OPTIONS = %w[--stdout].freeze
       OPTION_DEFINITIONS = {
@@ -78,6 +78,10 @@ module WifiWand
         parser.on(option_switch(:stdout), option_parser_description(:stdout)) do
           command_options[:stdout_explicit] = true
         end
+
+        parser.on('--verbose-logs BOOLEAN', TrueClass, 'Enable verbose EventLogger diagnostics') do |value|
+          command_options[:verbose_logs] = value
+        end
       end
 
       def self.option_switch(option_name)
@@ -129,7 +133,7 @@ module WifiWand
 
       def help_text
         # Reuse the command parser as the single source of truth for help text.
-        build_parser(command_options: {}, verbose_setter: ->(_value) {}, help_setter: -> {}).help
+        build_parser(command_options: {}, help_setter: -> {}).help
       end
 
       def call(*options)
@@ -138,7 +142,7 @@ module WifiWand
 
         if model.runtime_config.verbose
           raise WifiWand::ConfigurationError, <<~MESSAGE.chomp
-            Global --verbose is incompatible with the log command: OS command tracing writes plain text that corrupts the JSONL output stream. From the CLI, run `wifi-wand log` without global verbose. Verbose EventLogger diagnostics are only available in the interactive shell; there, run `log '--verbose', 'true'`.
+            Global --verbose is incompatible with the log command: OS command tracing writes plain text that corrupts the JSONL output stream. From the CLI, run `wifi-wand log` without global verbose, or use `wifi-wand log --verbose-logs true` for EventLogger diagnostics.
           MESSAGE
         end
 
@@ -159,13 +163,11 @@ module WifiWand
         self.class.normalize_command_option_args!(options, selected_command: nil)
 
         output_to_stdout = true
-        verbose_flag = verbose?
         help_requested = false
         parsed_command_options = {}
 
         parser = build_parser(
           command_options: parsed_command_options,
-          verbose_setter:  ->(value) { verbose_flag = value },
           help_setter:     -> { help_requested = true }
         )
 
@@ -184,6 +186,7 @@ module WifiWand
         log_file_path = effective_command_options[:log_file_path]
         stdout_explicit = effective_command_options.fetch(:stdout_explicit, false)
         file_destination_requested = effective_command_options.fetch(:file_destination_requested, false)
+        verbose_flag = effective_command_options.fetch(:verbose_logs, verbose?)
 
         if help_requested
           output.puts(parser.help)
@@ -199,7 +202,6 @@ module WifiWand
 
       private def build_parser(
         command_options:,
-        verbose_setter:,
         help_setter:
       )
         OptionParser.new do |opts|
@@ -210,10 +212,6 @@ module WifiWand
           opts.separator 'Options:'
 
           self.class.add_command_options(opts, command_options)
-
-          opts.on('-v', '--verbose BOOLEAN', TrueClass, 'Enable verbose logging') do |value|
-            verbose_setter.call(value)
-          end
 
           opts.on('-h', '--help', 'Show help for the log command') do
             help_setter.call

@@ -129,17 +129,16 @@ wifi-wand log --interval 10     # check every 10 seconds
   later than the configured interval because each poll waits for the full
   connectivity probe to finish before the next poll begins.
 
-### `--verbose BOOLEAN`, `-v BOOLEAN`
+### `--verbose-logs BOOLEAN`
 
-Enable verbose logging (shows additional details).
+Enable verbose EventLogger diagnostics (shows additional details such as field-level lookup failures and log-file initialization).
 
 ```bash
-wifi-wand log --verbose true
-wifi-wand log -v true
+wifi-wand log --verbose-logs true
 ```
 
-To disable verbose logging when a default option enables it, pass
-`--verbose false` or `-v false`.
+To disable verbose diagnostics when a default option enables them, pass
+`--verbose-logs false`.
 
 ### `--utc BOOLEAN`, `-u BOOLEAN`
 
