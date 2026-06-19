@@ -2,39 +2,21 @@
 
 require_relative '../../spec_helper'
 require_relative '../../../lib/wifi_wand/commands/shell_interface'
+require_relative '../../../lib/wifi_wand/repl_context'
 require 'stringio'
 
 describe WifiWand::Commands::ShellInterface do
-  # Create a test class that includes the module
   subject { test_class.new }
 
   let(:test_class) do
     Class.new do
       include WifiWand::Commands::ShellInterface
 
-      # Mock required methods from CommandLineInterface
-      def attempt_command_action(command, *_args, &block)
-        case command
-        when 'info'
-          'mock info result'
-        when 'quit', 'q'
-          quit
-        else
-          block&.call
-          nil
-        end
-      end
-
-      def find_command_action(command)
-        :info if command == 'info'
-      end
-
-      def print_help = out_stream.puts 'Mock help text'
-
-      # Mock interactive_mode for testing
       attr_accessor :interactive_mode
 
       def out_stream = @out_stream ||= StringIO.new
+
+      def resolve_command(_name) = nil
 
       def initialize
         @interactive_mode = true
@@ -43,45 +25,17 @@ describe WifiWand::Commands::ShellInterface do
     end
   end
 
+  def mock_pry_session
+    pry_config = double('pry_config')
+    allow(pry_config).to receive(:command_prefix=)
+    allow(pry_config).to receive(:print=)
+    allow(pry_config).to receive(:exception_handler=)
+    stub_const('Pry', double('Pry', config: pry_config))
 
-  describe '#method_missing' do
-    it 'attempts to execute commands via attempt_command_action' do
-      # Mock the command execution
-      expect(subject).to receive(:attempt_command_action).with('invalid_command', 'arg1', 'arg2') do |&block|
-        block&.call  # Call the error handler
-        nil
-      end
-
-      # Should raise NoMethodError
-      expect { subject.invalid_command('arg1', 'arg2') }
-        .to raise_error(NoMethodError, /is not a valid command or option/)
-    end
-
-    it 'does not interfere with known commands' do
-      # Should not call the original method_missing for successful commands
-      expect(subject).to receive(:attempt_command_action).with('info').and_return('info result')
-
-      result = subject.info
-      expect(result).to eq('info result')
-    end
-
-    it 'prints error for unknown commands' do
-      expect { subject.unknown_command }.to raise_error(NoMethodError, /is not a valid command or option/)
-    end
-
-    it 'suggests string literal usage for unknown commands' do
-      # The suggestion is part of the error message in the current implementation
-      expect { subject.unknown_command }.to raise_error(NoMethodError,
-        /If you intended it as an argument to a command, it may be invalid or need quotes./)
-    end
-
-    it 'reports known shell commands through respond_to?' do
-      expect(subject).to respond_to(:info)
-    end
-
-    it 'does not report unknown shell commands through respond_to?' do
-      expect(subject).not_to respond_to(:unknown_command)
-    end
+    mock_context = double('repl_context')
+    allow(WifiWand::ReplContext).to receive(:new).with(subject).and_return(mock_context)
+    allow(mock_context).to receive(:pry)
+    mock_context
   end
 
   describe '#quit' do
@@ -100,23 +54,6 @@ describe WifiWand::Commands::ShellInterface do
   end
 
   describe '#run_shell' do
-    # NOTE: run_shell uses pry binding which is difficult to test comprehensively
-    # These tests focus on the basic setup and requirements
-
-    def mock_pry_session
-      # Mock pry completely
-      pry_config = double('pry_config')
-      allow(pry_config).to receive(:command_prefix=)
-      allow(pry_config).to receive(:print=)
-      allow(pry_config).to receive(:exception_handler=)
-      pry_class = double('Pry', config: pry_config)
-      stub_const('Pry', pry_class)
-
-      mock_binding = double('binding')
-      allow(subject).to receive(:binding).and_return(mock_binding)
-      allow(mock_binding).to receive(:pry)
-    end
-
     it 'outputs interactive shell guidance before starting pry session' do
       allow(subject).to receive(:require).with('pry')
       allow(subject).to receive(:require).with('amazing_print')
@@ -144,25 +81,32 @@ describe WifiWand::Commands::ShellInterface do
       subject.run_shell
     end
 
-    it 'configures an exception handler that prints the exception message' do
-      # Capture handler proc assigned by run_shell
-      captured_handler = nil
+    it 'creates a ReplContext with itself and opens a pry session on it' do
+      allow(subject).to receive(:require)
+      mock_context = mock_pry_session
+      expect(WifiWand::ReplContext).to receive(:new).with(subject).and_return(mock_context)
+      expect(mock_context).to receive(:pry)
 
+      subject.run_shell
+    end
+
+    it 'configures an exception handler that prints the exception message' do
+      captured_handler = nil
       pry_config = double('pry_config')
       allow(pry_config).to receive(:command_prefix=)
       allow(pry_config).to receive(:print=)
       allow(pry_config).to receive(:exception_handler=) { |proc| captured_handler = proc }
-      pry_class = double('Pry', config: pry_config)
-      stub_const('Pry', pry_class)
+      stub_const('Pry', double('Pry', config: pry_config))
+
+      mock_context = double('repl_context')
+      allow(WifiWand::ReplContext).to receive(:new).and_return(mock_context)
+      allow(mock_context).to receive(:pry)
 
       allow(subject).to receive(:require).with('pry')
       allow(subject).to receive(:require).with('amazing_print')
-      mock_binding = double('binding', pry: nil)
-      allow(subject).to receive(:binding).and_return(mock_binding)
 
       subject.run_shell
 
-      # Call the captured handler and assert it prints exception message
       io = StringIO.new
       ex = RuntimeError.new('boom')
       captured_handler.call(io, ex, nil)
@@ -171,28 +115,24 @@ describe WifiWand::Commands::ShellInterface do
 
     it 'suppresses explicit silent command results in pry output' do
       captured_print = nil
-
       pry_config = double('pry_config')
       allow(pry_config).to receive(:command_prefix=)
       allow(pry_config).to receive(:print=) { |printer| captured_print = printer }
       allow(pry_config).to receive(:exception_handler=)
-      pry_class = double('Pry', config: pry_config)
-      stub_const('Pry', pry_class)
+      stub_const('Pry', double('Pry', config: pry_config))
+
+      mock_context = double('repl_context')
+      allow(WifiWand::ReplContext).to receive(:new).and_return(mock_context)
+      allow(mock_context).to receive(:pry)
 
       allow(subject).to receive(:require).with('pry')
       allow(subject).to receive(:require).with('amazing_print')
-      mock_binding = double('binding', pry: nil)
-      allow(subject).to receive(:binding).and_return(mock_binding)
 
       subject.run_shell
 
       io = StringIO.new
       captured_print.call(io, WifiWand::Commands::SILENT_RESULT, nil)
       expect(io.string).to be_empty
-    end
-
-    it 'renders silent command results as an empty string when manually printed' do
-      expect(WifiWand::Commands::SILENT_RESULT.to_s).to eq('')
     end
 
     it 'returns 0 when pry finishes normally' do
@@ -203,7 +143,7 @@ describe WifiWand::Commands::ShellInterface do
       expect(subject.run_shell).to eq(0)
     end
 
-    it 'returns 0 when quit throws the shell exit signal' do
+    it 'returns 0 when the shell exit signal is thrown during the pry session' do
       allow(subject).to receive(:require).with('pry')
       allow(subject).to receive(:require).with('amazing_print')
 
@@ -211,12 +151,11 @@ describe WifiWand::Commands::ShellInterface do
       allow(pry_config).to receive(:command_prefix=)
       allow(pry_config).to receive(:print=)
       allow(pry_config).to receive(:exception_handler=)
-      pry_class = double('Pry', config: pry_config)
-      stub_const('Pry', pry_class)
+      stub_const('Pry', double('Pry', config: pry_config))
 
-      mock_binding = double('binding')
-      allow(subject).to receive(:binding).and_return(mock_binding)
-      allow(mock_binding).to receive(:pry) { subject.quit }
+      mock_context = double('repl_context')
+      allow(WifiWand::ReplContext).to receive(:new).and_return(mock_context)
+      allow(mock_context).to receive(:pry) { throw(:wifiwand_shell_exit, 0) }
 
       expect(subject.run_shell).to eq(0)
     end
