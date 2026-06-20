@@ -111,16 +111,16 @@ bundle exec rake build
 #   gem unpack pkg/wifi-wand-<version>.gem && find wifi-wand-<version>/
 
 # Test the gem without installing
-bundle exec exe/wifi-wand --help
+bundle exec exe/wifiwand --help
 ```
 
 ### Interactive Testing
 ```bash
 # Start interactive shell for manual testing
-bundle exec exe/wifi-wand shell
+bundle exec exe/wifiwand shell
 
 # Test with verbose mode to see underlying OS commands
-bundle exec exe/wifi-wand -v true info
+bundle exec exe/wifiwand -v true info
 ```
 
 ## Architecture
