@@ -9,7 +9,7 @@ the native helper application, privacy model, reinstall behavior, removal behavi
 After installing the gem on macOS 14 or later, run:
 
 ```bash
-wifi-wand-macos-setup
+wifiwand-macos-setup
 ```
 
 Then grant Location Services access to the `wifiwand-helper` helper application when System Settings opens.
@@ -26,7 +26,7 @@ later, and wifi-wand does not use it on older macOS versions.
 1. Run the setup command:
 
    ```bash
-   wifi-wand-macos-setup
+   wifiwand-macos-setup
    ```
 
 2. If System Settings opens, go to **Privacy & Security > Location Services**.
@@ -45,8 +45,8 @@ WifiWand macOS setup is complete! All requirements are satisfied.
 Run a command that needs WiFi network names:
 
 ```bash
-wifi-wand a
-wifi-wand info
+wifiwand a
+wifiwand info
 ```
 
 You should see real network names instead of `<hidden>` or `<redacted>`.

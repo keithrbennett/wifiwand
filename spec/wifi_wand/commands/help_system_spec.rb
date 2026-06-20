@@ -61,7 +61,7 @@ describe WifiWand::Commands::HelpSystem do
     end
 
     it 'includes Usage line' do
-      expect(help).to include('Usage:                 wifi-wand [options] command [args]')
+      expect(help).to include('Usage:                 wifiwand [options] command [args]')
     end
 
     it 'documents DNS in the status command description' do
@@ -159,7 +159,7 @@ describe WifiWand::Commands::HelpSystem do
 
   describe '#help_hint' do
     it 'returns the correct help hint string' do
-      expect(subject.help_hint).to eq("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      expect(subject.help_hint).to eq("Use 'wifiwand help' or 'wifiwand -h' for help.")
     end
   end
 end

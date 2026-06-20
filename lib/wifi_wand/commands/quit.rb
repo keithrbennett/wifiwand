@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'q',
         long_string:  'quit',
         description:  'exit this program in interactive shell mode',
-        usage:        'Usage: wifi-wand quit'
+        usage:        'Usage: wifiwand quit'
       )
 
       EXTRA_ALIASES = %w[x xit].freeze

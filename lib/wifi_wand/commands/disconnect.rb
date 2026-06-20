@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'd',
         long_string:  'disconnect',
         description:  'disconnect from the current WiFi network without turning WiFi off',
-        usage:        'Usage: wifi-wand disconnect'
+        usage:        'Usage: wifiwand disconnect'
       )
 
       binds :model

@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'ci',
         long_string:  'ci',
         description:  'Internet connectivity state: reachable, unreachable, or indeterminate',
-        usage:        'Usage: wifi-wand ci'
+        usage:        'Usage: wifiwand ci'
       )
 
       binds :model, :interactive_mode, output_support: :output_support

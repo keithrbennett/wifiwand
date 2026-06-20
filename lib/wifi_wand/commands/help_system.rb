@@ -50,7 +50,7 @@ module WifiWand
 
         body = [
           HORIZONTAL_RULE,
-          format_header_line('Usage', 'wifi-wand [options] command [args]'),
+          format_header_line('Usage', 'wifiwand [options] command [args]'),
           format_header_line('Repository', REPOSITORY_URL),
           format_header_line('Documentation (Local)', LOCAL_README_PATH),
           format_header_line('Version', WifiWand::VERSION),
@@ -83,7 +83,7 @@ module WifiWand
         dest.puts help_text
       end
 
-      def help_hint = "Use 'wifi-wand help' or 'wifi-wand -h' for help."
+      def help_hint = "Use 'wifiwand help' or 'wifiwand -h' for help."
 
       private def resource_manager
         @resource_manager ||= WifiWand::Helpers::ResourceManager.new
@@ -115,7 +115,7 @@ module WifiWand
             [
               'removes network-name(s) from the preferred (saved) networks list',
               'in interactive mode, can be a single array of names, e.g. returned by `pref_nets`',
-              'Example: `wifi-wand connect foo && wifi-wand forget foo` (no sleep normally needed)',
+              'Example: `wifiwand connect foo && wifiwand forget foo` (no sleep normally needed)',
             ],
           ],
           ['h / help', 'prints this help'],

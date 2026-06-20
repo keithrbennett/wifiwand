@@ -48,7 +48,7 @@ describe WifiWand::CommandLineInterface do
           allow(cli).to receive(:resolve_command).with(command_name).and_return(command)
 
           expect { invoke_help(cli, command_name) }
-            .to output(/Usage: wifi-wand #{Regexp.escape(command_name)}/).to_stdout
+            .to output(/Usage: wifiwand #{Regexp.escape(command_name)}/).to_stdout
         end
       end
 
@@ -61,7 +61,7 @@ describe WifiWand::CommandLineInterface do
         ropen_command = WifiWand::Commands::Ropen.new.bind(cli)
         allow(cli).to receive(:resolve_command).with('ropen').and_return(ropen_command)
 
-        expect { invoke_help(cli, 'ropen') }.to output(/Usage: wifi-wand ropen/).to_stdout
+        expect { invoke_help(cli, 'ropen') }.to output(/Usage: wifiwand ropen/).to_stdout
       end
 
       it 'falls back to global help for unknown commands' do
@@ -75,7 +75,7 @@ describe WifiWand::CommandLineInterface do
         expect(WifiWand).not_to receive(:create_model)
 
         expect { invoke_help(cli, 'info') }
-          .to output(/Usage: wifi-wand info/).to_stdout
+          .to output(/Usage: wifiwand info/).to_stdout
       end
     end
 

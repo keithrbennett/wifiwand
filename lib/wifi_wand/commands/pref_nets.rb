@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'pr',
         long_string:  'pref_nets',
         description:  'show the preferred (saved) WiFi networks',
-        usage:        'Usage: wifi-wand pref_nets'
+        usage:        'Usage: wifiwand pref_nets'
       )
 
       binds :model, output_support: :output_support

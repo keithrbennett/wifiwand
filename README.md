@@ -40,7 +40,7 @@ If you encounter any JRuby-specific issues, please open a GitHub issue, includin
 
 #### Optional Dependency for QR Codes
 
-- To use the `wifi-wand qr` command for generating Wi‑Fi QR codes, install `qrencode`.
+- To use the `wifiwand qr` command for generating Wi‑Fi QR codes, install `qrencode`.
   - macOS: `brew install qrencode`
   - Ubuntu: `sudo apt install qrencode`
 
@@ -68,7 +68,7 @@ These are typically pre-installed on Ubuntu systems.
 **On macOS 14 or later, install the macOS helper application after gem installation:**
 
 ```bash
-wifi-wand-macos-setup
+wifiwand-macos-setup
 ```
 
 This installs the `wifiwand-helper` helper application and grants the Location Services permission needed for
@@ -89,8 +89,8 @@ and `ifconfig` on macOS, and `nmcli`, `iw`, and `ip` on Ubuntu Linux.
 However, the code encapsulates the OS-specific logic in model subclasses with identical
 method names and argument lists, so that they present a unified interface for use in:
 
-* command line invocation (e.g. `wifi-wand co my-network my-password` to connect to a network)
-* interactive shell (REPL) sessions where the WiFi-wand methods are effectively DSL commands (`wifi-wand
+* command line invocation (e.g. `wifiwand co my-network my-password` to connect to a network)
+* interactive shell (REPL) sessions where the WiFi-wand methods are effectively DSL commands (`wifiwand
   shell` to run in interactive mode)
 * other Ruby applications as a gem (library) (`require 'wifi_wand'`)
 
@@ -122,31 +122,31 @@ canonical migration guide. Highlights include:
 
 ```bash
 # Display networking status (e.g.: WiFi: ON | WiFi Network: my_network | DNS: YES | Internet: YES)
-wifi-wand s
+wifiwand s
 
 # Display WiFi on/off status
-wifi-wand w
+wifiwand w
 
 # See available WiFi networks
-wifi-wand a
+wifiwand a
 
 # Connect to a WiFi network with password
-wifi-wand co MyNetwork password
+wifiwand co MyNetwork password
 
 # Connect to a WiFi network without password (if no password required or network is saved/preferred
-wifi-wand co MyNetwork
+wifiwand co MyNetwork
 
 # Force an open-network attempt even if a saved password exists
-wifi-wand co MyNetwork ''
+wifiwand co MyNetwork ''
 
 # Display detailed networking information
-wifi-wand i
+wifiwand i
 
 # Start interactive shell
-wifi-wand shell
+wifiwand shell
 
 # Display underlying OS calls and their output
-wifi-wand -v true ...
+wifiwand -v true ...
 ```
 
 ### Documentation
@@ -188,18 +188,18 @@ readers browsing the source repository rather than installed gem documentation.
 Available commands and options can be seen with generated help:
 
 ```bash
-wifi-wand --help
-wifi-wand help
+wifiwand --help
+wifiwand help
 ```
 
 The generated help is the canonical command reference and includes current boolean option forms, command
 aliases, `log` event semantics, `status` wording, and `till` wait-state names.
 
-Scripting note: `wifi-wand connect` returns once the requested SSID is associated at the WiFi layer, not when
+Scripting note: `wifiwand connect` returns once the requested SSID is associated at the WiFi layer, not when
 DNS or full internet connectivity is ready. To wait for internet readiness after joining, run:
 
 ```bash
-wifi-wand till internet_on 30
+wifiwand till internet_on 30
 ```
 
 ### Pretty Output
@@ -225,8 +225,8 @@ User-visible timestamps default to local time. The `--utc` option requires an ex
 timestamps in UTC, pass `--utc true` or `-u true` before the command:
 
 ```bash
-wifi-wand --utc true info # true values: true, t, yes, y, +
-wifi-wand -u true log     # false values: false, f, no, n, -
+wifiwand --utc true info # true values: true, t, yes, y, +
+wifiwand -u true log     # false values: false, f, no, n, -
 ```
 
 To force local-time output when a default option enables UTC, pass `--utc false` or `-u false`.
@@ -254,13 +254,13 @@ machines where other local users or local process inspection are not trusted.
 
 **Command Line Mode** (default): Execute single commands and exit
 ```bash
-wifi-wand info          # Run once, show output, exit
-wifi-wand connect MyNet # Connect and exit
+wifiwand info          # Run once, show output, exit
+wifiwand connect MyNet # Connect and exit
 ```
 
 **Interactive Shell Mode** (`shell` command): Start a persistent Ruby session
 ```bash
-wifi-wand shell         # Enter interactive mode
+wifiwand shell         # Enter interactive mode
 [1] pry(#<WifiWandView>)> info
 [2] pry(#<WifiWandView>)> connect "MyNet"
 [3] pry(#<WifiWandView>)> cycle; connect "MyNet"
@@ -287,7 +287,7 @@ may override this app's commands.  For example:
 ```
 [1] pry(#<WifiWandView>)> x  # exit command, available as 'x' or 'xit'
 $
-$ wifi-wand shell
+$ wifiwand shell
 
 [1] pry(#<WifiWand::CommandLineInterface>)> x = :foo  # override it with a local variable
 :foo
@@ -345,22 +345,22 @@ constants or instance variables if you want to create variables in your shell.
 #### Single Command Invocations
 
 ```
-wifi-wand i            # prints out WiFi info
-wifi-wand a            # prints out names of available networks
-wifi-wand pr           # prints preferred networks
-wifi-wand cy           # cycles the WiFi off and on
-wifi-wand co a-network a-password # connects to a network requiring a password
-wifi-wand co a-network            # connects to a network _not_ requiring a password
-wifi-wand qr          # print ANSI QR to terminal
-wifi-wand qr wifi.png # generate PNG file: wifi.png
-wifi-wand qr wifi.svg # generate SVG file: wifi.svg
-wifi-wand qr - secret # print ANSI QR using an explicit password
-wifi-wand t internet_on && say "Internet connected" # Play audible message when Internet becomes connected
-wifi-wand s           # display status (WiFi, WiFi Network, DNS, Internet)
-wifi-wand log         # monitor WiFi status changes in real-time (to terminal)
-wifi-wand log --file  # log WiFi events to wifiwand-events.log
-wifi-wand log --file --stdout        # log to file AND display in terminal
-wifi-wand log --interval 1 --file    # check every 1 second instead of default 5
+wifiwand i            # prints out WiFi info
+wifiwand a            # prints out names of available networks
+wifiwand pr           # prints preferred networks
+wifiwand cy           # cycles the WiFi off and on
+wifiwand co a-network a-password # connects to a network requiring a password
+wifiwand co a-network            # connects to a network _not_ requiring a password
+wifiwand qr          # print ANSI QR to terminal
+wifiwand qr wifi.png # generate PNG file: wifi.png
+wifiwand qr wifi.svg # generate SVG file: wifi.svg
+wifiwand qr - secret # print ANSI QR using an explicit password
+wifiwand t internet_on && say "Internet connected" # Play audible message when Internet becomes connected
+wifiwand s           # display status (WiFi, WiFi Network, DNS, Internet)
+wifiwand log         # monitor WiFi status changes in real-time (to terminal)
+wifiwand log --file  # log WiFi events to wifiwand-events.log
+wifiwand log --file --stdout        # log to file AND display in terminal
+wifiwand log --interval 1 --file    # check every 1 second instead of default 5
 ```
 
 #### Interactive Shell Commands
@@ -564,13 +564,13 @@ Connected!
 
 You can create QR codes for the currently connected network to share credentials quickly:
 
-- Default terminal output: `wifi-wand qr` prints an ANSI QR directly to the terminal
-- File output: `wifi-wand qr wifi.png`
+- Default terminal output: `wifiwand qr` prints an ANSI QR directly to the terminal
+- File output: `wifiwand qr wifi.png`
 - Alternate formats via filespec:
   - `.png` → PNG output (the default file format)
   - `.svg` → SVG output (uses `qrencode -t SVG`)
   - `.eps` → EPS output (uses `qrencode -t EPS`)
-- Explicit password with terminal output: `wifi-wand qr - secret-password`
+- Explicit password with terminal output: `wifiwand qr - secret-password`
 
 Notes:
 - Requires `qrencode` to be installed (macOS: `brew install qrencode`, Ubuntu: `sudo apt install qrencode`).
@@ -588,21 +588,21 @@ Notes:
 
 ### Public IP Information
 
-The `info` command does not include public IP data. Use `wifi-wand public_ip` or `wifi-wand pi`
+The `info` command does not include public IP data. Use `wifiwand public_ip` or `wifiwand pi`
 when you want the public IP address, country, or both.
 
 wifi-wand uses `https://api.country.is/` when the country is requested, including the default
 `both` selector, and `https://api.ipify.org` when only the public IP address is requested.
 
 If the provider request fails or returns malformed data, the command raises a public IP lookup error.
-In that case, the web site 'https://www.iplocation.net/' is recommended, and `wifi-wand ro ipl` on
+In that case, the web site 'https://www.iplocation.net/' is recommended, and `wifiwand ro ipl` on
 the command line or `ro 'ipl'` in the shell will open that page in your browser for you.
 
 
 ### Password Lookup Oddity
 
 You may find it odd (I did, anyway) that on macOS even if you issue the password command 
-(`wifi-wand password a-network-name`) using sudo, you will still be prompted 
+(`wifiwand password a-network-name`) using sudo, you will still be prompted 
 with a graphical dialog for both a user id and password. This is no doubt
 for better security, but it's unfortunate in that it makes it impossible to fully automate this task.
 
@@ -611,11 +611,11 @@ password, cycle the network, and then reconnect to the original network with it 
 However, since fetching the password without user intervention is not possible, this cannot be automated.
 
 If you don't mind storing the network password in plain text somewhere, then you could easily
-automate it (e.g. `wifi-wand cycle && wifi-wand connect a-network a-password`). Also, you might find it handy
+automate it (e.g. `wifiwand cycle && wifiwand connect a-network a-password`). Also, you might find it handy
 to create a script for your most commonly used networks containing something like this:
 
 ```
-wifi-wand  connect  my-usual-network  its-password
+wifiwand  connect  my-usual-network  its-password
 ```
 
 ### Airport Utility Deprecation (April 2024)
@@ -692,13 +692,13 @@ The helper application will be automatically reinstalled the next time you run a
 requires it. To remove the helper for the currently installed wifi-wand version, run:
 
 ```bash
-wifi-wand-macos-setup --remove
+wifiwand-macos-setup --remove
 ```
 
 If you want to refresh the currently installed helper application immediately, run:
 
 ```bash
-wifi-wand-macos-setup --reinstall
+wifiwand-macos-setup --reinstall
 ```
 
 

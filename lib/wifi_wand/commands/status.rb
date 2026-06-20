@@ -13,7 +13,7 @@ module WifiWand
           'status line (WiFi, Network, DNS, Internet; shows captive portal warning if',
           'login is required)',
         ].join(' '),
-        usage:        'Usage: wifi-wand status'
+        usage:        'Usage: wifiwand status'
       )
 
       binds :model, :interactive_mode, :out_stream, output_support: :output_support

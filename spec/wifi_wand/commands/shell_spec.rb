@@ -6,7 +6,7 @@ require_relative '../../../lib/wifi_wand/commands/shell'
 describe WifiWand::Commands::Shell do
   let(:options) { WifiWand::CommandLineOptions.new(post_processor: nil) }
   let(:cli) do
-    double('cli', options: options, help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+    double('cli', options: options, help_hint: "Use 'wifiwand help' or 'wifiwand -h' for help.")
   end
 
   it_behaves_like 'binds command context', bound_attributes: {}
@@ -56,8 +56,8 @@ describe WifiWand::Commands::Shell do
       expect { command.call('--help') }
         .to raise_error(WifiWand::ConfigurationError) { |error|
           expect(error.message).to include('Unexpected argument(s): --help')
-          expect(error.message).to include('Usage: wifi-wand shell')
-          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+          expect(error.message).to include('Usage: wifiwand shell')
+          expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
         }
     end
   end

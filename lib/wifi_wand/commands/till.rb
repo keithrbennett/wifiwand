@@ -11,7 +11,7 @@ module WifiWand
         short_string: 't',
         long_string:  'till',
         description:  'wait until a target connectivity or WiFi state is reached',
-        usage:        'Usage: wifi-wand till <state> [timeout_secs] [interval_secs]'
+        usage:        'Usage: wifiwand till <state> [timeout_secs] [interval_secs]'
       )
 
       STATES = %w[wifi_on wifi_off associated disassociated internet_on internet_off].freeze

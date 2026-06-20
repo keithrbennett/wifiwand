@@ -287,7 +287,7 @@ module WifiWand
   class MacOsRedactionError < Error
     DEFAULT_REASON = 'macOS is redacting WiFi network names until Location Services access is granted ' \
       'to wifiwand-helper, the macOS helper application'
-    DEFAULT_REMEDIATION = 'Run `wifi-wand-macos-setup`, grant Location Services to ' \
+    DEFAULT_REMEDIATION = 'Run `wifiwand-macos-setup`, grant Location Services to ' \
       '`wifiwand-helper`, the macOS helper application, and retry.'
 
     attr_reader :operation_description, :reason, :remediation

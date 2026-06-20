@@ -45,7 +45,7 @@ end
 Shell example:
 
 ```bash
-if [ "$(wifi-wand -o p ci)" = "reachable" ]; then
+if [ "$(wifiwand -o p ci)" = "reachable" ]; then
   echo "Internet reachable"
 fi
 ```
@@ -53,7 +53,7 @@ fi
 JSON/JQ example:
 
 ```bash
-if wifi-wand -o j ci | jq -e '. == "reachable"' > /dev/null; then
+if wifiwand -o j ci | jq -e '. == "reachable"' > /dev/null; then
   echo "Internet reachable"
 fi
 ```
@@ -61,7 +61,7 @@ fi
 ## Basic Usage
 
 ```bash
-wifi-wand ci
+wifiwand ci
 ```
 
 Human-readable output:
@@ -80,9 +80,9 @@ Internet connectivity: indeterminate
 For scripts, prefer a machine-readable format:
 
 ```bash
-wifi-wand -o j ci
-wifi-wand -o J ci
-wifi-wand -o p ci
+wifiwand -o j ci
+wifiwand -o J ci
+wifiwand -o p ci
 ```
 
 Examples:
@@ -130,7 +130,7 @@ Check whether connectivity is confirmed:
 ```bash
 #!/bin/bash
 
-state="$(wifi-wand -o p ci)"
+state="$(wifiwand -o p ci)"
 
 if [ "$state" = "reachable" ]; then
   echo "Internet is available - proceeding with upload"
@@ -150,7 +150,7 @@ Wait for internet to come back:
 #!/bin/bash
 echo "Internet went down, waiting for it to come back..."
 
-while [ "$(wifi-wand -o p ci)" != "reachable" ]; do
+while [ "$(wifiwand -o p ci)" != "reachable" ]; do
   sleep 5
 done
 
@@ -163,7 +163,7 @@ Monitor connectivity in a loop:
 #!/bin/bash
 
 while true; do
-  state="$(wifi-wand -o p ci)"
+  state="$(wifiwand -o p ci)"
 
   if [ "$state" = "reachable" ]; then
     echo "$(date): Internet available"

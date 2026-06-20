@@ -590,7 +590,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::SetupCli do
       build_cli(argv: ['ignored'], setup: setup).run
 
       expect(out_stream.string).to include('Unexpected argument(s): ignored')
-      expect(out_stream.string).to include('Usage: wifi-wand-macos-setup [--reinstall | --remove]')
+      expect(out_stream.string).to include('Usage: wifiwand-macos-setup [--reinstall | --remove]')
     end
 
     it 'does not remove the helper when --remove receives a positional argument' do

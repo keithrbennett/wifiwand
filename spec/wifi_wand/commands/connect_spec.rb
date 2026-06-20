@@ -12,7 +12,7 @@ describe WifiWand::Commands::Connect do
       model:            mock_model,
       interactive_mode: false,
       out_stream:       output,
-      help_hint:        "Use 'wifi-wand help' or 'wifi-wand -h' for help."
+      help_hint:        "Use 'wifiwand help' or 'wifiwand -h' for help."
     )
   end
 
@@ -20,7 +20,7 @@ describe WifiWand::Commands::Connect do
     bound_attributes: { model: :mock_model, output: :output, interactive_mode: -> { false } }
 
   it_behaves_like 'has default command help text',
-    usage:       'Usage: wifi-wand connect <network> [password]',
+    usage:       'Usage: wifiwand connect <network> [password]',
     description: 'connect to a WiFi network'
 
   describe '#validate_options' do
@@ -99,8 +99,8 @@ describe WifiWand::Commands::Connect do
 
       expect { command.call }.to raise_error(WifiWand::ConfigurationError) { |error|
         expect(error.message).to include('Missing <network> argument.')
-        expect(error.message).to include('Usage: wifi-wand connect <network> [password]')
-        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        expect(error.message).to include('Usage: wifiwand connect <network> [password]')
+        expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
       }
     end
 
@@ -109,8 +109,8 @@ describe WifiWand::Commands::Connect do
 
       expect { command.call('') }.to raise_error(WifiWand::ConfigurationError) { |error|
         expect(error.message).to include('Missing <network> argument.')
-        expect(error.message).to include('Usage: wifi-wand connect <network> [password]')
-        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        expect(error.message).to include('Usage: wifiwand connect <network> [password]')
+        expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
       }
     end
 
@@ -120,8 +120,8 @@ describe WifiWand::Commands::Connect do
       expect { command.call('TestNetwork', 'secret', 'extra') }
         .to raise_error(WifiWand::ConfigurationError) { |error|
           expect(error.message).to include('Unexpected argument(s): extra')
-          expect(error.message).to include('Usage: wifi-wand connect <network> [password]')
-          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+          expect(error.message).to include('Usage: wifiwand connect <network> [password]')
+          expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
         }
     end
 

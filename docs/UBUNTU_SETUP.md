@@ -84,7 +84,7 @@ sudo systemctl enable --now NetworkManager
 If `wifi-wand` cannot find your WiFi interface:
 1. Verify the hardware is detected: `iw dev`
 2. Ensure the radio is on: `nmcli radio wifi`
-3. If using a custom interface, specify it with `-p`: `wifi-wand -p wlan0 status`
+3. If using a custom interface, specify it with `-p`: `wifiwand -p wlan0 status`
 
 ### QR Code Generation Fails
 

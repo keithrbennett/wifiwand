@@ -298,7 +298,7 @@ module RSpecConfiguration
     'Requested real-environment tests on macOS require unredacted WiFi identity because the suite must ' \
       'capture the starting SSID and verify restoration to that exact SSID afterward. ' \
       "wifi-wand can detect generic association, but #{base_reason}, so exact-state restoration of the " \
-      'original network cannot be verified. Run `wifi-wand-macos-setup`, grant Location Services to ' \
+      'original network cannot be verified. Run `wifiwand-macos-setup`, grant Location Services to ' \
       '`wifiwand-helper`, the macOS helper application, and rerun the tests.'
   end
 

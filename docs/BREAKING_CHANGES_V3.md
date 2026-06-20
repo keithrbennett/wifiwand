@@ -29,19 +29,19 @@ The `-o p` flag still means plain `puts` output. Scripts that depended on
 `-o p` for unquoted scalar values can keep using it:
 
 ```bash
-state="$(wifi-wand -o p ci)"
+state="$(wifiwand -o p ci)"
 ```
 
 Use `-o J` when you want indented JSON:
 
 ```bash
-wifi-wand -o J info
+wifiwand -o J info
 ```
 
 Use `-o P` when you want Ruby pretty print output:
 
 ```bash
-wifi-wand -o P info
+wifiwand -o P info
 ```
 
 #### Amazing Print color follows stdout
@@ -51,7 +51,7 @@ It uses color when stdout is a terminal and plain text when output is piped or r
 if you want terminal-readable plain output while also saving or forwarding it:
 
 ```bash
-wifi-wand -o a info | tee wifi-info.txt
+wifiwand -o a info | tee wifi-info.txt
 ```
 
 ### Pretty output dependency changed
@@ -83,7 +83,7 @@ require 'wifi_wand/platforms/mac/model'
 ```
 
 The gem name and command names are unchanged: install `wifi-wand` and run the
-CLI as `wifi-wand`.
+CLI as `wifiwand`.
 
 ### macOS helper runtime naming
 
@@ -174,8 +174,8 @@ treated as invalid commands and follow the normal invalid-command behavior.
 
 ##### Migration
 
-- old: `wifi-wand conn MyNet`
-- new: `wifi-wand co MyNet` or `wifi-wand connect MyNet`
+- old: `wifiwand conn MyNet`
+- new: `wifiwand co MyNet` or `wifiwand connect MyNet`
 
 ### Connectivity API
 
@@ -300,7 +300,7 @@ explicit CLI feature exposed through `public_ip` and its short alias `pi`.
 
 | Old | New |
 |-----|-----|
-| `info["public_ip"]` | `wifi-wand public_ip` / `wifi-wand pi` |
+| `info["public_ip"]` | `wifiwand public_ip` / `wifiwand pi` |
 | nested `public_ip` object inside `info` | dedicated command result |
 | broader unauthenticated IPinfo payload | narrower result with only `address` and `country` |
 
@@ -326,9 +326,9 @@ The new command supports only:
 ##### Migration
 
 - old: `info["public_ip"]`
-- new, both fields: `wifi-wand public_ip` or `wifi-wand pi`
-- new, address only: `wifi-wand public_ip address` or `wifi-wand pi a`
-- new, country only: `wifi-wand public_ip country` or `wifi-wand pi c`
+- new, both fields: `wifiwand public_ip` or `wifiwand pi`
+- new, address only: `wifiwand public_ip address` or `wifiwand pi a`
+- new, country only: `wifiwand public_ip country` or `wifiwand pi c`
 
 ##### Current result shape
 
@@ -444,10 +444,10 @@ global `--utc` option. The old toggle-style forms no longer work.
 
 | Old usage | New usage |
 |-----------|-----------|
-| `wifi-wand -v info` | `wifi-wand -v true info` |
-| `wifi-wand --verbose info` | `wifi-wand --verbose true info` |
-| `wifi-wand --no-verbose info` | `wifi-wand --verbose false info` |
-| `wifi-wand --no-v info` | `wifi-wand -v false info` |
+| `wifiwand -v info` | `wifiwand -v true info` |
+| `wifiwand --verbose info` | `wifiwand --verbose true info` |
+| `wifiwand --no-verbose info` | `wifiwand --verbose false info` |
+| `wifiwand --no-v info` | `wifiwand -v false info` |
 
 Accepted true values are `true`, `t`, `yes`, `y`, and `+`. Accepted false
 values are `false`, `f`, `no`, `n`, and `-`.
@@ -455,8 +455,8 @@ values are `false`, `f`, `no`, `n`, and `-`.
 Inline forms are also accepted:
 
 ```bash
-wifi-wand --verbose=true info
-wifi-wand -vfalse info
+wifiwand --verbose=true info
+wifiwand -vfalse info
 ```
 
 When setting defaults through `WIFIWAND_OPTS`, include the boolean value:

@@ -109,7 +109,7 @@ Gem::Specification.new do |spec|
 
     After installing wifi-wand, run the one-time setup script:
 
-        wifi-wand-macos-setup
+        wifiwand-macos-setup
 
     For more information, see: docs/MACOS_QUICK_START.md
     or visit: https://github.com/keithrbennett/wifiwand/blob/main/docs/MACOS_QUICK_START.md

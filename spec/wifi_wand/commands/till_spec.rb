@@ -10,7 +10,7 @@ describe WifiWand::Commands::Till do
       'cli',
       model:            mock_model,
       interactive_mode: false,
-      help_hint:        "Use 'wifi-wand help' or 'wifi-wand -h' for help."
+      help_hint:        "Use 'wifiwand help' or 'wifiwand -h' for help."
     )
   end
 
@@ -21,7 +21,7 @@ describe WifiWand::Commands::Till do
     it 'includes usage and states' do
       help = described_class.new.help_text
 
-      expect(help).to include('Usage: wifi-wand till')
+      expect(help).to include('Usage: wifiwand till')
       expect(help).to include('wifi_on')
       expect(help).to include('internet_off')
     end
@@ -57,12 +57,12 @@ describe WifiWand::Commands::Till do
 
       expect { command.call }.to raise_error(WifiWand::ConfigurationError) { |error|
         expect(error.message).to include('Missing <state> argument.')
-        expect(error.message).to include('Usage: wifi-wand till <state> [timeout_secs] [interval_secs]')
+        expect(error.message).to include('Usage: wifiwand till <state> [timeout_secs] [interval_secs]')
         expect(error.message).to include(
           'States: wifi_on, wifi_off, associated, disassociated, internet_on, internet_off'
         )
         expect(error.message).to include("Examples: 'till wifi_off 20' or 'till internet_on 30 0.5'")
-        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
       }
     end
 
@@ -84,8 +84,8 @@ describe WifiWand::Commands::Till do
       expect { command.call('wifi_on', '10', '0.5', 'ignored') }
         .to raise_error(WifiWand::ConfigurationError) { |error|
           expect(error.message).to include('Unexpected argument(s): ignored')
-          expect(error.message).to include('Usage: wifi-wand till <state> [timeout_secs] [interval_secs]')
-          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+          expect(error.message).to include('Usage: wifiwand till <state> [timeout_secs] [interval_secs]')
+          expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
         }
     end
 

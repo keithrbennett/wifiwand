@@ -707,7 +707,7 @@ module WifiWand
 
           expect { model.connected_network_name }.to raise_error(
             WifiWand::MacOsRedactionError,
-            /Exact WiFi network identity.*wifi-wand-macos-setup.*wifiwand-helper/
+            /Exact WiFi network identity.*wifiwand-macos-setup.*wifiwand-helper/
           )
         end
 
@@ -732,7 +732,7 @@ module WifiWand
 
           expect { model.connection_ready?('TestNetwork') }.to raise_error(
             WifiWand::MacOsRedactionError,
-            /Exact WiFi network identity.*wifi-wand-macos-setup.*wifiwand-helper/
+            /Exact WiFi network identity.*wifiwand-macos-setup.*wifiwand-helper/
           )
         end
 
@@ -762,7 +762,7 @@ module WifiWand
 
             expect { model.connected_network_name }.to raise_error(
               WifiWand::MacOsRedactionError,
-              /Exact WiFi network identity.*wifi-wand-macos-setup.*wifiwand-helper/
+              /Exact WiFi network identity.*wifiwand-macos-setup.*wifiwand-helper/
             )
           end
         end
@@ -793,7 +793,7 @@ module WifiWand
 
             expect { model.connected_network_name }.to raise_error(
               WifiWand::MacOsRedactionError,
-              /Exact WiFi network identity.*wifi-wand-macos-setup.*wifiwand-helper/
+              /Exact WiFi network identity.*wifiwand-macos-setup.*wifiwand-helper/
             )
           end
         end

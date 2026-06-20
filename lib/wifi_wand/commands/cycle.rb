@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'cy',
         long_string:  'cycle',
         description:  'cycle WiFi off and back on',
-        usage:        'Usage: wifi-wand cycle'
+        usage:        'Usage: wifiwand cycle'
       )
 
       binds :model

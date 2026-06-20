@@ -8,14 +8,14 @@ describe WifiWand::Commands::Nameservers do
   let(:output_support) { double('output_support') }
   let(:cli) do
     double('cli', model: mock_model, output_support: output_support,
-      help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      help_hint: "Use 'wifiwand help' or 'wifiwand -h' for help.")
   end
 
   it_behaves_like 'binds command context',
     bound_attributes: { model: :mock_model, output_support: :output_support }
 
   it_behaves_like 'has default command help text',
-    usage:       'Usage: wifi-wand nameservers [get|clear|IP ...]',
+    usage:       'Usage: wifiwand nameservers [get|clear|IP ...]',
     description: 'show, clear, or set DNS nameservers'
 
   describe '#call' do
@@ -48,8 +48,8 @@ describe WifiWand::Commands::Nameservers do
         command.call('get', '1.1.1.1')
       end.to raise_error(WifiWand::ConfigurationError) { |error|
         expect(error.message).to include('Unexpected argument(s): 1.1.1.1')
-        expect(error.message).to include('Usage: wifi-wand nameservers [get|clear|IP ...]')
-        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        expect(error.message).to include('Usage: wifiwand nameservers [get|clear|IP ...]')
+        expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
       }
     end
 
@@ -80,8 +80,8 @@ describe WifiWand::Commands::Nameservers do
         command.call('clear', '1.1.1.1')
       end.to raise_error(WifiWand::ConfigurationError) { |error|
         expect(error.message).to include('Unexpected argument(s): 1.1.1.1')
-        expect(error.message).to include('Usage: wifi-wand nameservers [get|clear|IP ...]')
-        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        expect(error.message).to include('Usage: wifiwand nameservers [get|clear|IP ...]')
+        expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
       }
     end
 

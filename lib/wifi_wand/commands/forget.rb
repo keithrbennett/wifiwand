@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'f',
         long_string:  'forget',
         description:  'remove one or more preferred (saved) WiFi networks',
-        usage:        'Usage: wifi-wand forget <name1> [name2 ...]'
+        usage:        'Usage: wifiwand forget <name1> [name2 ...]'
       )
 
       binds :model, output_support: :output_support

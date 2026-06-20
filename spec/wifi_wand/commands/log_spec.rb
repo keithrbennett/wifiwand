@@ -122,7 +122,7 @@ describe WifiWand::Commands::Log do
         command = described_class.new(model: mock_model, output: output, verbose_flag: false)
 
         expect { command.call('--help') }.not_to raise_error
-        expect(output.string).to include('Usage: wifi-wand log')
+        expect(output.string).to include('Usage: wifiwand log')
         expect(output.string).to include('Options:')
         expect(mock_logger).not_to have_received(:run)
       end
@@ -131,7 +131,7 @@ describe WifiWand::Commands::Log do
         command = described_class.new(model: mock_model, output: output, verbose_flag: false)
 
         expect { command.call('-h') }.not_to raise_error
-        expect(output.string).to include('Usage: wifi-wand log')
+        expect(output.string).to include('Usage: wifiwand log')
         expect(mock_logger).not_to have_received(:run)
       end
     end
@@ -141,7 +141,7 @@ describe WifiWand::Commands::Log do
 
       command.call('--help')
 
-      expect(output.string).to include('Usage: wifi-wand log')
+      expect(output.string).to include('Usage: wifiwand log')
       expect(output.string).to include('Options:')
       expect(output.string).to include('--interval N')
       expect(mock_logger).not_to have_received(:run)
@@ -394,7 +394,7 @@ describe WifiWand::Commands::Log do
           command.call('--verbose-logs')
         end.to raise_error(WifiWand::ConfigurationError) { |error|
           expect(error.message).to include('missing argument: --verbose-logs')
-          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+          expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
         }
       end
     end
@@ -438,7 +438,7 @@ describe WifiWand::Commands::Log do
         command.call('--interval', '2', 'ignored')
       end.to raise_error(WifiWand::ConfigurationError) { |error|
         expect(error.message).to include('Unexpected argument(s): ignored')
-        expect(error.message).to include('Usage: wifi-wand log')
+        expect(error.message).to include('Usage: wifiwand log')
       }
       expect(WifiWand::EventLogger).not_to have_received(:new)
       expect(mock_logger).not_to have_received(:run)

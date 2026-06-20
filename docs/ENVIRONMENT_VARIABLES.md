@@ -14,13 +14,13 @@ To enable runtime verbose output by default, include the boolean value expected 
 
 ```bash
 export WIFIWAND_OPTS="--verbose true"
-wifi-wand info
+wifiwand info
 ```
 
 The direct CLI equivalent is:
 
 ```bash
-wifi-wand -v true info
+wifiwand -v true info
 ```
 
 On Ubuntu, `connect` commands that include an inline password intentionally
@@ -36,17 +36,17 @@ trusted.
 
 ```bash
 export WIFIWAND_OPTS="--output-format y" # YAML
-wifi-wand info
+wifiwand info
 ```
 
 ```bash
 export WIFIWAND_OPTS="--verbose true"
-wifi-wand status
+wifiwand status
 ```
 
 ```bash
 export WIFIWAND_OPTS="--utc true"
-wifi-wand log
+wifiwand log
 ```
 
 - **Overrides:** Later command-line arguments can override most defaults, but commands (e.g., `shell`) cannot

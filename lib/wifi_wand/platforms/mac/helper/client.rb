@@ -401,7 +401,7 @@ module WifiWand
             stream = err_stream || $stderr
             if stream
               stream.puts('wifiwand helper: Location Services denied. ' \
-                'Run `wifi-wand-macos-setup` (or `wifi-wand-macos-setup --reinstall`) ' \
+                'Run `wifiwand-macos-setup` (or `wifiwand-macos-setup --reinstall`) ' \
                 'to grant location access.')
             end
             @location_warning_emitted = true
@@ -411,7 +411,7 @@ module WifiWand
             stream = err_stream || $stderr
             if stream
               reinstall_hint = if reinstall_required
-                ' Run `wifi-wand-macos-setup --reinstall` to reinstall it.'
+                ' Run `wifiwand-macos-setup --reinstall` to reinstall it.'
               else
                 ''
               end

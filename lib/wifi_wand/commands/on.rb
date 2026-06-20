@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'on',
         long_string:  'on',
         description:  'turn WiFi on',
-        usage:        'Usage: wifi-wand on'
+        usage:        'Usage: wifiwand on'
       )
 
       binds :model

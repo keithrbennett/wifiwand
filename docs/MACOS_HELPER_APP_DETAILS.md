@@ -155,7 +155,7 @@ The helper application has **no access** to:
   least once. To register the helper application with macOS and walk through permission granting in one step,
   run:
   ```bash
-  wifi-wand-macos-setup
+  wifiwand-macos-setup
   ```
 
 ---
@@ -167,7 +167,7 @@ wifi-wand ships a setup script for installing the helper application and managin
 ### Check Status and Install
 
 ```bash
-wifi-wand-macos-setup
+wifiwand-macos-setup
 ```
 
 This command:
@@ -184,7 +184,7 @@ For a shorter setup-only walkthrough, see [MACOS_QUICK_START.md](MACOS_QUICK_STA
 ### Reinstall or Update
 
 ```bash
-wifi-wand-macos-setup --reinstall
+wifiwand-macos-setup --reinstall
 ```
 
 Use this when:
@@ -199,7 +199,7 @@ The reinstall command force-replaces the helper application bundle and re-runs t
 ### Remove Helper Application
 
 ```bash
-wifi-wand-macos-setup --remove
+wifiwand-macos-setup --remove
 ```
 
 This removes the helper application files for the current wifi-wand version. It does not revoke Location
@@ -270,7 +270,7 @@ You can also manage permissions directly via System Settings:
 1. Open **System Settings**
 2. Go to **Privacy & Security → Location Services**
 3. Scroll to find **wifiwand-helper** (the helper application only appears here after it has run at least
-   once — run any wifi-wand command or `wifi-wand-macos-setup` to seed the entry)
+   once — run any wifi-wand command or `wifiwand-macos-setup` to seed the entry)
 4. Toggle permission on or off
 
 ---
@@ -289,7 +289,7 @@ You can also manage permissions directly via System Settings:
 **Solution:**
 ```bash
 # Check status and grant permission if needed
-wifi-wand-macos-setup
+wifiwand-macos-setup
 
 # Open Location Services directly if needed
 open "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationServices"
@@ -299,7 +299,7 @@ open "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationSe
 
 ### Permission Prompt Doesn't Appear / Still Seeing `<hidden>`
 
-**Symptom:** Ran `wifi-wand-macos-setup` but no prompt appeared, or network names are still redacted
+**Symptom:** Ran `wifiwand-macos-setup` but no prompt appeared, or network names are still redacted
 
 **Possible Causes:**
 1. Permission already granted or denied (check System Settings)
@@ -309,7 +309,7 @@ open "x-apple.systempreferences:com.apple.preference.security?Privacy_LocationSe
 **Solution:**
 ```bash
 # Force-reinstall the helper application and re-run the permission flow
-wifi-wand-macos-setup --reinstall
+wifiwand-macos-setup --reinstall
 ```
 
 If the prompt still does not appear after reinstalling, open System Settings manually and look for
@@ -329,11 +329,11 @@ on.
 **Solution:**
 ```bash
 # Reinstall the helper application
-wifi-wand-macos-setup --reinstall
+wifiwand-macos-setup --reinstall
 
 # If reinstall fails, remove the helper application directory and run setup again
 rm -rf ~/Library/Application\ Support/WifiWand/
-wifi-wand-macos-setup
+wifiwand-macos-setup
 ```
 
 ---
@@ -486,7 +486,7 @@ safely delete old version directories.
 Within the same gem version, wifi-wand also tracks whether the installed helper application bundle still
 matches the currently shipped helper application files. If the helper application bundle on disk is stale,
 wifi-wand reinstalls it automatically before using it. You can force that refresh yourself at any time with
-`wifi-wand-macos-setup --reinstall`.
+`wifiwand-macos-setup --reinstall`.
 
 ### Permission Identity and Version Upgrades
 
@@ -501,7 +501,7 @@ installed path. This means:
 
 > **Note:** macOS TCC (Transparency, Consent, and Control) behavior can sometimes be sensitive to path,
 > signature, or OS-version quirks. If macOS prompts for permission again after a gem upgrade, run
-> `wifi-wand-macos-setup --reinstall` to force re-registration.
+> `wifiwand-macos-setup --reinstall` to force re-registration.
 
 Multiple installed helper application copies may exist on disk (one per gem version), but they present as one
 logical macOS app identity for permission purposes via the stable bundle identifier `com.wifiwand.helper`.

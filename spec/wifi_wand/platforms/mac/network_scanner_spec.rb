@@ -112,7 +112,7 @@ module WifiWand
           'ssid_data_trusted' => false
         )
         expect(scan.fetch('warning')).to include('Location Services')
-        expect(scan.fetch('warning')).to include('wifi-wand-macos-setup')
+        expect(scan.fetch('warning')).to include('wifiwand-macos-setup')
       end
 
       it 'preserves warning metadata even when degraded fallback has no networks' do

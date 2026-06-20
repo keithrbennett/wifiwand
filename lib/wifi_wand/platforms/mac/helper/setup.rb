@@ -114,7 +114,7 @@ module WifiWand
 
             unless Bundle.helper_installed_and_valid?
               raise 'Helper reinstallation failed validation. ' \
-                'Try running wifi-wand-macos-setup again.'
+                'Try running wifiwand-macos-setup again.'
             end
 
             Bundle.installed_bundle_path

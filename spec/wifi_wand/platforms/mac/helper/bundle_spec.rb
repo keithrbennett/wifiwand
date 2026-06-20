@@ -940,7 +940,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
           client.send(:ensure_helper_installed)
 
           expect(out_stream.string).to include('failed to install helper (boom)')
-          expect(out_stream.string).not_to include('wifi-wand-macos-setup --reinstall')
+          expect(out_stream.string).not_to include('wifiwand-macos-setup --reinstall')
           expect(client.available?).to be(false)
 
           client.send(:ensure_helper_installed)
@@ -972,7 +972,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
           2.times { client.send(:ensure_helper_installed) }
 
           expect(out_stream.string).to include('failed to install helper (boom)')
-          expect(out_stream.string).to include('wifi-wand-macos-setup --reinstall')
+          expect(out_stream.string).to include('wifiwand-macos-setup --reinstall')
           expect(client.available?).to be(false)
         end
       end
@@ -1083,7 +1083,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
       it 'includes reinstall guidance when an existing helper install is corrupt' do
         client.send(:emit_install_failure, 'boom', reinstall_required: true)
-        expect(out_stream.string).to include('wifi-wand-macos-setup --reinstall')
+        expect(out_stream.string).to include('wifiwand-macos-setup --reinstall')
       end
     end
 

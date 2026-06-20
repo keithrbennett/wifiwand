@@ -603,7 +603,7 @@ describe 'QR Code Generator (unit)' do
 
     expect do
       silence_output { model.generate_qr_code }
-    end.to raise_error(WifiWand::MacOsRedactionError, /Exact WiFi network identity.*wifi-wand-macos-setup/)
+    end.to raise_error(WifiWand::MacOsRedactionError, /Exact WiFi network identity.*wifiwand-macos-setup/)
   end
 
   [

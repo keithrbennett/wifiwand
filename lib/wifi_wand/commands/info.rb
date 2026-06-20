@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'i',
         long_string:  'info',
         description:  'a hash of detailed networking information',
-        usage:        'Usage: wifi-wand info'
+        usage:        'Usage: wifiwand info'
       )
 
       binds :model, output_support: :output_support

@@ -28,7 +28,7 @@ module WifiWand
           }.freeze
           # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
           USER_FACING_SETUP_ERROR = StandardError
-          USAGE = 'Usage: wifi-wand-macos-setup [--reinstall | --remove]'
+          USAGE = 'Usage: wifiwand-macos-setup [--reinstall | --remove]'
 
           # @param argv       [Array<String>]       command-line arguments (e.g. ARGV)
           # @param setup      [Setup]    injectable for testing; built from out_stream if omitted
@@ -138,8 +138,8 @@ module WifiWand
             @out_stream.puts '✅ WifiWand macOS setup is complete! All requirements are satisfied.'
             @out_stream.puts
             @out_stream.puts 'You can use wifi-wand commands:'
-            @out_stream.puts '  wifi-wand a              # Show available networks'
-            @out_stream.puts '  wifi-wand info           # Show current connection info'
+            @out_stream.puts '  wifiwand a              # Show available networks'
+            @out_stream.puts '  wifiwand info           # Show current connection info'
             true
           end
 
@@ -293,12 +293,12 @@ module WifiWand
 
               Once enabled, run any wifi-wand command to verify it works:
 
-                wifi-wand a              # Show available networks
-                wifi-wand info           # Show current connection info
+                wifiwand a              # Show available networks
+                wifiwand info           # Show current connection info
 
               If you don't see 'wifiwand-helper' in the list, try running:
 
-                wifi-wand-macos-setup --reinstall
+                wifiwand-macos-setup --reinstall
 
             INSTRUCTIONS
           end

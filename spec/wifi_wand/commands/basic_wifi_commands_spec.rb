@@ -11,32 +11,32 @@ RSpec.describe 'basic WiFi commands' do
     {
       command_class: WifiWand::Commands::On,
       model_method:  :wifi_on,
-      usage:         'Usage: wifi-wand on',
+      usage:         'Usage: wifiwand on',
       description:   'turn WiFi on',
     },
     {
       command_class: WifiWand::Commands::Off,
       model_method:  :wifi_off,
-      usage:         'Usage: wifi-wand off',
+      usage:         'Usage: wifiwand off',
       description:   'turn WiFi off',
     },
     {
       command_class: WifiWand::Commands::Cycle,
       model_method:  :cycle_network,
-      usage:         'Usage: wifi-wand cycle',
+      usage:         'Usage: wifiwand cycle',
       description:   'cycle WiFi off and back on',
     },
     {
       command_class: WifiWand::Commands::Disconnect,
       model_method:  :disconnect,
-      usage:         'Usage: wifi-wand disconnect',
+      usage:         'Usage: wifiwand disconnect',
       description:   'disconnect from the current WiFi network without turning WiFi off',
     },
   ].each do |command_case|
     describe command_case[:command_class] do
       let(:mock_model) { double('model') }
       let(:cli) do
-        double('cli', model: mock_model, help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        double('cli', model: mock_model, help_hint: "Use 'wifiwand help' or 'wifiwand -h' for help.")
       end
 
       it_behaves_like 'binds command context', bound_attributes: { model: :mock_model }
@@ -61,7 +61,7 @@ RSpec.describe 'basic WiFi commands' do
             .to raise_error(WifiWand::ConfigurationError) { |error|
               expect(error.message).to include('Unexpected argument(s): extra')
               expect(error.message).to include(command_case[:usage])
-              expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+              expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
             }
         end
       end
