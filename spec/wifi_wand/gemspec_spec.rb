@@ -14,6 +14,8 @@ RSpec.describe 'wifi-wand.gemspec packaging' do
       'docs/MACOS_HELPER_APP_DETAILS.md',
       'docs/CHANGELOG_V2_TO_V3.md',
       'docs/BREAKING_CHANGES_V3.md',
+      'exe/wifiwand',
+      'exe/wifiwand-macos-setup',
       'exe/wifi-wand',
       'exe/wifi-wand-macos-setup',
       'lib/wifi_wand/platforms/mac/helper/bundle.rb',
