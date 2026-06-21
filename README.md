@@ -602,7 +602,7 @@ the command line or `ro 'ipl'` in the shell will open that page in your browser 
 ### Password Lookup Oddity
 
 You may find it odd (I did, anyway) that on macOS even if you issue the password command
-(`wifiwand password a-network-name`) using sudo, you will still be prompted 
+(`wifiwand password a-network-name`) using sudo, you will still be prompted
 with a graphical dialog for both a user id and password. This is no doubt
 for better security, but it's unfortunate in that it makes it impossible to fully automate this task.
 
