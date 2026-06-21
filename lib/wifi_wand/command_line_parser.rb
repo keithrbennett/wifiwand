@@ -84,6 +84,7 @@ module WifiWand
 
         parser.on('-o', '--output-format FORMAT', '--output_format FORMAT', 'Format output data') do |value|
           specified_invocation_options << :output_format
+          options.output_format = normalized_format_choice(value)
           options.post_processor = formatter_for(value)
         end
 
@@ -123,6 +124,8 @@ module WifiWand
         options.argv = selected_command_argv
       end
       options.command_options = command_options
+      options.raw_argv = raw_cli_args.dup
+      options.wifi_wand_opts_env = @env['WIFIWAND_OPTS']
 
       options
     end

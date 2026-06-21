@@ -137,7 +137,8 @@ describe WifiWand::CommandLineInterface do
         body:    '{"ip":"bad"}'
       )
       err_stream = StringIO.new
-      opts = create_cli_options(verbose: true)
+      out = StringIO.new
+      opts = create_cli_options(verbose: true, out_stream: out)
       opts.err_stream = err_stream
       cli = described_class.new(opts)
       allow(cli).to receive_messages(
@@ -167,6 +168,123 @@ describe WifiWand::CommandLineInterface do
       expect(cli.call).to eq(described_class::FAILURE_EXIT_CODE)
       hint_count = err_stream.string.scan('Type help for usage').length
       expect(hint_count).to eq(1)
+    end
+
+    describe 'verbose argument output' do
+      let(:out_stream) { StringIO.new }
+      let(:err_stream) { StringIO.new }
+
+      def build_opts(overrides = {})
+        create_cli_options(
+          verbose:    true,
+          raw_argv:   ['-v', 'true', 'info'],
+          argv:       ['info'],
+          err_stream: err_stream,
+          out_stream: out_stream,
+          **overrides
+        )
+      end
+
+      def stub_cli_success(cli)
+        allow(cli).to receive_messages(
+          validate_command_line: described_class::SUCCESS_EXIT_CODE,
+          process_command_line:  'command_result'
+        )
+      end
+
+      it 'shows run timestamp in local time by default' do
+        cli = described_class.new(build_opts)
+        stub_cli_success(cli)
+
+        cli.call
+        expect(out_stream.string).to include('Run at:')
+      end
+
+      it 'shows run timestamp in UTC when utc option is set' do
+        utc_opts = build_opts(utc: true)
+        cli = described_class.new(utc_opts)
+        stub_cli_success(cli)
+        allow(Time).to receive(:now).and_return(Time.new(2026, 1, 1, 0, 0, 0, '+00:00'))
+
+        cli.call
+        expect(out_stream.string).to include('Run at:')
+        expect(out_stream.string).to include('UTC')
+      end
+
+      it 'prints argument diagnostics when verbose mode is enabled' do
+        cli = described_class.new(build_opts)
+        stub_cli_success(cli)
+
+        expect(cli.call).to eq(described_class::SUCCESS_EXIT_CODE)
+        separator = '-' * 79
+        expect(out_stream.string).to include(separator)
+        expect(out_stream.string).to include('Run at:')
+        expect(out_stream.string).to include('WIFIWAND_OPTS: nil')
+        expect(out_stream.string).to include('raw_argv: ["-v", "true", "info"]')
+        expect(out_stream.string).to include('Command: info')
+        expect(out_stream.string).to include('verbose=true')
+        expect(out_stream.string).to include('utc=false')
+        expect(out_stream.string).to include('wifi_interface=nil')
+        expect(out_stream.string).to include('output_format=nil')
+        expect(out_stream.string.scan(separator).length).to eq(2)
+      end
+
+      it 'skips argument diagnostics when verbose mode is disabled' do
+        quiet_opts = build_opts(verbose: false)
+        cli = described_class.new(quiet_opts)
+        stub_cli_success(cli)
+
+        cli.call
+        expect(out_stream.string).to be_empty
+      end
+
+      it 'uses human-readable format names' do
+        fmt_opts = build_opts(raw_argv: ['-v', 'true', '-o', 'a', 'info'], output_format: 'a')
+        cli = described_class.new(fmt_opts)
+        stub_cli_success(cli)
+
+        cli.call
+        expect(out_stream.string).to include('raw_argv: ["-v", "true", "-o", "a", "info"]')
+        expect(out_stream.string).to include('output_format=amazing_print')
+      end
+
+      it 'shows WIFIWAND_OPTS env var value when set' do
+        env_opts = build_opts(wifi_wand_opts_env: '--utc true')
+        cli = described_class.new(env_opts)
+        stub_cli_success(cli)
+
+        cli.call
+        expect(out_stream.string).to include('WIFIWAND_OPTS: "--utc true"')
+      end
+
+      it 'reads WIFIWAND_OPTS from the options struct, not the process-global ENV' do
+        allow(ENV).to receive(:[]).with('WIFIWAND_OPTS').and_return('--from-global-env')
+        env_opts = build_opts(wifi_wand_opts_env: '--from-injected-env')
+        cli = described_class.new(env_opts)
+        stub_cli_success(cli)
+
+        cli.call
+        expect(out_stream.string).to include('WIFIWAND_OPTS: "--from-injected-env"')
+        expect(out_stream.string).not_to include('--from-global-env')
+      end
+
+      it 'coerces nil booleans to false' do
+        nil_bool_opts = build_opts(utc: nil)
+        cli = described_class.new(nil_bool_opts)
+        stub_cli_success(cli)
+
+        cli.call
+        expect(out_stream.string).to include('utc=false')
+      end
+
+      it 'preserves explicit boolean true values' do
+        true_opts = build_opts(utc: true)
+        cli = described_class.new(true_opts)
+        stub_cli_success(cli)
+
+        cli.call
+        expect(out_stream.string).to include('utc=true')
+      end
     end
   end
 

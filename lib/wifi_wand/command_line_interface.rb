@@ -92,6 +92,8 @@ module WifiWand
       return validation_status unless validation_status == SUCCESS_EXIT_CODE
 
       begin
+        output_arguments if verbose? && !shell_command?
+
         # By this time, the Main class has removed the command line options, and all that is left
         # in argv is the command and its options.
         process_command_line
@@ -101,6 +103,45 @@ module WifiWand
         @err_stream.puts help_hint if append_help_hint?(e)
         FAILURE_EXIT_CODE
       end
+    end
+
+    FORMAT_DISPLAY_NAMES = {
+      'a' => 'amazing_print',
+      'i' => 'inspect',
+      'j' => 'json',
+      'J' => 'pretty_json',
+      'p' => 'puts',
+      'P' => 'pp',
+      'y' => 'yaml',
+    }.freeze
+
+    private def output_arguments
+      out_stream.puts '-' * 79
+      out_stream.puts "Run at: #{run_timestamp}"
+      out_stream.puts "WIFIWAND_OPTS: #{options.wifi_wand_opts_env.inspect}"
+      out_stream.puts "raw_argv: #{options.raw_argv.inspect}"
+      out_stream.puts "Command: #{@argv.first}"
+      parts = [
+        "verbose=#{!!options.verbose}",
+        "utc=#{!!options.utc}",
+        "wifi_interface=#{options.wifi_interface.inspect}",
+      ]
+      if options.output_format
+        label = FORMAT_DISPLAY_NAMES[options.output_format] || options.output_format.inspect
+        parts << "output_format=#{label}"
+      else
+        parts << 'output_format=nil'
+      end
+      out_stream.puts "Options: #{parts.join(' ')}"
+      out_stream.puts '-' * 79
+    end
+
+    private def run_timestamp
+      options.utc ? Time.now.utc : Time.now
+    end
+
+    private def shell_command?
+      find_command(@argv.first).is_a?(Commands::Shell)
     end
 
     private def append_help_hint?(error)

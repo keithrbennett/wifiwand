@@ -57,7 +57,7 @@ describe 'Output Format End-to-End Tests' do
 
   # Helper method to parse command line arguments
   def parse_options(*args)
-    WifiWand::CommandLineParser.new(args, ENV, $stderr).parse
+    WifiWand::CommandLineParser.new(args, {}, $stderr).parse
   end
 
   def invoke_command(cli, command_name, *args)

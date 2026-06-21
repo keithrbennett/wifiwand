@@ -7,7 +7,7 @@ describe WifiWand::CommandLineParser do
   let(:err_stream) { StringIO.new }
 
   def parse_with_argv(*args)
-    described_class.new(args, ENV, err_stream).parse
+    described_class.new(args, {}, err_stream).parse
   end
 
   describe '#parse' do
@@ -122,7 +122,7 @@ describe WifiWand::CommandLineParser do
     %w[-v --verbose].each do |option|
       it "raises a configuration error when #{option} has no value" do
         expect do
-          described_class.new([option], ENV, err_stream).parse
+          described_class.new([option], {}, err_stream).parse
         end.to raise_error(WifiWand::ConfigurationError) { |error|
           expect(error.message).to include("missing argument: #{option}")
           expect(error.message).to include('Use -h or --help to see available options.')
