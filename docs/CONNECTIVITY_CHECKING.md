@@ -201,7 +201,7 @@ Internet is considered `reachable` only when all required checks pass.
 
 ## Captive Portal Detection
 
-Beyond basic TCP and DNS checks, wifi-wand can detect **captive portals**: the
+Beyond basic TCP and DNS checks, wifiwand can detect **captive portals**: the
 interception pages common in hotels, airports, and coffee shops that block real
 internet access behind a login screen.
 

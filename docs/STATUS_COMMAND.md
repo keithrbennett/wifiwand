@@ -75,7 +75,7 @@ On terminals that support it, the status is color-coded for at-a-glance readabil
 ## Captive Portal Detection
 
 A captive portal is a network that intercepts HTTP traffic to redirect users to a login page
-(common in hotels, airports, coffee shops, etc.). wifi-wand detects this by:
+(common in hotels, airports, coffee shops, etc.). wifiwand detects this by:
 
 1. Checking TCP connectivity (layer 4)
 2. Checking DNS resolution
@@ -96,7 +96,7 @@ machine-readable output formats.
 In JSON they appear as strings. In Ruby-oriented formats such as inspect/YAML or
 in the interactive shell, they appear as symbols.
 
-If you are scripting against `wifi-wand`, prefer machine-readable output such as JSON (`-o j`)
+If you are scripting against `wifiwand`, prefer machine-readable output such as JSON (`-o j`)
 instead of parsing the human-formatted status line. Structured output is simpler to consume and
 less likely to change over time.
 

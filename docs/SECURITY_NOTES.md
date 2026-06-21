@@ -1,16 +1,16 @@
 # Security Notes
 
-`wifi-wand` is intended for individual users on machines they control. It treats WiFi passwords as local
+`wifiwand` is intended for individual users on machines they control. It treats WiFi passwords as local
 network credentials, not as login passwords, API keys, or other high-value application secrets.
 
 Some commands may still expose WiFi passwords to local machine surfaces. This is a usability and debugging
-tradeoff: `wifi-wand` delegates WiFi operations to operating system tools and lets users pass credentials
+tradeoff: `wifiwand` delegates WiFi operations to operating system tools and lets users pass credentials
 directly when that is the simplest workflow.
 
 Potential exposure surfaces include:
 
 - Shell history when a password is typed as a command-line argument.
-- Local process listings while `wifi-wand` or child tools are running.
+- Local process listings while `wifiwand` or child tools are running.
 - Child process arguments passed to OS tools such as `nmcli`, `networksetup`, Swift helper paths, or
   `qrencode`.
 - Verbose mode output, which may print password-bearing commands or command output.

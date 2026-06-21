@@ -2,13 +2,13 @@
 
 ## Overview
 
-Unlike macOS (which requires location permission for WiFi scanning), `wifi-wand` on Ubuntu and Ubuntu-based
+Unlike macOS (which requires location permission for WiFi scanning), `wifiwand` on Ubuntu and Ubuntu-based
 distributions (Linux Mint, Pop!_OS, elementary OS, etc.) works out-of-the-box on most standard installations.
 It relies on the industry-standard **NetworkManager** suite.
 
 ## Requirements
 
-`wifi-wand` requires **Ruby >= 3.2.0** and the following core Ubuntu tools:
+`wifiwand` requires **Ruby >= 3.2.0** and the following core Ubuntu tools:
 
 - **NetworkManager** (`nmcli`): Required for managing connections, status, WiFi radio state, and DNS settings.
 - **iw**: Required for WiFi interface detection and wireless capability checks.
@@ -34,7 +34,7 @@ sudo apt install network-manager iw iproute2 qrencode xdg-utils
 
 ## User Permissions
 
-For most commands, `wifi-wand` uses the current user's permissions via `nmcli`.
+For most commands, `wifiwand` uses the current user's permissions via `nmcli`.
 
 - **Standard usage**: Read-only commands usually work without additional privileges.
 - **Network changes**: Connecting, disconnecting, toggling WiFi, or changing DNS settings may require
@@ -52,7 +52,7 @@ When you connect to a network named "MyWiFi", NetworkManager creates a profile (
 you connect to multiple networks with the same name or change settings, you might end up with profiles named
 "MyWiFi 1", etc.
 
-`wifi-wand` handles this by:
+`wifiwand` handles this by:
 1. Scanning for available SSIDs.
 2. Matching SSIDs to the most recently used connection profile.
 3. Automatically creating or updating profiles as needed during connection.
@@ -81,7 +81,7 @@ sudo systemctl enable --now NetworkManager
 
 ### No WiFi Interface Found
 
-If `wifi-wand` cannot find your WiFi interface:
+If `wifiwand` cannot find your WiFi interface:
 1. Verify the hardware is detected: `iw dev`
 2. Ensure the radio is on: `nmcli radio wifi`
 3. If using a custom interface, specify it with `-p`: `wifiwand -p wlan0 status`
@@ -95,7 +95,7 @@ sudo apt install qrencode
 
 ### No Visible Networks Found
 
-If `wifi-wand` reports no visible networks but you expect to see some:
+If `wifiwand` reports no visible networks but you expect to see some:
 1. Trigger a manual scan: `nmcli device wifi rescan`
 2. Ensure your WiFi radio is on: `nmcli radio wifi`
 3. Check that your hardware and drivers are working: `iw dev`

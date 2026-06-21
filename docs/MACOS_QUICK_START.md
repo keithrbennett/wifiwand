@@ -14,12 +14,12 @@ wifiwand-macos-setup
 
 Then grant Location Services access to the `wifiwand-helper` helper application when System Settings opens.
 
-This setup gives wifi-wand a stable macOS app identity for permission-sensitive WiFi reads such as current
+This setup gives wifiwand a stable macOS app identity for permission-sensitive WiFi reads such as current
 network lookup and nearby network scans. Without it, macOS may return `<hidden>`, `<redacted>`, blank values,
 or no usable SSID.
 
 On macOS 13 and earlier, this setup is not needed. The compiled helper application is built for macOS 14 or
-later, and wifi-wand does not use it on older macOS versions.
+later, and wifiwand does not use it on older macOS versions.
 
 ## Setup Steps
 

@@ -1,6 +1,6 @@
 # Environment Variables Reference
 
-This document lists all environment variables that affect wifi-wand behavior.
+This document lists all environment variables that affect wifiwand behavior.
 
 ## Runtime Variables
 
@@ -24,7 +24,7 @@ wifiwand -v true info
 ```
 
 On Ubuntu, `connect` commands that include an inline password intentionally
-show the exact password-bearing `nmcli` command. wifi-wand targets
+show the exact password-bearing `nmcli` command. wifiwand targets
 single-user machines under the operator's control, and preserving the exact
 credential is considered more useful for troubleshooting than hiding it.
 Avoid inline passwords on systems where local process inspection is not
@@ -52,11 +52,11 @@ wifiwand log
 - **Overrides:** Later command-line arguments can override most defaults, but commands (e.g., `shell`) cannot
   be negated.
 - **Scope:** `WIFIWAND_OPTS` can include invocation-wide defaults such as `--verbose true`, `--utc true`, or
-  `--output-format y`. If a selected command does not use one of those defaults, wifi-wand ignores it for that
+  `--output-format y`. If a selected command does not use one of those defaults, wifiwand ignores it for that
   command. Command-specific options are still validated against the selected command: `--interval 10` is valid
   when the invocation runs `log`, but invalid when it runs `info`. Unknown options always abort with a
   configuration error.
-- **Parsing errors:** If the value contains unmatched quotes or otherwise cannot be parsed, wifi-wand aborts
+- **Parsing errors:** If the value contains unmatched quotes or otherwise cannot be parsed, wifiwand aborts
   with a configuration error.
 
 ## Test Configuration Variables
