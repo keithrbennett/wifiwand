@@ -12,7 +12,11 @@ def run_loaded_executable(path, *argv)
   RUBY
 
   stdout, stderr, status = Open3.capture3(RbConfig.ruby, '-e', ruby_source, chdir: repo_root)
-  { stdout: stdout.force_encoding('UTF-8'), stderr: stderr.force_encoding('UTF-8'), exit_code: status.exitstatus }
+  {
+    stdout:    stdout.force_encoding('UTF-8'),
+    stderr:    stderr.force_encoding('UTF-8'),
+    exit_code: status.exitstatus
+  }
 end
 
 RSpec.describe 'exe/wifiwand' do
@@ -35,10 +39,12 @@ RSpec.describe 'exe/wifiwand' do
     expect(result[:stderr]).to eq('')
   end
 
-  it 'no-command output refers to wifiwand, not wifi-wand' do
+  it 'no-command help hint refers to wifiwand, not wifi-wand' do
     result = run_loaded_executable(executable_path)
 
-    expect(result[:stderr]).to include('wifiwand')
+    # The program name in "Syntax is: <name>" reflects $0 at runtime, which is
+    # "-e" under ruby -e. Assert on the help hint instead, which is hardcoded.
+    expect(result[:stderr]).to include("'wifiwand help'")
     expect(result[:stderr]).not_to match(/wifi-wand/)
     expect(result[:stdout]).to eq('')
   end

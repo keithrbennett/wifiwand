@@ -90,7 +90,7 @@ However, the code encapsulates the OS-specific logic in model subclasses with id
 method names and argument lists, so that they present a unified interface for use in:
 
 * command line invocation (e.g. `wifiwand co my-network my-password` to connect to a network)
-* interactive shell (REPL) sessions where the WiFi-wand methods are effectively DSL commands (`wifiwand
+* interactive shell (REPL) sessions where the wifiwand methods are effectively DSL commands (`wifiwand
   shell` to run in interactive mode)
 * other Ruby applications as a gem (library) (`require 'wifi_wand'`)
 
@@ -368,7 +368,7 @@ wifiwand log --interval 1 --file    # check every 1 second instead of default 5
 The `pry` shell used by wifi_wand outputs the last evaluated value in the terminal session.
 The `amazing_print` gem is used to format that output nicely.
 As with other shells, command return values can also be used in expressions, passed to methods,
-saved in variables, etc. In this example, the value returned by the WiFi-wand command is saved
+saved in variables, etc. In this example, the value returned by the wifiwand command is saved
 in the local variable `local_ip`.
 
 ```
