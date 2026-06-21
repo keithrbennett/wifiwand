@@ -2,4 +2,5 @@
 # frozen_string_literal: true
 
 warn "wifi-wand: deprecated — please use 'wifiwand' instead."
+$0 = File.join(__dir__, 'wifiwand')
 load File.join(__dir__, 'wifiwand')

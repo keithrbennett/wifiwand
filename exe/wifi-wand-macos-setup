@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-Warning[:experimental] = false
 warn "wifi-wand-macos-setup: deprecated — please use 'wifiwand-macos-setup' instead."
+$0 = File.join(__dir__, 'wifiwand-macos-setup')
 load File.join(__dir__, 'wifiwand-macos-setup')
