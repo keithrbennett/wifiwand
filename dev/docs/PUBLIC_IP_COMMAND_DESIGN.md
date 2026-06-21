@@ -38,9 +38,9 @@ short command names with the long and short selectors. For example, all of the
 following are valid:
 
 ```bash
-wifi-wand public_ip
-wifi-wand public_ip address
-wifi-wand public_ip a
+wifiwand public_ip
+wifiwand public_ip address
+wifiwand public_ip a
 wifi-wand pi
 wifi-wand pi country
 wifi-wand pi c

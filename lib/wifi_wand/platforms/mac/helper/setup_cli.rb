@@ -82,7 +82,7 @@ module WifiWand
                 select_action(:reinstall)
               end
               opts.on('--remove',
-                'Remove the installed helper app for this wifi-wand version') do
+                'Remove the installed helper app for this wifiwand version') do
                 select_action(:remove)
               end
             end.parse!(@argv)
@@ -116,7 +116,7 @@ module WifiWand
             @out_stream.puts
             @out_stream.puts "Detected macOS version: #{support_status.macos_version}"
             @out_stream.puts "wifiwand-helper is only used on macOS #{Bundle::MINIMUM_HELPER_VERSION}+."
-            @out_stream.puts 'wifi-wand will continue using fallback WiFi paths on older macOS.'
+            @out_stream.puts 'wifiwand will continue using fallback WiFi paths on older macOS.'
             0
           end
 
@@ -137,7 +137,7 @@ module WifiWand
 
             @out_stream.puts '✅ WifiWand macOS setup is complete! All requirements are satisfied.'
             @out_stream.puts
-            @out_stream.puts 'You can use wifi-wand commands:'
+            @out_stream.puts 'You can use wifiwand commands:'
             @out_stream.puts '  wifiwand a              # Show available networks'
             @out_stream.puts '  wifiwand info           # Show current connection info'
             true
@@ -265,7 +265,7 @@ module WifiWand
               Note: WifiWand found #{install_dir_count} helper version directories in:
                 #{Bundle::INSTALL_PARENT}
 
-              Older helper versions are not used by the current wifi-wand install.
+              Older helper versions are not used by the current wifiwand install.
               You may remove old version directories manually if you want to reclaim space.
               Keep the current version directory: #{Bundle.helper_version}
             NOTICE
@@ -291,7 +291,7 @@ module WifiWand
               3. Check the box next to 'wifiwand-helper' to enable location access
               4. Close System Settings
 
-              Once enabled, run any wifi-wand command to verify it works:
+              Once enabled, run any wifiwand command to verify it works:
 
                 wifiwand a              # Show available networks
                 wifiwand info           # Show current connection info

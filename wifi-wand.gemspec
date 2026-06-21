@@ -92,7 +92,7 @@ Gem::Specification.new do |spec|
     ║  ⚠️  Important for macOS Users (10.15+)                           ║
     ╚═══════════════════════════════════════════════════════════════════╝
 
-    wifi-wand requires Ruby >= 3.2.0 and location permission.
+    wifiwand requires Ruby >= 3.2.0 and location permission.
 
     If you are using an older version, such as version 2.6 shipped with
     macOS, the easiest way to install a modern Ruby is with Homebrew:
@@ -107,7 +107,7 @@ Gem::Specification.new do |spec|
         # Intel Macs:
         export PATH="/usr/local/opt/ruby/bin:$PATH"
 
-    After installing wifi-wand, run the one-time setup script:
+    After installing wifiwand, run the one-time setup script:
 
         wifiwand-macos-setup
 

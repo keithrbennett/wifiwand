@@ -48,7 +48,7 @@ older direct Swift-source transport. Consolidating those paths is a future archi
 **When it's used:**
 - Automatically on macOS 14.0 (Sonoma) and later
 - When WiFi information would otherwise be redacted
-- Only when you run wifi-wand commands that need network details
+- Only when you run wifiwand commands that need network details
 
 ### Downloading or Building from Source
 
@@ -146,7 +146,7 @@ The helper application has **no access** to:
 
 ### When Does macOS Prompt?
 
-- The first wifi-wand command that needs WiFi details launches the `wifiwand-helper` helper application, and
+- The first wifiwand command that needs WiFi details launches the `wifiwand-helper` helper application, and
   macOS immediately asks for Location Services access.
 - The dialog can appear behind other windows; if the command seems stuck, look for the prompt or
   open **System Settings → Privacy & Security → Location Services** to grant access manually once
@@ -270,7 +270,7 @@ You can also manage permissions directly via System Settings:
 1. Open **System Settings**
 2. Go to **Privacy & Security → Location Services**
 3. Scroll to find **wifiwand-helper** (the helper application only appears here after it has run at least
-   once — run any wifi-wand command or `wifiwand-macos-setup` to seed the entry)
+   once — run any wifiwand command or `wifiwand-macos-setup` to seed the entry)
 4. Toggle permission on or off
 
 ---
@@ -367,7 +367,7 @@ The helper application included in wifi-wand is:
 ### What Data is Collected?
 
 The helper application:
-- ✅ Runs only when you invoke wifi-wand commands
+- ✅ Runs only when you invoke wifiwand commands
 - ✅ Returns data only to the wifi-wand process that launched it
 - ✅ Does not send data to any external servers
 - ✅ Does not store data on disk
@@ -398,7 +398,7 @@ You can:
 
 ### Helper Application Installation
 
-The helper application is automatically installed when you first run a wifi-wand command on macOS 14+:
+The helper application is automatically installed when you first run a wifiwand command on macOS 14+:
 
 1. wifi-wand detects macOS version ≥ 14.0
 2. Checks whether the installed helper application exists and matches the helper application currently

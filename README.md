@@ -1,6 +1,6 @@
 ![logo](logo/wifiwand-logo-horizontal-color.png)
 
-# wifi-wand
+# wifiwand
 
 ### Installation
 

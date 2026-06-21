@@ -358,7 +358,7 @@ module WifiWand
 
     private def redacted_identity_reason_for_restore(network_name, error)
       base_reason = error.reason || error.message
-      "timed out waiting for connection; WiFi is associated, but #{base_reason}, so wifi-wand " \
+      "timed out waiting for connection; WiFi is associated, but #{base_reason}, so wifiwand " \
         "cannot verify that it restored '#{network_name}'"
     end
 

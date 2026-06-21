@@ -100,7 +100,7 @@ module WifiWand
           "'eth0' is not a valid WiFi interface"],
         [QrCodeSecurityUndeterminedError, ['MyNet'],
           "Network 'MyNet' security type could not be determined. " \
-            'Pass the optional password argument to generate a QR code because wifi-wand cannot confirm ' \
+            'Pass the optional password argument to generate a QR code because wifiwand cannot confirm ' \
             'whether this network is open.'],
         [QrCodePasswordUnavailableError,  %w[MyNet WPA2],
           "Network 'MyNet' uses WPA2 security, but no saved password is available. " \

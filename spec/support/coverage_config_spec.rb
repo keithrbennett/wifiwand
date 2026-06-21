@@ -66,6 +66,8 @@ RSpec.describe CoverageConfig do
       expect(described_class.tracked_runtime_files).to include(
         'lib/wifi_wand.rb',
         'lib/wifi_wand/main.rb',
+        'exe/wifiwand',
+        'exe/wifiwand-macos-setup',
         'exe/wifi-wand',
         'exe/wifi-wand-macos-setup'
       )

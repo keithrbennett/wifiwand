@@ -1,6 +1,6 @@
-# wifi-wand Documentation Index
+# wifiwand Documentation Index
 
-This directory contains end-user and operator documentation for `wifi-wand`.
+This directory contains end-user and operator documentation for `wifiwand` (gem name: `wifi-wand`).
 
 ## Getting Started
 
