@@ -81,7 +81,7 @@ names.
 
 ### Description
 
-The `wifiwand` gem enables the query and management 
+The `wifiwand` gem enables the query and management
 of WiFi configuration, environment, and behavior, on Mac and Ubuntu systems.
 Internally, it uses OS-specific command line utilities to interact with the
 underlying operating system -- for example, `networksetup`, `system_profiler`,
@@ -601,7 +601,7 @@ the command line or `ro 'ipl'` in the shell will open that page in your browser 
 
 ### Password Lookup Oddity
 
-You may find it odd (I did, anyway) that on macOS even if you issue the password command 
+You may find it odd (I did, anyway) that on macOS even if you issue the password command
 (`wifiwand password a-network-name`) using sudo, you will still be prompted 
 with a graphical dialog for both a user id and password. This is no doubt
 for better security, but it's unfortunate in that it makes it impossible to fully automate this task.
