@@ -449,7 +449,7 @@ bin/mac-helper-release test
 > example via `bin/mac-helper-release test`). Make sure it appears under **System Settings → Privacy &
 > Security →
 > Location Services** and toggle it on before running the test to avoid a hidden prompt that makes the task
-> appear stuck. For the shipped end-user flow, use `wifi-wand-macos-setup`.
+> appear stuck. For the shipped end-user flow, use `wifiwand-macos-setup`.
 
 ---
 

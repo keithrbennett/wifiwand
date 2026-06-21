@@ -90,7 +90,9 @@ RSpec.describe CoverageConfig do
       )
       expect(described_class.simplecov_tracked_patterns).not_to include(
         'exe/wifi-wand',
-        'exe/wifi-wand-macos-setup'
+        'exe/wifi-wand-macos-setup',
+        'exe/wifiwand',
+        'exe/wifiwand-macos-setup'
       )
     end
   end

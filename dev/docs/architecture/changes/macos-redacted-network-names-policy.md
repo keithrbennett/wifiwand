@@ -210,7 +210,7 @@ Pros:
 - simple mental model
 - preserves strong semantics
 - avoids half-supported behavior
-- gives users one obvious fix: run `wifi-wand-macos-setup`
+- gives users one obvious fix: run `wifiwand-macos-setup`
 
 Cons:
 
@@ -236,7 +236,7 @@ The implemented default policy is:
 5. Refuse any requested real-environment test run up front when macOS WiFi
    identity is redacted.
 6. Report the OS constraint explicitly and direct the user to
-   `wifi-wand-macos-setup`.
+   `wifiwand-macos-setup`.
 
 In other words:
 
@@ -375,7 +375,7 @@ Implemented policy:
 - do not partially run requested real-environment tests on redacted macOS
 - fail the real-environment request before the suite starts
 - explain that the environment is invalid for exact-network verification and
-  point the user to `wifi-wand-macos-setup`
+  point the user to `wifiwand-macos-setup`
 
 Rationale:
 
@@ -491,7 +491,7 @@ Preferred shape:
 - command requires exact WiFi network identity
 - macOS is redacting WiFi names because Location Services is not enabled for
   `wifiwand-helper`
-- run `wifi-wand-macos-setup` and grant permission, then retry
+- run `wifiwand-macos-setup` and grant permission, then retry
 
 The current error wording already moves in this direction and should continue to
 be refined for clarity, but the key requirement is consistency:
@@ -505,7 +505,7 @@ For real-environment test refusal, the message should be even more direct:
 - real-environment tests were requested
 - macOS is redacting WiFi identity, so exact-network verification and restore
   are not trustworthy
-- run `wifi-wand-macos-setup`, grant Location Services, then rerun the tests
+- run `wifiwand-macos-setup`, grant Location Services, then rerun the tests
 
 ## Relationship To Existing Changes
 

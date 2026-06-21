@@ -68,7 +68,7 @@ Notes:
 - Helpful Info: Requires sudo privileges; absence of privileges surfaces as an `OsCommandError` to the user.
   Forgetting a network while still connected is useful on macOS because a preferred network can
   auto-reassociate immediately after `disconnect`. If you want a later `disconnect` to stay effective for a
-  network you just joined, a practical pattern is `wifi-wand connect foo && wifi-wand forget foo`. No sleep
+  network you just joined, a practical pattern is `wifiwand connect foo && wifiwand forget foo`. No sleep
   is normally needed because `connect` already waits for the connection to become usable before returning.
 
 ### `networksetup -setdnsservers <service_name> empty`

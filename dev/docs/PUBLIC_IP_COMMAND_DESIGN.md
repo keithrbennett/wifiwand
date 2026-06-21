@@ -41,9 +41,9 @@ following are valid:
 wifiwand public_ip
 wifiwand public_ip address
 wifiwand public_ip a
-wifi-wand pi
-wifi-wand pi country
-wifi-wand pi c
+wifiwand pi
+wifiwand pi country
+wifiwand pi c
 ```
 
 ## Selector Behavior

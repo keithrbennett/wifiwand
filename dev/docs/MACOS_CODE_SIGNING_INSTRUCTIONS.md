@@ -110,7 +110,7 @@ ID identity.
    - Confirms the helper builds, signs, and that your local keychain trusts the certificate.
    - Run the helper once so macOS registers it with Location Services. For maintainer/dev workflows,
      `bin/mac-helper-release test` is sufficient. For the shipped end-user flow, use
-     `wifi-wand-macos-setup` instead
+     `wifiwand-macos-setup` instead
      of any repo-local rake task.
    - After the helper shows up under
      **System Settings → Privacy & Security → Location Services**, toggle it on to avoid the

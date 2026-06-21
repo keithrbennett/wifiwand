@@ -688,7 +688,7 @@ cd ~/Library/Application\ Support/WifiWand/
 ls | grep -v "3.0.0-alpha.1" | xargs rm -rf
 ```
 
-The helper application will be automatically reinstalled the next time you run a wifi-wand command that
+The helper application will be automatically reinstalled the next time you run a wifiwand command that
 requires it. To remove the helper for the currently installed wifi-wand version, run:
 
 ```bash
