@@ -164,7 +164,7 @@ git commit -m "Update signed and notarized macOS helper for <version>"
 # 4. Build and inspect the release candidate payload
 bundle exec rake test
 bundle exec rake build
-tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz
+tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz  # wifi-wand is the gem package name
 
 # 5. Release from the same committed inputs; do not edit after inspecting the payload
 bundle exec rake release build:checksum
@@ -395,7 +395,7 @@ bundle exec rake test
 bundle exec rake build
 
 # Inspect the payload before release
-tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz
+tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz  # wifi-wand is the gem package name
 
 # Create the tag, publish to RubyGems, and checksum the released gem.
 # Do not edit after inspecting the payload; release rebuilds before pushing.

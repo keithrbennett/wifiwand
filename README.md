@@ -365,7 +365,7 @@ wifiwand log --interval 1 --file    # check every 1 second instead of default 5
 
 #### Interactive Shell Commands
 
-The `pry` shell used by wifi_wand outputs the last evaluated value in the terminal session.
+The `pry` shell used by wifiwand outputs the last evaluated value in the terminal session.
 The `amazing_print` gem is used to format that output nicely.
 As with other shells, command return values can also be used in expressions, passed to methods,
 saved in variables, etc. In this example, the value returned by the wifiwand command is saved

@@ -159,7 +159,7 @@ Follow the same sequence each time you change the helper or cut a gem release.
    git commit -m "Update signed and notarized macOS helper for <version>"
    bundle exec rake test
    bundle exec rake build
-   tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz
+   tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz  # wifi-wand is the gem package name
    # Do not edit after inspecting the payload; release rebuilds before pushing.
    bundle exec rake release build:checksum
    ```
