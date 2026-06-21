@@ -1,6 +1,5 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-Warning[:experimental] = false
 warn "wifi-wand: deprecated — please use 'wifiwand' instead."
 load File.join(__dir__, 'wifiwand')

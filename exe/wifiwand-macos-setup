@@ -1,6 +1,8 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
+Warning[:experimental] = false
+
 require_relative '../lib/wifi_wand/platforms/mac/helper/setup_cli'
 
 exit WifiWand::Platforms::Mac::Helper::SetupCli.new(argv: ARGV, out_stream: $stdout, in_stream: $stdin).run
