@@ -2,6 +2,12 @@
 
 ### Breaking Changes
 
+* **The primary executable is now `wifiwand` (no hyphen).** Update every script,
+  alias, and shell function that calls `wifi-wand`. The old `wifi-wand` command
+  remains as a deprecated wrapper that runs the new executable but prints a
+  warning to stderr on every call. The macOS setup helper is similarly renamed
+  to `wifiwand-macos-setup`. The RubyGems gem name (`gem install wifi-wand`) is
+  unchanged.
 * User-visible timestamps now default to local time instead of UTC. Pass `--utc true` or `-u true` before the
   command to print timestamps in UTC.
 * The global verbose option now requires an explicit boolean value. Use `-v true` or `--verbose true` to

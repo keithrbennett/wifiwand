@@ -6,7 +6,68 @@ introduced in version 3.0.
 For a broader summary of version 3 improvements, architecture changes, and
 non-breaking additions, see [Version 2.x to 3.0 Code Base Changes](CHANGELOG_V2_TO_V3.md).
 
+> **Action required for all users:** The primary executable has been renamed
+> from `wifi-wand` to `wifiwand`. Update every script, alias, and shell
+> function that calls `wifi-wand`. The old name still works but prints a
+> deprecation warning to stderr. See the [Executable renamed](#executable-renamed)
+> section below.
+
 ## Breaking Changes
+
+### Executable renamed
+
+#### `wifi-wand` → `wifiwand`
+
+The command you type has changed. Every invocation of `wifi-wand` must be
+updated to `wifiwand`:
+
+```bash
+# Old
+wifi-wand info
+wifi-wand co MyNetwork mypassword
+wifi-wand shell
+
+# New
+wifiwand info
+wifiwand co MyNetwork mypassword
+wifiwand shell
+```
+
+The macOS setup helper has changed in the same way:
+
+```bash
+# Old
+wifi-wand-macos-setup
+
+# New
+wifiwand-macos-setup
+```
+
+**The gem name on RubyGems is unchanged.** Install and upgrade as before:
+
+```bash
+gem install wifi-wand
+```
+
+**Backward compatibility:** The old `wifi-wand` and `wifi-wand-macos-setup`
+commands remain installed as thin wrappers. They run the new executable
+transparently, but print a deprecation notice to stderr on every invocation:
+
+```
+wifi-wand: deprecated — please use 'wifiwand' instead.
+```
+
+Update all scripts, shell aliases, `.zshrc`/`.bashrc` functions, and cron
+entries that call `wifi-wand` before the deprecated wrappers are eventually
+removed in a future major release.
+
+##### Migration checklist
+
+- [ ] Shell aliases — search `~/.zshrc`, `~/.bashrc`, `~/.bash_profile`
+- [ ] Shell functions that call `wifi-wand`
+- [ ] Cron jobs and launchd plists
+- [ ] CI/CD scripts
+- [ ] README or documentation in your own projects
 
 ### Output format flags changed
 
@@ -82,8 +143,8 @@ require 'wifi_wand/platforms/ubuntu/model'
 require 'wifi_wand/platforms/mac/model'
 ```
 
-The gem name and command names are unchanged: install `wifi-wand` and run the
-CLI as `wifiwand`.
+The gem name is unchanged: install with `gem install wifi-wand`. The CLI
+executable is now `wifiwand` (see [Executable renamed](#executable-renamed)).
 
 ### macOS helper runtime naming
 
