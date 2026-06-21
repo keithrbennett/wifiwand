@@ -2,7 +2,7 @@
 
 # Encapsulates the business logic for checking, installing, reinstalling, and removing
 # the wifiwand-helper on macOS. This class is the authoritative source of
-# truth for setup status; the exe/wifi-wand-macos-setup script delegates
+# truth for setup status; the exe/wifiwand-macos-setup script delegates
 # all decisions to it.
 #
 # Usage:
@@ -120,7 +120,7 @@ module WifiWand
             Bundle.installed_bundle_path
           end
 
-          # Remove the helper application files installed for the current wifi-wand
+          # Remove the helper application files installed for the current wifiwand
           # version. This intentionally does not try to mutate macOS TCC permission
           # records; users can revoke Location Services access in System Settings.
           #

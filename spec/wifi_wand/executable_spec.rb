@@ -26,6 +26,14 @@ RSpec.describe 'exe/wifiwand' do
     expect(result[:stdout]).to eq("#{WifiWand::VERSION}\n")
     expect(result[:stderr]).to eq('')
   end
+
+  it 'usage output refers to wifiwand, not wifi-wand' do
+    result = run_loaded_executable(executable_path, '--help')
+
+    expect(result[:stdout]).to include('wifiwand')
+    expect(result[:stdout]).not_to match(/Usage:.*wifi-wand/)
+    expect(result[:stderr]).to eq('')
+  end
 end
 
 RSpec.describe 'exe/wifi-wand (deprecated wrapper)' do

@@ -68,7 +68,7 @@ module WifiWand
     #
     # Accepted input types:
     # - Network name: String or Symbol (required, max 32 UTF-8 bytes)
-    # - Password: String, Symbol, or nil (optional WiFi credential. wifi-wand
+    # - Password: String, Symbol, or nil (optional WiFi credential. wifiwand
     #   rejects malformed raw PSKs and overlong passphrases, but leaves
     #   network-specific credential rules to the OS-specific connection layer.)
     #

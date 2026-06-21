@@ -328,7 +328,7 @@ However, if I forget to quote the filename, the program exits:
 
 ```
 [2] pry(#<WifiWandView>)> File.write(x, info)
-➜  wifi-wand git:(master) ✗  
+➜  wifiwand git:(master) ✗  
 ```
 
 What happened? `x` was assumed by Ruby to be a method name.

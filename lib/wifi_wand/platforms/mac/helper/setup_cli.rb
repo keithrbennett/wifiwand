@@ -3,7 +3,7 @@
 # Orchestrates the user-facing macOS setup, reinstall, and remove flows.
 # All decision logic lives in Setup; this class owns output
 # formatting, step sequencing, and the ENTER-to-continue prompt so that
-# the exe/wifi-wand-macos-setup script stays trivially thin and the flow
+# the exe/wifiwand-macos-setup script stays trivially thin and the flow
 # can be exercised in unit tests without spawning a subprocess.
 #
 # Usage (from the exe):
