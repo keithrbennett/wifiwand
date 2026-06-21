@@ -5,7 +5,7 @@ version.
 
 ## Runtime Install Location
 
-`wifi-wand` installs the helper into a shared per-user directory:
+`wifiwand` installs the helper into a shared per-user directory:
 
 `~/Library/Application Support/WifiWand/<gem-version>/wifiwand-helper.app`
 
@@ -14,7 +14,7 @@ That means:
 - `mise` and `rbenv` do not each keep an independently registered helper inside their own gem homes at
   runtime.
 - Both environments converge on the same user-level install area.
-- If both environments use the same `wifi-wand` version, they target the same installed helper path.
+- If both environments use the same `wifiwand` version, they target the same installed helper path.
 - If they use different gem versions, they get different helper bundle paths under different version
   directories.
 
@@ -54,7 +54,7 @@ Because of that, the correct statement is:
 - The design goal is permission continuity across gem versions.
 - If macOS prompts again after an upgrade, that would be an OS-level edge case, not the intended application
   model.
-- If helper bundle files change within the same gem version, wifi-wand now treats the installed helper as
+- If helper bundle files change within the same gem version, wifiwand now treats the installed helper as
   stale and reinstalls it before use.
 
 ## Bottom Line

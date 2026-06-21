@@ -1,6 +1,6 @@
 # Isolated AI Dev VM Setup
 
-This guide describes a VM-based development workflow for `wifi-wand` when you want stronger isolation than a
+This guide describes a VM-based development workflow for `wifiwand` when you want stronger isolation than a
 standard devcontainer provides.
 
 The core idea is:
@@ -287,7 +287,7 @@ This role should be enough to prove Ansible connectivity and package installatio
 
 Keep this simple at first. Use the distro Ruby or a version manager only if you actually need it.
 
-Because `wifi-wand` currently requires Ruby `>= 3.2.0`, ensure your VM’s Ruby satisfies that. If the distro
+Because `wifiwand` currently requires Ruby `>= 3.2.0`, ensure your VM’s Ruby satisfies that. If the distro
 package is too old, install a version manager in this role instead.
 
 Minimum tasks:
@@ -366,9 +366,9 @@ bundle -v
 rg --version
 ```
 
-Do not clone `wifi-wand` until the base toolchain is correct.
+Do not clone `wifiwand` until the base toolchain is correct.
 
-## Step 12: Clone `wifi-wand` Inside the VM
+## Step 12: Clone `wifiwand` Inside the VM
 
 SSH into the guest and clone the repo into the guest filesystem:
 

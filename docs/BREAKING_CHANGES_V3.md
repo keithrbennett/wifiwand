@@ -119,8 +119,8 @@ wifiwand -o a info | tee wifi-info.txt
 
 #### `awesome_print` replaced by `amazing_print`
 
-wifi-wand now depends on `amazing_print` for human-readable object formatting.
-Ruby consumers that indirectly relied on wifi-wand to make `awesome_print`
+wifiwand now depends on `amazing_print` for human-readable object formatting.
+Ruby consumers that indirectly relied on wifiwand to make `awesome_print`
 available must add their own direct `awesome_print` dependency or migrate to
 `amazing_print`.
 
@@ -284,7 +284,7 @@ The `ci` command no longer represents connectivity as `true` / `false`.
 
 #### WiFi-off connectivity behavior changed
 
-`wifi-wand` no longer assumes that WiFi being off means Internet connectivity is
+`wifiwand` no longer assumes that WiFi being off means Internet connectivity is
 unavailable, because connectivity may come from another interface such as
 Ethernet.
 
@@ -300,7 +300,7 @@ The local IPv4 field in `info` has been renamed from `ip_address` to
 `ipv4_addresses`. `info["ipv4_addresses"]` and `BaseModel#ipv4_addresses` now
 return arrays of IPv4 addresses instead of a single string or `nil`.
 
-This lets wifi-wand report every IPv4 address assigned to the WiFi interface.
+This lets wifiwand report every IPv4 address assigned to the WiFi interface.
 Interfaces with no assigned IPv4 address now report an empty array.
 `BaseModel#ip_address` has been removed; callers must use
 `BaseModel#ipv4_addresses`.

@@ -25,7 +25,7 @@ This is only a credential refresh for notarization.
 3. Open `Sign-In and Security`
 4. Open `App-Specific Passwords`
 5. Create a new password
-6. Label it something like `wifi-wand notarization`
+6. Label it something like `wifiwand notarization`
 7. Copy it immediately
 
 Apple will not show this password again later.

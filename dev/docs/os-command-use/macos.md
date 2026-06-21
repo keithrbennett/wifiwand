@@ -2,11 +2,11 @@
 ### OS_COMMAND_USE_MACOS.md
 ### 2025-10-29 14:33:54 UTC
 
-This document outlines the shell commands used by `wifi-wand` on the macOS operating system.
+This document outlines the shell commands used by `wifiwand` on the macOS operating system.
 
 Notes:
 - macOS differentiates network service labels (e.g., "Wi-Fi") from interface devices (e.g., `en0`).
-  `wifi-wand` captures both so each command receives the argument it expects.
+  `wifiwand` captures both so each command receives the argument it expects.
 - Several commands warm detection caches that later operations reuse; listed CLI commands indicate where users
   may observe the behavior.
 

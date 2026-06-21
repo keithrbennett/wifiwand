@@ -16,7 +16,7 @@
 * `info["ip_address"]` has been renamed to `info["ipv4_addresses"]`; the new field returns an array of IPv4
   addresses instead of a single string or `nil`.
 * Replace the transitive `awesome_print` dependency with `amazing_print` for human-readable object formatting.
-  Ruby consumers that relied on wifi-wand to provide `awesome_print` must add their own direct dependency or
+  Ruby consumers that relied on wifiwand to provide `awesome_print` must add their own direct dependency or
   migrate to `amazing_print`.
 * `-o a` Amazing Print output now lets `amazing_print` decide whether to emit ANSI color instead of forcing
   plain text. It uses color when stdout is a terminal and plain text when output is piped or redirected; pipe
@@ -48,7 +48,7 @@
 * Retry transient public IP lookup failures with short exponential backoff while preserving immediate
   failures for rate limits and non-retryable client errors.
 * Add the `rmac` / `random_mac` command for generating locally administered unicast MAC addresses.
-* Make `wifi-wand qr` print an ANSI QR code to stdout by default. Passing a filename still writes a QR image
+* Make `wifiwand qr` print an ANSI QR code to stdout by default. Passing a filename still writes a QR image
   file, and `BaseModel#print_qr_code` gives library callers an explicit stdout-oriented API.
 
 ## v3.0.0-alpha.1

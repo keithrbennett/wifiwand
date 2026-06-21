@@ -1,6 +1,6 @@
-# macOS Code Signing Instructions for wifi-wand
+# macOS Code Signing Instructions for wifiwand
 
-> Audience: wifi-wand maintainers who need to produce the signed and notarized `wifiwand-helper.app` that
+> Audience: wifiwand maintainers who need to produce the signed and notarized `wifiwand-helper.app` that
 > ships with each gem release.
 
 This page is intentionally short so you can follow it during a release. When you need the “why” behind any
@@ -26,7 +26,7 @@ source to produce their own signed macOS app.
 
 Run the helper release workflow when either condition is true:
 
-- You are cutting a new wifi-wand gem release.
+- You are cutting a new wifiwand gem release.
 - You changed helper Swift source, helper entitlements, or committed helper bundle metadata and that change
   must ship in the next release.
 
@@ -72,7 +72,7 @@ ID identity.
      Copy the exact identity string (e.g., `Developer ID Application: Your Name (TEAM123ABCD)`).
 
 2. **Confirm the official public signing values**
-   - Official wifi-wand release helpers must use the project maintainer's Developer ID.
+   - Official wifiwand release helpers must use the project maintainer's Developer ID.
    - The release helper source tracks the public Team ID and codesign identity used for official releases.
    - If the official certificate changes, update those tracked official defaults as part of that release.
    - For local, non-distribution signing experiments only, override with `WIFIWAND_APPLE_TEAM_ID` and
@@ -80,7 +80,7 @@ ID identity.
 
 3. **Generate the notarization password**
    - Visit https://appleid.apple.com → *Security → App-Specific Passwords* → `+`.
-   - Label it “wifi-wand notarization” (or similar) and copy the `xxxx-xxxx-xxxx-xxxx` password.
+   - Label it “wifiwand notarization” (or similar) and copy the `xxxx-xxxx-xxxx-xxxx` password.
 
 4. **Store a secure `notarytool` profile in your keychain**
    - Inspect the public signing configuration if needed:
