@@ -12,7 +12,7 @@ def run_loaded_executable(path, *argv)
   RUBY
 
   stdout, stderr, status = Open3.capture3(RbConfig.ruby, '-e', ruby_source, chdir: repo_root)
-  { stdout: stdout, stderr: stderr, exit_code: status.exitstatus }
+  { stdout: stdout.force_encoding('UTF-8'), stderr: stderr.force_encoding('UTF-8'), exit_code: status.exitstatus }
 end
 
 RSpec.describe 'exe/wifiwand' do
@@ -33,6 +33,14 @@ RSpec.describe 'exe/wifiwand' do
     expect(result[:stdout]).to include('wifiwand')
     expect(result[:stdout]).not_to match(/Usage:.*wifi-wand/)
     expect(result[:stderr]).to eq('')
+  end
+
+  it 'no-command output refers to wifiwand, not wifi-wand' do
+    result = run_loaded_executable(executable_path)
+
+    expect(result[:stderr]).to include('wifiwand')
+    expect(result[:stderr]).not_to match(/wifi-wand/)
+    expect(result[:stdout]).to eq('')
   end
 end
 
