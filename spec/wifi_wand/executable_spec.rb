@@ -48,6 +48,7 @@ RSpec.describe 'exe/' do
     it 'no-command syntax output names the wifiwand executable' do
       result = run_loaded_executable(executable_path)
 
+      expect(result[:exit_code]).to eq(1)
       expect(result[:stderr]).to include('Syntax is: wifiwand')
       expect(result[:stderr]).to include("'wifiwand help'")
       expect(result[:stderr]).not_to include('wifi-wand')
@@ -69,9 +70,21 @@ RSpec.describe 'exe/' do
     it 'no-command syntax output names wifiwand, not wifi-wand' do
       result = run_loaded_executable(executable_path)
 
+      expect(result[:exit_code]).to eq(1)
       expect(result[:stderr]).to include('Syntax is: wifiwand')
+      expect(result[:stderr]).to include("'wifiwand help'")
       expect(result[:stderr]).not_to match(/Syntax is:.*wifi-wand/)
       expect(result[:stdout]).to eq('')
+    end
+  end
+
+  describe 'wifi-wand-macos-setup (deprecated wrapper)' do
+    let(:executable_path) { File.join(repo_root, 'exe', 'wifi-wand-macos-setup') }
+
+    it 'prints a deprecation notice to stderr and delegates' do
+      result = run_loaded_executable(executable_path, '--version')
+
+      expect(result[:stderr]).to match(/deprecated.*wifiwand-macos-setup/i)
     end
   end
 end

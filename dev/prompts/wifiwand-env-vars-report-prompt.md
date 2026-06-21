@@ -41,7 +41,7 @@ Write the report to a Markdown file in `dev/reports/`. Name it with today's date
 the topic, and your model or agent name, for example:
 
 ```text
-YYYY-MM-DD-HH-MM-wifi-wand-env-vars-codex.md
+YYYY-MM-DD-HH-MM-wifiwand-env-vars-codex.md
 ```
 
 Use this structure:

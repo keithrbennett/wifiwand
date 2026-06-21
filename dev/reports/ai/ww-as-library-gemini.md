@@ -85,12 +85,12 @@ My analysis after reading the key files confirms the initial assessment and clar
 ## The Path Forward: Decoupling
 
 The goal is to make it so that `require 'wifi_wand'` provides access to the core logic *without* loading any
-of the command-line interface code. The CLI code should only be loaded when the `exe/wifi-wand` executable is
+of the command-line interface code. The CLI code should only be loaded when the `exe/wifiwand` executable is
 run.
 
 This plan has been implemented:
 
-1. **Isolate the CLI Entrypoint:** The main executable `exe/wifi-wand` explicitly requires `wifi_wand/main`,
+1. **Isolate the CLI Entrypoint:** The main executable `exe/wifiwand` explicitly requires `wifi_wand/main`,
    making it the sole entry point for the command-line application.
 
 2. **Decouple the Library:** `lib/wifi_wand.rb` requires the individual components that form the library's

@@ -31,7 +31,7 @@ export PATH="/usr/local/opt/ruby/bin:$PATH"
 #### Ruby < 3.2 is unsupported
 
 Ruby versions older than 3.2 are unsupported because the tracked source uses modern Ruby syntax and APIs. If
-your system Ruby is too old, install a modern Ruby before installing `wifi-wand`.
+your system Ruby is too old, install a modern Ruby before installing `wifi-wand` (the gem name).
 
 #### JRuby Compatibility
 
@@ -57,8 +57,8 @@ exposure points and practical precautions.
 
 ### 🐧 Note for Ubuntu Users
 
-Ubuntu support requires **NetworkManager** (standard on Ubuntu Desktop). 
-`wifiwand` uses `nmcli`, `iw`, and `ip` to manage WiFi. 
+Ubuntu support requires **NetworkManager** (standard on Ubuntu Desktop).
+`wifiwand` uses `nmcli`, `iw`, and `ip` to manage WiFi.
 These are typically pre-installed on Ubuntu systems.
 
 ---
