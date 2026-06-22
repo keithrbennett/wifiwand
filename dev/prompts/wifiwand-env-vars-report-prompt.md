@@ -1,9 +1,9 @@
-# WIFI_WAND Environment Variables Report Prompt
+# WIFIWAND Environment Variables Report Prompt
 
 You are a senior Ruby engineer auditing this repository for configuration surface area and maintainability.
 
 Prepare a comprehensive Markdown report of every environment variable used by this code base whose name starts
-with `WIFI_WAND`.
+with `WIFIWAND_`.
 
 Include the main application and every supporting area of the repository, including scripts, Rake tasks, test
 helpers, specs, executable files, release tooling, documentation examples, and any development utilities.
@@ -27,9 +27,9 @@ helpers, specs, executable files, release tooling, documentation examples, and a
 Use repository tools instead of relying on memory. Start with searches such as:
 
 ```bash
-rg 'WIFI_WAND'
-rg "ENV\\[['\"]WIFI_WAND|ENV\\.fetch\\(['\"]WIFI_WAND"
-rg 'WIFI_WAND' lib exe bin spec test Rakefile rakelib tasks scripts dev docs README* *.gemspec Gemfile
+rg 'WIFIWAND_'
+rg "ENV\\[['\"]WIFIWAND_|ENV\\.fetch\\(['\"]WIFIWAND_"
+rg 'WIFIWAND_' lib exe bin spec test Rakefile rakelib tasks scripts dev docs README* *.gemspec Gemfile
 ```
 
 Broaden the search if this repository uses other directories for scripts, Rake tasks, generated files, or
@@ -49,7 +49,7 @@ Use this structure:
 ### Executive Summary
 
 - Include the generation date and your model or agent name.
-- State how many `WIFI_WAND*` variables were found.
+- State how many `WIFIWAND_*` variables were found.
 - Summarize the main categories of use.
 - Highlight any surprising or risky findings.
 

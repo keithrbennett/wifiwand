@@ -82,12 +82,15 @@ RSpec.describe CoverageConfig do
   end
 
   describe '.simplecov_tracked_patterns' do
-    it 'tracks Ruby files exactly and extensionless executables by glob' do
+    it 'tracks Ruby lib files by name and all executables via the exe/* glob' do
       expect(described_class.simplecov_tracked_patterns).to include(
         'lib/wifi_wand.rb',
         'lib/wifi_wand/main.rb',
         'exe/*'
       )
+      # Individual executable names are not listed as patterns — the exe/* glob
+      # covers all of them (primary executables and deprecated wrappers alike),
+      # so adding new executables does not require updating this list.
       expect(described_class.simplecov_tracked_patterns).not_to include(
         'exe/wifi-wand',
         'exe/wifi-wand-macos-setup',
