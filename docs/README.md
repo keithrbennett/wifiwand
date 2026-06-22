@@ -1,6 +1,6 @@
-# wifiwand Documentation Index
+# WifiWand Documentation Index
 
-This directory contains end-user and operator documentation for `wifiwand` (gem name: `wifi-wand`).
+This directory contains end-user and operator documentation for `WifiWand` (gem name: `wifi-wand`).
 
 ## Getting Started
 
@@ -17,7 +17,7 @@ This directory contains end-user and operator documentation for `wifiwand` (gem 
 - **[Status Command (`s`)](STATUS_COMMAND.md)** - Detailed explanation of the connectivity status display and
   checks.
 - **[Info Command (`i`)](INFO_COMMAND.md)** - Reference for the detailed network configuration output.
-- **[Connectivity Checking (`ci`)](CONNECTIVITY_CHECKING.md)** - How to use `wifiwand` for automated internet
+- **[Connectivity Checking (`ci`)](CONNECTIVITY_CHECKING.md)** - How to use `WifiWand` for automated internet
   health checks.
 - **[DNS Configuration (`na`)](DNS_Configuration_Guide.md)** - Managing nameservers and custom DNS settings.
 
@@ -28,7 +28,7 @@ This directory contains end-user and operator documentation for `wifiwand` (gem 
 
 ## Advanced Usage & Troubleshooting
 
-- **[Environment Variables](ENVIRONMENT_VARIABLES.md)** - Configuring `wifiwand` via the environment
+- **[Environment Variables](ENVIRONMENT_VARIABLES.md)** - Configuring `WifiWand` via the environment
   (including `WIFIWAND_OPTS`).
 
 ## Project History
@@ -44,5 +44,5 @@ This directory contains end-user and operator documentation for `wifiwand` (gem 
 
 ### For Developers and Maintainers
 
-If you are contributing to `wifiwand` or working on the native helper, please see the **[Developer
+If you are contributing to `WifiWand` or working on the native helper, please see the **[Developer
 Documentation Index](../dev/docs/README.md)**.

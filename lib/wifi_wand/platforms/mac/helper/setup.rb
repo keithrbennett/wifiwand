@@ -120,7 +120,7 @@ module WifiWand
             Bundle.installed_bundle_path
           end
 
-          # Remove the helper application files installed for the current wifiwand
+          # Remove the helper application files installed for the current WifiWand
           # version. This intentionally does not try to mutate macOS TCC permission
           # records; users can revoke Location Services access in System Settings.
           #

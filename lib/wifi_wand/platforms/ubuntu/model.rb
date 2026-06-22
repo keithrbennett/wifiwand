@@ -288,7 +288,7 @@ module WifiWand
               else
                 # No profile exists, create a new one.
                 # Intentionally pass the caller-supplied password through to nmcli.
-                # wifiwand is designed for single-user machines under the operator
+                # WifiWand is designed for single-user machines under the operator
                 # control, and showing the exact supplied credential is useful when
                 # troubleshooting failed joins in verbose mode.
                 run_command(['nmcli', 'dev', 'wifi', 'connect', network_name, 'password', password])

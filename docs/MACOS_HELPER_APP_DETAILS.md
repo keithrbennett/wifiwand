@@ -1,8 +1,8 @@
-# macOS Helper Application for wifiwand
+# macOS Helper Application for WifiWand
 
-> Audience: wifiwand end users who need to install or troubleshoot the macOS helper application.
+> Audience: WifiWand end users who need to install or troubleshoot the macOS helper application.
 
-This document explains the native macOS helper application that wifiwand uses to access WiFi information on
+This document explains the native macOS helper application that WifiWand uses to access WiFi information on
 macOS 14 (Sonoma) and later.
 
 For the short one-time install and permission flow, see [MACOS_QUICK_START.md](MACOS_QUICK_START.md).
@@ -12,7 +12,7 @@ For the short one-time install and permission flow, see [MACOS_QUICK_START.md](M
 ## Table of Contents
 
 - [What is the Helper?](#what-is-the-helper)
-- [Why Does wifiwand Need a Helper?](#why-does-wifiwand-need-a-helper)
+- [Why Does WifiWand Need a Helper?](#why-does-wifiwand-need-a-helper)
 - [Location Services Permissions](#location-services-permissions)
 - [Managing the Helper](#managing-the-helper)
 - [Troubleshooting](#troubleshooting)
@@ -23,10 +23,10 @@ For the short one-time install and permission flow, see [MACOS_QUICK_START.md](M
 
 ## What is the Helper?
 
-The `wifiwand-helper` is a small native macOS application written in Swift that wifiwand uses to retrieve
+The `wifiwand-helper` is a small native macOS application written in Swift that WifiWand uses to retrieve
 WiFi network information (SSID, BSSID, signal strength, etc.) on modern versions of macOS.
 
-wifiwand currently has two distinct Swift runtime paths on macOS:
+WifiWand currently has two distinct Swift runtime paths on macOS:
 - The compiled `wifiwand-helper.app` helper application path handles query/read operations.
 - The loose Swift source scripts handle connect/disconnect operations.
 
@@ -48,23 +48,23 @@ older direct Swift-source transport. Consolidating those paths is a future archi
 **When it's used:**
 - Automatically on macOS 14.0 (Sonoma) and later
 - When WiFi information would otherwise be redacted
-- Only when you run wifiwand commands that need network details
+- Only when you run WifiWand commands that need network details
 
 ### Downloading or Building from Source
 
-The repository includes the signed helper application that ships with the current wifiwand version. The
+The repository includes the signed helper application that ships with the current WifiWand version. The
 project updates that committed helper only as part of release work, so source checkouts may contain Swift
 helper changes that are not reflected in a new signed helper bundle until the next release is prepared.
 
 If you download the source just to inspect it or build the Ruby gem without changing the macOS helper, you do
 not need an Apple Developer ID. If you change the helper Swift source, entitlements, or bundle metadata and
 want to rebuild a working helper application yourself, you need macOS, Xcode Command Line Tools, and your own
-Apple Developer Program Developer ID Application certificate. Official wifiwand releases are signed and
+Apple Developer Program Developer ID Application certificate. Official WifiWand releases are signed and
 notarized by the project maintainer.
 
 ---
 
-## Why Does wifiwand Need a Helper?
+## Why Does WifiWand Need a Helper?
 
 ### The macOS Security Changes
 
@@ -96,7 +96,7 @@ runner) is still blocked, which is why the helper application remains necessary.
    - Request Location Services authorization
    - Be properly code-signed and registered with macOS
 
-3. **Ruby Can't Do This Directly**: The wifiwand gem (written in Ruby) cannot:
+3. **Ruby Can't Do This Directly**: The WifiWand gem (written in Ruby) cannot:
    - Access CoreWLAN framework
    - Request Location Services authorization
    - Create proper TCC (Transparency, Consent, and Control) entries
@@ -107,14 +107,14 @@ A native Swift helper application that:
 - ✅ Uses CoreWLAN to access WiFi interfaces
 - ✅ Requests Location Services authorization properly
 - ✅ Is code-signed and notarized by the gem maintainer
-- ✅ Returns unredacted network information to wifiwand
+- ✅ Returns unredacted network information to WifiWand
 - ✅ Operates transparently - you don't need to manage it
 
 ---
 
 ## Location Services Permissions
 
-> When installing the gem on macOS, wifiwand prints a reminder pointing back to this document so you know how
+> When installing the gem on macOS, WifiWand prints a reminder pointing back to this document so you know how
 > to grant Location Services access after the helper application runs the first time.
 
 ### Why Location Services?
@@ -124,7 +124,7 @@ Apple requires Location Services authorization to access WiFi SSIDs because:
 - Known networks can be used to triangulate position
 - This is a privacy protection measure
 
-### What wifiwand Can See
+### What WifiWand Can See
 
 With Location Services authorization, the helper application can access:
 - Current WiFi network name (SSID)
@@ -133,7 +133,7 @@ With Location Services authorization, the helper application can access:
 - Available nearby networks
 - Security type (WPA2, WPA3, etc.)
 
-### What wifiwand Cannot See
+### What WifiWand Cannot See
 
 The helper application has **no access** to:
 - ❌ Your actual GPS location
@@ -146,7 +146,7 @@ The helper application has **no access** to:
 
 ### When Does macOS Prompt?
 
-- The first wifiwand command that needs WiFi details launches the `wifiwand-helper` helper application, and
+- The first WifiWand command that needs WiFi details launches the `wifiwand-helper` helper application, and
   macOS immediately asks for Location Services access.
 - The dialog can appear behind other windows; if the command seems stuck, look for the prompt or
   open **System Settings → Privacy & Security → Location Services** to grant access manually once
@@ -162,7 +162,7 @@ The helper application has **no access** to:
 
 ## Managing the Helper
 
-wifiwand ships a setup script for installing the helper application and managing location permission.
+WifiWand ships a setup script for installing the helper application and managing location permission.
 
 ### Check Status and Install
 
@@ -189,9 +189,9 @@ wifiwand-macos-setup --reinstall
 
 Use this when:
 
-- Upgrading wifiwand and you want to refresh the installed helper application immediately
+- Upgrading WifiWand and you want to refresh the installed helper application immediately
 - The helper application crashes or fails to start
-- wifiwand still shows `<hidden>` or `<redacted>` after the helper application previously worked
+- WifiWand still shows `<hidden>` or `<redacted>` after the helper application previously worked
 - macOS appears to have lost track of the helper application's Location Services permission
 
 The reinstall command force-replaces the helper application bundle and re-runs the authorization flow.
@@ -202,27 +202,27 @@ The reinstall command force-replaces the helper application bundle and re-runs t
 wifiwand-macos-setup --remove
 ```
 
-This removes the helper application files for the current wifiwand version. It does not revoke Location
+This removes the helper application files for the current WifiWand version. It does not revoke Location
 Services permission; macOS manages that separately. To revoke permission, use the manual Location Services
 steps below.
 
 ### Revoke Location Permission
 
-To remove wifiwand's access to WiFi names:
+To remove WifiWand's access to WiFi names:
 
 1. Open **System Settings**
 2. Go to **Privacy & Security → Location Services**
 3. Find **wifiwand-helper** in the list
 4. Toggle the switch to off
 
-After revoking helper application permission, wifiwand falls back to system commands. On macOS 14+, SSID
-names may still be unavailable or appear as `<redacted>`, but wifiwand should continue to report the
+After revoking helper application permission, WifiWand falls back to system commands. On macOS 14+, SSID
+names may still be unavailable or appear as `<redacted>`, but WifiWand should continue to report the
 interface as connected when lower-level association evidence is still present.
 
 ### Disable the Helper Entirely
 
 If you prefer not to use the helper application (accepting redacted WiFi names), set this environment
-variable before running wifiwand:
+variable before running WifiWand:
 
 ```bash
 export WIFIWAND_DISABLE_MAC_HELPER=1
@@ -231,8 +231,8 @@ export WIFIWAND_DISABLE_MAC_HELPER=1
 ### Behavior Without the Helper or With Redacted Network Names
 
 If the helper application is disabled, missing, denied Location Services permission, or unable to return
-unredacted SSIDs, wifiwand can still perform some tasks. The limits come from macOS hiding network identity,
-not from wifiwand ignoring available data.
+unredacted SSIDs, WifiWand can still perform some tasks. The limits come from macOS hiding network identity,
+not from WifiWand ignoring available data.
 
 What still usually works:
 
@@ -251,16 +251,16 @@ What becomes limited or ambiguous:
   show `<hidden>`, `<redacted>`, blank values, or no visible network names.
 - Exact-SSID queries such as `network_name` and `connected_network_name` may return nil or fail even when the
   radio is associated.
-- `connect <ssid>` may associate successfully but still fail afterward if wifiwand cannot verify that the
+- `connect <ssid>` may associate successfully but still fail afterward if WifiWand cannot verify that the
   active network is the requested SSID.
 - QR generation for the current network may refuse to proceed because it depends on the exact current SSID.
-- Test-state restoration may reconnect WiFi but still report that wifiwand could not verify restoration to
+- Test-state restoration may reconnect WiFi but still report that WifiWand could not verify restoration to
   the original network.
 - Requested real-environment test runs on macOS are refused before the suite starts when the current SSID is
   redacted or otherwise unverifiable.
 
-wifiwand does not silently downgrade exact-network verification to "some network is good enough." If a
-command's contract requires confirming the requested or original SSID, wifiwand reports that verification
+WifiWand does not silently downgrade exact-network verification to "some network is good enough." If a
+command's contract requires confirming the requested or original SSID, WifiWand reports that verification
 could not be completed instead of pretending success.
 
 ### Manual Permission Management
@@ -270,7 +270,7 @@ You can also manage permissions directly via System Settings:
 1. Open **System Settings**
 2. Go to **Privacy & Security → Location Services**
 3. Scroll to find **wifiwand-helper** (the helper application only appears here after it has run at least
-   once — run any wifiwand command or `wifiwand-macos-setup` to seed the entry)
+   once — run any WifiWand command or `wifiwand-macos-setup` to seed the entry)
 4. Toggle permission on or off
 
 ---
@@ -279,7 +279,7 @@ You can also manage permissions directly via System Settings:
 
 ### Helper Returns Empty Network Names
 
-**Symptom:** wifiwand shows blank or "none" for network names
+**Symptom:** WifiWand shows blank or "none" for network names
 
 **Possible Causes:**
 1. Location Services permission not granted
@@ -350,7 +350,7 @@ This appears to be a quirk of macOS 15.x behavior where:
 - WiFi information is still successfully retrieved
 
 **Is this a problem?**
-Not really — it means wifiwand works without requiring explicit permission management on those versions.
+Not really — it means WifiWand works without requiring explicit permission management on those versions.
 
 ---
 
@@ -358,7 +358,7 @@ Not really — it means wifiwand works without requiring explicit permission man
 
 ### Code Signing and Notarization
 
-The helper application included in wifiwand is:
+The helper application included in WifiWand is:
 - ✅ **Code-signed** with the gem maintainer's Apple Developer ID
 - ✅ **Notarized** by Apple (passed security screening)
 - ✅ **Open source** (Swift code available in the repository)
@@ -367,19 +367,19 @@ The helper application included in wifiwand is:
 ### What Data is Collected?
 
 The helper application:
-- ✅ Runs only when you invoke wifiwand commands
-- ✅ Returns data only to the wifiwand process that launched it
+- ✅ Runs only when you invoke WifiWand commands
+- ✅ Returns data only to the WifiWand process that launched it
 - ✅ Does not send data to any external servers
 - ✅ Does not store data on disk
 - ✅ Does not run in the background
 - ✅ Does not access your location coordinates
 
-**You are in full control.** The helper application only runs when you use wifiwand, and you can revoke
+**You are in full control.** The helper application only runs when you use WifiWand, and you can revoke
 permissions at any time via System Settings.
 
 ### Auditing the Helper
 
-The helper application's source code is available in the wifiwand repository:
+The helper application's source code is available in the WifiWand repository:
 ```
 libexec/macos/src/wifiwand-helper.swift
 libexec/macos/wifiwand-helper.app/Contents/Info.plist
@@ -398,9 +398,9 @@ You can:
 
 ### Helper Application Installation
 
-The helper application is automatically installed when you first run a wifiwand command on macOS 14+:
+The helper application is automatically installed when you first run a WifiWand command on macOS 14+:
 
-1. wifiwand detects macOS version ≥ 14.0
+1. WifiWand detects macOS version ≥ 14.0
 2. Checks whether the installed helper application exists and matches the helper application currently
    shipped with the gem
 3. If it is missing or out of date, copies the current pre-signed helper application from the gem installation
@@ -410,7 +410,7 @@ The helper application is automatically installed when you first run a wifiwand 
 
 ```
 ┌─────────────┐
-│   wifiwand  │  (Ruby gem)
+│  WifiWand  │  (Ruby gem)
 └──────┬──────┘
        │ launches
        ▼
@@ -429,7 +429,7 @@ The helper application is automatically installed when you first run a wifiwand 
 
 ### Two Swift Runtime Paths
 
-wifiwand currently uses both of these runtime paths on macOS:
+WifiWand currently uses both of these runtime paths on macOS:
 
 - Compiled helper application path:
   `wifiwand-helper.app`, launched through the helper application client, handles query/read operations such
@@ -469,7 +469,7 @@ On error:
 
 ### Version Management
 
-Each wifiwand version installs its helper application to a versioned directory:
+Each WifiWand version installs its helper application to a versioned directory:
 ```
 ~/Library/Application Support/WifiWand/
 ├── 3.0.0/
@@ -480,12 +480,12 @@ Each wifiwand version installs its helper application to a versioned directory:
     └── wifiwand-helper.app
 ```
 
-Old versions are not automatically removed (in case you have multiple wifiwand versions installed). You can
+Old versions are not automatically removed (in case you have multiple WifiWand versions installed). You can
 safely delete old version directories.
 
-Within the same gem version, wifiwand also tracks whether the installed helper application bundle still
+Within the same gem version, WifiWand also tracks whether the installed helper application bundle still
 matches the currently shipped helper application files. If the helper application bundle on disk is stale,
-wifiwand reinstalls it automatically before using it. You can force that refresh yourself at any time with
+WifiWand reinstalls it automatically before using it. You can force that refresh yourself at any time with
 `wifiwand-macos-setup --reinstall`.
 
 ### Permission Identity and Version Upgrades
@@ -496,7 +496,7 @@ installed path. This means:
 - **Same gem version**: After granting Location Services permission once, subsequent uses don't require
   re-authorization.
 - **New gem version**: Permission should continue automatically because the helper application keeps the same
-  bundle identifier and signing identity. Upgrading to a new wifiwand version normally does not require
+  bundle identifier and signing identity. Upgrading to a new WifiWand version normally does not require
   another permission grant.
 
 > **Note:** macOS TCC (Transparency, Consent, and Control) behavior can sometimes be sensitive to path,
@@ -517,7 +517,7 @@ the maintainer documentation in the repository:
 
 ## Additional Resources
 
-- [wifiwand Repository](https://github.com/keithrbennett/wifiwand)
+- [WifiWand Repository](https://github.com/keithrbennett/wifiwand)
 - [Report Issues](https://github.com/keithrbennett/wifiwand/issues)
 - [Apple Developer: Protecting User
   Privacy](https://developer.apple.com/documentation/corelocation/protecting_user_privacy)
@@ -528,4 +528,4 @@ the maintainer documentation in the repository:
 
 **Last Updated:** 2026-05-03
 **macOS Compatibility:** macOS 14.0 (Sonoma) and later
-**Helper Version:** Matches wifiwand gem version
+**Helper Version:** Matches WifiWand gem version

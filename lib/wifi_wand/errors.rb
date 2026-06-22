@@ -161,7 +161,7 @@ module WifiWand
       @network_name = network_name
       super(
         "Network '#{network_name}' security type could not be determined. " \
-          'Pass the optional password argument to generate a QR code because wifiwand cannot confirm ' \
+          'Pass the optional password argument to generate a QR code because WifiWand cannot confirm ' \
           'whether this network is open.'
       )
     end

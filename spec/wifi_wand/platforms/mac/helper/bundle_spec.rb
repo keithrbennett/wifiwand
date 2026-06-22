@@ -1301,7 +1301,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
         'helper_version'     => '9.9.9',
         'bundle_fingerprint' => described_class.bundle_fingerprint(source_bundle_path)
       )
-      expect(out_stream.string).to include('Installing wifiwand macOS helper...')
+      expect(out_stream.string).to include('Installing WifiWand macOS helper...')
       expect(out_stream.string).to include('Helper bundle installed from pre-signed binary.')
     end
 
@@ -1324,7 +1324,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       expect(installer).to have_received(:stage_helper_bundle).once
       expect(described_class.helper_installed_and_valid?).to be(true)
       expect(described_class.resolved_installed_bundle_target).not_to eq(previous_release_path)
-      expect(out_stream.string).to include('Installing wifiwand macOS helper...')
+      expect(out_stream.string).to include('Installing WifiWand macOS helper...')
       expect(out_stream.string).to include('Helper bundle installed from pre-signed binary.')
     end
 
@@ -1479,7 +1479,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
         exit 0
       SH
 
-      result = described_class.run_bounded_helper_command(executable_path, 'help')
+      result = described_class.run_bounded_helper_command(executable_path, 'help', timeout_seconds: 5)
 
       expect(result[:stdout]).to eq("helper output\n")
       expect(result[:stderr]).to eq("helper warning\n")

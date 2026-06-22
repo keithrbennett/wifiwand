@@ -7,7 +7,7 @@
    PURPOSE
    -------
    This Swift script provides WiFi network connection functionality using macOS's native
-   CoreWLAN framework. It is the direct Swift-source runtime path used by wifiwand via
+   CoreWLAN framework. It is the direct Swift-source runtime path used by WifiWand via
    WifiWand::Platforms::Mac::Helper::SwiftRuntime for connect operations, with networksetup
    as a fallback.
 

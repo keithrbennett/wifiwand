@@ -42,7 +42,7 @@ module WifiWand
             with_install_lock do
               return Bundle.installed_bundle_path if !force && helper_installed_and_valid?
 
-              out_stream&.puts 'Installing wifiwand macOS helper...'
+              out_stream&.puts 'Installing WifiWand macOS helper...'
 
               Dir.mktmpdir(
                 "#{Bundle::BUNDLE_NAME}.tmp-",

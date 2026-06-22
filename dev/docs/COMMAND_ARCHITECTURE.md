@@ -2,7 +2,7 @@
 
 _Last updated: 2026-05-16_
 
-This document explains the current command architecture in `wifiwand`. The date above is included so future
+This document explains the current command architecture in `WifiWand`. The date above is included so future
 readers can judge whether this description may be stale.
 
 ## Purpose

@@ -1,3 +1,3 @@
-# wifiwand
+# WifiWand
 
 --8<-- "README.md"

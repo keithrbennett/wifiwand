@@ -1,8 +1,8 @@
-# Wifi Wand Naming Strategy
+# WifiWand Naming Strategy
 
 ## Summary
 
-This document outlines considerations for renaming Wifi Wand identifiers to a unified `wifiwand` form, along with impacts and migration steps.
+This document outlines considerations for renaming WifiWand identifiers to a unified `wifiwand` form, along with impacts and migration steps.
 
 ---
 

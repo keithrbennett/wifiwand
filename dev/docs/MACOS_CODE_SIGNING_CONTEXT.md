@@ -1,6 +1,6 @@
-# macOS Code Signing Context and Reference for wifiwand
+# macOS Code Signing Context and Reference for WifiWand
 
-> Audience: wifiwand maintainers preparing signed and notarized helpers.
+> Audience: WifiWand maintainers preparing signed and notarized helpers.
 
 ---
 
@@ -37,9 +37,9 @@ Once a shell or application is granted Location Services access, the legacy tool
 SSIDs—but that approval is scoped to the specific binary. Terminal.app might already be approved while
 `/usr/bin/ruby` (or your CI runner) is not, which is why the helper still matters.
 
-### Why wifiwand Needs a Helper Application
+### Why WifiWand Needs a Helper Application
 
-Because of these restrictions, `wifiwand` cannot directly access WiFi information from Ruby. The solution is
+Because of these restrictions, `WifiWand` cannot directly access WiFi information from Ruby. The solution is
 a native macOS helper application written in Swift that:
 
 - Uses the CoreWLAN framework to access WiFi interfaces
@@ -61,7 +61,7 @@ This behavior is inconsistent with documented macOS TCC requirements and may be:
 - Temporary authorization for apps with proper Info.plist keys
 - Development mode behavior
 
-**Note:** wifiwand now requires Developer ID signing for the helper. The temporary authorization observed
+**Note:** WifiWand now requires Developer ID signing for the helper. The temporary authorization observed
 above is not reliable enough for production use, and permission management requires persistent TCC entries
 that only proper code signing provides.
 
@@ -87,7 +87,7 @@ Code signing serves multiple critical purposes:
 
 ### Developer ID Code Signing Required
 
-The wifiwand helper **requires** proper code signing with a Developer ID certificate. Ad-hoc signing (using
+The WifiWand helper **requires** proper code signing with a Developer ID certificate. Ad-hoc signing (using
 `-` as the identity) does **not** work for this use case because:
 
 - ❌ Ad-hoc signing does not create persistent TCC database entries
@@ -228,7 +228,7 @@ ID; confirm it matches the value shown on developer.apple.com.
 
 ### Step 4: Confirm Official Public Values
 
-Official wifiwand release helpers must be signed with the project maintainer's Developer ID. The public Team
+Official WifiWand release helpers must be signed with the project maintainer's Developer ID. The public Team
 ID and codesign identity for official releases are tracked in the release helper source. No shell exports are
 needed for the normal maintainer release workflow.
 
@@ -248,7 +248,7 @@ For notarization, you need an app-specific password:
 2. Sign in with your Apple ID
 3. Go to **Security → App-Specific Passwords**
 4. Click **+** to generate a new password
-5. Enter a label (e.g., "wifiwand notarization")
+5. Enter a label (e.g., "WifiWand notarization")
 6. Copy the generated password (format: `xxxx-xxxx-xxxx-xxxx`)
 
 ---
@@ -745,7 +745,7 @@ Yes, unless you disable auto-renewal in your Apple ID account settings.
 
 ### Can I distribute a debug/development build?
 
-No. wifiwand requires properly signed helpers because:
+No. WifiWand requires properly signed helpers because:
 - Ad-hoc signing does not create TCC database entries
 - Permission management does not function without TCC entries
 - Users cannot control permissions
@@ -786,7 +786,7 @@ Common issues:
   Runtime](https://developer.apple.com/documentation/security/hardened_runtime)
 - [TN3147: Code signing and notarizing
   issues](https://developer.apple.com/documentation/technotes/tn3147-resolving-common-notarization-issues)
-- [wifiwand Repository](https://github.com/keithrbennett/wifiwand)
+- [WifiWand Repository](https://github.com/keithrbennett/wifiwand)
 
 ---
 

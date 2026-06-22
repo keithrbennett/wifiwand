@@ -1,6 +1,6 @@
-# Analysis of `wifiwand` as a Library
+# Analysis of WifiWand as a Library
 
-This document contains an analysis of the `wifiwand` codebase for its potential use as a Ruby library in
+This document contains an analysis of the WifiWand codebase for its potential use as a Ruby library in
 other applications.
 
 ## Strengths
@@ -69,7 +69,7 @@ but the CLI decoupling is complete. The public library entry point is now
 `WifiWand.create_model`, which returns a concrete OS-specific model directly.
 
 My analysis after reading the key files confirms the initial assessment and clarifies the path to refactoring
-`wifiwand` into a proper library.
+WifiWand into a proper library.
 
 * **`lib/wifi_wand/services/connection_manager.rb` is a perfect library component.** It has zero dependencies
   on the command-line interface. It accepts objects, calls methods on them, and raises specific, catchable

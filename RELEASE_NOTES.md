@@ -16,7 +16,7 @@
 * `info["ip_address"]` has been renamed to `info["ipv4_addresses"]`; the new field returns an array of IPv4
   addresses instead of a single string or `nil`.
 * Replace the transitive `awesome_print` dependency with `amazing_print` for human-readable object formatting.
-  Ruby consumers that relied on wifiwand to provide `awesome_print` must add their own direct dependency or
+  Ruby consumers that relied on WifiWand to provide `awesome_print` must add their own direct dependency or
   migrate to `amazing_print`.
 * `-o a` Amazing Print output now lets `amazing_print` decide whether to emit ANSI color instead of forcing
   plain text. It uses color when stdout is a terminal and plain text when output is piped or redirected; pipe

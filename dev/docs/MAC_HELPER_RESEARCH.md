@@ -3,7 +3,7 @@
 ## Problem Background
 - Starting with macOS Sonoma, Apple redacts SSID/BSSID details returned by command-line tools unless the
   binary holds Location Services entitlement.
-- wifiwand's macOS model currently gathers SSIDs via `system_profiler` and related CLI utilities, so it
+- WifiWand's macOS model currently gathers SSIDs via `system_profiler` and related CLI utilities, so it
   inherits the redaction.
 - The user experience regresses: scans show `<redacted>` names even when the device is connected or the
   network is visible.
@@ -28,7 +28,7 @@ Effectively, wifi-unredactor sidesteps Apple's privacy guard by:
 - Using CoreWLAN directly after consent, which returns the true SSID/BSSID instead of `<redacted>`.
 - Returning data via JSON so scripts can consume it.
 
-## Strategy for wifiwand
+## Strategy for WifiWand
 
 **Goals**
 - Restore access to actual SSID names in scans and status readouts on macOS Sonoma+.
@@ -38,7 +38,7 @@ Effectively, wifi-unredactor sidesteps Apple's privacy guard by:
 1. **Bundle a Swift helper similar to wifi-unredactor.**
    - Embed a small app bundle (or compile on-demand) inside the gem under `resources/macos`.
    - Reuse the same pattern: `NSApplication` + `CLLocationManager` + `CWWiFiClient` returning JSON to stdout.
-   - Update the bundle identifier and location usage string to reference wifiwand.
+   - Update the bundle identifier and location usage string to reference WifiWand.
 
 2. **Provide an onboarding command to grant permissions.**
    - Add `wifiwand mac authorize-wifi` (name TBD) that opens the helper bundle with `open`.

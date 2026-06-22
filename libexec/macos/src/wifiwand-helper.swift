@@ -201,7 +201,7 @@ class HelperController: NSObject, NSApplicationDelegate, CLLocationManagerDelega
         let alert = NSAlert()
         alert.messageText = "Location Permission Required"
         alert.informativeText = """
-wifiwand needs location access to retrieve Wi-Fi network names (SSIDs).
+WifiWand needs location access to retrieve Wi-Fi network names (SSIDs).
 
 macOS requires location permission for apps to access WiFi information. Without this permission, network names will appear as '<hidden>'.
 
@@ -220,7 +220,7 @@ When you click OK, macOS will ask for permission. Please click 'Allow' to enable
     private func showSuccessAlert() {
         let alert = NSAlert()
         alert.messageText = "✓ Location Permission Granted"
-        alert.informativeText = "wifiwand can now access Wi-Fi network names. Setup complete!"
+        alert.informativeText = "WifiWand can now access Wi-Fi network names. Setup complete!"
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
         alert.runModal()
@@ -231,7 +231,7 @@ When you click OK, macOS will ask for permission. Please click 'Allow' to enable
         let alert = NSAlert()
         alert.messageText = "⚠️ Location Permission Denied"
         alert.informativeText = """
-Without location permission, wifiwand cannot access Wi-Fi network names.
+Without location permission, WifiWand cannot access Wi-Fi network names.
 
 To grant permission manually:
 1. Open System Settings → Privacy & Security → Location Services

@@ -1,6 +1,6 @@
-# Testing Documentation for wifiwand
+# Testing Documentation for WifiWand
 
-This document describes how wifiwand's test suite is organized and how to run the right scope for local
+This document describes how WifiWand's test suite is organized and how to run the right scope for local
 development, CI, and native-host verification.
 
 ## Overview

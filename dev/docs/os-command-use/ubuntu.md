@@ -2,7 +2,7 @@
 ### OS_COMMAND_USE_UBUNTU.md
 ### 2025-10-29 14:33:58 UTC
 
-This document outlines the shell commands used by `wifiwand` on the Ubuntu operating system.
+This document outlines the shell commands used by WifiWand on the Ubuntu operating system.
 
 Notes:
 - Ubuntu support relies on NetworkManager; `nmcli connection ...` operates on saved profiles that may differ
@@ -87,7 +87,7 @@ stored DNS state, not a partial merge.
 - CLI Command(s): `co`
 - Helpful Info: Serves as a fallback when no profile exists or its security type could not be resolved. This
   intentionally passes the supplied password through `argv`. On Ubuntu that means the password may appear in
-  verbose output and may be visible to local process inspection tools while `nmcli` is running. wifiwand keeps
+  verbose output and may be visible to local process inspection tools while `nmcli` is running. WifiWand keeps
   this behavior because the project is aimed at single-user machines under the operator's control, and seeing the
   exact supplied credential is useful when troubleshooting failed joins.
 

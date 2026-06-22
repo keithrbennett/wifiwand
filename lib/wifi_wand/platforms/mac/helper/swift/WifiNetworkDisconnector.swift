@@ -7,7 +7,7 @@
    PURPOSE
    -------
    This Swift script disconnects from the currently connected WiFi network using macOS's
-   native CoreWLAN framework. It is the direct Swift-source runtime path used by wifiwand via
+   native CoreWLAN framework. It is the direct Swift-source runtime path used by WifiWand via
    WifiWand::Platforms::Mac::Helper::SwiftRuntime for disconnect operations, with ifconfig
    as a fallback.
 

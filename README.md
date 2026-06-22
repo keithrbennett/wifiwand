@@ -1,6 +1,6 @@
 ![logo](logo/wifiwand-logo-horizontal-color.png)
 
-# wifiwand
+# WifiWand
 
 ### Installation
 
@@ -48,7 +48,7 @@ If you encounter any JRuby-specific issues, please open a GitHub issue, includin
 
 ### Security Notes
 
-`wifiwand` is intended for individual users on machines they control. Some workflows can expose WiFi
+`WifiWand` is intended for individual users on machines they control. Some workflows can expose WiFi
 passwords to local surfaces such as shell history, process listings, verbose output, terminal scrollback, and
 generated QR code files. See **[Security Notes](docs/SECURITY_NOTES.md)** for the full list of potential
 exposure points and practical precautions.
@@ -58,7 +58,7 @@ exposure points and practical precautions.
 ### 🐧 Note for Ubuntu Users
 
 Ubuntu support requires **NetworkManager** (standard on Ubuntu Desktop).
-`wifiwand` uses `nmcli`, `iw`, and `ip` to manage WiFi.
+`WifiWand` uses `nmcli`, `iw`, and `ip` to manage WiFi.
 These are typically pre-installed on Ubuntu systems.
 
 ---
@@ -81,7 +81,7 @@ names.
 
 ### Description
 
-The `wifiwand` gem enables the query and management
+The `WifiWand` gem enables the query and management
 of WiFi configuration, environment, and behavior, on Mac and Ubuntu systems.
 Internally, it uses OS-specific command line utilities to interact with the
 underlying operating system -- for example, `networksetup`, `system_profiler`,
@@ -90,7 +90,7 @@ However, the code encapsulates the OS-specific logic in model subclasses with id
 method names and argument lists, so that they present a unified interface for use in:
 
 * command line invocation (e.g. `wifiwand co my-network my-password` to connect to a network)
-* interactive shell (REPL) sessions where the wifiwand methods are effectively DSL commands (`wifiwand
+* interactive shell (REPL) sessions where the WifiWand methods are effectively DSL commands (`wifiwand
   shell` to run in interactive mode)
 * other Ruby applications as a gem (library) (`require 'wifi_wand'`)
 
@@ -239,15 +239,15 @@ you can do so by specifying `-v true` (for _verbose_) on the command line.
 To disable verbose mode when a default option enables it, pass `--verbose false` or `-v false`.
 Inline forms such as `--verbose=true` and `-vfalse` are also accepted.
 
-On Ubuntu, when you connect with an inline password, wifiwand intentionally
+On Ubuntu, when you connect with an inline password, WifiWand intentionally
 passes that password to `nmcli` as a command-line argument. This means the
 password can appear in verbose output and may be visible to local process
 inspection tools such as `ps` while the command is running.
 
-This behavior is intentional. wifiwand is designed primarily for individual
+This behavior is intentional. WifiWand is designed primarily for individual
 operators on machines they fully control, and showing the exact supplied
 password is useful when diagnosing failed joins, stale saved credentials, and
-quoting or escaping mistakes. Do not use inline passwords with wifiwand on
+quoting or escaping mistakes. Do not use inline passwords with WifiWand on
 machines where other local users or local process inspection are not trusted.
 
 ### Interactive Shell Mode vs Command Line Mode
@@ -365,10 +365,10 @@ wifiwand log --interval 1 --file    # check every 1 second instead of default 5
 
 #### Interactive Shell Commands
 
-The `pry` shell used by wifiwand outputs the last evaluated value in the terminal session.
+The `pry` shell used by WifiWand outputs the last evaluated value in the terminal session.
 The `amazing_print` gem is used to format that output nicely.
 As with other shells, command return values can also be used in expressions, passed to methods,
-saved in variables, etc. In this example, the value returned by the wifiwand command is saved
+saved in variables, etc. In this example, the value returned by the WifiWand command is saved
 in the local variable `local_ip`.
 
 ```
@@ -390,7 +390,7 @@ of preferred networks, so you might want to suppress their output:
 
 ### Using as a Library
 
-The `wifiwand` gem can be used as a library in your own Ruby applications.
+The `WifiWand` gem can be used as a library in your own Ruby applications.
 Use the OS-specific models directly. For most callers, the simplest entry point
 is `WifiWand.create_model`, which returns the right model for the current host.
 
@@ -414,7 +414,7 @@ puts "\nAvailable Networks:"
 puts model.available_network_names.map { |n| "  - #{n}" }
 ```
 
-`available_network_names` reflects the SSIDs returned by the operating system scan, with wifiwand's
+`available_network_names` reflects the SSIDs returned by the operating system scan, with WifiWand's
 existing ordering and deduplication applied. The currently connected network may appear or may be absent,
 depending on what the OS scan reports.
 
@@ -574,8 +574,8 @@ You can create QR codes for the currently connected network to share credentials
 
 Notes:
 - Requires `qrencode` to be installed (macOS: `brew install qrencode`, Ubuntu: `sudo apt install qrencode`).
-- If wifiwand cannot determine whether the current network is open, pass the optional password argument.
-- When a target file already exists, wifiwand prompts before overwriting in interactive terminals; in
+- If WifiWand cannot determine whether the current network is open, pass the optional password argument.
+- When a target file already exists, WifiWand prompts before overwriting in interactive terminals; in
   non-interactive use, it errors instead.
 - File output accepts no extension or one of `.png`, `.svg`, and `.eps`; other extensions are rejected to avoid
   writing one format under a misleading filename.
@@ -591,7 +591,7 @@ Notes:
 The `info` command does not include public IP data. Use `wifiwand public_ip` or `wifiwand pi`
 when you want the public IP address, country, or both.
 
-wifiwand uses `https://api.country.is/` when the country is requested, including the default
+WifiWand uses `https://api.country.is/` when the country is requested, including the default
 `both` selector, and `https://api.ipify.org` when only the public IP address is requested.
 
 If the provider request fails or returns malformed data, the command raises a public IP lookup error.
@@ -625,7 +625,7 @@ functionality relies has been disabled and will presumably eventually be removed
 
 #### Swift/CoreWLAN Wrappers
 
-To maintain functionality after airport deprecation and macOS permission changes, wifiwand now uses two
+To maintain functionality after airport deprecation and macOS permission changes, WifiWand now uses two
 Swift/CoreWLAN runtime paths on macOS:
 
 * **Compiled helper application for read/query operations** - On macOS Sonoma (14.0) and later, the signed
@@ -641,7 +641,7 @@ because the existing connect/disconnect flow still works well with its fallbacks
 is a later architecture topic, not part of the current cleanup.
 
 The direct Swift scripts are **optional dependencies**. If Swift or CoreWLAN are not available (for example,
-Xcode Command Line Tools are not installed), wifiwand automatically falls back to traditional command-line
+Xcode Command Line Tools are not installed), WifiWand automatically falls back to traditional command-line
 utilities (`networksetup`, `ifconfig`) with slightly reduced functionality for connect/disconnect.
 
 To install Swift and CoreWLAN support:
@@ -664,7 +664,7 @@ version 2.17.0.
 
 ### macOS Helper Cleanup (macOS Sonoma+)
 
-On macOS Sonoma (14.0) and later, wifiwand installs a native macOS helper application to
+On macOS Sonoma (14.0) and later, WifiWand installs a native macOS helper application to
 `~/Library/Application Support/WifiWand/<version>/` to provide unredacted WiFi information. Each gem version
 creates its own helper application directory to support running multiple gem versions simultaneously.
 
@@ -688,8 +688,8 @@ cd ~/Library/Application\ Support/WifiWand/
 ls | grep -v "3.0.0-alpha.1" | xargs rm -rf
 ```
 
-The helper application will be automatically reinstalled the next time you run a wifiwand command that
-requires it. To remove the helper for the currently installed wifiwand version, run:
+The helper application will be automatically reinstalled the next time you run a WifiWand command that
+requires it. To remove the helper for the currently installed WifiWand version, run:
 
 ```bash
 wifiwand-macos-setup --remove

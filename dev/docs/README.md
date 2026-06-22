@@ -1,6 +1,6 @@
 # Developer Documentation Index
 
-This directory is for `wifiwand` maintainers and developers. These documents contain deep technical details,
+This directory is for `WifiWand` maintainers and developers. These documents contain deep technical details,
 research, and internal strategy.
 
 Use [../../docs/README.md](../../docs/README.md) for end-user and operator documentation.
@@ -47,12 +47,12 @@ Use [../../docs/README.md](../../docs/README.md) for end-user and operator docum
 
 ## Internal Reports And Planning
 
-- **[AI Library Analysis: Claude](../reports/ai/ww-as-library-claude.md)** - One-off analysis of `wifiwand`
+- **[AI Library Analysis: Claude](../reports/ai/ww-as-library-claude.md)** - One-off analysis of `WifiWand`
   as a Ruby library.
 - **[AI Library Analysis: Gemini](../reports/ai/ww-as-library-gemini.md)** - Alternate analysis of
-  `wifiwand` as a Ruby library.
+  `WifiWand` as a Ruby library.
 - **[Naming Strategy Change Planning](wifiwand_naming_strategy-change-planning.md)** - Planning note for a
-  possible `wifiwand` naming cleanup.
+  possible `WifiWand` naming cleanup.
 
 ## Agent Prompts And Review Notes
 

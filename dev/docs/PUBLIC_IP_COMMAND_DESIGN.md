@@ -198,7 +198,7 @@ This feature includes an intentional breaking change:
   IPinfo response
 
 That narrowing is intentional. The current feature only exposes the fields that
-wifiwand uses today: public address and country code.
+WifiWand uses today: public address and country code.
 
 ## Non-Goals And Out Of Scope
 

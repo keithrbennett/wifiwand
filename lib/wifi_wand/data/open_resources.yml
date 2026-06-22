@@ -17,4 +17,4 @@ resources:
     desc: "Speed Test"
   - code: "this"
     url: "https://github.com/keithrbennett/wifiwand"
-    desc: "wifiwand home page"
+    desc: "WifiWand home page"

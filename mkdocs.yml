@@ -1,4 +1,4 @@
-site_name: wifiwand Documentation
+site_name: WifiWand Documentation
 site_description: Cross-platform WiFi management gem and CLI for macOS and Ubuntu
 site_url: https://keithrbennett.github.io/wifiwand/
 repo_url: https://github.com/keithrbennett/wifiwand
