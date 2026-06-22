@@ -232,15 +232,18 @@ describe WifiWand::StatusLineDataBuilder do
     end
 
     it 'returns nil and emits a nil progress update when the initial wifi check fails' do
-      out_stream = StringIO.new
-      failing_builder = described_class.new(model, verbose: true, out_stream: out_stream)
+      err_output = StringIO.new
+      failing_builder = described_class.new(
+        model,
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+      )
       allow(model).to receive(:status_wifi_on?).and_raise(WifiWand::Error, 'boom')
 
       result = failing_builder.call(progress_callback: ->(data) { progress_updates << data })
 
       expect(result).to be_nil
       expect(progress_updates).to eq([nil])
-      expect(out_stream.string).to include('Warning: status_line_data failed: WifiWand::Error: boom')
+      expect(err_output.string).to include('Warning: status_line_data failed: WifiWand::Error: boom')
     end
 
     it 'reports connected with a nil SSID when status identity is connected but the SSID is nil' do
@@ -287,11 +290,10 @@ describe WifiWand::StatusLineDataBuilder do
     end
 
     it 'logs a network identity warning in verbose mode without raising' do
-      out_stream = StringIO.new
+      err_output = StringIO.new
       verbose_builder = described_class.new(
         model,
-        verbose:    true,
-        out_stream: out_stream
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
       )
       allow(model).to receive(:status_network_identity).and_raise(WifiWand::Error, 'lookup failed')
 
@@ -299,7 +301,7 @@ describe WifiWand::StatusLineDataBuilder do
 
       expect(result[:connected]).to be(false)
       expect(result[:network_name]).to be_nil
-      expect(out_stream.string).to include(
+      expect(err_output.string).to include(
         'Warning: network status lookup failed: WifiWand::Error: lookup failed'
       )
     end
@@ -455,11 +457,10 @@ describe WifiWand::StatusLineDataBuilder do
 
         def captive_portal_login_required(timeout_in_secs:) = :no
       end.new
-      out_stream = StringIO.new
+      err_output = StringIO.new
       failing_builder = described_class.new(
         failing_model,
-        verbose:                 true,
-        out_stream:              out_stream,
+        runtime_config:          WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output),
         expected_network_errors: [StatusLineDataBuilderSpecExpectedError]
       )
 
@@ -475,14 +476,17 @@ describe WifiWand::StatusLineDataBuilder do
         network_name:                  nil,
         captive_portal_login_required: :no
       )
-      expect(out_stream.string).to include(
+      expect(err_output.string).to include(
         'Warning: network status lookup failed: StatusLineDataBuilderSpecExpectedError: network down'
       )
     end
 
     it 'raises when bounded network identity is not implemented' do
-      out_stream = StringIO.new
-      failing_builder = described_class.new(model, verbose: true, out_stream: out_stream)
+      err_output = StringIO.new
+      failing_builder = described_class.new(
+        model,
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+      )
       allow(model).to receive(:status_network_identity)
         .and_raise(WifiWand::MethodNotImplementedError)
 
@@ -490,12 +494,15 @@ describe WifiWand::StatusLineDataBuilder do
         failing_builder.call(progress_callback: ->(data) { progress_updates << data })
       end.to raise_error(WifiWand::MethodNotImplementedError)
       expect(progress_updates).to eq([expected_initial_progress])
-      expect(out_stream.string).to be_empty
+      expect(err_output.string).to be_empty
     end
 
     it 'raises when network identity reports a missing dependency' do
-      out_stream = StringIO.new
-      failing_builder = described_class.new(model, verbose: true, out_stream: out_stream)
+      err_output = StringIO.new
+      failing_builder = described_class.new(
+        model,
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+      )
       allow(model).to receive(:status_network_identity)
         .and_raise(WifiWand::CommandNotFoundError.new('iw (install: sudo apt install iw)'))
 
@@ -503,7 +510,7 @@ describe WifiWand::StatusLineDataBuilder do
         failing_builder.call(progress_callback: ->(data) { progress_updates << data })
       end.to raise_error(WifiWand::CommandNotFoundError, /iw/)
       expect(progress_updates).to eq([expected_initial_progress])
-      expect(out_stream.string).to be_empty
+      expect(err_output.string).to be_empty
     end
 
     it 'falls back gracefully when connectivity checks raise expected errors' do
@@ -766,7 +773,7 @@ describe WifiWand::StatusLineDataBuilder do
     end
 
     it 'tracks an end-to-end worker stuck inside a model call after returning fallback data' do
-      out_stream = StringIO.new
+      err_output = StringIO.new
       network_started = Queue.new
       network_release = Queue.new
       network_terminated = Queue.new
@@ -803,8 +810,8 @@ describe WifiWand::StatusLineDataBuilder do
       )
       stuck_worker_builder = described_class.new(
         stuck_model,
-        verbose:                                    true,
-        out_stream:                                 out_stream,
+        runtime_config:                             WifiWand::RuntimeConfig.new(verbose: true,
+          err_stream: err_output),
         network_worker_result_timeout_seconds:      0.005,
         connectivity_worker_result_timeout_seconds: 0.05,
         worker_result_poll_interval_seconds:        0.001,
@@ -822,7 +829,7 @@ describe WifiWand::StatusLineDataBuilder do
         connected:    nil,
         network_name: nil
       )
-      expect(out_stream.string).to include('Warning: worker thread still running after cancellation request')
+      expect(err_output.string).to include('Warning: worker thread still running after cancellation request')
       expect(stragglers.size).to eq(1)
       straggler = stragglers.first
       expect(straggler).to be_alive
@@ -906,11 +913,10 @@ describe WifiWand::StatusLineDataBuilder do
     end
 
     it 'waits for a registered bounded worker to exit without forcefully terminating it' do
-      out_stream = StringIO.new
+      err_output = StringIO.new
       verbose_builder = described_class.new(
         model,
-        verbose:                        true,
-        out_stream:                     out_stream,
+        runtime_config:                 WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output),
         worker_cleanup_timeout_seconds: 0.001
       )
       worker_terminated = Queue.new
@@ -931,18 +937,17 @@ describe WifiWand::StatusLineDataBuilder do
 
       verbose_builder.send(:cleanup_worker_threads, worker)
 
-      expect(out_stream.string).to be_empty
+      expect(err_output.string).to be_empty
       expect(worker).not_to have_received(:kill)
       expect(worker_terminated.pop(timeout: 1)).to eq(:terminated)
       expect(worker).not_to be_alive
     end
 
     it 'tracks a worker that violates its registered timeout until it exits' do
-      out_stream = StringIO.new
+      err_output = StringIO.new
       verbose_builder = described_class.new(
         model,
-        verbose:                        true,
-        out_stream:                     out_stream,
+        runtime_config:                 WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output),
         worker_cleanup_timeout_seconds: 0.001
       )
       worker_release = Queue.new
@@ -958,7 +963,7 @@ describe WifiWand::StatusLineDataBuilder do
 
       verbose_builder.send(:cleanup_worker_threads, worker)
 
-      expect(out_stream.string).to include('Warning: worker thread still running after cancellation request')
+      expect(err_output.string).to include('Warning: worker thread still running after cancellation request')
       expect(worker).to be_alive
       expect(worker).not_to have_received(:kill)
       expect(verbose_builder.instance_variable_get(:@straggler_threads)).to include(worker)

@@ -47,7 +47,7 @@ module WifiWand
     def captive_portal_login_required(timeout_in_secs: nil)
       endpoints = captive_portal_check_endpoints
 
-      output.puts "Testing captive portal via HTTP: #{endpoints.map { _1[:url] }.join(', ')}" if verbose?
+      err_output.puts "Testing captive portal via HTTP: #{endpoints.map { _1[:url] }.join(', ')}" if verbose?
 
       results = captive_portal_results(endpoints, timeout_in_secs: timeout_in_secs)
 
@@ -65,7 +65,7 @@ module WifiWand
                  when ConnectivityStates::CAPTIVE_PORTAL_LOGIN_REQUIRED then 'required'
                  else 'unknown'
         end
-        output.puts "Captive portal results: #{results.inspect} — #{status}"
+        err_output.puts "Captive portal results: #{results.inspect} — #{status}"
       end
 
       login_required
@@ -145,7 +145,7 @@ module WifiWand
     rescue SystemCallError, IOError => e
       reader&.close unless reader&.closed?
       writer&.close unless writer&.closed?
-      output.puts "Failed to start captive portal helper for #{endpoint[:url]}: #{e.class}" if verbose?
+      err_output.puts "Failed to start captive portal helper for #{endpoint[:url]}: #{e.class}" if verbose?
       nil
     end
 
@@ -229,16 +229,18 @@ module WifiWand
           else
             'mismatch'
           end
-        output.puts "Captive portal check #{endpoint[:url]}: " \
+        err_output.puts "Captive portal check #{endpoint[:url]}: " \
           "HTTP #{result[:actual_code]} (expected #{endpoint[:expected_code]}) -> #{status}"
       else
-        output.puts "Captive portal check network error for #{endpoint[:url]}: #{result[:error_class]}"
+        err_output.puts "Captive portal check network error for #{endpoint[:url]}: #{result[:error_class]}"
       end
     end
 
     private def verbose? = runtime_config.verbose
 
     private def output = runtime_config.out_stream
+
+    private def err_output = runtime_config.err_stream
 
     # Attempts an HTTP GET to a captive portal check endpoint and compares the response code.
     #

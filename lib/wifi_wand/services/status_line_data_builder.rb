@@ -50,6 +50,8 @@ module WifiWand
 
     def out_stream = runtime_config.out_stream
 
+    def err_stream = runtime_config.err_stream
+
     def call(progress_callback: nil)
       reset_worker_cancellation!
       reap_straggler_threads
@@ -79,7 +81,7 @@ module WifiWand
     rescue WifiWand::CommandNotFoundError, WifiWand::MethodNotImplementedError
       raise
     rescue *expected_network_errors, WifiWand::Error => e
-      out_stream.puts "Warning: status_line_data failed: #{e.class}: #{e.message}" if verbose?
+      err_stream.puts "Warning: status_line_data failed: #{e.class}: #{e.message}" if verbose?
       progress_callback&.call(nil)
       nil
     ensure
@@ -199,13 +201,13 @@ module WifiWand
         thread.join(worker_cleanup_join_timeout(thread))
         next unless thread.alive?
 
-        out_stream.puts 'Warning: worker thread still running after cancellation request' if verbose?
+        err_stream.puts 'Warning: worker thread still running after cancellation request' if verbose?
         track_straggler_thread(thread)
       end
     end
 
     private def worker_timeout_result(worker_name)
-      out_stream.puts "Warning: #{worker_name} status worker timed out" if verbose?
+      err_stream.puts "Warning: #{worker_name} status worker timed out" if verbose?
       fallback_worker_result(worker_name)
     end
 
@@ -323,10 +325,10 @@ module WifiWand
     rescue WifiWand::CommandNotFoundError, WifiWand::MethodNotImplementedError
       raise
     rescue WifiWand::CommandExecutor::OsCommandError, WifiWand::CommandSpawnError => e
-      out_stream.puts "Warning: network status lookup failed: #{e.class}: #{e.message}" if verbose?
+      err_stream.puts "Warning: network status lookup failed: #{e.class}: #{e.message}" if verbose?
       fallback_worker_result(:network)
     rescue WifiWand::Error, *expected_network_errors => e
-      out_stream.puts "Warning: network status lookup failed: #{e.class}: #{e.message}" if verbose?
+      err_stream.puts "Warning: network status lookup failed: #{e.class}: #{e.message}" if verbose?
       {
         connected:      false,
         network_name:   nil,

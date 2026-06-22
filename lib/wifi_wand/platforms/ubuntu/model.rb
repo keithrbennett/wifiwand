@@ -138,7 +138,7 @@ module WifiWand
 
           true
         rescue WifiWand::Error => e
-          out_stream.puts("connection_ready? check failed: #{e.class}: #{e.message}") if verbose?
+          err_stream.puts("connection_ready? check failed: #{e.class}: #{e.message}") if verbose?
           false
         end
 

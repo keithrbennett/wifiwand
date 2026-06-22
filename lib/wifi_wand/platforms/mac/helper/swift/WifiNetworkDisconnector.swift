@@ -80,6 +80,12 @@
 import Foundation  // Basic Swift/macOS types and utilities
 import CoreWLAN    // macOS WiFi framework - provides WiFi hardware access
 
+func logError(_ message: String) {
+    if let data = (message + "\n").data(using: .utf8) {
+        FileHandle.standardError.write(data)
+    }
+}
+
 /* ------------------
    SCRIPT ENTRY POINT
    ------------------
@@ -134,7 +140,7 @@ if let wifiInterface = CWWiFiClient.shared().interface() {
 
        Ruby code will catch this error and fall back to ifconfig method
     */
-    print("Failed to disconnect. One possible reason: XCode not installed.")
+    logError("Failed to disconnect. One possible reason: XCode not installed.")
     exit(1)
 }
 

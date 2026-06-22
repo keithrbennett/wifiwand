@@ -58,12 +58,16 @@ describe WifiWand::LogFileManager do
       end
     end
 
-    it 'writes verbose initialization message to stdout as JSONL' do
-      manager = described_class.new(log_file_path: log_file_path, verbose: true, out_stream: out_stream)
+    it 'writes verbose initialization message to stderr as JSONL' do
+      err_output = StringIO.new
+      manager = described_class.new(
+        log_file_path:  log_file_path,
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+      )
       manager.close
 
-      expect(out_stream.string).to include('"event":"debug"')
-      expect(out_stream.string).to include('Log file initialized at')
+      expect(err_output.string).to include('"event":"debug"')
+      expect(err_output.string).to include('Log file initialized at')
     end
 
     it 'accepts out_stream' do

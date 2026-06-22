@@ -380,6 +380,7 @@ module WifiWand
           @swift_runtime ||= WifiWand::Platforms::Mac::Helper::SwiftRuntime.new(
             command_runner:      ->(*args, **kwargs) { run_command(*args, **kwargs) },
             out_stream_provider: -> { out_stream },
+            err_stream_provider: -> { err_stream },
             verbosity_provider:  -> { verbose? }
           )
         end
@@ -390,6 +391,7 @@ module WifiWand
             command_runner:          ->(*args, **kwargs) { run_command(*args, **kwargs) },
             wifi_interface_provider: -> { wifi_interface },
             out_stream_provider:     -> { out_stream },
+            err_stream_provider:     -> { err_stream },
             verbosity_provider:      -> { verbose? }
           )
         end
@@ -489,6 +491,7 @@ module WifiWand
             command_runner:          ->(*args, **kwargs) { run_command(*args, **kwargs) },
             wifi_interface_provider: -> { wifi_interface },
             out_stream_provider:     -> { out_stream },
+            err_stream_provider:     -> { err_stream },
             verbosity_provider:      -> { verbose? }
           )
         end

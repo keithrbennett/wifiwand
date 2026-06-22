@@ -169,7 +169,7 @@ RSpec.describe WifiWand::BaseModel do
 
   describe 'debug-logged connectivity checks' do
     let(:model) { described_class.new(model_options) }
-    let(:output) { StringIO.new }
+    let(:err_output) { StringIO.new }
     let(:tester) do
       double('tester', internet_connectivity_state: :reachable, tcp_connectivity?: true, dns_working?: true)
     end
@@ -177,30 +177,30 @@ RSpec.describe WifiWand::BaseModel do
     before do
       model.instance_variable_set(:@runtime_config, WifiWand::RuntimeConfig.new(
         verbose:    true,
-        out_stream: output
+        err_stream: err_output
       ))
       model.instance_variable_set(:@connectivity_tester, tester)
     end
 
     it 'logs and delegates internet_tcp_connectivity?' do
       expect(model.internet_tcp_connectivity?).to be true
-      expect(output.string).to include('Entered BaseModel#internet_tcp_connectivity?')
+      expect(err_output.string).to include('Entered BaseModel#internet_tcp_connectivity?')
     end
 
     it 'logs and delegates dns_working?' do
       expect(model.dns_working?).to be true
-      expect(output.string).to include('Entered BaseModel#dns_working?')
+      expect(err_output.string).to include('Entered BaseModel#dns_working?')
     end
   end
 
   describe '#debug_method_entry' do
-    let(:output) { StringIO.new }
-    let(:model) { described_class.new(verbose: true, out_stream: output) }
+    let(:err_output) { StringIO.new }
+    let(:model) { described_class.new(verbose: true, err_stream: err_output) }
 
     it 'omits parameter parentheses when no parameters are requested' do
       model.send(:debug_method_entry, :probe_wifi_interface)
 
-      expect(output.string).to eq("Entered BaseModel#probe_wifi_interface\n")
+      expect(err_output.string).to eq("Entered BaseModel#probe_wifi_interface\n")
     end
 
     it 'includes parameter values when parameters are requested' do
@@ -209,7 +209,7 @@ RSpec.describe WifiWand::BaseModel do
 
       model.send(:debug_method_entry, :connect, binding, %i[network_name password])
 
-      expect(output.string).to eq("Entered BaseModel#connect(\"CafeNet\", \"secret\")\n")
+      expect(err_output.string).to eq("Entered BaseModel#connect(\"CafeNet\", \"secret\")\n")
     end
   end
 
@@ -400,19 +400,19 @@ RSpec.describe WifiWand::BaseModel do
     end
 
     it 'logs and delegates capture_network_state' do
-      output = StringIO.new
+      err_output = StringIO.new
       manager = double('state_manager')
 
       model.instance_variable_set(:@runtime_config, WifiWand::RuntimeConfig.new(
         verbose:    true,
-        out_stream: output
+        err_stream: err_output
       ))
       model.instance_variable_set(:@state_manager, manager)
 
       expect(manager).to receive(:capture_network_state).and_return(:snapshot)
 
       expect(model.capture_network_state).to eq(:snapshot)
-      expect(output.string).to include('Entered BaseModel#capture_network_state')
+      expect(err_output.string).to include('Entered BaseModel#capture_network_state')
     end
   end
 end

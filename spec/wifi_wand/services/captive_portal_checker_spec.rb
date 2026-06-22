@@ -137,8 +137,11 @@ describe WifiWand::CaptivePortalChecker do
     end
 
     context 'with verbose mode' do
-      let(:output) { StringIO.new }
-      let(:checker) { described_class.new(verbose: true, output: output) }
+      let(:err_output) { StringIO.new }
+      let(:checker) do
+        described_class.new(runtime_config: WifiWand::RuntimeConfig.new(verbose: true,
+          err_stream: err_output))
+      end
 
       before do
         allow(checker).to receive(:captive_portal_check_endpoints).and_return(endpoints)
@@ -148,7 +151,7 @@ describe WifiWand::CaptivePortalChecker do
         allow(checker).to receive(:captive_portal_results).and_return([:no])
 
         checker.captive_portal_login_required
-        expect(output.string).to include('Testing captive portal via HTTP:')
+        expect(err_output.string).to include('Testing captive portal via HTTP:')
       end
 
       it 'logs a pass result' do
@@ -157,13 +160,16 @@ describe WifiWand::CaptivePortalChecker do
         )
 
         checker.captive_portal_login_required
-        expect(output.string).to include('pass')
+        expect(err_output.string).to include('pass')
       end
     end
 
     context 'with verbose mode and captive portal login required' do
-      let(:output) { StringIO.new }
-      let(:checker) { described_class.new(verbose: true, output: output) }
+      let(:err_output) { StringIO.new }
+      let(:checker) do
+        described_class.new(runtime_config: WifiWand::RuntimeConfig.new(verbose: true,
+          err_stream: err_output))
+      end
 
       before do
         allow(checker).to receive_messages(
@@ -177,8 +183,8 @@ describe WifiWand::CaptivePortalChecker do
 
       it 'logs results array and required status' do
         checker.captive_portal_login_required
-        expect(output.string).to include('mismatch')
-        expect(output.string).to include('required')
+        expect(err_output.string).to include('mismatch')
+        expect(err_output.string).to include('required')
       end
     end
   end
@@ -427,8 +433,10 @@ describe WifiWand::CaptivePortalChecker do
   end
 
   describe 'verbose result logging' do
-    let(:output) { StringIO.new }
-    let(:checker) { described_class.new(verbose: true, output: output) }
+    let(:err_output) { StringIO.new }
+    let(:checker) do
+      described_class.new(runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output))
+    end
     let(:endpoint) { { url: 'http://example.com/check', expected_code: 204 } }
 
     before do
@@ -439,7 +447,7 @@ describe WifiWand::CaptivePortalChecker do
       allow(checker).to receive(:captive_portal_results).and_return([:unknown])
 
       expect(checker.captive_portal_login_required).to eq(:unknown)
-      expect(output.string).to include('unknown')
+      expect(err_output.string).to include('unknown')
     end
 
     it 'logs helper network errors without treating them as captive portals' do
@@ -451,7 +459,7 @@ describe WifiWand::CaptivePortalChecker do
       )
 
       expect(checker.captive_portal_login_required).to eq(:unknown)
-      expect(output.string).to include(
+      expect(err_output.string).to include(
         'Captive portal check network error for http://example.com/check: SocketError'
       )
     end

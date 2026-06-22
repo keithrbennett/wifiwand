@@ -379,12 +379,14 @@ describe WifiWand::CommandExecutor do
       it 'outputs command attempt and duration info' do
         expect do
           executor.run_command_using_shell('echo "test"')
-        end.to output(/Command:.*echo "test".*Duration:.*seconds/m).to_stdout
+        end.to output(/Command:.*echo "test".*Duration:.*seconds/m).to_stderr
       end
 
       it 'can suppress verbose stdout logging while still returning stdout' do
-        output = StringIO.new
-        verbose_executor = described_class.new(verbose: true, output: output)
+        err_output = StringIO.new
+        verbose_executor = described_class.new(
+          runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+        )
 
         result = verbose_executor.run_command_using_args(
           [RbConfig.ruby, '-e', 'STDOUT.write 115.chr + 101.chr + 99.chr + 114.chr + 101.chr + 116.chr'],
@@ -392,36 +394,42 @@ describe WifiWand::CommandExecutor do
         )
 
         expect(result.stdout).to eq('secret')
-        expect(output.string).to include('Command:')
-        expect(output.string).to include('Duration:')
-        expect(output.string).not_to include('STDOUT:')
-        expect(output.string).not_to include('secret')
+        expect(err_output.string).to include('Command:')
+        expect(err_output.string).to include('Duration:')
+        expect(err_output.string).not_to include('STDOUT:')
+        expect(err_output.string).not_to include('secret')
       end
 
       it 'outputs UTC timestamps when runtime config requests UTC' do
-        output = StringIO.new
-        verbose_executor = described_class.new(verbose: true, utc: true, output: output)
+        err_output = StringIO.new
+        verbose_executor = described_class.new(
+          runtime_config: WifiWand::RuntimeConfig.new(verbose: true, utc: true, err_stream: err_output)
+        )
 
         verbose_executor.run_command_using_shell('echo "test"')
 
-        expect(output.string).to match(/Duration: .* seconds -- \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/)
+        expect(err_output.string).to match(/Duration: .* seconds -- \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/)
       end
 
       it 'outputs local timestamps by default' do
-        output = StringIO.new
-        verbose_executor = described_class.new(verbose: true, output: output)
+        err_output = StringIO.new
+        verbose_executor = described_class.new(
+          runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+        )
         fixed_time = Time.new(2026, 5, 17, 18, 3, 50, '+07:00')
 
         allow(Time).to receive(:now).and_return(fixed_time)
 
         verbose_executor.run_command_using_shell('echo "test"')
 
-        expect(output.string).to include("seconds -- #{fixed_time.getlocal.iso8601}")
+        expect(err_output.string).to include("seconds -- #{fixed_time.getlocal.iso8601}")
       end
 
       it 'warns when forceful reader cleanup does not finish promptly' do
-        output = StringIO.new
-        verbose_executor = described_class.new(verbose: true, output: output)
+        err_output = StringIO.new
+        verbose_executor = described_class.new(
+          runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+        )
         thread = instance_double(Thread, alive?: true)
 
         allow(thread).to receive(:join).with(described_class::READER_THREAD_JOIN_WAIT_SECS).and_return(nil)
@@ -429,24 +437,26 @@ describe WifiWand::CommandExecutor do
 
         verbose_executor.send(:cleanup_reader_threads, [thread])
 
-        expect(output.string).to include(
+        expect(err_output.string).to include(
           'Warning: forcing command output reader thread termination after timeout'
         )
-        expect(output.string).to include(
+        expect(err_output.string).to include(
           'Warning: command output reader thread did not terminate after forceful cleanup'
         )
       end
 
       it 'warns when cleanup recovers an inherited-pipe reader' do
         Tempfile.create('wifiwand-command-inherited-pipes-verbose') do |pid_file|
-          output = StringIO.new
-          verbose_executor = described_class.new(verbose: true, output: output)
+          err_output = StringIO.new
+          verbose_executor = described_class.new(
+            runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+          )
           pid_file.close
 
           result = run_command_in_thread(verbose_executor, inherited_pipe_command(pid_file))
 
           expect(result.stdout).to include('parent done')
-          expect(output.string).to include(
+          expect(err_output.string).to include(
             'Warning: command output reader thread did not finish before cleanup'
           )
         ensure
@@ -528,11 +538,13 @@ describe WifiWand::CommandExecutor do
     end
 
     it 'reports attempt count in verbose mode' do
-      io = StringIO.new
-      verbose_executor = described_class.new(verbose: true, output: io)
+      err_output = StringIO.new
+      verbose_executor = described_class.new(
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+      )
       condition = ->(_output) { true }
       verbose_executor.try_os_command_until(%w[echo test], condition, 3)
-      expect(io.string).to include('Command was executed 1 time')
+      expect(err_output.string).to include('Command was executed 1 time')
     end
   end
 

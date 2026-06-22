@@ -76,7 +76,7 @@ module WifiWand
 
       if verbose?
         endpoints_list = test_endpoints.map { |e| "#{e[:host]}:#{e[:port]}" }.join(', ')
-        output.puts "Testing internet TCP connectivity to: #{endpoints_list}"
+        err_output.puts "Testing internet TCP connectivity to: #{endpoints_list}"
       end
 
       result = parallel_check_result(
@@ -92,7 +92,7 @@ module WifiWand
     def dns_working?(timeout_in_secs: nil, overall_timeout: nil, return_details: false)
       test_domains = dns_test_domains
 
-      output.puts "Testing DNS resolution for domains: #{test_domains.join(', ')}" if verbose?
+      err_output.puts "Testing DNS resolution for domains: #{test_domains.join(', ')}" if verbose?
 
       result = parallel_check_result(
         test_domains,
@@ -266,7 +266,7 @@ module WifiWand
     private def log_helper_start_failure(helper_mode, error)
       return unless verbose?
 
-      output.puts "Failed to start #{helper_mode} connectivity helper: #{error.class}"
+      err_output.puts "Failed to start #{helper_mode} connectivity helper: #{error.class}"
     end
 
     private def normalize_helper_probe_results(raw_results)
@@ -307,17 +307,17 @@ module WifiWand
       endpoint = normalize_tcp_endpoint(endpoint)
 
       if result[:success]
-        output.puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}"
+        err_output.puts "Successfully connected to #{endpoint[:host]}:#{endpoint[:port]}"
       else
-        output.puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{result[:error_class]}"
+        err_output.puts "Failed to connect to #{endpoint[:host]}:#{endpoint[:port]}: #{result[:error_class]}"
       end
     end
 
     private def log_dns_probe_result(domain, result)
       if result[:success]
-        output.puts "Successfully resolved #{domain}"
+        err_output.puts "Successfully resolved #{domain}"
       else
-        output.puts "Failed to resolve #{domain}: #{result[:error_class]}"
+        err_output.puts "Failed to resolve #{domain}: #{result[:error_class]}"
       end
     end
 
@@ -400,7 +400,7 @@ module WifiWand
     private def log_unexpected_error(error)
       return unless verbose?
 
-      output.puts "Unexpected error during connectivity test: #{error.class} - #{error.message}"
+      err_output.puts "Unexpected error during connectivity test: #{error.class} - #{error.message}"
     end
 
     private def tcp_test_endpoints
@@ -422,5 +422,7 @@ module WifiWand
     private def verbose? = runtime_config.verbose
 
     private def output = runtime_config.out_stream
+
+    private def err_output = runtime_config.err_stream
   end
 end

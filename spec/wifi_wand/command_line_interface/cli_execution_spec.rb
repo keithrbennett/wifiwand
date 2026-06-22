@@ -197,7 +197,7 @@ describe WifiWand::CommandLineInterface do
         stub_cli_success(cli)
 
         cli.call
-        expect(out_stream.string).to include('Run at:')
+        expect(err_stream.string).to include('Run at:')
       end
 
       it 'shows run timestamp in UTC when utc option is set' do
@@ -207,8 +207,8 @@ describe WifiWand::CommandLineInterface do
         allow(Time).to receive(:now).and_return(Time.new(2026, 1, 1, 0, 0, 0, '+00:00'))
 
         cli.call
-        expect(out_stream.string).to include('Run at:')
-        expect(out_stream.string).to include('UTC')
+        expect(err_stream.string).to include('Run at:')
+        expect(err_stream.string).to include('UTC')
       end
 
       it 'prints argument diagnostics when verbose mode is enabled' do
@@ -217,16 +217,16 @@ describe WifiWand::CommandLineInterface do
 
         expect(cli.call).to eq(described_class::SUCCESS_EXIT_CODE)
         separator = '-' * 79
-        expect(out_stream.string).to include(separator)
-        expect(out_stream.string).to include('Run at:')
-        expect(out_stream.string).to include('WIFIWAND_OPTS: nil')
-        expect(out_stream.string).to include('raw_argv: ["-v", "true", "info"]')
-        expect(out_stream.string).to include('Command: info')
-        expect(out_stream.string).to include('verbose=true')
-        expect(out_stream.string).to include('utc=false')
-        expect(out_stream.string).to include('wifi_interface=nil')
-        expect(out_stream.string).to include('output_format=nil')
-        expect(out_stream.string.scan(separator).length).to eq(2)
+        expect(err_stream.string).to include(separator)
+        expect(err_stream.string).to include('Run at:')
+        expect(err_stream.string).to include('WIFIWAND_OPTS: nil')
+        expect(err_stream.string).to include('raw_argv: ["-v", "true", "info"]')
+        expect(err_stream.string).to include('Command: info')
+        expect(err_stream.string).to include('verbose=true')
+        expect(err_stream.string).to include('utc=false')
+        expect(err_stream.string).to include('wifi_interface=nil')
+        expect(err_stream.string).to include('output_format=nil')
+        expect(err_stream.string.scan(separator).length).to eq(2)
       end
 
       it 'skips argument diagnostics when verbose mode is disabled' do
@@ -235,7 +235,7 @@ describe WifiWand::CommandLineInterface do
         stub_cli_success(cli)
 
         cli.call
-        expect(out_stream.string).to be_empty
+        expect(err_stream.string).to be_empty
       end
 
       it 'uses human-readable format names' do
@@ -244,8 +244,8 @@ describe WifiWand::CommandLineInterface do
         stub_cli_success(cli)
 
         cli.call
-        expect(out_stream.string).to include('raw_argv: ["-v", "true", "-o", "a", "info"]')
-        expect(out_stream.string).to include('output_format=amazing_print')
+        expect(err_stream.string).to include('raw_argv: ["-v", "true", "-o", "a", "info"]')
+        expect(err_stream.string).to include('output_format=amazing_print')
       end
 
       it 'shows WIFIWAND_OPTS env var value when set' do
@@ -254,7 +254,7 @@ describe WifiWand::CommandLineInterface do
         stub_cli_success(cli)
 
         cli.call
-        expect(out_stream.string).to include('WIFIWAND_OPTS: "--utc true"')
+        expect(err_stream.string).to include('WIFIWAND_OPTS: "--utc true"')
       end
 
       it 'reads WIFIWAND_OPTS from the options struct, not the process-global ENV' do
@@ -264,8 +264,8 @@ describe WifiWand::CommandLineInterface do
         stub_cli_success(cli)
 
         cli.call
-        expect(out_stream.string).to include('WIFIWAND_OPTS: "--from-injected-env"')
-        expect(out_stream.string).not_to include('--from-global-env')
+        expect(err_stream.string).to include('WIFIWAND_OPTS: "--from-injected-env"')
+        expect(err_stream.string).not_to include('--from-global-env')
       end
 
       it 'coerces nil booleans to false' do
@@ -274,7 +274,7 @@ describe WifiWand::CommandLineInterface do
         stub_cli_success(cli)
 
         cli.call
-        expect(out_stream.string).to include('utc=false')
+        expect(err_stream.string).to include('utc=false')
       end
 
       it 'preserves explicit boolean true values' do
@@ -283,7 +283,7 @@ describe WifiWand::CommandLineInterface do
         stub_cli_success(cli)
 
         cli.call
-        expect(out_stream.string).to include('utc=true')
+        expect(err_stream.string).to include('utc=true')
       end
     end
   end

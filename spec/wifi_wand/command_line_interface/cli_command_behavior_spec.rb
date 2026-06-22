@@ -17,7 +17,7 @@ describe WifiWand::CommandLineInterface do
       allow(mock_model).to receive(:last_connection_used_saved_password?).and_return(true)
 
       expect { invoke_command(cli, 'connect', network_name) }
-        .to output(/Using saved password for 'SavedNetwork'/).to_stdout
+        .to output(/Using saved password for 'SavedNetwork'/).to_stderr
     end
 
     it 'does not show message when saved password is not used' do
@@ -26,7 +26,7 @@ describe WifiWand::CommandLineInterface do
       allow(mock_model).to receive(:last_connection_used_saved_password?).and_return(false)
 
       expect { invoke_command(cli, 'connect', network_name, password) }
-        .not_to output(/Using saved password/).to_stdout
+        .not_to output(/Using saved password/).to_stderr
     end
 
     it 'does not show message in interactive mode even when saved password is used' do

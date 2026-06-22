@@ -258,7 +258,7 @@ module WifiWand
           delete_tempfile_path(tempfile, temp_path)
         end
 
-        model.out_stream.puts "QR code generated: #{filename}" if model.verbose?
+        model.err_stream.puts "QR code generated: #{filename}" if model.verbose?
       end
 
       private def render_qr_data(model, qr_string, format:, qrencode_type: qrencode_type_for(format))

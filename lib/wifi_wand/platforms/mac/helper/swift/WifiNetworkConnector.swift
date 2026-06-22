@@ -61,6 +61,12 @@
 import Foundation  // Basic Swift/macOS types and utilities
 import CoreWLAN    // macOS WiFi framework - provides WiFi hardware access
 
+func logError(_ message: String) {
+    if let data = (message + "\n").data(using: .utf8) {
+        FileHandle.standardError.write(data)
+    }
+}
+
 /* ---------------------------
    FUNCTION: connectToNetwork
    ---------------------------
@@ -99,7 +105,7 @@ func connectToNetwork(ssid: String, password: String?) -> Bool {
          - Xcode Command Line Tools not installed (CoreWLAN framework missing)
     */
     guard let interface = CWWiFiClient.shared().interface() else {
-        print("Error: Could not get WiFi interface")
+        logError("Error: Could not get WiFi interface")
         exit(1)
     }
 
@@ -120,7 +126,7 @@ func connectToNetwork(ssid: String, password: String?) -> Bool {
         /* guard: Early return pattern - exits if network not found in scan results
            `.first`: Get first element from Set (like Ruby's .first on an array) */
         guard let network = networks.first else {
-            print("Error: Network not found")
+            logError("Error: Network not found")
             exit(1)
         }
 
@@ -156,36 +162,36 @@ func connectToNetwork(ssid: String, password: String?) -> Bool {
 
         switch error.code {
         case -3931:  /* kCWErrorAlreadyAssociated
-                        Already connected to this network - treat as success */
-            print("Already connected to network")
+                         Already connected to this network - treat as success */
+            logError("Already connected to network")
             return true
 
         case -3906:  /* kCWErrorInvalidPassword
-                        Password incorrect or doesn't match network's security type */
-            print("Error: Invalid password")
+                         Password incorrect or doesn't match network's security type */
+            logError("Error: Invalid password")
 
         case -3905:  /* kCWErrorNetworkNotFound
-                        Network disappeared between scan and associate (moved out of range, etc.) */
-            print("Error: Network not found")
+                         Network disappeared between scan and associate (moved out of range, etc.) */
+            logError("Error: Network not found")
 
         case -3908:  /* kCWErrorTimeout
-                        Connection attempt timed out (weak signal, AP not responding, etc.) */
-            print("Error: Connection timeout")
+                         Connection attempt timed out (weak signal, AP not responding, etc.) */
+            logError("Error: Connection timeout")
 
         case -3903:  /* kCWErrorAuthenticationFailed
-                        WPA handshake failed - often means captive portal (hotel/airport WiFi) */
-            print("Error: Authentication failed - might require captive portal login")
+                         WPA handshake failed - often means captive portal (hotel/airport WiFi) */
+            logError("Error: Authentication failed - might require captive portal login")
 
         case -3900:  /* kCWError (generic)
-                        Generic CoreWLAN error - multiple possible causes:
-                        - Keychain access denied
-                        - System preference locked
-                        - Enterprise authentication required
-                        This error code triggers fallback to networksetup in Ruby code */
-            print("Error: CoreWLAN generic error - possible keychain access or authentication issue")
+                         Generic CoreWLAN error - multiple possible causes:
+                         - Keychain access denied
+                         - System preference locked
+                         - Enterprise authentication required
+                         This error code triggers fallback to networksetup in Ruby code */
+            logError("Error: CoreWLAN generic error - possible keychain access or authentication issue")
 
         default:  /* Unknown error code - print full error information for debugging */
-            print("Error connecting: \(error.localizedDescription) (code: \(error.code))")
+            logError("Error connecting: \(error.localizedDescription) (code: \(error.code))")
         }
         exit(1)
     }
@@ -204,7 +210,7 @@ func connectToNetwork(ssid: String, password: String?) -> Bool {
      CommandLine.arguments[2] = password (optional)
 */
 if CommandLine.arguments.count < 2 {
-    print("Usage: \(CommandLine.arguments[0]) SSID [password]")
+    logError("Usage: \(CommandLine.arguments[0]) SSID [password]")
     exit(1)
 }
 

@@ -116,11 +116,11 @@ module WifiWand
     }.freeze
 
     private def output_arguments
-      out_stream.puts '-' * 79
-      out_stream.puts "Run at: #{run_timestamp}"
-      out_stream.puts "WIFIWAND_OPTS: #{options.wifi_wand_opts_env.inspect}"
-      out_stream.puts "raw_argv: #{options.raw_argv.inspect}"
-      out_stream.puts "Command: #{@argv.first}"
+      err_stream.puts '-' * 79
+      err_stream.puts "Run at: #{run_timestamp}"
+      err_stream.puts "WIFIWAND_OPTS: #{options.wifi_wand_opts_env.inspect}"
+      err_stream.puts "raw_argv: #{options.raw_argv.inspect}"
+      err_stream.puts "Command: #{@argv.first}"
       parts = [
         "verbose=#{!!options.verbose}",
         "utc=#{!!options.utc}",
@@ -132,8 +132,8 @@ module WifiWand
       else
         parts << 'output_format=nil'
       end
-      out_stream.puts "Options: #{parts.join(' ')}"
-      out_stream.puts '-' * 79
+      err_stream.puts "Options: #{parts.join(' ')}"
+      err_stream.puts '-' * 79
     end
 
     private def run_timestamp

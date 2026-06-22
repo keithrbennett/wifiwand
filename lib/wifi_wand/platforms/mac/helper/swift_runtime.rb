@@ -22,9 +22,10 @@ module WifiWand
           # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
           UNEXPECTED_SWIFT_PROBE_ERROR = StandardError
 
-          def initialize(command_runner:, out_stream_provider:, verbosity_provider:)
+          def initialize(command_runner:, out_stream_provider:, err_stream_provider:, verbosity_provider:)
             @command_runner = command_runner
             @out_stream_provider = out_stream_provider
+            @err_stream_provider = err_stream_provider
             @verbosity_provider = verbosity_provider
           end
 
@@ -40,11 +41,11 @@ module WifiWand
               log_swift_probe_failure(result) if !result.success? && verbose?
               result.success?
             rescue WifiWand::CommandTimeoutError => e
-              out_stream.puts "Swift/CoreWLAN check timed out: #{e.message}" if verbose?
+              err_stream.puts "Swift/CoreWLAN check timed out: #{e.message}" if verbose?
               skip_memoize = true
               false
             rescue WifiWand::CommandSpawnError => e
-              out_stream.puts "Swift/CoreWLAN check could not start: #{e.message}" if verbose?
+              err_stream.puts "Swift/CoreWLAN check could not start: #{e.message}" if verbose?
               skip_memoize = true
               false
             rescue WifiWand::CommandNotFoundError
@@ -54,7 +55,7 @@ module WifiWand
               log_swift_probe_failure(e) if verbose?
               false
             rescue UNEXPECTED_SWIFT_PROBE_ERROR => e
-              out_stream.puts "Unexpected error checking Swift/CoreWLAN: #{e.class}: #{e.message}" if verbose?
+              err_stream.puts "Unexpected error checking Swift/CoreWLAN: #{e.class}: #{e.message}" if verbose?
               raise
             end
 
@@ -91,6 +92,8 @@ module WifiWand
 
           private def out_stream = @out_stream_provider.call
 
+          private def err_stream = @err_stream_provider.call
+
           private def verbose? = @verbosity_provider.call
 
           private def swift_filespec_for(basename)
@@ -102,18 +105,18 @@ module WifiWand
             when 127
               log_swift_command_not_found(exitstatus: failure.exitstatus)
             when 1
-              out_stream.puts(
+              err_stream.puts(
                 "CoreWLAN framework not available (exit code #{failure.exitstatus}). Install Xcode."
               )
             else
-              out_stream.puts "Swift/CoreWLAN check failed with exit code #{failure.exitstatus}: " \
+              err_stream.puts "Swift/CoreWLAN check failed with exit code #{failure.exitstatus}: " \
                 "#{swift_probe_failure_text(failure)}"
             end
           end
 
           private def log_swift_command_not_found(exitstatus: nil)
             exit_code_text = exitstatus ? " (exit code #{exitstatus})" : ''
-            out_stream.puts "Swift command not found#{exit_code_text}. Install Xcode Command Line Tools."
+            err_stream.puts "Swift command not found#{exit_code_text}. Install Xcode Command Line Tools."
           end
 
           private def swift_probe_failure_text(failure)

@@ -123,15 +123,20 @@ describe WifiWand::NetworkStateManager do
     end
 
     it 'logs password retrieval failure in verbose mode' do
-      output = StringIO.new
-      verbose_manager = described_class.new(mock_model, verbose: true, output: output)
+      err_output = StringIO.new
+      verbose_manager = described_class.new(
+        mock_model,
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+      )
       allow(mock_model).to receive(:connected_network_name).and_return('TestNetwork')
       allow(mock_model).to receive(:preferred_network_password).with('TestNetwork')
         .and_raise(WifiWand::KeychainError.new('Keychain error'))
 
       state = verbose_manager.capture_network_state
       expect(state[:network_password]).to be_nil
-      expect(output.string).to include('Warning: Failed to retrieve password for TestNetwork: Keychain error')
+      expect(err_output.string).to include(
+        'Warning: Failed to retrieve password for TestNetwork: Keychain error'
+      )
     end
   end
 
@@ -186,12 +191,15 @@ describe WifiWand::NetworkStateManager do
           'WiFi could not be enabled.*' \
           'You may need to manually reconnect to: TestNetwork'
         expect { state_manager.restore_network_state(valid_state, fail_silently: true) }
-          .to output(/#{target}/m).to_stdout
+          .to output(/#{target}/m).to_stderr
       end
 
       it 'swallows connection failures and logs to configured output' do
-        output = StringIO.new
-        manager = described_class.new(mock_model, verbose: false, output: output)
+        err_output = StringIO.new
+        manager = described_class.new(
+          mock_model,
+          runtime_config: WifiWand::RuntimeConfig.new(verbose: false, err_stream: err_output)
+        )
         allow(mock_model).to receive_messages(
           connection_ready?:          false,
           wifi_on?:                   true,
@@ -209,15 +217,18 @@ describe WifiWand::NetworkStateManager do
 
         manager.restore_network_state(valid_state, fail_silently: true)
 
-        expect(output.string).to match(
+        expect(err_output.string).to match(
           /Warning: Could not restore network state \(WifiWand::NetworkConnectionError\): Failed to connect/m
         )
-        expect(output.string).to include('You may need to manually reconnect to: TestNetwork')
+        expect(err_output.string).to include('You may need to manually reconnect to: TestNetwork')
       end
 
       it 'swallows expected network errors and logs to configured output' do
-        output = StringIO.new
-        manager = described_class.new(mock_model, verbose: false, output: output)
+        err_output = StringIO.new
+        manager = described_class.new(
+          mock_model,
+          runtime_config: WifiWand::RuntimeConfig.new(verbose: false, err_stream: err_output)
+        )
         allow(mock_model).to receive_messages(
           connection_ready?:          false,
           wifi_on?:                   true,
@@ -229,26 +240,32 @@ describe WifiWand::NetworkStateManager do
 
         manager.restore_network_state(valid_state, fail_silently: true)
 
-        expect(output.string).to include(
+        expect(err_output.string).to include(
           'Warning: Could not restore network state (SocketError): lookup failed')
-        expect(output.string).to include('You may need to manually reconnect to: TestNetwork')
+        expect(err_output.string).to include('You may need to manually reconnect to: TestNetwork')
       end
 
       it 'uses manual-state guidance for blank network names' do
-        output = StringIO.new
-        manager = described_class.new(mock_model, verbose: false, output: output)
+        err_output = StringIO.new
+        manager = described_class.new(
+          mock_model,
+          runtime_config: WifiWand::RuntimeConfig.new(verbose: false, err_stream: err_output)
+        )
         state_identity_unavailable = valid_state.merge(network_name: '', network_password: nil)
         allow(mock_model).to receive_messages(mac?: false, wifi_on?: true)
 
         manager.restore_network_state(state_identity_unavailable, fail_silently: true)
 
-        expect(output.string).not_to include('You may need to manually reconnect to:')
-        expect(output.string).to include('You may need to manually restore the original WiFi state.')
+        expect(err_output.string).not_to include('You may need to manually reconnect to:')
+        expect(err_output.string).to include('You may need to manually restore the original WiFi state.')
       end
 
       it 'swallows disassociated restore failures with manual-state guidance' do
-        output = StringIO.new
-        manager = described_class.new(mock_model, verbose: false, output: output)
+        err_output = StringIO.new
+        manager = described_class.new(
+          mock_model,
+          runtime_config: WifiWand::RuntimeConfig.new(verbose: false, err_stream: err_output)
+        )
         state_no_network = valid_state.merge(associated: false, network_name: nil, network_password: nil)
         allow(mock_model).to receive(:disconnect).and_raise(
           WifiWand::NetworkDisconnectionError.new(network_name: nil, reason: 'interface remained associated')
@@ -256,15 +273,18 @@ describe WifiWand::NetworkStateManager do
 
         manager.restore_network_state(state_no_network, fail_silently: true)
 
-        expect(output.string).to include(
+        expect(err_output.string).to include(
           'Warning: Could not restore network state (WifiWand::NetworkDisconnectionError): ')
-        expect(output.string).not_to include('You may need to manually reconnect to:')
-        expect(output.string).to include('You may need to manually restore the original WiFi state.')
+        expect(err_output.string).not_to include('You may need to manually reconnect to:')
+        expect(err_output.string).to include('You may need to manually restore the original WiFi state.')
       end
 
       it 'swallows macOS associated-without-SSID restore failures with manual-state guidance' do
-        output = StringIO.new
-        manager = described_class.new(mock_model, verbose: false, output: output)
+        err_output = StringIO.new
+        manager = described_class.new(
+          mock_model,
+          runtime_config: WifiWand::RuntimeConfig.new(verbose: false, err_stream: err_output)
+        )
         state_identity_unavailable = valid_state.merge(
           associated:       true,
           network_name:     nil,
@@ -274,15 +294,18 @@ describe WifiWand::NetworkStateManager do
 
         manager.restore_network_state(state_identity_unavailable, fail_silently: true)
 
-        expect(output.string).to include(
+        expect(err_output.string).to include(
           'Warning: Could not restore network state (WifiWand::MacOsRedactionError): ')
-        expect(output.string).not_to include('You may need to manually reconnect to:')
-        expect(output.string).to include('You may need to manually restore the original WiFi state.')
+        expect(err_output.string).not_to include('You may need to manually reconnect to:')
+        expect(err_output.string).to include('You may need to manually restore the original WiFi state.')
       end
 
       it 'swallows non-macOS associated-without-SSID restore failures with manual-state guidance' do
-        output = StringIO.new
-        manager = described_class.new(mock_model, verbose: false, output: output)
+        err_output = StringIO.new
+        manager = described_class.new(
+          mock_model,
+          runtime_config: WifiWand::RuntimeConfig.new(verbose: false, err_stream: err_output)
+        )
         state_identity_unavailable = valid_state.merge(
           associated:       true,
           network_name:     nil,
@@ -292,11 +315,11 @@ describe WifiWand::NetworkStateManager do
 
         manager.restore_network_state(state_identity_unavailable, fail_silently: true)
 
-        expect(output.string).to include('Warning: Could not restore network state (WifiWand::Error): ')
-        expect(output.string).to include(
+        expect(err_output.string).to include('Warning: Could not restore network state (WifiWand::Error): ')
+        expect(err_output.string).to include(
           'Cannot restore network association because the original WiFi state was associated')
-        expect(output.string).not_to include('You may need to manually reconnect to:')
-        expect(output.string).to include('You may need to manually restore the original WiFi state.')
+        expect(err_output.string).not_to include('You may need to manually reconnect to:')
+        expect(err_output.string).to include('You may need to manually restore the original WiFi state.')
       end
 
       it 'propagates unexpected exceptions even when fail_silently is true' do
@@ -849,8 +872,11 @@ describe WifiWand::NetworkStateManager do
     end
 
     it 'logs WaitTimeoutError details in verbose mode when network query succeeds' do
-      output = StringIO.new
-      verbose_manager = described_class.new(mock_model, verbose: true, output: output)
+      err_output = StringIO.new
+      verbose_manager = described_class.new(
+        mock_model,
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+      )
       allow(mock_model).to receive(:connected_network_name).and_return('ActualNetwork')
       allow(mock_model).to receive_messages(
         wifi_on?:                   true,
@@ -865,13 +891,16 @@ describe WifiWand::NetworkStateManager do
       expect do
         verbose_manager.restore_network_state(valid_state)
       end.to raise_error(WifiWand::NetworkConnectionError)
-      expect(output.string).to include(
+      expect(err_output.string).to include(
         'Warning: Connection timeout - expected "TestNetwork", currently connected to "ActualNetwork"')
     end
 
     it 'logs WaitTimeoutError details in verbose mode when network query fails' do
-      output = StringIO.new
-      verbose_manager = described_class.new(mock_model, verbose: true, output: output)
+      err_output = StringIO.new
+      verbose_manager = described_class.new(
+        mock_model,
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+      )
       # First call (line 63 - already_connected check) returns different network
       # Second call (line 75 - in rescue block) raises error
       allow(mock_model).to receive(:connected_network_name).and_return('OtherNetwork',
@@ -889,7 +918,7 @@ describe WifiWand::NetworkStateManager do
       expect do
         verbose_manager.restore_network_state(valid_state)
       end.to raise_error(WifiWand::NetworkConnectionError)
-      expect(output.string).to include(
+      expect(err_output.string).to include(
         'Warning: Connection timeout and failed to query current network: Network query failed')
     end
   end
@@ -910,7 +939,7 @@ describe WifiWand::NetworkStateManager do
 
       expect do
         verbose_state_manager.restore_network_state(valid_state)
-      end.to output(/restore_network_state: .* called/).to_stdout
+      end.to output(/restore_network_state: .* called/).to_stderr
     end
   end
 
@@ -935,14 +964,17 @@ describe WifiWand::NetworkStateManager do
     end
 
     it 'fallback_password_for logs errors in verbose mode' do
-      output = StringIO.new
-      verbose_manager = described_class.new(mock_model, verbose: true, output: output)
+      err_output = StringIO.new
+      verbose_manager = described_class.new(
+        mock_model,
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+      )
       allow(mock_model).to receive(:preferred_network_password)
         .and_raise(WifiWand::Error.new('Password lookup failed'))
 
       result = verbose_manager.send(:fallback_password_for, 'TestNetwork')
       expect(result).to be_nil
-      expect(output.string).to include(
+      expect(err_output.string).to include(
         'Warning: Failed to retrieve fallback password for TestNetwork: Password lookup failed')
     end
 

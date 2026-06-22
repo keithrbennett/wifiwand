@@ -6,18 +6,21 @@ require_relative '../../../lib/wifi_wand/commands/connect'
 describe WifiWand::Commands::Connect do
   let(:mock_model) { double('Model') }
   let(:output) { StringIO.new }
+  let(:err_output) { StringIO.new }
   let(:cli) do
     double(
       'cli',
       model:            mock_model,
       interactive_mode: false,
       out_stream:       output,
+      err_stream:       err_output,
       help_hint:        "Use 'wifiwand help' or 'wifiwand -h' for help."
     )
   end
 
   it_behaves_like 'binds command context',
-    bound_attributes: { model: :mock_model, output: :output, interactive_mode: -> { false } }
+    bound_attributes: { model: :mock_model, output: :output, err_output: :err_output,
+                        interactive_mode: -> { false } }
 
   it_behaves_like 'has default command help text',
     usage:       'Usage: wifiwand connect <network> [password]',
@@ -91,7 +94,7 @@ describe WifiWand::Commands::Connect do
       command.call('TestNetwork', 'secret')
 
       expect(mock_model).to have_received(:connect).with('TestNetwork', 'secret')
-      expect(output.string).to eq('')
+      expect(err_output.string).to eq('')
     end
 
     it 'raises a usage-oriented error when the network argument is missing' do
@@ -131,7 +134,7 @@ describe WifiWand::Commands::Connect do
       command.call('SavedNetwork')
 
       expect(mock_model).to have_received(:connect).with('SavedNetwork', nil)
-      expect(output.string).to include("Using saved password for 'SavedNetwork'.")
+      expect(err_output.string).to include("Using saved password for 'SavedNetwork'.")
     end
 
     it 'does not show a saved-password message when the password was explicit' do
@@ -139,20 +142,21 @@ describe WifiWand::Commands::Connect do
 
       command.call('TestNetwork', 'secret')
 
-      expect(output.string).to eq('')
+      expect(err_output.string).to eq('')
     end
 
     it 'does not show a saved-password message in interactive mode' do
       interactive_command = described_class.new(
         model:            mock_model,
         output:           output,
+        err_output:       err_output,
         interactive_mode: true
       )
       allow(mock_model).to receive(:last_connection_used_saved_password?).and_return(true)
 
       interactive_command.call('SavedNetwork')
 
-      expect(output.string).to eq('')
+      expect(err_output.string).to eq('')
     end
   end
 end

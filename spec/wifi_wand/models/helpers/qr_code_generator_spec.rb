@@ -17,6 +17,7 @@ describe 'QR Code Generator (unit)' do
   let(:password) { 'password123' }
   let(:security) { 'WPA2' }
   let(:out_stream) { StringIO.new }
+  let(:err_stream) { StringIO.new }
 
   before do
     FileUtils.rm_f('TestNetwork-qr-code.png')
@@ -25,6 +26,7 @@ describe 'QR Code Generator (unit)' do
     FileUtils.rm_f('out.eps')
     model.verbose = false
     model.out_stream = out_stream
+    model.err_stream = err_stream
     allow(model).to receive(:command_available?).with('qrencode').and_return(true)
     allow(model).to receive_messages(
       connected_network_name:     ssid,
@@ -373,7 +375,7 @@ describe 'QR Code Generator (unit)' do
       output_error = Errno::EPIPE.new('closed output')
 
       model.verbose = true
-      allow(out_stream).to receive(:puts).and_call_original
+      allow(err_stream).to receive(:puts).and_call_original
       expect(model).to receive(:run_command)
         .with(satisfy { |cmd| cmd[0..4] == %w[qrencode -t PNG -o -] }, log_stdout: false, binary_stdout: true)
         .and_return(command_result(stdout: 'PNGDATA'))
@@ -382,7 +384,7 @@ describe 'QR Code Generator (unit)' do
       expect(staged_tempfile).to receive(:write).with('PNGDATA').ordered
       expect(staged_tempfile).to receive(:close).ordered
       expect(File).to receive(:rename).with(staged_tempfile.path, filename).ordered
-      expect(out_stream).to receive(:puts)
+      expect(err_stream).to receive(:puts)
         .with("QR code generated: #{filename}")
         .ordered
         .and_raise(output_error)

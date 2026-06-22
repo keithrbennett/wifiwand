@@ -78,10 +78,11 @@ module WifiWand
     end
 
     private def log_message(message)
-      return unless out_stream
+      err_stream = runtime_config.err_stream
+      return unless err_stream
 
-      out_stream.puts(JSON.generate(timestamp: current_timestamp, event: 'debug', message: message))
-      out_stream.flush if out_stream.respond_to?(:flush)
+      err_stream.puts(JSON.generate(timestamp: current_timestamp, event: 'debug', message: message))
+      err_stream.flush if err_stream.respond_to?(:flush)
     end
 
     private def current_timestamp
