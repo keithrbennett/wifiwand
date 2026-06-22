@@ -99,8 +99,13 @@ describe WifiWand::StatusWaiter do
     end
 
     context 'with verbose mode enabled' do
-      let(:output) { StringIO.new }
-      let(:verbose_waiter) { described_class.new(mock_model, verbose: true, output: output) }
+      let(:err_output) { StringIO.new }
+      let(:verbose_waiter) do
+        described_class.new(
+          mock_model,
+          runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+        )
+      end
 
       before do
         call_count = 0
@@ -111,7 +116,7 @@ describe WifiWand::StatusWaiter do
       it 'logs start message with timeout and interval' do
         verbose_waiter.wait_for(:wifi_on, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)
 
-        expect(output.string)
+        expect(err_output.string)
           .to match(/StatusWaiter \(wifi_on\): starting, timeout: never, interval: #{WifiWand::TimingConstants::FAST_TEST_INTERVAL}s/)
       end
 
@@ -119,13 +124,13 @@ describe WifiWand::StatusWaiter do
         allow(mock_model).to receive(:wifi_on?).and_return(true)
         verbose_waiter.wait_for(:wifi_on)
 
-        expect(output.string).to include('StatusWaiter (wifi_on): completed without needing to wait')
+        expect(err_output.string).to include('StatusWaiter (wifi_on): completed without needing to wait')
       end
 
       it 'logs total wait time after polling' do
         verbose_waiter.wait_for(:wifi_on, wait_interval_in_secs: WifiWand::TimingConstants::FAST_TEST_INTERVAL)
 
-        expect(output.string).to include('StatusWaiter (wifi_on): wait time (seconds):')
+        expect(err_output.string).to include('StatusWaiter (wifi_on): wait time (seconds):')
       end
     end
 
@@ -135,13 +140,16 @@ describe WifiWand::StatusWaiter do
         allow(mock_model).to receive(:wifi_on?) { (call_count += 1) > 1 }
         stub_monotonic_clock(1000.0, 1002.5, 1002.5, 1002.5)
 
-        output = StringIO.new
-        verbose_waiter = described_class.new(mock_model, verbose: true, output: output)
+        err_output = StringIO.new
+        verbose_waiter = described_class.new(
+          mock_model,
+          runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+        )
         allow(verbose_waiter).to receive(:sleep)
 
         verbose_waiter.wait_for(:wifi_on, timeout_in_secs: 10)
 
-        expect(output.string).to include('StatusWaiter (wifi_on): wait time (seconds): 2.5')
+        expect(err_output.string).to include('StatusWaiter (wifi_on): wait time (seconds): 2.5')
       end
 
       it 'caps the initial :internet_on probe to the remaining timeout budget' do

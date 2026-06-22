@@ -76,6 +76,10 @@ module WifiWand
 
     def err_stream = runtime_config.err_stream
 
+    def err_stream=(stream)
+      runtime_config.err_stream = stream
+    end
+
     def verbose? = runtime_config.verbose
 
     def verbose=(value)
@@ -404,7 +408,7 @@ module WifiWand
     rescue WifiWand::MacOsRedactionError
       raise
     rescue WifiWand::Error => e
-      out_stream.puts("connection_ready? check failed: #{e.class}: #{e.message}") if verbose?
+      err_stream.puts("connection_ready? check failed: #{e.class}: #{e.message}") if verbose?
       false
     end
 
@@ -1086,7 +1090,7 @@ module WifiWand
         values = param_names.map { |name| caller_binding.local_variable_get(name) }
         s += "(#{values.map(&:to_s).map(&:inspect).join(', ')})"
       end
-      out_stream.puts s
+      err_stream.puts s
     end
   end
 end

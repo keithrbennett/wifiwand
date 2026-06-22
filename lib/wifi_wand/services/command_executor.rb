@@ -57,7 +57,7 @@ module WifiWand
     # @return the stdout produced by the command, or nil if max_tries was reached
     def try_os_command_until(command, stop_condition, max_tries = 100)
       report_attempt_count = ->(attempt_count) do
-        output.puts "Command was executed #{attempt_count} time(s)." if verbose?
+        err_output.puts "Command was executed #{attempt_count} time(s)." if verbose?
       end
 
       max_tries.times do |n|
@@ -78,7 +78,7 @@ module WifiWand
     private def execute_command(command_array, command_display, raise_on_error:, timeout_in_secs:,
       log_stdout:, binary_stdout:)
       if verbose?
-        output.puts command_attempt_as_string(command_display)
+        err_output.puts command_attempt_as_string(command_display)
       end
 
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
@@ -181,15 +181,16 @@ module WifiWand
       status_string = "#{result.termination_status} (#{result.success? ? 'success' : 'error'})"
 
       if verbose?
-        output.puts "#{status_string}, Duration: #{format('%.4f', duration)} seconds -- #{current_timestamp}"
+        err_output.puts "#{status_string}, Duration: #{format('%.4f',
+          duration)} seconds -- #{current_timestamp}"
         if !result.stdout.empty? && log_stdout
-          output.puts command_result_as_string("STDOUT:\n#{result.stdout}")
+          err_output.puts command_result_as_string("STDOUT:\n#{result.stdout}")
         end
         unless result.stderr.empty?
-          output.puts command_result_as_string("STDERR:\n#{result.stderr}")
+          err_output.puts command_result_as_string("STDERR:\n#{result.stderr}")
         end
         if result.stdout.empty? && result.stderr.empty?
-          output.puts command_result_as_string('')
+          err_output.puts command_result_as_string('')
         end
       end
 
@@ -236,6 +237,8 @@ module WifiWand
 
     private def output = runtime_config.out_stream
 
+    private def err_output = runtime_config.err_stream
+
     private def current_timestamp(time = Time.now)
       runtime_config.utc ? time.getutc.iso8601 : time.getlocal.iso8601
     end
@@ -250,7 +253,7 @@ module WifiWand
         next if thread.join(READER_THREAD_JOIN_WAIT_SECS)
 
         if verbose?
-          output.puts 'Warning: command output reader thread did not finish before cleanup'
+          err_output.puts 'Warning: command output reader thread did not finish before cleanup'
         end
       end
     end
@@ -271,12 +274,12 @@ module WifiWand
         next unless thread.alive?
         next if thread.join(READER_THREAD_JOIN_WAIT_SECS)
 
-        output.puts 'Warning: forcing command output reader thread termination after timeout' if verbose?
+        err_output.puts 'Warning: forcing command output reader thread termination after timeout' if verbose?
         thread.kill
         next if thread.join(READER_THREAD_JOIN_WAIT_SECS)
 
         if verbose?
-          output.puts 'Warning: command output reader thread did not terminate after forceful cleanup'
+          err_output.puts 'Warning: command output reader thread did not terminate after forceful cleanup'
         end
       end
     end

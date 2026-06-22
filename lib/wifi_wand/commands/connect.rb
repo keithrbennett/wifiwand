@@ -12,7 +12,7 @@ module WifiWand
         usage:        'Usage: wifiwand connect <network> [password]'
       )
 
-      binds :model, :interactive_mode, output: :out_stream
+      binds :model, :interactive_mode, output: :out_stream, err_output: :err_stream
       allow_invocation_options :wifi_interface
 
       def call(*args)
@@ -33,7 +33,7 @@ module WifiWand
           "Using saved password for '#{network}'.",
           "Use 'forget #{network}' if you need to use a different password.",
         ].join(' ')
-        output.puts(message)
+        err_output.puts(message)
       end
     end
   end

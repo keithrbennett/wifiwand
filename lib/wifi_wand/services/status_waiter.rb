@@ -50,7 +50,7 @@ module WifiWand
 
       if verbose?
         timeout_display = timeout_in_secs ? "#{timeout_in_secs}s" : 'never'
-        output.puts <<~MESSAGE.chomp
+        err_output.puts <<~MESSAGE.chomp
           #{message_prefix} starting, timeout: #{timeout_display}, interval: #{wait_interval_in_secs}s
         MESSAGE
       end
@@ -68,16 +68,16 @@ module WifiWand
         deadline:            deadline,
         expensive_predicate: expensive_predicate
       )
-        output.puts "#{message_prefix} completed without needing to wait" if verbose?
+        err_output.puts "#{message_prefix} completed without needing to wait" if verbose?
         return nil
       elsif verbose?
-        output.puts "#{message_prefix} First attempt failed, entering waiting loop"
+        err_output.puts "#{message_prefix} First attempt failed, entering waiting loop"
       end
 
       loop do
         raise_timeout_if_deadline_exceeded!(target_status, timeout_in_secs, deadline)
 
-        output.puts "#{message_prefix} checking predicate..." if verbose?
+        err_output.puts "#{message_prefix} checking predicate..." if verbose?
         if predicate_satisfied?(
           finished_predicate,
           target_status:       target_status,
@@ -87,7 +87,7 @@ module WifiWand
         )
           if verbose?
             end_time = current_time
-            output.puts "#{message_prefix} wait time (seconds): #{end_time - start_time}"
+            err_output.puts "#{message_prefix} wait time (seconds): #{end_time - start_time}"
           end
           return nil
         end
@@ -140,6 +140,8 @@ module WifiWand
     private def verbose? = runtime_config.verbose
 
     private def output = runtime_config.out_stream
+
+    private def err_output = runtime_config.err_stream
 
     private def finished_predicates
       {

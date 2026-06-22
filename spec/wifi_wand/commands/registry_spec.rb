@@ -109,6 +109,8 @@ describe 'command registry components' do
 
         def out_stream = StringIO.new
 
+        def err_stream = StringIO.new
+
         def command_options = {}
       end
     end

@@ -10,10 +10,11 @@ module WifiWand
     module Mac
       class SystemNetworkInfo
         def initialize(command_runner:, wifi_interface_provider:, out_stream_provider: nil,
-          verbosity_provider: nil)
+          err_stream_provider: nil, verbosity_provider: nil)
           @command_runner = command_runner
           @wifi_interface_provider = wifi_interface_provider
           @out_stream_provider = out_stream_provider
+          @err_stream_provider = err_stream_provider
           @verbosity_provider = verbosity_provider
         end
 
@@ -88,13 +89,15 @@ module WifiWand
           Helper::Bundle.normalize_detected_macos_version(output)
         rescue WifiWand::CommandExecutor::OsCommandError, WifiWand::CommandTimeoutError,
           WifiWand::CommandNotFoundError, WifiWand::CommandSpawnError => e
-          out_stream.puts "Could not detect macOS version: #{e.message}." if verbose?
+          err_stream.puts "Could not detect macOS version: #{e.message}." if verbose?
           nil
         end
 
         private def verbose? = @verbosity_provider&.call
 
         private def out_stream = @out_stream_provider ? @out_stream_provider.call : $stdout
+
+        private def err_stream = @err_stream_provider ? @err_stream_provider.call : $stderr
       end
     end
   end

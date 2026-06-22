@@ -389,17 +389,19 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
   describe '#connection_ready?' do
     it 'logs lookup failures in verbose mode and returns false' do
-      output = StringIO.new
+      err_stream = StringIO.new
       test_model_class = Class.new(WifiWand::BaseModel) do
         def self.os_id = :mac
       end
       define_base_model_required_methods(test_model_class, probe_wifi_interface: 'en0')
-      model = test_model_class.new(verbose: true, out_stream: output)
+      model = test_model_class.new(verbose: true, err_stream: err_stream)
 
       allow(model).to receive(:connected?).and_raise(WifiWand::Error, 'state probe failed')
 
       expect(model.connection_ready?('TestNet')).to be(false)
-      expect(output.string).to include('connection_ready? check failed: WifiWand::Error: state probe failed')
+      expect(err_stream.string).to include(
+        'connection_ready? check failed: WifiWand::Error: state probe failed'
+      )
     end
   end
 
@@ -1357,6 +1359,14 @@ describe 'Common WiFi Model Behavior (All OS)' do
       $stdout = original_stdout
     end
 
+    def with_redirected_stderr(stream)
+      original_stderr = $stderr
+      $stderr = stream
+      yield
+    ensure
+      $stderr = original_stderr
+    end
+
     let(:runtime_model_class) do
       klass = Class.new(WifiWand::BaseModel) do
         def self.os_id = :test
@@ -1367,30 +1377,36 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
     let(:initial_verbose) { false }
     let(:initial_out_stream) { StringIO.new }
-    let(:options) { { verbose: initial_verbose, out_stream: initial_out_stream } }
+    let(:initial_err_stream) { StringIO.new }
+    let(:options) do
+      { verbose: initial_verbose, out_stream: initial_out_stream, err_stream: initial_err_stream }
+    end
 
     it 'applies verbose mode changes to helper services after initialization' do
       expect(model.connection_manager.verbose?).to be(false)
 
       model.status_waiter.wait_for(:wifi_on, timeout_in_secs: 0.01)
-      expect(initial_out_stream.string).to eq('')
+      expect(initial_err_stream.string).to eq('')
 
       model.verbose = true
       expect(model.connection_manager.verbose?).to be(true)
 
       model.status_waiter.wait_for(:wifi_on, timeout_in_secs: 0.01)
 
-      expect(initial_out_stream.string).to include('StatusWaiter (wifi_on): starting')
-      expect(initial_out_stream.string).to include('completed without needing to wait')
+      expect(initial_err_stream.string).to include('StatusWaiter (wifi_on): starting')
+      expect(initial_err_stream.string).to include('completed without needing to wait')
     end
 
     it 'pins the default out_stream at initialization when none is explicitly configured' do
       initial_stdout = StringIO.new
+      initial_stderr = StringIO.new
       redirected_output = StringIO.new
       runtime_model = nil
 
-      with_redirected_stdout(initial_stdout) do
-        runtime_model = runtime_model_class.new(verbose: true)
+      with_redirected_stderr(initial_stderr) do
+        with_redirected_stdout(initial_stdout) do
+          runtime_model = runtime_model_class.new(verbose: true)
+        end
       end
 
       with_redirected_stdout(redirected_output) do
@@ -1398,23 +1414,25 @@ describe 'Common WiFi Model Behavior (All OS)' do
         runtime_model.run_command(['bash', '-lc', 'printf runtime-config-test'])
       end
 
-      expect(initial_stdout.string).to include('StatusWaiter (wifi_on): starting')
-      expect(initial_stdout.string).to include('Command: bash -lc printf runtime-config-test')
+      expect(initial_stderr.string).to include('StatusWaiter (wifi_on): starting')
+      expect(initial_stderr.string).to include('Command: bash -lc printf runtime-config-test')
       expect(redirected_output.string).to eq('')
     end
 
     it 'preserves initialization-time out_stream behavior for helper services' do
       explicit_output = StringIO.new
+      explicit_err_output = StringIO.new
       redirected_output = StringIO.new
-      runtime_model = runtime_model_class.new(verbose: true, out_stream: explicit_output)
+      runtime_model = runtime_model_class.new(verbose: true, out_stream: explicit_output,
+        err_stream: explicit_err_output)
 
       with_redirected_stdout(redirected_output) do
         runtime_model.status_waiter.wait_for(:wifi_on, timeout_in_secs: 0.01)
         runtime_model.run_command(['bash', '-lc', 'printf configured-stream-test'])
       end
 
-      expect(explicit_output.string).to include('StatusWaiter (wifi_on): starting')
-      expect(explicit_output.string).to include('Command: bash -lc printf configured-stream-test')
+      expect(explicit_err_output.string).to include('StatusWaiter (wifi_on): starting')
+      expect(explicit_err_output.string).to include('Command: bash -lc printf configured-stream-test')
       expect(redirected_output.string).to eq('')
     end
   end

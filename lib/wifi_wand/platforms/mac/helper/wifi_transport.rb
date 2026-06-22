@@ -47,11 +47,12 @@ module WifiWand
           UNEXPECTED_SWIFT_ERROR = StandardError
 
           def initialize(swift_runtime:, command_runner:, wifi_interface_provider:, out_stream_provider:,
-            verbosity_provider:)
+            err_stream_provider:, verbosity_provider:)
             @swift_runtime = swift_runtime
             @command_runner = command_runner
             @wifi_interface_provider = wifi_interface_provider
             @out_stream_provider = out_stream_provider
+            @err_stream_provider = err_stream_provider
             @verbosity_provider = verbosity_provider
           end
 
@@ -91,7 +92,7 @@ module WifiWand
                 raise
               end
             elsif verbose?
-              out_stream.puts 'Swift/CoreWLAN not available. Using ifconfig...'
+              err_stream.puts 'Swift/CoreWLAN not available. Using ifconfig...'
             end
 
             disconnect_using_ifconfig
@@ -240,18 +241,20 @@ module WifiWand
           end
 
           private def log_fallback(message)
-            out_stream.puts message if verbose?
+            err_stream.puts message if verbose?
           end
 
           private def log_unexpected_swift_error(operation, error)
             return unless verbose?
 
-            out_stream.puts "Unexpected Swift/CoreWLAN #{operation} error: #{error.class}: #{error.message}"
+            err_stream.puts "Unexpected Swift/CoreWLAN #{operation} error: #{error.class}: #{error.message}"
           end
 
           private def wifi_interface = @wifi_interface_provider.call
 
           private def out_stream = @out_stream_provider.call
+
+          private def err_stream = @err_stream_provider.call
 
           private def verbose? = @verbosity_provider.call
         end

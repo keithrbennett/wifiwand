@@ -204,10 +204,12 @@ module WifiWand
 
       it 'logs version detection failures when verbose output is enabled' do
         out_stream = StringIO.new
+        err_stream = StringIO.new
         verbose_info = described_class.new(
           command_runner:          command_runner,
           wifi_interface_provider: -> { wifi_interface },
           out_stream_provider:     -> { out_stream },
+          err_stream_provider:     -> { err_stream },
           verbosity_provider:      -> { true }
         )
         allow(command_runner).to receive(:call).with(%w[sw_vers -productVersion])
@@ -216,7 +218,7 @@ module WifiWand
           )
 
         expect(verbose_info.detect_macos_version).to be_nil
-        expect(out_stream.string).to include('Could not detect macOS version:')
+        expect(err_stream.string).to include('Could not detect macOS version:')
       end
     end
   end

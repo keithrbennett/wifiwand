@@ -6,6 +6,7 @@ require_relative '../../../../../lib/wifi_wand/platforms/mac/helper/wifi_transpo
 module WifiWand
   describe Platforms::Mac::Helper::WifiTransport do
     let(:out_stream) { StringIO.new }
+    let(:err_stream) { StringIO.new }
     let(:verbose) { true }
     let(:swift_runtime) { instance_double(WifiWand::Platforms::Mac::Helper::SwiftRuntime) }
     let(:command_runner) { double('command_runner') }
@@ -16,6 +17,7 @@ module WifiWand
         command_runner:          command_runner,
         wifi_interface_provider: wifi_interface_provider,
         out_stream_provider:     -> { out_stream },
+        err_stream_provider:     -> { err_stream },
         verbosity_provider:      -> { verbose }
       )
     end
@@ -42,7 +44,7 @@ module WifiWand
 
         transport.connect('TestNetwork', 'password')
 
-        expect(out_stream.string).to include(
+        expect(err_stream.string).to include(
           "Swift/CoreWLAN failed (#{error_text}). Trying networksetup fallback..."
         )
       end
@@ -60,7 +62,7 @@ module WifiWand
 
         transport.connect('TestNetwork', 'password')
 
-        expect(out_stream.string).to include(
+        expect(err_stream.string).to include(
           "Swift/CoreWLAN failed (#{error_text}). Trying networksetup fallback..."
         )
       end
@@ -75,7 +77,7 @@ module WifiWand
         expect { transport.connect('TestNetwork', 'password') }
           .to raise_error(StandardError, 'swift exploded')
 
-        expect(out_stream.string).to include(
+        expect(err_stream.string).to include(
           'Unexpected Swift/CoreWLAN connect error: StandardError: swift exploded'
         )
       end
@@ -177,6 +179,7 @@ module WifiWand
           command_runner:          command_runner,
           wifi_interface_provider: -> { raise interface_error },
           out_stream_provider:     -> { out_stream },
+          err_stream_provider:     -> { err_stream },
           verbosity_provider:      -> { verbose }
         )
         allow(swift_runtime).to receive(:swift_and_corewlan_present?).and_return(false)
@@ -303,7 +306,7 @@ module WifiWand
 
           transport.connect('TestNetwork', 'password')
 
-          expect(out_stream.string).to eq('')
+          expect(err_stream.string).to eq('')
         end
       end
     end
@@ -330,7 +333,7 @@ module WifiWand
           raise_on_error: false)
 
         expect(transport.disconnect).to be_nil
-        expect(out_stream.string).to include(
+        expect(err_stream.string).to include(
           'Swift/CoreWLAN disconnect failed: Command timed out after 1 seconds: swift disconnect. ' \
             'Falling back to ifconfig...'
         )
@@ -342,7 +345,7 @@ module WifiWand
         expect(command_runner).not_to receive(:call)
 
         expect { transport.disconnect }.to raise_error(StandardError, 'swift failed')
-        expect(out_stream.string).to include(
+        expect(err_stream.string).to include(
           'Unexpected Swift/CoreWLAN disconnect error: StandardError: swift failed'
         )
       end
@@ -450,7 +453,7 @@ module WifiWand
         ).and_return(command_result(stdout: '', command: 'sudo ifconfig en0 disassociate'))
 
         expect(transport.disconnect).to be_nil
-        expect(out_stream.string).to include('Swift/CoreWLAN not available. Using ifconfig...')
+        expect(err_stream.string).to include('Swift/CoreWLAN not available. Using ifconfig...')
       end
 
       context 'when verbose logging is disabled' do
@@ -465,7 +468,7 @@ module WifiWand
           ).and_return(command_result(stdout: '', command: 'sudo ifconfig en0 disassociate'))
 
           expect(transport.disconnect).to be_nil
-          expect(out_stream.string).to eq('')
+          expect(err_stream.string).to eq('')
         end
       end
     end

@@ -121,8 +121,11 @@ describe WifiWand::NetworkConnectivityTester do
 
   describe '#tcp_connectivity?' do
     context 'with verbose mode enabled' do
-      let(:output) { StringIO.new }
-      let(:tester) { described_class.new(verbose: true, output: output) }
+      let(:err_output) { StringIO.new }
+      let(:tester) do
+        described_class.new(runtime_config: WifiWand::RuntimeConfig.new(verbose: true,
+          err_stream: err_output))
+      end
 
       before do
         allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
@@ -130,14 +133,14 @@ describe WifiWand::NetworkConnectivityTester do
         end
       end
 
-      it 'outputs formatted endpoint list to stdout' do
+      it 'outputs formatted endpoint list to stderr' do
         tester.tcp_connectivity?
-        expect(output.string).to match(/Testing internet TCP connectivity to: .*:.*/)
+        expect(err_output.string).to match(/Testing internet TCP connectivity to: .*:.*/)
       end
 
       it 'formats endpoints as host:port pairs separated by commas' do
         tester.tcp_connectivity?
-        expect(output.string).to match(/1\.1\.1\.1:443.*8\.8\.8\.8:443.*208\.67\.222\.222:443/)
+        expect(err_output.string).to match(/1\.1\.1\.1:443.*8\.8\.8\.8:443.*208\.67\.222\.222:443/)
       end
 
       it 'logs helper-reported probe failures to the configured output' do
@@ -159,7 +162,7 @@ describe WifiWand::NetworkConnectivityTester do
 
         tester.tcp_connectivity?
 
-        expect(output.string).to include('Failed to connect to failed.test:443: SocketError')
+        expect(err_output.string).to include('Failed to connect to failed.test:443: SocketError')
       end
 
       it 'logs helper-reported probe successes to the configured output' do
@@ -181,7 +184,7 @@ describe WifiWand::NetworkConnectivityTester do
 
         tester.tcp_connectivity?
 
-        expect(output.string).to include('Successfully connected to success.test:443')
+        expect(err_output.string).to include('Successfully connected to success.test:443')
       end
     end
 
@@ -276,8 +279,11 @@ describe WifiWand::NetworkConnectivityTester do
 
   describe '#dns_working?' do
     context 'with verbose mode enabled' do
-      let(:output) { StringIO.new }
-      let(:tester) { described_class.new(verbose: true, output: output) }
+      let(:err_output) { StringIO.new }
+      let(:tester) do
+        described_class.new(runtime_config: WifiWand::RuntimeConfig.new(verbose: true,
+          err_stream: err_output))
+      end
 
       before do
         allow(tester).to receive(:start_connectivity_probe) do |_items, helper_mode, _overall_timeout|
@@ -285,9 +291,9 @@ describe WifiWand::NetworkConnectivityTester do
         end
       end
 
-      it 'outputs domain list to stdout' do
+      it 'outputs domain list to stderr' do
         tester.dns_working?
-        expect(output.string).to match(/Testing DNS resolution for domains: .*\.com/)
+        expect(err_output.string).to match(/Testing DNS resolution for domains: .*\.com/)
       end
 
       it 'logs helper-reported probe failures to the configured output' do
@@ -309,7 +315,7 @@ describe WifiWand::NetworkConnectivityTester do
 
         tester.dns_working?
 
-        expect(output.string).to include('Failed to resolve failed.test: SocketError')
+        expect(err_output.string).to include('Failed to resolve failed.test: SocketError')
       end
 
       it 'logs helper-reported probe successes to the configured output' do
@@ -331,7 +337,7 @@ describe WifiWand::NetworkConnectivityTester do
 
         tester.dns_working?
 
-        expect(output.string).to include('Successfully resolved success.test')
+        expect(err_output.string).to include('Successfully resolved success.test')
       end
     end
 
@@ -402,8 +408,10 @@ describe WifiWand::NetworkConnectivityTester do
     end
 
     it 'returns nil, closes pipes, and logs when spawn fails' do
-      output = StringIO.new
-      tester = described_class.new(verbose: true, output: output)
+      err_output = StringIO.new
+      tester = described_class.new(
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+      )
       reader, writer = IO.pipe
       allow(IO).to receive(:pipe).and_return([reader, writer])
       allow(Process).to receive(:spawn).and_raise(Errno::EAGAIN)
@@ -411,7 +419,7 @@ describe WifiWand::NetworkConnectivityTester do
       expect(tester.send(:start_connectivity_probe, items, :tcp, 0.25)).to be_nil
       expect(reader).to be_closed
       expect(writer).to be_closed
-      expect(output.string).to include('Failed to start tcp connectivity helper: Errno::EAGAIN')
+      expect(err_output.string).to include('Failed to start tcp connectivity helper: Errno::EAGAIN')
     end
 
     it 'terminates the helper and closes pipes when setup fails after spawn' do
@@ -661,45 +669,51 @@ describe WifiWand::NetworkConnectivityTester do
     end
 
     context 'with verbose mode' do
-      let(:output) { StringIO.new }
-      let(:tester) { described_class.new(verbose: true, output: output) }
+      let(:err_output) { StringIO.new }
+      let(:tester) do
+        described_class.new(runtime_config: WifiWand::RuntimeConfig.new(verbose: true,
+          err_stream: err_output))
+      end
 
       before do
         allow(tester.captive_portal_checker).to receive(:captive_portal_login_required) do
-          output.puts 'Testing captive portal via HTTP: http://example.com/check'
-          output.puts 'Captive portal check http://example.com/check: HTTP 204 (expected 204) -> pass'
-          output.puts 'Captive portal results: [:no] -- no'
+          err_output.puts 'Testing captive portal via HTTP: http://example.com/check'
+          err_output.puts 'Captive portal check http://example.com/check: HTTP 204 (expected 204) -> pass'
+          err_output.puts 'Captive portal results: [:no] -- no'
           :no
         end
       end
 
       it 'logs the endpoints being checked' do
         tester.captive_portal_login_required
-        expect(output.string).to include('Testing captive portal via HTTP:')
+        expect(err_output.string).to include('Testing captive portal via HTTP:')
       end
 
       it 'logs a pass result' do
         tester.captive_portal_login_required
-        expect(output.string).to include('pass')
+        expect(err_output.string).to include('pass')
       end
     end
 
     context 'with verbose mode and captive portal login required' do
-      let(:output) { StringIO.new }
-      let(:tester) { described_class.new(verbose: true, output: output) }
+      let(:err_output) { StringIO.new }
+      let(:tester) do
+        described_class.new(runtime_config: WifiWand::RuntimeConfig.new(verbose: true,
+          err_stream: err_output))
+      end
 
       before do
         allow(tester.captive_portal_checker).to receive(:captive_portal_login_required) do
-          output.puts 'Captive portal check http://example.com/check: HTTP 302 (expected 204) -> mismatch'
-          output.puts 'Captive portal results: [:yes] -- required'
+          err_output.puts 'Captive portal check http://example.com/check: HTTP 302 (expected 204) -> mismatch'
+          err_output.puts 'Captive portal results: [:yes] -- required'
           :yes
         end
       end
 
       it 'logs results array and required status' do
         tester.captive_portal_login_required
-        expect(output.string).to include('mismatch')
-        expect(output.string).to include('required')
+        expect(err_output.string).to include('mismatch')
+        expect(err_output.string).to include('required')
       end
     end
   end
