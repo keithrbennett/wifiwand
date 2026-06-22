@@ -149,9 +149,9 @@ module WifiWand
               ║         WifiWand macOS Location Permission Setup                 ║
               ╚══════════════════════════════════════════════════════════════════╝
 
-              On macOS 10.15+, apps need location permission to access WiFi
-              network names (SSIDs). Without this permission, network names
-              appear as '<hidden>' or '<redacted>'.
+              On macOS 14 (Sonoma) and later, apps need location permission to
+              access WiFi network names (SSIDs). Without this permission,
+              network names may appear as '<hidden>' or '<redacted>'.
             HEADER
           end
 

@@ -31,7 +31,6 @@ For upgrade-impacting API, CLI, and behavior changes, see
 - Added `log` to monitor WiFi and Internet connectivity events.
 - Added `qr` to generate a QR code for the current or specified WiFi network.
 - Added `shell` as the interactive REPL entry point.
-- Added sort-order control (`-o` / `--sort-order`) for available network lists.
 - Added a `status` / `s` command for a one-line network status summary with DNS
   and TCP indicators.
 

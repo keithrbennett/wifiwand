@@ -202,7 +202,10 @@ Internet is considered available only when all three pass.
 
 ### Timeout Values
 
-The status command uses carefully tuned timeout values to balance responsiveness with reliability:
+The status command uses carefully tuned timeout values to balance responsiveness with reliability.
+The network-identity and internet-connectivity workers run concurrently, so the overall status check is
+not the sum of the individual stage timeouts. Within the connectivity worker, TCP, DNS, and the captive
+portal check run sequentially:
 
 - **TCP timeout**: 5 seconds
 - **DNS timeout**: 5 seconds

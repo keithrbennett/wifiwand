@@ -124,7 +124,7 @@ module WifiWand
           [
             'na / nameservers',
             [
-              "nameservers: 'show' or no arg to show, 'clear' to clear,",
+              "nameservers: 'get' or no arg to show, 'clear' to clear,",
               "or IP addresses to set, e.g. '9.9.9.9  8.8.8.8'",
             ],
           ],

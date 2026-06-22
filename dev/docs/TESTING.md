@@ -176,14 +176,11 @@ lookup, while password-protected networks exercise saved-password capture, resto
 macOS authentication/keychain edge cases. A change that passes on one type can still fail on the other.
 
 If macOS redacts the current SSID during preflight and the suite aborts because it cannot capture a
-restorable network name, provide the restore target explicitly:
+restorable network name, fix helper permissions before running the real-host suite. Run
+`wifiwand-macos-setup`, grant Location Services access to `wifiwand-helper`, then rerun the tests.
 
-```bash
-WIFIWAND_RESTORE_NETWORK_NAME="Your SSID" WIFIWAND_REAL_ENV_TESTS=all bundle exec rspec
-```
-
-Use this only when you are certain of the currently connected network name. The override is intended for
-real-host debugging on macOS systems that expose the current network as `<redacted>`.
+There is no supported environment-variable override for the restore target. The suite must be able to read
+and later verify the exact original SSID so it can restore host network state safely.
 
 ## macOS Preferred-Network Removal Moved Out Of Automated Test Suite
 

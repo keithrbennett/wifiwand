@@ -379,7 +379,10 @@ permissions at any time via System Settings.
 
 ### Auditing the Helper
 
-The helper application's source code is available in the WifiWand repository:
+The helper application's source code and signing inputs are available in the WifiWand repository.
+The Swift source and entitlements file are not included in the packaged gem, so browse the repository
+or source checkout to audit them. The packaged gem includes the pre-signed helper app bundle, including
+its `Info.plist`.
 ```
 libexec/macos/src/wifiwand-helper.swift
 libexec/macos/wifiwand-helper.app/Contents/Info.plist

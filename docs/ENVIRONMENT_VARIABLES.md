@@ -59,20 +59,34 @@ wifiwand log
 - **Parsing errors:** If the value contains unmatched quotes or otherwise cannot be parsed, WifiWand aborts
   with a configuration error.
 
+### `WIFIWAND_DISABLE_MAC_HELPER`
+
+Disable the macOS helper application for permission-sensitive WiFi reads. This is mainly useful for
+troubleshooting or for deliberately accepting macOS-redacted SSID behavior.
+
+**Values:**
+- `1` - Disable the helper.
+- unset or any other value - Use the helper when it is supported and available.
+
+**Usage:**
+```bash
+WIFIWAND_DISABLE_MAC_HELPER=1 wifiwand info
+```
+
 ## Test Configuration Variables
 
 ### `WIFIWAND_VERBOSE`
 
-Enable verbose output in the test support code. Current test helpers read this value with an exact string
-comparison, so it must be exactly `true`; values such as `1`, `yes`, or any other non-empty string do not
-enable test verbosity.
+Enable verbose output in the test support code. Test helpers accept the usual truthy values (`true`,
+`yes`, `on`, or `1`). Other values are treated as disabled.
 
-**Values:** `true` to enable
+**Values:** `true`, `yes`, `on`, or `1` to enable
 
 **Usage:**
 
 ```bash
 WIFIWAND_VERBOSE=true bundle exec rspec
+WIFIWAND_VERBOSE=yes bundle exec rake test:read_only
 WIFIWAND_VERBOSE=true bundle exec rake test:all
 ```
 

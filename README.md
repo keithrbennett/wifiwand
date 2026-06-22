@@ -14,8 +14,9 @@ or, you may need to precede that command with `sudo` to install it system-wide:
 
 `sudo gem install wifi-wand`
 
-**Note for macOS users:** macOS ships with Ruby 2.6. If you get an installation error about Ruby version or
-the `traces` gem, install a modern Ruby. The simplest way is with Homebrew:
+**Note for macOS users:** macOS may ship with an older Ruby version (or no Ruby at all on recent releases).
+If you get an installation error about Ruby version or the `traces` gem, install a modern Ruby. The simplest
+way is with Homebrew:
 
 ```bash
 brew install ruby
@@ -204,8 +205,10 @@ wifiwand till internet_on 30
 
 ### Pretty Output
 
-The `amazing_print` gem is used for formatting output nicely in both non-interactive and interactive (shell)
-modes.
+The `amazing_print` gem is used for formatted output in interactive (shell) mode and for the `info`
+command's default output in non-interactive mode. Other non-interactive commands use command-specific
+human-readable text by default. Use the `-o a` option to request `amazing_print` formatting for any
+command that supports it.
 
 ### JSON, YAML, and Other Output Formats
 
@@ -273,7 +276,7 @@ The shell is useful when you want to:
 * Shell out to other programs (prefix with `.`)
 * Work with the results interactively
 
-If you `gem install` (or `sudo gem install` if necessary) the `pry-coolline` gem, than pry will use it
+If you `gem install` (or `sudo gem install` if necessary) the `pry-coolline` gem, then Pry will use it
 for its readline operations. This can resolve some readline issues and adds several readline enhancements.
 
 ### Using Variables in the Shell
@@ -488,9 +491,9 @@ interface. Key methods include:
 *   `wifi_on`
 *   `wifi_on?`
 
-OS-specific methods remain available on the concrete models. For example,
-`preferred_network_password` is available on `WifiWand::Platforms::Mac::Model` and
-`WifiWand::Platforms::Ubuntu::Model`, but it is not part of the common cross-platform API.
+Concrete models may expose OS-specific behaviors or defaults, but methods
+defined on `WifiWand::BaseModel` (including `preferred_network_password`) are
+part of the common cross-platform API.
 
 Please refer to the YARD documentation for a complete list of methods and
 their parameters.

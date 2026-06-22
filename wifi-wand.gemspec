@@ -89,7 +89,7 @@ Gem::Specification.new do |spec|
   spec.post_install_message = <<~MESSAGE
 
     ╔═══════════════════════════════════════════════════════════════════╗
-    ║  ⚠️  Important for macOS Users (10.15+)                           ║
+    ║  ⚠️  Important for macOS Users (14+)                              ║
     ╚═══════════════════════════════════════════════════════════════════╝
 
     WifiWand requires Ruby >= 3.2.0 and location permission.
