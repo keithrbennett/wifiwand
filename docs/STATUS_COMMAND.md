@@ -24,7 +24,7 @@ explicit state values.
 Display the current status once:
 
 ```bash
-wifi-wand status
+wifiwand status
 ```
 
 Normal output:
@@ -75,7 +75,7 @@ On terminals that support it, the status is color-coded for at-a-glance readabil
 ## Captive Portal Detection
 
 A captive portal is a network that intercepts HTTP traffic to redirect users to a login page
-(common in hotels, airports, coffee shops, etc.). wifi-wand detects this by:
+(common in hotels, airports, coffee shops, etc.). wifiwand detects this by:
 
 1. Checking TCP connectivity (layer 4)
 2. Checking DNS resolution
@@ -96,7 +96,7 @@ machine-readable output formats.
 In JSON they appear as strings. In Ruby-oriented formats such as inspect/YAML or
 in the interactive shell, they appear as symbols.
 
-If you are scripting against `wifi-wand`, prefer machine-readable output such as JSON (`-o j`)
+If you are scripting against `wifiwand`, prefer machine-readable output such as JSON (`-o j`)
 instead of parsing the human-formatted status line. Structured output is simpler to consume and
 less likely to change over time.
 
@@ -128,7 +128,7 @@ less likely to change over time.
 ### JSON example
 
 ```bash
-wifi-wand -o j status | jq .
+wifiwand -o j status | jq .
 ```
 
 Normal connected state:
@@ -167,7 +167,7 @@ Indeterminate result:
 ### YAML example
 
 ```bash
-wifi-wand -o y status
+wifiwand -o y status
 ```
 
 ```yaml
@@ -219,13 +219,13 @@ Display status repeatedly on the terminal (useful for monitoring):
 
 ```bash
 # Display status every 2 seconds
-watch -n 2 wifi-wand status
+watch -n 2 wifiwand status
 
 # Or with a loop
 while true; do
   clear
   date
-  wifi-wand status
+  wifiwand status
   sleep 2
 done
 ```
@@ -235,14 +235,14 @@ done
 Use JSON output for parsing in other tools:
 
 ```bash
-wifi-wand -o j status | jq .
+wifiwand -o j status | jq .
 ```
 
 ### Detect Captive Portal Programmatically
 
 ```bash
 # Exit non-zero if captive portal login is required
-if wifi-wand -o j status | jq -e '.captive_portal_login_required == "yes"' > /dev/null; then
+if wifiwand -o j status | jq -e '.captive_portal_login_required == "yes"' > /dev/null; then
   echo "Captive portal detected — please log in before proceeding"
   exit 1
 fi
@@ -251,9 +251,9 @@ fi
 ### Check if Internet is Available
 
 ```bash
-if wifi-wand -o j status | jq -e '.internet_state == "reachable"' > /dev/null; then
+if wifiwand -o j status | jq -e '.internet_state == "reachable"' > /dev/null; then
   echo "Internet OK - starting backup"
-elif wifi-wand -o j status | jq -e '.internet_state == "indeterminate"' > /dev/null; then
+elif wifiwand -o j status | jq -e '.internet_state == "indeterminate"' > /dev/null; then
   echo "Internet state unknown - retrying later"
   exit 2
 else
@@ -266,10 +266,10 @@ fi
 
 ```bash
 # Start logging in one terminal
-wifi-wand log --file debug.log --stdout
+wifiwand log --file debug.log --stdout
 
 # In another terminal, run status repeatedly
-watch -n 1 wifi-wand status
+watch -n 1 wifiwand status
 ```
 
 ## Output Formats
@@ -278,28 +278,28 @@ The status command supports different output formats via the `-o` flag:
 
 ```bash
 # Pretty format (default)
-wifi-wand status
+wifiwand status
 
 # JSON
-wifi-wand -o j status
+wifiwand -o j status
 
 # Pretty JSON
-wifi-wand -o J status
+wifiwand -o J status
 
 # YAML
-wifi-wand -o y status
+wifiwand -o y status
 
 # Inspect
-wifi-wand -o i status
+wifiwand -o i status
 
 # Plain text (puts)
-wifi-wand -o p status
+wifiwand -o p status
 
 # Pretty print
-wifi-wand -o P status
+wifiwand -o P status
 
 # Amazing Print
-wifi-wand -o a status
+wifiwand -o a status
 ```
 
 Amazing Print output uses ANSI color when stdout is a terminal and plain text when output is piped or
@@ -310,28 +310,28 @@ redirected. Pipe through `tee` if you want terminal-readable plain output while 
 Use verbose mode to see which OS commands are being executed:
 
 ```bash
-wifi-wand -v true status
+wifiwand -v true status
 ```
 
 ## Related Commands
 
 ### See Full Details
 ```bash
-wifi-wand info    # Get comprehensive networking information
+wifiwand info    # Get comprehensive networking information
 ```
 
 ### Monitor Changes Over Time
 ```bash
-wifi-wand log     # Log events as status changes
+wifiwand log     # Log events as status changes
 ```
 
 ### Wait for State Change
 ```bash
-wifi-wand till wifi_on       # Wait until WiFi radio turns on
-wifi-wand till wifi_off      # Wait until WiFi radio turns off
-wifi-wand till associated    # Wait until associated with an SSID (WiFi layer)
-wifi-wand till internet_on   # Wait until Internet becomes reachable
-wifi-wand till internet_off  # Wait until Internet becomes unreachable
+wifiwand till wifi_on       # Wait until WiFi radio turns on
+wifiwand till wifi_off      # Wait until WiFi radio turns off
+wifiwand till associated    # Wait until associated with an SSID (WiFi layer)
+wifiwand till internet_on   # Wait until Internet becomes reachable
+wifiwand till internet_off  # Wait until Internet becomes unreachable
 ```
 
 ## Status Command vs Info Command

@@ -10,7 +10,7 @@ describe WifiWand::Commands::Qr do
   let(:interactive_mode) { false }
   let(:cli) do
     double('cli', model: mock_model, interactive_mode: interactive_mode, in_stream: in_stream,
-      output_support: output_support, help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      output_support: output_support, help_hint: "Use 'wifiwand help' or 'wifiwand -h' for help.")
   end
 
   it_behaves_like 'binds command context',
@@ -25,7 +25,7 @@ describe WifiWand::Commands::Qr do
     it 'includes usage and destination guidance' do
       help = described_class.new.help_text
 
-      expect(help).to include('Usage: wifi-wand qr')
+      expect(help).to include('Usage: wifiwand qr')
       expect(help).to include('Default output prints an ANSI QR to stdout')
       expect(help).to include('Pass a filename to write a QR image file')
       expect(help).to include('Supported file extensions are .png, .svg, and .eps')
@@ -83,7 +83,7 @@ describe WifiWand::Commands::Qr do
       )
       output_support = double('output_support', options: options)
       cli = double('cli', model: mock_model, interactive_mode: false, in_stream: in_stream,
-        output_support: output_support, help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        output_support: output_support, help_hint: "Use 'wifiwand help' or 'wifiwand -h' for help.")
       command = described_class.new.bind(cli)
 
       expect(mock_model).not_to receive(:print_qr_code)
@@ -96,7 +96,7 @@ describe WifiWand::Commands::Qr do
       )
       output_support = double('output_support', options: options)
       cli = double('cli', model: mock_model, interactive_mode: false, in_stream: in_stream,
-        output_support: output_support, help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        output_support: output_support, help_hint: "Use 'wifiwand help' or 'wifiwand -h' for help.")
       command = described_class.new.bind(cli)
 
       expect(mock_model).to receive(:print_qr_code)
@@ -113,7 +113,7 @@ describe WifiWand::Commands::Qr do
       )
       output_support = double('output_support', options: options)
       cli = double('cli', model: mock_model, interactive_mode: false, in_stream: in_stream,
-        output_support: output_support, help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        output_support: output_support, help_hint: "Use 'wifiwand help' or 'wifiwand -h' for help.")
       command = described_class.new.bind(cli)
 
       expect(mock_model).to receive(:print_qr_code)
@@ -151,8 +151,8 @@ describe WifiWand::Commands::Qr do
       expect { command.call('test.png', 'secret', 'extra') }
         .to raise_error(WifiWand::ConfigurationError) { |error|
           expect(error.message).to include('Unexpected argument(s): extra')
-          expect(error.message).to include('Usage: wifi-wand qr [filespec] [password]')
-          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+          expect(error.message).to include('Usage: wifiwand qr [filespec] [password]')
+          expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
         }
     end
   end

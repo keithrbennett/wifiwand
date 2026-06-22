@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'a',
         long_string:  'avail_nets',
         description:  'list visible WiFi networks in descending signal-strength order',
-        usage:        'Usage: wifi-wand avail_nets'
+        usage:        'Usage: wifiwand avail_nets'
       )
 
       binds :model, output_support: :output_support

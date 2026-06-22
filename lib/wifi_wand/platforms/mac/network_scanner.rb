@@ -90,7 +90,7 @@ module WifiWand
 
         private def location_services_blocked_scan_warning
           'macOS blocked wifiwand-helper from reading WiFi SSIDs through Location Services; ' \
-            'fallback scan results may be incomplete or unavailable. Run `wifi-wand-macos-setup`, ' \
+            'fallback scan results may be incomplete or unavailable. Run `wifiwand-macos-setup`, ' \
             'grant Location Services to `wifiwand-helper`, and retry.'
         end
 

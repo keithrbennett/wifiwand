@@ -8,14 +8,14 @@ describe WifiWand::Commands::PrefNets do
   let(:output_support) { double('output_support') }
   let(:cli) do
     double('cli', model: mock_model, output_support: output_support,
-      help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      help_hint: "Use 'wifiwand help' or 'wifiwand -h' for help.")
   end
 
   it_behaves_like 'binds command context',
     bound_attributes: { model: :mock_model, output_support: :output_support }
 
   it_behaves_like 'has default command help text',
-    usage:       'Usage: wifi-wand pref_nets',
+    usage:       'Usage: wifiwand pref_nets',
     description: 'preferred (saved) WiFi networks'
 
   describe '#call' do
@@ -42,8 +42,8 @@ describe WifiWand::Commands::PrefNets do
       expect { command.call('extra') }
         .to raise_error(WifiWand::ConfigurationError) { |error|
           expect(error.message).to include('Unexpected argument(s): extra')
-          expect(error.message).to include('Usage: wifi-wand pref_nets')
-          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+          expect(error.message).to include('Usage: wifiwand pref_nets')
+          expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
         }
     end
   end

@@ -16,7 +16,7 @@ module WifiWand
         long_string:  'log',
         description:  'start JSON Lines event logging (monitors wifi, connection, and internet state)',
         usage:        [
-          'Usage: wifi-wand log [--interval N] [--file [PATH]]',
+          'Usage: wifiwand log [--interval N] [--file [PATH]]',
           '[--stdout] [--verbose-logs BOOLEAN]',
         ].join(' ')
       )
@@ -142,7 +142,7 @@ module WifiWand
 
         if model.runtime_config.verbose
           raise WifiWand::ConfigurationError, <<~MESSAGE.chomp
-            Global --verbose is incompatible with the log command: OS command tracing writes plain text that corrupts the JSONL output stream. From the CLI, run `wifi-wand log` without global verbose, or use `wifi-wand log --verbose-logs true` for EventLogger diagnostics.
+            Global --verbose is incompatible with the log command: OS command tracing writes plain text that corrupts the JSONL output stream. From the CLI, run `wifiwand log` without global verbose, or use `wifiwand log --verbose-logs true` for EventLogger diagnostics.
           MESSAGE
         end
 
@@ -277,7 +277,7 @@ module WifiWand
       end
 
       private def help_hint
-        cli&.help_hint || "Use 'wifi-wand help' or 'wifi-wand -h' for help."
+        cli&.help_hint || "Use 'wifiwand help' or 'wifiwand -h' for help."
       end
     end
   end

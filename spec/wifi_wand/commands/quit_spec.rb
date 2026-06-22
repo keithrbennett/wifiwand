@@ -4,7 +4,7 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi_wand/commands/quit'
 
 describe WifiWand::Commands::Quit do
-  let(:cli) { double('cli', help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.") }
+  let(:cli) { double('cli', help_hint: "Use 'wifiwand help' or 'wifiwand -h' for help.") }
 
   it_behaves_like 'binds command context', bound_attributes: {}
 
@@ -18,7 +18,7 @@ describe WifiWand::Commands::Quit do
     it 'includes usage, description, and xit aliases' do
       help = described_class.new.help_text
 
-      expect(help).to include('Usage: wifi-wand quit')
+      expect(help).to include('Usage: wifiwand quit')
       expect(help).to include('exit this program in interactive shell mode')
       expect(help).to include('Also available as: x, xit')
     end
@@ -39,8 +39,8 @@ describe WifiWand::Commands::Quit do
       expect { command.call('extra') }
         .to raise_error(WifiWand::ConfigurationError) { |error|
           expect(error.message).to include('Unexpected argument(s): extra')
-          expect(error.message).to include('Usage: wifi-wand quit')
-          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+          expect(error.message).to include('Usage: wifiwand quit')
+          expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
         }
     end
   end

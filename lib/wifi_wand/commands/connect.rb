@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'co',
         long_string:  'connect',
         description:  'connect to a WiFi network, optionally using an explicit password',
-        usage:        'Usage: wifi-wand connect <network> [password]'
+        usage:        'Usage: wifiwand connect <network> [password]'
       )
 
       binds :model, :interactive_mode, output: :out_stream

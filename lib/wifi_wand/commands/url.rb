@@ -10,7 +10,7 @@ module WifiWand
         short_string: 'u',
         long_string:  'url',
         description:  'project repository URL',
-        usage:        'Usage: wifi-wand url'
+        usage:        'Usage: wifiwand url'
       )
 
       binds output_support: :output_support

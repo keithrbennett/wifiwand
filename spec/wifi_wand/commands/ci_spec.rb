@@ -8,7 +8,7 @@ describe WifiWand::Commands::Ci do
   let(:output_support) { double('output_support') }
   let(:cli) do
     double('cli', model: mock_model, interactive_mode: interactive_mode, output_support: output_support,
-      help_hint: "Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      help_hint: "Use 'wifiwand help' or 'wifiwand -h' for help.")
   end
   let(:interactive_mode) { false }
 
@@ -18,7 +18,7 @@ describe WifiWand::Commands::Ci do
     }
 
   it_behaves_like 'has default command help text',
-    usage:       'Usage: wifi-wand ci',
+    usage:       'Usage: wifiwand ci',
     description: 'Internet connectivity state'
 
   describe '#call' do
@@ -56,8 +56,8 @@ describe WifiWand::Commands::Ci do
       expect { command.call('extra') }
         .to raise_error(WifiWand::ConfigurationError) { |error|
           expect(error.message).to include('Unexpected argument(s): extra')
-          expect(error.message).to include('Usage: wifi-wand ci')
-          expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+          expect(error.message).to include('Usage: wifiwand ci')
+          expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
         }
     end
   end

@@ -161,7 +161,7 @@ module WifiWand
       @network_name = network_name
       super(
         "Network '#{network_name}' security type could not be determined. " \
-          'Pass the optional password argument to generate a QR code because wifi-wand cannot confirm ' \
+          'Pass the optional password argument to generate a QR code because wifiwand cannot confirm ' \
           'whether this network is open.'
       )
     end
@@ -287,7 +287,7 @@ module WifiWand
   class MacOsRedactionError < Error
     DEFAULT_REASON = 'macOS is redacting WiFi network names until Location Services access is granted ' \
       'to wifiwand-helper, the macOS helper application'
-    DEFAULT_REMEDIATION = 'Run `wifi-wand-macos-setup`, grant Location Services to ' \
+    DEFAULT_REMEDIATION = 'Run `wifiwand-macos-setup`, grant Location Services to ' \
       '`wifiwand-helper`, the macOS helper application, and retry.'
 
     attr_reader :operation_description, :reason, :remediation

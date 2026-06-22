@@ -3,7 +3,7 @@
 # Orchestrates the user-facing macOS setup, reinstall, and remove flows.
 # All decision logic lives in Setup; this class owns output
 # formatting, step sequencing, and the ENTER-to-continue prompt so that
-# the exe/wifi-wand-macos-setup script stays trivially thin and the flow
+# the exe/wifiwand-macos-setup script stays trivially thin and the flow
 # can be exercised in unit tests without spawning a subprocess.
 #
 # Usage (from the exe):
@@ -28,7 +28,7 @@ module WifiWand
           }.freeze
           # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
           USER_FACING_SETUP_ERROR = StandardError
-          USAGE = 'Usage: wifi-wand-macos-setup [--reinstall | --remove]'
+          USAGE = 'Usage: wifiwand-macos-setup [--reinstall | --remove]'
 
           # @param argv       [Array<String>]       command-line arguments (e.g. ARGV)
           # @param setup      [Setup]    injectable for testing; built from out_stream if omitted
@@ -82,7 +82,7 @@ module WifiWand
                 select_action(:reinstall)
               end
               opts.on('--remove',
-                'Remove the installed helper app for this wifi-wand version') do
+                'Remove the installed helper app for this wifiwand version') do
                 select_action(:remove)
               end
             end.parse!(@argv)
@@ -116,7 +116,7 @@ module WifiWand
             @out_stream.puts
             @out_stream.puts "Detected macOS version: #{support_status.macos_version}"
             @out_stream.puts "wifiwand-helper is only used on macOS #{Bundle::MINIMUM_HELPER_VERSION}+."
-            @out_stream.puts 'wifi-wand will continue using fallback WiFi paths on older macOS.'
+            @out_stream.puts 'wifiwand will continue using fallback WiFi paths on older macOS.'
             0
           end
 
@@ -137,9 +137,9 @@ module WifiWand
 
             @out_stream.puts '✅ WifiWand macOS setup is complete! All requirements are satisfied.'
             @out_stream.puts
-            @out_stream.puts 'You can use wifi-wand commands:'
-            @out_stream.puts '  wifi-wand a              # Show available networks'
-            @out_stream.puts '  wifi-wand info           # Show current connection info'
+            @out_stream.puts 'You can use wifiwand commands:'
+            @out_stream.puts '  wifiwand a              # Show available networks'
+            @out_stream.puts '  wifiwand info           # Show current connection info'
             true
           end
 
@@ -265,7 +265,7 @@ module WifiWand
               Note: WifiWand found #{install_dir_count} helper version directories in:
                 #{Bundle::INSTALL_PARENT}
 
-              Older helper versions are not used by the current wifi-wand install.
+              Older helper versions are not used by the current wifiwand install.
               You may remove old version directories manually if you want to reclaim space.
               Keep the current version directory: #{Bundle.helper_version}
             NOTICE
@@ -291,14 +291,14 @@ module WifiWand
               3. Check the box next to 'wifiwand-helper' to enable location access
               4. Close System Settings
 
-              Once enabled, run any wifi-wand command to verify it works:
+              Once enabled, run any wifiwand command to verify it works:
 
-                wifi-wand a              # Show available networks
-                wifi-wand info           # Show current connection info
+                wifiwand a              # Show available networks
+                wifiwand info           # Show current connection info
 
               If you don't see 'wifiwand-helper' in the list, try running:
 
-                wifi-wand-macos-setup --reinstall
+                wifiwand-macos-setup --reinstall
 
             INSTRUCTIONS
           end

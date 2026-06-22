@@ -32,7 +32,7 @@ describe WifiWand::CommandLineInterface do
 
       expect(empty_cli.call).to eq(described_class::FAILURE_EXIT_CODE)
       expect(err_stream.string).to include('Syntax is:')
-      expect(err_stream.string).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      expect(err_stream.string).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
     end
 
     it 'dispatches shell through the registered command path' do
@@ -72,8 +72,8 @@ describe WifiWand::CommandLineInterface do
 
       expect(cli.call).to eq(described_class::FAILURE_EXIT_CODE)
       expect(err_stream.string).to include('Unexpected argument(s): -o, j')
-      expect(err_stream.string).to include('Usage: wifi-wand shell')
-      expect(err_stream.string).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+      expect(err_stream.string).to include('Usage: wifiwand shell')
+      expect(err_stream.string).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
     end
 
     it 'handles BadCommandError with error message and help hint' do
@@ -328,7 +328,7 @@ describe WifiWand::CommandLineInterface do
 
     {
       'Location Services denial'    => {
-        diagnostic: 'wifiwand helper: Location Services denied. Run `wifi-wand-macos-setup`.',
+        diagnostic: 'wifiwand helper: Location Services denied. Run `wifiwand-macos-setup`.',
         scan:       {
           'networks'          => [],
           'scan_status'       => 'location_services_blocked',
@@ -379,7 +379,7 @@ describe WifiWand::CommandLineInterface do
     it 'keeps helper diagnostics on stderr for normal text avail_nets output' do
       out_stream = StringIO.new
       err_stream = StringIO.new
-      diagnostic = 'wifiwand helper: Location Services denied. Run `wifi-wand-macos-setup`.'
+      diagnostic = 'wifiwand helper: Location Services denied. Run `wifiwand-macos-setup`.'
       scan = {
         'networks'          => [],
         'scan_status'       => 'location_services_blocked',
@@ -437,7 +437,7 @@ describe WifiWand::CommandLineInterface do
       expect(result[:status]).to eq(described_class::FAILURE_EXIT_CODE)
       expect(result[:stdout]).to be_empty
       expect(result[:stderr]).to include('Exact WiFi network identity is required')
-      expect(result[:stderr]).to include('wifi-wand-macos-setup')
+      expect(result[:stderr]).to include('wifiwand-macos-setup')
     end
   end
 
@@ -466,9 +466,9 @@ describe WifiWand::CommandLineInterface do
       expect(result[:status]).to eq(described_class::FAILURE_EXIT_CODE)
       expect(result[:stdout]).to be_empty
       expect(result[:stderr]).to include('Unexpected argument(s): 1.1.1.1')
-      expect(result[:stderr]).to include('Usage: wifi-wand nameservers [get|clear|IP ...]')
+      expect(result[:stderr]).to include('Usage: wifiwand nameservers [get|clear|IP ...]')
       expect(result[:stderr]).to include('1.1.1.1')
-      expect(result[:stderr]).to include("Use 'wifi-wand help'")
+      expect(result[:stderr]).to include("Use 'wifiwand help'")
       expect(result[:cli].model).not_to have_received(:nameservers)
     end
 
@@ -478,7 +478,7 @@ describe WifiWand::CommandLineInterface do
       expect(result[:status]).to eq(described_class::FAILURE_EXIT_CODE)
       expect(result[:stdout]).to be_empty
       expect(result[:stderr]).to include('Unexpected argument(s): 1.1.1.1')
-      expect(result[:stderr]).to include('Usage: wifi-wand nameservers [get|clear|IP ...]')
+      expect(result[:stderr]).to include('Usage: wifiwand nameservers [get|clear|IP ...]')
       expect(result[:stderr]).to include('1.1.1.1')
       expect(result[:cli].model).not_to have_received(:set_nameservers)
     end
@@ -539,7 +539,7 @@ describe WifiWand::CommandLineInterface do
       expect(status_cli.call).to eq(described_class::FAILURE_EXIT_CODE)
       expect(out_stream.string).to eq("WiFi: [status unavailable]\n")
       expect(err_stream.string).to include('WiFi status unavailable')
-      expect(err_stream.string).not_to include("Use 'wifi-wand help'")
+      expect(err_stream.string).not_to include("Use 'wifiwand help'")
     end
 
     it 'prints unavailable status instead of formatted nil when output formatting is enabled' do
@@ -556,7 +556,7 @@ describe WifiWand::CommandLineInterface do
       expect(out_stream.string).to eq("WiFi: [status unavailable]\n")
       expect(out_stream.string).not_to include('null')
       expect(err_stream.string).to include('WiFi status unavailable')
-      expect(err_stream.string).not_to include("Use 'wifi-wand help'")
+      expect(err_stream.string).not_to include("Use 'wifiwand help'")
     end
 
     it 'returns success and renders partial status data when worker results are degraded' do

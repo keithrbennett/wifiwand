@@ -35,7 +35,7 @@ uses `"internet": "unknown"`.
 The simplest invocation logs events to the terminal:
 
 ```bash
-wifi-wand log
+wifiwand log
 ```
 
 Output appears as one JSON object per line:
@@ -57,7 +57,7 @@ Press `Ctrl+C` to stop logging.
 #### Default log file location (current directory)
 
 ```bash
-wifi-wand log --file
+wifiwand log --file
 ```
 
 Creates `wifiwand-events.log` in the current directory with events logged to file only
@@ -66,7 +66,7 @@ Creates `wifiwand-events.log` in the current directory with events logged to fil
 #### Custom file location
 
 ```bash
-wifi-wand log --file /path/to/my-wifi-log.txt
+wifiwand log --file /path/to/my-wifi-log.txt
 ```
 
 Logs to the specified file path instead of stdout.
@@ -77,13 +77,13 @@ When you add any destination besides stdout, the command assumes you want to sil
 opt back in. To see events on the terminal while also saving them to a file, include `--stdout` explicitly:
 
 ```bash
-wifi-wand log --file --stdout
+wifiwand log --file --stdout
 ```
 
 Or with a custom file path:
 
 ```bash
-wifi-wand log --file /tmp/wifi-events.log --stdout
+wifiwand log --file /tmp/wifi-events.log --stdout
 ```
 
 ## Options
@@ -112,9 +112,9 @@ Explicitly enables stdout output. Standard output is used by default, but it is 
 Time between connectivity checks in seconds (default: 5). Must be greater than 0.
 
 ```bash
-wifi-wand log --interval 2      # check every 2 seconds
-wifi-wand log --interval 5      # check every 5 seconds
-wifi-wand log --interval 10     # check every 10 seconds
+wifiwand log --interval 2      # check every 2 seconds
+wifiwand log --interval 5      # check every 5 seconds
+wifiwand log --interval 10     # check every 10 seconds
 ```
 
 **Practical guidance:**
@@ -134,7 +134,7 @@ wifi-wand log --interval 10     # check every 10 seconds
 Enable verbose EventLogger diagnostics (shows additional details such as field-level lookup failures and log-file initialization).
 
 ```bash
-wifi-wand log --verbose-logs true
+wifiwand log --verbose-logs true
 ```
 
 To disable verbose diagnostics when a default option enables them, pass
@@ -146,8 +146,8 @@ Event timestamps use local time by default. The `--utc` option requires an expli
 timestamps in UTC, pass the global UTC option before the `log` command:
 
 ```bash
-wifi-wand --utc true log # true values: true, t, yes, y, +
-wifi-wand -u true log    # false values: false, f, no, n, -
+wifiwand --utc true log # true values: true, t, yes, y, +
+wifiwand -u true log    # false values: false, f, no, n, -
 ```
 
 To force local-time output when a default option enables UTC, pass `--utc false` or `-u false`.
@@ -234,7 +234,7 @@ With `--utc true`, timestamps use the UTC `Z` suffix.
 ### Monitor WiFi for 1 minute with quick polling
 
 ```bash
-timeout 60 wifi-wand log --interval 2 --file --stdout
+timeout 60 wifiwand log --interval 2 --file --stdout
 ```
 
 Use a 2-second interval when you want faster event detection without pushing
@@ -243,14 +243,14 @@ the full connectivity probe below its practical cadence floor.
 ### Continuously log to a dated file
 
 ```bash
-wifi-wand log --file "wifi-$(date +%Y-%m-%d).log"
+wifiwand log --file "wifi-$(date +%Y-%m-%d).log"
 ```
 
 ### Log in background while working
 
 ```bash
 # Start logging in background
-wifi-wand log --file wifi-events.log &
+wifiwand log --file wifi-events.log &
 
 # Do your work, then check the log
 tail -20 wifi-events.log
@@ -263,7 +263,7 @@ kill %1
 
 ```bash
 # Start detailed logging with fast polling
-wifi-wand log --interval 2 --file debug.log --stdout
+wifiwand log --interval 2 --file debug.log --stdout
 
 # Try the operation that's causing problems
 # ... do something ...
@@ -317,15 +317,15 @@ the helper application.
 If the specified log file path is not writable:
 
 ```bash
-wifi-wand log --file /root/wifi.log  # Assuming you're not root
+wifiwand log --file /root/wifi.log  # Assuming you're not root
 # Error: Cannot open log file /root/wifi.log: Permission denied
 ```
 
 Solution: Choose a path where your user has write permission:
 
 ```bash
-wifi-wand log --file ~/wifi-events.log
-wifi-wand log --file ~/logs/wifi-events.log
+wifiwand log --file ~/wifi-events.log
+wifiwand log --file ~/logs/wifi-events.log
 ```
 
 ## Use Cases
@@ -335,7 +335,7 @@ wifi-wand log --file ~/logs/wifi-events.log
 Keep a log running while experiencing network issues to identify patterns:
 
 ```bash
-wifi-wand log --file network-debug.log --stdout
+wifiwand log --file network-debug.log --stdout
 # ... reproduce the issue ...
 # Review the log to see what happened
 ```
@@ -345,7 +345,7 @@ wifi-wand log --file network-debug.log --stdout
 Track WiFi reliability over time:
 
 ```bash
-wifi-wand log --file ~/logs/wifi-$(date +%Y-%m-%d).log
+wifiwand log --file ~/logs/wifi-$(date +%Y-%m-%d).log
 # Let it run for hours or days
 # Analyze logs to identify problem times
 ```
@@ -356,7 +356,7 @@ Create a script to monitor WiFi and take action when issues occur:
 
 ```bash
 #!/bin/bash
-wifi-wand log --file /var/log/wifi-events.log &
+wifiwand log --file /var/log/wifi-events.log &
 LOG_PID=$!
 
 # In another terminal:

@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'sh',
         long_string:  'shell',
         description:  'start interactive shell (interactive pry REPL session)',
-        usage:        'Usage: wifi-wand shell'
+        usage:        'Usage: wifiwand shell'
       )
 
       allow_invocation_options :wifi_interface, :output_format, :utc

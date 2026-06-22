@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'pa',
         long_string:  'password',
         description:  'show the stored password for a preferred WiFi network',
-        usage:        'Usage: wifi-wand password <network-name>'
+        usage:        'Usage: wifiwand password <network-name>'
       )
 
       binds :model, output_support: :output_support

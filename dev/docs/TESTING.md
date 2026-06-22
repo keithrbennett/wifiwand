@@ -1,6 +1,6 @@
-# Testing Documentation for wifi-wand
+# Testing Documentation for wifiwand
 
-This document describes how wifi-wand's test suite is organized and how to run the right scope for local
+This document describes how wifiwand's test suite is organized and how to run the right scope for local
 development, CI, and native-host verification.
 
 ## Overview
@@ -208,8 +208,8 @@ coverage of the real macOS removal flow, use an SSID you genuinely no longer
 need and verify removal through the CLI:
 
 ```bash
-bundle exec exe/wifi-wand forget "Example SSID"
-bundle exec exe/wifi-wand pref_nets | grep "Example SSID"
+bundle exec exe/wifiwand forget "Example SSID"
+bundle exec exe/wifiwand pref_nets | grep "Example SSID"
 ```
 
 Interpretation:

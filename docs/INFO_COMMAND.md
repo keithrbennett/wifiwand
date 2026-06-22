@@ -20,7 +20,7 @@ For `info`, that means connectivity is exposed as explicit state values:
 Get detailed network information:
 
 ```bash
-wifi-wand info
+wifiwand info
 ```
 
 ## Information Provided
@@ -91,20 +91,20 @@ The `info` command supports multiple output formats via the `-o` flag:
 
 ### Pretty Print (Default)
 ```bash
-wifi-wand info
+wifiwand info
 ```
 
 Returns formatted output suitable for humans.
 
 ### JSON
 ```bash
-wifi-wand -o j info
+wifiwand -o j info
 ```
 
 Perfect for parsing in scripts or sending to other tools:
 
 ```bash
-wifi-wand -o j info | jq -r '.ipv4_addresses | join(", ")'
+wifiwand -o j info | jq -r '.ipv4_addresses | join(", ")'
 ```
 
 Example connectivity fields in JSON:
@@ -135,42 +135,42 @@ data['ipv6_addresses'] #=> ['fe80::1', '2001:db8::100']
 
 ### Pretty JSON
 ```bash
-wifi-wand -o J info
+wifiwand -o J info
 ```
 
 Outputs indented JSON for humans while preserving JSON parsing semantics.
 
 ### YAML
 ```bash
-wifi-wand -o y info
+wifiwand -o y info
 ```
 
 Useful for configuration files or documentation.
 
 ### Inspect
 ```bash
-wifi-wand -o i info
+wifiwand -o i info
 ```
 
 Outputs in Ruby inspect format.
 
 ### Puts
 ```bash
-wifi-wand -o p info
+wifiwand -o p info
 ```
 
 Outputs via Ruby's standard `puts`.
 
 ### Pretty Print
 ```bash
-wifi-wand -o P info
+wifiwand -o P info
 ```
 
 Outputs using Ruby's standard pretty printer.
 
 ### Amazing Print
 ```bash
-wifi-wand -o a info
+wifiwand -o a info
 ```
 
 Outputs using `amazing_print`. ANSI color follows stdout: color is enabled when stdout is a terminal and
@@ -182,19 +182,19 @@ while also saving or forwarding it.
 ### Get Your IPv4 Addresses
 
 ```bash
-wifi-wand -o j info | jq -r '.ipv4_addresses[]?'
+wifiwand -o j info | jq -r '.ipv4_addresses[]?'
 ```
 
 ### Get Your IPv6 Addresses
 
 ```bash
-wifi-wand -o j info | jq -r '.ipv6_addresses[]?'
+wifiwand -o j info | jq -r '.ipv6_addresses[]?'
 ```
 
 ### Check All Nameservers
 
 ```bash
-wifi-wand -o j info | jq '.nameservers'
+wifiwand -o j info | jq '.nameservers'
 ```
 
 ### Troubleshoot Network Issues
@@ -206,13 +206,13 @@ When having network problems, `info` gives you the complete picture:
 echo "=== Network Troubleshooting ==="
 echo ""
 echo "Full Network Info:"
-wifi-wand info
+wifiwand info
 echo ""
 echo "Quick Status:"
-wifi-wand status
+wifiwand status
 echo ""
 echo "Internet connectivity state:"
-wifi-wand -o p ci
+wifiwand -o p ci
 ```
 
 ### Extract Specific Data for Logging
@@ -221,7 +221,7 @@ wifi-wand -o p ci
 #!/bin/bash
 # Log key network info periodically
 while true; do
-  wifi-wand -o j info | jq -r '"[\(.ipv4_addresses | join(", "))] Connected to: \(.network // "N/A") | Internet: \(.internet_connectivity_state)"'
+  wifiwand -o j info | jq -r '"[\(.ipv4_addresses | join(", "))] Connected to: \(.network // "N/A") | Internet: \(.internet_connectivity_state)"'
   sleep 300
 done >> network-log.txt
 ```
@@ -232,21 +232,21 @@ done >> network-log.txt
 #!/bin/bash
 # Display network configuration
 echo "Connected Network:"
-wifi-wand -o j info | jq '.network'
+wifiwand -o j info | jq '.network'
 
 echo "IPv4 Addresses:"
-wifi-wand -o j info | jq -r '.ipv4_addresses | join(", ")'
+wifiwand -o j info | jq -r '.ipv4_addresses | join(", ")'
 
 echo "IPv6 Addresses:"
-wifi-wand -o j info | jq -r '.ipv6_addresses | join(", ")'
+wifiwand -o j info | jq -r '.ipv6_addresses | join(", ")'
 
 echo "Nameservers:"
-wifi-wand -o j info | jq '.nameservers'
+wifiwand -o j info | jq '.nameservers'
 ```
 
 ## Interactive Shell Usage
 
-In interactive shell mode (`wifi-wand shell`), you can use the full power of Ruby to work with info:
+In interactive shell mode (`wifiwand shell`), you can use the full power of Ruby to work with info:
 
 ```ruby
 [1] pry(#<WifiWand::CommandLineInterface>)> data = info
@@ -279,7 +279,7 @@ Don't use `info` in tight loops. If you're checking frequently, use `status` for
 Use verbose mode to see which OS commands are being executed:
 
 ```bash
-wifi-wand -v true info
+wifiwand -v true info
 ```
 
 This is helpful for understanding how the detailed information is gathered or debugging connectivity issues.

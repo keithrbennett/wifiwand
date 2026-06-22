@@ -2,11 +2,11 @@
 ### OS_COMMAND_USE_MACOS.md
 ### 2025-10-29 14:33:54 UTC
 
-This document outlines the shell commands used by `wifi-wand` on the macOS operating system.
+This document outlines the shell commands used by `wifiwand` on the macOS operating system.
 
 Notes:
 - macOS differentiates network service labels (e.g., "Wi-Fi") from interface devices (e.g., `en0`).
-  `wifi-wand` captures both so each command receives the argument it expects.
+  `wifiwand` captures both so each command receives the argument it expects.
 - Several commands warm detection caches that later operations reuse; listed CLI commands indicate where users
   may observe the behavior.
 
@@ -68,7 +68,7 @@ Notes:
 - Helpful Info: Requires sudo privileges; absence of privileges surfaces as an `OsCommandError` to the user.
   Forgetting a network while still connected is useful on macOS because a preferred network can
   auto-reassociate immediately after `disconnect`. If you want a later `disconnect` to stay effective for a
-  network you just joined, a practical pattern is `wifi-wand connect foo && wifi-wand forget foo`. No sleep
+  network you just joined, a practical pattern is `wifiwand connect foo && wifiwand forget foo`. No sleep
   is normally needed because `connect` already waits for the connection to become usable before returning.
 
 ### `networksetup -setdnsservers <service_name> empty`

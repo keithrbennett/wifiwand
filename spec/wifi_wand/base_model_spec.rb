@@ -450,7 +450,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
   # See dev/docs/TESTING.md for the full investigation and decision record.
 
   describe '#associated?' do
-    it 'returns false when the connected network lookup raises a wifi-wand error' do
+    it 'returns false when the connected network lookup raises a wifiwand error' do
       allow(subject).to receive(:connected_network_name).and_raise(WifiWand::Error, 'SSID unavailable')
 
       expect(subject.associated?).to be(false)

@@ -44,7 +44,7 @@ For upgrade-impacting API, CLI, and behavior changes, see
   rather than routing every macOS WiFi action through the helper app.
 - The helper is a Universal binary (ARM + Intel) and requires macOS 14.0 or
   later for location-based network scanning.
-- Added `wifi-wand-macos-setup` to guide users through granting the necessary
+- Added `wifiwand-macos-setup` to guide users through granting the necessary
   permissions.
 - Added post-install guidance directing macOS users to the setup documentation.
 

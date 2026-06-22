@@ -4,7 +4,7 @@
 #
 # examples/basic_usage.rb
 #
-# This script demonstrates basic usage of the wifi-wand gem as a library.
+# This script demonstrates basic usage of the wifiwand gem as a library.
 # To run this script, make sure you have the gem installed (`gem install wifi-wand`).
 # Then, you can execute it with `ruby examples/basic_usage.rb`.
 

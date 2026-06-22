@@ -92,8 +92,8 @@ RSpec.describe 'public_ip command' do
     expect { invoke_command(cli, 'public_ip', 'address', 'extra') }
       .to raise_error(WifiWand::ConfigurationError) { |error|
         expect(error.message).to include('Unexpected argument(s): extra')
-        expect(error.message).to include('Usage: wifi-wand public_ip [address|country|both|a|c|b]')
-        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        expect(error.message).to include('Usage: wifiwand public_ip [address|country|both|a|c|b]')
+        expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
       }
   end
 
@@ -105,14 +105,14 @@ RSpec.describe 'public_ip command' do
   end
 
   it 'prints command-specific help for public_ip' do
-    expect { invoke_command(cli, 'help', 'public_ip') }.to output(/Usage: wifi-wand public_ip/).to_stdout
+    expect { invoke_command(cli, 'help', 'public_ip') }.to output(/Usage: wifiwand public_ip/).to_stdout
   end
 
   it 'returns command help text for the public_ip alias' do
     command = cli.resolve_command('pi')
 
     expect(command).to be_a(WifiWand::Commands::PublicIp)
-    expect(command.help_text).to include('Usage: wifi-wand public_ip')
+    expect(command.help_text).to include('Usage: wifiwand public_ip')
     expect(command.help_text).to include('address (a)')
     expect(command.help_text).to include('address      - uses https://api.ipify.org')
     expect(command.help_text).to include('country/both - uses https://api.country.is/')

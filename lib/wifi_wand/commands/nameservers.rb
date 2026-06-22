@@ -11,7 +11,7 @@ module WifiWand
         short_string: 'na',
         long_string:  'nameservers',
         description:  'show, clear, or set DNS nameservers for the active WiFi connection',
-        usage:        'Usage: wifi-wand nameservers [get|clear|IP ...]'
+        usage:        'Usage: wifiwand nameservers [get|clear|IP ...]'
       )
 
       binds :model, output_support: :output_support

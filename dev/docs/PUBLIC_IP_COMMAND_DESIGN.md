@@ -38,12 +38,12 @@ short command names with the long and short selectors. For example, all of the
 following are valid:
 
 ```bash
-wifi-wand public_ip
-wifi-wand public_ip address
-wifi-wand public_ip a
-wifi-wand pi
-wifi-wand pi country
-wifi-wand pi c
+wifiwand public_ip
+wifiwand public_ip address
+wifiwand public_ip a
+wifiwand pi
+wifiwand pi country
+wifiwand pi c
 ```
 
 ## Selector Behavior
@@ -198,7 +198,7 @@ This feature includes an intentional breaking change:
   IPinfo response
 
 That narrowing is intentional. The current feature only exposes the fields that
-wifi-wand uses today: public address and country code.
+wifiwand uses today: public address and country code.
 
 ## Non-Goals And Out Of Scope
 

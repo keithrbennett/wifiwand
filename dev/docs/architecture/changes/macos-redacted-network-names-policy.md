@@ -3,7 +3,7 @@
 _Last updated: 2026-05-03_
 
 This document explains the problem created by macOS WiFi-name redaction, the
-behavioral conflicts it introduces in `wifi-wand`, and the implementation
+behavioral conflicts it introduces in `wifiwand`, and the implementation
 decision for commands and test-state restoration.
 
 It is an internal design note for maintainers. It is not end-user setup
@@ -19,7 +19,7 @@ On modern macOS, Location Services permission is sometimes required before the
 OS will reveal WiFi network names. Without that permission:
 
 - the radio may still be associated with a network
-- `wifi-wand` may still be able to detect generic association
+- `wifiwand` may still be able to detect generic association
 - but the OS may hide the actual SSID as `<hidden>`, `<redacted>`, blank, or
   `nil`
 
@@ -29,7 +29,7 @@ That creates a gap between:
 - and "the interface is confirmed to be associated with the requested/original
   SSID"
 
-This note defines how `wifi-wand` should behave when that gap exists.
+This note defines how `wifiwand` should behave when that gap exists.
 
 ## Background
 
@@ -58,7 +58,7 @@ versions, the OS may allow an app to determine that WiFi is active and that the
 interface is associated, while still withholding the actual SSID unless
 Location Services has been granted to the helper or calling process.
 
-From `wifi-wand`'s perspective, this means:
+From `wifiwand`'s perspective, this means:
 
 - the OS may expose enough signal to say "association exists"
 - but not enough signal to say "association is to SSID X"
@@ -78,10 +78,10 @@ Examples:
 - restore of a previously captured test network state
 - any API or command that must answer "am I on SSID X?"
 
-If `wifi-wand` silently treats generic association as equivalent to exact SSID
+If `wifiwand` silently treats generic association as equivalent to exact SSID
 verification, it can produce false positives.
 
-If `wifi-wand` always raises a hard failure whenever SSID verification is
+If `wifiwand` always raises a hard failure whenever SSID verification is
 impossible, it can make some commands unusable for users who knowingly operate
 without Location Services permission.
 
@@ -107,7 +107,7 @@ That is a correctness bug.
 The inverse bug can also happen.
 
 If macOS associates to the intended network but still redacts the SSID,
-`wifi-wand` may be unable to prove that the network is correct even though the
+`wifiwand` may be unable to prove that the network is correct even though the
 radio is likely where the user wanted it to be.
 
 That creates:
@@ -124,7 +124,7 @@ If `connect SomeSSID` exits successfully, many callers will interpret that as:
 
 - "the machine is now on `SomeSSID`"
 
-Returning success when wifi-wand cannot verify that claim weakens the contract
+Returning success when wifiwand cannot verify that claim weakens the contract
 of the command and makes automation less trustworthy.
 
 ## High-Level Policy Options
@@ -210,7 +210,7 @@ Pros:
 - simple mental model
 - preserves strong semantics
 - avoids half-supported behavior
-- gives users one obvious fix: run `wifi-wand-macos-setup`
+- gives users one obvious fix: run `wifiwand-macos-setup`
 
 Cons:
 
@@ -236,7 +236,7 @@ The implemented default policy is:
 5. Refuse any requested real-environment test run up front when macOS WiFi
    identity is redacted.
 6. Report the OS constraint explicitly and direct the user to
-   `wifi-wand-macos-setup`.
+   `wifiwand-macos-setup`.
 
 In other words:
 
@@ -375,7 +375,7 @@ Implemented policy:
 - do not partially run requested real-environment tests on redacted macOS
 - fail the real-environment request before the suite starts
 - explain that the environment is invalid for exact-network verification and
-  point the user to `wifi-wand-macos-setup`
+  point the user to `wifiwand-macos-setup`
 
 Rationale:
 
@@ -456,7 +456,7 @@ Rationale:
 
 Implemented policy:
 
-- document this as an OS-imposed limitation, not as a bug that `wifi-wand`
+- document this as an OS-imposed limitation, not as a bug that `wifiwand`
   should be expected to work around completely
 - explain the difference between generic association and exact SSID
   verification
@@ -475,7 +475,7 @@ These approaches were rejected as defaults because they replace a known
 OS limitation with silent ambiguity. That is worse for correctness and harder to
 document honestly.
 
-If the OS will not reveal identity, `wifi-wand` should normally say:
+If the OS will not reveal identity, `wifiwand` should normally say:
 
 - "I know the interface is associated"
 - "I do not know which SSID it is associated with"
@@ -491,7 +491,7 @@ Preferred shape:
 - command requires exact WiFi network identity
 - macOS is redacting WiFi names because Location Services is not enabled for
   `wifiwand-helper`
-- run `wifi-wand-macos-setup` and grant permission, then retry
+- run `wifiwand-macos-setup` and grant permission, then retry
 
 The current error wording already moves in this direction and should continue to
 be refined for clarity, but the key requirement is consistency:
@@ -505,7 +505,7 @@ For real-environment test refusal, the message should be even more direct:
 - real-environment tests were requested
 - macOS is redacting WiFi identity, so exact-network verification and restore
   are not trustworthy
-- run `wifi-wand-macos-setup`, grant Location Services, then rerun the tests
+- run `wifiwand-macos-setup`, grant Location Services, then rerun the tests
 
 ## Relationship To Existing Changes
 
@@ -514,7 +514,7 @@ change tracks:
 
 1. restore-path fixes that prevent macOS auto-reassociation to the wrong
    preferred network from being treated as successful restore
-2. redaction-aware reporting that explains when wifi-wand cannot verify the
+2. redaction-aware reporting that explains when wifiwand cannot verify the
    requested/original SSID because macOS is withholding identity
 
 Those changes address immediate correctness and diagnostics. This document
@@ -536,10 +536,10 @@ captures the broader default policy they now implement.
 
 ## Bottom Line
 
-The real issue is not whether `wifi-wand` can detect that WiFi is "sort of
+The real issue is not whether `wifiwand` can detect that WiFi is "sort of
 working." The issue is whether it can honestly verify network identity.
 
-When macOS redacts SSIDs, `wifi-wand` should keep ordinary non-identity
+When macOS redacts SSIDs, `wifiwand` should keep ordinary non-identity
 operations available, raise truthful targeted errors for identity-sensitive
 operations, and refuse real-environment test runs that depend on trustworthy
 network identity. That keeps command semantics coherent, protects automation,

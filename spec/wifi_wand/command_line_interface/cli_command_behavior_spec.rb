@@ -474,12 +474,12 @@ describe WifiWand::CommandLineInterface do
 
           expect { invoke_command(cli, 'till') }.to raise_error(WifiWand::ConfigurationError) do |error|
             expect(error.message).to include('Missing <state> argument.')
-            expect(error.message).to include('Usage: wifi-wand till <state> [timeout_secs] [interval_secs]')
+            expect(error.message).to include('Usage: wifiwand till <state> [timeout_secs] [interval_secs]')
             expect(error.message).to include(
               'States: wifi_on, wifi_off, associated, disassociated, internet_on, internet_off'
             )
             expect(error.message).to include("Examples: 'till wifi_off 20' or 'till internet_on 30 0.5'")
-            expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+            expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
           end
         end
 

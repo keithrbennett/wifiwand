@@ -52,13 +52,13 @@ RSpec.describe 'random_mac command' do
     expect { invoke_command(cli, 'random_mac', 'extra') }
       .to raise_error(WifiWand::ConfigurationError) { |error|
         expect(error.message).to include('Unexpected argument(s): extra')
-        expect(error.message).to include('Usage: wifi-wand random_mac')
-        expect(error.message).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        expect(error.message).to include('Usage: wifiwand random_mac')
+        expect(error.message).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
       }
   end
 
   it 'prints command-specific help' do
     expect { invoke_command(cli, 'help', 'random_mac') }
-      .to output(/Usage: wifi-wand random_mac/).to_stdout
+      .to output(/Usage: wifiwand random_mac/).to_stdout
   end
 end

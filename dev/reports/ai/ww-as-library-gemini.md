@@ -1,6 +1,6 @@
-# Analysis of `wifi-wand` as a Library
+# Analysis of `wifiwand` as a Library
 
-This document contains an analysis of the `wifi-wand` codebase for its potential use as a Ruby library in
+This document contains an analysis of the `wifiwand` codebase for its potential use as a Ruby library in
 other applications.
 
 ## Strengths
@@ -69,7 +69,7 @@ but the CLI decoupling is complete. The public library entry point is now
 `WifiWand.create_model`, which returns a concrete OS-specific model directly.
 
 My analysis after reading the key files confirms the initial assessment and clarifies the path to refactoring
-`wifi-wand` into a proper library.
+`wifiwand` into a proper library.
 
 * **`lib/wifi_wand/services/connection_manager.rb` is a perfect library component.** It has zero dependencies
   on the command-line interface. It accepts objects, calls methods on them, and raises specific, catchable
@@ -85,12 +85,12 @@ My analysis after reading the key files confirms the initial assessment and clar
 ## The Path Forward: Decoupling
 
 The goal is to make it so that `require 'wifi_wand'` provides access to the core logic *without* loading any
-of the command-line interface code. The CLI code should only be loaded when the `exe/wifi-wand` executable is
+of the command-line interface code. The CLI code should only be loaded when the `exe/wifiwand` executable is
 run.
 
 This plan has been implemented:
 
-1. **Isolate the CLI Entrypoint:** The main executable `exe/wifi-wand` explicitly requires `wifi_wand/main`,
+1. **Isolate the CLI Entrypoint:** The main executable `exe/wifiwand` explicitly requires `wifi_wand/main`,
    making it the sole entry point for the command-line application.
 
 2. **Decouple the Library:** `lib/wifi_wand.rb` requires the individual components that form the library's

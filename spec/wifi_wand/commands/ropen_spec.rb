@@ -33,7 +33,7 @@ describe WifiWand::Commands::Ropen do
 
       help = described_class.new.help_text
 
-      expect(help).to include('Usage: wifi-wand ropen')
+      expect(help).to include('Usage: wifiwand ropen')
       expect(help).to include('open web resources')
     end
 

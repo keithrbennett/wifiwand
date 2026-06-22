@@ -10,7 +10,7 @@ module WifiWand
         short_string: 'ro',
         long_string:  'ropen',
         description:  'open web resources',
-        usage:        'Usage: wifi-wand ropen [resource_code ...]'
+        usage:        'Usage: wifiwand ropen [resource_code ...]'
       )
 
       binds :model, :interactive_mode, :out_stream, :err_stream

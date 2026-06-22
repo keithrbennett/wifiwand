@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'qr',
         long_string:  'qr',
         description:  'generate a Wi-Fi QR code',
-        usage:        'Usage: wifi-wand qr [filespec] [password]'
+        usage:        'Usage: wifiwand qr [filespec] [password]'
       )
 
       binds :model, :interactive_mode, :in_stream, output_support: :output_support

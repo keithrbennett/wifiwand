@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'of',
         long_string:  'off',
         description:  'turn WiFi off',
-        usage:        'Usage: wifi-wand off'
+        usage:        'Usage: wifiwand off'
       )
 
       binds :model

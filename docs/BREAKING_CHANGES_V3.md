@@ -6,7 +6,68 @@ introduced in version 3.0.
 For a broader summary of version 3 improvements, architecture changes, and
 non-breaking additions, see [Version 2.x to 3.0 Code Base Changes](CHANGELOG_V2_TO_V3.md).
 
+> **Action required for all users:** The primary executable has been renamed
+> from `wifi-wand` to `wifiwand`. Update every script, alias, and shell
+> function that calls `wifi-wand`. The old name still works but prints a
+> deprecation warning to stderr. See the [Executable renamed](#executable-renamed)
+> section below.
+
 ## Breaking Changes
+
+### Executable renamed
+
+#### `wifi-wand` → `wifiwand`
+
+The command you type has changed. Every invocation of `wifi-wand` must be
+updated to `wifiwand`:
+
+```bash
+# Old
+wifi-wand info
+wifi-wand co MyNetwork mypassword
+wifi-wand shell
+
+# New
+wifiwand info
+wifiwand co MyNetwork mypassword
+wifiwand shell
+```
+
+The macOS setup helper has changed in the same way:
+
+```bash
+# Old
+wifi-wand-macos-setup
+
+# New
+wifiwand-macos-setup
+```
+
+**The gem name on RubyGems is unchanged.** Install and upgrade as before:
+
+```bash
+gem install wifi-wand
+```
+
+**Backward compatibility:** The old `wifi-wand` and `wifi-wand-macos-setup`
+commands remain installed as thin wrappers. They run the new executable
+transparently, but print a deprecation notice to stderr on every invocation:
+
+```
+wifi-wand: deprecated — please use 'wifiwand' instead.
+```
+
+Update all scripts, shell aliases, `.zshrc`/`.bashrc` functions, and cron
+entries that call `wifi-wand` before the deprecated wrappers are eventually
+removed in a future major release.
+
+##### Migration checklist
+
+- [ ] Shell aliases — search `~/.zshrc`, `~/.bashrc`, `~/.bash_profile`
+- [ ] Shell functions that call `wifi-wand`
+- [ ] Cron jobs and launchd plists
+- [ ] CI/CD scripts
+- [ ] README or documentation in your own projects
 
 ### Output format flags changed
 
@@ -29,19 +90,19 @@ The `-o p` flag still means plain `puts` output. Scripts that depended on
 `-o p` for unquoted scalar values can keep using it:
 
 ```bash
-state="$(wifi-wand -o p ci)"
+state="$(wifiwand -o p ci)"
 ```
 
 Use `-o J` when you want indented JSON:
 
 ```bash
-wifi-wand -o J info
+wifiwand -o J info
 ```
 
 Use `-o P` when you want Ruby pretty print output:
 
 ```bash
-wifi-wand -o P info
+wifiwand -o P info
 ```
 
 #### Amazing Print color follows stdout
@@ -51,15 +112,15 @@ It uses color when stdout is a terminal and plain text when output is piped or r
 if you want terminal-readable plain output while also saving or forwarding it:
 
 ```bash
-wifi-wand -o a info | tee wifi-info.txt
+wifiwand -o a info | tee wifi-info.txt
 ```
 
 ### Pretty output dependency changed
 
 #### `awesome_print` replaced by `amazing_print`
 
-wifi-wand now depends on `amazing_print` for human-readable object formatting.
-Ruby consumers that indirectly relied on wifi-wand to make `awesome_print`
+wifiwand now depends on `amazing_print` for human-readable object formatting.
+Ruby consumers that indirectly relied on wifiwand to make `awesome_print`
 available must add their own direct `awesome_print` dependency or migrate to
 `amazing_print`.
 
@@ -82,8 +143,8 @@ require 'wifi_wand/platforms/ubuntu/model'
 require 'wifi_wand/platforms/mac/model'
 ```
 
-The gem name and command names are unchanged: install `wifi-wand` and run the
-CLI as `wifi-wand`.
+The gem name is unchanged: install with `gem install wifi-wand`. The CLI
+executable is now `wifiwand` (see [Executable renamed](#executable-renamed)).
 
 ### macOS helper runtime naming
 
@@ -174,8 +235,8 @@ treated as invalid commands and follow the normal invalid-command behavior.
 
 ##### Migration
 
-- old: `wifi-wand conn MyNet`
-- new: `wifi-wand co MyNet` or `wifi-wand connect MyNet`
+- old: `wifiwand conn MyNet`
+- new: `wifiwand co MyNet` or `wifiwand connect MyNet`
 
 ### Connectivity API
 
@@ -223,7 +284,7 @@ The `ci` command no longer represents connectivity as `true` / `false`.
 
 #### WiFi-off connectivity behavior changed
 
-`wifi-wand` no longer assumes that WiFi being off means Internet connectivity is
+`wifiwand` no longer assumes that WiFi being off means Internet connectivity is
 unavailable, because connectivity may come from another interface such as
 Ethernet.
 
@@ -239,7 +300,7 @@ The local IPv4 field in `info` has been renamed from `ip_address` to
 `ipv4_addresses`. `info["ipv4_addresses"]` and `BaseModel#ipv4_addresses` now
 return arrays of IPv4 addresses instead of a single string or `nil`.
 
-This lets wifi-wand report every IPv4 address assigned to the WiFi interface.
+This lets wifiwand report every IPv4 address assigned to the WiFi interface.
 Interfaces with no assigned IPv4 address now report an empty array.
 `BaseModel#ip_address` has been removed; callers must use
 `BaseModel#ipv4_addresses`.
@@ -300,7 +361,7 @@ explicit CLI feature exposed through `public_ip` and its short alias `pi`.
 
 | Old | New |
 |-----|-----|
-| `info["public_ip"]` | `wifi-wand public_ip` / `wifi-wand pi` |
+| `info["public_ip"]` | `wifiwand public_ip` / `wifiwand pi` |
 | nested `public_ip` object inside `info` | dedicated command result |
 | broader unauthenticated IPinfo payload | narrower result with only `address` and `country` |
 
@@ -326,9 +387,9 @@ The new command supports only:
 ##### Migration
 
 - old: `info["public_ip"]`
-- new, both fields: `wifi-wand public_ip` or `wifi-wand pi`
-- new, address only: `wifi-wand public_ip address` or `wifi-wand pi a`
-- new, country only: `wifi-wand public_ip country` or `wifi-wand pi c`
+- new, both fields: `wifiwand public_ip` or `wifiwand pi`
+- new, address only: `wifiwand public_ip address` or `wifiwand pi a`
+- new, country only: `wifiwand public_ip country` or `wifiwand pi c`
 
 ##### Current result shape
 
@@ -444,10 +505,10 @@ global `--utc` option. The old toggle-style forms no longer work.
 
 | Old usage | New usage |
 |-----------|-----------|
-| `wifi-wand -v info` | `wifi-wand -v true info` |
-| `wifi-wand --verbose info` | `wifi-wand --verbose true info` |
-| `wifi-wand --no-verbose info` | `wifi-wand --verbose false info` |
-| `wifi-wand --no-v info` | `wifi-wand -v false info` |
+| `wifiwand -v info` | `wifiwand -v true info` |
+| `wifiwand --verbose info` | `wifiwand --verbose true info` |
+| `wifiwand --no-verbose info` | `wifiwand --verbose false info` |
+| `wifiwand --no-v info` | `wifiwand -v false info` |
 
 Accepted true values are `true`, `t`, `yes`, `y`, and `+`. Accepted false
 values are `false`, `f`, `no`, `n`, and `-`.
@@ -455,8 +516,8 @@ values are `false`, `f`, `no`, `n`, and `-`.
 Inline forms are also accepted:
 
 ```bash
-wifi-wand --verbose=true info
-wifi-wand -vfalse info
+wifiwand --verbose=true info
+wifiwand -vfalse info
 ```
 
 When setting defaults through `WIFIWAND_OPTS`, include the boolean value:

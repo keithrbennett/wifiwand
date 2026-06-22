@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'h',
         long_string:  'help',
         description:  'print global help or command-specific help',
-        usage:        'Usage: wifi-wand help [command]'
+        usage:        'Usage: wifiwand help [command]'
       )
 
       binds output: :out_stream

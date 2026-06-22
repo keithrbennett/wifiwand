@@ -68,7 +68,7 @@ module WifiWand
     #
     # Accepted input types:
     # - Network name: String or Symbol (required, max 32 UTF-8 bytes)
-    # - Password: String, Symbol, or nil (optional WiFi credential. wifi-wand
+    # - Password: String, Symbol, or nil (optional WiFi credential. wifiwand
     #   rejects malformed raw PSKs and overlong passphrases, but leaves
     #   network-specific credential rules to the OS-specific connection layer.)
     #
@@ -265,7 +265,7 @@ module WifiWand
 
     private def redacted_identity_reason_for_connection(network_name, error)
       base_reason = error.reason || error.message
-      "associated, but #{base_reason}; wifi-wand cannot verify that the active network is '#{network_name}'"
+      "associated, but #{base_reason}; wifiwand cannot verify that the active network is '#{network_name}'"
     end
 
     private def wait_for_connection_activation(network_name)

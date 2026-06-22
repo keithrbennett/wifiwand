@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'rmac',
         long_string:  'random_mac',
         description:  'generate a random locally administered unicast MAC address',
-        usage:        'Usage: wifi-wand random_mac'
+        usage:        'Usage: wifiwand random_mac'
       )
 
       binds :model, output_support: :output_support

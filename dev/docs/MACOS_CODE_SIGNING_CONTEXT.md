@@ -1,6 +1,6 @@
-# macOS Code Signing Context and Reference for wifi-wand
+# macOS Code Signing Context and Reference for wifiwand
 
-> Audience: wifi-wand maintainers preparing signed and notarized helpers.
+> Audience: wifiwand maintainers preparing signed and notarized helpers.
 
 ---
 
@@ -37,9 +37,9 @@ Once a shell or application is granted Location Services access, the legacy tool
 SSIDs—but that approval is scoped to the specific binary. Terminal.app might already be approved while
 `/usr/bin/ruby` (or your CI runner) is not, which is why the helper still matters.
 
-### Why wifi-wand Needs a Helper Application
+### Why wifiwand Needs a Helper Application
 
-Because of these restrictions, `wifi-wand` cannot directly access WiFi information from Ruby. The solution is
+Because of these restrictions, `wifiwand` cannot directly access WiFi information from Ruby. The solution is
 a native macOS helper application written in Swift that:
 
 - Uses the CoreWLAN framework to access WiFi interfaces
@@ -61,7 +61,7 @@ This behavior is inconsistent with documented macOS TCC requirements and may be:
 - Temporary authorization for apps with proper Info.plist keys
 - Development mode behavior
 
-**Note:** wifi-wand now requires Developer ID signing for the helper. The temporary authorization observed
+**Note:** wifiwand now requires Developer ID signing for the helper. The temporary authorization observed
 above is not reliable enough for production use, and permission management requires persistent TCC entries
 that only proper code signing provides.
 
@@ -126,7 +126,7 @@ codesign --sign "Developer ID Application: Your Name (TEAM123)" \
 
 When users install the `wifi-wand` gem, they receive a **pre-signed, pre-notarized** helper binary:
 
-1. Gem is installed via `gem install wifi-wand`
+1. Gem is installed via `gem install wifi-wand` (the gem package name stays `wifi-wand`)
 2. Helper binary (already signed by you) is extracted to `~/Library/Application Support/WifiWand/`
 3. Helper works immediately with proper TCC support
 4. Users can manage permissions via System Settings → Privacy & Security → Location Services
@@ -164,7 +164,7 @@ git commit -m "Update signed and notarized macOS helper for <version>"
 # 4. Build and inspect the release candidate payload
 bundle exec rake test
 bundle exec rake build
-tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz
+tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz  # wifi-wand is the gem package name
 
 # 5. Release from the same committed inputs; do not edit after inspecting the payload
 bundle exec rake release build:checksum
@@ -228,7 +228,7 @@ ID; confirm it matches the value shown on developer.apple.com.
 
 ### Step 4: Confirm Official Public Values
 
-Official wifi-wand release helpers must be signed with the project maintainer's Developer ID. The public Team
+Official wifiwand release helpers must be signed with the project maintainer's Developer ID. The public Team
 ID and codesign identity for official releases are tracked in the release helper source. No shell exports are
 needed for the normal maintainer release workflow.
 
@@ -248,7 +248,7 @@ For notarization, you need an app-specific password:
 2. Sign in with your Apple ID
 3. Go to **Security → App-Specific Passwords**
 4. Click **+** to generate a new password
-5. Enter a label (e.g., "wifi-wand notarization")
+5. Enter a label (e.g., "wifiwand notarization")
 6. Copy the generated password (format: `xxxx-xxxx-xxxx-xxxx`)
 
 ---
@@ -395,7 +395,7 @@ bundle exec rake test
 bundle exec rake build
 
 # Inspect the payload before release
-tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz
+tar -xOf pkg/wifi-wand-<version>.gem data.tar.gz | tar -tz  # wifi-wand is the gem package name
 
 # Create the tag, publish to RubyGems, and checksum the released gem.
 # Do not edit after inspecting the payload; release rebuilds before pushing.
@@ -449,7 +449,7 @@ bin/mac-helper-release test
 > example via `bin/mac-helper-release test`). Make sure it appears under **System Settings → Privacy &
 > Security →
 > Location Services** and toggle it on before running the test to avoid a hidden prompt that makes the task
-> appear stuck. For the shipped end-user flow, use `wifi-wand-macos-setup`.
+> appear stuck. For the shipped end-user flow, use `wifiwand-macos-setup`.
 
 ---
 
@@ -745,7 +745,7 @@ Yes, unless you disable auto-renewal in your Apple ID account settings.
 
 ### Can I distribute a debug/development build?
 
-No. wifi-wand requires properly signed helpers because:
+No. wifiwand requires properly signed helpers because:
 - Ad-hoc signing does not create TCC database entries
 - Permission management does not function without TCC entries
 - Users cannot control permissions
@@ -786,7 +786,7 @@ Common issues:
   Runtime](https://developer.apple.com/documentation/security/hardened_runtime)
 - [TN3147: Code signing and notarizing
   issues](https://developer.apple.com/documentation/technotes/tn3147-resolving-common-notarization-issues)
-- [wifi-wand Repository](https://github.com/keithrbennett/wifiwand)
+- [wifiwand Repository](https://github.com/keithrbennett/wifiwand)
 
 ---
 

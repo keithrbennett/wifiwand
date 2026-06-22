@@ -9,7 +9,7 @@ module WifiWand
         short_string: 'ne',
         long_string:  'network_name',
         description:  'show the SSID of the currently connected WiFi network',
-        usage:        'Usage: wifi-wand network_name'
+        usage:        'Usage: wifiwand network_name'
       )
 
       binds :model, output_support: :output_support

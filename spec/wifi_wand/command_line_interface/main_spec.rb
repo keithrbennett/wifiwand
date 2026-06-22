@@ -251,7 +251,7 @@ describe WifiWand::Main do
       main = described_class.new(out_stream, err_stream, argv: ['-h', 'info'])
 
       expect(main.call).to eq(0)
-      expect(out_stream.string).to include('Usage: wifi-wand info')
+      expect(out_stream.string).to include('Usage: wifiwand info')
       expect(err_stream.string).to eq('')
     end
 
@@ -287,10 +287,10 @@ describe WifiWand::Main do
 
   describe 'command argument validation' do
     [
-      ['connect', 'Missing <network> argument.', 'Usage: wifi-wand connect <network> [password]', []],
-      ['forget', 'Missing <name1> argument.', 'Usage: wifi-wand forget <name1> [name2 ...]', []],
-      ['password', 'Missing <network-name> argument.', 'Usage: wifi-wand password <network-name>', []],
-      ['till', 'Missing <state> argument.', 'Usage: wifi-wand till <state> [timeout_secs] [interval_secs]',
+      ['connect', 'Missing <network> argument.', 'Usage: wifiwand connect <network> [password]', []],
+      ['forget', 'Missing <name1> argument.', 'Usage: wifiwand forget <name1> [name2 ...]', []],
+      ['password', 'Missing <network-name> argument.', 'Usage: wifiwand password <network-name>', []],
+      ['till', 'Missing <state> argument.', 'Usage: wifiwand till <state> [timeout_secs] [interval_secs]',
         [
           'States: wifi_on, wifi_off, associated, disassociated, internet_on, internet_off',
           "Examples: 'till wifi_off 20' or 'till internet_on 30 0.5'",
@@ -307,7 +307,7 @@ describe WifiWand::Main do
         expect(err_stream.string).to include(missing_message)
         expect(err_stream.string).to include(usage)
         extra_messages.each { |message| expect(err_stream.string).to include(message) }
-        expect(err_stream.string).to include("Use 'wifi-wand help' or 'wifi-wand -h' for help.")
+        expect(err_stream.string).to include("Use 'wifiwand help' or 'wifiwand -h' for help.")
         expect(err_stream.string).not_to include('wrong number of arguments')
         expect(out_stream.string).to eq('')
       end

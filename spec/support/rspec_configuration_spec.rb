@@ -160,7 +160,7 @@ RSpec.describe RSpecConfiguration do
     expected_error = Regexp.new(
       'Requested real-environment tests on macOS require unredacted WiFi identity.*' \
         'exact-state restoration of the original network cannot be verified.*' \
-        'wifi-wand-macos-setup',
+        'wifiwand-macos-setup',
       Regexp::MULTILINE
     )
     redacted_model = double(

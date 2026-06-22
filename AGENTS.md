@@ -61,7 +61,7 @@ instead of ad-hoc one-off commands when building, testing, or running the projec
 
 ## Project Overview
 
-**wifi-wand** is a Ruby gem that provides cross-platform WiFi management for Mac and Ubuntu systems. 
+**wifiwand** (gem: `wifi-wand`) is a Ruby gem that provides cross-platform WiFi management for Mac and Ubuntu systems.
 It operates through both command-line interface and interactive shell modes, 
 using OS-specific utilities under the hood while presenting a unified API.
 
@@ -111,16 +111,16 @@ bundle exec rake build
 #   gem unpack pkg/wifi-wand-<version>.gem && find wifi-wand-<version>/
 
 # Test the gem without installing
-bundle exec exe/wifi-wand --help
+bundle exec exe/wifiwand --help
 ```
 
 ### Interactive Testing
 ```bash
 # Start interactive shell for manual testing
-bundle exec exe/wifi-wand shell
+bundle exec exe/wifiwand shell
 
 # Test with verbose mode to see underlying OS commands
-bundle exec exe/wifi-wand -v true info
+bundle exec exe/wifiwand -v true info
 ```
 
 ## Architecture
@@ -169,9 +169,9 @@ The macOS model currently uses two distinct Swift/CoreWLAN runtime paths:
 **Fallback Strategy**:
 - The compiled helper path covers permission-sensitive reads on supported macOS versions.
 - The direct Swift source path is attempted for connect/disconnect when Swift/CoreWLAN is available.
-- If the direct Swift source path is unavailable or fails in known ways, wifi-wand falls back to traditional
+- If the direct Swift source path is unavailable or fails in known ways, wifiwand falls back to traditional
   utilities such as `networksetup` and `ifconfig`.
-- Users can use wifi-wand without Xcode/Swift installed, with reduced connect/disconnect functionality.
+- Users can use wifiwand without Xcode/Swift installed, with reduced connect/disconnect functionality.
 
 **Installation**: Users can install Swift/CoreWLAN support for the direct Swift source path with
 `xcode-select --install`
