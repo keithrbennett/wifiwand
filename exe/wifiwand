@@ -49,6 +49,7 @@ module WifiWandExecutable
   end
 
   def self.ensure_ruby_version!(err_stream, minimum: MINIMUM_RUBY_VERSION)
+    return unless defined?(Gem::Version)
     return if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new(minimum)
 
     err_stream.puts "#{File.basename($PROGRAM_NAME)} requires Ruby >= #{minimum} (current: #{RUBY_VERSION})."

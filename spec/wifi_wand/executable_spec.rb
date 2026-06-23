@@ -101,6 +101,35 @@ RSpec.describe 'exe/' do
       end
     end
 
+    it 'skips the Ruby version guard when --disable-gems is active' do
+      ruby_source = <<~RUBY
+        module Kernel
+          alias_method :orig_require, :require
+          def require(name)
+            if name == 'rubygems'
+              warn "TEST ABORT: require 'rubygems' was called despite --disable-gems"
+              exit 99
+            end
+            orig_require(name)
+          end
+        end
+        $0 = #{executable_path.dump}
+        ARGV.replace(['--version'])
+        load #{executable_path.dump}
+      RUBY
+
+      stdout, stderr, status = Open3.capture3(
+        RbConfig.ruby, '--disable-gems', '-e', ruby_source, chdir: repo_root
+      )
+
+      aggregate_failures do
+        expect(status.exitstatus).to eq(0)
+        expect(stderr).not_to include('TEST ABORT')
+        expect(stderr).not_to include('uninitialized constant WifiWandExecutable::Gem')
+        expect(stdout).to eq("#{WifiWand::VERSION}\n")
+      end
+    end
+
     it 'fails fast with a friendly message when Ruby is below the minimum' do
       ruby_source = <<~RUBY
         $0 = #{executable_path.dump}
