@@ -3,6 +3,7 @@
 require_relative '../spec_helper'
 require 'open3'
 require 'rbconfig'
+require 'timeout'
 
 RSpec.describe 'exe/' do
   let(:repo_root) { File.expand_path('../..', __dir__) }
@@ -24,6 +25,14 @@ RSpec.describe 'exe/' do
       stderr:    stderr.force_encoding('UTF-8'),
       exit_code: status.exitstatus,
     }
+  end
+
+  # Wait up to timeout_seconds for the subprocess thread to be alive.
+  # Raises Timeout::Error if it never starts, so premature death fails loudly.
+  def wait_for_process(wait_thr, timeout_seconds = 5)
+    Timeout.timeout(timeout_seconds) do
+      sleep 0.01 until wait_thr.alive?
+    end
   end
 
   describe 'wifiwand' do
@@ -53,6 +62,60 @@ RSpec.describe 'exe/' do
       expect(result[:stderr]).to include("'wifiwand help'")
       expect(result[:stderr]).not_to include('wifi-wand')
       expect(result[:stdout]).to eq('')
+    end
+
+    it 'exits 143 and prints a friendly message when sent SIGTERM' do
+      stderr_str = ''
+      status = nil
+
+      ruby_source = <<~RUBY
+        ARGV.replace(['shell'])
+        load #{executable_path.dump}
+      RUBY
+
+      Open3.popen3(RbConfig.ruby, '-e', ruby_source, chdir: repo_root) do |_stdin, stdout, stderr, wait_thr|
+        pid = wait_thr.pid
+        wait_for_process(wait_thr)
+
+        # Wait for Pry to emit a prompt so we know the shell (and SIGTERM trap)
+        # are fully up before we signal the process.
+        buffer = +''
+        Timeout.timeout(5) do
+          loop do
+            buffer << stdout.readpartial(1024)
+            break if buffer.match?(/\[\d+\] pry/)
+          end
+        end
+
+        Process.kill('TERM', pid)
+        Timeout.timeout(5) do
+          stdout.read
+          stderr_str = stderr.read
+          status = wait_thr.value
+        end
+      end
+
+      aggregate_failures do
+        expect(status.exitstatus).to eq(143)
+        expect(stderr_str).to include('Error: Terminated by SIGTERM.')
+      end
+    end
+
+    it 'fails fast with a friendly message when Ruby is below the minimum' do
+      ruby_source = <<~RUBY
+        $0 = #{executable_path.dump}
+        Object.send(:remove_const, :RUBY_VERSION)
+        RUBY_VERSION = '2.6.0'
+        load #{executable_path.dump}
+      RUBY
+
+      _stdout, stderr, status = Open3.capture3(RbConfig.ruby, '-e', ruby_source, chdir: repo_root)
+
+      aggregate_failures do
+        expect(status.exitstatus).to eq(1)
+        expect(stderr).to include('wifiwand requires Ruby >= 3.2')
+        expect(stderr).to include('Please run with a supported Ruby version')
+      end
     end
   end
 

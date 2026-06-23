@@ -1,16 +1,29 @@
 #!/usr/bin/env ruby
 # frozen_string_literal: true
 
-# The async gem's io-event dependency uses IO::Buffer internally via read_nonblock,
-# which Ruby marks as experimental. We can't change third-party gem code, so we
-# suppress just this warning category rather than letting it leak to users.
-Warning[:experimental] = false
-
-require_relative '../lib/wifi_wand'
-require_relative '../lib/wifi_wand/main'
-
 module WifiWandExecutable
-  def self.call(argv: ARGV, env: ENV, in_stream: $stdin, out_stream: $stdout, err_stream: $stderr)
+  MINIMUM_RUBY_VERSION = '3.2'
+  SIGNAL_EXIT_BASE = 128
+
+  def self.main(argv: ARGV, env: ENV, in_stream: $stdin, out_stream: $stdout, err_stream: $stderr)
+    install_sigterm_handler(err_stream)
+    ensure_ruby_version!(err_stream)
+    suppress_experimental_warning
+    run_main(argv, env, in_stream, out_stream, err_stream)
+  end
+
+  def self.suppress_experimental_warning
+    # The async gem's io-event dependency uses IO::Buffer internally via
+    # read_nonblock, which Ruby marks as experimental. We can't change
+    # third-party gem code, so we suppress just this warning category rather
+    # than letting it leak to users.
+    Warning[:experimental] = false
+  end
+
+  def self.run_main(argv, env, in_stream, out_stream, err_stream)
+    require_relative '../lib/wifi_wand'
+    require_relative '../lib/wifi_wand/main'
+
     exit_code = WifiWand::Main.new(
       out_stream,
       err_stream,
@@ -20,6 +33,28 @@ module WifiWandExecutable
     ).call
     exit(exit_code)
   end
+
+  def self.install_sigterm_handler(err_stream)
+    # Only trap SIGTERM here. SIGINT/Ctrl-C is intentionally left to the
+    # default handler so Ruby raises Interrupt, which WifiWand::Main#call
+    # rescues to print context-aware messages (which command was running,
+    # verbose backtrace). The interactive shell also uses Pry, which manages
+    # its own Ctrl-C behavior. A global SIGINT trap would bypass both.
+    Signal.trap('TERM') { handle_sigterm(err_stream) }
+  end
+
+  def self.handle_sigterm(err_stream)
+    err_stream.write "\nError: Terminated by SIGTERM.\n"
+    exit(SIGNAL_EXIT_BASE + Signal.list['TERM'])
+  end
+
+  def self.ensure_ruby_version!(err_stream, minimum: MINIMUM_RUBY_VERSION)
+    return if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new(minimum)
+
+    err_stream.puts "#{File.basename($PROGRAM_NAME)} requires Ruby >= #{minimum} (current: #{RUBY_VERSION})."
+    err_stream.puts 'Please run with a supported Ruby version (e.g., via rbenv, rvm, asdf, mise, rv).'
+    exit 1
+  end
 end
 
-WifiWandExecutable.call
+WifiWandExecutable.main
