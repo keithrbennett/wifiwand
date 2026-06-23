@@ -342,8 +342,8 @@ wifiwand till internet_off  # Wait until Internet becomes unreachable
 | Feature                   | `status`                         | `info`                          |
 |---------------------------|----------------------------------|---------------------------------|
 | Output                    | Single line                      | Multi-line detailed data        |
-| Speed                     | Fast                             | Slower (more comprehensive)     |
+| Speed                     | Several seconds (connectivity checks) | Several seconds (connectivity checks) |
 | Connectivity checks       | Yes (TCP/DNS/captive portal)     | Yes (same checks)               |
 | Captive portal detection  | Yes (status data + display)      | Yes (`captive_portal_login_required` field) |
 | For scripts               | Better with `-o j`               | Better (structured data)        |
-| For humans                | Good (quick check)               | Better (comprehensive info)     |
+| For humans                | Good (concise overview)          | Better (comprehensive info)     |

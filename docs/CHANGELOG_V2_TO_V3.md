@@ -30,7 +30,8 @@ For upgrade-impacting API, CLI, and behavior changes, see
   value, matching the global `-u` / `--utc` option.
 - Added `log` to monitor WiFi and Internet connectivity events.
 - Added `qr` to generate a QR code for the current or specified WiFi network.
-- Added `shell` as the interactive REPL entry point.
+- Replaced the `-s` / `--shell` flag with a `shell` command as the interactive REPL
+  entry point.
 - Added a `status` / `s` command for a one-line network status summary with DNS
   and TCP indicators.
 

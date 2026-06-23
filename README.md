@@ -264,9 +264,9 @@ wifiwand connect MyNet # Connect and exit
 **Interactive Shell Mode** (`shell` command): Start a persistent Ruby session
 ```bash
 wifiwand shell         # Enter interactive mode
-[1] pry(#<WifiWandView>)> info
-[2] pry(#<WifiWandView>)> connect "MyNet"
-[3] pry(#<WifiWandView>)> cycle; connect "MyNet"
+[1] pry(#<WifiWand::CommandLineInterface>)> info
+[2] pry(#<WifiWand::CommandLineInterface>)> connect "MyNet"
+[3] pry(#<WifiWand::CommandLineInterface>)> cycle; connect "MyNet"
 ```
 
 The shell is useful when you want to:
@@ -288,7 +288,7 @@ the local variable will shadow (override) the method name. Therefore, local vari
 may override this app's commands.  For example:
 
 ```
-[1] pry(#<WifiWandView>)> x  # exit command, available as 'x' or 'xit'
+[1] pry(#<WifiWand::CommandLineInterface>)> x  # exit command, available as 'x' or 'xit'
 $
 $ wifiwand shell
 
@@ -323,14 +323,14 @@ the result may be mysterious.  For example, if I were write the WiFi information
 to a file, this would work:
 
 ```
-[1] pry(#<WifiWandView>)> File.write('x', info)
+[1] pry(#<WifiWand::CommandLineInterface>)> File.write('x', info)
 => 431
 ```
 
 However, if I forget to quote the filename, the program exits:
 
 ```
-[2] pry(#<WifiWandView>)> File.write(x, info)
+[2] pry(#<WifiWand::CommandLineInterface>)> File.write(x, info)
 ➜  wifiwand git:(master) ✗  
 ```
 
@@ -618,7 +618,7 @@ automate it (e.g. `wifiwand cycle && wifiwand connect a-network a-password`). Al
 to create a script for your most commonly used networks containing something like this:
 
 ```
-wifiwand  connect  my-usual-network  its-password
+wifiwand connect my-usual-network its-password
 ```
 
 ### Airport Utility Deprecation (April 2024)
@@ -711,7 +711,7 @@ Apache 2 License (see LICENSE.txt)
 
 ### Logo
 
-Logo designed and generously contributed by Anhar Ismail (Github:
+Logo designed and generously contributed by Anhar Ismail (GitHub:
 [@anharismail](https://github.com/anharismail), Twitter: [@aizenanhar](https://twitter.com/aizenanhar)).
 
 
@@ -720,5 +720,5 @@ Logo designed and generously contributed by Anhar Ismail (Github:
 I am available for consulting, development, tutoring, training, troubleshooting, etc.
 Here is my contact information:
 
-* GMail, Github, LinkedIn, X, : _keithrbennett_
+* GMail, GitHub, LinkedIn, X: _keithrbennett_
 * Website: [Bennett Business Solutions, Inc.](https://www.bbs-software.com)
