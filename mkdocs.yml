@@ -86,7 +86,6 @@ nav:
       - Command Architecture: dev/docs/COMMAND_ARCHITECTURE.md
       - public_ip Command Design: dev/docs/PUBLIC_IP_COMMAND_DESIGN.md
       - Connected vs Internet Connectivity: dev/docs/CONNECTED_VS_INTERNET_CONNECTIVITY.md
-      - macOS Helper Research: dev/docs/MAC_HELPER_RESEARCH.md
       - macOS Helper Permissions: dev/docs/MAC_HELPER_PERMISSIONS.md
       - AI VM Setup: dev/docs/AI_VM_SETUP.md
 

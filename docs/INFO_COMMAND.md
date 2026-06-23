@@ -42,8 +42,8 @@ The `info` command returns a hash containing:
 - **MAC Address**: WiFi interface MAC address
 
 ### Connectivity Status
-- **TCP Working**: Can establish TCP connections
-- **DNS Working**: Can resolve domain names
+- **TCP Working** (`internet_tcp_connectivity`): Can establish TCP connections
+- **DNS Working** (`dns_working`): Can resolve domain names
 - **Captive Portal Login Required**: `:yes`, `:no`, or `:unknown`
 - **Internet Connectivity State**: `:reachable`, `:unreachable`, or `:indeterminate`
 
@@ -89,12 +89,12 @@ whether captive portal login is currently required:
 
 The `info` command supports multiple output formats via the `-o` flag:
 
-### Pretty Print (Default)
+### Amazing Print (Default)
 ```bash
 wifiwand info
 ```
 
-Returns formatted output suitable for humans.
+Returns formatted output suitable for humans, rendered using the `amazing_print` gem.
 
 ### JSON
 ```bash

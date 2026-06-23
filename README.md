@@ -15,7 +15,7 @@ or, you may need to precede that command with `sudo` to install it system-wide:
 `sudo gem install wifi-wand`
 
 **Note for macOS users:** macOS may ship with an older Ruby version (or no Ruby at all on recent releases).
-If you get an installation error about Ruby version or the `traces` gem, install a modern Ruby. The simplest
+If you get an installation error about the Ruby version, install a modern Ruby. The simplest
 way is with Homebrew:
 
 ```bash
@@ -261,7 +261,7 @@ wifiwand info          # Run once, show output, exit
 wifiwand connect MyNet # Connect and exit
 ```
 
-**Interactive Shell Mode** (`shell` command): Start a persistent Ruby session
+**Interactive Shell Mode** (`shell` or `sh`): Start a persistent Ruby session
 ```bash
 wifiwand shell         # Enter interactive mode
 [1] pry(#<WifiWand::CommandLineInterface>)> info
@@ -288,7 +288,7 @@ the local variable will shadow (override) the method name. Therefore, local vari
 may override this app's commands.  For example:
 
 ```
-[1] pry(#<WifiWand::CommandLineInterface>)> x  # exit command, available as 'x' or 'xit'
+[1] pry(#<WifiWand::CommandLineInterface>)> x  # exit command, available as 'q', 'quit', 'x', or 'xit'
 $
 $ wifiwand shell
 
@@ -331,7 +331,7 @@ However, if I forget to quote the filename, the program exits:
 
 ```
 [2] pry(#<WifiWand::CommandLineInterface>)> File.write(x, info)
-➜  wifiwand git:(master) ✗  
+➜  wifiwand git:(main) ✗  
 ```
 
 What happened? `x` was assumed by Ruby to be a method name.
@@ -349,6 +349,7 @@ constants or instance variables if you want to create variables in your shell.
 
 ```
 wifiwand i            # prints out WiFi info
+wifiwand ne           # prints the current network name (SSID)
 wifiwand a            # prints out names of available networks
 wifiwand pr           # prints preferred networks
 wifiwand cy           # cycles the WiFi off and on
@@ -652,18 +653,11 @@ To install Swift and CoreWLAN support:
 xcode-select --install
 ```
 
-The following tasks now rely on a mix of helper-application-backed reads and
+The following tasks rely on a mix of helper-application-backed reads and
 traditional macOS utilities:
 * determining whether or not WiFi is on
 * reading the name of the currently connected network
 * listing names of available networks
-
-The only remaining issue is that we were getting some extended information from airport for each available
-network. This extended information has now been removed in version 2.17.0.
-
-In addition, the extended information about the available networks (`ls_avail_nets`) has been removed in
-version 2.17.0.
-
 
 ### macOS Helper Cleanup (macOS Sonoma+)
 
@@ -686,9 +680,9 @@ rm -rf ~/Library/Application\ Support/WifiWand/
 
 **Remove specific old versions only:**
 ```bash
-# Example: keep 3.0.0-alpha.1, remove all others
+# Replace <version-to-keep> with the version you want to keep (e.g. 3.0.0)
 cd ~/Library/Application\ Support/WifiWand/
-ls | grep -v "3.0.0-alpha.1" | xargs rm -rf
+ls | grep -v "<version-to-keep>" | xargs rm -rf
 ```
 
 The helper application will be automatically reinstalled the next time you run a WifiWand command that

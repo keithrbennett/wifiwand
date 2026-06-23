@@ -7,8 +7,6 @@ Use [../../docs/README.md](../../docs/README.md) for end-user and operator docum
 
 ## macOS Helper Development
 
-- **[macOS Helper Research](MAC_HELPER_RESEARCH.md)** - Original research into why and how the native macOS
-  helper was implemented.
 - **[macOS Helper Permissions](MAC_HELPER_PERMISSIONS.md)** - Documentation of the helper's permission
   behavior and the "com.wifiwand.helper" bundle identity.
 - **[macOS Code Signing (Context)](MACOS_CODE_SIGNING_CONTEXT.md)** - Technical context for macOS code signing
@@ -51,8 +49,6 @@ Use [../../docs/README.md](../../docs/README.md) for end-user and operator docum
   as a Ruby library.
 - **[AI Library Analysis: Gemini](../reports/ai/ww-as-library-gemini.md)** - Alternate analysis of
   `WifiWand` as a Ruby library.
-- **[Naming Strategy Change Planning](wifiwand_naming_strategy-change-planning.md)** - Planning note for a
-  possible `WifiWand` naming cleanup.
 
 ## Agent Prompts And Review Notes
 

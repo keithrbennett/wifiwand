@@ -64,7 +64,7 @@ For the canonical version 3 upgrade and migration guide, see
 
 * Change detect_wifi_interface and available_network_names to use system_profiler JSON output.
 * Previously, detect_wifi_interface parsed human readable text; parsing JSON is more reliable.
-* Previously, available_network_names used Swift and CoreWLAN and required XCode installation.
+* Previously, available_network_names used Swift and CoreWLAN and required Xcode installation.
 
 
 ## v2.19.1
@@ -194,7 +194,7 @@ For the canonical version 3 upgrade and migration guide, see
 
 * Fix models not being loadable after requiring the gem.
 * Add message suggesting to gem install awesome_print to help text if not installed.
-* Add Github project page URL to help text.
+* Add GitHub project page URL to help text.
 * Rename 'wifion' to 'wifi_on'.
 * Change order of verbose output and error raising in run_os_commmand.
 
@@ -236,7 +236,7 @@ For the canonical version 3 upgrade and migration guide, see
 * Add nameserver information to info hash (issue at https://github.com/keithrbennett/macwifi/issues/5).
 * Made all info hash keys same data type to be less confusing; made them all String's.
 * Replace 'public-ip-show' with 'ropen', and provide additional targets ipchicken.com,
- speedtest.net, and the Github page for this project
+ speedtest.net, and the GitHub page for this project
 * Speed up retrieval of network name
 * Remove BaseModel command runner private restriction.
 

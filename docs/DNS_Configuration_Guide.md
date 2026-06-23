@@ -175,10 +175,10 @@ nmcli connection up "Work_WiFi"  # Automatically uses 8.8.8.8, 1.1.1.1
 # Set custom DNS for all Wi-Fi networks
 sudo networksetup -setdnsservers Wi-Fi 8.8.8.8 1.1.1.1
 
-# All Wi-Fi networks now use custom DNS
-networksetup -setairportnetwork en0 "Work_WiFi" password    # Uses 8.8.8.8
-networksetup -setairportnetwork en0 "Home_WiFi" password    # Uses 8.8.8.8  
-networksetup -setairportnetwork en0 "Coffee_Shop"          # Uses 8.8.8.8
+# All Wi-Fi networks now use custom DNS when you connect to them
+wifiwand co "Work_WiFi" password    # Uses 8.8.8.8
+wifiwand co "Home_WiFi" password    # Uses 8.8.8.8
+wifiwand co "Coffee_Shop"           # Uses 8.8.8.8
 ```
 
 ## Common DNS Servers

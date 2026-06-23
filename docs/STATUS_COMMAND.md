@@ -181,16 +181,17 @@ wifiwand -o y status
 
 ## Connectivity Detection Details
 
-The status command determines connectivity by running checks in parallel for efficiency:
+The status command checks connectivity in stages:
 
 ### WiFi Power State
-Checked directly via OS commands (`networksetup` on macOS, `nmcli` on Ubuntu).
+Checked first via OS commands (`networksetup` on macOS, `nmcli` on Ubuntu). If WiFi is off, the
+command immediately reports Internet as unreachable without performing any connectivity probe.
 
-### Network Connection
-Checks which network (if any) is currently connected.
+### Network Connection and Internet Availability
+When WiFi is on, two workers run concurrently: one checks network identity (SSID, signal quality,
+BSSID), and the other checks internet connectivity.
 
-### Internet Availability
-Determined by three sequential layers:
+Internet connectivity is determined by three sequential layers within the connectivity worker:
 1. **TCP Connectivity** — attempts TCP connections to reliable well-known hosts
 2. **DNS Resolution** — verifies DNS lookups work
 3. **Captive Portal Check** — makes HTTP requests to known endpoints; a wrong response
