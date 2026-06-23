@@ -209,7 +209,7 @@ portal check run sequentially:
 
 - **TCP timeout**: 5 seconds
 - **DNS timeout**: 5 seconds
-- **HTTP captive portal timeout**: configurable (see TimingConstants)
+- **HTTP captive portal timeout**: 5 seconds (configurable; see `TimingConstants` in the source)
 - **Overall connectivity check**: 6 seconds
 
 These timeouts prevent false negatives from temporary network slowdowns while still providing timely feedback.

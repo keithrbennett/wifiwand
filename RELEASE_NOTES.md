@@ -64,7 +64,7 @@ For the canonical version 3 upgrade and migration guide, see
 
 * Change detect_wifi_interface and available_network_names to use system_profiler JSON output.
 * Previously, detect_wifi_interface parsed human readable text; parsing JSON is more reliable.
-* Previously, available_network_names used Swift and CoreLAN and required XCode installation.
+* Previously, available_network_names used Swift and CoreWLAN and required XCode installation.
 
 
 ## v2.19.1

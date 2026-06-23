@@ -134,7 +134,7 @@ wifiwand a
 # Connect to a WiFi network with password
 wifiwand co MyNetwork password
 
-# Connect to a WiFi network without password (if no password required or network is saved/preferred
+# Connect to a WiFi network without password (if no password required or network is saved/preferred)
 wifiwand co MyNetwork
 
 # Force an open-network attempt even if a saved password exists
