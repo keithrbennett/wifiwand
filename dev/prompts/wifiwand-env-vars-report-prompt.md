@@ -14,6 +14,10 @@ helpers, specs, executable files, release tooling, documentation examples, and a
 - Include exact variable names and every file where each variable is referenced.
 - Identify how each variable is read or set, such as `ENV.fetch`, `ENV[]`, shell assignment, Rake task usage,
   test stubbing, documentation-only mention, or generated command example.
+- For each variable, explicitly state whether it is used by the production runtime (the live gem,
+  application, or library invoked by end users), as opposed to being used only by the test suite,
+  Rake tasks, scripts, documentation examples, or development tooling. When the usage is mixed,
+  identify which specific code paths are production runtime and which are not.
 - Distinguish runtime behavior from test-only, script-only, documentation-only, and development-only usage.
 - Note default values, fallback behavior, expected value formats, and whether the variable is treated as a
   boolean, string, path, list, or other data type.
@@ -69,6 +73,7 @@ For each variable, include:
 - Variable name.
 - Purpose and behavior.
 - All referencing files.
+- Whether it is used by the production runtime (yes/no/mixed, with a concrete explanation).
 - Whether it is user-facing or internal.
 - Allowed or expected values.
 - Default and fallback behavior.
