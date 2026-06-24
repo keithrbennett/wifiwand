@@ -547,9 +547,9 @@ bin/mac-helper-release history
 
 **Purpose:** Show the current status for a submission (accepted, in progress, invalid, etc.).
 
-**Runtime Environment Variables:** Same as above. `WIFIWAND_SUBMISSION_ID=<uuid>` (or `ID`/`NOTARY_ID`) is
-optional. If omitted, the task automatically selects the newest submission from `notarytool history`,
-preferring one that is still `In Progress`.
+**Runtime Environment Variables:** Same as above. If `--submission-id` is omitted, the task
+automatically selects the newest submission from `notarytool history`, preferring one that is still
+`In Progress`.
 
 **Example:**
 ```bash
@@ -557,8 +557,7 @@ preferring one that is still `In Progress`.
 bin/mac-helper-release info
 
 # Or specify an explicit ID
-env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
-  bin/mac-helper-release info
+bin/mac-helper-release info --submission-id 12345678-90AB-CDEF-1234-567890ABCDEF
 ```
 
 **Output:** The detailed `xcrun notarytool info` report for that submission.
@@ -569,8 +568,8 @@ env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
 
 **Purpose:** Fetch the full notarization log for a submission (useful when Apple rejects the upload).
 
-**Environment Variables:** Same as `dev:notarization_status`; `WIFIWAND_SUBMISSION_ID` is optional and falls
-back to the latest submission if omitted.
+**Environment Variables:** Same as `dev:notarization_status`. If `--submission-id` is omitted, the
+task falls back to the latest submission.
 
 **Example:**
 ```bash
@@ -578,8 +577,7 @@ back to the latest submission if omitted.
 bin/mac-helper-release log
 
 # Or specify an explicit ID
-env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
-  bin/mac-helper-release log
+bin/mac-helper-release log --submission-id 12345678-90AB-CDEF-1234-567890ABCDEF
 ```
 
 **Output:** The JSON/diagnostic log Apple provides, streamed to stdout for easier debugging.
@@ -591,8 +589,8 @@ env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
 **Purpose:** Remove a stuck notarization submission from Apple's queue (for example when you uploaded the
 wrong binary or want to re-submit). The task only targets submissions still marked `In Progress`.
 
-**Environment Variables:** Same as the other notary queue tasks. `WIFIWAND_SUBMISSION_ID=<uuid>` is
-optional—omit it to let the task auto-select the oldest candidate.
+**Environment Variables:** Same as the other notary queue tasks. If `--submission-id` is omitted,
+the task auto-selects the oldest candidate.
 
 **Example:**
 ```bash
@@ -600,8 +598,7 @@ optional—omit it to let the task auto-select the oldest candidate.
 bin/mac-helper-release cancel
 
 # Cancel a specific ID
-env WIFIWAND_SUBMISSION_ID=12345678-90AB-CDEF-1234-567890ABCDEF \
-  bin/mac-helper-release cancel
+bin/mac-helper-release cancel --submission-id 12345678-90AB-CDEF-1234-567890ABCDEF
 ```
 
 **Output:** The underlying `xcrun notarytool queue remove` response plus a confirmation message when the
@@ -765,7 +762,7 @@ Always use your Developer ID certificate, even for development/testing, to ensur
 Check the detailed logs:
 ```bash
 # Get submission ID from failed output
-xcrun notarytool log WIFIWAND_SUBMISSION_ID \
+xcrun notarytool log <submission-id> \
   --keychain-profile wifiwand-notarytool
 ```
 
