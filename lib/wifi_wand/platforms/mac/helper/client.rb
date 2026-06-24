@@ -373,7 +373,10 @@ module WifiWand
           private def helper_executable_path = Bundle.installed_executable_path
 
           private def helper_disabled?
-            @disabled || ENV[Bundle::DISABLE_ENV_KEY] == '1'
+            return true if @disabled
+
+            value = ENV[Bundle::DISABLE_ENV_KEY].to_s.strip.downcase
+            %w[1 true yes on].include?(value)
           end
 
           private def parse_json(text)

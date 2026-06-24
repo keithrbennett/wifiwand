@@ -65,8 +65,9 @@ Disable the macOS helper application for permission-sensitive WiFi reads. This i
 troubleshooting or for deliberately accepting macOS-redacted SSID behavior.
 
 **Values:**
-- `1` - Disable the helper.
-- unset or any other value - Use the helper when it is supported and available.
+- `1`, `true`, `yes`, or `on` - Disable the helper.
+- unset, `0`, `false`, `no`, `off`, or any other value - Use the helper when it is supported and
+  available.
 
 **Usage:**
 ```bash
