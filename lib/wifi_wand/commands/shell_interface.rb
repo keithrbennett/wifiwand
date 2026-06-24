@@ -7,6 +7,7 @@ module WifiWand
     module ShellInterface
       STARTUP_MESSAGE = [
         "For help, type 'h[Enter]' or 'help[Enter]'.",
+        "To exit the shell, type 'q', 'x', 'exit', or 'quit', or press Ctrl-D.",
         '',
         'When in interactive shell mode:',
         '  * remember to quote string literals.',
