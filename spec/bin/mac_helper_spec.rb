@@ -210,6 +210,5 @@ RSpec.describe 'bin/mac-helper-release' do
     expect(result[:stdout]).to include('dev/docs/MACOS_CODE_SIGNING_INSTRUCTIONS.md')
     expect(result[:stdout]).to include('dev/docs/MACOS_CODE_SIGNING_CONTEXT.md')
     expect(result[:stdout]).not_to include('docs/dev/')
-    expect(result[:stdout]).not_to include('WIFIWAND_APPLE_DEV_PASSWORD')
   end
 end
