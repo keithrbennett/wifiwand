@@ -6,7 +6,7 @@ require_relative '../../spec_helper'
 require_relative '../../../lib/wifi_wand/services/command_executor'
 
 describe WifiWand::CommandExecutor do
-  def wait_for_file_contents(path, timeout: 2)
+  def wait_for_file_contents(path, timeout: external_process_timeout)
     deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
 
     loop do
@@ -28,7 +28,7 @@ describe WifiWand::CommandExecutor do
     false
   end
 
-  def wait_for_process_exit(pid, timeout: 2)
+  def wait_for_process_exit(pid, timeout: external_process_timeout)
     deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
 
     loop do

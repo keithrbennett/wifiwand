@@ -75,12 +75,12 @@ RSpec.describe 'exe/' do
 
       Open3.popen3(RbConfig.ruby, '-e', ruby_source, chdir: repo_root) do |_stdin, stdout, stderr, wait_thr|
         pid = wait_thr.pid
-        wait_for_process(wait_thr)
+        wait_for_process(wait_thr, external_process_timeout)
 
         # Wait for Pry to emit a prompt so we know the shell (and SIGTERM trap)
         # are fully up before we signal the process.
         buffer = +''
-        Timeout.timeout(5) do
+        Timeout.timeout(external_process_timeout) do
           loop do
             buffer << stdout.readpartial(1024)
             break if buffer.match?(/\[\d+\] pry/)
@@ -88,7 +88,7 @@ RSpec.describe 'exe/' do
         end
 
         Process.kill('TERM', pid)
-        Timeout.timeout(5) do
+        Timeout.timeout(external_process_timeout) do
           stdout.read
           stderr_str = stderr.read
           status = wait_thr.value

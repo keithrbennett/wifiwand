@@ -470,15 +470,12 @@ describe WifiWand::CaptivePortalChecker do
   # ---------------------------------------------------------------------------
   describe '#captive_portal_login_required with real helper subprocess', :loopback_socket do
     let(:checker) { described_class.new(verbose: false) }
-    # JRuby helper startup is significantly slower, so allow more time for the
-    # real helper subprocess to start up and report its result.
-    let(:real_helper_timeout) { RUBY_PLATFORM == 'java' ? 15 : 5 }
 
     it 'returns :no via the real helper executable when the endpoint is no-login-required' do
       with_local_http_server(response_code: 204) do |port|
         endpoint = { url: "http://127.0.0.1:#{port}/check", expected_code: 204 }
         allow(checker).to receive(:captive_portal_check_endpoints).and_return([endpoint])
-        expect(checker.captive_portal_login_required(timeout_in_secs: real_helper_timeout)).to eq(:no)
+        expect(checker.captive_portal_login_required(timeout_in_secs: external_process_timeout)).to eq(:no)
       end
     end
 
@@ -486,7 +483,7 @@ describe WifiWand::CaptivePortalChecker do
       with_local_http_server(response_code: 302) do |port|
         endpoint = { url: "http://127.0.0.1:#{port}/check", expected_code: 204 }
         allow(checker).to receive(:captive_portal_check_endpoints).and_return([endpoint])
-        expect(checker.captive_portal_login_required(timeout_in_secs: real_helper_timeout)).to eq(:yes)
+        expect(checker.captive_portal_login_required(timeout_in_secs: external_process_timeout)).to eq(:yes)
       end
     end
 
@@ -496,7 +493,7 @@ describe WifiWand::CaptivePortalChecker do
       closed_server.close
       endpoint = { url: "http://127.0.0.1:#{closed_port}/check", expected_code: 204 }
       allow(checker).to receive(:captive_portal_check_endpoints).and_return([endpoint])
-      expect(checker.captive_portal_login_required(timeout_in_secs: real_helper_timeout)).to eq(:unknown)
+      expect(checker.captive_portal_login_required(timeout_in_secs: external_process_timeout)).to eq(:unknown)
     end
   end
 

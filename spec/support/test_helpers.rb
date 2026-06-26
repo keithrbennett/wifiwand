@@ -141,6 +141,17 @@ module TestHelpers
 
   def create_mac_os_test_model(options = {}) = WifiWand::Platforms::Mac::Model.new(merge_verbose_options(options))
 
+  def running_jruby?
+    RUBY_PLATFORM == 'java'
+  end
+
+  # Returns a timeout value appropriate for tests that start a real external
+  # process. JRuby (via the JVM) has substantially slower startup and warm-up
+  # time than CRuby, so a larger timeout is used there.
+  def external_process_timeout
+    running_jruby? ? 10 : 5
+  end
+
   def wait_for(timeout: 5, interval: 0.1, description: 'condition')
     start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
     loop do
