@@ -124,7 +124,7 @@ describe WifiWand::CaptivePortalProbeHelper do
 
     # Spawns the helper as a child process, captures its stdout, then ensures the
     # process is reaped regardless of outcome.  Returns the raw output string.
-    def run_helper(*args, timeout: 5)
+    def run_helper(*args, timeout: external_process_timeout)
       pid = nil
       reader, writer = IO.pipe
       pid = Process.spawn(RbConfig.ruby, helper_script, *args.map(&:to_s), out: writer, err: File::NULL)
