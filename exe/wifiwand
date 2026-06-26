@@ -46,9 +46,22 @@ module WifiWandExecutable
   def self.handle_sigterm(err_stream)
     err_stream.write "\nError: Terminated by SIGTERM.\n"
     exit_code = SIGNAL_EXIT_BASE + Signal.list['TERM']
-    # JRuby can hang when exit() is invoked directly from a signal handler,
-    # so perform the exit from a fresh thread.
-    Thread.new { exit(exit_code) }
+    # MRI handles exit() in a signal handler correctly. JRuby requires exit!
+    # for the following reason:
+    #
+    # When the shell command is active, Pry delegates input reading to Reline,
+    # which blocks the main thread inside a native terminal I/O call. On JRuby,
+    # Ruby threads map to JVM threads, and exit() ultimately calls
+    # System.exit(), which initiates a clean JVM shutdown. That shutdown
+    # sequence waits for the main thread to finish -- but the main thread is
+    # stuck in the native call and never returns, so the process hangs.
+    #
+    # exit! maps to Runtime#halt on JRuby, which forces immediate JVM
+    # termination without waiting for any threads, bypassing the blockage.
+    # The tradeoff is that at_exit handlers do not run. If at_exit cleanup
+    # is added in the future, it will need explicit handling in this path
+    # rather than relying on at_exit to run it automatically on JRuby.
+    RUBY_PLATFORM == 'java' ? exit!(exit_code) : exit(exit_code)
   end
 
   def self.ensure_ruby_version!(err_stream, minimum: MINIMUM_RUBY_VERSION)
