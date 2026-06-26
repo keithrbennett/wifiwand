@@ -46,9 +46,17 @@ module WifiWandExecutable
   def self.handle_sigterm(err_stream)
     err_stream.write "\nError: Terminated by SIGTERM.\n"
     exit_code = SIGNAL_EXIT_BASE + Signal.list['TERM']
-    # JRuby can hang when exit() is invoked directly from a signal handler,
-    # so perform the exit from a fresh thread.
-    Thread.new { exit(exit_code) }
+    Thread.new do
+      # On JRuby, Pry delegates input to Reline, which blocks the main thread
+      # in a native I/O call. JRuby's exit() cannot complete shutdown while
+      # the main thread is stuck there. Closing stdin causes that blocking
+      # read to return EOF, freeing the main thread. We then raise SystemExit
+      # on the main thread so it unwinds through Pry normally (running
+      # :after_session hooks and any at_exit handlers) and exits with the
+      # correct code.
+      $stdin.close rescue nil
+      Thread.main.raise(SystemExit.new(exit_code))
+    end
   end
 
   def self.ensure_ruby_version!(err_stream, minimum: MINIMUM_RUBY_VERSION)
