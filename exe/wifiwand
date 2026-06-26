@@ -45,7 +45,10 @@ module WifiWandExecutable
 
   def self.handle_sigterm(err_stream)
     err_stream.write "\nError: Terminated by SIGTERM.\n"
-    exit(SIGNAL_EXIT_BASE + Signal.list['TERM'])
+    exit_code = SIGNAL_EXIT_BASE + Signal.list['TERM']
+    # JRuby can hang when exit() is invoked directly from a signal handler,
+    # so perform the exit from a fresh thread.
+    Thread.new { exit(exit_code) }
   end
 
   def self.ensure_ruby_version!(err_stream, minimum: MINIMUM_RUBY_VERSION)
