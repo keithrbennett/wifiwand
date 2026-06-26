@@ -47,8 +47,10 @@ module WifiWandExecutable
     err_stream.write "\nError: Terminated by SIGTERM.\n"
     exit_code = SIGNAL_EXIT_BASE + Signal.list['TERM']
     # JRuby can hang when exit() is invoked directly from a signal handler,
-    # so perform the exit from a fresh thread.
-    Thread.new { exit(exit_code) }
+    # so perform the exit from a fresh thread. On JRuby, exit() still hangs
+    # because the JVM waits for non-daemon threads (e.g., Pry's readline)
+    # to finish; exit! (Runtime#halt) forces immediate JVM termination.
+    Thread.new { RUBY_PLATFORM == 'java' ? exit!(exit_code) : exit(exit_code) }
   end
 
   def self.ensure_ruby_version!(err_stream, minimum: MINIMUM_RUBY_VERSION)
