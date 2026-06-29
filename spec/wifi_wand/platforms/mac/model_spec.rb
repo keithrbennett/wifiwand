@@ -1047,32 +1047,35 @@ module WifiWand
           expect(model.connected?).to be(true)
         end
 
-        it 'returns true when the helper is disabled and the WiFi interface still has an IP address' do
-          allow(WifiWand::Platforms::Mac::Helper::Client).to receive(:new).and_call_original
-          helper_client = WifiWand::Platforms::Mac::Helper::Client.new(
-            out_stream_provider:  -> { $stdout },
-            err_stream_provider:  -> { $stderr },
-            verbosity_provider:   -> { false },
-            macos_version_reader: ->(timeout_in_secs: nil) { '14.0' }
-          )
-          model.instance_variable_set(:@helper_client, helper_client)
-          allow(model).to receive_messages(
-            system_profiler_wifi_data: { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [{
-              '_name' => 'en0',
-            }] }] },
-            wifi_interface:            'en0',
-            default_interface:         nil,
-            _ipv4_addresses:           ['192.168.1.44']
-          )
+        %w[1 true yes on].each do |disable_value|
+          it "returns true when the helper is disabled with '#{disable_value}' " \
+            'and the WiFi interface still has an IP address' do
+            allow(WifiWand::Platforms::Mac::Helper::Client).to receive(:new).and_call_original
+            helper_client = WifiWand::Platforms::Mac::Helper::Client.new(
+              out_stream_provider:  -> { $stdout },
+              err_stream_provider:  -> { $stderr },
+              verbosity_provider:   -> { false },
+              macos_version_reader: ->(timeout_in_secs: nil) { '14.0' }
+            )
+            model.instance_variable_set(:@helper_client, helper_client)
+            allow(model).to receive_messages(
+              system_profiler_wifi_data: { 'SPAirPortDataType' => [{ 'spairport_airport_interfaces' => [{
+                '_name' => 'en0',
+              }] }] },
+              wifi_interface:            'en0',
+              default_interface:         nil,
+              _ipv4_addresses:           ['192.168.1.44']
+            )
 
-          original_env = ENV['WIFIWAND_DISABLE_MAC_HELPER']
-          ENV['WIFIWAND_DISABLE_MAC_HELPER'] = '1'
-          begin
-            expect(WifiWand::Platforms::Mac::Helper::Bundle).not_to receive(:ensure_helper_installed)
-            expect(WifiWand::Platforms::Mac::Helper::Bundle).not_to receive(:run_bounded_helper_command)
-            expect(model.connected?).to be(true)
-          ensure
-            ENV['WIFIWAND_DISABLE_MAC_HELPER'] = original_env
+            original_env = ENV['WIFIWAND_DISABLE_MAC_HELPER']
+            ENV['WIFIWAND_DISABLE_MAC_HELPER'] = disable_value
+            begin
+              expect(WifiWand::Platforms::Mac::Helper::Bundle).not_to receive(:ensure_helper_installed)
+              expect(WifiWand::Platforms::Mac::Helper::Bundle).not_to receive(:run_bounded_helper_command)
+              expect(model.connected?).to be(true)
+            ensure
+              ENV['WIFIWAND_DISABLE_MAC_HELPER'] = original_env
+            end
           end
         end
       end

@@ -40,10 +40,14 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       end
 
       context 'when the disable env flag is set' do
-        before { ENV['WIFIWAND_DISABLE_MAC_HELPER'] = '1' }
+        %w[1 true yes on].each do |value|
+          context "with value '#{value}'" do
+            before { ENV['WIFIWAND_DISABLE_MAC_HELPER'] = value }
 
-        it 'returns false' do
-          expect(client.available?).to be(false)
+            it 'returns false' do
+              expect(client.available?).to be(false)
+            end
+          end
         end
       end
 
@@ -978,14 +982,18 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       end
 
       context 'when the helper is explicitly disabled by env' do
-        before { ENV['WIFIWAND_DISABLE_MAC_HELPER'] = '1' }
+        %w[1 true yes on].each do |value|
+          context "with value '#{value}'" do
+            before { ENV['WIFIWAND_DISABLE_MAC_HELPER'] = value }
 
-        it 'does not attempt validation or installation retries' do
-          expect(File).not_to receive(:executable?)
-          expect(helper_bundle).not_to receive(:helper_installed_and_valid?)
-          expect(helper_bundle).not_to receive(:ensure_helper_installed)
+            it 'does not attempt validation or installation retries' do
+              expect(File).not_to receive(:executable?)
+              expect(helper_bundle).not_to receive(:helper_installed_and_valid?)
+              expect(helper_bundle).not_to receive(:ensure_helper_installed)
 
-          2.times { client.send(:ensure_helper_installed) }
+              2.times { client.send(:ensure_helper_installed) }
+            end
+          end
         end
       end
 
