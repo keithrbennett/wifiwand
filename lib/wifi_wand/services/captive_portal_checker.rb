@@ -41,7 +41,7 @@ module WifiWand
     # @return [Symbol] :no if login does not appear to be required,
     #   :yes if login appears to be required,
     #   :unknown if the requirement could not be determined because all endpoints errored.
-    # @see attempt_captive_portal_check for per-endpoint HTTP check details
+    # @see perform_captive_portal_check for per-endpoint HTTP check details
     # @see captive_portal_check_endpoints for the configured endpoint list
     #
     def captive_portal_login_required(timeout_in_secs: nil)
@@ -242,12 +242,11 @@ module WifiWand
 
     private def err_output = runtime_config.err_stream
 
-    # Attempts an HTTP GET to a captive portal check endpoint and compares the response code.
+    # Attempts an HTTP GET to a captive portal check endpoint and compares the response.
     #
-    # @param endpoint [Hash] with :url (String) and :expected_code (Integer)
-    # @return [Symbol] :no if the server returned the expected response
-    # @return [Symbol] :yes if the server returned a different response
-    # @return [Symbol] :unknown if a network error prevented any response
+    # @param endpoint [Hash] with :url (String), :expected_code (Integer), and optional :expected_body
+    # @return [Hash] :login_required (:no, :yes, or :unknown) and :actual_code on success
+    # @return [Hash] :login_required (:unknown) and :error_class on network failure
     #
     private def perform_captive_portal_check(endpoint)
       uri = URI(endpoint[:url])
@@ -281,10 +280,6 @@ module WifiWand
       ) do |http|
         http.get(uri.request_uri)
       end
-    end
-
-    private def attempt_captive_portal_check(endpoint)
-      perform_captive_portal_check(endpoint)[:login_required]
     end
 
     # Loads captive portal check endpoint configuration from YAML.
