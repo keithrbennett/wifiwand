@@ -1,4 +1,7 @@
-## Unreleased
+## v3.0.0-alpha.1
+
+For the canonical version 3 upgrade and migration guide, see
+[`docs/BREAKING_CHANGES_V3.md`](docs/BREAKING_CHANGES_V3.md).
 
 ### Breaking Changes
 
@@ -16,11 +19,11 @@
 * `info["ip_address"]` has been renamed to `info["ipv4_addresses"]`; the new field returns an array of IPv4
   addresses instead of a single string or `nil`.
 * Replace the transitive `awesome_print` dependency with `amazing_print` for human-readable object formatting.
-  Ruby consumers that relied on WifiWand to provide `awesome_print` must add their own direct dependency or
-  migrate to `amazing_print`.
 * `-o a` Amazing Print output now lets `amazing_print` decide whether to emit ANSI color instead of forcing
   plain text. It uses color when stdout is a terminal and plain text when output is piped or redirected; pipe
   through `tee` when you want terminal-readable plain output.
+* Remove `WifiWand::Main#parse_command_line`. Use `WifiWand::CommandLineParser#parse` for programmatic
+  argument parsing; for normal CLI execution keep calling `WifiWand::Main#call`.
 
 ### Other Changes
 
@@ -50,15 +53,6 @@
 * Add the `rmac` / `random_mac` command for generating locally administered unicast MAC addresses.
 * Make `wifiwand qr` print an ANSI QR code to stdout by default. Passing a filename still writes a QR image
   file, and `BaseModel#print_qr_code` gives library callers an explicit stdout-oriented API.
-
-## v3.0.0-alpha.1
-
-For the canonical version 3 upgrade and migration guide, see
-[`docs/BREAKING_CHANGES_V3.md`](docs/BREAKING_CHANGES_V3.md).
-
-* Breaking change: `WifiWand::Main#parse_command_line` has been removed.
-* If you parsed arguments programmatically, use `WifiWand::CommandLineParser#parse` instead.
-* If you only need normal CLI execution, keep calling `WifiWand::Main#call`.
 
 ## v2.20.0
 
