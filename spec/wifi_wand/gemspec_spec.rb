@@ -33,7 +33,6 @@ RSpec.describe 'wifi-wand.gemspec packaging' do
   it 'excludes maintainer-only tooling, helper build inputs, and non-shipping test docs' do
     expect(packaged_files).not_to include(
       'bin/mac-helper-release',
-      'bin/op-wrap',
       'bin/setup-hooks',
       'docs/TESTING.md',
       'lib/wifi_wand/platforms/mac/helper/release.rb',

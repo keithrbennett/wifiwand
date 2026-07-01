@@ -52,8 +52,8 @@ ID identity.
 | Codesign identity string | Public signing config | Official release helper default; optional `WIFIWAND_CODESIGN_IDENTITY` override | Copy exact identity from `security find-identity -v -p codesigning` | No | Must match the official maintainer Developer ID certificate |
 | Apple app-specific password | Apple credential | Apple account UI, then local entry at setup time | Create at `appleid.apple.com` | Yes | Apple only shows it once |
 | `notarytool` keychain profile | Local notarization credential reference | Login keychain by default | `bin/mac-helper-release store-credentials` or raw `xcrun notarytool store-credentials ...` | Contains secret material indirectly | Runtime commands use the profile name, not the password |
-| `WIFIWAND_NOTARYTOOL_PROFILE` | Local runtime config | Shell env / `.env.release` | Set only if you want a non-default profile name | No | Defaults to `wifiwand-notarytool` |
-| `WIFIWAND_NOTARYTOOL_KEYCHAIN` | Local runtime config | Shell env / `.env.release` | Set only if you use a non-default keychain | No | Optional override |
+| `WIFIWAND_NOTARYTOOL_PROFILE` | Local runtime config | Shell env | Set only if you want a non-default profile name | No | Defaults to `wifiwand-notarytool` |
+| `WIFIWAND_NOTARYTOOL_KEYCHAIN` | Local runtime config | Shell env | Set only if you use a non-default keychain | No | Optional override |
 | Signed helper bundle | Release artifact | `libexec/macos/wifiwand-helper.app` | `bin/mac-helper-release build` / `bin/mac-helper-release release` | No | This is the bundle shipped with the gem |
 | Helper source manifest | Attestation metadata | `libexec/macos/wifiwand-helper.source-manifest.json` | Rewritten during helper build/sign flow | No | Tracks the relationship between source and committed bundle |
 
@@ -100,8 +100,6 @@ ID identity.
    - If you use a non-default keychain, unlock it first and set `WIFIWAND_NOTARYTOOL_KEYCHAIN` when running
      `bin/mac-helper-release`.
    - If you want to use a different profile name, set `WIFIWAND_NOTARYTOOL_PROFILE`.
-   - The checked-in `.env.release` file now documents the non-secret profile configuration rather than storing
-     runtime notarization secrets.
 
 5. **Dry run the workflow once**
    ```bash

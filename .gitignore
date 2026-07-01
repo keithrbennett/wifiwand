@@ -2,6 +2,7 @@
 *.log
 *.rbc
 .bundle
+.env*
 **/.claude/
 .codex
 .codex/

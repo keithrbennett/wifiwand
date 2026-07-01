@@ -10,8 +10,6 @@
 - [Why Code Signing is Required](#why-code-signing-is-required)
 - [Development vs Distribution](#development-vs-distribution)
 - [Getting an Apple Developer ID](#getting-an-apple-developer-id)
-- [Managing Credentials with 1Password CLI
-  (Recommended)](#managing-credentials-with-1password-cli-recommended)
 - [Signing and Notarization Workflow](#signing-and-notarization-workflow)
 - [Rake Tasks Reference](#rake-tasks-reference)
 - [Troubleshooting](#troubleshooting)
