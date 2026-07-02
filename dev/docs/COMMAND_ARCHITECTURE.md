@@ -314,7 +314,7 @@ The command scheme is covered at several levels:
   [registry_spec.rb](../../spec/wifi_wand/commands/registry_spec.rb)
 - per-command behavior in `spec/wifi_wand/commands/*`
 - CLI integration behavior in the split `cli_*` spec files under
-  [spec/wifi_wand/command_line_interface](../../spec/wifi_wand/command_line_interface)
+  [spec/wifi_wand/command_line_interface](../../spec/wifi_wand/command_line_interface/)
 - output-boundary behavior in
   [output_support_spec.rb](../../spec/wifi_wand/commands/output_support_spec.rb)
 

@@ -108,28 +108,28 @@ canonical migration guide. Highlights include:
 
 ```bash
 # Display networking status (e.g.: WiFi: ON | WiFi Network: my_network | DNS: YES | Internet: YES)
-wifiwand s
+wifiwand s # 's' or 'status'
 
 # Display WiFi on/off status
-wifiwand w
+wifiwand w # 'w' or 'wifi_on'
 
 # See available WiFi networks
-wifiwand a
+wifiwand a # 'a' or 'avail_nets'
 
 # Connect to a WiFi network with password
-wifiwand co MyNetwork password
+wifiwand co MyNetwork password # 'co' or 'connect'
 
 # Connect to a WiFi network without password (if no password required or network is saved/preferred)
-wifiwand co MyNetwork
+wifiwand co MyNetwork # 'co' or 'connect'
 
 # Force an open-network attempt even if a saved password exists
-wifiwand co MyNetwork ''
+wifiwand co MyNetwork '' # 'co' or 'connect'
 
 # Display detailed networking information
-wifiwand i
+wifiwand i # 'i' or 'info'
 
 # Start interactive shell
-wifiwand shell
+wifiwand sh # 'sh' or 'shell'
 
 # Display underlying OS calls and their output
 wifiwand -v true ...
@@ -180,13 +180,6 @@ wifiwand help
 
 The generated help is the canonical command reference and includes current boolean option forms, command
 aliases, `log` event semantics, `status` wording, and `till` wait-state names.
-
-Scripting note: `wifiwand connect` returns once the requested SSID is associated at the WiFi layer, not when
-DNS or full internet connectivity is ready. To wait for internet readiness after joining, run:
-
-```bash
-wifiwand till internet_on 30
-```
 
 ### Pretty Output
 
