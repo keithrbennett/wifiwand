@@ -92,20 +92,7 @@ Gem::Specification.new do |spec|
     ║  ⚠️  Important for macOS Users (14+)                              ║
     ╚═══════════════════════════════════════════════════════════════════╝
 
-    WifiWand requires Ruby >= 3.2.0 and location permission.
-
-    If you are using an older version, such as version 2.6 shipped with
-    macOS, the easiest way to install a modern Ruby is with Homebrew:
-
-        brew install ruby
-
-    Then add to your shell profile (~/.zshrc or ~/.bash_profile):
-
-        # Apple Silicon Macs:
-        export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
-
-        # Intel Macs:
-        export PATH="/usr/local/opt/ruby/bin:$PATH"
+    WifiWand requires location permission to read WiFi network details.
 
     After installing WifiWand, run the one-time setup script:
 
