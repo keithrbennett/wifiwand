@@ -259,20 +259,42 @@ describe 'Output Format End-to-End Tests' do
         expect(output).to match(/\n/)
       end
 
-      it 'accepts uppercase aliases where no case-sensitive format exists' do
-        options = parse_options('-o', 'Y', 'info')
-        expect(options.post_processor).not_to be_nil
-
-        allow(mock_model).to receive(:wifi_info).and_return(test_network_info)
-        cli = WifiWand::CommandLineInterface.new(options)
-
-        output = silence_output do |stdout, _stderr|
-          invoke_command(cli, 'info')
-          stdout.string.strip
+      it 'rejects uppercase aliases of lowercase single-letter format codes' do
+        silence_output do
+          expect do
+            parse_options('-o', 'Y', 'info')
+          end.to raise_error(WifiWand::ConfigurationError, /Invalid output format/)
         end
+      end
+    end
 
-        # Should still parse as YAML
-        expect { YAML.safe_load(output) }.not_to raise_error
+    context 'with long-name format codes' do
+      {
+        'amazing_print' => 'a',
+        'inspect'       => 'i',
+        'json'          => 'j',
+        'pretty_json'   => 'J',
+        'puts'          => 'p',
+        'pretty_print'  => 'P',
+        'yaml'          => 'y',
+      }.each do |long_name, code|
+        it "accepts '-o #{long_name}' as equivalent to '-o #{code}'" do
+          options = parse_options('-o', long_name, 'info')
+          expect(options.output_format).to eq(code)
+          expect(options.post_processor).to respond_to(:call)
+        end
+      end
+    end
+
+    context 'with noncanonical aliases' do
+      %w[ap awesome_print pretty-json amazing-print K A I].each do |alias_name|
+        it "rejects noncanonical alias '#{alias_name}'" do
+          silence_output do
+            expect do
+              parse_options('-o', alias_name, 'info')
+            end.to raise_error(WifiWand::ConfigurationError, /Invalid output format/)
+          end
+        end
       end
     end
   end

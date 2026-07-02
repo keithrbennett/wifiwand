@@ -37,6 +37,15 @@ module WifiWand
       end,
       'y' => ->(object) { object.to_yaml },
     }.freeze
+    FORMAT_LONG_NAMES = {
+      'amazing_print' => 'a',
+      'inspect'       => 'i',
+      'json'          => 'j',
+      'pretty_json'   => 'J',
+      'puts'          => 'p',
+      'pretty_print'  => 'P',
+      'yaml'          => 'y',
+    }.freeze
     VALUE_TAKING_INVOCATION_OPTIONS = %w[
       -v --verbose -u --utc -o --output-format --output_format -p --wifi-interface
     ].freeze
@@ -312,21 +321,24 @@ module WifiWand
 
       unless FORMATTERS.key?(choice)
         raise ConfigurationError,
-          "Invalid output format '#{choice}'. Available formats: #{available_format_choices.join(', ')}"
+          "Invalid output format '#{raw_value}'. Available formats: #{available_format_choices.join(', ')}"
       end
 
       FORMATTERS[choice]
     end
 
     private def available_format_choices
-      FORMATTERS.keys.sort_by { |key| [key.downcase, key == key.upcase ? 1 : 0] }
+      FORMATTERS.keys
+        .sort_by { |code| [code.downcase, code == code.upcase ? 1 : 0] }
+        .map { |code| "#{code}=#{FORMAT_LONG_NAMES.key(code)}" }
     end
 
     private def normalized_format_choice(raw_value)
-      choice = raw_value.to_s[0]
-      return choice if FORMATTERS.keys.any? { |key| key == choice && key != key.downcase }
+      str = raw_value.to_s
+      return FORMAT_LONG_NAMES[str] if FORMAT_LONG_NAMES.key?(str)
+      return str if FORMATTERS.key?(str)
 
-      choice&.downcase
+      raw_value
     end
 
     private def prepend_env_options(args)
