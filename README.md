@@ -10,28 +10,12 @@ To install this software, run:
 
 `gem install wifi-wand`
 
-or, you may need to precede that command with `sudo` to install it system-wide:
-
-`sudo gem install wifi-wand`
-
 **Note for macOS users:** macOS may ship with an older Ruby version (or no Ruby at all on recent releases).
-If you get an installation error about the Ruby version, install a modern Ruby. The simplest
-way is with Homebrew:
-
-```bash
-brew install ruby
-
-# Add to ~/.zshrc or ~/.bash_profile:
-# Apple Silicon Macs:
-export PATH="/opt/homebrew/opt/ruby/bin:$PATH"
-
-# Intel Macs:
-export PATH="/usr/local/opt/ruby/bin:$PATH"
-```
+If you get an installation error about the Ruby version, install a modern Ruby (e.g. `brew install ruby`).
 
 #### Ruby < 3.2 is unsupported
 
-Ruby versions older than 3.2 are unsupported because the tracked source uses modern Ruby syntax and APIs. If
+Ruby versions older than 3.2 are unsupported because the source code uses modern Ruby syntax and APIs. If
 your system Ruby is too old, install a modern Ruby before installing `wifi-wand` (the gem name).
 
 #### JRuby Compatibility
@@ -112,6 +96,7 @@ scripts or calling code.
 See **[Version 3 Breaking Changes](docs/BREAKING_CHANGES_V3.md)** for the
 canonical migration guide. Highlights include:
 
+- primary executable renamed from `wifi-wand` to `wifiwand` (no hyphen)
 - `connected_to_internet?` replaced by `internet_connectivity_state`
 - global `-v` / `--verbose` now requires an explicit boolean value, such as `-v true`
 - legacy `till` wait-state aliases `on`/`off`/`conn`/`disc` replaced by explicit wait-state names
