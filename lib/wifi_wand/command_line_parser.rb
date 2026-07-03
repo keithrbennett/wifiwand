@@ -93,7 +93,7 @@ module WifiWand
 
         parser.on('-o', '--output-format FORMAT', '--output_format FORMAT', 'Format output data') do |value|
           specified_invocation_options << :output_format
-          options.output_format = normalized_format_choice(value)
+          options.output_format = resolve_format_code(value)
           options.post_processor = formatter_for(value)
         end
 
@@ -317,7 +317,7 @@ module WifiWand
     end
 
     private def formatter_for(raw_value)
-      choice = normalized_format_choice(raw_value)
+      choice = resolve_format_code(raw_value)
 
       unless FORMATTERS.key?(choice)
         raise ConfigurationError,
@@ -334,7 +334,7 @@ module WifiWand
 
     # Translates a canonical long name to its single-letter code; passes unknown values
     # through unchanged so the caller's FORMATTERS check rejects them.
-    private def normalized_format_choice(raw_value)
+    private def resolve_format_code(raw_value)
       str = raw_value.to_s
       FORMAT_LONG_NAMES.fetch(str, str)
     end

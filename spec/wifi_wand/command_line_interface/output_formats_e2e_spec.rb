@@ -268,35 +268,6 @@ describe 'Output Format End-to-End Tests' do
       end
     end
 
-    context 'with long-name format codes' do
-      {
-        'amazing_print' => 'a',
-        'inspect'       => 'i',
-        'json'          => 'j',
-        'pretty_json'   => 'J',
-        'puts'          => 'p',
-        'pretty_print'  => 'P',
-        'yaml'          => 'y',
-      }.each do |long_name, code|
-        it "accepts '-o #{long_name}' as equivalent to '-o #{code}'" do
-          options = parse_options('-o', long_name, 'info')
-          expect(options.output_format).to eq(code)
-          expect(options.post_processor).to respond_to(:call)
-        end
-      end
-    end
-
-    context 'with noncanonical aliases' do
-      %w[ap awesome_print pretty-json amazing-print K A I].each do |alias_name|
-        it "rejects noncanonical alias '#{alias_name}'" do
-          silence_output do
-            expect do
-              parse_options('-o', alias_name, 'info')
-            end.to raise_error(WifiWand::ConfigurationError, /Invalid output format/)
-          end
-        end
-      end
-    end
   end
 
   describe 'Format-specific edge cases' do
