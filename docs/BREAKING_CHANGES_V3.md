@@ -121,7 +121,7 @@ The `-o p` flag still means plain `puts` output. Scripts that depended on
 state="$(wifiwand -o p ci)"
 ```
 
-Use `-o J` when you want indented JSON:
+Use `-o J` when you want multi-line, indented JSON:
 
 ```bash
 wifiwand -o J info

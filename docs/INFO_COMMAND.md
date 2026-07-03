@@ -138,7 +138,7 @@ data['ipv6_addresses'] #=> ['fe80::1', '2001:db8::100']
 wifiwand -o J info
 ```
 
-Outputs indented JSON for humans while preserving JSON parsing semantics.
+Outputs multi-line, indented JSON for humans while preserving JSON parsing semantics.
 
 ### YAML
 ```bash
