@@ -37,6 +37,15 @@ module WifiWand
       end,
       'y' => ->(object) { object.to_yaml },
     }.freeze
+    FORMAT_LONG_NAMES = {
+      'amazing_print' => 'a',
+      'inspect'       => 'i',
+      'json'          => 'j',
+      'pretty_json'   => 'J',
+      'puts'          => 'p',
+      'pretty_print'  => 'P',
+      'yaml'          => 'y',
+    }.freeze
     VALUE_TAKING_INVOCATION_OPTIONS = %w[
       -v --verbose -u --utc -o --output-format --output_format -p --wifi-interface
     ].freeze
@@ -84,7 +93,7 @@ module WifiWand
 
         parser.on('-o', '--output-format FORMAT', '--output_format FORMAT', 'Format output data') do |value|
           specified_invocation_options << :output_format
-          options.output_format = normalized_format_choice(value)
+          options.output_format = resolve_format_code(value)
           options.post_processor = formatter_for(value)
         end
 
@@ -308,25 +317,26 @@ module WifiWand
     end
 
     private def formatter_for(raw_value)
-      choice = normalized_format_choice(raw_value)
+      choice = resolve_format_code(raw_value)
 
       unless FORMATTERS.key?(choice)
         raise ConfigurationError,
-          "Invalid output format '#{choice}'. Available formats: #{available_format_choices.join(', ')}"
+          "Invalid output format '#{raw_value}'. Available formats: #{available_format_choices.join(', ')}"
       end
 
       FORMATTERS[choice]
     end
 
+    # Relies on FORMAT_LONG_NAMES being defined in display order (a, i, j, J, p, P, y).
     private def available_format_choices
-      FORMATTERS.keys.sort_by { |key| [key.downcase, key == key.upcase ? 1 : 0] }
+      FORMAT_LONG_NAMES.map { |name, code| "#{code}=#{name}" }
     end
 
-    private def normalized_format_choice(raw_value)
-      choice = raw_value.to_s[0]
-      return choice if FORMATTERS.keys.any? { |key| key == choice && key != key.downcase }
-
-      choice&.downcase
+    # Translates a canonical long name to its single-letter code; passes unknown values
+    # through unchanged so the caller's FORMATTERS check rejects them.
+    private def resolve_format_code(raw_value)
+      str = raw_value.to_s
+      FORMAT_LONG_NAMES.fetch(str, str)
     end
 
     private def prepend_env_options(args)

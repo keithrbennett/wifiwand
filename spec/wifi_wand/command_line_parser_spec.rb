@@ -743,5 +743,79 @@ describe WifiWand::CommandLineParser do
         end
       end
     end
+
+    it 'puts formatter outputs each array element on its own line' do
+      options = parse_with_argv('-o', 'p', 'info')
+      result = options.post_processor.call(%w[alpha beta gamma])
+      expect(result).to eq("alpha\nbeta\ngamma\n")
+    end
+
+    it 'puts formatter does not behave like to_s for arrays' do
+      options = parse_with_argv('-o', 'p', 'info')
+      array = %w[alpha beta gamma]
+      result = options.post_processor.call(array)
+      expect(result).not_to eq("#{array}\n")
+    end
+
+    it 'pretty_print formatter uses PP.pp semantics' do
+      require 'pp'
+      options = parse_with_argv('-o', 'P', 'info')
+      obj = { 'key' => { 'a' => 1, 'b' => 2 } }
+      result = options.post_processor.call(obj)
+      sio = StringIO.new
+      PP.pp(obj, sio)
+      expect(result).to eq(sio.string)
+    end
+  end
+
+  describe 'output format normalization' do
+    describe 'canonical long names' do
+      {
+        'amazing_print' => 'a',
+        'inspect'       => 'i',
+        'json'          => 'j',
+        'pretty_json'   => 'J',
+        'puts'          => 'p',
+        'pretty_print'  => 'P',
+        'yaml'          => 'y',
+      }.each do |long_name, expected_code|
+        it "maps long name '#{long_name}' to code '#{expected_code}'" do
+          options = parse_with_argv('-o', long_name, 'info')
+          expect(options.output_format).to eq(expected_code)
+          expect(options.post_processor).to respond_to(:call)
+        end
+      end
+    end
+
+    describe 'canonical single-letter codes' do
+      %w[a i j J p P y].each do |code|
+        it "accepts canonical code '#{code}'" do
+          options = parse_with_argv('-o', code, 'info')
+          expect(options.output_format).to eq(code)
+          expect(options.post_processor).to respond_to(:call)
+        end
+      end
+    end
+
+    describe 'FORMAT_LONG_NAMES order' do
+      it 'lists codes in alphabetical order with each uppercase variant immediately after its lowercase' do
+        codes = WifiWand::CommandLineParser::FORMAT_LONG_NAMES.values
+        sorted = codes.sort_by { |code| [code.downcase, code.match?(/[A-Z]/) ? 1 : 0] }
+        expect(codes).to eq(sorted)
+      end
+    end
+
+    describe 'noncanonical aliases' do
+      %w[ap awesome_print pretty-json amazing-print A I K Y Z].each do |alias_name|
+        it "rejects '#{alias_name}' with a ConfigurationError" do
+          expect do
+            parse_with_argv('-o', alias_name, 'info')
+          end.to raise_error(
+            WifiWand::ConfigurationError,
+            /Invalid output format '#{Regexp.escape(alias_name)}'/
+          )
+        end
+      end
+    end
   end
 end

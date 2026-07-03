@@ -71,6 +71,34 @@ removed in a future major release.
 
 ### Output format flags changed
 
+#### Canonical output format codes and long names
+
+The `--output-format` option now accepts exactly one short code and one long
+name per format. No other spellings are accepted.
+
+| Code | Long name       | Description                                         |
+|------|-----------------|-----------------------------------------------------|
+| `a`  | `amazing_print` | AmazingPrint colored output                         |
+| `i`  | `inspect`       | Ruby `object.inspect`                               |
+| `j`  | `json`          | Compact JSON                                        |
+| `J`  | `pretty_json`   | Multi-line, indented JSON                           |
+| `p`  | `puts`          | Ruby `puts` semantics (arrays: one element per line)|
+| `P`  | `pretty_print`  | Ruby `PP.pp` output                                 |
+| `y`  | `yaml`          | YAML                                                |
+
+Both the short code and the long name are accepted:
+
+```bash
+wifiwand -o j info
+wifiwand -o json info   # equivalent
+wifiwand -o J info
+wifiwand -o pretty_json info   # equivalent
+```
+
+Noncanonical spellings — including hyphens (`pretty-json`), old aliases
+(`awesome_print`, `ap`), and uppercase variants of lowercase codes (`Y`, `A`,
+`I`) — are rejected with a `ConfigurationError`.
+
 #### Pretty JSON moved to `-o J`
 
 The noninteractive `--output-format` codes have changed so each human-oriented
@@ -93,7 +121,7 @@ The `-o p` flag still means plain `puts` output. Scripts that depended on
 state="$(wifiwand -o p ci)"
 ```
 
-Use `-o J` when you want indented JSON:
+Use `-o J` when you want multi-line, indented JSON:
 
 ```bash
 wifiwand -o J info
