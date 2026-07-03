@@ -797,6 +797,12 @@ describe WifiWand::CommandLineParser do
       end
     end
 
+    describe 'FORMAT_LONG_NAMES order' do
+      it 'lists codes in alphabetical order with each uppercase variant immediately after its lowercase' do
+        expect(WifiWand::CommandLineParser::FORMAT_LONG_NAMES.values).to eq(%w[a i j J p P y])
+      end
+    end
+
     describe 'noncanonical aliases' do
       %w[ap awesome_print pretty-json amazing-print A I K Y Z].each do |alias_name|
         it "rejects '#{alias_name}' with a ConfigurationError" do
