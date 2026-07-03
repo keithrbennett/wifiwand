@@ -126,7 +126,10 @@ module WifiWand
 
     def initialize(invalid_addresses)
       @invalid_addresses = Array(invalid_addresses)
-      super("Invalid IP address(es): #{@invalid_addresses.join(', ')}")
+      super(
+        "Invalid IP address(es): #{@invalid_addresses.join(', ')}. " \
+          "To remove all DNS nameservers, use 'clear'."
+      )
     end
   end
 
