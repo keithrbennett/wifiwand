@@ -799,7 +799,9 @@ describe WifiWand::CommandLineParser do
 
     describe 'FORMAT_LONG_NAMES order' do
       it 'lists codes in alphabetical order with each uppercase variant immediately after its lowercase' do
-        expect(WifiWand::CommandLineParser::FORMAT_LONG_NAMES.values).to eq(%w[a i j J p P y])
+        codes = WifiWand::CommandLineParser::FORMAT_LONG_NAMES.values
+        sorted = codes.sort_by { |code| [code.downcase, code.match?(/[A-Z]/) ? 1 : 0] }
+        expect(codes).to eq(sorted)
       end
     end
 
