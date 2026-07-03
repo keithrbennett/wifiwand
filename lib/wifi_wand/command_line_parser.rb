@@ -327,18 +327,16 @@ module WifiWand
       FORMATTERS[choice]
     end
 
+    # Relies on FORMAT_LONG_NAMES being defined in display order (a, i, j, J, p, P, y).
     private def available_format_choices
-      FORMATTERS.keys
-        .sort_by { |code| [code.downcase, code == code.upcase ? 1 : 0] }
-        .map { |code| "#{code}=#{FORMAT_LONG_NAMES.key(code)}" }
+      FORMAT_LONG_NAMES.map { |name, code| "#{code}=#{name}" }
     end
 
+    # Translates a canonical long name to its single-letter code; passes unknown values
+    # through unchanged so the caller's FORMATTERS check rejects them.
     private def normalized_format_choice(raw_value)
       str = raw_value.to_s
-      return FORMAT_LONG_NAMES[str] if FORMAT_LONG_NAMES.key?(str)
-      return str if FORMATTERS.key?(str)
-
-      raw_value
+      FORMAT_LONG_NAMES.fetch(str, str)
     end
 
     private def prepend_env_options(args)
