@@ -76,15 +76,15 @@ removed in a future major release.
 The `--output-format` option now accepts exactly one short code and one long
 name per format. No other spellings are accepted.
 
-| Code | Long name | Description |
-|------|-----------|-------------|
-| `a` | `amazing_print` | AmazingPrint colored output |
-| `i` | `inspect` | Ruby `object.inspect` |
-| `j` | `json` | Compact JSON |
-| `J` | `pretty_json` | Indented JSON |
-| `p` | `puts` | Ruby `puts` semantics (arrays: one element per line) |
-| `P` | `pretty_print` | Ruby `PP.pp` output |
-| `y` | `yaml` | YAML |
+| Code | Long name       | Description                                         |
+|------|-----------------|-----------------------------------------------------|
+| `a`  | `amazing_print` | AmazingPrint colored output                         |
+| `i`  | `inspect`       | Ruby `object.inspect`                               |
+| `j`  | `json`          | Compact JSON                                        |
+| `J`  | `pretty_json`   | Multi-line, indented JSON                           |
+| `p`  | `puts`          | Ruby `puts` semantics (arrays: one element per line)|
+| `P`  | `pretty_print`  | Ruby `PP.pp` output                                 |
+| `y`  | `yaml`          | YAML                                                |
 
 Both the short code and the long name are accepted:
 
