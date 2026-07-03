@@ -267,7 +267,6 @@ describe 'Output Format End-to-End Tests' do
         end
       end
     end
-
   end
 
   describe 'Format-specific edge cases' do
