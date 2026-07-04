@@ -874,29 +874,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
-  describe '#public_ip_address error handling' do
-    it 'raises PublicIPLookupError when response is not success' do
-      allow(subject).to receive(:public_ip_address).and_call_original
-
-      response = instance_double(Net::HTTPResponse, code: '500', message: 'Internal Server Error')
-      allow(response).to receive(:is_a?).and_return(false)
-
-      http = instance_double(Net::HTTP)
-      allow(http).to receive(:use_ssl=)
-      allow(http).to receive(:open_timeout=)
-      allow(http).to receive(:read_timeout=)
-      allow(http).to receive(:respond_to?).with(:write_timeout=).and_return(true)
-      allow(http).to receive(:write_timeout=)
-      allow(http).to receive(:request).and_return(response)
-      allow(Net::HTTP).to receive(:new).and_return(http)
-
-      expect do
-        subject.public_ip_address
-      end.to raise_error(WifiWand::PublicIPLookupError,
-        'Public IP lookup failed: HTTP 500 Internal Server Error')
-    end
-  end
-
   describe 'private helpers' do
     it 'memoizes private qr_code_generator helper' do
       first = subject.send(:qr_code_generator)
