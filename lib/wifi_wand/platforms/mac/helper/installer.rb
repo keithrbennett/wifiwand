@@ -14,33 +14,45 @@ module WifiWand
           # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
           INSTALL_ROLLBACK_ERROR = StandardError
 
-          module_function def helper_installed_and_valid?(timeout_seconds: nil)
+          module_function def helper_installed_and_valid?(timeout_seconds: nil,
+            timeout_configuration: Bundle.default_timeout_configuration)
             validation_options = {}
             validation_options[:timeout_seconds] = timeout_seconds if timeout_seconds
             Bundle.helper_bundle_valid?(
               Bundle.installed_bundle_path,
+              timeout_configuration: timeout_configuration,
               **validation_options
             ) &&
               Bundle.installed_bundle_current?
           end
 
-          module_function def ensure_helper_installed(out_stream: $stdout, timeout_seconds: nil)
-            if helper_installed_and_valid?(timeout_seconds: timeout_seconds)
+          module_function def ensure_helper_installed(out_stream: $stdout, timeout_seconds: nil,
+            timeout_configuration: Bundle.default_timeout_configuration)
+            if helper_installed_and_valid?(
+              timeout_seconds:       timeout_seconds,
+              timeout_configuration: timeout_configuration
+            )
               return Bundle.installed_bundle_path
             end
 
-            install_helper_bundle(out_stream: out_stream)
+            install_helper_bundle(out_stream: out_stream, timeout_configuration: timeout_configuration)
 
-            unless helper_installed_and_valid?(timeout_seconds: timeout_seconds)
+            unless helper_installed_and_valid?(
+              timeout_seconds:       timeout_seconds,
+              timeout_configuration: timeout_configuration
+            )
               raise 'Helper installation failed validation after installation.'
             end
 
             Bundle.installed_bundle_path
           end
 
-          module_function def install_helper_bundle(out_stream: $stdout, force: false)
+          module_function def install_helper_bundle(out_stream: $stdout, force: false,
+            timeout_configuration: Bundle.default_timeout_configuration)
             with_install_lock do
-              return Bundle.installed_bundle_path if !force && helper_installed_and_valid?
+              if !force && helper_installed_and_valid?(timeout_configuration: timeout_configuration)
+                return Bundle.installed_bundle_path
+              end
 
               out_stream&.puts 'Installing WifiWand macOS helper...'
 
@@ -51,7 +63,8 @@ module WifiWand
                 staged_bundle_path = File.join(temp_dir, Bundle::BUNDLE_NAME)
                 stage_helper_bundle(staged_bundle_path)
 
-                unless helper_bundle_valid?(staged_bundle_path)
+                unless helper_bundle_valid?(staged_bundle_path,
+                  timeout_configuration: timeout_configuration)
                   raise 'Staged helper installation failed validation.'
                 end
 
@@ -71,14 +84,20 @@ module WifiWand
           module_function def install_manifest_path = File.join(Bundle.versioned_install_dir,
             Bundle::MANIFEST_FILENAME)
 
-          module_function def helper_bundle_valid?(bundle_path, timeout_seconds: nil)
+          module_function def helper_bundle_valid?(bundle_path, timeout_seconds: nil,
+            timeout_configuration: Bundle.default_timeout_configuration)
             executable_path = File.join(bundle_path, 'Contents', 'MacOS', Bundle::EXECUTABLE_NAME)
             return false unless File.executable?(executable_path)
             return false unless File.exist?(File.join(bundle_path, 'Contents', 'Info.plist'))
 
             validation_options = {}
             validation_options[:timeout_seconds] = timeout_seconds if timeout_seconds
-            helper_result = run_bounded_helper_command(executable_path, 'help', **validation_options)
+            helper_result = run_bounded_helper_command(
+              executable_path,
+              'help',
+              timeout_configuration: timeout_configuration,
+              **validation_options
+            )
             return false unless helper_result
             return false unless helper_result[:status].success?
 
@@ -107,18 +126,22 @@ module WifiWand
           end
 
           module_function def run_bounded_helper_command(
-            executable_path, command, timeout_seconds: nil, on_timeout: nil
+            executable_path, command, timeout_seconds: nil, on_timeout: nil,
+            timeout_configuration: Bundle.default_timeout_configuration
           )
             Open3.popen3(executable_path, command) do |stdin, stdout, stderr, wait_thr|
               stdin.close
               stdout_reader = helper_output_reader(stdout)
               stderr_reader = helper_output_reader(stderr)
-              timeout_seconds ||= Bundle.helper_command_timeout_seconds(command)
+              timeout_seconds ||= Bundle.helper_command_timeout_seconds(
+                command,
+                timeout_configuration: timeout_configuration
+              )
               wait_result = wait_thr.join(timeout_seconds)
 
               unless wait_result
                 on_timeout&.call(command, timeout_seconds)
-                terminate_helper_process(wait_thr)
+                terminate_helper_process(wait_thr, timeout_configuration: timeout_configuration)
                 return nil
               end
 
@@ -128,8 +151,10 @@ module WifiWand
                 status: wait_thr.value,
               }
             ensure
-              finalize_helper_output_reader(stdout_reader, stdout)
-              finalize_helper_output_reader(stderr_reader, stderr)
+              finalize_helper_output_reader(stdout_reader, stdout,
+                timeout_configuration: timeout_configuration)
+              finalize_helper_output_reader(stderr_reader, stderr,
+                timeout_configuration: timeout_configuration)
             end
           rescue Errno::ENOENT
             nil
@@ -144,7 +169,8 @@ module WifiWand
             end
           end
 
-          module_function def finalize_helper_output_reader(reader, stream)
+          module_function def finalize_helper_output_reader(reader, stream,
+            timeout_configuration: Bundle.default_timeout_configuration)
             return unless reader
 
             begin
@@ -152,24 +178,28 @@ module WifiWand
             rescue IOError
               nil
             ensure
-              reader.join(Bundle::HELPER_OUTPUT_READER_JOIN_SECONDS)
+              reader.join(timeout_configuration.helper_output_reader_join_seconds)
             end
           end
 
-          module_function def terminate_helper_process(wait_thr)
+          module_function def terminate_helper_process(wait_thr,
+            timeout_configuration: Bundle.default_timeout_configuration)
             pid = wait_thr.pid
             Process.kill('TERM', pid)
-            return if helper_exited_within_grace_period?(wait_thr)
+            return if helper_exited_within_grace_period?(wait_thr,
+              timeout_configuration: timeout_configuration)
             return unless wait_thr.alive?
 
             Process.kill('KILL', pid)
-            helper_exited_within_grace_period?(wait_thr)
+            helper_exited_within_grace_period?(wait_thr,
+              timeout_configuration: timeout_configuration)
           rescue Errno::ESRCH, Errno::ECHILD
             nil
           end
 
-          module_function def helper_exited_within_grace_period?(wait_thr)
-            !!wait_thr.join(Bundle::HELPER_TERMINATION_WAIT_SECONDS)
+          module_function def helper_exited_within_grace_period?(wait_thr,
+            timeout_configuration: Bundle.default_timeout_configuration)
+            !!wait_thr.join(timeout_configuration.helper_termination_wait_seconds)
           end
 
           module_function def with_install_lock

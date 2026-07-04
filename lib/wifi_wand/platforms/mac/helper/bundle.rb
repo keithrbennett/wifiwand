@@ -30,6 +30,23 @@ module WifiWand
           MANIFEST_FILENAME = 'INSTALL_MANIFEST.json'
           VERSION_DIRECTORY_NOTICE_THRESHOLD = 5
 
+          TimeoutConfiguration = Struct.new(
+            :default_helper_command_timeout_seconds,
+            :scan_networks_helper_command_timeout_seconds,
+            :helper_termination_wait_seconds,
+            :helper_output_reader_join_seconds,
+            keyword_init: true
+          ) do
+            def initialize(
+              default_helper_command_timeout_seconds: Bundle::DEFAULT_HELPER_COMMAND_TIMEOUT_SECONDS,
+              scan_networks_helper_command_timeout_seconds: Bundle::SCAN_NETWORKS_HELPER_COMMAND_TIMEOUT_SECONDS,
+              helper_termination_wait_seconds: Bundle::HELPER_TERMINATION_WAIT_SECONDS,
+              helper_output_reader_join_seconds: Bundle::HELPER_OUTPUT_READER_JOIN_SECONDS
+            )
+              super
+            end
+          end
+
           HelperSupportStatus = Struct.new(:macos_version, :parsed_version, keyword_init: true) do
             def known? = !!parsed_version
 
@@ -82,11 +99,14 @@ module WifiWand
             }
           end
 
-          module_function def helper_command_timeout_seconds(command)
+          module_function def default_timeout_configuration = TimeoutConfiguration.new
+
+          module_function def helper_command_timeout_seconds(command,
+            timeout_configuration: default_timeout_configuration)
             if command == 'scan-networks'
-              SCAN_NETWORKS_HELPER_COMMAND_TIMEOUT_SECONDS
+              timeout_configuration.scan_networks_helper_command_timeout_seconds
             else
-              DEFAULT_HELPER_COMMAND_TIMEOUT_SECONDS
+              timeout_configuration.default_helper_command_timeout_seconds
             end
           end
 
@@ -135,27 +155,43 @@ module WifiWand
           require_relative 'installer'
           require_relative 'client'
 
-          module_function def helper_installed_and_valid?(timeout_seconds: nil)
-            Installer.helper_installed_and_valid?(**timeout_options(timeout_seconds))
-          end
-
-          module_function def ensure_helper_installed(out_stream: $stdout, timeout_seconds: nil)
-            Installer.ensure_helper_installed(
-              out_stream: out_stream,
+          module_function def helper_installed_and_valid?(timeout_seconds: nil,
+            timeout_configuration: default_timeout_configuration)
+            Installer.helper_installed_and_valid?(
+              timeout_configuration: timeout_configuration,
               **timeout_options(timeout_seconds)
             )
           end
 
-          module_function def install_helper_bundle(out_stream: $stdout, force: false)
-            Installer.install_helper_bundle(out_stream: out_stream, force: force)
+          module_function def ensure_helper_installed(out_stream: $stdout, timeout_seconds: nil,
+            timeout_configuration: default_timeout_configuration)
+            Installer.ensure_helper_installed(
+              out_stream:            out_stream,
+              timeout_configuration: timeout_configuration,
+              **timeout_options(timeout_seconds)
+            )
+          end
+
+          module_function def install_helper_bundle(out_stream: $stdout, force: false,
+            timeout_configuration: default_timeout_configuration)
+            Installer.install_helper_bundle(
+              out_stream:            out_stream,
+              force:                 force,
+              timeout_configuration: timeout_configuration
+            )
           end
 
           module_function def install_lock_path = Installer.install_lock_path
 
           module_function def install_manifest_path = Installer.install_manifest_path
 
-          module_function def helper_bundle_valid?(bundle_path, timeout_seconds: nil)
-            Installer.helper_bundle_valid?(bundle_path, **timeout_options(timeout_seconds))
+          module_function def helper_bundle_valid?(bundle_path, timeout_seconds: nil,
+            timeout_configuration: default_timeout_configuration)
+            Installer.helper_bundle_valid?(
+              bundle_path,
+              timeout_configuration: timeout_configuration,
+              **timeout_options(timeout_seconds)
+            )
           end
 
           module_function def timeout_options(timeout_seconds)
@@ -169,22 +205,27 @@ module WifiWand
           module_function def installed_bundle_current? = Installer.installed_bundle_current?
 
           module_function def run_bounded_helper_command(
-            executable_path, command, timeout_seconds: nil, on_timeout: nil
+            executable_path, command, timeout_seconds: nil, on_timeout: nil,
+            timeout_configuration: default_timeout_configuration
           )
             Installer.run_bounded_helper_command(
               executable_path,
               command,
-              timeout_seconds: timeout_seconds,
-              on_timeout:      on_timeout
+              timeout_seconds:       timeout_seconds,
+              on_timeout:            on_timeout,
+              timeout_configuration: timeout_configuration
             )
           end
 
-          module_function def terminate_helper_process(wait_thr)
-            Installer.terminate_helper_process(wait_thr)
+          module_function def terminate_helper_process(wait_thr,
+            timeout_configuration: default_timeout_configuration)
+            Installer.terminate_helper_process(wait_thr, timeout_configuration: timeout_configuration)
           end
 
-          module_function def helper_exited_within_grace_period?(wait_thr)
-            Installer.helper_exited_within_grace_period?(wait_thr)
+          module_function def helper_exited_within_grace_period?(wait_thr,
+            timeout_configuration: default_timeout_configuration)
+            Installer.helper_exited_within_grace_period?(wait_thr,
+              timeout_configuration: timeout_configuration)
           end
 
           module_function def with_install_lock(&) = Installer.with_install_lock(&)

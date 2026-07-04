@@ -6,14 +6,23 @@ require 'stringio'
 
 RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
   let(:helper_bundle) { WifiWand::Platforms::Mac::Helper.const_get(:Bundle) }
+  let(:helper_timeouts) do
+    helper_bundle::TimeoutConfiguration.new(
+      default_helper_command_timeout_seconds:       1.0,
+      scan_networks_helper_command_timeout_seconds: 2.0,
+      helper_termination_wait_seconds:              0.1,
+      helper_output_reader_join_seconds:            0.02
+    )
+  end
 
   describe WifiWand::Platforms::Mac::Helper::Client do
     subject(:client) do
       described_class.new(
-        out_stream_provider:  -> { out_stream },
-        err_stream_provider:  -> { err_stream },
-        verbosity_provider:   -> { verbose_flag },
-        macos_version_reader: -> { macos_version }
+        out_stream_provider:   -> { out_stream },
+        err_stream_provider:   -> { err_stream },
+        verbosity_provider:    -> { verbose_flag },
+        macos_version_reader:  -> { macos_version },
+        timeout_configuration: helper_timeouts
       )
     end
 
@@ -21,6 +30,19 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
     let(:err_stream) { out_stream }
     let(:verbose_flag) { false }
     let(:macos_version) { '14.0' }
+    let(:helper_response_client_class) do
+      # Replace the helper process boundary so specs can exercise SSID, BSSID,
+      # scan payload, status normalization, and Location Services error parsing
+      # without installing or invoking the compiled macOS helper.
+      Class.new(WifiWand::Platforms::Mac::Helper::Client) do
+        def initialize(execute_result:, **kwargs)
+          super(**kwargs)
+          @execute_result = execute_result
+        end
+
+        private def execute(_command, **_kwargs) = @execute_result
+      end
+    end
 
     around do |example|
       original = ENV['WIFIWAND_DISABLE_MAC_HELPER']
@@ -93,19 +115,13 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
     describe '#connected_network_name' do
       subject(:client) do
-        Class.new(described_class) do
-          def initialize(execute_result:, **kwargs)
-            super(**kwargs)
-            @execute_result = execute_result
-          end
-
-          private def execute(_command, **_kwargs) = @execute_result
-        end.new(
-          execute_result:       raw_result,
-          out_stream_provider:  -> { out_stream },
-          err_stream_provider:  -> { err_stream },
-          verbosity_provider:   -> { verbose_flag },
-          macos_version_reader: -> { macos_version }
+        helper_response_client_class.new(
+          execute_result:        raw_result,
+          out_stream_provider:   -> { out_stream },
+          err_stream_provider:   -> { err_stream },
+          verbosity_provider:    -> { verbose_flag },
+          macos_version_reader:  -> { macos_version },
+          timeout_configuration: helper_timeouts
         )
       end
 
@@ -243,19 +259,13 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
     describe '#connected_network_bssid' do
       subject(:client) do
-        Class.new(described_class) do
-          def initialize(execute_result:, **kwargs)
-            super(**kwargs)
-            @execute_result = execute_result
-          end
-
-          private def execute(_command, **_kwargs) = @execute_result
-        end.new(
-          execute_result:       raw_result,
-          out_stream_provider:  -> { out_stream },
-          err_stream_provider:  -> { err_stream },
-          verbosity_provider:   -> { verbose_flag },
-          macos_version_reader: -> { macos_version }
+        helper_response_client_class.new(
+          execute_result:        raw_result,
+          out_stream_provider:   -> { out_stream },
+          err_stream_provider:   -> { err_stream },
+          verbosity_provider:    -> { verbose_flag },
+          macos_version_reader:  -> { macos_version },
+          timeout_configuration: helper_timeouts
         )
       end
 
@@ -303,19 +313,13 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
     describe '#scan_networks' do
       subject(:client) do
-        Class.new(described_class) do
-          def initialize(execute_result:, **kwargs)
-            super(**kwargs)
-            @execute_result = execute_result
-          end
-
-          private def execute(_command, **_kwargs) = @execute_result
-        end.new(
-          execute_result:       raw_result,
-          out_stream_provider:  -> { out_stream },
-          err_stream_provider:  -> { err_stream },
-          verbosity_provider:   -> { verbose_flag },
-          macos_version_reader: -> { macos_version }
+        helper_response_client_class.new(
+          execute_result:        raw_result,
+          out_stream_provider:   -> { out_stream },
+          err_stream_provider:   -> { err_stream },
+          verbosity_provider:    -> { verbose_flag },
+          macos_version_reader:  -> { macos_version },
+          timeout_configuration: helper_timeouts
         )
       end
 
@@ -480,7 +484,8 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
           out_stream_provider:   -> { out_stream },
           err_stream_provider:   -> { err_stream },
           verbosity_provider:    -> { verbose_flag },
-          macos_version_reader:  -> { macos_version }
+          macos_version_reader:  -> { macos_version },
+          timeout_configuration: helper_timeouts
         )
       end
 
@@ -845,7 +850,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       before do
         allow(helper_bundle).to receive(:installed_executable_path).and_return('/tmp/helper')
         allow(helper_bundle).to receive(:helper_command_timeout_seconds)
-          .with(command).and_return(4.5)
+          .with(command, timeout_configuration: helper_timeouts).and_return(4.5)
         allow(Open3).to receive(:popen3).with('/tmp/helper', command)
           .and_yield(stdin, stdout, stderr, wait_thr)
       end
@@ -865,8 +870,9 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
         expect(helper_bundle).to have_received(:run_bounded_helper_command).with(
           '/tmp/helper',
           command,
-          timeout_seconds: 4.5,
-          on_timeout:      kind_of(Proc)
+          timeout_seconds:       4.5,
+          on_timeout:            kind_of(Proc),
+          timeout_configuration: helper_timeouts
         )
       end
 
@@ -878,7 +884,8 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
         it 'logs the timeout and returns nil' do
           allow(WifiWand::Platforms::Mac::Helper::Installer)
-            .to receive(:terminate_helper_process).with(wait_thr)
+            .to receive(:terminate_helper_process)
+            .with(wait_thr, timeout_configuration: helper_timeouts)
 
           timeout_seconds = 4.5
           timeout_message =
@@ -920,7 +927,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
           expect(File).to receive(:executable?).with(helper_path).and_return(false)
           expect(helper_bundle).to receive(:helper_installed_and_valid?).and_return(false)
           expect(helper_bundle).to receive(:ensure_helper_installed)
-            .with(out_stream: out_stream)
+            .with(out_stream: out_stream, timeout_configuration: helper_timeouts)
           client.send(:ensure_helper_installed)
           expect(out_stream.string).to include('helper not installed; running installer')
         end
@@ -928,7 +935,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
         it 'does not install the helper during a bounded status lookup' do
           expect(File).to receive(:executable?).with(helper_path).and_return(false)
           expect(helper_bundle).to receive(:helper_installed_and_valid?)
-            .with(timeout_seconds: 0.1).and_return(false)
+            .with(timeout_seconds: 0.1, timeout_configuration: helper_timeouts).and_return(false)
           expect(helper_bundle).not_to receive(:ensure_helper_installed)
 
           client.send(:ensure_helper_installed, timeout_seconds: 0.1)
@@ -939,7 +946,8 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
           expect(helper_bundle).to receive(:helper_installed_and_valid?)
             .and_return(false).once
           expect(helper_bundle).to receive(:ensure_helper_installed)
-            .with(out_stream: out_stream).ordered.and_raise(StandardError, 'boom')
+            .with(out_stream: out_stream, timeout_configuration: helper_timeouts)
+            .ordered.and_raise(StandardError, 'boom')
 
           client.send(:ensure_helper_installed)
 
@@ -960,7 +968,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
           expect(File).to receive(:executable?).with(helper_path).and_return(true)
           expect(helper_bundle).to receive(:helper_installed_and_valid?).and_return(false)
           expect(helper_bundle).to receive(:ensure_helper_installed)
-            .with(out_stream: out_stream)
+            .with(out_stream: out_stream, timeout_configuration: helper_timeouts)
           client.send(:ensure_helper_installed)
           expect(out_stream.string)
             .to include('existing helper install failed validation; attempting reinstall')
@@ -971,7 +979,8 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
           expect(helper_bundle).to receive(:helper_installed_and_valid?)
             .and_return(false).once
           expect(helper_bundle).to receive(:ensure_helper_installed)
-            .with(out_stream: out_stream).once.and_raise(StandardError, 'boom')
+            .with(out_stream: out_stream, timeout_configuration: helper_timeouts)
+            .once.and_raise(StandardError, 'boom')
 
           2.times { client.send(:ensure_helper_installed) }
 
@@ -1005,7 +1014,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
           expect(helper_bundle).to receive(:helper_installed_and_valid?)
             .and_return(false).once
           expect(helper_bundle).to receive(:ensure_helper_installed)
-            .with(out_stream: out_stream).once
+            .with(out_stream: out_stream, timeout_configuration: helper_timeouts).once
 
           2.times { client.send(:ensure_helper_installed) }
         end
@@ -1098,10 +1107,11 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
     describe 'helper-backed calls after install failure' do
       subject(:client) do
         client_class.new(
-          out_stream_provider:  -> { out_stream },
-          err_stream_provider:  -> { err_stream },
-          verbosity_provider:   -> { verbose_flag },
-          macos_version_reader: -> { macos_version }
+          out_stream_provider:   -> { out_stream },
+          err_stream_provider:   -> { err_stream },
+          verbosity_provider:    -> { verbose_flag },
+          macos_version_reader:  -> { macos_version },
+          timeout_configuration: helper_timeouts
         )
       end
 
@@ -1448,6 +1458,26 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       expect(described_class.helper_installed_and_valid?).to be(true)
       expect(File.read(manifest_path)).to eq('9.9.9')
     end
+
+    it 'uses the supplied timeout configuration for install validation' do
+      observed_timeout_configurations = []
+      allow(installer).to receive(:run_bounded_helper_command) do |executable_path, command,
+        timeout_configuration:|
+        observed_timeout_configurations << timeout_configuration
+        script = File.read(executable_path)
+        success = command == 'help' && !script.include?("exit 1\n")
+        status = instance_double(Process::Status, success?: success, exitstatus: success ? 0 : 1)
+        {
+          stdout: success ? 'wifiwand helper usage' : '',
+          stderr: '',
+          status: status,
+        }
+      end
+
+      described_class.install_helper_bundle(out_stream: nil, timeout_configuration: helper_timeouts)
+
+      expect(observed_timeout_configurations).to all(be(helper_timeouts))
+    end
   end
 
   describe '.helper_install_dir_count' do
@@ -1501,8 +1531,6 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
     end
 
     it 'calls on_timeout, terminates the helper, and returns nil when the helper hangs' do
-      stub_const('WifiWand::Platforms::Mac::Helper::Bundle::HELPER_TERMINATION_WAIT_SECONDS', 0.05)
-      stub_const('WifiWand::Platforms::Mac::Helper::Bundle::HELPER_OUTPUT_READER_JOIN_SECONDS', 0.05)
       write_helper_script(executable_path, <<~SH)
         #!/bin/sh
         trap 'exit 0' TERM
@@ -1515,8 +1543,9 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       result = described_class.run_bounded_helper_command(
         executable_path,
         'help',
-        timeout_seconds: 0.05,
-        on_timeout:      ->(command, timeout_seconds) { timed_out << [command, timeout_seconds] }
+        timeout_seconds:       0.05,
+        on_timeout:            ->(command, timeout_seconds) { timed_out << [command, timeout_seconds] },
+        timeout_configuration: helper_timeouts
       )
 
       expect(result).to be_nil
@@ -1524,8 +1553,6 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
     end
 
     it 'does not leak stream cleanup IOErrors to stderr during timeout cleanup' do
-      stub_const('WifiWand::Platforms::Mac::Helper::Bundle::HELPER_TERMINATION_WAIT_SECONDS', 0.05)
-      stub_const('WifiWand::Platforms::Mac::Helper::Bundle::HELPER_OUTPUT_READER_JOIN_SECONDS', 0.05)
       write_helper_script(executable_path, <<~SH)
         #!/bin/sh
         trap 'exit 0' TERM
@@ -1533,8 +1560,26 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       SH
 
       expect do
-        described_class.run_bounded_helper_command(executable_path, 'help', timeout_seconds: 0.05)
+        described_class.run_bounded_helper_command(
+          executable_path,
+          'help',
+          timeout_seconds:       0.05,
+          timeout_configuration: helper_timeouts
+        )
       end.not_to output(/stream closed in another thread/).to_stderr
+    end
+
+    it 'uses the configured output reader join timeout during cleanup' do
+      reader = instance_double(Thread)
+      stream = instance_double(IO, closed?: false, close: nil)
+
+      expect(reader).to receive(:join).with(helper_timeouts.helper_output_reader_join_seconds)
+
+      WifiWand::Platforms::Mac::Helper::Installer.finalize_helper_output_reader(
+        reader,
+        stream,
+        timeout_configuration: helper_timeouts
+      )
     end
   end
 
@@ -1582,7 +1627,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       FileUtils.chmod(0o755, executable_path)
       status = instance_double(Process::Status, success?: true, exitstatus: 0)
       expect(installer).to receive(:run_bounded_helper_command)
-        .with(executable_path, 'help')
+        .with(executable_path, 'help', timeout_configuration: kind_of(described_class::TimeoutConfiguration))
         .and_return(stdout: 'wifiwand helper usage', stderr: '', status: status)
 
       expect(described_class.helper_bundle_valid?(bundle_path)).to be(true)
@@ -1593,7 +1638,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       FileUtils.chmod(0o755, executable_path)
       status = instance_double(Process::Status, success?: true, exitstatus: 0)
       expect(installer).to receive(:run_bounded_helper_command)
-        .with(executable_path, 'help')
+        .with(executable_path, 'help', timeout_configuration: kind_of(described_class::TimeoutConfiguration))
         .and_return(stdout: '', stderr: 'wifiwand helper usage', status: status)
 
       expect(described_class.helper_bundle_valid?(bundle_path)).to be(true)
@@ -1604,7 +1649,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       FileUtils.chmod(0o755, executable_path)
       status = instance_double(Process::Status, success?: true, exitstatus: 0)
       expect(installer).to receive(:run_bounded_helper_command)
-        .with(executable_path, 'help')
+        .with(executable_path, 'help', timeout_configuration: kind_of(described_class::TimeoutConfiguration))
         .and_return(stdout: '', stderr: 'stream closed in another thread', status: status)
 
       expect(described_class.helper_bundle_valid?(bundle_path)).to be(false)
@@ -1614,7 +1659,7 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       File.write(executable_path, "#!/bin/sh\nexit 0\n")
       FileUtils.chmod(0o755, executable_path)
       allow(installer).to receive(:run_bounded_helper_command)
-        .with(executable_path, 'help')
+        .with(executable_path, 'help', timeout_configuration: kind_of(described_class::TimeoutConfiguration))
         .and_return(nil)
 
       expect(described_class.helper_bundle_valid?(bundle_path)).to be(false)

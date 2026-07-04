@@ -95,11 +95,12 @@ module WifiWand
           HELPER_READ_BOUNDARY_ERROR = StandardError
 
           def initialize(out_stream_provider:, verbosity_provider:, macos_version_reader:,
-            err_stream_provider: nil)
+            err_stream_provider: nil, timeout_configuration: Bundle.default_timeout_configuration)
             @out_stream_provider = out_stream_provider
             @err_stream_provider = err_stream_provider
             @verbosity_provider = verbosity_provider
             @macos_version_reader = macos_version_reader
+            @timeout_configuration = timeout_configuration
             @location_warning_emitted = false
             @helper_install_verified = false
             @disabled = false
@@ -325,11 +326,16 @@ module WifiWand
             Bundle.run_bounded_helper_command(
               helper_executable_path,
               command,
-              timeout_seconds: timeout_seconds || Bundle.helper_command_timeout_seconds(command),
-              on_timeout:      ->(timed_out_command, timeout_seconds) do
+              timeout_seconds:       timeout_seconds || helper_command_timeout_seconds(command),
+              on_timeout:            ->(timed_out_command, timeout_seconds) do
                 log_verbose("helper command '#{timed_out_command}' timed out after #{timeout_seconds}s")
-              end
+              end,
+              timeout_configuration: @timeout_configuration
             )
+          end
+
+          private def helper_command_timeout_seconds(command)
+            Bundle.helper_command_timeout_seconds(command, timeout_configuration: @timeout_configuration)
           end
 
           private def helper_executable_available?
@@ -343,7 +349,10 @@ module WifiWand
             helper_present = File.executable?(helper_executable_path)
             helper_options = {}
             helper_options[:timeout_seconds] = timeout_seconds if timeout_seconds
-            helper_valid = Bundle.helper_installed_and_valid?(**helper_options)
+            helper_valid = Bundle.helper_installed_and_valid?(
+              **helper_options,
+              timeout_configuration: @timeout_configuration
+            )
             if helper_valid
               @helper_install_verified = true
               return
@@ -360,7 +369,10 @@ module WifiWand
               log_verbose('helper not installed; running installer')
             end
 
-            Bundle.ensure_helper_installed(out_stream: verbose? ? err_stream : nil)
+            Bundle.ensure_helper_installed(
+              out_stream:            verbose? ? err_stream : nil,
+              timeout_configuration: @timeout_configuration
+            )
             @helper_install_verified = true
           rescue HELPER_READ_BOUNDARY_ERROR => e
             # Installation is best-effort during normal reads. Disable retries for

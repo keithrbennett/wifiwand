@@ -13,14 +13,6 @@ require_relative 'support/command_result_helper'
 require_relative 'support/shared_command_examples'
 require_relative 'support/cli_shared_context'
 
-original_verbose = $VERBOSE
-$VERBOSE = nil
-require_relative '../lib/wifi_wand/platforms/mac/helper/bundle'
-WifiWand::Platforms::Mac::Helper::Bundle::DEFAULT_HELPER_COMMAND_TIMEOUT_SECONDS = 1.0
-WifiWand::Platforms::Mac::Helper::Bundle::SCAN_NETWORKS_HELPER_COMMAND_TIMEOUT_SECONDS = 2.0
-WifiWand::Platforms::Mac::Helper::Bundle::HELPER_TERMINATION_WAIT_SECONDS = 0.1
-$VERBOSE = original_verbose
-
 $stdout.sync = true # Essential for test suite output to be in the correct order.
 
 # Configure RSpec
