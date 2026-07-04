@@ -2,7 +2,7 @@ name: Test Suite
 
 on:
   push:
-    branches: [ main, add-ubuntu ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
