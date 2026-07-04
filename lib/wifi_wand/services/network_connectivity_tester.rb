@@ -19,15 +19,24 @@ module WifiWand
     HELPER_RESULT_GRACE = 0.05
 
     attr_reader :captive_portal_checker
-    private attr_reader :runtime_config
+    private attr_reader :runtime_config, :dns_resolution_timeout_in_secs,
+      :overall_connectivity_timeout_in_secs, :tcp_connection_timeout_in_secs
 
-    def initialize(verbose: false, output: $stdout, runtime_config: nil)
+    def initialize(verbose: false, output: $stdout, runtime_config: nil,
+      dns_resolution_timeout_in_secs: TimingConstants::DNS_RESOLUTION_TIMEOUT,
+      http_connectivity_timeout_in_secs: TimingConstants::HTTP_CONNECTIVITY_TIMEOUT,
+      overall_connectivity_timeout_in_secs: TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT,
+      tcp_connection_timeout_in_secs: TimingConstants::TCP_CONNECTION_TIMEOUT)
       @runtime_config = runtime_config || RuntimeConfig.new(
         verbose:    verbose,
         out_stream: output
       )
+      @dns_resolution_timeout_in_secs = dns_resolution_timeout_in_secs
+      @overall_connectivity_timeout_in_secs = overall_connectivity_timeout_in_secs
+      @tcp_connection_timeout_in_secs = tcp_connection_timeout_in_secs
       @captive_portal_checker = CaptivePortalChecker.new(
-        runtime_config: @runtime_config
+        runtime_config:                    @runtime_config,
+        http_connectivity_timeout_in_secs: http_connectivity_timeout_in_secs
       )
     end
 
@@ -39,7 +48,7 @@ module WifiWand
       tcp_result = probe_result_for(
         tcp_working,
         deadline:      deadline,
-        stage_timeout: TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT,
+        stage_timeout: overall_connectivity_timeout_in_secs,
         probe_method:  :tcp_connectivity?
       )
       return ConnectivityStates::INTERNET_INDETERMINATE if tcp_result[:timed_out]
@@ -48,7 +57,7 @@ module WifiWand
       dns_result = probe_result_for(
         dns_working,
         deadline:      deadline,
-        stage_timeout: TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT,
+        stage_timeout: overall_connectivity_timeout_in_secs,
         probe_method:  :dns_working?
       )
       return ConnectivityStates::INTERNET_INDETERMINATE if dns_result[:timed_out]
@@ -81,7 +90,7 @@ module WifiWand
 
       result = parallel_check_result(
         test_endpoints,
-        resolved_timeout(timeout_in_secs, overall_timeout, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT),
+        resolved_timeout(timeout_in_secs, overall_timeout, overall_connectivity_timeout_in_secs),
         helper_mode: :tcp
       )
       return result if return_details
@@ -96,7 +105,7 @@ module WifiWand
 
       result = parallel_check_result(
         test_domains,
-        resolved_timeout(timeout_in_secs, overall_timeout, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT),
+        resolved_timeout(timeout_in_secs, overall_timeout, overall_connectivity_timeout_in_secs),
         helper_mode: :dns
       )
       return result if return_details
@@ -371,11 +380,11 @@ module WifiWand
 
     private def attempt_tcp_connection(endpoint)
       endpoint = normalize_tcp_endpoint(endpoint)
-      Timeout.timeout(TimingConstants::TCP_CONNECTION_TIMEOUT) do
+      Timeout.timeout(tcp_connection_timeout_in_secs) do
         Socket.tcp(
           endpoint[:host],
           endpoint[:port],
-          connect_timeout: TimingConstants::TCP_CONNECTION_TIMEOUT
+          connect_timeout: tcp_connection_timeout_in_secs
         ) do
           { success: true }
         end
@@ -385,7 +394,7 @@ module WifiWand
     end
 
     private def attempt_dns_resolution(domain)
-      Timeout.timeout(TimingConstants::DNS_RESOLUTION_TIMEOUT) do
+      Timeout.timeout(dns_resolution_timeout_in_secs) do
         IPSocket.getaddress(domain)
         { success: true }
       end

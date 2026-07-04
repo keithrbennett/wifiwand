@@ -14,13 +14,15 @@ module WifiWand
   class CaptivePortalChecker
     include ProcessProbeManager
 
-    private attr_reader :runtime_config
+    private attr_reader :runtime_config, :http_connectivity_timeout_in_secs
 
-    def initialize(verbose: false, output: $stdout, runtime_config: nil)
+    def initialize(verbose: false, output: $stdout, runtime_config: nil,
+      http_connectivity_timeout_in_secs: TimingConstants::HTTP_CONNECTIVITY_TIMEOUT)
       @runtime_config = runtime_config || RuntimeConfig.new(
         verbose:    verbose,
         out_stream: output
       )
+      @http_connectivity_timeout_in_secs = http_connectivity_timeout_in_secs
     end
 
     # Determines whether captive portal login appears to be required now by
@@ -87,7 +89,7 @@ module WifiWand
       probes = endpoints.filter_map { |endpoint| start_captive_portal_probe(endpoint) }
       results = []
       no_login_required_found = false
-      probe_timeout = timeout_in_secs || TimingConstants::HTTP_CONNECTIVITY_TIMEOUT
+      probe_timeout = timeout_in_secs || http_connectivity_timeout_in_secs
       terminate_grace = timeout_in_secs ? 0 : helper_result_grace
       deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + probe_timeout
 
@@ -253,7 +255,7 @@ module WifiWand
       expected_code = endpoint[:expected_code]
       expected_body = endpoint[:expected_body]
 
-      Timeout.timeout(TimingConstants::HTTP_CONNECTIVITY_TIMEOUT) do
+      Timeout.timeout(http_connectivity_timeout_in_secs) do
         response = captive_portal_http_response(uri)
         actual_code = response.code.to_i
         body_matches = expected_body.nil? || response.body.to_s.include?(expected_body)
@@ -275,8 +277,8 @@ module WifiWand
         uri.port,
         nil,
         use_ssl:      uri.scheme == 'https',
-        open_timeout: TimingConstants::HTTP_CONNECTIVITY_TIMEOUT,
-        read_timeout: TimingConstants::HTTP_CONNECTIVITY_TIMEOUT
+        open_timeout: http_connectivity_timeout_in_secs,
+        read_timeout: http_connectivity_timeout_in_secs
       ) do |http|
         http.get(uri.request_uri)
       end

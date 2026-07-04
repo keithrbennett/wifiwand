@@ -93,7 +93,14 @@ describe WifiWand::NetworkConnectivityProbeHelper do
   end
 
   describe '.parallel_probe_result' do
-    let(:tester) { WifiWand::NetworkConnectivityTester.new(verbose: false) }
+    let(:probe_timeout) { 0.25 }
+    let(:tester) do
+      WifiWand::NetworkConnectivityTester.new(
+        verbose:                        false,
+        tcp_connection_timeout_in_secs: probe_timeout,
+        dns_resolution_timeout_in_secs: probe_timeout
+      )
+    end
 
     it 'uses Socket.tcp with the configured connect timeout for TCP probes' do
       connect_timeouts = []
@@ -116,7 +123,7 @@ describe WifiWand::NetworkConnectivityProbeHelper do
           { target: { host: 'success.test', port: 443 }, success: true, error_class: nil },
         ]
       )
-      expect(connect_timeouts).to all(eq(WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT))
+      expect(connect_timeouts).to all(eq(probe_timeout))
     end
 
     it 'uses IPSocket.getaddress for DNS probes' do

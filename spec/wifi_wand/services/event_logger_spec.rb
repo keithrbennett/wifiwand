@@ -134,8 +134,17 @@ describe WifiWand::EventLogger do
   end
 
   describe '#fetch_current_state' do
+    def fetch_state_logger(**options)
+      described_class.new(
+        mock_model,
+        out_stream:                     out_stream,
+        internet_probe_timeout_in_secs: 1.0,
+        **options
+      )
+    end
+
     it 'uses the full explicit probe at startup before any previous state exists' do
-      logger = described_class.new(mock_model, out_stream: out_stream)
+      logger = fetch_state_logger
 
       expect(mock_model).to receive(:wifi_on?).and_return(true)
       expect(mock_model).to receive(:connected?).and_return(true)
@@ -153,7 +162,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'builds state from WiFi, association, SSID, and explicit internet state' do
-      logger = described_class.new(mock_model, out_stream: out_stream)
+      logger = fetch_state_logger
       state = {
         wifi_on:        true,
         connected:      true,
@@ -177,7 +186,7 @@ describe WifiWand::EventLogger do
       'treats captive portal sessions as internet unavailable',
     ].each do |description|
       it description do
-        logger = described_class.new(mock_model, out_stream: out_stream)
+        logger = fetch_state_logger
 
         expect(mock_model).to receive(:wifi_on?).and_return(true)
         expect(mock_model).to receive(:connected?).and_return(true)
@@ -196,7 +205,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'still checks internet state when WiFi is off' do
-      logger = described_class.new(mock_model, out_stream: out_stream)
+      logger = fetch_state_logger
       state = {
         wifi_on:        false,
         connected:      false,
@@ -216,7 +225,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'still checks internet state when WiFi is on but not connected' do
-      logger = described_class.new(mock_model, out_stream: out_stream)
+      logger = fetch_state_logger
 
       expect(mock_model).to receive(:wifi_on?).and_return(true)
       expect(mock_model).to receive(:connected?).and_return(false)
@@ -334,7 +343,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'degrades to the previous internet state when that lookup fails' do
-      logger = described_class.new(mock_model, out_stream: out_stream)
+      logger = fetch_state_logger
       logger.instance_variable_set(:@previous_state,
         {
           wifi_on:        true,
@@ -359,7 +368,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'logs field-level failures in verbose mode while returning partial state' do
-      logger = described_class.new(mock_model, out_stream: out_stream, verbose: true)
+      logger = fetch_state_logger(verbose: true)
       logger.instance_variable_set(:@previous_state,
         {
           wifi_on:        true,
@@ -393,7 +402,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'preserves the previous SSID when connected state falls back' do
-      logger = described_class.new(mock_model, out_stream: out_stream)
+      logger = fetch_state_logger
       logger.instance_variable_set(:@previous_state,
         {
           wifi_on:        true,
@@ -458,7 +467,7 @@ describe WifiWand::EventLogger do
     end
 
     it 'preserves an indeterminate startup internet state' do
-      logger = described_class.new(mock_model, out_stream: out_stream)
+      logger = fetch_state_logger
 
       expect(mock_model).to receive(:wifi_on?).and_return(true)
       expect(mock_model).to receive(:connected?).and_return(true)

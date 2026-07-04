@@ -45,11 +45,13 @@ module WifiWand
       interval: 5,
       log_file_path: nil,
       log_file_manager: nil,
+      internet_probe_timeout_in_secs: nil,
       runtime_config: nil,
       **kwargs
     )
       @model = model
       @interval = interval
+      @internet_probe_timeout_in_secs = internet_probe_timeout_in_secs
       @runtime_config = runtime_config || RuntimeConfig.new(verbose: kwargs[:verbose], utc: kwargs[:utc])
       @verbose_override = kwargs[:verbose] if kwargs.key?(:verbose)
       @utc_override = !!kwargs[:utc] if kwargs.key?(:utc)
@@ -196,7 +198,7 @@ module WifiWand
     end
 
     private def internet_probe_timeout
-      [@interval, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT].min
+      @internet_probe_timeout_in_secs || [@interval, TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT].min
     end
 
     private def detect_and_emit_events(current_state)

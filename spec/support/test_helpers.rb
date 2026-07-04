@@ -284,14 +284,6 @@ module TestHelpers
     allow(IPSocket).to receive(:getaddress).and_return(address)
   end
 
-  # Helper for stubbing short connectivity timeouts for fast tests
-  private def stub_short_connectivity_timeouts
-    stub_const('WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT', 0.05)
-    stub_const('WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT', 0.01)
-    stub_const('WifiWand::TimingConstants::DNS_RESOLUTION_TIMEOUT', 0.01)
-    stub_const('WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT', 0.01)
-  end
-
   # Starts a minimal one-shot HTTP server on an OS-assigned local port.
   # Accepts a single connection, reads the HTTP request headers, and writes a
   # response with the given status code and body before closing.  Yields the

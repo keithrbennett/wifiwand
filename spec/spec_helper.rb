@@ -13,15 +13,8 @@ require_relative 'support/command_result_helper'
 require_relative 'support/shared_command_examples'
 require_relative 'support/cli_shared_context'
 
-# Override timing constants for fast test execution.
-# Production code uses the real (longer) values; tests reassign them here
-# at load time to keep specs fast without coupling production to ENV['RSPEC_RUNNING'].
 original_verbose = $VERBOSE
 $VERBOSE = nil
-WifiWand::TimingConstants::TCP_CONNECTION_TIMEOUT       = 0.25
-WifiWand::TimingConstants::DNS_RESOLUTION_TIMEOUT       = 0.25
-WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT = 1.0
-WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT    = 0.25
 require_relative '../lib/wifi_wand/platforms/mac/helper/bundle'
 WifiWand::Platforms::Mac::Helper::Bundle::DEFAULT_HELPER_COMMAND_TIMEOUT_SECONDS = 1.0
 WifiWand::Platforms::Mac::Helper::Bundle::SCAN_NETWORKS_HELPER_COMMAND_TIMEOUT_SECONDS = 2.0

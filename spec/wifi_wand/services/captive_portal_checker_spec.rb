@@ -71,13 +71,12 @@ describe WifiWand::CaptivePortalChecker do
     end
 
     it 'returns promptly when a helper writes partial JSON and then stalls' do
-      stub_const('WifiWand::TimingConstants::HTTP_CONNECTIVITY_TIMEOUT', 0.1)
       allow(checker).to receive(:start_captive_portal_probe).and_return(
         open_probe(endpoint: endpoints.first, raw_output: '{"login_required":"no"')
       )
 
       result = nil
-      Timeout.timeout(1) { result = checker.captive_portal_login_required }
+      Timeout.timeout(1) { result = checker.captive_portal_login_required(timeout_in_secs: 0.1) }
 
       expect(result).to eq(:unknown)
     end
@@ -291,7 +290,6 @@ describe WifiWand::CaptivePortalChecker do
     end
 
     it 'returns :unknown metadata on network errors' do
-      stub_short_connectivity_timeouts
       allow(checker).to receive(:captive_portal_http_response).and_raise(Errno::ECONNREFUSED)
 
       expect(checker.send(:perform_captive_portal_check, endpoint)).to eq(
