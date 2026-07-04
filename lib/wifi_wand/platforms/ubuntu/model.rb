@@ -677,7 +677,8 @@ module WifiWand
               raise(DnsConfigurationError.new(
                 connection_name: current_connection,
                 step:            step,
-                cause_error:     dns_transaction_failure(e, rollback_error)
+                cause_error:     e,
+                rollback_error:  rollback_error
               ))
             end
           end
@@ -823,22 +824,6 @@ module WifiWand
             connection_name]).stdout.strip
         end
 
-        # Preserves the original failure while surfacing that rollback also failed,
-        # which means the connection profile may still need manual repair.
-        public def dns_transaction_failure(original_error, rollback_error)
-          original_detail = if original_error.respond_to?(:text) && !original_error.text.to_s.empty?
-            original_error.text
-          else
-            original_error.message
-          end
-          rollback_detail = if rollback_error.respond_to?(:text) && !rollback_error.text.to_s.empty?
-            rollback_error.text
-          else
-            rollback_error.message
-          end
-
-          Error.new("#{original_detail}; rollback failed: #{rollback_detail}")
-        end
 
         # Splits a line of nmcli terse (-t) output on unescaped field separators.
         # nmcli escapes literal colons as \: and literal backslashes as \\.

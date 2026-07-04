@@ -201,6 +201,97 @@ module WifiWand
       end
     end
 
+    describe DnsConfigurationError do
+      let(:cause_error) do
+        os_command_error(exitstatus: 1, command: 'nmcli connection modify', text: 'Permission denied')
+      end
+      let(:rollback_error) do
+        os_command_error(exitstatus: 2, command: 'nmcli connection modify', text: 'Rollback failed')
+      end
+
+      describe '#to_h' do
+        it 'returns structured data with the cause error' do
+          err = described_class.new(connection_name: 'MyWiFi', step: :modify, cause_error: cause_error)
+
+          expect(err.to_h).to eq(
+            connection_name: 'MyWiFi',
+            step:            :modify,
+            error:           { message:    'Permission denied',
+                               class:      'WifiWand::CommandExecutor::OsCommandError',
+                               exitstatus: 1,
+                               command:    'nmcli connection modify' }
+          )
+        end
+
+        it 'includes rollback_error when rollback also fails' do
+          err = described_class.new(
+            connection_name: 'MyWiFi',
+            step:            :activate,
+            cause_error:     cause_error,
+            rollback_error:  rollback_error
+          )
+
+          expect(err.to_h).to eq(
+            connection_name: 'MyWiFi',
+            step:            :activate,
+            error:           { message:    'Permission denied',
+                               class:      'WifiWand::CommandExecutor::OsCommandError',
+                               exitstatus: 1,
+                               command:    'nmcli connection modify' },
+            rollback_error:  { message:    'Rollback failed',
+                               class:      'WifiWand::CommandExecutor::OsCommandError',
+                               exitstatus: 2,
+                               command:    'nmcli connection modify' }
+          )
+        end
+
+        it 'returns nil error summary for a nil error' do
+          err = described_class.new(connection_name: 'MyWiFi', step: :modify, cause_error: cause_error)
+
+          expect(err.to_h.dig(:error, :message)).to eq('Permission denied')
+        end
+      end
+
+      describe '#rollback_error' do
+        it 'is nil when only cause_error is provided' do
+          err = described_class.new(connection_name: 'MyWiFi', step: :modify, cause_error: cause_error)
+
+          expect(err.rollback_error).to be_nil
+        end
+
+        it 'returns the rollback error when provided' do
+          err = described_class.new(
+            connection_name: 'MyWiFi',
+            step:            :activate,
+            cause_error:     cause_error,
+            rollback_error:  rollback_error
+          )
+
+          expect(err.rollback_error).to be(rollback_error)
+        end
+      end
+
+      describe '#message' do
+        it 'includes rollback detail when both errors are present' do
+          err = described_class.new(
+            connection_name: 'MyWiFi',
+            step:            :activate,
+            cause_error:     cause_error,
+            rollback_error:  rollback_error
+          )
+
+          expect(err.message).to include('Permission denied; rollback failed: Rollback failed')
+        end
+
+        it 'includes only the cause error message when no rollback' do
+          err = described_class.new(connection_name: 'MyWiFi', step: :modify, cause_error: cause_error)
+
+          expect(err.message).to include('Permission denied')
+          expect(err.message).not_to include('rollback failed')
+        end
+      end
+    end
+
     # Integration tests - verify methods actually raise expected errors
     describe 'Method integration tests' do
       let(:model) { create_test_model }

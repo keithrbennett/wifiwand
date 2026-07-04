@@ -339,16 +339,45 @@ module WifiWand
   end
 
   class DnsConfigurationError < ConfigurationError
-    attr_reader :connection_name, :step, :cause_error
+    attr_reader :connection_name, :step, :cause_error, :rollback_error
 
-    def initialize(connection_name:, step:, cause_error:)
+    def initialize(connection_name:, step:, cause_error:, rollback_error: nil)
       @connection_name = connection_name
       @step = step
       @cause_error = cause_error
+      @rollback_error = rollback_error
 
       super(
         "Failed to update DNS for connection '#{connection_name}' while #{step_description}: #{error_detail}"
       )
+    end
+
+    def to_h
+      base = {
+        connection_name: connection_name,
+        step:            step,
+        error:           error_summary(cause_error),
+      }
+      base[:rollback_error] = error_summary(rollback_error) if rollback_error
+      base
+    end
+
+    private def error_summary(error)
+      return nil unless error
+
+      summary = { message: error_summary_message(error) }
+      summary[:class]      = error.class.name
+      summary[:exitstatus] = error.exitstatus if error.respond_to?(:exitstatus)
+      summary[:command]    = error.command if error.respond_to?(:command)
+      summary
+    end
+
+    private def error_summary_message(error)
+      if error.respond_to?(:text) && !error.text.to_s.empty?
+        error.text
+      else
+        error.message
+      end
     end
 
     private def step_description
@@ -363,9 +392,13 @@ module WifiWand
     end
 
     private def error_detail
-      return cause_error.text if cause_error.respond_to?(:text) && !cause_error.text.to_s.empty?
-
-      cause_error.message
+      detail = error_summary_message(cause_error)
+      if rollback_error
+        rollback_detail = error_summary_message(rollback_error)
+        "#{detail}; rollback failed: #{rollback_detail}"
+      else
+        detail
+      end
     end
   end
 

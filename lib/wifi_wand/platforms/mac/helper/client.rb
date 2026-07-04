@@ -220,18 +220,39 @@ module WifiWand
           end
 
           private def connected_network_status(result)
-            return result.status unless result.status == :success
+            unless result.status == :success
+              log_verbose("connected_network_status: upstream status is #{result.status.inspect}")
+              return result.status
+            end
 
             payload = result.payload
-            return :error unless payload.is_a?(Hash)
+            unless payload.is_a?(Hash)
+              log_verbose('connected_network_status: payload is not a Hash')
+              return :error
+            end
 
             helper_status = payload['status']
             ssid = payload['ssid']
             return :not_connected if helper_status == 'not_connected' && !real_helper_ssid?(ssid)
-            return :unknown if helper_status == 'connected' && !real_helper_ssid?(ssid)
-            return :unknown unless payload.key?('ssid')
-            return :unknown if ssid.nil?
-            return :unknown if helper_placeholder_ssid?(ssid)
+
+            if helper_status == 'connected' && !real_helper_ssid?(ssid)
+              log_verbose(
+                "connected_network_status: helper status is 'connected' but SSID is not real: #{ssid.inspect}"
+              )
+              return :unknown
+            end
+            unless payload.key?('ssid')
+              log_verbose('connected_network_status: payload missing ssid key')
+              return :unknown
+            end
+            if ssid.nil?
+              log_verbose('connected_network_status: ssid is nil')
+              return :unknown
+            end
+            if helper_placeholder_ssid?(ssid)
+              log_verbose("connected_network_status: ssid is a placeholder: #{ssid.inspect}")
+              return :unknown
+            end
 
             :connected
           end
@@ -285,6 +306,9 @@ module WifiWand
 
             if normalized_message.include?('location services') &&
                 normalized_message.include?('authorization status is unknown')
+              log_verbose(
+                "helper_error_status: location services authorization status is unknown: #{message.inspect}"
+              )
               return :unknown
             end
 
@@ -292,6 +316,7 @@ module WifiWand
               return :location_services_blocked
             end
 
+            log_verbose("helper_error_status: unrecognized error message: #{message.inspect}")
             :error
           end
 
