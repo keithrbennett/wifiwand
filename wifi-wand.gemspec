@@ -35,7 +35,7 @@ excluded_packaged_files = [
   %r{\Alib/wifi_wand/platforms/mac/helper/build\.rb\z},            # macOS helper build script
   %r{\Alibexec/macos/(?:src/|wifiwand-helper\.entitlements\z|wifiwand-helper\.source-manifest\.json\z)},
   # ^ macOS helper source code, entitlements, and source manifest
-  %r{\Adocs/TESTING\.md\z},                                        # internal testing guide
+
 ].freeze
 
 # Resolve the gem's file list from git-tracked files, filtered through the
