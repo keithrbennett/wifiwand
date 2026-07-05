@@ -148,14 +148,6 @@ module WifiWand
       raise ArgumentError, 'options must be a Hash or WifiWand::BaseModel::Options'
     end
 
-    # @return array of nameserver IP addresses from /etc/resolv.conf, or nil if not found
-    # This is the fallback method that works on most Unix-like systems
-    def nameservers_using_resolv_conf
-      File.readlines('/etc/resolv.conf').grep(/^nameserver /).map { |line| line.split.last }
-    rescue Errno::ENOENT
-      nil
-    end
-
     private def verify_subclass_contract
       return if instance_of?(BaseModel)
 

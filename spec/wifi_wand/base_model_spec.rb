@@ -635,29 +635,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
-  describe '#nameservers_using_resolv_conf' do
-    it 'returns nil when resolv.conf does not exist' do
-      allow(File).to receive(:readlines).with('/etc/resolv.conf').and_raise(Errno::ENOENT)
-
-      result = subject.nameservers_using_resolv_conf
-      expect(result).to be_nil
-    end
-
-    it 'extracts nameservers from resolv.conf' do
-      resolv_content = [
-        "# This is a comment\n",
-        "nameserver 8.8.8.8\n",
-        "nameserver 1.1.1.1\n",
-        "search example.com\n",
-      ]
-
-      allow(File).to receive(:readlines).with('/etc/resolv.conf').and_return(resolv_content)
-
-      result = subject.nameservers_using_resolv_conf
-      expect(result).to eq(['8.8.8.8', '1.1.1.1'])
-    end
-  end
-
   describe 'OS helpers' do
     it 'returns os_id and mac?/ubuntu? reflect os' do
       test_class = Class.new(WifiWand::BaseModel) do

@@ -642,6 +642,15 @@ module WifiWand
           nameservers_using_resolv_conf || []
         end
 
+        # Returns nameserver IP addresses parsed from /etc/resolv.conf, or nil
+        # when the file is unavailable. Used as a fallback when the active
+        # NetworkManager connection exposes no DNS configuration.
+        private def nameservers_using_resolv_conf
+          File.readlines('/etc/resolv.conf').grep(/^nameserver /).map { |line| line.split.last }
+        rescue Errno::ENOENT
+          nil
+        end
+
         # Applies DNS as an exact replacement and rolls the profile back to its
         # original DNS state if any later modify or reactivation step fails.
         public def set_nameservers(nameservers) # rubocop:disable Naming/AccessorMethodName

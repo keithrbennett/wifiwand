@@ -692,7 +692,8 @@ module WifiWand
         it 'falls back to resolv.conf when connection has no DNS' do
           allow(ubuntu_model).to receive(:active_connection_profile_name).and_return('Conn2')
           expect(ubuntu_model).to receive(:nameservers_from_connection).with('Conn2').and_return([])
-          expect(ubuntu_model).to receive(:nameservers_using_resolv_conf).and_return(['9.9.9.9'])
+          allow(File).to receive(:readlines).with('/etc/resolv.conf')
+            .and_return(["nameserver 9.9.9.9\n"])
           expect(ubuntu_model.nameservers).to eq(['9.9.9.9'])
         end
 
@@ -717,7 +718,8 @@ module WifiWand
             .and_return(command_result(stdout: 'GENERAL.CONNECTION:--'))
 
           expect(ubuntu_model).not_to receive(:nameservers_from_connection)
-          expect(ubuntu_model).to receive(:nameservers_using_resolv_conf).and_return(['8.8.8.8'])
+          allow(File).to receive(:readlines).with('/etc/resolv.conf')
+            .and_return(["nameserver 8.8.8.8\n"])
           expect(ubuntu_model.nameservers).to eq(['8.8.8.8'])
         end
       end
@@ -1161,9 +1163,10 @@ module WifiWand
         it 'returns nameservers from resolv.conf' do
           allow(ubuntu_model).to receive_messages(
             active_connection_profile_name: nil,
-            _connected_network_name:        nil,
-            nameservers_using_resolv_conf:  ['8.8.8.8', '8.8.4.4']
+            _connected_network_name:        nil
           )
+          allow(File).to receive(:readlines).with('/etc/resolv.conf')
+            .and_return(["nameserver 8.8.8.8\n", "nameserver 8.8.4.4\n"])
 
           expect(ubuntu_model.nameservers).to eq(['8.8.8.8', '8.8.4.4'])
         end
@@ -1171,11 +1174,32 @@ module WifiWand
         it 'returns empty array when no nameservers configured' do
           allow(ubuntu_model).to receive_messages(
             active_connection_profile_name: nil,
-            _connected_network_name:        nil,
-            nameservers_using_resolv_conf:  []
+            _connected_network_name:        nil
           )
+          allow(File).to receive(:readlines).with('/etc/resolv.conf').and_return([])
 
           expect(ubuntu_model.nameservers).to eq([])
+        end
+      end
+
+      describe '#nameservers_using_resolv_conf' do
+        it 'returns nil when resolv.conf does not exist' do
+          allow(File).to receive(:readlines).with('/etc/resolv.conf').and_raise(Errno::ENOENT)
+
+          expect(ubuntu_model.send(:nameservers_using_resolv_conf)).to be_nil
+        end
+
+        it 'extracts nameservers from resolv.conf' do
+          resolv_content = [
+            "# This is a comment\n",
+            "nameserver 8.8.8.8\n",
+            "nameserver 1.1.1.1\n",
+            "search example.com\n",
+          ]
+
+          allow(File).to receive(:readlines).with('/etc/resolv.conf').and_return(resolv_content)
+
+          expect(ubuntu_model.send(:nameservers_using_resolv_conf)).to eq(['8.8.8.8', '1.1.1.1'])
         end
       end
 

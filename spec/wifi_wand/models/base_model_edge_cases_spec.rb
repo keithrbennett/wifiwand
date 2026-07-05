@@ -31,16 +31,6 @@ RSpec.describe WifiWand::BaseModel do
     end
   end
 
-  describe '#nameservers_using_resolv_conf' do
-    let(:model) { described_class.new(model_options) }
-
-    it 'returns nil when resolv.conf is unavailable' do
-      allow(File).to receive(:readlines).with('/etc/resolv.conf').and_raise(Errno::ENOENT)
-
-      expect(model.nameservers_using_resolv_conf).to be_nil
-    end
-  end
-
   describe '#status_network_identity' do
     let(:model) { described_class.new(model_options) }
 
