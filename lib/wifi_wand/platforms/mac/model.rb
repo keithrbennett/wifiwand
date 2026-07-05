@@ -57,7 +57,7 @@ module WifiWand
         end
 
         def wifi_info
-          with_system_profiler_wifi_data_cache_scope { super }
+          with_system_profiler_wifi_data_cache_scope { wifi_info_builder.build }
         end
 
         def status_line_data(progress_callback: nil)

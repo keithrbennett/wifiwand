@@ -77,103 +77,29 @@ describe 'Common WiFi Model Behavior (All OS)' do
   end
 
   describe '#wifi_info' do
-    it 'returns hash with consistent structure across all OSes' do
-      # Override default mocks for this specific test if needed
-      allow(subject).to receive(:wifi_interface).and_return('wlan0')
+    it 'delegates to WifiInfoBuilder#build' do
+      fake_result = { 'wifi_on' => true }
+      builder = instance_double(WifiWand::WifiInfoBuilder, build: fake_result)
+      allow(subject).to receive(:wifi_info_builder).and_return(builder)
 
-      result = subject.wifi_info
-      expect(result).to be_a(Hash)
+      expect(subject.wifi_info).to eq(fake_result)
+      expect(builder).to have_received(:build)
+    end
+  end
 
-      # All OSes must provide these fields with consistent types
-      expect(result).to include(
-        'wifi_on', 'internet_tcp_connectivity', 'dns_working', 'captive_portal_login_required',
-        'internet_connectivity_state', 'interface', 'default_interface', 'connected', 'network',
-        'bssid', 'signal_quality', 'ssid_identity_available', 'ssid_identity_status', 'ssid_identity_warning',
-        'ipv4_addresses', 'ipv6_addresses', 'mac_address', 'nameservers', 'timestamp'
-      )
+  describe '#wifi_info_builder' do
+    it 'returns a WifiInfoBuilder initialized with the model and config' do
+      builder = subject.wifi_info_builder
 
-      expect(result['wifi_on']).to be(true).or be(false)
-      expect(result['connected']).to satisfy do |value|
-        [true, false, nil].include?(value)
-      end
-      expect(result['signal_quality']).to eq(value: 72, unit: :percent)
-      expect(result['ssid_identity_available']).to be(true).or be(false)
-      expect(result['ssid_identity_status']).to satisfy do |value|
-        %w[available unavailable not_connected unknown].include?(value)
-      end
-      expect(result['internet_tcp_connectivity']).to be(true).or be(false)
-      expect(result['dns_working']).to be(true).or be(false)
-      expect(result['captive_portal_login_required']).to satisfy do |value|
-        %i[yes no unknown].include?(value)
-      end
-      expect(result['internet_connectivity_state']).to satisfy do |value|
-        %i[reachable unreachable indeterminate].include?(value)
-      end
-      expect(result['timestamp']).to be_a(Time)
+      expect(builder).to be_a(WifiWand::WifiInfoBuilder)
+      expect(builder.model).to eq(subject)
     end
 
-    it 'does not include preferred or available network lists' do
-      result = subject.wifi_info
+    it 'memoizes the builder instance' do
+      first = subject.wifi_info_builder
+      second = subject.wifi_info_builder
 
-      expect(result).not_to have_key('preferred_networks')
-      expect(result).not_to have_key('available_networks')
-    end
-
-    it 'returns nil when default_interface lookup fails' do
-      allow(subject).to receive(:default_interface).and_raise(WifiWand::Error, 'default route unavailable')
-
-      result = subject.wifi_info
-
-      expect(result).to be_a(Hash)
-      expect(result['default_interface']).to be_nil
-    end
-
-    it 'returns nil when mac_address lookup fails' do
-      allow(subject).to receive(:mac_address).and_raise(WifiWand::Error, 'mac lookup unavailable')
-
-      result = subject.wifi_info
-
-      expect(result).to be_a(Hash)
-      expect(result['mac_address']).to be_nil
-    end
-
-    it 'returns empty array when nameservers lookup fails' do
-      allow(subject).to receive(:nameservers).and_raise(WifiWand::Error, 'dns config unavailable')
-
-      result = subject.wifi_info
-
-      expect(result).to be_a(Hash)
-      expect(result['nameservers']).to eq([])
-    end
-
-    it 'does not include public IP data' do
-      result = subject.wifi_info
-      expect(result).not_to have_key('public_ip')
-    end
-
-    it 'starts TCP and DNS connectivity probes before waiting for either result' do
-      dns_started_mutex = Mutex.new
-      dns_started_condition = ConditionVariable.new
-      dns_started = false
-
-      allow(subject).to receive(:internet_tcp_connectivity?) do
-        dns_started_mutex.synchronize do
-          dns_started_condition.wait(dns_started_mutex, 5) unless dns_started
-          raise 'DNS probe did not start while TCP probe was still running' unless dns_started
-        end
-
-        true
-      end
-      allow(subject).to receive(:dns_working?) do
-        dns_started_mutex.synchronize do
-          dns_started = true
-          dns_started_condition.broadcast
-        end
-
-        true
-      end
-
-      expect(subject.wifi_info['internet_connectivity_state']).to eq(:reachable)
+      expect(second).to equal(first)
     end
   end
 
@@ -881,42 +807,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
       expect(first).to be_a(WifiWand::Helpers::QrCodeGenerator)
       expect(second).to equal(first)
     end
-
-    it 'reports non-StandardError wifi info probe failures through the result queue' do
-      result_queue = Queue.new
-      worker = subject.send(:wifi_info_probe_worker, result_queue, :internet_tcp) do
-        raise ScriptError, 'probe failed'
-      end
-
-      worker.join
-      probe_name, status, payload = result_queue.pop(true)
-
-      expect(probe_name).to eq(:internet_tcp)
-      expect(status).to eq(:error)
-      expect(payload).to be_a(ScriptError)
-      expect(payload.message).to eq('probe failed')
-    end
-
-    it 'joins already-started wifi info probe workers when later thread creation fails' do
-      started_worker = instance_double(Thread)
-      allow(started_worker).to receive(:join)
-      allow(subject).to receive(:wifi_info_probe_worker).and_return(started_worker)
-      allow(subject).to receive(:wifi_info_probe_worker).with(anything, :dns_working).and_raise(ThreadError)
-
-      expect do
-        subject.send(:wifi_info_initial_connectivity_probe_results)
-      end.to raise_error(ThreadError)
-      expect(started_worker).to have_received(:join)
-    end
-
-    it 'propagates a worker that exits without publishing a probe result' do
-      failed_worker = instance_double(Thread, alive?: false)
-      allow(failed_worker).to receive(:value).and_raise(NoMemoryError, 'worker failed')
-
-      expect do
-        subject.send(:wifi_info_collect_probe_results, Queue.new, internet_tcp: failed_worker)
-      end.to raise_error(NoMemoryError, 'worker failed')
-    end
   end
 
   describe 'subclass method validation' do
@@ -1031,143 +921,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
 
         expect(missing_methods).to eq([])
       end
-    end
-  end
-
-  describe '#wifi_info exception handling' do
-    before do
-      allow(subject).to receive_messages(
-        wifi_on?:               true,
-        wifi_interface:         'wlan0',
-        default_interface:      'wlan0',
-        connected_network_name: 'TestNet',
-        bssid:                  '00:11:22:33:44:55',
-        ipv4_addresses:         ['192.168.1.100'],
-        ipv6_addresses:         ['2001:db8::100'],
-        mac_address:            'aa:bb:cc:dd:ee:ff',
-        nameservers:            ['8.8.8.8']
-      )
-
-      allow(subject).to receive(:internet_connectivity_state).and_call_original
-    end
-
-    shared_context 'for verbose test model setup' do
-      let(:captured_output) { StringIO.new }
-
-      let(:test_model) do
-        model_options = { verbose: true, wifi_interface: nil, out_stream: captured_output }
-        model = subject.class.new(model_options)
-
-        # Mock the necessary methods for wifi_info to work
-        allow(model).to receive(:validate_os_preconditions)
-        allow(model).to receive_messages(
-          probe_wifi_interface:       'wlan0',
-          is_wifi_interface?:         true,
-          wifi_on?:                   true,
-          wifi_interface:             'wlan0',
-          default_interface:          'wlan0',
-          connected_network_name:     'TestNet',
-          bssid:                      '00:11:22:33:44:55',
-          ipv4_addresses:             ['192.168.1.100'],
-          ipv6_addresses:             ['2001:db8::100'],
-          mac_address:                'aa:bb:cc:dd:ee:ff',
-          nameservers:                ['8.8.8.8'],
-          internet_tcp_connectivity?: true,
-          dns_working?:               true
-        )
-        allow(model).to receive(:sleep)  # Don\'t actually sleep
-
-        model.init_wifi_interface
-        model
-      end
-    end
-
-    it 'handles internet_tcp_connectivity exceptions' do
-      allow(subject).to receive(:internet_tcp_connectivity?).and_raise(SocketError, 'Network error')
-      allow(subject).to receive_messages(dns_working?: true)
-
-      result = subject.wifi_info
-
-      expect(result['internet_tcp_connectivity']).to be false
-      expect(result['internet_connectivity_state']).to eq(:unreachable)
-      expect(result['captive_portal_login_required']).to eq(:unknown)
-    end
-
-    it 'handles dns_working exceptions' do
-      allow(subject).to receive(:dns_working?).and_raise(SocketError, 'DNS error')
-      allow(subject).to receive_messages(
-        internet_tcp_connectivity?: true
-      )
-
-      result = subject.wifi_info
-      expect(result['dns_working']).to be false
-      expect(result['internet_connectivity_state']).to eq(:unreachable)
-    end
-
-    it 'does not call captive portal checks when TCP fails' do
-      allow(subject).to receive_messages(
-        internet_tcp_connectivity?: false,
-        dns_working?:               true
-      )
-      expect(subject.connectivity_tester).not_to receive(:captive_portal_login_required)
-
-      result = subject.wifi_info
-      expect(result['captive_portal_login_required']).to eq(:unknown)
-    end
-
-    it 'does not call captive portal checks when DNS fails' do
-      allow(subject).to receive_messages(
-        internet_tcp_connectivity?: true,
-        dns_working?:               false
-      )
-      expect(subject.connectivity_tester).not_to receive(:captive_portal_login_required)
-
-      result = subject.wifi_info
-      expect(result['captive_portal_login_required']).to eq(:unknown)
-    end
-
-    it 'does not call captive portal checks when both TCP and DNS fail' do
-      allow(subject).to receive_messages(
-        internet_tcp_connectivity?: false,
-        dns_working?:               false
-      )
-      expect(subject.connectivity_tester).not_to receive(:captive_portal_login_required)
-
-      result = subject.wifi_info
-      expect(result['captive_portal_login_required']).to eq(:unknown)
-    end
-
-    it 'checks captive portal login requirement when both TCP and DNS succeed' do
-      allow(subject).to receive_messages(
-        internet_tcp_connectivity?: true,
-        dns_working?:               true
-      )
-      expect(subject.connectivity_tester).to receive(:captive_portal_login_required).and_return(:no)
-
-      expect(subject.wifi_info['captive_portal_login_required']).to eq(:no)
-    end
-
-    it 'propagates unexpected TCP probe failures from worker threads' do
-      allow(subject).to receive(:internet_tcp_connectivity?).and_raise(RuntimeError, 'broken probe')
-      allow(subject).to receive(:dns_working?).and_return(true)
-
-      expect { subject.wifi_info }.to raise_error(RuntimeError, 'broken probe')
-    end
-
-    it 'does not hide unexpected ipv4_addresses errors' do
-      allow(subject).to receive(:ipv4_addresses)
-        .and_raise(WifiWand::ConfigurationError, 'broken IPv4 implementation')
-
-      expect { subject.wifi_info }
-        .to raise_error(WifiWand::ConfigurationError, /broken IPv4 implementation/)
-    end
-
-    it 'does not hide unexpected ipv6_addresses errors' do
-      allow(subject).to receive(:ipv6_addresses)
-        .and_raise(WifiWand::ConfigurationError, 'broken IPv6 implementation')
-
-      expect { subject.wifi_info }
-        .to raise_error(WifiWand::ConfigurationError, /broken IPv6 implementation/)
     end
   end
 
