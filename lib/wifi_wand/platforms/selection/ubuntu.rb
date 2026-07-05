@@ -29,8 +29,6 @@ module WifiWand
         end
 
         def create_model(options)
-          raise ArgumentError, 'options must be a Hash' unless options.is_a?(Hash)
-
           require_relative '../ubuntu/model'
           WifiWand::Platforms::Ubuntu::Model.create_model(options)
         end

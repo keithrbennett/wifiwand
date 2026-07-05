@@ -40,8 +40,6 @@ module WifiWand
         def current_display_name = current_os&.display_name
 
         def create_model_for_current_os(options = {})
-          raise ArgumentError, 'options must be a Hash' unless options.is_a?(Hash)
-
           current_os_instance = current_os
           raise NoSupportedOSError unless current_os_instance
 

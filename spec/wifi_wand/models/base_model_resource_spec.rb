@@ -51,10 +51,15 @@ describe 'BaseModel Resource Management' do
       expect { model_class.create_model(verbose: true) }.not_to raise_error
     end
 
-    it 'rejects non-Hash input' do
+    it 'accepts internal Options struct input' do
+      options = WifiWand::BaseModel::Options.new(verbose: true)
+      expect { model_class.create_model(options) }.not_to raise_error
+    end
+
+    it 'rejects unsupported option types' do
       expect do
-        model_class.create_model(WifiWand::BaseModel::Options.new(verbose: true))
-      end.to raise_error(ArgumentError, /options must be a Hash/)
+        model_class.create_model(Object.new)
+      end.to raise_error(ArgumentError, /Hash or WifiWand::BaseModel::Options/)
     end
   end
 

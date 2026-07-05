@@ -99,10 +99,27 @@ module WifiWand
         expect(subject.create_model(options)).to eq(mock_model)
       end
 
-      it 'rejects nil options' do
-        expect do
-          subject.create_model(nil)
-        end.to raise_error(ArgumentError, /options must be a Hash/)
+      it 'forwards nil options to Platforms::Ubuntu::Model.create_model without validating them' do
+        mock_model = double('Platforms::Ubuntu::Model')
+
+        expect(subject).to receive(:require_relative).with('../ubuntu/model')
+        stub_const('WifiWand::Platforms::Ubuntu::Model', double('UbuntuModelClass'))
+        expect(WifiWand::Platforms::Ubuntu::Model)
+          .to receive(:create_model).with(nil).and_return(mock_model)
+
+        expect(subject.create_model(nil)).to eq(mock_model)
+      end
+
+      it 'delegates an Options struct to Platforms::Ubuntu::Model.create_model' do
+        options = WifiWand::BaseModel::Options.new(verbose: true, wifi_interface: 'wlan0')
+        mock_model = double('Platforms::Ubuntu::Model')
+
+        expect(subject).to receive(:require_relative).with('../ubuntu/model')
+        stub_const('WifiWand::Platforms::Ubuntu::Model', double('UbuntuModelClass'))
+        expect(WifiWand::Platforms::Ubuntu::Model)
+          .to receive(:create_model).with(options).and_return(mock_model)
+
+        expect(subject.create_model(options)).to eq(mock_model)
       end
     end
   end

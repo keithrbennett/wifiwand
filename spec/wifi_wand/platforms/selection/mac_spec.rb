@@ -59,10 +59,27 @@ describe WifiWand::Platforms::Selection::Mac do
       expect(os.create_model(options)).to eq(mock_model)
     end
 
-    it 'rejects nil options' do
-      expect do
-        os.create_model(nil)
-      end.to raise_error(ArgumentError, /options must be a Hash/)
+    it 'forwards nil options to Platforms::Mac::Model.create_model without validating them' do
+      require_relative '../../../../lib/wifi_wand/platforms/mac/model'
+      mock_model = instance_double(WifiWand::Platforms::Mac::Model)
+
+      model_class = class_double(WifiWand::Platforms::Mac::Model)
+      stub_const('WifiWand::Platforms::Mac::Model', model_class)
+      expect(model_class).to receive(:create_model).with(nil).and_return(mock_model)
+
+      expect(os.create_model(nil)).to eq(mock_model)
+    end
+
+    it 'delegates an Options struct to Platforms::Mac::Model.create_model' do
+      require_relative '../../../../lib/wifi_wand/platforms/mac/model'
+      options = WifiWand::BaseModel::Options.new(verbose: true, wifi_interface: 'en0')
+      mock_model = instance_double(WifiWand::Platforms::Mac::Model)
+
+      model_class = class_double(WifiWand::Platforms::Mac::Model)
+      stub_const('WifiWand::Platforms::Mac::Model', model_class)
+      expect(model_class).to receive(:create_model).with(options).and_return(mock_model)
+
+      expect(os.create_model(options)).to eq(mock_model)
     end
   end
 end

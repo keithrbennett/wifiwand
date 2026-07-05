@@ -12,10 +12,8 @@ require_relative 'wifi_wand/timing'
 module WifiWand
   # Creates a model instance for the current operating system.
   # Delegates to WifiWand::Platforms::Selector.create_model_for_current_os.
-  # @param options [Hash] options including :verbose and :wifi_interface
+  # @param options [Hash, WifiWand::BaseModel::Options] options including :verbose and :wifi_interface
   def self.create_model(options = {})
-    raise ArgumentError, 'options must be a Hash' unless options.is_a?(Hash)
-
     require_relative 'wifi_wand/platforms/selector'
     WifiWand::Platforms::Selector.create_model_for_current_os(options)
   end

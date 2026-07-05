@@ -29,13 +29,28 @@ module WifiWand
 
     Options = Struct.new(:verbose, :utc, :wifi_interface, :out_stream, :err_stream, keyword_init: true)
 
+    # Shared normalization logic needed at both the class level (create_model)
+    # and the instance level (initialize). Mixed in both ways below so each
+    # call site can invoke it privately with an implicit receiver.
+    module OptionsNormalization
+      private def normalize_options(options)
+        return Options.new(**options) if options.is_a?(Hash)
+        return options if options.is_a?(Options)
+
+        raise ArgumentError, 'options must be a Hash or WifiWand::BaseModel::Options'
+      end
+    end
+
+    extend OptionsNormalization
+    include OptionsNormalization
+
     attr_writer :wifi_interface
     attr_reader :runtime_config
     attr_accessor :command_executor, :connectivity_tester, :state_manager, :status_waiter,
       :connection_manager, :disconnect_manager
 
     def self.create_model(options = {})
-      normalized_options = normalize_create_model_options(options)
+      normalized_options = normalize_options(options)
       instance = new(normalized_options)
       # Eagerly validate an explicitly-specified interface; defer discovery otherwise.
       instance.init if normalized_options.wifi_interface
@@ -54,7 +69,7 @@ module WifiWand
     def initialize(options = {})
       verify_subclass_contract
 
-      options = normalize_constructor_options(options)
+      options = normalize_options(options)
       @options = options
       # JRuby may bundle keyword-style arguments into a single positional Hash
       # when the caller itself accepts a positional options Hash. Build an
@@ -133,21 +148,6 @@ module WifiWand
     def wifi_interface
       init_wifi_interface if @wifi_interface.nil?
       @wifi_interface
-    end
-
-    def self.normalize_create_model_options(options)
-      raise ArgumentError, 'options must be a Hash' unless options.is_a?(Hash)
-
-      Options.new(**options)
-    end
-
-    private_class_method :normalize_create_model_options
-
-    private def normalize_constructor_options(options)
-      return Options.new(**options) if options.is_a?(Hash)
-      return options if options.is_a?(Options)
-
-      raise ArgumentError, 'options must be a Hash or WifiWand::BaseModel::Options'
     end
 
     private def verify_subclass_contract

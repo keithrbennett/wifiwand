@@ -25,10 +25,22 @@ RSpec.describe WifiWand do
       expect(described_class.create_model).to eq(:default_mock_model)
     end
 
-    it 'rejects non-Hash options' do
-      expect do
-        described_class.create_model(Object.new)
-      end.to raise_error(ArgumentError, /options must be a Hash/)
+    it 'delegates to Platforms::Selector.create_model_for_current_os with an Options struct' do
+      options = WifiWand::BaseModel::Options.new(verbose: false, wifi_interface: 'wlan0')
+      expect(WifiWand::Platforms::Selector)
+        .to receive(:create_model_for_current_os).with(options)
+        .and_return(:mock_options_model)
+
+      expect(described_class.create_model(options)).to eq(:mock_options_model)
+    end
+
+    it 'does not validate options itself, deferring to the model layer' do
+      invalid_options = Object.new
+      expect(WifiWand::Platforms::Selector)
+        .to receive(:create_model_for_current_os).with(invalid_options)
+        .and_return(:mock_model)
+
+      expect { described_class.create_model(invalid_options) }.not_to raise_error
     end
   end
 end

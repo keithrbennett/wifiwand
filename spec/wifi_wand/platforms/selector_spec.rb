@@ -172,10 +172,22 @@ module WifiWand
         end
       end
 
-      it 'rejects non-Hash options' do
-        expect do
-          described_class.create_model_for_current_os(Object.new)
-        end.to raise_error(ArgumentError, /options must be a Hash/)
+      it 'delegates an Options struct to the detected OS object without validating it' do
+        options = WifiWand::BaseModel::Options.new(verbose: true)
+        current_os = instance_double(Platforms::Selection::Base, create_model: :mock_model)
+        allow(described_class).to receive(:current_os).and_return(current_os)
+
+        expect(described_class.create_model_for_current_os(options)).to eq(:mock_model)
+        expect(current_os).to have_received(:create_model).with(options)
+      end
+
+      it 'forwards unsupported option types to the OS object rather than validating them itself' do
+        invalid_options = Object.new
+        current_os = instance_double(Platforms::Selection::Base, create_model: :mock_model)
+        allow(described_class).to receive(:current_os).and_return(current_os)
+
+        expect { described_class.create_model_for_current_os(invalid_options) }.not_to raise_error
+        expect(current_os).to have_received(:create_model).with(invalid_options)
       end
     end
 
