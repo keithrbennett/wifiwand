@@ -936,7 +936,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
         hash_including(
           progress_callback:       progress_callback,
           runtime_config:          subject.runtime_config,
-          expected_network_errors: WifiWand::DisconnectManager::EXPECTED_NETWORK_ERRORS
+          expected_network_errors: WifiWand::NetworkErrorConstants::EXPECTED_NETWORK_ERRORS
         )
       ).and_return({})
 

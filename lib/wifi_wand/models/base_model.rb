@@ -429,8 +429,8 @@ module WifiWand
     def wifi_info_builder
       @wifi_info_builder ||= WifiInfoBuilder.new(
         self, runtime_config: @runtime_config,
-        expected_network_errors: DisconnectManager::EXPECTED_NETWORK_ERRORS,
-        network_operation_command_errors: DisconnectManager::NETWORK_OPERATION_COMMAND_ERRORS
+        expected_network_errors: NetworkErrorConstants::EXPECTED_NETWORK_ERRORS,
+        network_operation_command_errors: NetworkErrorConstants::NETWORK_OPERATION_COMMAND_ERRORS
       )
     end
 
@@ -458,7 +458,7 @@ module WifiWand
         self,
         progress_callback:       progress_callback,
         runtime_config:          runtime_config,
-        expected_network_errors: DisconnectManager::EXPECTED_NETWORK_ERRORS
+        expected_network_errors: NetworkErrorConstants::EXPECTED_NETWORK_ERRORS
       )
     end
 

@@ -8,31 +8,15 @@ require_relative '../errors'
 require_relative '../network_identity'
 require_relative '../runtime_config'
 require_relative 'command_executor'
+require_relative '../network_error_constants'
 
 module WifiWand
   class WifiInfoBuilder
-    EXPECTED_NETWORK_ERRORS = [
-      SocketError,
-      IOError,
-      Errno::ECONNREFUSED,
-      Errno::ETIMEDOUT,
-      Errno::EHOSTUNREACH,
-      Errno::ENETUNREACH,
-      Timeout::Error,
-    ].freeze
-
-    NETWORK_OPERATION_COMMAND_ERRORS = [
-      WifiWand::CommandExecutor::OsCommandError,
-      WifiWand::CommandTimeoutError,
-      WifiWand::CommandNotFoundError,
-      WifiWand::CommandSpawnError,
-    ].freeze
-
     attr_reader :model
     private attr_reader :runtime_config, :expected_network_errors, :network_operation_command_errors
 
-    def initialize(model, runtime_config: nil, expected_network_errors: EXPECTED_NETWORK_ERRORS,
-      network_operation_command_errors: NETWORK_OPERATION_COMMAND_ERRORS)
+    def initialize(model, runtime_config: nil, expected_network_errors: NetworkErrorConstants::EXPECTED_NETWORK_ERRORS,
+      network_operation_command_errors: NetworkErrorConstants::NETWORK_OPERATION_COMMAND_ERRORS)
       @model = model
       @runtime_config = runtime_config || RuntimeConfig.new
       @expected_network_errors = expected_network_errors

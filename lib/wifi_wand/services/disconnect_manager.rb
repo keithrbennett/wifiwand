@@ -1,32 +1,17 @@
 # frozen_string_literal: true
 
-require 'socket'
-require 'timeout'
-
 require_relative '../errors'
+require_relative '../network_error_constants'
 require_relative '../runtime_config'
 require_relative '../string_predicates'
+require_relative '../timing_constants'
 
 module WifiWand
   class DisconnectManager
     include StringPredicates
 
-    EXPECTED_NETWORK_ERRORS = [
-      SocketError,
-      IOError,
-      Errno::ECONNREFUSED,
-      Errno::ETIMEDOUT,
-      Errno::EHOSTUNREACH,
-      Errno::ENETUNREACH,
-      Timeout::Error,
-    ].freeze
-
-    NETWORK_OPERATION_COMMAND_ERRORS = [
-      WifiWand::CommandExecutor::OsCommandError,
-      WifiWand::CommandTimeoutError,
-      WifiWand::CommandNotFoundError,
-      WifiWand::CommandSpawnError,
-    ].freeze
+    EXPECTED_NETWORK_ERRORS = NetworkErrorConstants::EXPECTED_NETWORK_ERRORS
+    NETWORK_OPERATION_COMMAND_ERRORS = NetworkErrorConstants::NETWORK_OPERATION_COMMAND_ERRORS
 
     attr_reader :model
     private attr_reader :runtime_config
@@ -94,9 +79,7 @@ module WifiWand
       end
     end
 
-    private
-
-    def disconnect_association_state
+    private def disconnect_association_state
       network_name = model.connected_network_name
       unless string_nil_or_empty?(network_name)
         return { associated: true, network_name: network_name }
@@ -127,11 +110,11 @@ module WifiWand
       }
     end
 
-    def disconnect_associated?
+    private def disconnect_associated?
       model.disconnect_associated?
     end
 
-    def wait_until_disassociated!(timeout_in_secs:)
+    private def wait_until_disassociated!(timeout_in_secs:)
       deadline = monotonic_now + timeout_in_secs
 
       loop do
@@ -144,17 +127,17 @@ module WifiWand
       end
     end
 
-    def disconnect_command_failure(network_name, error)
+    private def disconnect_command_failure(network_name, error)
       NetworkDisconnectionError.new(network_name: network_name, reason: command_error_detail(error))
     end
 
-    def command_error_detail(error)
+    private def command_error_detail(error)
       detail = error.display_message if error.respond_to?(:display_message)
       detail = error.message if string_nil_or_empty?(detail)
       detail.to_s
     end
 
-    def monotonic_now
+    private def monotonic_now
       Process.clock_gettime(Process::CLOCK_MONOTONIC)
     end
   end

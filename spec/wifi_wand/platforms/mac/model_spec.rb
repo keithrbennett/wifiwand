@@ -228,7 +228,7 @@ module WifiWand
             model,
             progress_callback:                          progress_callback,
             runtime_config:                             model.runtime_config,
-            expected_network_errors:                    WifiWand::DisconnectManager::EXPECTED_NETWORK_ERRORS,
+            expected_network_errors:                    WifiWand::NetworkErrorConstants::EXPECTED_NETWORK_ERRORS,
             connectivity_worker_result_timeout_seconds: WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
           ).and_return({})
 
