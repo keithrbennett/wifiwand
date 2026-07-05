@@ -6,6 +6,7 @@ require_relative '../connectivity_states'
 require_relative '../network_identity'
 require_relative '../timing_constants'
 require_relative '../runtime_config'
+require_relative '../timing'
 require_relative 'log_file_manager'
 
 module WifiWand
@@ -32,6 +33,8 @@ module WifiWand
   # In other words, `stop` is intended for coordinated shutdown from another
   # thread, while `Interrupt` covers interactive termination from the console.
   class EventLogger
+    include Timing
+
     SSID_UNAVAILABLE_LABEL = NetworkIdentity::SSID_UNAVAILABLE_LABEL
 
     # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
@@ -350,8 +353,6 @@ module WifiWand
     private def fetch_failed?(fetch_failures, field_name)
       fetch_failures.any? { |failure| failure[:field] == field_name }
     end
-
-    private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
     private def log_termination_message(error)
       log_message(format_json_line(

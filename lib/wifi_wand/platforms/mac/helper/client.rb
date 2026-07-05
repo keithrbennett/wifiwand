@@ -3,6 +3,7 @@
 require 'json'
 require_relative '../../../signal_quality'
 require_relative '../../../string_predicates'
+require_relative '../../../timing'
 
 module WifiWand
   module Platforms
@@ -88,6 +89,7 @@ module WifiWand
         # Connect/disconnect mutations still run through SwiftRuntime.
         class Client
           include StringPredicates
+          include WifiWand::Timing
 
           attr_reader :last_error_message
 
@@ -172,7 +174,7 @@ module WifiWand
           private def execute(command, timeout_seconds: nil)
             @last_error_message = nil
             @last_error_status = nil
-            deadline = helper_deadline(timeout_seconds)
+            deadline = status_deadline(timeout_seconds)
             timeout_options = -> { helper_timeout_options(deadline) }
             availability_status = helper_availability_status(**timeout_options.())
             unless availability_status == :available
@@ -186,7 +188,7 @@ module WifiWand
             end
 
             helper_result = execute_helper_command(command,
-              timeout_seconds: remaining_helper_budget(deadline))
+              timeout_seconds: status_timeout_for(deadline))
             return Bundle::HelperQueryResult.new(status: :timeout) unless helper_result
 
             stdout = helper_result[:stdout]
@@ -467,22 +469,9 @@ module WifiWand
             stream.puts("wifiwand helper: #{message}") if stream
           end
 
-          private def helper_deadline(timeout_seconds)
-            monotonic_now + timeout_seconds if timeout_seconds
-          end
-
-          private def remaining_helper_budget(deadline)
-            return nil unless deadline
-
-            remaining = deadline - monotonic_now
-            remaining.positive? ? remaining : 0
-          end
-
           private def helper_timeout_options(deadline)
-            deadline ? { timeout_seconds: remaining_helper_budget(deadline) } : {}
+            deadline ? { timeout_seconds: status_timeout_for(deadline) } : {}
           end
-
-          private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
           private def macos_version(timeout_seconds: nil)
             return unless @macos_version_reader

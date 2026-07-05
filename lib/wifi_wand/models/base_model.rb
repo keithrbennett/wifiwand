@@ -20,10 +20,12 @@ require_relative '../services/public_ip_lookup'
 require_relative '../services/status_line_data_builder'
 require_relative '../services/wifi_info_builder'
 require_relative 'model_subclass_contract'
+require_relative '../timing'
 
 module WifiWand
   class BaseModel
     include StringPredicates
+    include Timing
 
     Options = Struct.new(:verbose, :utc, :wifi_interface, :out_stream, :err_stream, keyword_init: true)
 
@@ -236,18 +238,6 @@ module WifiWand
         signal_quality: connected ? signal_quality : nil,
       }
     end
-
-    private def status_deadline(timeout_in_secs)
-      monotonic_now + timeout_in_secs if timeout_in_secs
-    end
-
-    private def status_timeout_for(deadline)
-      return nil unless deadline
-
-      [deadline - monotonic_now, 0].max
-    end
-
-    private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
     # Returns true when WiFi is on and the interface is associated with an SSID.
     # Returns false when WiFi is off or there is no active SSID association.

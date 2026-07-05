@@ -5,6 +5,7 @@ require 'open3'
 require_relative '../../../spec_helper'
 require_relative '../../../../lib/wifi_wand/platforms/mac/helper/bundle'
 require_relative '../../../../lib/wifi_wand/platforms/mac/status_queries'
+require_relative '../../../../lib/wifi_wand/timing'
 
 module WifiWand
   describe Platforms::Mac::StatusQueries do
@@ -45,10 +46,10 @@ module WifiWand
         },
         system_network_info_provider:           -> { system_network_info },
         status_deadline_factory:                ->(timeout_in_secs) {
-          timeout_in_secs ? monotonic_now + timeout_in_secs : nil
+          WifiWand::Timing.status_deadline(timeout_in_secs)
         },
         status_timeout_calculator:              ->(deadline) {
-          deadline ? [deadline - monotonic_now, 0].max : nil
+          WifiWand::Timing.status_timeout_for(deadline)
         }
       )
     end
@@ -73,10 +74,6 @@ module WifiWand
           }],
         }],
       }
-    end
-
-    def monotonic_now
-      Process.clock_gettime(Process::CLOCK_MONOTONIC)
     end
 
     def expect_wifi_power_lookup(on:)
@@ -366,7 +363,7 @@ module WifiWand
     describe '#status_ipv4_addresses' do
       it 'returns an empty array when status interface detection is unavailable' do
         wifi_interface_store[:value] = nil
-        deadline = monotonic_now + 0.5
+        deadline = WifiWand::Timing.monotonic_now + 0.5
 
         expect(wifi_interface_probe).to receive(:call)
           .with(status_timeout)
@@ -380,7 +377,7 @@ module WifiWand
     describe '#status_ipv6_addresses' do
       it 'returns an empty array when status interface detection is unavailable' do
         wifi_interface_store[:value] = nil
-        deadline = monotonic_now + 0.5
+        deadline = WifiWand::Timing.monotonic_now + 0.5
 
         expect(wifi_interface_probe).to receive(:call)
           .with(status_timeout)
@@ -391,7 +388,7 @@ module WifiWand
       end
 
       it 'delegates to system network info when a status interface is available' do
-        deadline = monotonic_now + 0.5
+        deadline = WifiWand::Timing.monotonic_now + 0.5
 
         expect(system_network_info).to receive(:ipv6_addresses)
           .with(iface: 'en0', timeout_in_secs: status_timeout)

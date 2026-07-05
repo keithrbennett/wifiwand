@@ -5,10 +5,12 @@ require_relative '../network_error_constants'
 require_relative '../runtime_config'
 require_relative '../string_predicates'
 require_relative '../timing_constants'
+require_relative '../timing'
 
 module WifiWand
   class DisconnectManager
     include StringPredicates
+    include Timing
 
     EXPECTED_NETWORK_ERRORS = NetworkErrorConstants::EXPECTED_NETWORK_ERRORS
     NETWORK_OPERATION_COMMAND_ERRORS = NetworkErrorConstants::NETWORK_OPERATION_COMMAND_ERRORS
@@ -135,10 +137,6 @@ module WifiWand
       detail = error.display_message if error.respond_to?(:display_message)
       detail = error.message if string_nil_or_empty?(detail)
       detail.to_s
-    end
-
-    private def monotonic_now
-      Process.clock_gettime(Process::CLOCK_MONOTONIC)
     end
   end
 end

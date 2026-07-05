@@ -6,12 +6,14 @@ require_relative 'system_profiler_wifi_data_provider'
 require_relative '../../errors'
 require_relative '../../services/command_executor'
 require_relative '../../string_predicates'
+require_relative '../../timing'
 
 module WifiWand
   module Platforms
     module Mac
       class InterfaceDetector
         include StringPredicates
+        include WifiWand::Timing
 
         WIFI_PORT_PATTERNS = [
           /Wi[-\s]?Fi/i,
@@ -199,18 +201,6 @@ module WifiWand
         end
 
         private attr_reader :command_runner
-
-        private def status_deadline(timeout_in_secs)
-          monotonic_now + timeout_in_secs if timeout_in_secs
-        end
-
-        private def status_timeout_for(deadline)
-          return nil unless deadline
-
-          [deadline - monotonic_now, 0].max
-        end
-
-        private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
 
         private def present_string(value)
           value if value && !value.empty?

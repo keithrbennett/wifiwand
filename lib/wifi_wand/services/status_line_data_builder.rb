@@ -2,9 +2,12 @@
 
 require_relative '../connectivity_states'
 require_relative '../runtime_config'
+require_relative '../timing'
 
 module WifiWand
   class StatusLineDataBuilder
+    include Timing
+
     DEFAULT_NETWORK_WORKER_RESULT_TIMEOUT_SECONDS = 2
     DEFAULT_CONNECTIVITY_WORKER_RESULT_TIMEOUT_SECONDS = 2
     DEFAULT_WORKER_RESULT_POLL_INTERVAL_SECONDS = 0.01
@@ -231,8 +234,6 @@ module WifiWand
       end
     end
 
-    private def monotonic_now = Process.clock_gettime(Process::CLOCK_MONOTONIC)
-
     private def cancel_workers!
       @cancellation_mutex.synchronize { @cancelled = true }
     end
@@ -288,7 +289,7 @@ module WifiWand
 
     private def initial_data(worker_start_time)
       deadline = worker_start_time + worker_result_timeout_seconds_for(:network)
-      wifi_on = model.status_wifi_on?(timeout_in_secs: remaining_worker_budget(deadline))
+      wifi_on = model.status_wifi_on?(timeout_in_secs: status_timeout_for(deadline))
       {
         wifi_on:                       wifi_on,
         signal_quality:                nil,
@@ -318,7 +319,7 @@ module WifiWand
       return cancelled_worker_result(:network) if cancelled?
 
       model.status_network_identity(
-        timeout_in_secs: remaining_worker_budget(deadline)
+        timeout_in_secs: status_timeout_for(deadline)
       )
     rescue WifiWand::CommandTimeoutError
       fallback_worker_result(:network)
@@ -356,7 +357,7 @@ module WifiWand
       return fallback_worker_result(:connectivity) if dns_result[:timed_out]
       return data_when_internet_unreachable(dns_working: dns_result[:success]) unless dns_result[:success]
 
-      login_required = captive_portal_login_required(timeout_in_secs: remaining_worker_budget(deadline))
+      login_required = captive_portal_login_required(timeout_in_secs: status_timeout_for(deadline))
       return cancelled_worker_result(:connectivity) if cancelled?
 
       {
@@ -380,7 +381,7 @@ module WifiWand
 
     private def tcp_connectivity_result(deadline)
       normalize_probe_result(model.internet_tcp_connectivity?(
-        timeout_in_secs: remaining_worker_budget(deadline),
+        timeout_in_secs: status_timeout_for(deadline),
         return_details:  true
       ))
     rescue *expected_network_errors, WifiWand::Error
@@ -389,7 +390,7 @@ module WifiWand
 
     private def dns_working_result(deadline)
       normalize_probe_result(model.dns_working?(
-        timeout_in_secs: remaining_worker_budget(deadline),
+        timeout_in_secs: status_timeout_for(deadline),
         return_details:  true
       ))
     rescue *expected_network_errors, WifiWand::Error
@@ -400,10 +401,6 @@ module WifiWand
       model.captive_portal_login_required(timeout_in_secs: timeout_in_secs)
     rescue *expected_network_errors, WifiWand::Error
       :unknown
-    end
-
-    private def remaining_worker_budget(deadline)
-      [deadline - monotonic_now, 0].max
     end
 
     private def normalize_probe_result(result)
