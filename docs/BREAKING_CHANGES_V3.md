@@ -505,6 +505,47 @@ options = { verbose: true }
 model = WifiWand.create_model(options)
 ```
 
+### BaseModel Public API
+
+#### `connected_to?` removed
+
+The public `BaseModel#connected_to?` method has been removed. It was a simple
+string-match predicate that compared its argument against the current connected
+network name. The method had no production callers and is replaced by
+`BaseModel#connection_ready?`.
+
+`connection_ready?` is not a drop-in replacement: the old method compared
+`network_name == connected_network_name` (returning `true` when both were `nil`,
+i.e. not connected), while the replacement first checks `connected?` before
+comparing names. It also rescues non-redaction `WifiWand::Error` and returns
+`false` (logging in verbose mode) instead of propagating the error.
+
+##### Migration
+
+```ruby
+# Old
+model.connected_to?('MyNet')
+
+# New
+model.connection_ready?('MyNet')
+```
+
+#### `try_os_command_until` removed from BaseModel
+
+The `BaseModel#try_os_command_until` wrapper method has been removed. The
+underlying `CommandExecutor#try_os_command_until` is unchanged and remains
+available for direct use.
+
+##### Migration
+
+```ruby
+# Old
+model.try_os_command_until(cmd, condition, max_tries)
+
+# New
+model.command_executor.try_os_command_until(cmd, condition, max_tries)
+```
+
 ### CLI and Configuration Changes
 
 #### Log command output is now JSON Lines

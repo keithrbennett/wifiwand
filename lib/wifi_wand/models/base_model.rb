@@ -389,11 +389,6 @@ module WifiWand
       )
     end
 
-    def connected_to?(network_name)
-      debug_method_entry(__method__, binding, :network_name)
-      network_name == connected_network_name
-    end
-
     # Connects to the passed network name, optionally with password.
     # Delegates to ConnectionManager for complex connection logic.
     def connect(network_name, password = nil, skip_saved_password_lookup: false)
@@ -455,17 +450,6 @@ module WifiWand
         wait_interval_in_secs:                   wait_interval_in_secs,
         stringify_permitted_values_in_error_msg: stringify_permitted_values_in_error_msg
       )
-    end
-
-    # Tries an OS command until the stop condition is true.
-    # @command the command to run in the OS
-    # @stop_condition a lambda taking the command's stdout as its sole parameter
-    # Failed attempts are throttled by CommandExecutor to avoid tight process-spawn loops.
-    # @return the stdout produced by the command, or nil if max_tries was reached
-    def try_os_command_until(command, stop_condition, max_tries = 100)
-      debug_method_entry(__method__, binding, %i[command stop_condition max_tries])
-
-      @command_executor.try_os_command_until(command, stop_condition, max_tries)
     end
 
     def public_ip_lookup = @public_ip_lookup ||= PublicIpLookup.new

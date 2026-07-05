@@ -445,7 +445,7 @@ interface. Key methods include:
 *   `available_network_names`
 *   `connect(ssid, password)`
 *   `connected_network_name`
-*   `connected_to?(ssid)`
+*   `connection_ready?(network_name)`
 *   `internet_connectivity_state` — returns `:reachable`, `:unreachable`, or `:indeterminate`
 *   `captive_portal_login_required` — returns `:yes`, `:no`, or `:unknown`
 *   `cycle_network`

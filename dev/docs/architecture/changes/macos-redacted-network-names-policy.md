@@ -346,7 +346,7 @@ Examples:
 
 - `network_name`
 - `connected_network_name`
-- any future `connected_to?(ssid)`-style exact-match query
+- any `connection_ready?(network_name)`-style exact-match query
 
 Rationale:
 

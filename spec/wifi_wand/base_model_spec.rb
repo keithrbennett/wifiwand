@@ -796,26 +796,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
     end
   end
 
-  describe '#connected_to?' do
-    it 'returns true when connected to specified network' do
-      allow(subject).to receive(:connected_network_name).and_return('TestNetwork')
-
-      expect(subject.connected_to?('TestNetwork')).to be true
-    end
-
-    it 'returns false when connected to different network' do
-      allow(subject).to receive(:connected_network_name).and_return('OtherNetwork')
-
-      expect(subject.connected_to?('TestNetwork')).to be false
-    end
-
-    it 'returns false when not connected to any network' do
-      allow(subject).to receive(:connected_network_name).and_return(nil)
-
-      expect(subject.connected_to?('TestNetwork')).to be false
-    end
-  end
-
   describe '#remove_preferred_networks' do
     before do
       allow(subject).to receive(:has_preferred_network?) do |network_name|
@@ -872,21 +852,6 @@ describe 'Common WiFi Model Behavior (All OS)' do
       allow(subject).to receive(:remove_preferred_network).with('Network1').and_return(nil)
 
       expect(subject.remove_preferred_networks('Network1')).to eq(['Network1'])
-    end
-  end
-
-  describe '#try_os_command_until' do
-    it 'delegates to command executor' do
-      command = 'test command'
-      stop_condition = ->(output) { output.include?('success') }
-      max_tries = 50
-
-      allow(subject.command_executor).to receive(:try_os_command_until)
-        .with(command, stop_condition, max_tries)
-        .and_return('success output')
-
-      result = subject.try_os_command_until(command, stop_condition, max_tries)
-      expect(result).to eq('success output')
     end
   end
 

@@ -22,6 +22,9 @@ For the canonical version 3 upgrade and migration guide, see
 * `-o a` Amazing Print output now lets `amazing_print` decide whether to emit ANSI color instead of forcing
   plain text. It uses color when stdout is a terminal and plain text when output is piped or redirected; pipe
   through `tee` when you want terminal-readable plain output.
+* Remove `BaseModel#connected_to?`. Use `connection_ready?` instead (not a
+  drop-in replacement; see `docs/BREAKING_CHANGES_V3.md`).
+* Remove `BaseModel#try_os_command_until`. Use `command_executor.try_os_command_until` directly.
 * Remove `WifiWand::Main#parse_command_line`. Use `WifiWand::CommandLineParser#parse` for programmatic
   argument parsing; for normal CLI execution keep calling `WifiWand::Main#call`.
 
