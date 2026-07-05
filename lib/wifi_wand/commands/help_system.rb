@@ -86,7 +86,7 @@ module WifiWand
       def help_hint = "Use 'wifiwand help' or 'wifiwand -h' for help."
 
       private def resource_manager
-        @resource_manager ||= WifiWand::Helpers::ResourceManager.new
+        @resource_manager ||= WifiWand::Models::Helpers::ResourceManager.new
       end
 
       private def help_commands(resource_help)

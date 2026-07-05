@@ -47,7 +47,7 @@ module WifiWand
       end
 
       private def resource_manager
-        @resource_manager ||= WifiWand::Helpers::ResourceManager.new
+        @resource_manager ||= WifiWand::Models::Helpers::ResourceManager.new
       end
     end
   end

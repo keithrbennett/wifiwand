@@ -453,7 +453,7 @@ module WifiWand
     end
 
     # Resource management functionality
-    def resource_manager = @resource_manager ||= Helpers::ResourceManager.new
+    def resource_manager = @resource_manager ||= Models::Helpers::ResourceManager.new
 
     def open_resources_by_codes(*resource_codes)
       resource_manager.open_resources_by_codes(self, *resource_codes)
@@ -462,7 +462,7 @@ module WifiWand
     def available_resources_help = resource_manager.available_resources_help
 
     # QR code generator helper
-    def qr_code_generator = @qr_code_generator ||= Helpers::QrCodeGenerator.new
+    def qr_code_generator = @qr_code_generator ||= Models::Helpers::QrCodeGenerator.new
 
     # Network State Management for Testing
     # These methods help capture and restore network state during disruptive tests

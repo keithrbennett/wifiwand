@@ -302,7 +302,7 @@ stored DNS state, not a partial merge.
 ### `qrencode -o <file> <wifi_qr_string>`
 - Description: Writes the Wi-Fi QR code to an image file (PNG by default, SVG/EPS when the extension matches).
 - Dynamic Values: `file`, `wifi_qr_string`
-- Base Model Method(s): `BaseModel#generate_qr_code` via `Helpers::QrCodeGenerator#run_qrencode_file`
+- Base Model Method(s): `BaseModel#generate_qr_code` via `Models::Helpers::QrCodeGenerator#generate`
 - CLI Command(s): `qr`
 - Helpful Info: Overwrite prompts occur before the command runs; ensure the `qrencode` package is installed
   (`sudo apt install qrencode`).
@@ -310,7 +310,7 @@ stored DNS state, not a partial merge.
 ### `qrencode -t ANSI <wifi_qr_string>`
 - Description: Prints the QR code as ANSI art for inline terminal display.
 - Dynamic Values: `wifi_qr_string`
-- Base Model Method(s): `BaseModel#generate_qr_code` via `Helpers::QrCodeGenerator#run_qrencode_text`
+- Base Model Method(s): `BaseModel#print_qr_code` via `Models::Helpers::QrCodeGenerator#render`
 - CLI Command(s): `qr -`
 - Helpful Info: Interactive shells return the ANSI string so callers can `puts` it; non-interactive runs
   stream the art directly to stdout.

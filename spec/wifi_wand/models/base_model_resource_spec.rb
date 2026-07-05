@@ -60,7 +60,7 @@ describe 'BaseModel Resource Management' do
 
   describe 'resource manager delegation' do
     before do
-      allow(WifiWand::Helpers::ResourceManager).to receive(:new).and_return(mock_resource_manager)
+      allow(WifiWand::Models::Helpers::ResourceManager).to receive(:new).and_return(mock_resource_manager)
     end
 
     it 'delegates #available_resources_help to resource manager' do
@@ -79,7 +79,8 @@ describe 'BaseModel Resource Management' do
     end
 
     it 'memoizes resource manager instance' do
-      expect(WifiWand::Helpers::ResourceManager).to receive(:new).once.and_return(mock_resource_manager)
+      expect(WifiWand::Models::Helpers::ResourceManager).to \
+        receive(:new).once.and_return(mock_resource_manager)
 
       model.resource_manager
       model.resource_manager # second call should use memoized instance

@@ -653,7 +653,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'memoizes private qr_code_generator helper' do
       first = subject.send(:qr_code_generator)
       second = subject.send(:qr_code_generator)
-      expect(first).to be_a(WifiWand::Helpers::QrCodeGenerator)
+      expect(first).to be_a(WifiWand::Models::Helpers::QrCodeGenerator)
       expect(second).to equal(first)
     end
   end

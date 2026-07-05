@@ -280,7 +280,7 @@ RSpec.describe WifiWand::BaseModel do
 
     it 'memoizes qr_code_generator helper' do
       helper = double('qr')
-      allow(WifiWand::Helpers::QrCodeGenerator).to receive(:new).and_return(helper)
+      allow(WifiWand::Models::Helpers::QrCodeGenerator).to receive(:new).and_return(helper)
 
       first = model.send(:qr_code_generator)
       second = model.send(:qr_code_generator)

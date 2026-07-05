@@ -23,7 +23,7 @@ describe WifiWand::Commands::HelpSystem do
 
   before do
     open_resources = double('OpenResources', help_string: 'test resource help')
-    allow(WifiWand::Helpers::ResourceManager).to receive(:new).and_return(resource_manager)
+    allow(WifiWand::Models::Helpers::ResourceManager).to receive(:new).and_return(resource_manager)
     allow(resource_manager).to receive(:open_resources).and_return(open_resources)
   end
 

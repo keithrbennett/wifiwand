@@ -15,7 +15,7 @@ describe WifiWand::Commands::Ropen do
   end
 
   before do
-    allow(WifiWand::Helpers::ResourceManager).to receive(:new).and_return(resource_manager)
+    allow(WifiWand::Models::Helpers::ResourceManager).to receive(:new).and_return(resource_manager)
   end
 
   it_behaves_like 'binds command context',

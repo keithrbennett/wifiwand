@@ -4,7 +4,7 @@ require_relative '../../../spec_helper'
 require_relative '../../../../lib/wifi_wand/models/helpers/resource_manager'
 
 describe 'resource manager components' do
-  describe WifiWand::Helpers::ResourceManager do
+  describe WifiWand::Models::Helpers::ResourceManager do
     let(:resource_manager) { described_class.new }
     let(:mock_resources_data) do
       {
@@ -24,7 +24,7 @@ describe 'resource manager components' do
     describe '#open_resources' do
       it 'lazily loads resources from YAML file' do
         resources = resource_manager.open_resources
-        expect(resources).to be_a(WifiWand::Helpers::ResourceManager::OpenResources)
+        expect(resources).to be_a(WifiWand::Models::Helpers::ResourceManager::OpenResources)
         expect(resources).not_to be_empty
 
         # Verify it contains expected resource codes
@@ -134,7 +134,7 @@ describe 'resource manager components' do
     end
   end
 
-  describe WifiWand::Helpers::ResourceManager::OpenResource do
+  describe WifiWand::Models::Helpers::ResourceManager::OpenResource do
     describe '#help_string' do
       it 'formats help string correctly' do
         resource = described_class.new('test', 'https://example.com', 'Test Resource')
@@ -143,9 +143,9 @@ describe 'resource manager components' do
     end
   end
 
-  describe WifiWand::Helpers::ResourceManager::OpenResources do
+  describe WifiWand::Models::Helpers::ResourceManager::OpenResources do
     let(:resources) do
-      klass = WifiWand::Helpers::ResourceManager::OpenResource
+      klass = WifiWand::Models::Helpers::ResourceManager::OpenResource
       described_class.new([
         klass.new('test1', 'https://example1.com', 'Test Resource 1'),
         klass.new('test2', 'https://example2.com', 'Test Resource 2'),
@@ -175,7 +175,7 @@ describe 'resource manager components' do
   end
 
   describe 'ResourceManager error handling and edge cases' do
-    let(:resource_manager) { WifiWand::Helpers::ResourceManager.new }
+    let(:resource_manager) { WifiWand::Models::Helpers::ResourceManager.new }
 
     describe '#load_resources' do
       it 'raises error when YAML file is missing' do

@@ -44,7 +44,7 @@ describe WifiWand::CommandLineInterface do
     let(:mock_resource_manager) { double('resource_manager') }
 
     before do
-      allow(WifiWand::Helpers::ResourceManager).to receive(:new).and_return(mock_resource_manager)
+      allow(WifiWand::Models::Helpers::ResourceManager).to receive(:new).and_return(mock_resource_manager)
     end
 
     describe 'ropen command' do

@@ -57,7 +57,7 @@ describe WifiWand::CommandLineInterface do
           'resource_manager',
           available_resources_help: 'Available resources help text'
         )
-        allow(WifiWand::Helpers::ResourceManager).to receive(:new).and_return(resource_manager)
+        allow(WifiWand::Models::Helpers::ResourceManager).to receive(:new).and_return(resource_manager)
         ropen_command = WifiWand::Commands::Ropen.new.bind(cli)
         allow(cli).to receive(:resolve_command).with('ropen').and_return(ropen_command)
 

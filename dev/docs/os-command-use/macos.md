@@ -265,7 +265,7 @@ The `open` utility launches macOS applications and resources via the default han
 ### `qrencode -o <file> <wifi_qr_string>`
 - Description: Renders the Wi-Fi credentials QR code to an image file.
 - Dynamic Values: `file` (from CLI/filespec), `wifi_qr_string` (escapes SSID/password/hidden flags)
-- Base Model Method(s): `BaseModel#generate_qr_code` via `Helpers::QrCodeGenerator#run_qrencode_file`
+- Base Model Method(s): `BaseModel#generate_qr_code` via `Models::Helpers::QrCodeGenerator#generate`
 - CLI Command(s): `qr` (file output)
 - Helpful Info: Output type switches to SVG/EPS when the filename extension matches; overwrite prompts run
   before the command executes.
@@ -273,7 +273,7 @@ The `open` utility launches macOS applications and resources via the default han
 ### `qrencode -t ANSI <wifi_qr_string>`
 - Description: Emits an ANSI-art QR code to stdout.
 - Dynamic Values: `wifi_qr_string`
-- Base Model Method(s): `BaseModel#generate_qr_code` via `Helpers::QrCodeGenerator#run_qrencode_text`
+- Base Model Method(s): `BaseModel#print_qr_code` via `Models::Helpers::QrCodeGenerator#render`
 - CLI Command(s): `qr -`
 - Helpful Info: In non-interactive CLI mode the ANSI output streams directly to stdout; interactive shells
   return the string so callers can `puts` it manually.
