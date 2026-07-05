@@ -1888,7 +1888,7 @@ module WifiWand
             connected_network_name: 'TestNet'
           )
           allow(model).to receive(:_disconnect).and_return(nil)
-          allow(model).to receive(:wait_until_disassociated!)
+          allow(model.disconnect_manager).to receive(:wait_until_disassociated!)
             .and_raise(wait_timeout_error(action: :disassociated, timeout: 5))
 
           expect { model.disconnect }
@@ -1902,7 +1902,7 @@ module WifiWand
             connected_network_name: nil
           )
           allow(model).to receive(:_disconnect).and_return(nil)
-          allow(model).to receive(:wait_until_disassociated!)
+          allow(model.disconnect_manager).to receive(:wait_until_disassociated!)
             .and_raise(wait_timeout_error(action: :disassociated, timeout: 5))
 
           expect { model.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) { |error|
@@ -1918,7 +1918,7 @@ module WifiWand
             connected_network_name: 'TestNet',
             wifi_transport:         transport
           )
-          allow(model).to receive(:wait_until_disassociated!)
+          allow(model.disconnect_manager).to receive(:wait_until_disassociated!)
           allow(transport).to receive(:disconnect)
             .and_raise(os_command_error(
               exitstatus: 1,
@@ -1931,7 +1931,7 @@ module WifiWand
             expect(error.reason).to include('ifconfig disassociate fallback')
             expect(error.reason).to include('permission denied')
           end
-          expect(model).not_to have_received(:wait_until_disassociated!)
+          expect(model.disconnect_manager).not_to have_received(:wait_until_disassociated!)
         end
 
         it 'normalizes macOS disconnect timeouts as disconnection errors' do
@@ -1941,7 +1941,7 @@ module WifiWand
             connected_network_name: 'TestNet',
             wifi_transport:         transport
           )
-          allow(model).to receive(:wait_until_disassociated!)
+          allow(model.disconnect_manager).to receive(:wait_until_disassociated!)
           allow(transport).to receive(:disconnect)
             .and_raise(WifiWand::CommandTimeoutError.new(
               command:         'sudo ifconfig en0 disassociate',
@@ -1953,7 +1953,7 @@ module WifiWand
             expect(error.reason).to include('Command timed out after 5 seconds')
             expect(error.reason).to include('sudo ifconfig en0 disassociate')
           end
-          expect(model).not_to have_received(:wait_until_disassociated!)
+          expect(model.disconnect_manager).not_to have_received(:wait_until_disassociated!)
         end
 
         it 'normalizes macOS disconnect spawn failures as disconnection errors' do
@@ -1963,7 +1963,7 @@ module WifiWand
             connected_network_name: 'TestNet',
             wifi_transport:         transport
           )
-          allow(model).to receive(:wait_until_disassociated!)
+          allow(model.disconnect_manager).to receive(:wait_until_disassociated!)
           allow(transport).to receive(:disconnect)
             .and_raise(WifiWand::CommandSpawnError.new(
               command: 'ifconfig en0 disassociate',
@@ -1976,17 +1976,20 @@ module WifiWand
             expect(error.reason).to include('ifconfig en0 disassociate')
             expect(error.reason).to include('Resource temporarily unavailable')
           end
-          expect(model).not_to have_received(:wait_until_disassociated!)
+          expect(model.disconnect_manager).not_to have_received(:wait_until_disassociated!)
         end
 
         it 'raises when disassociation is only transient during verification' do
           allow(model).to receive_messages(
-            wifi_on?:                            true,
-            connected_network_name:              'TestNet',
-            disconnect_stability_window_in_secs: 0.1
+            wifi_on?:               true,
+            connected_network_name: 'TestNet'
           )
-          allow(model).to receive_messages(_disconnect: nil, wait_until_disassociated!: nil,
-            disassociated_stable?: false)
+          allow(model).to receive(:_disconnect).and_return(nil)
+          allow(model.disconnect_manager).to receive_messages(
+            disconnect_stability_window_in_secs: 0.1,
+            wait_until_disassociated!:           nil,
+            disassociated_stable?:               false
+          )
 
           expect { model.disconnect }
             .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
@@ -2022,7 +2025,7 @@ module WifiWand
             exitstatus: 0,
             command:    'ifconfig en0 disassociate'
           ))
-          allow(model).to receive(:wait_until_disassociated!)
+          allow(model.disconnect_manager).to receive(:wait_until_disassociated!)
             .and_raise(wait_timeout_error(action: :disassociated, timeout: 5))
 
           expect { model.disconnect }
@@ -2035,13 +2038,13 @@ module WifiWand
             connected?:             false,
             connected_network_name: nil
           )
-          allow(model).to receive(:wait_until_disassociated!)
+          allow(model.disconnect_manager).to receive(:wait_until_disassociated!)
           allow(model).to receive(:run_command)
           expect(model).not_to receive(:wifi_transport)
 
           expect(model.disconnect).to be_nil
           expect(model).not_to have_received(:run_command)
-          expect(model).not_to have_received(:wait_until_disassociated!)
+          expect(model.disconnect_manager).not_to have_received(:wait_until_disassociated!)
         end
       end
 

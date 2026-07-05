@@ -2534,12 +2534,12 @@ module WifiWand
             connected?:             false
           )
           allow(ubuntu_model).to receive(:disconnect_associated?).and_return(false)
-          allow(ubuntu_model).to receive(:wait_until_disassociated!)
+          allow(ubuntu_model.disconnect_manager).to receive(:wait_until_disassociated!)
           allow(ubuntu_model).to receive(:run_command)
 
           expect(ubuntu_model.disconnect).to be_nil
           expect(ubuntu_model).not_to have_received(:run_command)
-          expect(ubuntu_model).not_to have_received(:wait_until_disassociated!)
+          expect(ubuntu_model.disconnect_manager).not_to have_received(:wait_until_disassociated!)
         end
       end
 
