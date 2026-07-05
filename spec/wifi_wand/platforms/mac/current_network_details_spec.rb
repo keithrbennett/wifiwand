@@ -2,6 +2,7 @@
 
 require_relative '../../../spec_helper'
 require_relative '../../../../lib/wifi_wand/platforms/mac/current_network_details'
+require_relative '../../../../lib/wifi_wand/models/helpers/security_type_normalizer'
 
 module WifiWand
   describe Platforms::Mac::CurrentNetworkDetails do
@@ -19,22 +20,7 @@ module WifiWand
     let(:wifi_interface) { 'en0' }
     let(:cache_scope_runner) { ->(&block) { block.call } }
     let(:security_normalizer) do
-      ->(security_text) do
-        return nil if security_text.match?(/802\.?1x|enterprise/i)
-
-        case security_text
-        when /WPA3/i
-          'WPA3'
-        when /WPA2/i
-          'WPA2'
-        when /WPA1/i, /WPA(?!\d)/i
-          'WPA'
-        when /WEP/i
-          'WEP'
-        when /\bnone\b|spairport_security_mode_none/i, /\bowe\b/i
-          'NONE'
-        end
-      end
+      ->(security_text) { WifiWand::Models::Helpers::SecurityTypeNormalizer.canonical_security_type_from(security_text) }
     end
     let(:system_profiler_wifi_data) { system_profiler_wifi_data_with_current_network(security_mode: 'WPA2') }
 

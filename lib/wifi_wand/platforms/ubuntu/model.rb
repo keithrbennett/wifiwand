@@ -3,6 +3,7 @@
 require 'ipaddr'
 
 require_relative '../../models/base_model'
+require_relative '../../models/helpers/security_type_normalizer'
 require_relative '../../errors'
 require_relative '../../signal_quality'
 require_relative '../../timing_constants'
@@ -377,7 +378,7 @@ module WifiWand
           # The output can be like "SSID:WPA2" or "SSID:WPA1 WPA2"
           security_type = nmcli_split(network_line, 2).last&.strip
 
-          case canonical_security_type_from(security_type)
+          case WifiWand::Models::Helpers::SecurityTypeNormalizer.canonical_security_type_from(security_type)
           when 'WPA3', 'WPA2', 'WPA'
             '802-11-wireless-security.psk'
           when 'WEP'
@@ -1021,7 +1022,7 @@ module WifiWand
           if security_type.to_s.empty? || security_type == '--'
             'NONE'
           else
-            canonical_security_type_from(security_type)
+            WifiWand::Models::Helpers::SecurityTypeNormalizer.canonical_security_type_from(security_type)
           end
         end
 

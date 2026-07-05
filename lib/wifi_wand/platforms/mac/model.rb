@@ -3,6 +3,7 @@
 require 'shellwords'
 
 require_relative '../../models/base_model'
+require_relative '../../models/helpers/security_type_normalizer'
 require_relative '../../errors'
 require_relative '../../timing_constants'
 require_relative 'helper/swift_runtime'
@@ -481,7 +482,7 @@ module WifiWand
             connected_network_name_reader:          -> { _connected_network_name },
             wifi_interface_provider:                -> { wifi_interface },
             security_normalizer:                    ->(security_text) {
-              canonical_security_type_from(security_text)
+              WifiWand::Models::Helpers::SecurityTypeNormalizer.canonical_security_type_from(security_text)
             }
           )
         end
