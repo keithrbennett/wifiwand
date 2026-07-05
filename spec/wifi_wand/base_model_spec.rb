@@ -693,7 +693,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
 
       expect do
-        incomplete_class.verify_required_methods_implemented(incomplete_class)
+        WifiWand::ModelSubclassContract.verify_required_methods_implemented(incomplete_class)
       end.to raise_error(NotImplementedError, /must implement.*_available_network_names/)
     end
 
@@ -713,7 +713,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       end
 
       expect do
-        incomplete_class.verify_required_methods_implemented(incomplete_class)
+        WifiWand::ModelSubclassContract.verify_required_methods_implemented(incomplete_class)
       end.to raise_error(NotImplementedError, /must implement.*open_resource/)
     end
 
@@ -726,7 +726,7 @@ describe 'Common WiFi Model Behavior (All OS)' do
       )
 
       expect do
-        incomplete_class.verify_required_methods_implemented(incomplete_class)
+        WifiWand::ModelSubclassContract.verify_required_methods_implemented(incomplete_class)
       end.to raise_error(NotImplementedError) { |error|
         expect(error.message).to include('connection_security_type')
         expect(error.message).to include('network_hidden?')
@@ -776,14 +776,14 @@ describe 'Common WiFi Model Behavior (All OS)' do
     it 'verifies concrete model classes implement the full required contract' do
       [WifiWand::Platforms::Mac::Model, WifiWand::Platforms::Ubuntu::Model].each do |model_class|
         expect do
-          WifiWand::BaseModel.verify_required_methods_implemented(model_class)
+          WifiWand::ModelSubclassContract.verify_required_methods_implemented(model_class)
         end.not_to raise_error
       end
     end
 
     it 'verifies concrete model public override methods are public subclass methods' do
       [WifiWand::Platforms::Mac::Model, WifiWand::Platforms::Ubuntu::Model].each do |model_class|
-        public_methods = WifiWand::BaseModel::REQUIRED_SUBCLASS_METHODS
+        public_methods = WifiWand::ModelSubclassContract::REQUIRED_SUBCLASS_METHODS
           .select { |_method_name, required_visibility| required_visibility == :public }
           .keys
         missing_methods = public_methods.reject do |method_name|

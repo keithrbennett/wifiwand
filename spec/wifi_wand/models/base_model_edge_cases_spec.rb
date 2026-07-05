@@ -55,7 +55,8 @@ RSpec.describe WifiWand::BaseModel do
     # required methods. This protects subclasses from being validated while
     # their method definitions are still in progress.
     it 'verifies required subclass methods after subclass definition' do
-      allow(described_class).to receive(:verify_required_methods_implemented).and_call_original
+      contract = WifiWand::ModelSubclassContract
+      allow(contract).to receive(:verify_required_methods_implemented).and_call_original
 
       # BaseModel verifies subclass implementations from a TracePoint(:end)
       # callback. Class.new(described_class) does not emit the class-body :end
@@ -103,7 +104,7 @@ RSpec.describe WifiWand::BaseModel do
 
       subclass = namespace.const_get(:TracePointSpecModel)
 
-      expect(described_class).to have_received(:verify_required_methods_implemented).with(subclass)
+      expect(contract).to have_received(:verify_required_methods_implemented).with(subclass)
     end
   end
 
