@@ -66,7 +66,7 @@ module WifiWand
               self,
               progress_callback:                          progress_callback,
               runtime_config:                             runtime_config,
-              expected_network_errors:                    EXPECTED_NETWORK_ERRORS,
+              expected_network_errors:                    DisconnectManager::EXPECTED_NETWORK_ERRORS,
               connectivity_worker_result_timeout_seconds: TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
             )
           end

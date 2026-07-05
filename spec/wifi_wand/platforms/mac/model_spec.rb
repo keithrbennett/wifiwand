@@ -228,7 +228,7 @@ module WifiWand
             model,
             progress_callback:                          progress_callback,
             runtime_config:                             model.runtime_config,
-            expected_network_errors:                    described_class::EXPECTED_NETWORK_ERRORS,
+            expected_network_errors:                    WifiWand::DisconnectManager::EXPECTED_NETWORK_ERRORS,
             connectivity_worker_result_timeout_seconds: WifiWand::TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
           ).and_return({})
 
@@ -905,7 +905,7 @@ module WifiWand
             allow(model).to receive(:connected_network_name).and_raise(redaction_error)
             allow(model).to receive(:connected?).and_return(true)
 
-            expect(model.send(:disconnect_association_state)).to eq(
+            expect(model.disconnect_manager.send(:disconnect_association_state)).to eq(
               associated:   true,
               network_name: nil
             )
@@ -918,7 +918,7 @@ module WifiWand
             allow(model).to receive(:connected_network_name).and_raise(redaction_error)
             allow(model).to receive(:connected?).and_return(false)
 
-            expect(model.send(:disconnect_association_state)).to eq(
+            expect(model.disconnect_manager.send(:disconnect_association_state)).to eq(
               associated:   false,
               network_name: nil
             )

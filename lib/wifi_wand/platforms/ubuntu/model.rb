@@ -41,7 +41,7 @@ module WifiWand
             self,
             progress_callback:                          progress_callback,
             runtime_config:                             runtime_config,
-            expected_network_errors:                    EXPECTED_NETWORK_ERRORS,
+            expected_network_errors:                    DisconnectManager::EXPECTED_NETWORK_ERRORS,
             connectivity_worker_result_timeout_seconds: TimingConstants::OVERALL_CONNECTIVITY_TIMEOUT
           )
         end
@@ -99,7 +99,7 @@ module WifiWand
           output.split("\n").any? { |line| line.strip == wifi_interface }
         end
 
-        private def disconnect_associated?
+        def disconnect_associated?
           return false unless wifi_on?
 
           result = run_command(
@@ -367,7 +367,7 @@ module WifiWand
             output = run_command(
               ['nmcli', '-t', '-f', 'SSID,SECURITY', 'dev', 'wifi', 'list'], raise_on_error: false
             ).stdout
-          rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
+          rescue *WifiWand::DisconnectManager::NETWORK_OPERATION_COMMAND_ERRORS
             return nil # Can't scan, so can't determine the type.
           end
 
@@ -701,7 +701,7 @@ module WifiWand
           begin
             output = run_command(['nmcli', '-t', '-f', 'GENERAL.CONNECTION', 'dev', 'show', interface],
               raise_on_error: false).stdout
-          rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
+          rescue *WifiWand::DisconnectManager::NETWORK_OPERATION_COMMAND_ERRORS
             return nil
           end
 
@@ -724,7 +724,7 @@ module WifiWand
             tokens = output.split("\n").first&.split
             dev_index = tokens&.index('dev')
             dev_index ? tokens[dev_index + 1] : nil
-          rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
+          rescue *WifiWand::DisconnectManager::NETWORK_OPERATION_COMMAND_ERRORS
             nil
           end
         end
@@ -757,7 +757,7 @@ module WifiWand
               # Split only on the first colon so IPv6 addresses (which contain colons) are preserved
               line.split(':', 2).last.strip
             end.reject(&:empty?).uniq
-          rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
+          rescue *WifiWand::DisconnectManager::NETWORK_OPERATION_COMMAND_ERRORS
             # If we can't get connection info, return empty array
             []
           end
@@ -955,7 +955,7 @@ module WifiWand
 
           field_name, ssid = nmcli_split(line, 2)
           field_name == SAVED_WIFI_PROFILE_SSID_FIELD ? ssid : nil
-        rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
+        rescue *WifiWand::DisconnectManager::NETWORK_OPERATION_COMMAND_ERRORS
           nil
         end
 
@@ -1002,7 +1002,7 @@ module WifiWand
             output = run_command(
               ['nmcli', '-t', '-f', 'IN-USE,SSID,SECURITY', 'dev', 'wifi', 'list'], raise_on_error: false
             ).stdout
-          rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
+          rescue *WifiWand::DisconnectManager::NETWORK_OPERATION_COMMAND_ERRORS
             return nil # Can't scan, return nil
           end
 
@@ -1051,7 +1051,7 @@ module WifiWand
             # Extract the value after the colon
             hidden_value = hidden_line.split(':', 2).last&.strip
             hidden_value == 'yes'
-          rescue *WifiWand::BaseModel::NETWORK_OPERATION_COMMAND_ERRORS
+          rescue *WifiWand::DisconnectManager::NETWORK_OPERATION_COMMAND_ERRORS
             # If we can't get the connection info, assume it's not hidden
             false
           end
