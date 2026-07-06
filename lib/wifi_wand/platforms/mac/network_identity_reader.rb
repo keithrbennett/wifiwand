@@ -66,9 +66,9 @@ module WifiWand
           end
         end
 
+        # Callers reach this only through Mac::Model#_connected_network_name, which
+        # BaseModel#connected_network_name already guards with a wifi_on? check.
         def connected_network_name
-          raise WifiOffError, 'WiFi is off, cannot determine connected network.' unless wifi_on?
-
           with_connected_network_flag_scope do
             with_system_profiler_wifi_data_cache_scope do
               network_name = connected_network_name_raw

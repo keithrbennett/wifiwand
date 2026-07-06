@@ -439,7 +439,7 @@ module WifiWand
         end
       end
 
-      describe '#_connected_network_name' do
+      describe '#raw_connected_network_name' do
         let(:helper_double) do
           instance_double(WifiWand::Platforms::Mac::Helper::Client)
         end
@@ -453,7 +453,7 @@ module WifiWand
           result = helper_query_result.new(payload: 'HelperSSID')
           allow(helper_double).to receive(:connected_network_name).and_return(result)
 
-          expect(model._connected_network_name).to eq('HelperSSID')
+          expect(model.send(:raw_connected_network_name)).to eq('HelperSSID')
         end
 
         it 'uses networksetup for the connected SSID before reading system_profiler WiFi data' do
@@ -465,7 +465,7 @@ module WifiWand
             .and_return(command_result(stdout: "Current Wi-Fi Network: Cafe: West\n"))
           expect(model).not_to receive(:system_profiler_wifi_data)
 
-          expect(model._connected_network_name).to eq('Cafe: West')
+          expect(model.send(:raw_connected_network_name)).to eq('Cafe: West')
         end
 
         it 'falls through a networksetup placeholder SSID to system_profiler WiFi data' do
@@ -481,7 +481,7 @@ module WifiWand
             .with(['networksetup', '-getairportnetwork', 'en0'], timeout_in_secs: nil)
             .and_return(command_result(stdout: "Current Wi-Fi Network: <redacted>\n"))
 
-          expect(model._connected_network_name).to eq('ProfilerNet')
+          expect(model.send(:raw_connected_network_name)).to eq('ProfilerNet')
         end
 
         it 'does not read system_profiler WiFi data when networksetup reports no association' do
@@ -493,7 +493,7 @@ module WifiWand
             .and_return(command_result(stdout: "You are not associated with an AirPort network.\n"))
           expect(model).not_to receive(:system_profiler_wifi_data)
 
-          expect(model._connected_network_name).to be_nil
+          expect(model.send(:raw_connected_network_name)).to be_nil
         end
 
         it 'does not read system_profiler WiFi data when networksetup reports WiFi power is off' do
@@ -505,7 +505,7 @@ module WifiWand
             .and_return(command_result(stdout: "Wi-Fi power is currently off.\n"))
           expect(model).not_to receive(:system_profiler_wifi_data)
 
-          expect(model._connected_network_name).to be_nil
+          expect(model.send(:raw_connected_network_name)).to be_nil
         end
 
         it 'does not run redaction fallback work when networksetup reports no association' do
@@ -547,7 +547,7 @@ module WifiWand
           }] }, wifi_interface: 'en0')
           stub_fast_network_identity_missing
 
-          expect(model._connected_network_name).to eq('ProfilerNet')
+          expect(model.send(:raw_connected_network_name)).to eq('ProfilerNet')
         end
 
         it 'returns nil when helper returns nil and system_profiler WiFi data is missing ' \
@@ -562,7 +562,7 @@ module WifiWand
           }] }, wifi_interface: 'en0')
           stub_fast_network_identity_missing
 
-          expect(model._connected_network_name).to be_nil
+          expect(model.send(:raw_connected_network_name)).to be_nil
         end
 
         it 'does not fall back to system_profiler WiFi data when the helper explicitly ' \
@@ -571,7 +571,7 @@ module WifiWand
           allow(helper_double).to receive(:connected_network_name).and_return(result)
 
           expect(model).not_to receive(:system_profiler_wifi_data)
-          expect(model._connected_network_name).to be_nil
+          expect(model.send(:raw_connected_network_name)).to be_nil
         end
 
         it 'falls back to system_profiler WiFi data when helper is blocked by Location Services' do
@@ -588,7 +588,7 @@ module WifiWand
           }] }, wifi_interface: 'en0')
           stub_fast_network_identity_missing
 
-          expect(model._connected_network_name).to eq('ProfilerNet')
+          expect(model.send(:raw_connected_network_name)).to eq('ProfilerNet')
         end
 
         it 'refreshes connected network state across separate public read operations' do
@@ -634,8 +634,9 @@ module WifiWand
           redacted_thread = nil
           disconnected_thread = nil
 
+          allow(model).to receive(:wifi_on?).and_return(true)
+
           reader = identity_reader
-          reader.define_singleton_method(:wifi_on?) { true }
           reader.define_singleton_method(:connected_network_name_raw) do
             case Thread.current[:connected_network_name_test_mode]
             when :redacted
@@ -2205,9 +2206,9 @@ module WifiWand
         before do
           # Stub wifi_on? so connected-network reads do not attempt a real OS command.
           allow(model).to receive_messages(
-            _connected_network_name: network_name,
-            wifi_interface:          wifi_interface,
-            wifi_on?:                true
+            raw_connected_network_name: network_name,
+            wifi_interface:             wifi_interface,
+            wifi_on?:                   true
           )
         end
 
@@ -2276,7 +2277,7 @@ module WifiWand
           json_output = JSON.generate(connected_system_profiler_wifi_data)
           helper_result = helper_query_result.new(payload: nil)
 
-          allow(model).to receive(:_connected_network_name).and_call_original
+          allow(model).to receive(:raw_connected_network_name).and_call_original
           allow(model).to receive(:helper_client).and_return(helper_double)
           stub_fast_network_identity_missing
           allow(helper_double).to receive(:connected_network_name).and_return(helper_result)
@@ -2318,7 +2319,7 @@ module WifiWand
             }]
           )
 
-          allow(model).to receive(:_connected_network_name).and_call_original
+          allow(model).to receive(:raw_connected_network_name).and_call_original
           allow(model).to receive(:helper_client).and_return(helper_double)
           stub_fast_network_identity_missing
           allow(helper_double).to receive(:connected_network_name).and_return(helper_result)
@@ -2356,7 +2357,7 @@ module WifiWand
         end
 
         it 'returns nil when not connected to any network' do
-          allow(model).to receive(:_connected_network_name).and_return(nil)
+          allow(model).to receive(:raw_connected_network_name).and_return(nil)
 
           expect(model.connection_security_type).to be_nil
         end
@@ -2425,8 +2426,8 @@ module WifiWand
 
         before do
           allow(model).to receive_messages(
-            _connected_network_name: network_name,
-            wifi_interface:          wifi_interface
+            raw_connected_network_name: network_name,
+            wifi_interface:             wifi_interface
           )
         end
 
@@ -2528,7 +2529,7 @@ module WifiWand
         end
 
         it 'returns false when not connected to any network' do
-          allow(model).to receive(:_connected_network_name).and_return(nil)
+          allow(model).to receive(:raw_connected_network_name).and_return(nil)
 
           expect(model.network_hidden?).to be false
         end

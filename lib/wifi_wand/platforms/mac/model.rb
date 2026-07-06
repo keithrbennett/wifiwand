@@ -302,13 +302,13 @@ module WifiWand
           $stdin.respond_to?(:tty?) && $stdin.tty? && $stderr.respond_to?(:tty?) && $stderr.tty?
         end
 
-        # Returns the network currently connected to, or nil if none.
-
-        def connected_network_name
+        # Fulfills BaseModel's abstract-method contract; BaseModel's
+        # connected_network_name wraps this with the shared wifi_on? guard.
+        def _connected_network_name
           network_identity_reader.connected_network_name
         end
 
-        def _connected_network_name
+        private def raw_connected_network_name
           network_identity_reader.connected_network_name_raw
         end
 
@@ -479,7 +479,7 @@ module WifiWand
             system_profiler_wifi_data_cache_runner: ->(&block) {
               with_system_profiler_wifi_data_cache_scope(&block)
             },
-            connected_network_name_reader:          -> { _connected_network_name },
+            connected_network_name_reader:          -> { raw_connected_network_name },
             wifi_interface_provider:                -> { wifi_interface },
             security_normalizer:                    ->(security_text) {
               WifiWand::Models::Helpers::SecurityTypeNormalizer.canonical_security_type_from(security_text)
