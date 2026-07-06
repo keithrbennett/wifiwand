@@ -9,8 +9,7 @@ File naming guidance is below.
 * If the filename is specified in this prompt:
   * Use it
 * Else:
-  * Build a default filespec using "docs/os-command-use-#{os_name}" and adding "-#{model_abbrev}" 
-    if you know which model you are.
+  * Build a default filespec using "docs/os-command-use-#{os_name}-{model-name}" where model-name something identifying you as a model, e.g. 'gpt-5.5', 'glm-5.2'
   * Prompt the user to ask for a filespec, offering the default, to which the user can reply '.' to use the
     default.
   * Use the reply as the filespec, where '.' is replaced by your default filespec
