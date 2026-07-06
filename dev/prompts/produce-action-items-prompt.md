@@ -6,7 +6,7 @@
 - Use the cov-loupe MCP server to find information about test coverage. Prefer MCP tools such as
   `file_coverage_summary`, `file_uncovered_lines`, and `project_coverage` over reading SimpleCov resultsets
   directly or reasoning from scratch. Only if the MCP server is unavailable, use the `cov-loupe` CLI.
-- Write your analysis in a Markdown file whose name is:
+- Write your analysis in a Markdown file in untracked/ (mkdir if necessary) whose name is:
 
 today's date in YYYY-MM-DD format +
 '-action-items-' +

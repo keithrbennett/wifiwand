@@ -57,3 +57,24 @@ scan-list interpretation.
 Raise this again only if the project gains a stable, low-complexity,
 platform-agnostic source of target security type, or if maintainers explicitly
 want WifiWand to become authoritative for per-protocol credential validation.
+
+
+## Mac Swift/CoreWLAN dual runtime paths are intentionally separate
+
+1) Do not report the two distinct Swift/CoreWLAN runtime paths (compiled helper
+   app for reads vs. direct Swift source for writes) as a code quality or
+   maintenance issue by default.
+
+macOS requires Location Services permission to read SSID information (starting
+in Catalina). The compiled `wifiwand-helper.app` is a full NSApplication bundle
+with `CLLocationManagerDelegate` and can request and hold that permission.
+Connect and disconnect operations do not need Location Services — they are pure
+hardware control — and the direct Swift source scripts avoid the overhead of an
+NSApplication run loop. Adding connect/disconnect to the compiled helper would
+route simple synchronous mutations through event-loop infrastructure and tie their
+deployment to the helper install pipeline, with no compensating benefit.
+
+Raise this again only if the compiled helper app grows to subsume connect/disconnect
+operations under its umbrella, if a viable in-process CoreWLAN path becomes available
+to the direct scripts, or if maintainers explicitly decide to absorb the mutation path
+into the compiled helper for operational reasons.
