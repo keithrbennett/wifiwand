@@ -515,6 +515,277 @@ module WifiWand
         end
       end
 
+      describe 'thread safety of saved profile cache' do
+        it 'supports concurrent preferred_networks calls without corruption' do
+          nmcli_output = <<~OUT.chomp
+            Profile-A:802-11-wireless:100
+            Profile-B:802-11-wireless:200
+            Profile-C:802-11-wireless:300
+          OUT
+          allow(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .and_return(command_result(stdout: nmcli_output))
+          stub_saved_profile_ssid('Profile-A', 'NetA')
+          stub_saved_profile_ssid('Profile-B', 'NetB')
+          stub_saved_profile_ssid('Profile-C', 'NetC')
+
+          threads = Array.new(4) do
+            Thread.new { ubuntu_model.preferred_networks }
+          end
+          results = threads.map(&:value)
+          expect(results).to all(eq(%w[NetA NetB NetC]))
+        end
+
+        it 'shares the cache across concurrent threads with a single query' do
+          nmcli_output = "MyNet:802-11-wireless:100\nOtherNet:802-11-wireless:200"
+          summary_calls = 0
+          summary_mutex = Mutex.new
+          registered = Queue.new
+          release = Queue.new
+
+          allow(ubuntu_model).to receive(:run_command) do |*args, **opts|
+            cmd = args.first
+            if cmd.is_a?(Array) && cmd.take(6) == nmcli_saved_profile_summary_fields
+                .take(6) && opts[:raise_on_error] == false
+              summary_mutex.synchronize { summary_calls += 1 }
+              command_result(stdout: nmcli_output)
+            elsif cmd.is_a?(Array) &&
+                cmd[0..4] == %w[nmcli -t -f 802-11-wireless.ssid connection] &&
+                opts[:raise_on_error] == false
+              command_result(stdout: "802-11-wireless.ssid:#{cmd[6]}")
+            else
+              command_result(stdout: '')
+            end
+          end
+          allow(ubuntu_model).to receive(:with_saved_wifi_profiles_cache)
+            .and_wrap_original do |original, &block|
+            registered << true
+            release.pop
+            original.call(&block)
+          end
+
+          threads = Array.new(3) do
+            Thread.new do
+              expect(ubuntu_model.preferred_networks).to eq(%w[MyNet OtherNet])
+            end
+          end
+          Timeout.timeout(2) { 3.times { registered.pop } }
+          3.times { release << true }
+          threads.each(&:join)
+          expect(summary_calls).to eq(1)
+          expect(ubuntu_model.instance_variable_get(
+            :@saved_wifi_profiles_cache_refcount
+          )).to eq(0)
+          expect(ubuntu_model.instance_variable_get(
+            :@saved_wifi_profiles_cache_loaded
+          )).to be false
+        end
+
+        it 'resets the loading flag when the query raises, allowing retry' do
+          call_count = 0
+          call_mutex = Mutex.new
+          allow(ubuntu_model).to receive(:saved_wifi_profiles_from_summary_query) do
+            call_mutex.synchronize { call_count += 1 }
+            raise 'simulated loader failure' if call_count == 1
+
+            [
+              saved_wifi_profile('KnownNet', ssid: 'KnownNet'),
+            ]
+          end
+
+          expect { ubuntu_model.preferred_networks }
+            .to raise_error('simulated loader failure')
+
+          expect(ubuntu_model.instance_variable_get(
+            :@saved_wifi_profiles_cache_loading
+          )).to be false
+
+          expect(Timeout.timeout(2) { ubuntu_model.preferred_networks })
+            .to eq(['KnownNet'])
+        end
+
+        it 'resets the loading flag even when the loader raises a non-StandardError' do
+          call_count = 0
+          call_mutex = Mutex.new
+          allow(ubuntu_model).to receive(:saved_wifi_profiles_from_summary_query) do
+            call_mutex.synchronize { call_count += 1 }
+            raise Interrupt if call_count == 1
+
+            [
+              saved_wifi_profile('KnownNet', ssid: 'KnownNet'),
+            ]
+          end
+
+          expect { ubuntu_model.preferred_networks }
+            .to raise_error(Interrupt)
+
+          expect(ubuntu_model.instance_variable_get(
+            :@saved_wifi_profiles_cache_loading
+          )).to be false
+
+          expect(Timeout.timeout(2) { ubuntu_model.preferred_networks })
+            .to eq(['KnownNet'])
+        end
+
+        it 'unblocks waiters when the loader fails' do
+          loader_call_count = 0
+          loader_mutex = Mutex.new
+          loader_in_query = Queue.new
+          release_loader = Queue.new
+          allow(ubuntu_model).to receive(:saved_wifi_profiles_from_summary_query) do
+            loader_mutex.synchronize { loader_call_count += 1 }
+            if loader_call_count == 1
+              loader_in_query << true
+              release_loader.pop
+              raise 'simulated loader failure'
+            end
+
+            [
+              saved_wifi_profile('KnownNet', ssid: 'KnownNet'),
+            ]
+          end
+
+          # Start a loader that will block, then fail
+          loader = Thread.new do
+            expect { ubuntu_model.preferred_networks }
+              .to raise_error('simulated loader failure')
+          end
+          Timeout.timeout(2) { loader_in_query.pop }
+
+          # Start a waiter — must see loading and wait on CV
+          waiter_done = Queue.new
+          waiter = Thread.new do
+            Timeout.timeout(2) do
+              ubuntu_model.preferred_networks
+              waiter_done << true
+            end
+          end
+
+          # Release the loader to fail; waiter should retry and succeed
+          release_loader << true
+          loader.join
+          Timeout.timeout(2) { waiter_done.pop }
+          waiter.join
+          expect(ubuntu_model.instance_variable_get(
+            :@saved_wifi_profiles_cache_refcount
+          )).to eq(0)
+          expect(ubuntu_model.instance_variable_get(
+            :@saved_wifi_profiles_cache_loading
+          )).to be false
+        end
+
+        it 'does not block cache consumers when an uncached caller is querying' do
+          nmcli_output = 'KnownNet:802-11-wireless:100'
+          allow(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .and_return(command_result(stdout: nmcli_output))
+          stub_saved_profile_ssid('KnownNet', 'KnownNet')
+
+          uncached_in_query = Queue.new
+          release_uncached = Queue.new
+          call_count = 0
+          call_mutex = Mutex.new
+          allow(ubuntu_model).to receive(:saved_wifi_profiles_from_summary_query)
+            .and_wrap_original do |original, &block|
+            first = call_mutex.synchronize do
+              call_count += 1
+              call_count == 1
+            end
+            if first
+              uncached_in_query << true
+              release_uncached.pop
+            end
+            original.call(&block)
+          end
+
+          uncached = Thread.new do
+            expect(ubuntu_model.remove_preferred_network('KnownNet'))
+              .to eq(['KnownNet'])
+          end
+          Timeout.timeout(2) { uncached_in_query.pop }
+
+          expect(ubuntu_model.instance_variable_get(
+            :@saved_wifi_profiles_cache_refcount
+          )).to eq(0)
+
+          cache_call_complete = Queue.new
+          cached = Thread.new do
+            ubuntu_model.has_preferred_network?('KnownNet')
+            cache_call_complete << true
+          end
+          Timeout.timeout(2) { cache_call_complete.pop }
+
+          release_uncached << true
+          uncached.join
+          cached.join
+        end
+
+        it 'supports concurrent has_preferred_network? calls' do
+          nmcli_output = 'KnownNet:802-11-wireless:100'
+          allow(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .and_return(command_result(stdout: nmcli_output))
+          stub_saved_profile_ssid('KnownNet', 'KnownNet')
+
+          threads = Array.new(4) do
+            Thread.new { expect(ubuntu_model.has_preferred_network?('KnownNet')).to be true }
+          end
+          threads.each(&:join)
+        end
+
+        it 'supports concurrent preferred_network_password calls' do
+          nmcli_output = 'SecureNet:802-11-wireless:100'
+          allow(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .and_return(command_result(stdout: nmcli_output))
+          stub_saved_profile_ssid('SecureNet', 'SecureNet')
+          allow(ubuntu_model).to receive(:_preferred_network_password)
+            .with('SecureNet', timeout_in_secs: :default)
+            .and_return('the-password')
+
+          threads = Array.new(3) do
+            Thread.new { expect(ubuntu_model.preferred_network_password('SecureNet')).to eq('the-password') }
+          end
+          threads.each(&:join)
+        end
+
+        it 'does not deadlock when the cache is re-entered on the same thread' do
+          nmcli_output = 'KnownNet:802-11-wireless:100'
+          allow(ubuntu_model).to receive(:run_command)
+            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .and_return(command_result(stdout: nmcli_output))
+          stub_saved_profile_ssid('KnownNet', 'KnownNet')
+
+          summary_calls = 0
+          summary_mutex = Mutex.new
+          allow(ubuntu_model).to receive(:saved_wifi_profiles_from_summary_query)
+            .and_wrap_original do |original|
+            summary_mutex.synchronize { summary_calls += 1 }
+            original.call
+          end
+
+          # Mirror the real re-entrant pattern cited in the commit message:
+          # connect() opens the cache, then ConnectionManager calls back into
+          # has_preferred_network? on the same thread, which re-enters
+          # with_saved_wifi_profiles_cache. Releasing the mutex before yield
+          # is what prevents a same-thread deadlock here.
+          result = Timeout.timeout(2) do
+            ubuntu_model.send(:with_saved_wifi_profiles_cache) do
+              ubuntu_model.has_preferred_network?('KnownNet')
+            end
+          end
+
+          expect(result).to be true
+          expect(summary_calls).to eq(1)
+          expect(ubuntu_model.instance_variable_get(
+            :@saved_wifi_profiles_cache_refcount
+          )).to eq(0)
+          expect(ubuntu_model.instance_variable_get(
+            :@saved_wifi_profiles_cache_loaded
+          )).to be false
+        end
+      end
+
       describe '#remove_preferred_network' do
         it 'returns an empty array without deleting when network not present' do
           allow(ubuntu_model).to receive(:saved_wifi_profiles).and_return([

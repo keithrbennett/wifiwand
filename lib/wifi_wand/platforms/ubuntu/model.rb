@@ -31,7 +31,13 @@ module WifiWand
         ].freeze
         SavedWifiProfile = Struct.new(:name, :ssid, :type, :timestamp, keyword_init: true)
 
-        def initialize(options = {}) = super
+        def initialize(options = {})
+          super
+          @saved_wifi_profiles_cache_mutex = Mutex.new
+          @saved_wifi_profiles_cache_refcount = 0
+          @saved_wifi_profiles_cache_loading = false
+          @saved_wifi_profiles_cache_cond = ConditionVariable.new
+        end
 
         def self.os_id
           :ubuntu
@@ -881,13 +887,50 @@ module WifiWand
         end
 
         private def saved_wifi_profiles
-          return saved_wifi_profiles_from_summary_query unless @saved_wifi_profiles_cache_active
+          loop do
+            result = @saved_wifi_profiles_cache_mutex.synchronize do
+              break :load_uncached unless @saved_wifi_profiles_cache_refcount > 0
+              break @saved_wifi_profiles_cache if @saved_wifi_profiles_cache_loaded
+              break :wait if @saved_wifi_profiles_cache_loading
 
-          unless @saved_wifi_profiles_cache_loaded
-            @saved_wifi_profiles_cache = saved_wifi_profiles_from_summary_query
-            @saved_wifi_profiles_cache_loaded = true
+              @saved_wifi_profiles_cache_loading = true
+              :load_and_cache
+            end
+            case result
+            when :load_uncached
+              return saved_wifi_profiles_from_summary_query
+            when :load_and_cache
+              begin
+                profiles = saved_wifi_profiles_from_summary_query
+                return @saved_wifi_profiles_cache_mutex.synchronize do
+                  # Single-flight invariant: the loading flag guarantees this
+                  # thread is the sole writer here, so loaded is still false.
+                  @saved_wifi_profiles_cache = profiles
+                  @saved_wifi_profiles_cache_loaded = true
+                  @saved_wifi_profiles_cache
+                end
+              ensure
+                @saved_wifi_profiles_cache_mutex.synchronize do
+                  @saved_wifi_profiles_cache_loading = false
+                  @saved_wifi_profiles_cache_cond.broadcast
+                end
+              end
+            when :wait
+              @saved_wifi_profiles_cache_mutex.synchronize do
+                until @saved_wifi_profiles_cache_loaded
+                  break unless @saved_wifi_profiles_cache_loading
+
+                  @saved_wifi_profiles_cache_cond.wait(
+                    @saved_wifi_profiles_cache_mutex
+                  )
+                end
+              end
+              # Loop back to re-evaluate: loaded → return result,
+              # not loading → try loading ourselves.
+            else
+              return result
+            end
           end
-          @saved_wifi_profiles_cache
         end
 
         private def saved_wifi_profiles_from_summary_query
@@ -970,18 +1013,24 @@ module WifiWand
         end
 
         private def with_saved_wifi_profiles_cache
-          if @saved_wifi_profiles_cache_active
-            yield
-          else
-            @saved_wifi_profiles_cache_active = true
-            @saved_wifi_profiles_cache = nil
-            @saved_wifi_profiles_cache_loaded = false
-            begin
-              yield
-            ensure
+          @saved_wifi_profiles_cache_mutex.synchronize do
+            @saved_wifi_profiles_cache_refcount += 1
+            if @saved_wifi_profiles_cache_refcount == 1
               @saved_wifi_profiles_cache = nil
               @saved_wifi_profiles_cache_loaded = false
-              @saved_wifi_profiles_cache_active = false
+              @saved_wifi_profiles_cache_loading = false
+            end
+          end
+          begin
+            yield
+          ensure
+            @saved_wifi_profiles_cache_mutex.synchronize do
+              @saved_wifi_profiles_cache_refcount -= 1
+              if @saved_wifi_profiles_cache_refcount == 0
+                @saved_wifi_profiles_cache = nil
+                @saved_wifi_profiles_cache_loaded = false
+                @saved_wifi_profiles_cache_loading = false
+              end
             end
           end
         end
