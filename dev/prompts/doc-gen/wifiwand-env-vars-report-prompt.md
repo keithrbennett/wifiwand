@@ -42,10 +42,16 @@ documentation.
 ## Report Structure
 
 Write the report to a Markdown file in `dev/reports/`. Name it with today's date, HH::MM time in UTC,
-the topic, and your model or agent name, for example:
+the topic, and your model or agent name
 
 ```text
-YYYY-MM-DD-HH-MM-wifiwand-env-vars-codex.md
+YYYY-MM-DD-HH-MM-wifiwand-env-vars-{model-name}.md
+```
+
+, for example:
+
+```text
+2026-07-06-2001-wifiwand-env-vars-deepseek.md
 ```
 
 Use this structure:

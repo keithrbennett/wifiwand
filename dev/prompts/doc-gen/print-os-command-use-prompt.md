@@ -1,6 +1,8 @@
 # Printing OS Command Use Information
 
 Create or modify a markdown file with the information I will describe below.
+Place it the untracked/ dir; create the directory if necessary.
+File naming guidance is below.
 
 ### Naming the Output Markdown File
 
