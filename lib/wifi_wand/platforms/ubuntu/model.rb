@@ -23,6 +23,7 @@ module WifiWand
         SAVED_WIFI_PROFILE_SUMMARY_FIELDS = 'NAME,TYPE,TIMESTAMP'
         SAVED_WIFI_PROFILE_SSID_FIELD = '802-11-wireless.ssid'
         SAVED_WIFI_PROFILE_SSID_LOOKUP_WORKERS = 8
+        SAVED_WIFI_PROFILE_SUMMARY_TIMEOUT_SECONDS = 5
         DNS_CONNECTION_FIELDS = %w[
           ipv4.dns
           ipv4.ignore-auto-dns
@@ -935,9 +936,14 @@ module WifiWand
 
         private def saved_wifi_profiles_from_summary_query
           # raise_on_error is false so nmcli exit failures can be handled explicitly.
+          # The timeout bounds the loader so a hung nmcli cannot wedge the cache
+          # (and the waiters sleeping on the ConditionVariable) indefinitely;
+          # CommandTimeoutError is raised regardless of raise_on_error and caught below.
           result = run_command(
             ['nmcli', '-t', '-f', SAVED_WIFI_PROFILE_SUMMARY_FIELDS, 'connection',
-              'show'], raise_on_error: false
+              'show'],
+            raise_on_error:  false,
+            timeout_in_secs: SAVED_WIFI_PROFILE_SUMMARY_TIMEOUT_SECONDS
           )
           return [] unless result.success?
 

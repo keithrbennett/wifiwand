@@ -37,6 +37,13 @@ module WifiWand
       %w[nmcli -t -f NAME,TYPE,TIMESTAMP connection show]
     end
 
+    def summary_run_command_options
+      {
+        raise_on_error:  false,
+        timeout_in_secs: WifiWand::Platforms::Ubuntu::Model::SAVED_WIFI_PROFILE_SUMMARY_TIMEOUT_SECONDS,
+      }
+    end
+
     def nmcli_saved_profile_ssid_fields(profile_name)
       ['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show', profile_name]
     end
@@ -422,14 +429,14 @@ module WifiWand
       describe '#find_best_profile_for_ssid' do
         it 'returns nil when listing connections fails' do
           expect(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stderr: 'Error', exitstatus: 1, command: 'nmcli'))
           expect(ubuntu_model.send(:find_best_profile_for_ssid, 'SSID')).to be_nil
         end
 
         it 'prefers the newest profile whose configured SSID matches' do
           expect(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(
               stdout: "MySSID:802-11-wireless:100\n" \
                 "Renamed Profile:802-11-wireless:300\n" \
@@ -448,7 +455,7 @@ module WifiWand
       describe 'saved profile cache' do
         it 'reuses profile discovery across one saved-password connect operation' do
           expect(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .once
             .and_return(command_result(
               stdout: "MySSID:802-11-wireless:100\nOtherSSID:802-11-wireless:200"
@@ -479,7 +486,7 @@ module WifiWand
 
         it 'reuses profile discovery across one multi-network removal operation' do
           expect(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .once
             .and_return(command_result(
               stdout: "Home Profile:802-11-wireless:100\n" \
@@ -502,7 +509,7 @@ module WifiWand
 
         it 'deduplicates requested names before deleting saved profiles' do
           expect(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .once
             .and_return(command_result(stdout: 'Home Profile:802-11-wireless:100'))
           stub_saved_profile_ssid('Home Profile', 'Home')
@@ -523,7 +530,7 @@ module WifiWand
             Profile-C:802-11-wireless:300
           OUT
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stdout: nmcli_output))
           stub_saved_profile_ssid('Profile-A', 'NetA')
           stub_saved_profile_ssid('Profile-B', 'NetB')
@@ -677,7 +684,7 @@ module WifiWand
         it 'does not block cache consumers when an uncached caller is querying' do
           nmcli_output = 'KnownNet:802-11-wireless:100'
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stdout: nmcli_output))
           stub_saved_profile_ssid('KnownNet', 'KnownNet')
 
@@ -723,7 +730,7 @@ module WifiWand
         it 'supports concurrent has_preferred_network? calls' do
           nmcli_output = 'KnownNet:802-11-wireless:100'
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stdout: nmcli_output))
           stub_saved_profile_ssid('KnownNet', 'KnownNet')
 
@@ -736,7 +743,7 @@ module WifiWand
         it 'supports concurrent preferred_network_password calls' do
           nmcli_output = 'SecureNet:802-11-wireless:100'
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stdout: nmcli_output))
           stub_saved_profile_ssid('SecureNet', 'SecureNet')
           allow(ubuntu_model).to receive(:_preferred_network_password)
@@ -752,7 +759,7 @@ module WifiWand
         it 'does not deadlock when the cache is re-entered on the same thread' do
           nmcli_output = 'KnownNet:802-11-wireless:100'
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stdout: nmcli_output))
           stub_saved_profile_ssid('KnownNet', 'KnownNet')
 
@@ -782,6 +789,47 @@ module WifiWand
           )).to eq(0)
           expect(ubuntu_model.instance_variable_get(
             :@saved_wifi_profiles_cache_loaded
+          )).to be false
+        end
+
+        it 'unblocks waiters when the loader times out, returning no profiles' do
+          loader_in_query = Queue.new
+          release_loader = Queue.new
+          allow(ubuntu_model).to receive(:run_command) do |command, **opts|
+            if command == nmcli_saved_profile_summary_fields &&
+                opts[:raise_on_error] == false
+              loader_in_query << true
+              release_loader.pop
+              raise(WifiWand::CommandTimeoutError.new(
+                command: command, timeout_in_secs: opts[:timeout_in_secs]
+              ))
+            else
+              command_result(stdout: '')
+            end
+          end
+
+          loader_done = Queue.new
+          loader = Thread.new do
+            expect(Timeout.timeout(2) { ubuntu_model.preferred_networks })
+              .to eq([])
+            loader_done << true
+          end
+          Timeout.timeout(2) { loader_in_query.pop }
+
+          waiter_done = Queue.new
+          waiter = Thread.new do
+            expect(Timeout.timeout(2) { ubuntu_model.preferred_networks })
+              .to eq([])
+            waiter_done << true
+          end
+
+          release_loader << true
+          Timeout.timeout(2) { loader_done.pop }
+          Timeout.timeout(2) { waiter_done.pop }
+          loader.join
+          waiter.join
+          expect(ubuntu_model.instance_variable_get(
+            :@saved_wifi_profiles_cache_loading
           )).to be false
         end
       end
@@ -1213,7 +1261,7 @@ module WifiWand
             Wired connection 1:ethernet:300
           OUT
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stdout: nmcli_output))
           stub_saved_profile_ssid('Renamed profile 1', 'TestNetwork-1')
           stub_saved_profile_ssid('TestNetwork-2', 'TestNetwork-2')
@@ -1231,7 +1279,7 @@ module WifiWand
             TestNetwork-2:802-11-wireless:200
           OUT
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stdout: nmcli_output))
           expect(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_ssid_fields('Renamed profile 1'), raise_on_error: false)
@@ -1254,7 +1302,7 @@ module WifiWand
           release_slow = Queue.new
           completion_order = Queue.new
 
-          allow(ubuntu_model).to receive(:run_command) do |command, raise_on_error: true|
+          allow(ubuntu_model).to receive(:run_command) do |command, raise_on_error: true, **|
             if command == nmcli_saved_profile_summary_fields && raise_on_error == false
               command_result(stdout: nmcli_output)
             elsif command[0, 5] == %w[nmcli -t -f 802-11-wireless.ssid connection] &&
@@ -1296,7 +1344,7 @@ module WifiWand
           active_detail_lookups = 0
           max_detail_lookups = 0
 
-          allow(ubuntu_model).to receive(:run_command) do |command, raise_on_error: true|
+          allow(ubuntu_model).to receive(:run_command) do |command, raise_on_error: true, **|
             if command == nmcli_saved_profile_summary_fields && raise_on_error == false
               command_result(stdout: nmcli_output)
             elsif command[0, 5] == %w[nmcli -t -f 802-11-wireless.ssid connection] &&
@@ -1329,7 +1377,7 @@ module WifiWand
             TestNetwork 1:802-11-wireless:200
           OUT
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stdout: nmcli_output))
           expect(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_ssid_fields('TestNetwork'), raise_on_error: false)
@@ -1343,7 +1391,7 @@ module WifiWand
 
         it 'skips a Wi-Fi profile when the fallback lookup returns an empty SSID' do
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stdout: 'Empty SSID profile:802-11-wireless:100'))
           allow(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_ssid_fields('Empty SSID profile'), raise_on_error: false)
@@ -1358,7 +1406,7 @@ module WifiWand
             Broken profile:802-11-wireless:200
           OUT
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stdout: nmcli_output))
           stub_saved_profile_ssid('Working profile', 'WorkingNetwork')
           allow(ubuntu_model).to receive(:run_command)
@@ -1371,7 +1419,7 @@ module WifiWand
         it 'returns empty array when no Wi-Fi connections exist' do
           nmcli_output = "Wired connection 1:ethernet:100\nVPN profile:vpn:200"
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stdout: nmcli_output))
 
           expect(ubuntu_model.preferred_networks).to eq([])
@@ -1379,7 +1427,7 @@ module WifiWand
 
         it 'returns empty array when the saved profile summary query fails' do
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stderr: 'network manager unavailable', exitstatus: 10))
 
           expect(ubuntu_model.preferred_networks).to eq([])
@@ -1387,7 +1435,7 @@ module WifiWand
 
         it 'returns empty array when nmcli cannot be found' do
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_raise(WifiWand::CommandNotFoundError, 'nmcli')
 
           expect(ubuntu_model.preferred_networks).to eq([])
@@ -1395,7 +1443,7 @@ module WifiWand
 
         it 'returns empty array when the saved profile query cannot start' do
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_raise(WifiWand::CommandSpawnError.new(command: 'nmcli', reason: 'spawn failed'))
 
           expect(ubuntu_model.preferred_networks).to eq([])
@@ -1403,7 +1451,7 @@ module WifiWand
 
         it 'skips a Wi-Fi profile when its fallback SSID lookup cannot start' do
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stdout: 'Saved profile:802-11-wireless:100'))
           allow(ubuntu_model).to receive(:run_command)
             .with(nmcli_saved_profile_ssid_fields('Saved profile'), raise_on_error: false)
@@ -1421,7 +1469,7 @@ module WifiWand
             VPN profile:vpn:300
           OUT
           allow(ubuntu_model).to receive(:run_command)
-            .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+            .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
             .and_return(command_result(stdout: nmcli_output))
           stub_saved_profile_ssid('TestNetwork', 'TestNetwork')
 
@@ -2389,7 +2437,7 @@ module WifiWand
               "Renamed MyNetwork:802-11-wireless:1672660200\n" \
               'OtherNetwork:802-11-wireless:1672547800'
             allow(ubuntu_model).to receive(:run_command)
-              .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+              .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
               .and_return(command_result(stdout: connection_output))
             stub_saved_profile_ssid('MyNetwork', 'MyNetwork')
             stub_saved_profile_ssid('Renamed MyNetwork', 'MyNetwork')
@@ -2404,7 +2452,7 @@ module WifiWand
               "MyNetwork:802-11-wireless:1672574400\n" \
                 'OtherNetwork:802-11-wireless:1672547800'
             allow(ubuntu_model).to receive(:run_command)
-              .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+              .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
               .and_return(command_result(stdout: connection_output))
             stub_saved_profile_ssid('MyNetwork', 'MyNetwork')
             stub_saved_profile_ssid('OtherNetwork', 'OtherNetwork')
@@ -2595,7 +2643,7 @@ module WifiWand
               "Corp\\:Profile:802-11-wireless:1672660200\n" \
                 'OtherNetwork:802-11-wireless:1672574400'
             allow(ubuntu_model).to receive(:run_command)
-              .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+              .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
               .and_return(command_result(stdout: connection_output))
             stub_saved_profile_ssid('Corp:Profile', 'Corp\\:Net')
             stub_saved_profile_ssid('OtherNetwork', 'OtherNetwork')
@@ -2608,7 +2656,7 @@ module WifiWand
               "Lab\\\\Profile:802-11-wireless:1672660200\n" \
                 'OtherNetwork:802-11-wireless:1672574400'
             allow(ubuntu_model).to receive(:run_command)
-              .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+              .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
               .and_return(command_result(stdout: connection_output))
             stub_saved_profile_ssid('Lab\\Profile', 'Lab\\\\Net')
             stub_saved_profile_ssid('OtherNetwork', 'OtherNetwork')
@@ -2621,7 +2669,7 @@ module WifiWand
               "Office-Guest:802-11-wireless:1672660200\n" \
                 'Office Extra:802-11-wireless:1672574400'
             allow(ubuntu_model).to receive(:run_command)
-              .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+              .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
               .and_return(command_result(stdout: connection_output))
             stub_saved_profile_ssid('Office-Guest', 'Office-Guest')
             stub_saved_profile_ssid('Office Extra', 'Office Extra')
@@ -2634,7 +2682,7 @@ module WifiWand
               "Office 1:802-11-wireless:1672660200\n" \
               'Office-Guest:802-11-wireless:1672547800'
             allow(ubuntu_model).to receive(:run_command)
-              .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+              .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
               .and_return(command_result(stdout: connection_output))
             stub_saved_profile_ssid('Office', 'Office')
             stub_saved_profile_ssid('Office 1', 'Office')
@@ -2651,7 +2699,7 @@ module WifiWand
               "Lab\\\\Profile:802-11-wireless:1672660200\n" \
                 'OtherNetwork:802-11-wireless:1672574400'
             allow(ubuntu_model).to receive(:run_command)
-              .with(nmcli_saved_profile_summary_fields, raise_on_error: false)
+              .with(nmcli_saved_profile_summary_fields, **summary_run_command_options)
               .and_return(command_result(stdout: connection_output))
             stub_saved_profile_ssid('Lab\\Profile', 'Lab\\\\Net')
             stub_saved_profile_ssid('OtherNetwork', 'OtherNetwork')
