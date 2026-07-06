@@ -2,7 +2,7 @@
 
 Use this document for reviewer behavior and decision rules.
 
-Use [issues-reviewed-and-dismissed.md](./issues-reviewed-and-dismissed.md) as the canonical registry of
+Use [issues-reviewed-and-dismissed-prompt.md](./issues-reviewed-and-dismissed-prompt.md) as the canonical registry of
 specific concerns that maintainers have already reviewed and dismissed, accepted as tradeoffs, or classified
 as workflow expectations rather than code defects.
 
@@ -14,7 +14,7 @@ Do not spend review budget re-raising already-settled objections unless there is
 ## Before Reporting an Issue
 
 1. Check whether the concern is already covered in
-   [issues-reviewed-and-dismissed.md](./issues-reviewed-and-dismissed.md).
+   [issues-reviewed-and-dismissed-prompt.md](./issues-reviewed-and-dismissed-prompt.md).
 2. If it is covered there, do not report it again unless the current change introduces new evidence, changes
    the underlying assumptions, or creates a distinct defect not addressed by the documented rationale.
 3. If it is not covered there, evaluate it on its actual user or maintainer impact instead of reporting
