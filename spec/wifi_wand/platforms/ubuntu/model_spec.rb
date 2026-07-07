@@ -44,6 +44,31 @@ module WifiWand
       }
     end
 
+    def thread_synchronization_timeout
+      RUBY_ENGINE == 'jruby' ? 6 : 2
+    end
+
+    def saved_wifi_profiles_cache_state
+      mutex = ubuntu_model.instance_variable_get(:@saved_wifi_profiles_cache_mutex)
+      mutex.synchronize do
+        {
+          refcount: ubuntu_model.instance_variable_get(:@saved_wifi_profiles_cache_refcount),
+          loading:  ubuntu_model.instance_variable_get(:@saved_wifi_profiles_cache_loading),
+        }
+      end
+    end
+
+    def wait_for_saved_wifi_profiles_cache_waiter
+      Timeout.timeout(thread_synchronization_timeout) do
+        loop do
+          state = saved_wifi_profiles_cache_state
+          break if state[:refcount] == 2 && state[:loading]
+
+          sleep 0.01
+        end
+      end
+    end
+
     def nmcli_saved_profile_ssid_fields(profile_name)
       ['nmcli', '-t', '-f', '802-11-wireless.ssid', 'connection', 'show', profile_name]
     end
@@ -810,22 +835,27 @@ module WifiWand
 
           loader_done = Queue.new
           loader = Thread.new do
-            expect(Timeout.timeout(2) { ubuntu_model.preferred_networks })
+            expect(
+              Timeout.timeout(thread_synchronization_timeout) { ubuntu_model.preferred_networks }
+            )
               .to eq([])
             loader_done << true
           end
-          Timeout.timeout(2) { loader_in_query.pop }
+          Timeout.timeout(thread_synchronization_timeout) { loader_in_query.pop }
 
           waiter_done = Queue.new
           waiter = Thread.new do
-            expect(Timeout.timeout(2) { ubuntu_model.preferred_networks })
+            expect(
+              Timeout.timeout(thread_synchronization_timeout) { ubuntu_model.preferred_networks }
+            )
               .to eq([])
             waiter_done << true
           end
 
+          wait_for_saved_wifi_profiles_cache_waiter
           release_loader << true
-          Timeout.timeout(2) { loader_done.pop }
-          Timeout.timeout(2) { waiter_done.pop }
+          Timeout.timeout(thread_synchronization_timeout) { loader_done.pop }
+          Timeout.timeout(thread_synchronization_timeout) { waiter_done.pop }
           loader.join
           waiter.join
           expect(ubuntu_model.instance_variable_get(
