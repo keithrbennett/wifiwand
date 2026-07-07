@@ -57,7 +57,7 @@ For upgrade-impacting API, CLI, and behavior changes, see
 - Local IPv4 info output now uses `ipv4_addresses` and returns an array.
 - Local IPv6 info output is available through `ipv6_addresses`.
 - IPv6 nameservers are now supported.
-- `public_ip_address_info` now uses Ruby's `Net::HTTP` instead of `curl`.
+- `public_ip_info` now uses Ruby's `Net::HTTP` instead of `curl`.
 
 ### Architecture Improvements
 

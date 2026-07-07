@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `ci` command (connectivity info) is the primary CLI for checking the current
+The `ci` command (connectivity state) is the primary CLI for checking the current
 internet-connectivity state.
 
 In this major release, `ci` no longer exposes a boolean result. It now reports
@@ -187,6 +187,14 @@ done
 
 Use `ci` when you want the current connectivity state as one value. Use `status`
 or `info` when you need the full network picture.
+
+### `ci` vs `status`
+
+`ci` reports host-level internet reachability by calling `internet_connectivity_state`. It can report
+`reachable` even when WiFi is off if another uplink, such as Ethernet, provides internet access.
+
+`status` is a WiFi-context summary. If WiFi is off, `status` reports Internet as unreachable without running
+the host-level probe, because the status line is describing the WiFi path rather than every possible uplink.
 
 ## How Connectivity Is Determined
 

@@ -1,5 +1,9 @@
 # `connected?` vs `internet_connectivity_state`
 
+> Maintainer analysis, not end-user API documentation. This file describes current behavior and possible
+> future naming/API cleanup. Treat recommendations here as design notes unless they have been implemented and
+> documented in `README.md` or `docs/`.
+
 ## Purpose
 
 This note documents the current semantic split between `connected?` and

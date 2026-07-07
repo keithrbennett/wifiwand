@@ -187,6 +187,11 @@ The status command checks connectivity in stages:
 Checked first via OS commands (`networksetup` on macOS, `nmcli` on Ubuntu). If WiFi is off, the
 command immediately reports Internet as unreachable without performing any connectivity probe.
 
+This short-circuit is specific to `status`. The command is a WiFi-context summary, so WiFi-off means the
+status line reports Internet as unreachable in that WiFi context. The `ci` command and `log` command call the
+host-level `internet_connectivity_state` API and may report reachable internet when another uplink, such as
+Ethernet, is active.
+
 ### Network Connection and Internet Availability
 When WiFi is on, two workers run concurrently: one checks network identity (SSID, signal quality,
 BSSID), and the other checks internet connectivity.
@@ -305,6 +310,10 @@ wifiwand -o P status
 # Amazing Print
 wifiwand -o a status
 ```
+
+For `status`, `-o p` applies Ruby `puts` behavior to the structured status hash; it does not print the same
+human one-line status string as the default formatter. For scripts, prefer compact JSON (`-o j`) or pretty
+JSON (`-o J`) and read fields explicitly.
 
 Amazing Print output uses ANSI color when stdout is a terminal and plain text when output is piped or
 redirected. Pipe through `tee` if you want terminal-readable plain output while also saving or forwarding it.

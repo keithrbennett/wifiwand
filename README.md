@@ -193,8 +193,7 @@ command that supports it.
 You can specify that output in _noninteractive_ mode be in a certain format.
 Currently, JSON, pretty JSON, YAML, inspect, puts, pretty print, and amazing print formats are supported.
 See the help for which command line switches to use.
-Amazing Print output (`-o a`) uses ANSI color when stdout is a terminal and plain text when output is piped or
-redirected. Pipe through `tee` if you want terminal-readable plain output while also saving or forwarding it.
+For `status` output-format details, see [Status Command](docs/STATUS_COMMAND.md#output-formats).
 If you are scripting against the CLI, prefer machine-readable output such as JSON (`-o j`)
 instead of parsing human-formatted text. Structured output is simpler to consume and less likely
 to change over time.
@@ -253,9 +252,6 @@ The shell is useful when you want to:
 * Use the data in formats not provided by the CLI
 * Shell out to other programs (prefix with `.`)
 * Work with the results interactively
-
-If you `gem install` (or `sudo gem install` if necessary) the `pry-coolline` gem, then Pry will use it
-for its readline operations. This can resolve some readline issues and adds several readline enhancements.
 
 ### Using Variables in the Shell
 
@@ -322,6 +318,9 @@ constants or instance variables if you want to create variables in your shell.
 
 
 ### Examples
+
+Some examples below mutate WiFi state or use inline passwords. Inline credentials can appear in shell history,
+process listings, verbose output, and terminal scrollback; see [Security Notes](docs/SECURITY_NOTES.md).
 
 #### Single Command Invocations
 
@@ -443,7 +442,9 @@ The model classes provide the library API for interacting with your Wi-Fi
 interface. Key methods include:
 
 *   `available_network_names`
+*   `associated?`
 *   `connect(ssid, password)`
+*   `connected?` — WiFi-interface state, not host-level internet reachability
 *   `connected_network_name`
 *   `connection_ready?(network_name)`
 *   `internet_connectivity_state` — returns `:reachable`, `:unreachable`, or `:indeterminate`
@@ -465,6 +466,7 @@ interface. Key methods include:
 *   `random_mac_address`
 *   `remove_preferred_networks(*ssids)`
 *   `status_line_data`
+*   `till(target_status, timeout_in_secs: nil, wait_interval_in_secs: nil)`
 *   `wifi_info`
 *   `wifi_off`
 *   `wifi_on`
@@ -474,8 +476,8 @@ Concrete models may expose OS-specific behaviors or defaults, but methods
 defined on `WifiWand::BaseModel` (including `preferred_network_password`) are
 part of the common cross-platform API.
 
-Please refer to the YARD documentation for a complete list of methods and
-their parameters.
+For the complete current API surface, inspect `lib/wifi_wand/models/base_model.rb` and the concrete platform
+models under `lib/wifi_wand/platforms/`. The command help (`wifiwand --help`) is the canonical CLI reference.
 
 **Migration: `connected_to_internet?` → `internet_connectivity_state`**
 

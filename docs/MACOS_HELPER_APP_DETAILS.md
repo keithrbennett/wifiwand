@@ -529,6 +529,6 @@ the maintainer documentation in the repository:
 
 ---
 
-**Last Updated:** 2026-05-03
+**Last Updated:** 2026-07-08
 **macOS Compatibility:** macOS 14.0 (Sonoma) and later
 **Helper Version:** Matches WifiWand gem version

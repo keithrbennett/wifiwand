@@ -131,7 +131,7 @@ wifiwand log --interval 10     # check every 10 seconds
 
 ### `--verbose-logs BOOLEAN`
 
-Enable verbose EventLogger diagnostics (shows additional details such as field-level lookup failures and log-file initialization).
+Enable verbose EventLogger diagnostics, such as field-level lookup failures and log-file initialization.
 
 ```bash
 wifiwand log --verbose-logs true
@@ -139,6 +139,21 @@ wifiwand log --verbose-logs true
 
 To disable verbose diagnostics when a default option enables them, pass
 `--verbose-logs false`.
+
+### Verbose Mode
+
+Do not combine `wifiwand log` with global `-v true` or `--verbose true`, including through
+`WIFIWAND_OPTS`. Global verbose mode prints OS-command tracing as plain text, which would corrupt the JSON
+Lines event stream, so `log` raises a `ConfigurationError` instead.
+
+Use command-specific logging diagnostics when you need extra logger detail:
+
+```bash
+wifiwand log --verbose-logs true
+```
+
+If your shell startup files export `WIFIWAND_OPTS="--verbose true"`, unset it or override it before running
+`wifiwand log`. See [ENVIRONMENT_VARIABLES.md](./ENVIRONMENT_VARIABLES.md) for details.
 
 ### `--utc BOOLEAN`, `-u BOOLEAN`
 
@@ -308,9 +323,10 @@ checks could not reach a conclusion.
 
 ### macOS Performance Note
 
-On macOS, `connected_network_name` can be slow without the Swift/CoreWLAN helper installed (see
-[MACOS_QUICK_START.md](./MACOS_QUICK_START.md)). This affects logging performance on macOS systems without
-the helper application.
+On macOS 14 and later, permission-sensitive read/query operations such as current-network lookup and scans use
+the compiled `wifiwand-helper.app` path. Run `wifiwand-macos-setup` from the macOS quick start to install or
+repair that helper. The separate direct Swift/CoreWLAN source path is used for connect/disconnect mutations
+when available, and has traditional utility fallbacks.
 
 ## File Permission Errors
 

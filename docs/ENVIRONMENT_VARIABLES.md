@@ -17,6 +17,20 @@ export WIFIWAND_OPTS="--verbose true"
 wifiwand info
 ```
 
+Do not use global verbose mode as a default when you run `wifiwand log`. The `log` command rejects global
+`--verbose true` because OS-command tracing writes plain text that would corrupt JSON Lines output:
+
+```bash
+export WIFIWAND_OPTS="--verbose true"
+wifiwand log # raises ConfigurationError
+```
+
+For logging diagnostics, use the command-specific option instead:
+
+```bash
+wifiwand log --verbose-logs true
+```
+
 The direct CLI equivalent is:
 
 ```bash
@@ -52,10 +66,11 @@ wifiwand log
 - **Overrides:** Later command-line arguments can override most defaults, but commands (e.g., `shell`) cannot
   be negated.
 - **Scope:** `WIFIWAND_OPTS` can include invocation-wide defaults such as `--verbose true`, `--utc true`, or
-  `--output-format y`. If a selected command does not use one of those defaults, WifiWand ignores it for that
-  command. Command-specific options are still validated against the selected command: `--interval 10` is valid
-  when the invocation runs `log`, but invalid when it runs `info`. Unknown options always abort with a
-  configuration error.
+  `--output-format y`. If a selected command does not use one of those defaults, WifiWand usually ignores it
+  for that command. The exception is `log`: global `--verbose true` is incompatible with the JSON Lines output
+  stream and raises a configuration error. Command-specific options are still validated against the selected
+  command: `--interval 10` is valid when the invocation runs `log`, but invalid when it runs `info`. Unknown
+  options always abort with a configuration error.
 - **Parsing errors:** If the value contains unmatched quotes or otherwise cannot be parsed, WifiWand aborts
   with a configuration error.
 

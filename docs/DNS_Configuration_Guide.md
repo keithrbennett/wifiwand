@@ -49,6 +49,26 @@ and resets `ipv6.ignore-auto-dns` to DHCP/router-provided DNS; setting IPv6-only
 any previously custom IPv4 DNS and resets `ipv4.ignore-auto-dns` to DHCP/router-provided DNS.
 Use `na clear` to clear both families explicitly.
 
+### WifiWand Commands
+
+`wifiwand na` is the cross-platform DNS command. Showing nameservers is read-only, but `clear` and server
+arguments mutate the active network DNS configuration.
+
+```bash
+# Show the active DNS servers
+wifiwand na
+wifiwand na get
+
+# Clear custom DNS and return to automatic DNS where the platform supports it
+wifiwand na clear
+
+# Replace the active DNS configuration with these servers
+wifiwand na 9.9.9.9 8.8.8.8
+```
+
+On Ubuntu, the set operation is an exact replacement for the active NetworkManager connection profile. On
+macOS, it changes the Wi-Fi network service DNS settings, which usually apply to every Wi-Fi network.
+
 #### Example: Complete DNS Setup
 ```bash
 # 1. Identify your connection
@@ -201,6 +221,9 @@ systemctl status NetworkManager
 sudo systemctl restart NetworkManager
 
 # Reset DNS cache
+sudo resolvectl flush-caches
+
+# Older Ubuntu releases may use the deprecated command name
 sudo systemd-resolve --flush-caches
 
 # Check DNS resolution

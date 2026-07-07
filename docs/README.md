@@ -21,6 +21,20 @@ This directory contains end-user and operator documentation for `WifiWand` (gem 
   health checks.
 - **[DNS Configuration (`na`)](DNS_Configuration_Guide.md)** - Managing nameservers and custom DNS settings.
 
+## Other Commands
+
+Use `wifiwand --help` as the canonical command reference. Commands without dedicated guide pages include:
+
+- `connect` / `co` - Join a WiFi network by SSID, optionally with a password.
+- `disconnect` / `d` - Disassociate from the current WiFi network without powering WiFi off.
+- `forget` / `f` - Remove saved preferred networks.
+- `till` / `t` - Wait for WiFi power, association, or internet reachability states.
+- `cycle` / `cy` - Toggle WiFi off and back on, or on and back off, depending on the starting state.
+- `qr` - Generate Wi-Fi QR codes for terminal or file output.
+- `public_ip` / `pi` - Query public IP address and country information.
+- `ropen` / `ro` - Open useful network troubleshooting web resources.
+- `random_mac` / `rmac` - Generate a random locally administered unicast MAC address.
+
 ## Technical Reference
 
 - **[macOS Helper App Details](MACOS_HELPER_APP_DETAILS.md)** - End-user guidance for the native helper used
