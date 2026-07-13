@@ -1,4 +1,4 @@
-## v3.0.0-alpha.1
+## v3.0.0
 
 For the canonical version 3 upgrade and migration guide, see
 [`docs/BREAKING_CHANGES_V3.md`](docs/BREAKING_CHANGES_V3.md).
