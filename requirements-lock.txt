@@ -1,4 +1,5 @@
 # Locked documentation build dependencies
+# Requires Python 3.10 or newer.
 # Generated from the same baseline used in cov-loupe's doc server setup.
 babel==2.17.0
 backrefs==6.1
@@ -25,7 +26,7 @@ paginate==0.5.7
 pathspec==0.12.1
 platformdirs==4.5.1
 Pygments==2.20.0
-pymdown-extensions==10.21.3
+pymdown-extensions==11.0.1
 python-dateutil==2.9.0.post0
 PyYAML==6.0.3
 pyyaml_env_tag==1.1

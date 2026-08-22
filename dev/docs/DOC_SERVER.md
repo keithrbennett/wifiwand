@@ -4,6 +4,7 @@ This project uses MkDocs to serve the Markdown documentation locally. The reposi
 documentation dependencies separate from the Ruby gem dependencies in `.docs-venv`.
 
 The helper scripts resolve repository paths themselves, so you can invoke them from any working directory.
+The docs dependency set requires Python 3.10 or newer.
 
 ## First-Time Setup
 
@@ -15,6 +16,11 @@ source /path/to/wifiwand/bin/set-up-python-for-doc-server
 
 The script must be sourced because it creates and activates `.docs-venv` in the current shell. It installs the
 locked Python packages from `requirements-lock.txt`, including MkDocs and the configured MkDocs plugins.
+If your default `python3` is older than 3.10, set `WIFIWAND_DOCS_PYTHON` before sourcing the script:
+
+```bash
+WIFIWAND_DOCS_PYTHON=/path/to/python3.13 source /path/to/wifiwand/bin/set-up-python-for-doc-server
+```
 
 After setup, start the server:
 
@@ -104,6 +110,13 @@ source /path/to/wifiwand/bin/set-up-python-for-doc-server
 
 If `python3 -m venv` is unavailable on Ubuntu, install the system venv package for your Python version and run
 the setup command again.
+
+If setup reports that Python is too old, install Python 3.10 or newer and point the docs setup at that
+interpreter:
+
+```bash
+WIFIWAND_DOCS_PYTHON=/path/to/python3.13 source /path/to/wifiwand/bin/set-up-python-for-doc-server
+```
 
 If port `8000` is already in use, pass another address through the helper script:
 
