@@ -24,6 +24,7 @@ mac-wifi-error-stack-trace.txt
 mise.toml
 node_modules/
 pkg
+checksums/
 rdoc
 rspec-errors.txt
 site/
