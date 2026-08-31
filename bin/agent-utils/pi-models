@@ -93,7 +93,7 @@ def help_text
   HELP
 end
 
-def format_table(models)
+def format_as_table(models)
   return "No models configured. Run `pi` interactively and add a provider first.\n" if models.empty?
 
   columns = [
@@ -111,16 +111,24 @@ def format_table(models)
     [max_val_length, col[:label].length].max
   end
 
-  formats = columns.each_with_index.map do |col, i|
+  format_string = columns.each_with_index.map do |col, i|
     align_sign = col[:align] == :right ? "" : "-"
     "%#{align_sign}#{widths[i]}s"
   end.join("  ") + "\n"
 
   separator = widths.map { |w| "-" * w }.join("  ") + "\n"
-  header = format(formats, *columns.map { |c| c[:label] })
-  body_lines = models.map { |m| format(formats, *columns.map { |c| c[:value].(m) }) }
+  header = format(format_string, *columns.map { |c| c[:label] })
+  body_lines = models.map { |m| format(format_string, *columns.map { |c| c[:value].(m) }) }
 
   separator + header + separator + body_lines.join + separator
+end
+
+def format_as_json(models)
+  JSON.pretty_generate(models.map(&:to_h)) + "\n"
+end
+
+def format_as_ids(models)
+  models.map { |m| "#{m.provider}/#{m.id}" }.join("\n") + "\n"
 end
 
 models = fetch_models
@@ -128,9 +136,9 @@ models = fetch_models
 if HELP_OUTPUT                                 # 0 fields
   puts help_text
 elsif JSON_OUTPUT                              # 7 fields
-  puts JSON.pretty_generate(models.map(&:to_h))
+  puts format_as_json(models)
 elsif IDS_OUTPUT                               # 2 fields
-  models.each { |m| puts "#{m.provider}/#{m.id}" }
+  puts format_as_ids(models)
 else                                           # 7 fields (default; --table)
-  print format_table(models)
+  puts format_as_table(models)
 end
