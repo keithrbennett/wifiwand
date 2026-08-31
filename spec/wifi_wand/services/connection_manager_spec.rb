@@ -289,6 +289,13 @@ describe WifiWand::ConnectionManager do
         subject.connect('TestNetwork', 'password123')
       end
 
+      it 'preserves network names containing spaces through connection activation' do
+        allow(mock_model).to receive(:connection_ready?).with('Cafe WiFi').and_return(false, true)
+        expect(mock_model).to receive(:_connect).with('Cafe WiFi', 'password123')
+
+        subject.connect('Cafe WiFi', 'password123')
+      end
+
       it 'passes valid raw PSKs through unchanged' do
         raw_psk = 'A' * 64
         expect(mock_model).to receive(:_connect).with('TestNetwork', raw_psk)

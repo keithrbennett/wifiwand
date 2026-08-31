@@ -104,6 +104,19 @@ describe WifiWand::CommandExecutor do
         expect(result.stdout.strip).to eq('test')
       end
 
+      it 'passes each array element as one literal argument with no shell parsing' do
+        # Guards the contract every OS command relies on: an argument such as a
+        # Wi-Fi SSID with spaces, glob characters, or shell metacharacters reaches
+        # the child process verbatim, never split, expanded, or interpreted.
+        tricky_args = ['Cafe WiFi', 'a * b', '$(whoami)', 'x;y', "quote'd"]
+
+        result = executor.run_command_using_args(
+          [RbConfig.ruby, '-e', 'puts ARGV', *tricky_args]
+        )
+
+        expect(result.stdout.split("\n")).to eq(tricky_args)
+      end
+
       it 'supports timeouts for array commands without changing successful behavior' do
         result = executor.run_command_using_args(
           ['sh', '-c', 'sleep 0.05; printf ok'],
