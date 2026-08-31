@@ -15,7 +15,7 @@
 #
 # Output modes (each shows a different subset of the 7 PiModel fields:
 # provider, id, name, api, reasoning, contextWindow, maxTokens):
-#   -t, --table   4 fields: provider, id, reasoning, name (default)
+#   -t, --table   7 fields: all PiModel fields (formatted table)
 #   -j, --json    7 fields: all of the above (pretty-printed JSON)
 #   -i, --ids     2 fields: provider, id (formatted as "provider/id")
 #   -h, --help    0 fields: prints help and exits
@@ -93,15 +93,34 @@ def help_text
   HELP
 end
 
-def format_models(models)
+def format_table(models)
   return "No models configured. Run `pi` interactively and add a provider first.\n" if models.empty?
 
-  header = format("%-20s %-45s %-10s %s\n", "PROVIDER", "MODEL ID", "REASONING", "NAME")
-  rows = models.map do |m|
-    format("%-20s %-45s %-10s %s\n",
-           m.provider, m.id, m.reasoning ? "yes" : "no", m.name)
+  columns = [
+    { label: "PROVIDER",   value: ->(m) { m.provider },                 align: :left  },
+    { label: "MODEL ID",   value: ->(m) { m.id },                       align: :left  },
+    { label: "API",        value: ->(m) { m.api },                      align: :left  },
+    { label: "REASONING",  value: ->(m) { m.reasoning ? "yes" : "no" }, align: :left  },
+    { label: "CONTEXT",    value: ->(m) { m.context_window.to_s },      align: :right },
+    { label: "MAX TOKENS", value: ->(m) { m.max_tokens.to_s },          align: :right },
+    { label: "NAME",       value: ->(m) { m.name },                     align: :left  }
+  ]
+
+  widths = columns.map do |col|
+    max_val_length = models.map { |m| col[:value].(m).length }.max
+    [max_val_length, col[:label].length].max
   end
-  header + rows.join
+
+  formats = columns.each_with_index.map do |col, i|
+    align_sign = col[:align] == :right ? "" : "-"
+    "%#{align_sign}#{widths[i]}s"
+  end.join("  ") + "\n"
+
+  separator = widths.map { |w| "-" * w }.join("  ") + "\n"
+  header = format(formats, *columns.map { |c| c[:label] })
+  body_lines = models.map { |m| format(formats, *columns.map { |c| c[:value].(m) }) }
+
+  separator + header + separator + body_lines.join + separator
 end
 
 models = fetch_models
@@ -112,6 +131,6 @@ elsif JSON_OUTPUT                              # 7 fields
   puts JSON.pretty_generate(models.map(&:to_h))
 elsif IDS_OUTPUT                               # 2 fields
   models.each { |m| puts "#{m.provider}/#{m.id}" }
-else                                           # 4 fields (default; --table)
-  print format_models(models)
+else                                           # 7 fields (default; --table)
+  print format_table(models)
 end
