@@ -1,0 +1,117 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# List provider/model pairs available to `pi`.
+#
+# Spawns `pi --mode rpc` headless, asks for the configured models over
+# the JSONL protocol, parses each entry into a PiModel struct, then
+# formats the array for display.
+#
+# Usage:
+#   pi-models                       # formatted table (default)
+#   pi-models --json | jq '.[0]'    # pretty-printed JSON array of hashes
+#   pi-models --ids | head -5       # one "provider/id" per line
+#   pi-models -h                    # full help
+#
+# Output modes (each shows a different subset of the 7 PiModel fields:
+# provider, id, name, api, reasoning, contextWindow, maxTokens):
+#   -t, --table   4 fields: provider, id, reasoning, name (default)
+#   -j, --json    7 fields: all of the above (pretty-printed JSON)
+#   -i, --ids     2 fields: provider, id (formatted as "provider/id")
+#   -h, --help    0 fields: prints help and exits
+
+require "json"
+require "open3"
+
+PiModel = Data.define(
+  :provider,
+  :id,
+  :name,
+  :api,
+  :reasoning,
+  :contextWindow,
+  :maxTokens
+) do
+  alias_method :context_window, :contextWindow
+  alias_method :max_tokens,     :maxTokens
+
+  def self.from_hash(raw)
+    new(**raw.slice(*members.map(&:to_s)))
+  end
+end
+
+RPC_GET_MODELS = { "type" => "get_available_models" }
+RPC_REQUEST_ID = "list-models"
+
+HELP_OUTPUT    = ARGV.delete("-h")     || ARGV.delete("--help")
+JSON_OUTPUT    = ARGV.delete("--json") || ARGV.delete("-j")
+IDS_OUTPUT     = ARGV.delete("--ids")  || ARGV.delete("-i")
+
+def fetch_models
+  Open3.popen3("pi", "--mode", "rpc", "--no-session") do |stdin, stdout, _stderr, wait_thr|
+    send_rpc_command(stdin, RPC_GET_MODELS.merge("id" => RPC_REQUEST_ID))
+
+    events = stdout.each_line(chomp: true).map { |line| JSON.parse(line) }
+    response = events.detect { |e| e["id"] == RPC_REQUEST_ID && e["type"] == "response" }
+    return event_to_models(response) if response
+
+    raise "pi exited (#{wait_thr.value.exitstatus}) before responding"
+  end
+end
+
+def send_rpc_command(stdin, command)
+  stdin.sync = true
+  stdin.puts(JSON.generate(command))
+  stdin.close
+end
+
+def event_to_models(event)
+  if event["success"]
+    event.dig("data", "models").map { |m| PiModel.from_hash(m) }
+  else
+    raise "pi error: #{event['error']}"
+  end
+end
+
+def help_text
+  <<~HELP
+    Usage: pi-models [options]
+
+    List provider/model pairs available to \`pi\`.
+
+    Options:
+      -t, --table     Formatted table (default)
+      -j, --json      Pretty-printed JSON array of model hashes
+      -i, --ids       One "provider/id" per line (shell-friendly)
+      -h, --help      Show this help and exit
+
+    Examples:
+      pi-models
+      pi-models --json | jq '.[0]'
+      pi-models --ids | head -5
+      pi-models --table            # explicit default
+  HELP
+end
+
+def format_models(models)
+  return "No models configured. Run `pi` interactively and add a provider first.\n" if models.empty?
+
+  header = format("%-20s %-45s %-10s %s\n", "PROVIDER", "MODEL ID", "REASONING", "NAME")
+  rows = models.map do |m|
+    format("%-20s %-45s %-10s %s\n",
+           m.provider, m.id, m.reasoning ? "yes" : "no", m.name)
+  end
+  header + rows.join
+end
+
+models = fetch_models
+
+if HELP_OUTPUT                                 # 0 fields
+  puts help_text
+elsif JSON_OUTPUT                              # 7 fields
+  puts JSON.pretty_generate(models.map(&:to_h))
+elsif IDS_OUTPUT                               # 2 fields
+  models.each { |m| puts "#{m.provider}/#{m.id}" }
+else                                           # 4 fields (default; --table)
+  print format_models(models)
+end
