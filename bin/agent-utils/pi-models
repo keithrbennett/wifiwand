@@ -5,18 +5,18 @@
 #
 # Spawns `pi --mode rpc` headless, asks for the configured models over
 # the JSONL protocol, parses each entry into a PiModel struct, then
-# formats the array for display.
+# formats the array for display. The struct uses snake_case Ruby member
+# names while preserving the pi RPC camelCase keys in JSON output.
 #
 # Usage:
 #   pi-models                       # formatted table (default)
-#   pi-models --json | jq '.[0]'    # pretty-printed JSON array of hashes
-#   pi-models --ids | head -5       # one "provider/id" per line
+#   pi-models --json                # pretty-printed JSON array of hashes
+#   pi-models --ids                 # one "provider/id" per line
 #   pi-models -h                    # full help
 #
-# Output modes (each shows a different subset of the 7 PiModel fields:
-# provider, id, name, api, reasoning, contextWindow, maxTokens):
-#   -t, --table   7 fields: all PiModel fields (formatted table)
-#   -j, --json    7 fields: all of the above (pretty-printed JSON)
+# Output modes:
+#   -t, --table   7 fields: provider, id, api, reasoning, context, max tokens, name
+#   -j, --json    7 keys: provider, id, name, api, reasoning, contextWindow, maxTokens
 #   -i, --ids     2 fields: provider, id (formatted as "provider/id")
 #   -h, --help    0 fields: prints help and exits
 
@@ -132,8 +132,8 @@ def help_text
 
     Examples:
       pi-models
-      pi-models --json | jq '.[0]'
-      pi-models --ids | head -5
+      pi-models --json
+      pi-models --ids
       pi-models --table            # explicit default
   HELP
 end
