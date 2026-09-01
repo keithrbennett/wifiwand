@@ -64,7 +64,7 @@ PiModel = Data.define(
   end
 end
 
-RPC_GET_MODELS = { 'type' => 'get_available_models' }
+RPC_GET_MODELS = { 'type' => 'get_available_models' }.freeze
 RPC_REQUEST_ID = 'list-models'
 
 def parse_options(argv)
@@ -159,9 +159,10 @@ def format_as_table(models)
   format_string = columns.each_with_index.map do |col, i|
     align_sign = col[:align] == :right ? '' : '-'
     "%#{align_sign}#{widths[i]}s"
-  end.join('  ') + "\n"
+  end.join('  ')
+  format_string = "#{format_string}\n"
 
-  separator = widths.map { |w| '-' * w }.join('  ') + "\n"
+  separator = "#{widths.map { |w| '-' * w }.join('  ')}\n"
   header = format(format_string, *columns.map { |c| c[:label] })
   body_lines = models.map { |m| format(format_string, *columns.map { |c| c[:value].(m) }) }
 
@@ -169,11 +170,11 @@ def format_as_table(models)
 end
 
 def format_as_json(models)
-  JSON.pretty_generate(models.map(&:to_h)) + "\n"
+  "#{JSON.pretty_generate(models.map(&:to_h))}\n"
 end
 
 def format_as_ids(models)
-  models.map { |m| "#{m.provider}/#{m.id}" }.join("\n") + "\n"
+  "#{models.map { |m| "#{m.provider}/#{m.id}" }.join("\n")}\n"
 end
 
 options = parse_options(ARGV)
