@@ -22,6 +22,7 @@
 
 require "json"
 require "open3"
+require "optparse"
 
 PiModel = Data.define(
   :provider,
@@ -43,9 +44,30 @@ end
 RPC_GET_MODELS = { "type" => "get_available_models" }
 RPC_REQUEST_ID = "list-models"
 
-HELP_OUTPUT    = ARGV.delete("-h")     || ARGV.delete("--help")
-JSON_OUTPUT    = ARGV.delete("--json") || ARGV.delete("-j")
-IDS_OUTPUT     = ARGV.delete("--ids")  || ARGV.delete("-i")
+def parse_options(argv)
+  options = { output: :table, help: false }
+
+  OptionParser.new do |opts|
+    opts.on("-t", "--table") { options[:output] = :table }
+    opts.on("-j", "--json")  { options[:output] = :json }
+    opts.on("-i", "--ids")   { options[:output] = :ids }
+    opts.on("-h", "--help")  { options[:help] = true }
+  end.parse!(argv)
+
+  if argv.any?
+    raise OptionParser::InvalidOption, argv.join(", ")
+  end
+
+  options
+rescue OptionParser::ParseError => e
+  exit_with_usage_error(e.message)
+end
+
+def exit_with_usage_error(message)
+  warn "Error: #{message}"
+  warn "Run `pi-models -h` or `pi-models --help` for usage."
+  exit 1
+end
 
 def fetch_models
   Open3.popen3("pi", "--mode", "rpc", "--no-session") do |stdin, stdout, _stderr, wait_thr|
@@ -131,13 +153,18 @@ def format_as_ids(models)
   models.map { |m| "#{m.provider}/#{m.id}" }.join("\n") + "\n"
 end
 
+options = parse_options(ARGV)
+
+if options[:help]                              # 0 fields
+  puts help_text
+  exit 0
+end
+
 models = fetch_models
 
-if HELP_OUTPUT                                 # 0 fields
-  puts help_text
-elsif JSON_OUTPUT                              # 7 fields
+if options[:output] == :json                   # 7 fields
   puts format_as_json(models)
-elsif IDS_OUTPUT                               # 2 fields
+elsif options[:output] == :ids                 # 2 fields
   puts format_as_ids(models)
 else                                           # 7 fields (default; --table)
   puts format_as_table(models)
