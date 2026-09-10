@@ -1,6 +1,14 @@
 name: Deploy documentation
 
 on:
+  # Documentation is deployed manually from the Actions tab by default.
+  # To deploy automatically after pushes to selected branches, uncomment and
+  # add, remove, or customize the branch patterns as needed:
+  # push:
+  #   branches:
+  #     - main
+  #     # - docs
+  #     # - release/*
   workflow_dispatch:
 
 permissions:
