@@ -16,11 +16,8 @@ source /path/to/wifiwand/bin/set-up-python-for-doc-server
 
 The script must be sourced because it creates and activates `.docs-venv` in the current shell. It installs the
 locked Python packages from `requirements-lock.txt`, including MkDocs and the configured MkDocs plugins.
-If your default `python3` is older than 3.10, set `WIFIWAND_DOCS_PYTHON` before sourcing the script:
-
-```bash
-WIFIWAND_DOCS_PYTHON=/path/to/python3.13 source /path/to/wifiwand/bin/set-up-python-for-doc-server
-```
+If your default `python3` is older than 3.10, make `python3` resolve to a newer interpreter before sourcing
+the script.
 
 After setup, start the server:
 
@@ -88,7 +85,10 @@ bin/update-docs-deps   # or: rake docs:update_deps
   `bin/build-docs`, and re-run the audit. If an advisory needs a version outside a range in
   `requirements.txt`, widen the range first.
 
-Both scripts honor `WIFIWAND_DOCS_PYTHON` for a Python other than `python3`.
+`rake security` runs this audit together with the Ruby audits.
+
+CI runs `bin/audit-docs-deps` in the **Security audit** job, so a newly published advisory against a pinned
+package fails that job until `requirements-lock.txt` is updated.
 
 ## Strict Build Check
 
@@ -152,12 +152,8 @@ source /path/to/wifiwand/bin/set-up-python-for-doc-server
 If `python3 -m venv` is unavailable on Ubuntu, install the system venv package for your Python version and run
 the setup command again.
 
-If setup reports that Python is too old, install Python 3.10 or newer and point the docs setup at that
-interpreter:
-
-```bash
-WIFIWAND_DOCS_PYTHON=/path/to/python3.13 source /path/to/wifiwand/bin/set-up-python-for-doc-server
-```
+If setup reports that Python is too old, install Python 3.10 or newer, make sure `python3` resolves to it, and
+run the setup command again.
 
 If port `8000` is already in use, pass another address through the helper script:
 

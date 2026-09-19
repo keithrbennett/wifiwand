@@ -37,6 +37,23 @@ RSpec.describe WifiWand::DocsTooling do
     File.chmod(0o755, path)
   end
 
+  # Child processes cannot be pointed at fake tools with stubs, so they preload a small file that redirects
+  # DocsTooling before the script under test loads it. This keeps them from ever using a real .docs-venv
+  # (or a mkdocs on the host) and needs no production hook. The path is passed to `ruby -r`, or through
+  # RUBYOPT, so it must not contain spaces when used the latter way.
+  def write_docs_tooling_seam(dir, venv_dir:, mkdocs_command: nil)
+    seam_path = File.join(dir, 'docs_tooling_seam.rb')
+    lines = [
+      "require #{File.join(repo_root, 'lib', 'wifi_wand', 'docs_tooling').inspect}",
+      "WifiWand::DocsTooling.define_singleton_method(:venv_dir) { #{venv_dir.inspect} }",
+    ]
+    if mkdocs_command
+      lines << "WifiWand::DocsTooling.define_singleton_method(:mkdocs_command) { #{mkdocs_command.inspect} }"
+    end
+    File.write(seam_path, lines.join("\n"))
+    seam_path
+  end
+
   def run_docs_script(script_name, chdir:, args: [])
     Dir.mktmpdir do |bin_dir|
       with_executable(File.join(bin_dir, 'mkdocs'), <<~SH)
@@ -45,12 +62,12 @@ RSpec.describe WifiWand::DocsTooling do
         printf '%s\\n' "$@"
       SH
 
-      env = {
-        'PATH'                   => [bin_dir, ENV.fetch('PATH', '')].join(File::PATH_SEPARATOR),
-        'WIFIWAND_DOCS_VENV_DIR' => File.join(bin_dir, 'no-docs-venv'),
-      }
+      seam_path = write_docs_tooling_seam(bin_dir, venv_dir: File.join(bin_dir, 'no-docs-venv'))
+      env = { 'PATH' => [bin_dir, ENV.fetch('PATH', '')].join(File::PATH_SEPARATOR) }
       script_path = File.join(repo_root, 'bin', script_name)
-      stdout, stderr, status = Open3.capture3(env, RbConfig.ruby, script_path, *args, chdir: chdir)
+      stdout, stderr, status = Open3.capture3(
+        env, RbConfig.ruby, '-r', seam_path, script_path, *args, chdir: chdir
+      )
 
       { stdout:, stderr:, exit_code: status.exitstatus }
     end
@@ -58,13 +75,13 @@ RSpec.describe WifiWand::DocsTooling do
 
   def run_docs_script_without_mkdocs(script_name, chdir:)
     Dir.mktmpdir do |bin_dir|
-      env = {
-        'PATH'                   => [bin_dir, ENV.fetch('PATH', '')].join(File::PATH_SEPARATOR),
-        'WIFIWAND_DOCS_MKDOCS'   => File.join(bin_dir, 'missing-mkdocs'),
-        'WIFIWAND_DOCS_VENV_DIR' => File.join(bin_dir, 'no-docs-venv'),
-      }
+      seam_path = write_docs_tooling_seam(
+        bin_dir,
+        venv_dir:       File.join(bin_dir, 'no-docs-venv'),
+        mkdocs_command: File.join(bin_dir, 'missing-mkdocs')
+      )
       script_path = File.join(repo_root, 'bin', script_name)
-      stdout, stderr, status = Open3.capture3(env, RbConfig.ruby, script_path, chdir: chdir)
+      stdout, stderr, status = Open3.capture3(RbConfig.ruby, '-r', seam_path, script_path, chdir: chdir)
 
       { stdout:, stderr:, exit_code: status.exitstatus }
     end
@@ -79,10 +96,12 @@ RSpec.describe WifiWand::DocsTooling do
         printf '%s\\n' "$@"
       SH
 
+      # RUBYOPT reaches both Rake and the build/serve script it launches.
+      seam_path = write_docs_tooling_seam(bin_dir, venv_dir: venv_dir)
       env = {
-        'PATH'                   => [bin_dir, ENV.fetch('PATH', '')].join(File::PATH_SEPARATOR),
-        'BUNDLE_GEMFILE'         => File.join(repo_root, 'Gemfile'),
-        'WIFIWAND_DOCS_VENV_DIR' => venv_dir,
+        'PATH'           => [bin_dir, ENV.fetch('PATH', '')].join(File::PATH_SEPARATOR),
+        'BUNDLE_GEMFILE' => File.join(repo_root, 'Gemfile'),
+        'RUBYOPT'        => [ENV.fetch('RUBYOPT', nil), "-r#{seam_path}"].compact.join(' '),
       }
 
       stdout, stderr, status = Open3.capture3(
@@ -101,37 +120,32 @@ RSpec.describe WifiWand::DocsTooling do
     end
   end
 
-  def with_env(overrides)
-    saved = overrides.keys.to_h { |key| [key, ENV[key]] }
-    overrides.each { |key, value| value.nil? ? ENV.delete(key) : ENV.store(key, value) }
-    yield
-  ensure
-    saved.each { |key, value| value.nil? ? ENV.delete(key) : ENV.store(key, value) }
-  end
-
   def inherited_bundler_env
     %w[BUNDLE_BIN_PATH BUNDLE_GEMFILE RUBYLIB RUBYOPT]
       .select { |key| ENV[key] }
       .to_h { |key| [key, ENV[key]] }
   end
 
-  def supported_ruby_path
-    [File.dirname(RbConfig.ruby), ENV.fetch('PATH', '')].join(File::PATH_SEPARATOR)
+  # A PATH holding only what bin/set-up-python-for-doc-server needs to reach its Python check (ruby, env,
+  # and dirname), so setup fails on the missing python3 without touching the host.
+  def path_without_python(dir)
+    bin_dir = File.join(dir, 'no-python-bin')
+    FileUtils.mkdir_p(bin_dir)
+    { 'ruby' => RbConfig.ruby, 'env' => find_on_path('env'), 'dirname' => find_on_path('dirname') }
+      .each { |name, target| File.symlink(target, File.join(bin_dir, name)) }
+    bin_dir
+  end
+
+  def find_on_path(command)
+    ENV.fetch('PATH', '')
+      .split(File::PATH_SEPARATOR)
+      .map { |dir| File.join(dir, command) }
+      .find { |path| File.file?(path) && File.executable?(path) }
   end
 
   describe 'repository-relative paths' do
     it 'resolves the virtual environment under the repository root' do
-      with_env('WIFIWAND_DOCS_VENV_DIR' => nil) do
-        expect(described_class.venv_dir).to eq(File.join(repo_root, '.docs-venv'))
-      end
-    end
-
-    it 'allows the docs virtual environment path to be overridden' do
-      Dir.mktmpdir('docs venv ') do |venv_dir|
-        with_env('WIFIWAND_DOCS_VENV_DIR' => venv_dir) do
-          expect(described_class.venv_dir).to eq(venv_dir)
-        end
-      end
+      expect(described_class.venv_dir).to eq(File.join(repo_root, '.docs-venv'))
     end
 
     it 'uses the locked requirements file as the dependency source' do
@@ -190,31 +204,13 @@ RSpec.describe WifiWand::DocsTooling do
 
       allow(described_class).to receive(:executable?).with(venv_mkdocs).and_return(true)
 
-      with_env('WIFIWAND_DOCS_MKDOCS' => nil) do
-        expect(described_class.mkdocs_command).to eq(venv_mkdocs)
-      end
+      expect(described_class.mkdocs_command).to eq(venv_mkdocs)
     end
 
     it 'falls back to PATH lookup when the repository virtual environment is unavailable' do
       allow(described_class).to receive(:executable?).with(described_class.venv_mkdocs_path).and_return(false)
 
-      with_env('WIFIWAND_DOCS_MKDOCS' => nil) do
-        expect(described_class.mkdocs_command).to eq('mkdocs')
-      end
-    end
-
-    it 'allows the MkDocs executable to be overridden' do
-      with_env('WIFIWAND_DOCS_MKDOCS' => '/opt/docs/bin/mkdocs') do
-        expect(described_class.mkdocs_command).to eq('/opt/docs/bin/mkdocs')
-      end
-    end
-
-    it 'ignores a blank MkDocs executable override' do
-      allow(described_class).to receive(:executable?).with(described_class.venv_mkdocs_path).and_return(false)
-
-      with_env('WIFIWAND_DOCS_MKDOCS' => ' ') do
-        expect(described_class.mkdocs_command).to eq('mkdocs')
-      end
+      expect(described_class.mkdocs_command).to eq('mkdocs')
     end
   end
 
@@ -362,30 +358,20 @@ RSpec.describe WifiWand::DocsTooling do
   end
 
   describe '.python_command' do
-    it 'defaults to python3' do
-      with_env('WIFIWAND_DOCS_PYTHON' => nil) do
-        expect(described_class.python_command).to eq('python3')
-      end
-    end
-
-    it 'can be overridden for environments with a non-default Python executable' do
-      with_env('WIFIWAND_DOCS_PYTHON' => '/opt/python/bin/python') do
-        expect(described_class.python_command).to eq('/opt/python/bin/python')
-      end
+    it 'uses python3' do
+      expect(described_class.python_command).to eq('python3')
     end
   end
 
   describe '.ensure_python_available!' do
-    it 'exits with setup guidance when the configured Python executable is unavailable' do
-      allow(described_class).to receive(:executable?).with('missing-python').and_return(false)
+    it 'exits with setup guidance when python3 is unavailable' do
+      allow(described_class).to receive(:executable?).with('python3').and_return(false)
 
-      with_env('WIFIWAND_DOCS_PYTHON' => 'missing-python') do
-        expect do
-          expect { described_class.ensure_python_available! }.to raise_error(SystemExit) do |error|
-            expect(error.status).to eq(1)
-          end
-        end.to output(/set WIFIWAND_DOCS_PYTHON/).to_stderr
-      end
+      expect do
+        expect { described_class.ensure_python_available! }.to raise_error(SystemExit) do |error|
+          expect(error.status).to eq(1)
+        end
+      end.to output(/make sure "python3" is on your PATH/).to_stderr
     end
   end
 
@@ -523,11 +509,8 @@ RSpec.describe WifiWand::DocsTooling do
 
     it 'returns before activation when setup fails while sourced' do
       Dir.mktmpdir('docs setup ') do |tmpdir|
-        venv_dir = File.join(tmpdir, 'venv')
         command = [
-          "export PATH=#{supported_ruby_path.inspect}",
-          "export WIFIWAND_DOCS_VENV_DIR=#{venv_dir.inspect}",
-          "export WIFIWAND_DOCS_PYTHON=#{File.join(tmpdir, 'missing-python').inspect}",
+          "export PATH=#{path_without_python(tmpdir).inspect}",
           "source #{File.join(repo_root, 'bin', 'set-up-python-for-doc-server').inspect}",
           'printf "after:%s\\n" "$?"',
         ].join("\n")
@@ -537,7 +520,7 @@ RSpec.describe WifiWand::DocsTooling do
         expect(status.exitstatus).to eq(0)
         expect(stdout).to include('after:1')
         expect(stdout).not_to include('Documentation environment ready.')
-        expect(stderr).to include('set WIFIWAND_DOCS_PYTHON')
+        expect(stderr).to include('Python executable "python3" not found')
       end
     end
 
@@ -545,12 +528,9 @@ RSpec.describe WifiWand::DocsTooling do
       skip 'zsh is not available in this environment' unless described_class.executable?('zsh')
 
       Dir.mktmpdir('docs zsh setup ') do |tmpdir|
-        venv_dir = File.join(tmpdir, 'venv')
         command = [
           "cd #{tmpdir.inspect}",
-          "export PATH=#{supported_ruby_path.inspect}",
-          "export WIFIWAND_DOCS_VENV_DIR=#{venv_dir.inspect}",
-          "export WIFIWAND_DOCS_PYTHON=#{File.join(tmpdir, 'missing-python').inspect}",
+          "export PATH=#{path_without_python(tmpdir).inspect}",
           "source #{File.join(repo_root, 'bin', 'set-up-python-for-doc-server').inspect}",
           'printf "after:%s\\n" "$?"',
         ].join("\n")
@@ -559,7 +539,7 @@ RSpec.describe WifiWand::DocsTooling do
 
         expect(status.exitstatus).to eq(0)
         expect(stdout).to include('after:1')
-        expect(stderr).to include('set WIFIWAND_DOCS_PYTHON')
+        expect(stderr).to include('Python executable "python3" not found')
         expect(stderr).not_to include('LoadError')
       end
     end

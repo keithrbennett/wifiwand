@@ -13,7 +13,7 @@ module WifiWand
     WORKSPACE_PREPARATION_ERROR = StandardError
 
     def self.venv_dir
-      ENV.fetch('WIFIWAND_DOCS_VENV_DIR', File.join(REPO_ROOT, '.docs-venv'))
+      File.join(REPO_ROOT, '.docs-venv')
     end
 
     def self.venv_mkdocs_path
@@ -65,7 +65,7 @@ module WifiWand
     end
 
     def self.python_command
-      ENV.fetch('WIFIWAND_DOCS_PYTHON', 'python3')
+      'python3'
     end
 
     def self.executable?(command)
@@ -80,9 +80,6 @@ module WifiWand
     end
 
     def self.mkdocs_command
-      mkdocs_override = ENV.fetch('WIFIWAND_DOCS_MKDOCS', '').strip
-      return mkdocs_override unless mkdocs_override.empty?
-
       return venv_mkdocs_path if executable?(venv_mkdocs_path)
 
       'mkdocs'
@@ -338,7 +335,7 @@ module WifiWand
       return if executable?(python_command)
 
       warn "Error: Python executable \"#{python_command}\" not found."
-      warn 'Install python3 or set WIFIWAND_DOCS_PYTHON to the Python executable path.'
+      warn 'Install Python 3.10 or newer and make sure "python3" is on your PATH.'
       exit 1
     end
 
