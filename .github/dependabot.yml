@@ -1,0 +1,36 @@
+# .github/dependabot.yml
+# Dependabot configuration for a Ruby gem project with a Python docs toolchain.
+
+version: 2
+updates:
+  # Maintain dependencies for Ruby (Bundler)
+  - package-ecosystem: "bundler"
+    directory: "/" # Location of package manifests
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+    commit-message:
+      # Prefix all commit messages with "chore(deps)"
+      prefix: "chore(deps)"
+      include: "scope"
+
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/" # Look for workflows in the .github/workflows directory
+    schedule:
+      interval: "daily"
+    commit-message:
+      # Prefix all commit messages with "chore(ci)"
+      prefix: "chore(ci)"
+      include: "scope"
+
+  # Maintain dependencies for Python (pip) - used for documentation.
+  # After merging an update, regenerate requirements-lock.txt with
+  # bin/update-docs-deps if it was not part of the PR.
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    commit-message:
+      prefix: "chore(docs-deps)"
+      include: "scope"
