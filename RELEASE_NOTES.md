@@ -2,8 +2,8 @@
 
 ### Documentation
 
-* Publish the documentation site from version tags so the web documentation
-  reflects the latest released version of WifiWand.
+* Publish the documentation site from final release tags (`vX.Y.Z`, not pre-releases) so the web
+  documentation reflects the latest released version of WifiWand.
 
 ## v3.0.0
 

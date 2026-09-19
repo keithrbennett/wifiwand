@@ -92,13 +92,22 @@ scripts no longer leave a built site there.
 
 ## Publishing Documentation
 
-The GitHub Actions workflow publishes a GitHub Pages artifact only for version tags matching `v[0-9]*`.
+The GitHub Actions workflow publishes a GitHub Pages artifact only for final release tags matching `vX.Y.Z`
+(for example `v3.0.1`). Pre-release tags such as `v3.1.0.pre1` or `v3.1.0-rc1` do not publish documentation.
 Pull requests and documentation-related pushes to `main` only build the site for validation. The web
-documentation is refreshed when the next version tag is published.
+documentation is refreshed when the next final release tag is published.
 
 To republish a released version, open the **Docs** workflow in GitHub Actions, choose **Run workflow**, and
-select that version tag. GitHub Pages must be configured to deploy from **GitHub Actions** in the repository
-settings.
+select that version tag. A manual run on a pre-release tag fails at the workflow's release-tag check. GitHub
+runs the workflow file as it exists at the selected tag, so tags that predate this workflow (such as `v3.0.0`)
+cannot be republished this way.
+
+Repository settings required for publishing:
+
+- GitHub Pages must be configured to deploy from **GitHub Actions**.
+- The `github-pages` environment must allow deployments from `v*` tags (**Settings > Environments >
+  github-pages > Deployment branches and tags**). Otherwise, tag deploys are rejected with "not allowed to
+  deploy to github-pages due to environment protection rules".
 
 ## Key Files
 
