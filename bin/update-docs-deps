@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Updates the locked documentation dependencies (requirements-lock.txt).
+#
+# Usage:
+#   bin/update-docs-deps
+#
+# This script:
+# 1. Creates a temporary virtual environment outside the project tree
+# 2. Installs dependencies from requirements.txt (version ranges)
+# 3. Freezes the resolved versions to requirements-lock.txt
+# 4. Removes the temporary venv, even if a step fails or is interrupted
+#
+# requirements-lock.txt is replaced only if every step succeeds.
+# Requires network access to PyPI. Set WIFIWAND_DOCS_PYTHON to use a Python
+# executable other than python3.
+#
+# Run this after changing version ranges in requirements.txt, or to pick up
+# security fixes (see bin/audit-docs-deps). Afterward, review the diff and run
+# bin/build-docs to confirm the docs still build.
+
+set -e  # Exit on error
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PYTHON="${WIFIWAND_DOCS_PYTHON:-python3}"
+
+# Explicit template: bare `mktemp -d` is not supported by older BSD/macOS mktemp
+VENV_DIR="$(mktemp -d "${TMPDIR:-/tmp}/update-docs-deps.XXXXXX")"
+trap 'rm -rf "$VENV_DIR"' EXIT
+
+echo "→ Creating temporary virtual environment..."
+"$PYTHON" -m venv "$VENV_DIR"
+
+echo "→ Upgrading pip..."
+"$VENV_DIR/bin/pip" install --upgrade pip --quiet
+
+echo "→ Installing dependencies from requirements.txt..."
+"$VENV_DIR/bin/pip" install -r "$PROJECT_ROOT/requirements.txt" --quiet
+
+echo "→ Freezing dependencies..."
+# Build the new lock file inside the temp dir so a failure cannot leave a
+# truncated requirements-lock.txt behind.
+NEW_LOCK="$VENV_DIR/requirements-lock.txt"
+cat > "$NEW_LOCK" <<EOF
+# Locked documentation build dependencies
+# Requires Python 3.10 or newer.
+# Generated: $(date +%Y-%m-%d) by bin/update-docs-deps from requirements.txt.
+EOF
+# Older Pythons preinstall setuptools and wheel in new venvs; they are not docs
+# dependencies, so keep them out of the lock file.
+"$VENV_DIR/bin/pip" freeze --exclude setuptools --exclude wheel >> "$NEW_LOCK"
+
+cp "$NEW_LOCK" "$PROJECT_ROOT/requirements-lock.txt"
+
+echo "✓ requirements-lock.txt updated successfully"
+echo ""
+echo "Next steps:"
+echo "  1. Review the changes: git diff requirements-lock.txt"
+echo "  2. Test the docs build: bin/build-docs"
+echo "  3. Audit the result: bin/audit-docs-deps"

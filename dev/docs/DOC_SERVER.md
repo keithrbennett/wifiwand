@@ -70,6 +70,26 @@ BUNDLE_GEMFILE=/path/to/wifiwand/Gemfile \
 Use the Rake tasks for non-interactive setup or when you want to stay within the Ruby project tooling. The
 `docs:setup` task creates `.docs-venv` and installs `requirements-lock.txt`.
 
+## Dependency Updates and Audits
+
+The documentation tooling is pinned in `requirements-lock.txt`, so it does not pick up security fixes on its
+own. Two scripts (each also available as a Rake task) keep it current. Both create a temporary virtual
+environment outside the repository, remove it when they finish, and need network access to PyPI:
+
+```bash
+bin/audit-docs-deps    # or: rake docs:audit
+bin/update-docs-deps   # or: rake docs:update_deps
+```
+
+- `bin/audit-docs-deps` checks `requirements-lock.txt` with `pip-audit` and exits non-zero if it finds known
+  vulnerabilities.
+- `bin/update-docs-deps` reinstalls from the version ranges in `requirements.txt` and rewrites
+  `requirements-lock.txt` only if every step succeeds. Afterward, review `git diff requirements-lock.txt`, run
+  `bin/build-docs`, and re-run the audit. If an advisory needs a version outside a range in
+  `requirements.txt`, widen the range first.
+
+Both scripts honor `WIFIWAND_DOCS_PYTHON` for a Python other than `python3`.
+
 ## Strict Build Check
 
 Before publishing or after changing MkDocs navigation, run a strict build:
@@ -118,6 +138,8 @@ Repository settings required for publishing:
 - `bin/set-up-python-for-doc-server` - First-time interactive environment setup.
 - `bin/start-doc-server` - Starts `mkdocs serve` with the project configuration.
 - `bin/build-docs` - Runs `mkdocs build --strict` with the project configuration.
+- `bin/audit-docs-deps` - Audits `requirements-lock.txt` for known vulnerabilities with `pip-audit`.
+- `bin/update-docs-deps` - Regenerates `requirements-lock.txt` from `requirements.txt`.
 
 ## Troubleshooting
 

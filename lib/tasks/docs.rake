@@ -16,6 +16,16 @@ namespace :docs do
     WifiWand::DocsTooling.setup_environment!
   end
 
+  desc 'Audit locked documentation dependencies for known vulnerabilities (pip-audit)'
+  task :audit do
+    sh 'bash', File.join(WifiWand::DocsTooling::REPO_ROOT, 'bin', 'audit-docs-deps')
+  end
+
+  desc 'Regenerate requirements-lock.txt from requirements.txt'
+  task :update_deps do
+    sh 'bash', File.join(WifiWand::DocsTooling::REPO_ROOT, 'bin', 'update-docs-deps')
+  end
+
   desc 'Start documentation server'
   task :serve do
     Dir.chdir(Rake.application.original_dir) do

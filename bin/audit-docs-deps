@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+# Audits the locked documentation dependencies (requirements-lock.txt) for known
+# vulnerabilities using pip-audit.
+#
+# Usage:
+#   bin/audit-docs-deps
+#
+# This script:
+# 1. Creates a temporary virtual environment outside the project tree
+# 2. Installs pip-audit into it
+# 3. Runs pip-audit against requirements-lock.txt
+# 4. Removes the temporary venv, even if the audit fails or is interrupted
+#
+# Exits non-zero if vulnerabilities are found. Requires network access to PyPI.
+# Set WIFIWAND_DOCS_PYTHON to use a Python executable other than python3.
+
+set -e  # Exit on error
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
+PYTHON="${WIFIWAND_DOCS_PYTHON:-python3}"
+
+# Explicit template: bare `mktemp -d` is not supported by older BSD/macOS mktemp
+VENV_DIR="$(mktemp -d "${TMPDIR:-/tmp}/audit-docs-deps.XXXXXX")"
+trap 'rm -rf "$VENV_DIR"' EXIT
+
+echo "→ Creating temporary virtual environment..."
+"$PYTHON" -m venv "$VENV_DIR"
+
+echo "→ Installing pip-audit..."
+"$VENV_DIR/bin/pip" install pip-audit --quiet
+
+echo "→ Auditing requirements-lock.txt..."
+# --no-deps: the lock file pins every package, so skip dependency resolution
+"$VENV_DIR/bin/pip-audit" --no-deps -r "$PROJECT_ROOT/requirements-lock.txt"
