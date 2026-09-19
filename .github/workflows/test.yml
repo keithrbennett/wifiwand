@@ -28,7 +28,7 @@ jobs:
 
 
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Set up Ruby ${{ matrix.ruby-version }}
       uses: ruby/setup-ruby@v1
@@ -62,7 +62,7 @@ jobs:
     name: Security audit
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
@@ -76,11 +76,14 @@ jobs:
     - name: Audit Ruby version for vulnerabilities
       run: bundle exec ruby-audit check
 
+    - name: Audit locked docs dependencies for vulnerabilities
+      run: bin/audit-docs-deps
+
   rubocop:
     name: RuboCop
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v6
+    - uses: actions/checkout@v7
 
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
