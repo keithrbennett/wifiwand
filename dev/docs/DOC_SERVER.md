@@ -90,6 +90,16 @@ them when MkDocs exits. The command still fails on strict MkDocs errors. Git ign
 `tmp/`. The committed MkDocs config still names `site/` as its default output directory, but the helper
 scripts no longer leave a built site there.
 
+## Publishing Documentation
+
+The GitHub Actions workflow publishes a GitHub Pages artifact only for version tags matching `v[0-9]*`.
+Pull requests and documentation-related pushes to `main` only build the site for validation. The web
+documentation is refreshed when the next version tag is published.
+
+To republish a released version, open the **Docs** workflow in GitHub Actions, choose **Run workflow**, and
+select that version tag. GitHub Pages must be configured to deploy from **GitHub Actions** in the repository
+settings.
+
 ## Key Files
 
 - `mkdocs.yml` - MkDocs configuration, plugin setup, excluded paths, and site navigation.

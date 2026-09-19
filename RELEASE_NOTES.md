@@ -1,3 +1,10 @@
+## Unreleased
+
+### Documentation
+
+* Publish the documentation site from version tags so the web documentation
+  reflects the latest released version of WifiWand.
+
 ## v3.0.0
 
 For the canonical version 3 upgrade and migration guide, see

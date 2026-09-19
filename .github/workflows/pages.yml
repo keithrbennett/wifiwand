@@ -1,25 +1,42 @@
-name: Deploy documentation
+# Builds docs on PRs and docs-related pushes to main; deploys Pages on version tags.
+name: Docs
 
 on:
-  # Documentation is deployed manually from the Actions tab by default.
-  # To deploy automatically after pushes to selected branches, uncomment and
-  # add, remove, or customize the branch patterns as needed:
-  # push:
-  #   branches:
-  #     - main
-  #     # - docs
-  #     # - release/*
+  push:
+    branches:
+      - main
+    tags:
+      - 'v[0-9]*'
+    # GitHub does not evaluate path filters for tag pushes; these limit
+    # documentation validation for pull requests and pushes to main only.
+    paths: &docs_paths
+      - 'docs/**'
+      - 'dev/docs/**'
+      - 'README.md'
+      - 'RELEASE_NOTES.md'
+      - 'LICENSE.txt'
+      - 'logo/**'
+      - 'mkdocs.yml'
+      - 'requirements-lock.txt'
+      - 'Rakefile'
+      - 'Gemfile'
+      - 'Gemfile.lock'
+      - '.github/workflows/pages.yml'
+      - 'lib/tasks/docs.rake'
+      - 'lib/wifi_wand/docs_tooling.rb'
+      - 'bin/build-docs'
+  pull_request:
+    branches:
+      - main
+    paths: *docs_paths
   workflow_dispatch:
 
 permissions:
   contents: read
 
-concurrency:
-  group: github-pages
-  cancel-in-progress: true
-
 jobs:
   build:
+    name: Build docs
     runs-on: ubuntu-latest
 
     steps:
@@ -48,16 +65,25 @@ jobs:
             --site-dir "${{ runner.temp }}/wifiwand-site"
 
       - name: Configure GitHub Pages
+        if: github.ref_type == 'tag'
         uses: actions/configure-pages@v5
 
       - name: Upload Pages artifact
+        if: github.ref_type == 'tag'
         uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ runner.temp }}/wifiwand-site
 
   deploy:
     needs: build
+    if: >
+      github.ref_type == 'tag' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
+
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
 
     permissions:
       pages: write
