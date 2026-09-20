@@ -2587,6 +2587,154 @@ module WifiWand
       end
     end
 
+    describe 'collaborator delegation' do
+      subject(:model) { create_mac_os_test_model }
+
+      {
+        mac_address:                [:system_network_info, :mac_address, 'aa:bb:cc:dd:ee:ff'],
+        default_interface:          [:system_network_info, :default_interface, 'en0'],
+        _ipv4_addresses:            [:system_network_info, :ipv4_addresses, ['192.168.1.5']],
+        nameservers_using_scutil:   [:dns_manager, :nameservers_using_scutil, ['1.1.1.1']],
+        network_identity_redacted?: [:network_identity_reader, :network_identity_redacted?, true],
+      }.each do |model_method, (reader, target_method, value)|
+        it "answers #{model_method} from #{reader}" do
+          collaborator = double(reader.to_s)
+          allow(collaborator).to receive(target_method).and_return(value)
+          allow(model).to receive(reader).and_return(collaborator)
+
+          expect(model.send(model_method)).to eq(value)
+          expect(collaborator).to have_received(target_method)
+        end
+      end
+
+      it 'answers nameservers from scutil' do
+        allow(model).to receive(:nameservers_using_scutil).and_return(['9.9.9.9'])
+
+        expect(model.nameservers).to eq(['9.9.9.9'])
+      end
+
+      describe '#generate_qr_code' do
+        it 'generates inside the system_profiler cache scope and returns the generator result' do
+          events = []
+          generator = double('qr_code_generator')
+          allow(generator).to receive(:generate) do |*, **|
+            events << :generated
+            'wifi-qr.png'
+          end
+          allow(model).to receive(:qr_code_generator).and_return(generator)
+          allow(model).to receive(:with_system_profiler_wifi_data_cache_scope) do |&block|
+            events << :scope_opened
+            block.call.tap { events << :scope_closed }
+          end
+
+          result = model.generate_qr_code('wifi-qr.png', overwrite: true)
+
+          expect(result).to eq('wifi-qr.png')
+          expect(events).to eq(%i[scope_opened generated scope_closed])
+          expect(generator).to have_received(:generate)
+            .with(model, 'wifi-qr.png', overwrite: true, password: nil, in_stream: $stdin)
+        end
+      end
+    end
+
+    # The Mac model hands its collaborators small lambdas that close over the model. These verify that each
+    # lambda reports the model's live state, since a wrong closure would only show up on a real Mac.
+    describe 'collaborator wiring' do
+      subject(:model) { create_mac_os_test_model }
+
+      def wiring_for(collaborator_class, factory)
+        captured = nil
+        allow(collaborator_class).to receive(:new) do |**kwargs|
+          captured = kwargs
+          instance_double(collaborator_class)
+        end
+        model.send(factory)
+        captured
+      end
+
+      shared_examples 'stream and verbosity providers' do
+        it 'reports the model output stream, error stream and verbosity' do
+          expect(wiring[:out_stream_provider].call).to be(model.out_stream)
+          expect(wiring[:err_stream_provider].call).to be(model.err_stream)
+          expect(wiring[:verbosity_provider].call).to eq(model.verbose?)
+        end
+      end
+
+      shared_examples 'model command runner' do
+        it 'runs commands through the model' do
+          allow(model).to receive(:run_command).and_return(:ran)
+
+          expect(wiring[:command_runner].call(%w[echo hi], timeout_in_secs: 2)).to eq(:ran)
+          expect(model).to have_received(:run_command).with(%w[echo hi], timeout_in_secs: 2)
+        end
+      end
+
+      describe '#helper_client' do
+        let(:wiring) { wiring_for(Platforms::Mac::Helper::Client, :helper_client) }
+
+        it_behaves_like 'stream and verbosity providers'
+
+        it 'reads the macOS version through the model with the requested timeout' do
+          allow(model).to receive(:macos_version).and_return('15.6')
+
+          expect(wiring[:macos_version_reader].call(timeout_in_secs: 4)).to eq('15.6')
+          expect(model).to have_received(:macos_version).with(timeout_in_secs: 4)
+        end
+      end
+
+      describe '#swift_runtime' do
+        let(:wiring) { wiring_for(Platforms::Mac::Helper::SwiftRuntime, :swift_runtime) }
+
+        it_behaves_like 'stream and verbosity providers'
+        it_behaves_like 'model command runner'
+      end
+
+      describe '#wifi_transport' do
+        let(:wiring) { wiring_for(Platforms::Mac::Helper::WifiTransport, :wifi_transport) }
+
+        it_behaves_like 'stream and verbosity providers'
+        it_behaves_like 'model command runner'
+
+        it 'reads the WiFi interface and Swift runtime from the model' do
+          expect(wiring[:wifi_interface_provider].call).to eq(model.wifi_interface)
+          expect(wiring[:swift_runtime]).to be(model.send(:swift_runtime))
+        end
+      end
+
+      describe '#system_network_info' do
+        let(:wiring) { wiring_for(Platforms::Mac::SystemNetworkInfo, :system_network_info) }
+
+        it_behaves_like 'stream and verbosity providers'
+        it_behaves_like 'model command runner'
+
+        it 'reads the WiFi interface from the model' do
+          expect(wiring[:wifi_interface_provider].call).to eq(model.wifi_interface)
+        end
+      end
+
+      describe '#network_scanner' do
+        let(:wiring) { wiring_for(Platforms::Mac::NetworkScanner, :network_scanner) }
+
+        it 'gives the scanner access to the helper client and WiFi interface' do
+          expect(wiring[:helper_client_provider].call).to be(model.helper_client)
+          expect(wiring[:wifi_interface_provider].call).to eq(model.wifi_interface)
+        end
+
+        it 'reads system_profiler data through the model' do
+          allow(model).to receive(:system_profiler_wifi_data).and_return({ 'SPAirPortDataType' => [] })
+
+          expect(wiring[:system_profiler_wifi_data_reader].call).to eq({ 'SPAirPortDataType' => [] })
+        end
+
+        it 'runs cache-scoped work inside the model cache scope' do
+          allow(model).to receive(:with_system_profiler_wifi_data_cache_scope).and_yield
+
+          expect(wiring[:system_profiler_wifi_data_cache_runner].call { :scoped }).to eq(:scoped)
+          expect(model).to have_received(:with_system_profiler_wifi_data_cache_scope)
+        end
+      end
+    end
+
     describe '#create_model with provided interface' do
       context 'when valid wifi_interface is provided' do
         it 'uses the provided interface without probing for another interface',

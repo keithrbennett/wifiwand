@@ -1178,6 +1178,93 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       end
     end
 
+    describe 'HelperQueryResult status defaults' do
+      let(:result_class) { WifiWand::Platforms::Mac::Helper::Bundle::HelperQueryResult }
+
+      it 'rejects a status the helper protocol does not define' do
+        expect { result_class.new(status: :bogus) }
+          .to raise_error(ArgumentError, /unknown helper query status: :bogus/)
+      end
+
+      it 'defaults to :error when only an error message is given' do
+        expect(result_class.new(error_message: 'helper crashed').status).to eq(:error)
+      end
+
+      it 'defaults to :location_services_blocked when the block flag is set' do
+        expect(result_class.new(location_services_blocked: true).status).to eq(:location_services_blocked)
+      end
+
+      it 'defaults to :unknown when nothing is known' do
+        expect(result_class.new.status).to eq(:unknown)
+      end
+    end
+
+    describe 'helper status classification' do
+      let(:result_class) { WifiWand::Platforms::Mac::Helper::Bundle::HelperQueryResult }
+
+      def success_result(payload) = result_class.new(status: :success, payload: payload)
+
+      describe '#connected_network_status' do
+        it 'is :unknown when the helper claims a connection but reports no real SSID' do
+          result = success_result('status' => 'connected', 'ssid' => nil)
+
+          expect(client.send(:connected_network_status, result)).to eq(:unknown)
+        end
+
+        it 'is :not_connected when the helper reports no connection and no real SSID' do
+          result = success_result('status' => 'not_connected', 'ssid' => nil)
+
+          expect(client.send(:connected_network_status, result)).to eq(:not_connected)
+        end
+
+        it 'is :error when a successful result carries no hash payload' do
+          expect(client.send(:connected_network_status, success_result('not a hash'))).to eq(:error)
+        end
+      end
+
+      describe '#connected_network_bssid_status' do
+        it 'is :connected when a BSSID is present' do
+          result = success_result('status' => 'connected', 'bssid' => 'aa:bb:cc:dd:ee:ff')
+
+          expect(client.send(:connected_network_bssid_status, result)).to eq(:connected)
+        end
+
+        it 'is :not_connected when the helper reports no connection and no BSSID' do
+          result = success_result('status' => 'not_connected', 'bssid' => nil)
+
+          expect(client.send(:connected_network_bssid_status, result)).to eq(:not_connected)
+        end
+
+        it 'is :unknown when the BSSID key is present but blank on a connected result' do
+          result = success_result('status' => 'connected', 'bssid' => '')
+
+          expect(client.send(:connected_network_bssid_status, result)).to eq(:unknown)
+        end
+
+        it 'is :unknown when the BSSID key is absent' do
+          expect(client.send(:connected_network_bssid_status, success_result('status' => 'connected')))
+            .to eq(:unknown)
+        end
+      end
+
+      describe '#helper_executable_available?' do
+        it 'is true for an executable file and false otherwise' do
+          Dir.mktmpdir do |dir|
+            executable = File.join(dir, 'helper')
+            File.write(executable, "#!/bin/sh\n")
+            File.chmod(0o755, executable)
+            allow(client).to receive(:helper_executable_path).and_return(executable)
+
+            expect(client.send(:helper_executable_available?)).to be(true)
+
+            File.chmod(0o644, executable)
+
+            expect(client.send(:helper_executable_available?)).to be(false)
+          end
+        end
+      end
+    end
+
     describe '.sanitize_macos_version' do
       it 'keeps only numeric segments from versions with build metadata in parentheses' do
         expect(helper_bundle.sanitize_macos_version('15.6 (24A335)')).to eq('15.6')
@@ -1714,6 +1801,112 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
 
       expect(described_class.helper_bundle_valid?(installed_bundle_path)).to be(true)
       expect(described_class.helper_installed_and_valid?).to be(false)
+    end
+  end
+
+  describe 'installed helper paths' do
+    before { allow(described_class).to receive(:helper_version).and_return('9.9.9') }
+
+    it 'places the installed executable inside the versioned bundle' do
+      expect(described_class.installed_executable_path).to eq(
+        File.join(
+          described_class::INSTALL_PARENT, '9.9.9', described_class::BUNDLE_NAME,
+          'Contents', 'MacOS', described_class::EXECUTABLE_NAME
+        )
+      )
+    end
+
+    it 'reports the version and the installed and source bundle locations in helper_info' do
+      expect(described_class.helper_info).to eq(
+        version:              '9.9.9',
+        installed_bundle:     described_class.installed_bundle_path,
+        installed_executable: described_class.installed_executable_path,
+        source_bundle:        described_class.source_bundle_path
+      )
+    end
+  end
+
+  describe '.parse_macos_version' do
+    it 'returns nil when the sanitized text is not a valid gem version' do
+      allow(described_class).to receive(:sanitize_macos_version).and_return('not-a-version')
+
+      expect(described_class.parse_macos_version('anything')).to be_nil
+    end
+  end
+
+  # Bundle keeps its historical API and forwards to Installer. These check that each forwarded call
+  # reaches Installer with its arguments intact and that the result is returned to the caller.
+  describe 'delegation to Installer' do
+    let(:installer) { WifiWand::Platforms::Mac::Helper::Installer }
+    let(:sentinel) { Object.new }
+    let(:wait_thread) { instance_double(Thread) }
+
+    {
+      helper_help_output?:                    ['usage: helper'],
+      stage_helper_bundle:                    ['/tmp/staged.app'],
+      legacy_executable_symlink_path:         ['token-1'],
+      cleanup_previous_release:               ['/tmp/previous-release'],
+      switch_legacy_bundle_executable:        ['/tmp/release.app', 'token-2'],
+      publish_staged_bundle:                  ['/tmp/staged.app'],
+      publish_release_symlink:                ['/tmp/release.app', 'token-3'],
+      migrate_legacy_bundle_to_release:       ['/tmp/release.app', 'token-4'],
+      bundle_release_path:                    ['token-5'],
+      staged_bundle_symlink_path:             ['token-6'],
+      sync_legacy_bundle_metadata:            ['/tmp/release.app', 'token-7'],
+      backup_legacy_bundle_metadata:          ['token-8'],
+      backup_legacy_metadata_file:            ['/tmp/Info.plist', 'token-9'],
+      restore_legacy_bundle_metadata:         [%w[/tmp/a /tmp/b], 'token-10'],
+      restore_legacy_metadata_file:           ['/tmp/backup', '/tmp/target', 'token-11'],
+      cleanup_legacy_bundle_metadata_backups: [%w[/tmp/a /tmp/b]],
+    }.each do |method_name, args|
+      it "forwards #{method_name} to Installer" do
+        allow(installer).to receive(method_name).with(*args).and_return(sentinel)
+
+        expect(described_class.public_send(method_name, *args)).to be(sentinel)
+      end
+    end
+
+    it 'forwards terminate_helper_process with the timeout configuration' do
+      allow(installer).to receive(:terminate_helper_process)
+        .with(wait_thread, timeout_configuration: helper_timeouts).and_return(sentinel)
+
+      expect(described_class.terminate_helper_process(wait_thread, timeout_configuration: helper_timeouts))
+        .to be(sentinel)
+    end
+
+    it 'forwards helper_exited_within_grace_period? with the timeout configuration' do
+      allow(installer).to receive(:helper_exited_within_grace_period?)
+        .with(wait_thread, timeout_configuration: helper_timeouts).and_return(sentinel)
+
+      expect(
+        described_class.helper_exited_within_grace_period?(wait_thread,
+          timeout_configuration: helper_timeouts)
+      ).to be(sentinel)
+    end
+
+    it 'forwards ensure_helper_installed and omits the timeout when none is given' do
+      out_stream = StringIO.new
+      allow(installer).to receive(:ensure_helper_installed)
+        .with(out_stream: out_stream, timeout_configuration: helper_timeouts).and_return(sentinel)
+
+      result = described_class.ensure_helper_installed(
+        out_stream: out_stream, timeout_configuration: helper_timeouts
+      )
+
+      expect(result).to be(sentinel)
+    end
+
+    it 'forwards ensure_helper_installed with an explicit timeout' do
+      out_stream = StringIO.new
+      allow(installer).to receive(:ensure_helper_installed)
+        .with(out_stream: out_stream, timeout_configuration: helper_timeouts, timeout_seconds: 7)
+        .and_return(sentinel)
+
+      expect(
+        described_class.ensure_helper_installed(
+          out_stream: out_stream, timeout_seconds: 7, timeout_configuration: helper_timeouts
+        )
+      ).to be(sentinel)
     end
   end
 

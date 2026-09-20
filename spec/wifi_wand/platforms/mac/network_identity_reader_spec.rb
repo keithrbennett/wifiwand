@@ -221,5 +221,93 @@ module WifiWand
         end
       end
     end
+
+    describe '#associated?' do
+      it 'is false when WiFi is off' do
+        allow(reader).to receive(:wifi_on?).and_return(false)
+
+        expect(reader.associated?).to be(false)
+      end
+
+      it 'is true when the helper reports a real SSID' do
+        allow(helper_client).to receive(:connected_network_name)
+          .and_return(helper_result(payload: 'HelperNet'))
+
+        expect(reader.associated?).to be(true)
+      end
+
+      it 'is false when the helper says the interface is not connected' do
+        allow(helper_client).to receive(:connected_network_name)
+          .and_return(helper_result(status: :not_connected))
+
+        expect(reader.associated?).to be(false)
+      end
+
+      it 'falls back to system_profiler association data when the helper is inconclusive' do
+        allow(helper_client).to receive(:connected_network_name).and_return(helper_result)
+
+        expect(reader.associated?).to be(true)
+      end
+
+      it 'is false when the helper query fails' do
+        allow(helper_client).to receive(:connected_network_name)
+          .and_raise(WifiWand::Error, 'helper unavailable')
+
+        expect(reader.associated?).to be(false)
+      end
+    end
+
+    describe '#connected_network_name without redaction' do
+      it 'returns nil when the SSID is unknown but the interface does not look redacted' do
+        allow(reader).to receive_messages(
+          connected_network_name_raw:                      nil,
+          connected_network_authoritatively_disconnected?: false,
+          connected?:                                      false
+        )
+
+        expect(reader.connected_network_name).to be_nil
+      end
+    end
+
+    describe '#network_identity_redacted? when the helper query fails' do
+      it 'reports no redaction rather than raising' do
+        allow(helper_client).to receive(:connected_network_name)
+          .and_raise(WifiWand::Error, 'helper unavailable')
+
+        expect(reader.network_identity_redacted?).to be(false)
+      end
+    end
+
+    describe '#associated_without_ssid?' do
+      it 'is true when the WiFi interface carries the default route' do
+        allow(reader).to receive(:default_interface).and_return('en0')
+
+        expect(reader.send(:associated_without_ssid?)).to be(true)
+      end
+
+      context 'when address lookup fails' do
+        let(:default_interface) { 'en1' }
+        let(:ipv4_addresses) do
+          raise os_command_error(exitstatus: 1, command: 'ipconfig getifaddr en0', text: 'failed')
+        end
+
+        it 'treats the interface as not associated instead of raising' do
+          expect(reader.send(:associated_without_ssid?)).to be(false)
+        end
+      end
+    end
+
+    describe '#usable_ipv6_association_address?' do
+      {
+        'a global unicast address'    => ['2001:db8::44', true],
+        'a link-local address'        => ['fe80::1', false],
+        'an IPv4 address'             => ['192.168.1.5', false],
+        'text that is not an address' => ['not-an-ip', false],
+      }.each do |description, (address, expected)|
+        it "is #{expected} for #{description}" do
+          expect(reader.send(:usable_ipv6_association_address?, address)).to be(expected)
+        end
+      end
+    end
   end
 end

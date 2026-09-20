@@ -204,6 +204,29 @@ module WifiWand
           expect(provider.data).to eq({ 'SPAirPortDataType' => [{ 'test' => 'second' }] })
         end
       end
+
+      it 'drops the scoped snapshot when invalidated from the owning thread' do
+        first_json_output = '{"SPAirPortDataType": [{"test": "first"}]}'
+        second_json_output = '{"SPAirPortDataType": [{"test": "second"}]}'
+        allow(command_runner).to receive(:call).and_return(
+          command_result(stdout: first_json_output),
+          command_result(stdout: second_json_output)
+        )
+
+        provider.with_cache_scope do
+          expect(provider.data).to eq({ 'SPAirPortDataType' => [{ 'test' => 'first' }] })
+
+          provider.invalidate_cache
+
+          expect(provider.active_cache_context).not_to include(:data, :generation)
+          expect(provider.data).to eq({ 'SPAirPortDataType' => [{ 'test' => 'second' }] })
+        end
+      end
+
+      it 'is harmless when no cache scope is active' do
+        expect { provider.invalidate_cache }.not_to raise_error
+        expect(provider.active_cache_context).to be_nil
+      end
     end
   end
 end

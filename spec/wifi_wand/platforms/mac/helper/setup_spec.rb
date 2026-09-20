@@ -301,6 +301,56 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Setup do
       end
     end
 
+    context 'when check-permission exits unsuccessfully' do
+      let(:failed_status) { instance_double(Process::Status, success?: false) }
+
+      before do
+        allow(File).to receive(:executable?).with(helper_path).and_return(true)
+        allow(helper_bundle).to receive(:helper_installed_and_valid?).and_return(true)
+        allow(helper_bundle)
+          .to receive(:run_bounded_helper_command).with(helper_path, 'check-permission')
+          .and_return(stdout: '', stderr: 'boom', status: failed_status)
+      end
+
+      it 'reports that the permission status could not be checked' do
+        status = setup.check_status
+        expect(status.authorized?).to be(false)
+        expect(status.permission_message).to eq('Could not check permission status')
+      end
+    end
+
+    context 'when check-permission exits successfully without output' do
+      let(:ok_status) { instance_double(Process::Status, success?: true) }
+
+      before do
+        allow(File).to receive(:executable?).with(helper_path).and_return(true)
+        allow(helper_bundle).to receive(:helper_installed_and_valid?).and_return(true)
+        allow(helper_bundle)
+          .to receive(:run_bounded_helper_command).with(helper_path, 'check-permission')
+          .and_return(stdout: "  \n", stderr: '', status: ok_status)
+      end
+
+      it 'reports that the permission status could not be checked' do
+        expect(setup.check_status.permission_message).to eq('Could not check permission status')
+      end
+    end
+
+    context 'when the helper executable disappears during the permission check' do
+      before do
+        allow(File).to receive(:executable?).with(helper_path).and_return(true)
+        allow(helper_bundle).to receive(:helper_installed_and_valid?).and_return(true)
+        allow(helper_bundle)
+          .to receive(:run_bounded_helper_command).with(helper_path, 'check-permission')
+          .and_raise(Errno::ENOENT)
+      end
+
+      it 'reports the missing executable' do
+        status = setup.check_status
+        expect(status.authorized?).to be(false)
+        expect(status.permission_message).to eq('Helper executable not found')
+      end
+    end
+
     context 'when the helper authorization probe times out' do
       before do
         allow(File).to receive(:executable?).with(helper_path).and_return(true)
