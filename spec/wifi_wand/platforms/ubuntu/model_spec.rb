@@ -1892,7 +1892,9 @@ module WifiWand
 
         it 'passes the remaining status budget into each OS command' do
           ubuntu_model.wifi_interface = 'wlp3s0'
-          status_timeout = be_between(0, 0.5).exclusive
+          # With the clock frozen, the whole 0.5s budget is still unspent for every command.
+          allow(ubuntu_model).to receive(:monotonic_now).and_return(100.0)
+          status_timeout = 0.5
 
           expect(ubuntu_model).to receive(:run_command)
             .with(%w[nmcli radio wifi], raise_on_error: false, timeout_in_secs: status_timeout)
@@ -1928,9 +1930,10 @@ module WifiWand
 
         it 'does not treat a failed nmcli radio probe as a disconnected state' do
           ubuntu_model.wifi_interface = 'wlp3s0'
+          allow(ubuntu_model).to receive(:monotonic_now).and_return(100.0)
 
           expect(ubuntu_model).to receive(:run_command)
-            .with(%w[nmcli radio wifi], raise_on_error: false, timeout_in_secs: be_between(0, 0.5).exclusive)
+            .with(%w[nmcli radio wifi], raise_on_error: false, timeout_in_secs: 0.5)
             .and_return(command_result(
               stderr: 'aborted', exitstatus: nil, termsig: 6, command: nmcli_radio_cmd
             ))
@@ -2455,10 +2458,13 @@ module WifiWand
       end
 
       describe '#status_wifi_on?' do
+        # With the clock frozen, the whole 0.5s budget is still unspent when nmcli is called.
+        before { allow(ubuntu_model).to receive(:monotonic_now).and_return(100.0) }
+
         it 'asks nmcli for the radio state within the remaining status budget' do
           ubuntu_model.wifi_interface = 'wlp3s0'
           expect(ubuntu_model).to receive(:run_command)
-            .with(%w[nmcli radio wifi], raise_on_error: false, timeout_in_secs: be_between(0, 0.5).exclusive)
+            .with(%w[nmcli radio wifi], raise_on_error: false, timeout_in_secs: 0.5)
             .and_return(command_result(stdout: "enabled\n"))
 
           expect(ubuntu_model.status_wifi_on?(timeout_in_secs: 0.5)).to be(true)
@@ -2467,7 +2473,7 @@ module WifiWand
         it 'reports the radio as off when nmcli says it is disabled' do
           ubuntu_model.wifi_interface = 'wlp3s0'
           allow(ubuntu_model).to receive(:run_command)
-            .with(%w[nmcli radio wifi], raise_on_error: false, timeout_in_secs: be_between(0, 0.5).exclusive)
+            .with(%w[nmcli radio wifi], raise_on_error: false, timeout_in_secs: 0.5)
             .and_return(command_result(stdout: "disabled\n"))
 
           expect(ubuntu_model.status_wifi_on?(timeout_in_secs: 0.5)).to be(false)

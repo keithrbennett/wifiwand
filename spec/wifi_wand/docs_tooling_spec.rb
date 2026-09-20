@@ -385,10 +385,16 @@ RSpec.describe WifiWand::DocsTooling do
   end
 
   describe '.rake_passthrough_args' do
-    after { described_class.instance_variable_set(:@rake_passthrough_args, nil) }
+    # The value is memoized on the module, so start clean and put back whatever was there.
+    around do |example|
+      original = described_class.instance_variable_get(:@rake_passthrough_args)
+      described_class.instance_variable_set(:@rake_passthrough_args, nil)
+      example.run
+    ensure
+      described_class.instance_variable_set(:@rake_passthrough_args, original)
+    end
 
     it 'extracts the arguments once and memoizes them' do
-      described_class.instance_variable_set(:@rake_passthrough_args, nil)
       allow(described_class).to receive(:extract_rake_passthrough_args!).and_return(['--strict'])
 
       expect(described_class.rake_passthrough_args).to eq(['--strict'])
@@ -445,9 +451,23 @@ RSpec.describe WifiWand::DocsTooling do
   end
 
   describe '.required_docs_tree_exists?' do
-    it 'is true for an existing directory' do
+    it 'is true for an existing docs subdirectory' do
       Dir.mktmpdir do |dir|
-        expect(described_class.required_docs_tree_exists?(dir, 'docs', true)).to be true
+        docs_dir = File.join(dir, 'docs')
+        FileUtils.mkdir_p(docs_dir)
+
+        expect(described_class.required_docs_tree_exists?(docs_dir, 'docs', true)).to be true
+      end
+    end
+
+    it 'does not accept a plain file in place of a required directory' do
+      Dir.mktmpdir do |dir|
+        docs_path = File.join(dir, 'docs')
+        File.write(docs_path, 'not a directory')
+
+        expect { described_class.required_docs_tree_exists?(docs_path, 'docs', true) }
+          .to raise_error(RuntimeError, /Required documentation source directory is missing: docs/)
+        expect(described_class.required_docs_tree_exists?(docs_path, 'docs', false)).to be false
       end
     end
 

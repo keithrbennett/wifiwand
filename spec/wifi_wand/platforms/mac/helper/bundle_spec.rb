@@ -1834,8 +1834,20 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
     end
   end
 
-  # Bundle keeps its historical API and forwards to Installer. These check that each forwarded call
-  # reaches Installer with its arguments intact and that the result is returned to the caller.
+  # Background: the code that installs, validates and publishes the helper app lives in
+  # Helper::Installer. Helper::Bundle is the module the rest of the code base (for example
+  # Helper::Setup and Helper::Client) and many specs call, so it keeps a one-line method for each
+  # installer operation that simply forwards to the Installer method of the same name:
+  #
+  #   module_function def stage_helper_bundle(path) = Installer.stage_helper_bundle(path)
+  #
+  # Those forwarders contain no logic of their own. What can go wrong is a typo: forwarding to the
+  # wrong method, dropping an argument, or not returning the result. So each example below stubs the
+  # Installer method, calls the Bundle method, and checks that Installer received exactly the
+  # arguments passed in and that Bundle returned what Installer returned.
+  #
+  # The real behavior of the Installer methods is tested elsewhere (installer_spec.rb and the install
+  # examples above), not here. An empty argument list in the table means "called with no arguments".
   describe 'delegation to Installer' do
     let(:installer) { WifiWand::Platforms::Mac::Helper::Installer }
     let(:sentinel) { Object.new }
@@ -1858,9 +1870,20 @@ RSpec.describe WifiWand::Platforms::Mac::Helper::Bundle do
       restore_legacy_bundle_metadata:         [%w[/tmp/a /tmp/b], 'token-10'],
       restore_legacy_metadata_file:           ['/tmp/backup', '/tmp/target', 'token-11'],
       cleanup_legacy_bundle_metadata_backups: [%w[/tmp/a /tmp/b]],
+      install_lock_path:                      [],
+      install_manifest_path:                  [],
+      installed_bundle_current?:              [],
+      legacy_info_plist_path:                 [],
+      legacy_code_resources_path:             [],
+      resolved_installed_bundle_target:       [],
+      resolved_legacy_release_target:         [],
+      unique_publish_token:                   [],
+      write_manifest:                         [],
+      read_install_manifest:                  [],
     }.each do |method_name, args|
       it "forwards #{method_name} to Installer" do
-        allow(installer).to receive(method_name).with(*args).and_return(sentinel)
+        expected_args = args.empty? ? [no_args] : args
+        allow(installer).to receive(method_name).with(*expected_args).and_return(sentinel)
 
         expect(described_class.public_send(method_name, *args)).to be(sentinel)
       end
