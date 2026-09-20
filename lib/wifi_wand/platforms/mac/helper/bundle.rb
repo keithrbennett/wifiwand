@@ -17,6 +17,16 @@ module WifiWand
   module Platforms
     module Mac
       module Helper
+        # About the name: "Bundle" here means a macOS *app bundle*, Apple's term for an application
+        # folder such as `wifiwand-helper.app` (Contents/MacOS/<executable>, Contents/Info.plist,
+        # Contents/_CodeSignature/...). It has nothing to do with Ruby's Bundler (`bundle exec`,
+        # Gemfile), which is unrelated to this module.
+        #
+        # This module is broader than one bundle: besides locating and describing the helper app, it
+        # holds the helper command timeouts, macOS version support checks, the opt-out env flag, and
+        # HelperQueryResult. It is defined across several files: this one, artifacts.rb (paths and
+        # fingerprints), build.rb (compile/sign), and client.rb (HelperQueryResult and related types).
+        # The install/publish logic lives in Helper::Installer, which Bundle forwards to.
         module Bundle
           INSTALL_PARENT = File.join(Dir.home, 'Library', 'Application Support', 'WifiWand')
           # Only enable the helper on macOS Sonoma (14.0) and newer where redactions occur
