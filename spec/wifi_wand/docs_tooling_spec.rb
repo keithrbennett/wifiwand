@@ -384,6 +384,117 @@ RSpec.describe WifiWand::DocsTooling do
     end
   end
 
+  describe '.rake_passthrough_args' do
+    after { described_class.instance_variable_set(:@rake_passthrough_args, nil) }
+
+    it 'extracts the arguments once and memoizes them' do
+      described_class.instance_variable_set(:@rake_passthrough_args, nil)
+      allow(described_class).to receive(:extract_rake_passthrough_args!).and_return(['--strict'])
+
+      expect(described_class.rake_passthrough_args).to eq(['--strict'])
+      expect(described_class.rake_passthrough_args).to eq(['--strict'])
+      expect(described_class).to have_received(:extract_rake_passthrough_args!).once
+    end
+  end
+
+  describe '.run_mkdocs!' do
+    before do
+      allow(described_class).to receive(:mkdocs_command).and_return('fake-mkdocs')
+      allow(described_class).to receive(:cleanup_mkdocs_workspace!)
+    end
+
+    it 'runs mkdocs with the given arguments and cleans up afterwards' do
+      allow(described_class).to receive(:system)
+        .with('fake-mkdocs', 'build', '-f', 'cfg.yml').and_return(true)
+
+      described_class.run_mkdocs!('build', '-f', 'cfg.yml')
+
+      expect(described_class).to have_received(:cleanup_mkdocs_workspace!)
+    end
+
+    it 'exits with the mkdocs exit status on failure and still cleans up' do
+      allow(described_class).to receive(:system).with('fake-mkdocs', 'build') do
+        Kernel.system('sh', '-c', 'exit 3') # sets $CHILD_STATUS the way a failed mkdocs run would
+      end
+
+      expect { described_class.run_mkdocs!('build') }.to raise_error(SystemExit) do |error|
+        expect(error.status).to eq(3)
+      end
+      expect(described_class).to have_received(:cleanup_mkdocs_workspace!)
+    end
+  end
+
+  describe '.ensure_mkdocs_available!' do
+    it 'returns quietly when mkdocs can be found' do
+      allow(described_class).to receive_messages(mkdocs_command: 'mkdocs', executable?: true)
+
+      expect { described_class.ensure_mkdocs_available! }.not_to output.to_stderr
+    end
+
+    it 'exits with both setup commands when mkdocs is missing' do
+      allow(described_class).to receive_messages(mkdocs_command: 'mkdocs', executable?: false)
+
+      expect do
+        expect { described_class.ensure_mkdocs_available! }.to raise_error(SystemExit) do |error|
+          expect(error.status).to eq(1)
+        end
+      end.to output(
+        a_string_including('mkdocs not found', 'source ', 'docs:setup')
+      ).to_stderr
+    end
+  end
+
+  describe '.required_docs_tree_exists?' do
+    it 'is true for an existing directory' do
+      Dir.mktmpdir do |dir|
+        expect(described_class.required_docs_tree_exists?(dir, 'docs', true)).to be true
+      end
+    end
+
+    it 'is false for a missing optional directory' do
+      expect(described_class.required_docs_tree_exists?('/no/such/dir', 'logo', false)).to be false
+    end
+
+    it 'raises for a missing required directory' do
+      expect { described_class.required_docs_tree_exists?('/no/such/dir', 'docs', true) }
+        .to raise_error(RuntimeError, /Required documentation source directory is missing: docs/)
+    end
+  end
+
+  describe '.generated_nav' do
+    it 'points index.md entries at README.md and leaves other entries alone' do
+      nav = [{ 'Home' => 'index.md' }, { 'Guide' => 'guide.md' }, 'plain.md']
+
+      expect(described_class.generated_nav(nav))
+        .to eq([{ 'Home' => 'README.md' }, { 'Guide' => 'guide.md' }, 'plain.md'])
+    end
+  end
+
+  describe '.directory_index_path' do
+    it 'returns an existing index.md untouched' do
+      Dir.mktmpdir do |dir|
+        index = File.join(dir, 'index.md')
+        File.write(index, 'custom')
+
+        expect(described_class.directory_index_path(dir)).to eq(index)
+        expect(File.read(index)).to eq('custom')
+      end
+    end
+
+    it 'writes an index listing the visible, sorted entries when none exists' do
+      Dir.mktmpdir('docs-dir-') do |dir|
+        FileUtils.touch(File.join(dir, 'b.md'))
+        FileUtils.touch(File.join(dir, 'a.md'))
+        FileUtils.touch(File.join(dir, '.hidden'))
+
+        index = described_class.directory_index_path(dir)
+
+        expect(index).to eq(File.join(dir, 'index.md'))
+        expect(File.read(index)).to eq("# #{File.basename(dir)}\n\n- `a.md`\n- `b.md`\n")
+      end
+    end
+  end
+
   describe '.setup_guidance' do
     it 'returns cwd-independent setup commands' do
       source_command, rake_command = described_class.setup_guidance
