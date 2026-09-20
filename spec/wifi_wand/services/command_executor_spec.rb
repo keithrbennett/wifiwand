@@ -413,6 +413,32 @@ describe WifiWand::CommandExecutor do
         expect(err_output.string).not_to include('secret')
       end
 
+      it 'logs stderr output when the command writes only to stderr' do
+        err_output = StringIO.new
+        verbose_executor = described_class.new(
+          runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+        )
+
+        verbose_executor.run_command_using_args([RbConfig.ruby, '-e', 'STDERR.write "warned"'])
+
+        expect(err_output.string).to include('STDERR:')
+        expect(err_output.string).to include('warned')
+        expect(err_output.string).not_to include('STDOUT:')
+      end
+
+      it 'still logs a result line when the command produces no output at all' do
+        err_output = StringIO.new
+        verbose_executor = described_class.new(
+          runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+        )
+
+        verbose_executor.run_command_using_args([RbConfig.ruby, '-e', ''])
+
+        expect(err_output.string).to include('Exit code: 0 (success)')
+        expect(err_output.string).not_to include('STDOUT:')
+        expect(err_output.string).not_to include('STDERR:')
+      end
+
       it 'outputs UTC timestamps when runtime config requests UTC' do
         err_output = StringIO.new
         verbose_executor = described_class.new(
@@ -595,6 +621,96 @@ describe WifiWand::CommandExecutor do
       allow(File).to receive(:directory?).with('/usr/bin/test_dir').and_return(true)
 
       expect(executor.command_available?('test_dir')).to be false
+    end
+  end
+
+  describe '#terminate_process' do
+    let(:executor) { described_class.new(verbose: false) }
+    let(:wait_thread) { instance_double(Process::Waiter, pid: 4242) }
+
+    it 'ignores a process group that has already exited' do
+      allow(Process).to receive(:kill).with('TERM', -4242).and_raise(Errno::ESRCH)
+
+      expect(executor.send(:terminate_process, wait_thread)).to be_nil
+    end
+
+    it 'ignores a child that was already reaped' do
+      allow(Process).to receive(:kill).with('TERM', -4242).and_raise(Errno::ECHILD)
+
+      expect(executor.send(:terminate_process, wait_thread)).to be_nil
+    end
+
+    it 'escalates to KILL when the process group survives TERM' do
+      allow(Process).to receive(:kill)
+      allow(wait_thread).to receive(:join).and_return(nil)
+
+      executor.send(:terminate_process, wait_thread)
+
+      expect(Process).to have_received(:kill).with('TERM', -4242).ordered
+      expect(Process).to have_received(:kill).with(0, -4242).ordered
+      expect(Process).to have_received(:kill).with('KILL', -4242).ordered
+    end
+
+    it 'does not send KILL when the process group is gone after TERM' do
+      allow(Process).to receive(:kill).with('TERM', -4242)
+      allow(Process).to receive(:kill).with(0, -4242).and_raise(Errno::ESRCH)
+      allow(wait_thread).to receive(:join).and_return(wait_thread)
+
+      executor.send(:terminate_process, wait_thread)
+
+      expect(Process).not_to have_received(:kill).with('KILL', -4242)
+    end
+  end
+
+  describe WifiWand::CommandExecutor::OsCommandResult do
+    def build_result(**overrides)
+      described_class.new(
+        stdout: 'out', stderr: 'err', combined_output: 'outerr', exitstatus: 0, command: 'cmd',
+        duration: 0.5, **overrides
+      )
+    end
+
+    describe '#to_h' do
+      it 'describes a normal exit without a termsig key' do
+        expect(build_result.to_h).to eq(
+          stdout:          'out',
+          stderr:          'err',
+          combined_output: 'outerr',
+          exitstatus:      0,
+          command:         'cmd',
+          duration:        0.5
+        )
+      end
+
+      it 'includes the terminating signal when there is one' do
+        expect(build_result(exitstatus: nil, termsig: 9).to_h).to include(exitstatus: nil, termsig: 9)
+      end
+    end
+
+    describe '#termination_status' do
+      it 'reports the exit code for a normal exit' do
+        expect(build_result(exitstatus: 3).termination_status).to eq('Exit code: 3')
+      end
+
+      it 'reports an unknown exit code when none was captured' do
+        expect(build_result(exitstatus: nil).termination_status).to eq('Exit code: unknown')
+      end
+
+      it 'names a known signal' do
+        expect(build_result(exitstatus: nil, termsig: 9).termination_status).to eq('Signal: SIGKILL (9)')
+      end
+
+      it 'falls back to the bare number when the platform cannot name the signal' do
+        allow(Signal).to receive(:signame).with(9).and_raise(ArgumentError)
+
+        expect(build_result(exitstatus: nil, termsig: 9).termination_status).to eq('Signal: 9')
+      end
+    end
+
+    describe '#success?' do
+      it 'is false for a signalled process even with a zero exit status' do
+        expect(build_result(exitstatus: 0, termsig: 15).success?).to be(false)
+      end
     end
   end
 

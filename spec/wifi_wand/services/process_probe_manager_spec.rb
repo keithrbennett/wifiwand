@@ -24,6 +24,33 @@ describe WifiWand::ProcessProbeManager do
     end
   end
 
+  describe '#reap_probe' do
+    it 'does nothing without a pid' do
+      allow(Process).to receive(:wait)
+
+      expect(manager.reap_probe(nil)).to be_nil
+      expect(Process).not_to have_received(:wait)
+    end
+
+    it 'returns the pid once the process has exited' do
+      allow(Process).to receive(:wait).with(1234, Process::WNOHANG).and_return(1234)
+
+      expect(manager.reap_probe(1234)).to eq(1234)
+    end
+
+    it 'returns nil while the process is still running' do
+      allow(Process).to receive(:wait).with(1234, Process::WNOHANG).and_return(nil)
+
+      expect(manager.reap_probe(1234)).to be_nil
+    end
+
+    it 'returns nil when the process was already reaped elsewhere' do
+      allow(Process).to receive(:wait).with(1234, Process::WNOHANG).and_raise(Errno::ECHILD)
+
+      expect(manager.reap_probe(1234)).to be_nil
+    end
+  end
+
   describe '#finalize_probe' do
     let(:reader) { instance_double(IO, closed?: false) }
     let(:probe) { { pid: 1234, reader: reader } }

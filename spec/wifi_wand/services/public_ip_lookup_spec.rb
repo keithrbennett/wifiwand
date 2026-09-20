@@ -59,6 +59,20 @@ describe WifiWand::PublicIpLookup do
     end
   end
 
+  describe '#info with a non-JSON body' do
+    it 'raises a malformed-response error carrying the body' do
+      fake_response = double('response', body: '<html>gateway error</html>')
+      allow(fake_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+      allow(fake_http).to receive(:request).and_return(fake_response)
+
+      expect { lookup.info }.to raise_error(WifiWand::PublicIPLookupError) { |error|
+        expect(error.message).to eq('Public IP lookup failed: malformed response')
+        expect(error.url).to eq('https://api.country.is/')
+        expect(error.body).to eq('<html>gateway error</html>')
+      }
+    end
+  end
+
   describe '#address' do
     it 'parses successful address responses' do
       fake_response = double('response', body: '203.0.113.5')
@@ -169,6 +183,20 @@ describe WifiWand::PublicIpLookup do
       expect(lookup.address).to eq('203.0.113.5')
       expect(lookup).to have_received(:sleep).with(0.2)
       expect(lookup).to have_received(:sleep).with(0.4)
+    end
+  end
+
+  describe '#address with an invalid body' do
+    it 'raises a malformed-response error carrying the body' do
+      fake_response = double('response', body: "<html>not an ip</html>\n")
+      allow(fake_response).to receive(:is_a?).with(Net::HTTPSuccess).and_return(true)
+      allow(fake_http).to receive(:request).and_return(fake_response)
+
+      expect { lookup.address }.to raise_error(WifiWand::PublicIPLookupError) { |error|
+        expect(error.message).to eq('Public IP lookup failed: malformed response')
+        expect(error.url).to eq('https://api.ipify.org')
+        expect(error.body).to eq("<html>not an ip</html>\n")
+      }
     end
   end
 

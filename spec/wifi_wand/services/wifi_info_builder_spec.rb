@@ -231,7 +231,69 @@ describe WifiWand::WifiInfoBuilder do
     end
   end
 
+  describe 'degraded lookups' do
+    it 'reports captive portal state as unknown when the portal check fails' do
+      allow(mock_model).to receive(:captive_portal_login_required)
+        .and_raise(WifiWand::Error, 'portal check failed')
+
+      expect(builder.build['captive_portal_login_required']).to eq(:unknown)
+    end
+
+    it 'reports no addresses when the address command fails' do
+      allow(mock_model).to receive(:ipv4_addresses).and_raise(
+        os_command_error(exitstatus: 1, command: 'ip -4 addr', text: 'ip failed')
+      )
+
+      expect(builder.build['ipv4_addresses']).to eq([])
+    end
+
+    it 'reports ssid identity as unknown when neither association nor name can be read' do
+      allow(mock_model).to receive(:connected?).and_raise(WifiWand::Error, 'cannot tell')
+      allow(mock_model).to receive(:connected_network_name).and_raise(WifiWand::Error, 'cannot tell')
+
+      result = builder.build
+
+      expect(result).to include('connected' => nil, 'network' => nil, 'ssid_identity_status' => 'unknown',
+        'ssid_identity_available' => false)
+    end
+  end
+
+  describe 'verbose tracing' do
+    it 'writes an entry line to the error stream when verbose' do
+      err_stream = StringIO.new
+      verbose_builder = described_class.new(
+        mock_model,
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_stream)
+      )
+
+      verbose_builder.build
+
+      expect(err_stream.string).to include('Entered WifiInfoBuilder#build')
+    end
+
+    it 'writes nothing to the error stream when not verbose' do
+      err_stream = StringIO.new
+      quiet_builder = described_class.new(
+        mock_model,
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: false, err_stream: err_stream)
+      )
+
+      quiet_builder.build
+
+      expect(err_stream.string).to be_empty
+    end
+  end
+
   describe 'private helpers' do
+    it 'fails clearly when a probe worker exits without reporting a result' do
+      finished_worker = Thread.new { nil }.tap(&:join)
+      empty_queue = instance_double(Queue, pop: nil)
+
+      expect do
+        builder.send(:wifi_info_next_probe_result, empty_queue, { dns_working: finished_worker }, {})
+      end.to raise_error(WifiWand::Error, /dns_working exited without reporting a result/)
+    end
+
     it 'reports non-StandardError wifi info probe failures through the result queue' do
       result_queue = Queue.new
       worker = builder.send(:wifi_info_probe_worker, result_queue, :internet_tcp) do

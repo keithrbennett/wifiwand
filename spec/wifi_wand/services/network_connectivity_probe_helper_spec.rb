@@ -138,5 +138,38 @@ describe WifiWand::NetworkConnectivityProbeHelper do
       )
       expect(IPSocket).to have_received(:getaddress).with('success.test')
     end
+
+    it 'reports every failure, without a timeout, when no probe succeeds' do
+      allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
+
+      result = described_class.parallel_probe_result(tester, :dns, %w[a.test b.test], 1)
+
+      expect(result).to include(success: false, timed_out: false)
+      expect(result[:probe_results]).to contain_exactly(
+        { target: 'a.test', success: false, error_class: 'SocketError' },
+        { target: 'b.test', success: false, error_class: 'SocketError' }
+      )
+    end
+
+    it 'reports an empty, unsuccessful batch when there is nothing to probe' do
+      expect(described_class.parallel_probe_result(tester, :dns, [], 1))
+        .to eq(success: false, timed_out: false, probe_results: [])
+    end
+
+    it 'keeps other probe results when one worker raises unexpectedly' do
+      failing_tester = instance_double(WifiWand::NetworkConnectivityTester)
+      allow(failing_tester).to receive(:run_probe_result).with(:dns, 'boom.test')
+        .and_raise(RuntimeError, 'worker crashed')
+      allow(failing_tester).to receive(:run_probe_result).with(:dns, 'ok.test')
+        .and_return({ success: false, error_class: 'SocketError' })
+
+      result = described_class.parallel_probe_result(failing_tester, :dns, %w[boom.test ok.test], 1)
+
+      expect(result).to include(success: false, timed_out: false)
+      expect(result[:probe_results]).to contain_exactly(
+        { target: 'boom.test', success: false, error_class: 'RuntimeError' },
+        { target: 'ok.test', success: false, error_class: 'SocketError' }
+      )
+    end
   end
 end

@@ -523,6 +523,88 @@ describe WifiWand::NetworkConnectivityTester do
     end
   end
 
+  describe '#read_probe_result with a failing reader' do
+    let(:tester) { described_class.new(verbose: false) }
+    let(:probe) { { reader: instance_double(IO), helper_mode: :tcp, buffer: +'', eof: false } }
+
+    {
+      'an IOError'        => IOError,
+      'a SystemCallError' => Errno::ECONNRESET,
+    }.each do |description, error_class|
+      it "reports a failed helper result when reading raises #{description}" do
+        allow(tester).to receive(:drain_probe_reader).and_raise(error_class)
+
+        expect(tester.send(:read_probe_result, probe)).to eq(
+          success:       false,
+          timed_out:     false,
+          error_class:   error_class.to_s,
+          probe_results: []
+        )
+      end
+    end
+  end
+
+  describe '#run_probe_result' do
+    let(:tester) { described_class.new(verbose: false) }
+
+    it 'rejects an unsupported probe mode' do
+      expect { tester.run_probe_result(:icmp, 'example.com') }
+        .to raise_error(ArgumentError, /Unsupported probe mode: icmp/)
+    end
+
+    it 'reports a TCP connection failure with the error class' do
+      allow(Socket).to receive(:tcp).and_raise(Errno::ECONNREFUSED)
+
+      expect(tester.run_probe_result(:tcp, { 'host' => '192.0.2.1', 'port' => 443 }))
+        .to eq(success: false, error_class: 'Errno::ECONNREFUSED')
+    end
+
+    it 'reports a TCP connection timeout with the error class' do
+      allow(Socket).to receive(:tcp).and_raise(Timeout::Error)
+
+      expect(tester.run_probe_result(:tcp, { host: '192.0.2.1', port: 443 }))
+        .to eq(success: false, error_class: 'Timeout::Error')
+    end
+
+    it 'reports a DNS resolution failure with the error class' do
+      allow(IPSocket).to receive(:getaddress).and_raise(SocketError)
+
+      expect(tester.run_probe_result(:dns, 'no-such-host.invalid'))
+        .to eq(success: false, error_class: 'SocketError')
+    end
+
+    it 'reports success when the name resolves' do
+      allow(IPSocket).to receive(:getaddress).with('example.com').and_return('93.184.216.34')
+
+      expect(tester.run_probe_result(:dns, 'example.com')).to eq(success: true)
+    end
+  end
+
+  describe '#log_unexpected_error' do
+    let(:err_stream) { StringIO.new }
+    let(:error) { RuntimeError.new('boom') }
+
+    it 'logs the error class and message in verbose mode' do
+      tester = described_class.new(
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_stream)
+      )
+
+      tester.send(:log_unexpected_error, error)
+
+      expect(err_stream.string).to include('Unexpected error during connectivity test: RuntimeError - boom')
+    end
+
+    it 'stays silent when not verbose' do
+      tester = described_class.new(
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: false, err_stream: err_stream)
+      )
+
+      tester.send(:log_unexpected_error, error)
+
+      expect(err_stream.string).to be_empty
+    end
+  end
+
   describe '#internet_connectivity_state' do
     let(:tester) { described_class.new(verbose: false) }
 

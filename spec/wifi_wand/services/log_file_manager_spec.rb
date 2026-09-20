@@ -50,6 +50,25 @@ describe WifiWand::LogFileManager do
       expect(File.read(missing_path)).to include('Created directory log message')
     end
 
+    it 'raises a descriptive error when the log file cannot be opened' do
+      blocking_file = File.join(temp_dir, 'not-a-directory')
+      File.write(blocking_file, 'occupied')
+      unreachable_path = File.join(blocking_file, 'test.log')
+
+      expect { described_class.new(log_file_path: unreachable_path) }
+        .to raise_error(WifiWand::LogFileInitializationError,
+          /Cannot open log file #{Regexp.escape(unreachable_path)}/)
+    end
+
+    it 'raises an initialization error when the verbose startup message cannot be written' do
+      failing_err_stream = instance_double(IO)
+      allow(failing_err_stream).to receive(:puts).and_raise(IOError, 'stream closed')
+      runtime_config = WifiWand::RuntimeConfig.new(verbose: true, err_stream: failing_err_stream)
+
+      expect { described_class.new(log_file_path: log_file_path, runtime_config: runtime_config) }
+        .to raise_error(WifiWand::LogFileInitializationError, /Failed to initialize log file.*stream closed/)
+    end
+
     it 'accepts verbose flag' do
       silence_output do
         manager = described_class.new(log_file_path: log_file_path, verbose: true)

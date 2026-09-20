@@ -39,5 +39,10 @@ RSpec.describe WifiWand::IPAddressExtractor do
 
       expect(addresses).to eq([])
     end
+
+    it 'rejects an unknown address family instead of silently returning nothing' do
+      expect { described_class.addresses("inet 192.168.1.5/24\n", line_type: 'inet', family: :ipx) }
+        .to raise_error(ArgumentError, /Unknown IP address family: :ipx/)
+    end
   end
 end

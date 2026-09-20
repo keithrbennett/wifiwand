@@ -157,6 +157,69 @@ describe WifiWand::ConnectionManager do
     end
   end
 
+  describe '#validate_network_name with a missing name' do
+    [nil, ''].each do |blank_name|
+      it "rejects #{blank_name.inspect} and reports it as an empty name" do
+        expect { subject.send(:validate_network_name, blank_name) }
+          .to raise_error(WifiWand::InvalidNetworkNameError) { |error| expect(error.network_name).to eq('') }
+      end
+    end
+  end
+
+  describe '#already_connected?' do
+    it 'treats a failed readiness check as not connected' do
+      allow(mock_model).to receive(:connection_ready?).and_raise(WifiWand::Error, 'nmcli unavailable')
+
+      expect(subject.send(:already_connected?, 'TestNetwork')).to be(false)
+    end
+  end
+
+  describe '#wait_for_connection_activation' do
+    let(:redaction_error) do
+      WifiWand::MacOsRedactionError.new(operation_description: 'Current WiFi network queries')
+    end
+
+    before do
+      allow(subject).to receive(:wait_for_connection_activation).and_call_original
+      allow(subject).to receive(:sleep)
+    end
+
+    it 'reports the targeted redaction error when a readiness check is blocked' do
+      allow(mock_model).to receive(:connection_ready?).and_raise(redaction_error)
+
+      expect { subject.send(:wait_for_connection_activation, 'TestNetwork') }
+        .to raise_error(WifiWand::NetworkConnectionError, /cannot verify that the active network/)
+    end
+
+    it 'keeps polling through a transient readiness failure until the connection is active' do
+      allow(mock_model).to receive(:connection_ready?)
+        .and_invoke(->(_name) { raise WifiWand::Error, 'no active connection yet' }, ->(_name) { true })
+      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC).and_return(0.0, 1.0)
+
+      subject.send(:wait_for_connection_activation, 'TestNetwork')
+
+      expect(subject).to have_received(:sleep).with(WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL).once
+    end
+
+    it 'gives up quietly once the activation timeout has elapsed' do
+      allow(mock_model).to receive(:connection_ready?).and_return(false)
+      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
+        .and_return(0.0, WifiWand::TimingConstants::NETWORK_CONNECTION_WAIT + 1.0)
+
+      expect(subject.send(:wait_for_connection_activation, 'TestNetwork')).to be_nil
+      expect(subject).not_to have_received(:sleep)
+    end
+
+    it 'proceeds to readiness polling when the association wait times out' do
+      allow(mock_model).to receive(:till).and_raise(
+        WifiWand::WaitTimeoutError.new(action: :associated, timeout: 1)
+      )
+      allow(mock_model).to receive(:connection_ready?).and_return(true)
+
+      expect { subject.send(:wait_for_connection_activation, 'TestNetwork') }.not_to raise_error
+    end
+  end
+
   describe '#connect' do
     context 'with invalid network name' do
       it 'raises InvalidNetworkNameError for nil network name' do
