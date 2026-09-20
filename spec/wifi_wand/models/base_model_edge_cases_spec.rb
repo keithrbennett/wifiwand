@@ -98,6 +98,81 @@ RSpec.describe WifiWand::BaseModel do
     end
   end
 
+  describe '.current_os_matches_this_model?' do
+    let(:model_class) do
+      Class.new(described_class) do
+        def self.os_id = :ubuntu
+      end
+    end
+
+    it 'is true when the detected OS has this model\'s id' do
+      allow(WifiWand::Platforms::Selector).to receive(:current_os).and_return(double(id: :ubuntu))
+
+      expect(model_class.current_os_matches_this_model?).to be(true)
+    end
+
+    it 'is false when a different OS is detected' do
+      allow(WifiWand::Platforms::Selector).to receive(:current_os).and_return(double(id: :mac))
+
+      expect(model_class.current_os_matches_this_model?).to be(false)
+    end
+
+    it 'is false when no supported OS is detected' do
+      allow(WifiWand::Platforms::Selector).to receive(:current_os).and_return(nil)
+
+      expect(model_class.current_os_matches_this_model?).to be(false)
+    end
+  end
+
+  describe 'status queries without a platform override' do
+    let(:model) { described_class.new(model_options) }
+
+    describe '#status_wifi_on?' do
+      it 'delegates to wifi_on? when no timeout is requested' do
+        allow(model).to receive(:wifi_on?).and_return(true)
+
+        expect(model.status_wifi_on?).to be(true)
+      end
+
+      it 'requires a platform override for a bounded query' do
+        expect { model.status_wifi_on?(timeout_in_secs: 1) }
+          .to raise_error(WifiWand::MethodNotImplementedError)
+      end
+    end
+
+    describe '#status_network_identity' do
+      it 'reports the network name and signal quality when connected' do
+        signal = WifiWand::SignalQuality.new(value: 70, unit: :percent)
+        allow(model).to receive_messages(connected?: true, connected_network_name: 'HomeNet',
+          signal_quality: signal)
+
+        expect(model.status_network_identity)
+          .to eq(connected: true, network_name: 'HomeNet', signal_quality: signal)
+      end
+
+      it 'omits the network name and signal quality when not connected' do
+        allow(model).to receive(:connected?).and_return(false)
+        allow(model).to receive(:connected_network_name)
+        allow(model).to receive(:signal_quality)
+
+        expect(model.status_network_identity)
+          .to eq(connected: false, network_name: nil, signal_quality: nil)
+        expect(model).not_to have_received(:connected_network_name)
+        expect(model).not_to have_received(:signal_quality)
+      end
+    end
+  end
+
+  describe '#available_network_scan' do
+    let(:model) { described_class.new(model_options) }
+
+    it 'refuses to scan while WiFi is off' do
+      allow(model).to receive(:wifi_on?).and_return(false)
+
+      expect { model.available_network_scan }.to raise_error(WifiWand::WifiOffError, /cannot scan/)
+    end
+  end
+
   describe 'WiFi-off wrappers' do
     let(:model) { described_class.new(model_options) }
 
