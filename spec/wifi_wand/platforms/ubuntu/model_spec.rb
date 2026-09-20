@@ -2429,6 +2429,144 @@ module WifiWand
         end
       end
 
+      describe '#connection_ready? when the readiness check fails' do
+        let(:err_stream) { StringIO.new }
+
+        before do
+          allow(ubuntu_model).to receive(:err_stream).and_return(err_stream)
+          allow(ubuntu_model).to receive(:_connected_network_name)
+            .and_raise(WifiWand::Error, 'nmcli unavailable')
+        end
+
+        it 'reports not ready and logs the failure in verbose mode' do
+          allow(ubuntu_model).to receive(:verbose?).and_return(true)
+
+          expect(ubuntu_model.connection_ready?('NetA')).to be(false)
+          expect(err_stream.string)
+            .to include('connection_ready? check failed: WifiWand::Error: nmcli unavailable')
+        end
+
+        it 'reports not ready without logging when not verbose' do
+          allow(ubuntu_model).to receive(:verbose?).and_return(false)
+
+          expect(ubuntu_model.connection_ready?('NetA')).to be(false)
+          expect(err_stream.string).to be_empty
+        end
+      end
+
+      describe '#status_wifi_on?' do
+        it 'asks nmcli for the radio state within the remaining status budget' do
+          ubuntu_model.wifi_interface = 'wlp3s0'
+          expect(ubuntu_model).to receive(:run_command)
+            .with(%w[nmcli radio wifi], raise_on_error: false, timeout_in_secs: be_between(0, 0.5).exclusive)
+            .and_return(command_result(stdout: "enabled\n"))
+
+          expect(ubuntu_model.status_wifi_on?(timeout_in_secs: 0.5)).to be(true)
+        end
+
+        it 'reports the radio as off when nmcli says it is disabled' do
+          ubuntu_model.wifi_interface = 'wlp3s0'
+          allow(ubuntu_model).to receive(:run_command)
+            .with(%w[nmcli radio wifi], raise_on_error: false, timeout_in_secs: be_between(0, 0.5).exclusive)
+            .and_return(command_result(stdout: "disabled\n"))
+
+          expect(ubuntu_model.status_wifi_on?(timeout_in_secs: 0.5)).to be(false)
+        end
+
+        it 'validates OS preconditions first when no interface is known yet' do
+          error = WifiWand::CommandNotFoundError.new('nmcli (install: sudo apt install network-manager)')
+          expect(ubuntu_model).to receive(:validate_os_preconditions).and_raise(error)
+
+          expect { ubuntu_model.status_wifi_on?(timeout_in_secs: 0.5) }
+            .to raise_error(WifiWand::CommandNotFoundError)
+        end
+      end
+
+      describe '#status_wifi_interface' do
+        it 'probes once within the status budget and caches the interface' do
+          allow(ubuntu_model).to receive(:probe_wifi_interface).and_return('wlp9s0')
+
+          first = ubuntu_model.send(:status_wifi_interface, nil)
+          second = ubuntu_model.send(:status_wifi_interface, nil)
+
+          expect([first, second]).to eq(%w[wlp9s0 wlp9s0])
+          expect(ubuntu_model).to have_received(:probe_wifi_interface).once
+        end
+      end
+
+      describe 'signal quality from the nmcli scan' do
+        def stub_scan(stdout)
+          allow(ubuntu_model).to receive(:run_command)
+            .with(['nmcli', '-t', '-f', 'IN-USE,SIGNAL', 'dev', 'wifi', 'list', '--rescan', 'no'],
+              raise_on_error: false)
+            .and_return(command_result(stdout: stdout))
+        end
+
+        it 'returns the percentage for the in-use network' do
+          stub_scan(" :80\n*:71\n")
+
+          expect(ubuntu_model.send(:signal_quality_from_nmcli_scan))
+            .to eq(WifiWand::SignalQuality.new(value: 71, unit: :percent))
+        end
+
+        it 'returns nil when no scanned network is in use' do
+          stub_scan(" :80\n :55\n")
+
+          expect(ubuntu_model.send(:signal_quality_from_nmcli_scan)).to be_nil
+        end
+
+        it 'returns nil when the in-use network has an unusable signal value' do
+          stub_scan("*:strong\n")
+
+          expect(ubuntu_model.send(:signal_quality_from_nmcli_scan)).to be_nil
+        end
+
+        it 'returns nil from the status path when the scan fails' do
+          allow(ubuntu_model).to receive(:signal_quality_from_nmcli_scan)
+            .and_raise(WifiWand::Error, 'scan failed')
+
+          expect(ubuntu_model.send(:status_signal_quality, nil)).to be_nil
+        end
+      end
+
+      describe '#join_saved_wifi_profile_workers' do
+        def failing_worker(message)
+          Thread.new do
+            Thread.current.report_on_exception = false
+            raise message
+          end
+        end
+
+        it 're-raises the first worker failure after joining every worker' do
+          finished = Thread.new { :ok }
+          workers = [finished, failing_worker('first failure'), failing_worker('second failure')]
+
+          expect { ubuntu_model.send(:join_saved_wifi_profile_workers, workers) }
+            .to raise_error(RuntimeError, 'first failure')
+          expect(workers).to all(satisfy { |worker| !worker.alive? })
+        end
+
+        it 'returns quietly when every worker succeeds' do
+          workers = [Thread.new { :a }, Thread.new { :b }]
+
+          expect { ubuntu_model.send(:join_saved_wifi_profile_workers, workers) }.not_to raise_error
+        end
+      end
+
+      describe '#resolve_saved_profile_name' do
+        it 'returns the best matching saved profile name' do
+          allow(ubuntu_model).to receive(:find_best_profile_for_ssid).with('HomeNet').and_return('HomeNet 2')
+
+          expect(ubuntu_model.resolve_saved_profile_name('HomeNet')).to eq('HomeNet 2')
+        end
+
+        it 'falls back to the network name when no saved profile matches' do
+          allow(ubuntu_model).to receive(:find_best_profile_for_ssid).with('NewNet').and_return(nil)
+
+          expect(ubuntu_model.resolve_saved_profile_name('NewNet')).to eq('NewNet')
+        end
+      end
+
       describe 'private helper methods' do
         describe '#get_security_parameter' do
           it 'detects WPA2 security and returns correct parameter' do
