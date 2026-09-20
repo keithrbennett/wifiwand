@@ -88,6 +88,70 @@ describe WifiWand::Commands::OutputSupport do
     end
   end
 
+  describe '#available_networks_empty_message' do
+    def message_for(model)
+      allow(cli).to receive(:model).and_return(model)
+      described_class.new(cli).available_networks_empty_message
+    end
+
+    it 'mentions Location Services for the macOS model' do
+      message = message_for(WifiWand::Platforms::Mac::Model.allocate)
+
+      expect(message).to start_with('No visible networks were found.')
+      expect(message).to include('Location Services')
+    end
+
+    it 'suggests an nmcli rescan for the Ubuntu model' do
+      message = message_for(WifiWand::Platforms::Ubuntu::Model.allocate)
+
+      expect(message).to start_with('No visible networks were found.')
+      expect(message).to include('nmcli device wifi rescan')
+    end
+
+    it 'returns only the basic message for other models' do
+      expect(message_for(mock_model)).to eq('No visible networks were found.')
+    end
+  end
+
+  describe '#status_progress_mode' do
+    let(:tty_stream) { instance_double(StringIO, tty?: true) }
+    let(:non_tty_stream) { instance_double(StringIO, tty?: false) }
+
+    it 'is :inline for a TTY stream without a post processor' do
+      allow(cli).to receive(:out_stream).and_return(tty_stream)
+
+      expect(described_class.new(cli).status_progress_mode).to eq(:inline)
+    end
+
+    it 'is :none for a non-TTY stream' do
+      allow(cli).to receive(:out_stream).and_return(non_tty_stream)
+
+      expect(described_class.new(cli).status_progress_mode).to eq(:none)
+    end
+
+    it 'is :none for a stream that does not respond to tty?' do
+      allow(cli).to receive(:out_stream).and_return(Object.new)
+
+      expect(described_class.new(cli).status_progress_mode).to eq(:none)
+    end
+
+    it 'is :none when a post processor is configured, even on a TTY' do
+      processor_cli = WifiWand::CommandLineInterface.new(create_cli_options(post_processor: ->(obj) { obj }))
+      allow(processor_cli).to receive(:out_stream).and_return(tty_stream)
+
+      expect(described_class.new(processor_cli).status_progress_mode).to eq(:none)
+    end
+  end
+
+  describe '#strip_ansi' do
+    it 'removes color sequences and tolerates nil' do
+      output_support = described_class.new(cli)
+
+      expect(output_support.strip_ansi("\e[1;31mred\e[0m")).to eq('red')
+      expect(output_support.strip_ansi(nil)).to eq('')
+    end
+  end
+
   describe '#display_width' do
     it 'counts ANSI-free ASCII text by character length' do
       output_support = described_class.new(cli)

@@ -923,6 +923,161 @@ describe WifiWand::NetworkStateManager do
     end
   end
 
+  describe 'restore edge cases' do
+    let(:err_output) { StringIO.new }
+    let(:verbose_manager) do
+      described_class.new(
+        mock_model,
+        runtime_config: WifiWand::RuntimeConfig.new(verbose: true, err_stream: err_output)
+      )
+    end
+    let(:state) do
+      {
+        wifi_enabled:     true,
+        associated:       true,
+        network_name:     'TestNetwork',
+        network_password: 'testpass',
+        interface:        'wlan0',
+      }
+    end
+    let(:transient_error) do
+      WifiWand::NetworkConnectionError.new(
+        network_name: 'TestNetwork',
+        reason:       "Error: -3900 The operation couldn't be completed. tmpErr",
+        source:       :networksetup
+      )
+    end
+
+    it 'warns and proceeds to connect when the already-connected check fails in verbose mode' do
+      allow(mock_model).to receive(:connection_ready?)
+        .and_invoke(->(_name) { raise WifiWand::Error, 'query failed' }, ->(_name) { true })
+
+      verbose_manager.restore_network_state(state)
+
+      expect(err_output.string).to include(
+        'Warning: Unable to query current network (query failed), proceeding with connection attempt'
+      )
+    end
+
+    it 'proceeds to connect without a warning when the already-connected check fails quietly' do
+      allow(mock_model).to receive(:connection_ready?)
+        .and_invoke(->(_name) { raise WifiWand::Error, 'query failed' }, ->(_name) { true })
+
+      expect { state_manager.restore_network_state(state) }.not_to raise_error
+      expect(err_output.string).to be_empty
+    end
+
+    it 'logs each transient restore retry in verbose mode' do
+      allow(mock_model).to receive_messages(mac?: true, wifi_on?: true)
+      allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
+      allow(mock_model).to receive(:associated?).and_return(false)
+      allow(verbose_manager).to receive(:sleep)
+      allow(verbose_manager).to receive(:settle_for_restore?).and_return(false)
+      attempts = 0
+      allow(mock_model).to receive(:connect) do
+        attempts += 1
+        raise transient_error if attempts == 1
+      end
+
+      verbose_manager.restore_network_state(state)
+
+      expect(err_output.string).to include('Restore connection attempt 1 failed with a transient')
+    end
+
+    it 'keeps retrying when the post-sleep association check raises an expected error' do
+      allow(mock_model).to receive_messages(mac?: true, wifi_on?: true)
+      allow(mock_model).to receive(:connection_ready?).and_return(false, false, true)
+      allow(mock_model).to receive(:associated?).and_raise(IOError, 'stream closed')
+      allow(state_manager).to receive(:sleep)
+      allow(state_manager).to receive(:settle_for_restore?).and_return(false)
+      attempts = 0
+      allow(mock_model).to receive(:connect) do
+        attempts += 1
+        raise transient_error if attempts == 1
+      end
+
+      state_manager.restore_network_state(state)
+
+      expect(mock_model).to have_received(:connect).twice
+    end
+
+    it 'keeps polling during the settle window when the association check raises an expected error' do
+      allow(mock_model).to receive(:associated?)
+        .and_invoke(-> { raise IOError, 'stream closed' }, -> { true })
+      allow(state_manager).to receive(:sleep)
+
+      expect(state_manager.send(:settle_for_restore?, 'TestNetwork')).to be(true)
+      expect(state_manager).to have_received(:sleep)
+        .with(described_class::RESTORE_CONNECT_SETTLE_POLL_SECONDS).once
+    end
+
+    it 'gives up and returns false when the settle window expires without association' do
+      allow(mock_model).to receive(:associated?).and_return(false)
+      allow(state_manager).to receive(:sleep)
+      allow(Process).to receive(:clock_gettime).with(Process::CLOCK_MONOTONIC)
+        .and_return(0.0, described_class::RESTORE_CONNECT_SETTLE_SECONDS + 1.0)
+
+      expect(state_manager.send(:settle_for_restore?, 'TestNetwork')).to be(false)
+      expect(state_manager).not_to have_received(:sleep)
+    end
+
+    it 'treats an identity-query failure as the target not being verified' do
+      allow(mock_model).to receive(:associated?).and_raise(WifiWand::Error, 'query failed')
+
+      expect(state_manager.send(:restore_associated_with_target?, 'TestNetwork')).to be(false)
+    end
+
+    it 'logs the redaction failure in verbose mode when a restore times out' do
+      allow(mock_model).to receive(:connected_network_name).and_raise(
+        WifiWand::MacOsRedactionError.new(operation_description: 'Current WiFi network queries')
+      )
+
+      reason = verbose_manager.send(:restore_timeout_reason, 'TestNetwork')
+
+      expect(reason).to include("cannot verify that it restored 'TestNetwork'")
+      expect(err_output.string).to include(
+        'Warning: Connection timeout and failed to query current network:'
+      )
+    end
+
+    describe 'error text extraction' do
+      it 'falls back to the message for errors with neither text nor reason' do
+        expect(state_manager.send(:restore_error_text, StandardError.new('plain failure')))
+          .to eq('plain failure')
+      end
+
+      it 'uses the reason for domain errors without command text' do
+        expect(state_manager.send(:restore_error_text, transient_error)).to include('-3900')
+      end
+    end
+
+    describe '#command_executable' do
+      it 'uses the first element of an argv array, without its directory' do
+        expect(state_manager.send(:command_executable, ['/usr/sbin/networksetup', '-x']))
+          .to eq('networksetup')
+      end
+
+      it 'uses the first word of a command string, without its directory' do
+        expect(state_manager.send(:command_executable, '/usr/sbin/networksetup -x'))
+          .to eq('networksetup')
+      end
+    end
+
+    describe 'password capture fallbacks' do
+      it 'treats an unreadable connected network name as no network' do
+        allow(mock_model).to receive(:connected_network_name).and_raise(WifiWand::Error, 'unreadable')
+
+        expect(state_manager.send(:connected_network_password)).to be_nil
+      end
+
+      it 'assumes a password may be needed when the security type cannot be read' do
+        allow(mock_model).to receive(:connection_security_type).and_raise(WifiWand::Error, 'unreadable')
+
+        expect(state_manager.send(:connected_network_requires_password?)).to be(true)
+      end
+    end
+  end
+
   describe 'verbose mode' do
     let(:verbose_state_manager) { described_class.new(mock_model, verbose: true) }
 

@@ -119,6 +119,41 @@ describe WifiWand::DisconnectManager do
         .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
     end
 
+    it 'returns nil once the interface is confirmed disassociated and stays that way' do
+      allow(model).to receive_messages(wifi_on?: true, disconnect_associated?: false)
+      allow(model).to receive(:connected_network_name).and_return('TestNet', nil)
+      allow(model).to receive(:_disconnect)
+      allow(disconnect_manager).to receive(:disassociated_stable?).and_return(true)
+
+      expect(disconnect_manager.disconnect).to be_nil
+      expect(model).to have_received(:_disconnect).once
+    end
+
+    it 'falls back to the original SSID when it cannot be re-read after a timeout' do
+      allow(model).to receive(:wifi_on?).and_return(true)
+      allow(model).to receive(:connected_network_name)
+        .and_invoke(-> { 'TestNet' }, -> { raise WifiWand::Error, 'cannot read SSID' })
+      allow(model).to receive(:_disconnect)
+      allow(disconnect_manager).to receive(:wait_until_disassociated!)
+        .and_raise(wait_timeout_error(action: :disassociated, timeout: 5))
+
+      expect { disconnect_manager.disconnect }
+        .to raise_error(WifiWand::NetworkDisconnectionError, /still associated with 'TestNet'/)
+    end
+
+    it 'reports a generic reason when no SSID is known after a timeout' do
+      allow(model).to receive_messages(wifi_on?: true, connected_network_name: nil,
+        disconnect_associated?: true)
+      allow(model).to receive(:_disconnect)
+      allow(disconnect_manager).to receive(:wait_until_disassociated!)
+        .and_raise(wait_timeout_error(action: :disassociated, timeout: 5))
+
+      expect { disconnect_manager.disconnect }.to raise_error(WifiWand::NetworkDisconnectionError) do |error|
+        expect(error.network_name).to be_nil
+        expect(error.reason).to eq('interface remained associated')
+      end
+    end
+
     it 'is a no-op when wifi is already disassociated' do
       allow(model).to receive_messages(wifi_on?: true, connected_network_name: nil, connected?: false)
       allow(disconnect_manager).to receive(:wait_until_disassociated!)
@@ -134,6 +169,43 @@ describe WifiWand::DisconnectManager do
     it 'defaults to two ordinary wait intervals' do
       expect(disconnect_manager.disconnect_stability_window_in_secs)
         .to eq(WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL * 2)
+    end
+  end
+
+  describe '#wait_until_disassociated!' do
+    let(:interval) { WifiWand::TimingConstants::DEFAULT_WAIT_INTERVAL }
+
+    it 'returns immediately when the interface is not associated' do
+      allow(disconnect_manager).to receive(:disconnect_association_state)
+        .and_return({ associated: false, network_name: nil })
+      allow(disconnect_manager).to receive(:sleep)
+
+      expect(disconnect_manager.send(:wait_until_disassociated!, timeout_in_secs: 5)).to be_nil
+      expect(disconnect_manager).not_to have_received(:sleep)
+    end
+
+    it 'sleeps no longer than the remaining time and then raises a timeout' do
+      allow(disconnect_manager).to receive(:disconnect_association_state)
+        .and_return({ associated: true, network_name: 'TestNet' })
+      # deadline computation, first remaining-time check, second remaining-time check
+      allow(disconnect_manager).to receive(:monotonic_now).and_return(10.0, 10.9, 12.0)
+      allow(disconnect_manager).to receive(:sleep)
+
+      expect { disconnect_manager.send(:wait_until_disassociated!, timeout_in_secs: 1) }
+        .to raise_error(WifiWand::WaitTimeoutError, /disassociated/)
+      expect(disconnect_manager).to have_received(:sleep).with(be_within(0.001).of(0.1)).once
+    end
+
+    it 'polls at the standard interval while time remains' do
+      allow(disconnect_manager).to receive(:disconnect_association_state)
+        .and_return({ associated: true, network_name: 'TestNet' },
+          { associated: false, network_name: nil })
+      allow(disconnect_manager).to receive(:monotonic_now).and_return(10.0, 10.0)
+      allow(disconnect_manager).to receive(:sleep)
+
+      disconnect_manager.send(:wait_until_disassociated!, timeout_in_secs: 5)
+
+      expect(disconnect_manager).to have_received(:sleep).with(interval).once
     end
   end
 
