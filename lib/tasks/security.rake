@@ -5,7 +5,7 @@ require 'rake'
 namespace :security do
   desc 'Audit dependencies for vulnerabilities with bundler-audit'
   task :bundler_audit do
-    sh 'bundle exec bundle audit check --update'
+    sh 'bundle exec bundle-audit check --update'
   end
 
   desc 'Audit Ruby and RubyGems for known vulnerabilities with ruby_audit'

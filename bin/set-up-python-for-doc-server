@@ -29,6 +29,8 @@ fi
 script_dir="$(cd -- "$(dirname -- "${script_path}")" && pwd -P)" || return 1
 repo_root="$(cd -- "${script_dir}/.." && pwd -P)" || return 1
 
+# Run under a minimal explicit environment so Bundler state inherited from a caller such as
+# `bundle exec rspec` cannot leak into these Ruby calls.
 run_docs_tooling_ruby() {
   env -i \
     HOME="${HOME:-}" \

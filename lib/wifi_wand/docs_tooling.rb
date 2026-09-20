@@ -9,8 +9,6 @@ require 'yaml'
 module WifiWand
   module DocsTooling
     REPO_ROOT = File.expand_path('../..', __dir__)
-    # StandardError excludes process-control and VM-level exceptions like Interrupt, SystemExit, and NoMemoryError.
-    WORKSPACE_PREPARATION_ERROR = StandardError
 
     def self.venv_dir
       File.join(REPO_ROOT, '.docs-venv')
@@ -95,12 +93,17 @@ module WifiWand
 
       args = argv[(separator_index + 1)..]
       argv.slice!(separator_index..)
-      task_like_args = args.reject { |arg| arg.start_with?('-') }
-      rake_application.top_level_tasks.reject! { |task| task_like_args.include?(task) }
+      # Rake treats NAME=value as an ENV assignment, not a task, so those never appear in the task list.
+      task_like_args = args.reject { |arg| arg.start_with?('-') || arg.match?(/\A\w+=/) }
+      # Rake appends the post-separator values to the end of the task list; drop only that tail so a
+      # task the user actually requested is kept even if its name equals a passthrough value.
+      top_level_tasks = rake_application.top_level_tasks
+      top_level_tasks.pop(task_like_args.size) if top_level_tasks.last(task_like_args.size) == task_like_args
       args
     end
 
     def self.prepare_mkdocs_workspace!
+      prepared = false
       FileUtils.rm_rf(generated_docs_dir)
       FileUtils.mkdir_p(generated_docs_dir)
 
@@ -117,11 +120,11 @@ module WifiWand
       copy_docs_tree('logo', required: false)
       rewrite_generated_markdown_links
       write_generated_config
+      prepared = true
 
       generated_config_path
-    rescue WORKSPACE_PREPARATION_ERROR
-      cleanup_mkdocs_workspace!
-      raise
+    ensure
+      cleanup_mkdocs_workspace! unless prepared
     end
 
     def self.cleanup_mkdocs_workspace!

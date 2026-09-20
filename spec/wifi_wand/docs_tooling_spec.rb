@@ -241,6 +241,31 @@ RSpec.describe WifiWand::DocsTooling do
       )
       expect(top_level_tasks).to eq(['docs:build'])
     end
+
+    it 'ignores NAME=value passthrough arguments, which Rake treats as ENV assignments' do
+      rake_application = instance_double(Rake::Application)
+      top_level_tasks = ['docs:build', 'alt-site']
+      argv = ['docs:build', '--', 'FOO=1', '--site-dir', 'alt-site']
+
+      allow(rake_application).to receive(:top_level_tasks).and_return(top_level_tasks)
+
+      expect(described_class.extract_rake_passthrough_args!(argv, rake_application)).to eq(
+        ['FOO=1', '--site-dir', 'alt-site']
+      )
+      expect(top_level_tasks).to eq(['docs:build'])
+    end
+
+    it 'keeps a requested task whose name equals a post-separator value' do
+      rake_application = instance_double(Rake::Application)
+      top_level_tasks = ['docs', 'docs:build', 'docs']
+      argv = ['docs', 'docs:build', '--', '--site-dir', 'docs']
+
+      allow(rake_application).to receive(:top_level_tasks).and_return(top_level_tasks)
+
+      described_class.extract_rake_passthrough_args!(argv, rake_application)
+
+      expect(top_level_tasks).to eq(['docs', 'docs:build'])
+    end
   end
 
   describe '.prepare_mkdocs_workspace!' do
@@ -340,6 +365,18 @@ RSpec.describe WifiWand::DocsTooling do
       expect do
         described_class.prepare_mkdocs_workspace!
       end.to raise_error(RuntimeError, 'boom')
+
+      expect(File).not_to exist(described_class.generated_config_path)
+      expect(File).not_to exist(described_class.generated_docs_dir)
+      expect(File).not_to exist(described_class.generated_site_dir)
+    end
+
+    it 'cleans up generated files when workspace preparation is interrupted' do
+      allow(described_class).to receive(:write_generated_config).and_raise(Interrupt)
+
+      expect do
+        described_class.prepare_mkdocs_workspace!
+      end.to raise_error(Interrupt)
 
       expect(File).not_to exist(described_class.generated_config_path)
       expect(File).not_to exist(described_class.generated_docs_dir)

@@ -4,6 +4,13 @@
 
 * Publish the documentation site from final release tags (`vX.Y.Z`, not pre-releases) so the web
   documentation reflects the latest released version of WifiWand.
+* Add `bin/audit-docs-deps` (`rake docs:audit`) to check the locked documentation dependencies for known
+  vulnerabilities, and `bin/update-docs-deps` (`rake docs:update_deps`) to regenerate `requirements-lock.txt`
+  from `requirements.txt`.
+* Add `rake security` (with `security:bundler_audit` and `security:ruby_audit`) to run all dependency audits
+  locally, including the documentation audit. CI's Security audit job now also audits the documentation
+  dependencies.
+* Validate documentation builds for changes under `lib/` and `spec/`, which are published as part of the site.
 
 ## v3.0.0
 

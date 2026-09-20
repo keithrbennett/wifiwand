@@ -17,6 +17,8 @@ on:
       - 'RELEASE_NOTES.md'
       - 'LICENSE.txt'
       - 'logo/**'
+      - 'lib/**'
+      - 'spec/**'
       - 'mkdocs.yml'
       - 'requirements-lock.txt'
       - 'Rakefile'
@@ -39,6 +41,12 @@ jobs:
   build:
     name: Build docs
     runs-on: ubuntu-latest
+
+    # configure-pages reads the Pages site config; the workflow-level default grants no pages access.
+    # Read is enough: v6 defaults enablement to false, so it never tries to create the site.
+    permissions:
+      contents: read
+      pages: read
 
     steps:
       # The push tag filter does not apply to workflow_dispatch, so check manual runs here.
@@ -78,11 +86,11 @@ jobs:
 
       - name: Configure GitHub Pages
         if: github.ref_type == 'tag'
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload Pages artifact
         if: github.ref_type == 'tag'
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: ${{ runner.temp }}/wifiwand-site
 
@@ -108,4 +116,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

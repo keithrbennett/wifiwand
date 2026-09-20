@@ -152,8 +152,9 @@ source /path/to/wifiwand/bin/set-up-python-for-doc-server
 If `python3 -m venv` is unavailable on Ubuntu, install the system venv package for your Python version and run
 the setup command again.
 
-If setup reports that Python is too old, install Python 3.10 or newer, make sure `python3` resolves to it, and
-run the setup command again.
+If setup fails while installing packages with errors about unsupported Python versions or missing matching
+distributions, your `python3` is probably older than 3.10. Install Python 3.10 or newer, make sure `python3`
+resolves to it, and run the setup command again.
 
 If port `8000` is already in use, pass another address through the helper script:
 
