@@ -13,7 +13,7 @@ htmlmin2==0.1.13
 idna==3.20
 Jinja2==3.1.6
 jsmin==3.0.1
-Markdown==3.10.3
+Markdown==3.11
 MarkupSafe==3.0.3
 mergedeep==1.3.4
 mkdocs==1.6.1
