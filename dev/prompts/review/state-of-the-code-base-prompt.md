@@ -6,6 +6,10 @@ cost to fix, and give a high-level strategy for addressing it.
 
 **DO NOT MAKE ANY CODE CHANGES. REVIEW ONLY.**
 
+> **Test coverage is out of scope for this review.** Do not analyze coverage data or score coverage; it is
+> handled in depth by a separate prompt, `test-coverage-analysis-prompt.md` (in the same directory as this
+> one). Use that prompt for coverage analysis.
+
 ## Ground Rules
 
 - First read the project's agent and contributor guidance (e.g., AGENTS.md, CLAUDE.md, CONTRIBUTING.md) and
@@ -26,6 +30,9 @@ directory. Name it
 `YYYY-MM-DD-state-of-the-code-base-<agent>.md`, where the date is today's date and `<agent>` is your
 lowercase tool or model family name (e.g. `claude`, `codex`, `gemini`, `zai`).
 
+Begin the report with a note that test coverage is excluded and is covered by the separate test coverage
+analysis report.
+
 ## Scoring
 
 Score each dimension from 1 to 10:
@@ -45,7 +52,7 @@ explain the choice briefly. The weights must sum to 100%.
 
 - A concise overview of the code base's overall health.
 - The strongest and weakest areas.
-- A **one-line verdict** (e.g., *"Overall: Fair, with major risks in testing and error handling"*).
+- A **one-line verdict** (e.g., *"Overall: Fair, with major risks in error handling and dependencies"*).
 - The **Overall Weighted Score (1–10)** from the final section.
 
 ### Critical Blockers
@@ -80,19 +87,6 @@ give the **Description**, **Impact**, **Urgency**, and **Cost to Fix** (High/Med
   relies on.
 - Note outdated, unmaintained, or risky dependencies and their upgrade cost.
 - Assess vendor lock-in and fragility against changes in external integrations.
-- **Score (1–10)**
-
-### Test Coverage
-
-- Use the project's coverage data. For Ruby projects with SimpleCov, use the cov-loupe MCP server
-  (`project_coverage`, `file_coverage_summary`, `file_uncovered_lines`) rather than reading resultsets
-  directly or reasoning from scratch; fall back to the `cov-loupe` CLI only if the MCP server is unavailable.
-  If no coverage data exists, say so and assess tests qualitatively.
-- Include a summary table of coverage by component and list the least-covered files.
-- Measure whole-codebase coverage against all production source files, and report files missing from the
-  coverage data. Do not rely only on the aggregate percentage.
-- State which coverage data you used and whether it is current.
-- Rank coverage gaps by risk, highest first, and name the untested critical paths and their consequences.
 - **Score (1–10)**
 
 ### Security & Reliability
@@ -139,7 +133,7 @@ soonest (weigh severity against cost to fix; cheap, high-impact fixes come first
 
 ### High-Level Recommendations
 
-- General strategies for improvement (refactoring, coverage, dependency upgrades, modularization).
+- General strategies for improvement (refactoring, dependency upgrades, modularization).
 - Where incremental change is enough and where larger changes are justified.
 
 ### Suggested Prompts
@@ -158,7 +152,6 @@ Show the weights table and the calculation (score × weight for each dimension, 
 | Code Quality                 | ?     | ?%     | ?        |
 | Build, CI & Release          | ?     | ?%     | ?        |
 | Dependencies                 | ?     | ?%     | ?        |
-| Test Coverage                | ?     | ?%     | ?        |
 | Security & Reliability       | ?     | ?%     | ?        |
 | Documentation                | ?     | ?%     | ?        |
 | Performance & Efficiency     | ?     | ?%     | ?        |
@@ -175,9 +168,6 @@ Replace or delete this section when reusing this prompt in another project.
   (e.g., `networksetup`, `nmcli`). Weight dimensions accordingly.
 - `bundle exec rake test:safe` and `bundle exec rubocop` are safe to run. **Never run real-env tests**
   (`test:read_only`, `test:all`, `test:real[...]`); they touch, and may change, the host's network state.
-- Coverage: use `lib/**/*.rb` as the intended runtime file set. The default run writes
-  `coverage/.resultset.json`; real-env runs write `coverage/.resultset.<os>.json`. Do not count low coverage
-  of OS-specific code against the score when that code targets a different OS from the one the tests ran on.
 - Architecture: assess the platform abstraction (macOS/Ubuntu models) and the cost of adding a platform or
   command.
 - Build & release: include the macOS helper build/release process and the docs build.
