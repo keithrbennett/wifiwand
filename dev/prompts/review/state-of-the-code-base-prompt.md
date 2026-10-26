@@ -19,19 +19,24 @@ cost to fix, and give a high-level strategy for addressing it.
 - Do not invent issues to fill sections. If a section has nothing significant, say so briefly.
 - Only run commands that do not change the host or external systems (e.g., the default test suite, linters).
   Do not run anything that deploys, publishes, migrates real data, or calls paid or production services.
-- Follow the Project-Specific Instructions at the end; they override these general rules where they conflict.
+- Follow the Project-Specific Instructions at the end, if any; they override these general rules where they
+  conflict.
 - If earlier reports of this kind exist in the output directory, compare with the most recent one and note
   what has improved or regressed.
 
 ## Output
 
 Write the report to `untracked/` (create it if needed) unless the Project-Specific Instructions name another
-directory. Name it
-`YYYY-MM-DD-state-of-the-code-base-<agent>.md`, where the date is today's date and `<agent>` is your
-lowercase tool or model family name (e.g. `claude`, `codex`, `gemini`, `zai`).
+directory. Name it `YYYY-MM-DD-HH-MM-SS-state-of-the-code-base-<agent>.md`, where the timestamp is the current
+UTC time to the second and `<agent>` is your lowercase tool or model family name (e.g. `claude`, `codex`,
+`gemini`, `zai`).
 
-Begin the report with a note that test coverage is excluded and is covered by the separate test coverage
-analysis report.
+Begin the report with:
+
+1. The most recent git commit (hash and subject) at the time you begin.
+2. The git-tracked files with staged or unstaged changes, from `git status`, or "None". Ignore untracked
+   files.
+3. A note that test coverage is excluded and is covered by the separate test coverage analysis report.
 
 ## Scoring
 
